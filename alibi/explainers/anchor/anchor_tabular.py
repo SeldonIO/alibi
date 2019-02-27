@@ -3,7 +3,7 @@ from . import anchor_explanation
 import lime
 import lime.lime_tabular
 import numpy as np
-from typing import Callable
+from typing import Callable, Tuple
 
 
 class AnchorTabular(object):
@@ -35,7 +35,7 @@ class AnchorTabular(object):
         self.feature_names = feature_names
         self.categorical_names = categorical_names  # dict with {col: categorical feature options}
     
-    def fit(self, train_data: np.ndarray, discretizer: str = 'quartile'):
+    def fit(self, train_data: np.ndarray, discretizer: str = 'quartile') -> None:
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
         
@@ -75,7 +75,7 @@ class AnchorTabular(object):
             self.std[f] = np.std(train_data[:, f])
 
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
-                          conditions_geq: dict, conditions_leq: dict, num_samples: int):
+                          conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
         """
         Sample data from training set but keep features which are present in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.
@@ -166,7 +166,7 @@ class AnchorTabular(object):
 
         return sample
 
-    def get_sample_fn(self, X: np.ndarray, desired_label: int = None):
+    def get_sample_fn(self, X: np.ndarray, desired_label: int = None) -> Tuple[Callable, dict]:
         """
         Create sampling function and mapping dictionary between categorized data and the feature types and values.
 
@@ -206,7 +206,8 @@ class AnchorTabular(object):
                 idx = len(mapping)
                 mapping[idx] = (f, 'eq', X[f])  # store feature value
 
-        def sample_fn(present: list, num_samples: int, compute_labels: bool = True):
+        def sample_fn(present: list, num_samples: int, compute_labels: bool = True) \
+                -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
             Create sampling function from training data.
 
@@ -267,7 +268,7 @@ class AnchorTabular(object):
                     data[:, i] = (d_raw_data[:, f] > v).astype(int)
 
             # create labels using model predictions as true labels
-            labels = []
+            labels = np.array([])
             if compute_labels:
                 labels = (self.predict_fn(raw_data) == true_label).astype(int)
             return raw_data, data, labels
@@ -275,7 +276,7 @@ class AnchorTabular(object):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, 
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None, 
-                desired_label: int = None, **kwargs: dict):
+                desired_label: int = None, **kwargs: dict) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -323,7 +324,7 @@ class AnchorTabular(object):
         explanation['raw'] = exp.exp_map
         return explanation
 
-    def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict):
+    def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:
         """
         Add feature names to explanation dictionary.
 

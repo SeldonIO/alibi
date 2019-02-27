@@ -2,8 +2,7 @@ from __future__ import print_function
 import numpy as np
 import copy
 import collections
-from typing import Callable
-
+from typing import Callable, Tuple
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
     """
@@ -111,7 +110,7 @@ class AnchorBaseBeam(object):
         return lm
 
     @staticmethod
-    def compute_beta(n_features, t, delta) -> float:
+    def compute_beta(n_features: int, t: int, delta: float) -> float:
         """
         Parameters
         ----------
@@ -120,7 +119,6 @@ class AnchorBaseBeam(object):
         t
             Iteration number
         delta
-
 
         Returns
         -------
@@ -178,7 +176,7 @@ class AnchorBaseBeam(object):
         means = positives / n_samples  # fraction sample predictions equal to desired label
         t = 1
 
-        def update_bounds(t: int):
+        def update_bounds(t: int) -> Tuple[np.ndarray, np.ndarray]:
             """
             Parameters
             ----------

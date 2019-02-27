@@ -20,7 +20,12 @@ setup(name='alibi',
       setup_requires=[
           'pytest-runner'
       ],
-      install_requires=[],
+      install_requires=[
+          'lime',
+          'numpy',
+          'pandas',
+          'sklearn'
+      ],
       tests_require=[
           'pytest',
           'pytest-cov'

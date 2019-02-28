@@ -25,7 +25,7 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
     
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialize the anchor beam search class.
         """

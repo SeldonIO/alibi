@@ -4,7 +4,7 @@ import numpy as np
 
 class AnchorExplanation:
 
-    def __init__(self, exp_type: str, exp_map: dict):
+    def __init__(self, exp_type: str, exp_map: dict) -> None:
         """
         Class used to unpack the anchors and metadata from the explainer dictionary.
 

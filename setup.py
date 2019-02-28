@@ -24,7 +24,7 @@ setup(name='alibi',
           'lime',
           'numpy',
           'pandas',
-          'sklearn'
+          'scikit-learn'
       ],
       tests_require=[
           'pytest',

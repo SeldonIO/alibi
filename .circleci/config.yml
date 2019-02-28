@@ -1,0 +1,40 @@
+version: 2
+
+jobs:
+
+  test:
+    docker:
+      - image: python:3.7
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pip install -r requirements.txt
+      - run:
+          name: Lint code
+          command: make lint
+      - run:
+          name: Run tests
+          command: make test
+
+  build-docs:
+      docker:
+        - image: python:3.7
+      steps:
+        - checkout
+        - run:
+            name: Install dependencies
+            command: pip install -r requirements.txt
+        - run:
+            name: Build docs
+            command: cd doc/ && make html
+        - persist_to_workspace:
+            root: docs/_build
+            paths: html
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - test
+      - build-docs

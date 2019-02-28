@@ -14,6 +14,9 @@ jobs:
           name: Lint code
           command: make lint
       - run:
+          name: Static typechecking
+          command: make mypy
+      - run:
           name: Run tests
           command: make test
 

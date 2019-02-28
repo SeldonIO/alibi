@@ -12,10 +12,10 @@ jobs:
           command: pip install -r requirements.txt
       - run:
           name: Lint code
-          command: flake8
+          command: make lint
       - run:
           name: Run tests
-          command: python setup.py test
+          command: make test
 
   build-docs:
       docker:

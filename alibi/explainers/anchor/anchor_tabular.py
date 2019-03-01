@@ -33,8 +33,8 @@ class AnchorTabular(object):
         self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
-        self.categorical_names = categorical_names  # dict with {col: categorical feature options}
-    
+        self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
+
     def fit(self, train_data: np.ndarray, discretizer: str = 'quartile') -> None:
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
@@ -47,7 +47,7 @@ class AnchorTabular(object):
             Percentiles used for discretization. One of "quartile" or "decile"
         """
         self.train_data = train_data
-        
+
         # quartile or decile discretization of ordinal features
         args = [self.train_data, self.categorical_features, self.feature_names]
         if discretizer == 'quartile':
@@ -272,10 +272,11 @@ class AnchorTabular(object):
             if compute_labels:
                 labels = (self.predict_fn(raw_data) == true_label).astype(int)
             return raw_data, data, labels
+
         return sample_fn, mapping
 
-    def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, 
-                tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None, 
+    def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
+                tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
                 desired_label: int = None, **kwargs: dict) -> dict:
         """
         Explain instance and return anchor with metadata.
@@ -315,7 +316,7 @@ class AnchorTabular(object):
         exp['instance'] = X
         exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
         exp = anchor_explanation.AnchorExplanation('tabular', exp)
-        
+
         # output explanation dictionary
         explanation = {}
         explanation['names'] = exp.names()

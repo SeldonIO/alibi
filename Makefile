@@ -5,7 +5,7 @@ install:
 .PHONY: test
 test:
 	python setup.py test
-	
+
 .PHONY: lint
 lint:
 	flake8 .
@@ -13,3 +13,8 @@ lint:
 .PHONY: mypy
 mypy:
 	mypy .
+
+.PHONY: build_docs
+build_docs:
+	sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
+	$(MAKE) -C doc html

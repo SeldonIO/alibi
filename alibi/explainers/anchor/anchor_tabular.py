@@ -3,7 +3,7 @@ from . import anchor_explanation
 import lime
 import lime.lime_tabular
 import numpy as np
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Dict, Any, Set
 
 
 class AnchorTabular(object):
@@ -38,7 +38,7 @@ class AnchorTabular(object):
     def fit(self, train_data: np.ndarray, discretizer: str = 'quartile') -> None:
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
-        
+
         Parameters
         ----------
         train_data
@@ -64,9 +64,9 @@ class AnchorTabular(object):
         self.categorical_features += self.ordinal_features
 
         # calculate min, max and std for ordinal features in training data
-        self.min = {}
-        self.max = {}
-        self.std = {}
+        self.min = {}  # type: Dict[int, float]
+        self.max = {}  # type: Dict[int, float]
+        self.std = {}  # type: Dict[int, float]
         for f in range(self.train_data.shape[1]):
             if f in self.categorical_features and f not in self.ordinal_features:
                 continue
@@ -192,7 +192,7 @@ class AnchorTabular(object):
 
         # discretize ordinal features of instance to be explained
         # create mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        mapping = {}
+        mapping = {}  # type: Dict[int,Tuple[int, str, float]]
         X = self.disc.discretize(X.reshape(1, -1))[0]
         for f in self.categorical_features:
             if f in self.ordinal_features:
@@ -231,9 +231,9 @@ class AnchorTabular(object):
             """
             # initialize dicts for 'eq', 'leq', 'geq' tuple value from previous mapping
             # key = feature column; value = feature or bin (for ordinal features) value
-            conditions_eq = {}
-            conditions_leq = {}
-            conditions_geq = {}
+            conditions_eq = {}  # type: Dict[int, float]
+            conditions_leq = {}  # type: Dict[int, float]
+            conditions_geq = {}  # type: Dict[int, float]
             for x in present:
                 f, op, v = mapping[x]  # (feature, 'eq'/'leq'/'geq', feature value)
                 if op == 'eq':  # categorical feature
@@ -277,7 +277,7 @@ class AnchorTabular(object):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: dict) -> dict:
+                desired_label: int = None, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -308,10 +308,9 @@ class AnchorTabular(object):
         sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
 
         # get anchors and add metadata
-        exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
-                                                     epsilon=tau, batch_size=batch_size,
-                                                     desired_confidence=threshold,
-                                                     max_anchor_size=max_anchor_size, **kwargs)
+        exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
+                                                     batch_size=batch_size, desired_confidence=threshold,
+                                                     max_anchor_size=max_anchor_size, **kwargs)  # type: Any
         self.add_names_to_exp(exp, mapping)
         exp['instance'] = X
         exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
@@ -341,7 +340,7 @@ class AnchorTabular(object):
         hoeffding_exp['names'] = []
         hoeffding_exp['feature'] = [mapping[idx][0] for idx in idxs]
 
-        ordinal_ranges = {}
+        ordinal_ranges = {}  # type: Dict[int, list]
         for idx in idxs:
             f, op, v = mapping[idx]
             if op == 'geq' or op == 'leq':
@@ -352,7 +351,7 @@ class AnchorTabular(object):
             if op == 'leq':
                 ordinal_ranges[f][1] = min(ordinal_ranges[f][1], v)
 
-        handled = set()
+        handled = set()  # type: Set[int]
         for idx in idxs:
             f, op, v = mapping[idx]
             if op == 'eq':

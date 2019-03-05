@@ -1,3 +1,5 @@
+# flake8: noqa E731
+
 from alibi.explainers import AnchorTabular
 import numpy as np
 import pytest
@@ -13,7 +15,7 @@ def check_iris(predict_type, threshold):
     # define train and test set
     idx = 145
     X_train, Y_train = dataset.data[:idx, :], dataset.target[:idx]
-    X_test, Y_test = dataset.data[idx + 1:, :], dataset.target[idx + 1:]
+    X_test, Y_test = dataset.data[idx + 1:, :], dataset.target[idx + 1:]  # noqa F841
 
     # fit random forest to training data
     np.random.seed(0)

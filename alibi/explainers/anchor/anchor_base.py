@@ -2,7 +2,7 @@ from __future__ import print_function
 import numpy as np
 import copy
 import collections
-from typing import Callable, Tuple, Iterable
+from typing import Callable, Tuple, Set, Dict, Sequence
 
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
@@ -133,7 +133,7 @@ class AnchorBaseBeam(object):
 
     @staticmethod
     def lucb(sample_fns: list, initial_stats: dict, epsilon: float, delta: float, batch_size: int, top_n: int,
-             verbose: bool = False, verbose_every: int = 1) -> Iterable:
+             verbose: bool = False, verbose_every: int = 1) -> Sequence:
         """
         Parameters
         ----------
@@ -252,7 +252,7 @@ class AnchorBaseBeam(object):
         List with tuples of candidate anchors with additional metadata.
         """
         # compute some variables used later on
-        normalize_tuple = lambda x: tuple(sorted(set(x)))
+        normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
         all_features = range(state['n_features'])
         coverage_data = state['coverage_data']
         current_idx = state['current_idx']
@@ -273,7 +273,7 @@ class AnchorBaseBeam(object):
             return tuples
 
         # create new anchors: add a feature to every anchor in current best
-        new_tuples = set()
+        new_tuples = set()  # type: Set[tuple]
         for f in all_features:
             for t in previous_best:
                 new_t = normalize_tuple(t + (f,))
@@ -367,7 +367,7 @@ class AnchorBaseBeam(object):
         stats = {
             'n_samples': [],
             'positives': []
-        }
+        }  # type: Dict[str, list]
         for t in tuples:
             stats['n_samples'].append(state['t_nsamples'][t])
             stats['positives'].append(state['t_positives'][t])
@@ -389,10 +389,10 @@ class AnchorBaseBeam(object):
         """
         # TODO: This is wrong, some of the intermediate anchors may not exist.
         anchor = {'feature': [], 'mean': [], 'precision': [],
-                  'coverage': [], 'examples': [], 'all_precision': 0}
+                  'coverage': [], 'examples': [], 'all_precision': 0}  # type: dict
         anchor['num_preds'] = state['data'].shape[0]
-        normalize_tuple = lambda x: tuple(sorted(set(x)))
-        current_t = tuple()
+        normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
+        current_t = tuple()  # type: tuple
         for f in state['t_order'][t]:
             current_t = normalize_tuple(current_t + (f,))
             mean = (state['t_positives'][current_t] / state['t_nsamples'][current_t])
@@ -446,7 +446,7 @@ class AnchorBaseBeam(object):
             Whether to print intermediate output every verbose_every steps
         stop_on_first
         coverage_samples
-        
+
         Returns
         -------
         Explanation dictionary containing anchors with metadata like coverage and precision.
@@ -507,7 +507,7 @@ class AnchorBaseBeam(object):
                  't_order': collections.defaultdict(lambda: list())
                  }
         current_size = 1
-        best_of_size = {0: []}
+        best_of_size = {0: []}  # type: Dict[int, list]
         best_coverage = -1
         best_tuple = ()
         if max_anchor_size is None:

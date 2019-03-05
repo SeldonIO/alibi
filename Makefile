@@ -21,5 +21,5 @@ build_docs:
 
 .PHONY: clean_docs
 clean_docs:
-	rm -r doc/source/api
 	$(MAKE) -C doc clean
+	rm -r doc/source/api

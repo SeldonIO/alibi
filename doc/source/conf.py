@@ -51,7 +51,14 @@ extensions = [
     'recommonmark',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
+    'sphinxcontrib.apidoc'  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
 ]
+
+# apidoc settings
+apidoc_module_dir = '../../alibi'
+apidoc_output_dir = 'api'
+apidoc_excluded_paths = ['**/*test*']
+apidoc_module_first = True
 
 # Napoleon settings
 napoleon_google_docstring = True

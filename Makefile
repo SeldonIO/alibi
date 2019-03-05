@@ -16,7 +16,7 @@ mypy:
 
 .PHONY: build_docs
 build_docs:
-	sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
+	# sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
 	$(MAKE) -C doc html
 
 .PHONY: clean_docs

@@ -30,7 +30,7 @@ jobs:
             command: pip install -r requirements.txt
         - run:
             name: Build docs
-            command: cd doc/ && make html
+            command: make build_docs
         - persist_to_workspace:
             root: doc/_build
             paths: html

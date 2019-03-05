@@ -18,3 +18,8 @@ mypy:
 build_docs:
 	sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
 	$(MAKE) -C doc html
+
+.PHONY: clean_docs
+clean_docs:
+	rm -r doc/source/api
+	$(MAKE) -C doc clean

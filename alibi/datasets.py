@@ -1,7 +1,37 @@
 import numpy as np
+import os
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from typing import Tuple
+
+
+def movie_sentiment(path: str) -> Tuple[list, list]:
+    """
+    The movie review dataset can be found here:
+        https://www.kaggle.com/nltkdata/sentence-polarity#sentence_polarity.zip.
+    The files need to be extracted to the specified path.
+
+    Parameters
+    ----------
+    path
+        Path where unzipped files live
+
+    Returns
+    -------
+    Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
+    """
+    data = []
+    labels = []
+    f_names = ['rt-polarity.neg', 'rt-polarity.pos']
+    for (l, f) in enumerate(f_names):
+        for line in open(os.path.join(path, f), 'rb'):
+            try:
+                line.decode('utf8')
+            except AttributeError:
+                continue
+            data.append(line.strip())
+            labels.append(l)
+    return data, labels
 
 
 def adult(features_drop: list = ["fnlwgt", "Education-Num"]) -> Tuple[np.ndarray, np.ndarray, list, dict]:

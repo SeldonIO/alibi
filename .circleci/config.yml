@@ -37,8 +37,8 @@ jobs:
         - run:
             name: Install pandoc
             command: |
-            source $HOME/miniconda/bin/activate
-            conda install -c conda-forge pandoc=1.19
+              source $HOME/miniconda/bin/activate
+              conda install -c conda-forge pandoc=1.19
         - run:
             name: Build docs
             command: make build_docs

@@ -31,17 +31,14 @@ jobs:
               wget https://repo.continuum.io/miniconda/Miniconda3-3.7.0-Linux-x86_64.sh -O ~/miniconda.sh
               bash ~/miniconda.sh -b -p $HOME/miniconda
               export PATH="$HOME/miniconda/bin:$PATH"
+              conda create -n docs python=3.7
         - run:
-            name: Install Python dependencies
-            command: pip install -r requirements.txt
-        - run:
-            name: Install pandoc
+            name: Install Python dependencies, pandoc and build docs
             command: |
-              source $HOME/miniconda/bin/activate
+              source $HOME/miniconda/bin/activate docs
+              pip install -r requirements.txt
               conda install -c conda-forge pandoc=1.19
-        - run:
-            name: Build docs
-            command: make build_docs
+              make build_docs
         - persist_to_workspace:
             root: doc/_build
             paths: html

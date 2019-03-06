@@ -51,8 +51,13 @@ extensions = [
     'recommonmark',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
-    'sphinxcontrib.apidoc'  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
+    'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
+    'nbsphinx',
+    'nbsphinx_link',  # for linking notebooks from outside sphinx source root
 ]
+
+# nbsphinx settings
+nbsphinx_execute = 'auto'
 
 # apidoc settings
 apidoc_module_dir = '../../alibi'
@@ -217,3 +222,45 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# from https://github.com/vidartf/nbsphinx-link/blob/master/docs/source/conf.py
+
+# Ensure env.metadata[env.docname]['nbsphinx-link-target']
+# points relative to repo root:
+import os
+here = os.path.dirname(__file__)
+repo = os.path.join(here, '..', '..')
+nbsphinx_link_target_root = repo
+
+# from https://github.com/vidartf/nbsphinx-link/blob/master/docs/source/conf.py for custom tags
+import subprocess
+try:
+   git_rev = subprocess.check_output(['git', 'describe', '--exact-match', 'HEAD'], universal_newlines=True)
+except subprocess.CalledProcessError:
+   try:
+       git_rev = subprocess.check_output(['git', 'rev-parse', 'HEAD'], universal_newlines=True)
+   except subprocess.CalledProcessError:
+       git_rev = ''
+if git_rev:
+   git_rev = git_rev.splitlines()[0] + '/'
+
+nbsphinx_prolog = (
+r"""
+{% if env.metadata[env.docname]['nbsphinx-link-target'] %}
+{% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
+{% else %}
+{% set docpath = env.doc2path(env.docname, base='docs/source/') %}
+{% endif %}
+
+.. only:: html
+
+    .. role:: raw-html(raw)
+        :format: html
+    
+    .. nbinfo::
+        This page was generated from `{{ docpath }}`__.
+    
+    __ https://github.com/SeldonIO/alibi/blob/
+        """ +
+git_rev + r"{{ docpath }}"
+)

@@ -7,7 +7,15 @@ Welcome to alibi's documentation!
 =================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+   :caption: Examples
+
+   examples/anchor_adult
+   examples/anchor_iris
+
+.. toctree::
+   :maxdepth: 1
+   :caption: API reference
 
    API reference <api/modules>
 

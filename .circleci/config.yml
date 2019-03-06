@@ -26,8 +26,11 @@ jobs:
       steps:
         - checkout
         - run:
-            name: Install dependencies
+            name: Install Python dependencies
             command: pip install -r requirements.txt
+        - run:
+            name: Install pandoc
+            command: conda install -c conda-forge pandoc=1.19
         - run:
             name: Build docs
             command: make build_docs

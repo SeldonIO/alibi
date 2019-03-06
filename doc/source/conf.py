@@ -57,7 +57,7 @@ extensions = [
 ]
 
 # nbsphinx settings
-nbsphinx_execute = 'never'
+nbsphinx_execute = 'auto'
 
 # apidoc settings
 apidoc_module_dir = '../../alibi'

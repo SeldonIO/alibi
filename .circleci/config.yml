@@ -22,7 +22,7 @@ jobs:
 
   build-docs:
       docker:
-        - image: python:3.7
+        - image: continuumio/miniconda3
       steps:
         - checkout
         - run:

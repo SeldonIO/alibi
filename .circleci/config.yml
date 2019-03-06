@@ -40,7 +40,7 @@ jobs:
               pip install -r requirements/requirements_ci.txt -r requirements/requirements.txt
               conda install -c conda-forge pandoc=1.19
               make install
-        -run:
+        - run:
             name: Build docs
             command: |
               source $HOME/miniconda/bin/activate docs

@@ -9,7 +9,7 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: pip install -r requirements.txt
+          command: pip install -r requirements/requirements_ci.txt
       - run:
           name: Lint code
           command: make lint
@@ -37,7 +37,7 @@ jobs:
             name: Install Python dependencies, pandoc and build docs
             command: |
               source $HOME/miniconda/bin/activate docs
-              pip install -r requirements.txt
+              pip install -r requirements/requirements_ci.txt -r requirements/requirements.txt
               conda install -c conda-forge pandoc=1.19
               make build_docs
         - persist_to_workspace:

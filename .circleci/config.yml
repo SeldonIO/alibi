@@ -34,11 +34,16 @@ jobs:
               conda update conda
               conda create -n docs python=3.7
         - run:
-            name: Install Python dependencies, pandoc and build docs
+            name: Install Python dependencies, pandoc and alibi
             command: |
               source $HOME/miniconda/bin/activate docs
               pip install -r requirements/requirements_ci.txt -r requirements/requirements.txt
               conda install -c conda-forge pandoc=1.19
+              make install
+        -run:
+            name: Build docs
+            command: |
+              source $HOME/miniconda/bin/activate docs
               make build_docs
         - persist_to_workspace:
             root: doc/_build

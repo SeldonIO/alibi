@@ -26,15 +26,16 @@ We are now ready to build the docs:
 `make html`
 
 Note this can take some time as some of the notebooks may be executed
-during the build process.
+during the build process. The resulting documentation is located in the
+`_build` directory with `_build/html/index.html` marking the homepage.
 
 ## Sphinx extensions and plugins
 We use various Sphinx extensions and plugins to build the documentation:
- * `recommonmark` - to handle both `.rst` and `.md`
- * `sphinx.ext.napoleon` - support extracting Numpy style doctrings for API doc generation
- * `sphinx_autodoc_typehints` - support parsing of typehints for API doc generation
- * `sphinxcontrib.apidoc` - automatic running of `sphinx-apidoc` during the build to document API
- * `nbsphinx` - parsing Jupyter notebooks to generate static documentation
- * `nbsphinx_link` - support linking to notebooks outside of Sphinx source directory via `.nblink` files
+ * [recommonmark](https://recommonmark.readthedocs.io) - to handle both `.rst` and `.md`
+ * [sphinx.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html) - support extracting Numpy style doctrings for API doc generation
+ * [sphinx_autodoc_typehints](https://github.com/agronholm/sphinx-autodoc-typehints) - support parsing of typehints for API doc generation
+ * [sphinxcontrib.apidoc](https://github.com/sphinx-contrib/apidoc) - automatic running of [sphinx-apidoc](https://www.sphinx-doc.org/en/master/man/sphinx-apidoc.html) during the build to document API
+ * [nbsphinx](https://nbsphinx.readthedocs.io) - parsing Jupyter notebooks to generate static documentation
+ * [nbsphinx_link](https://nbsphinx-link.readthedocs.io) - support linking to notebooks outside of Sphinx source directory via `.nblink` files
 
 The full list of plugins and their options can be found in `source/conf.py`.

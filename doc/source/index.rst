@@ -10,8 +10,9 @@ Welcome to alibi's documentation!
    :maxdepth: 1
    :caption: Examples
 
-   examples/anchor_adult
-   examples/anchor_iris
+   examples/anchor_tabular_adult
+   examples/anchor_tabular_iris
+   examples/anchor_text_movie
 
 .. toctree::
    :maxdepth: 1

@@ -1,36 +1,35 @@
+from io import BytesIO
 import numpy as np
-import os
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+import tarfile
 from typing import Tuple
+from urllib.request import urlopen
 
 
-def movie_sentiment(path: str) -> Tuple[list, list]:
+def movie_sentiment() -> Tuple[list, list]:
     """
-    The movie review dataset can be found here:
-        https://www.kaggle.com/nltkdata/sentence-polarity#sentence_polarity.zip.
-    The files need to be extracted to the specified path.
-
-    Parameters
-    ----------
-    path
-        Path where unzipped files live
+    The movie review dataset, equally split between negative and positive reviews.
 
     Returns
     -------
     Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
     """
+    url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
+    resp = urlopen(url)
+    tar = tarfile.open(fileobj=BytesIO(resp.read()), mode="r:gz")
     data = []
     labels = []
-    f_names = ['rt-polarity.neg', 'rt-polarity.pos']
-    for (l, f) in enumerate(f_names):
-        for line in open(os.path.join(path, f), 'rb'):
+    for i, member in enumerate(tar.getnames()[1:]):
+        f = tar.extractfile(member)
+        for line in f.readlines():
             try:
                 line.decode('utf8')
-            except AttributeError:
+            except UnicodeDecodeError:
                 continue
-            data.append(line.strip())
-            labels.append(l)
+            data.append(line.decode('utf8').strip())
+            labels.append(i)
+    tar.close()
     return data, labels
 
 

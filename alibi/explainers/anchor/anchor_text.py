@@ -57,7 +57,7 @@ class Neighbors(object):
 
 class AnchorText(object):
 
-    def __init__(self, nlp, predict_fn: Callable) -> None:
+    def __init__(self, nlp: Any, predict_fn: Callable) -> None:
         """
         Initialize anchor text explainer.
 
@@ -115,7 +115,7 @@ class AnchorText(object):
         positions = [x.idx for x in processed]  # positions of words in text
 
         def sample_fn(present: list, num_samples: int, compute_labels: bool = True,
-                      sample_prob: float = 0.5, top_n: int = 100) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+                      sample_prob_unk: float = 0.5, top_n: int = 500) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
             Create sampling function using similar words in the embedding space.
 
@@ -127,7 +127,7 @@ class AnchorText(object):
                 Number of samples used when sampling from the corpus
             compute_labels
                 Boolean whether to use labels coming from model predictions as 'true' labels
-            sample_prob
+            sample_prob_unk
                 Sample probability for UNKs
             top_n
                 Sample using only top_n instances from similar words in the corpus
@@ -152,7 +152,7 @@ class AnchorText(object):
                         continue
 
                     # sample the words in the text outside of the anchor that are replaced with UNKs
-                    n_changed = np.random.binomial(num_samples, sample_prob)
+                    n_changed = np.random.binomial(num_samples, sample_prob_unk)
                     changed = np.random.choice(num_samples, n_changed, replace=False)
                     raw[changed, i] = 'UNK'
                     data[changed, i] = 0
@@ -208,11 +208,23 @@ class AnchorText(object):
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,
                                                          use_proba=use_proba, use_unk=use_unk)
 
+        # get max perturbed sample sentence length
+        total_len = 0
+        for word in words:
+            self.neighbors.neighbors(word)
+            similar_words = self.neighbors.n[word]
+            max_len = 0
+            for similar_word in similar_words:
+                max_len = max(max_len, len(similar_word[0]))
+            total_len += max_len + 1
+        data_type = '<U' + str(int(total_len))
+
         # get anchors and add metadata
         exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
                                                      epsilon=tau, batch_size=batch_size,
                                                      desired_confidence=threshold,
-                                                     stop_on_first=True, **kwargs)  # type: Any
+                                                     stop_on_first=True, data_type=data_type,
+                                                     **kwargs)  # type: Any
 
         exp['names'] = [words[x] for x in exp['feature']]
         exp['positions'] = [positions[x] for x in exp['feature']]

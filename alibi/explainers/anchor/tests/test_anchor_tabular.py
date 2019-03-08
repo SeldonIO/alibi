@@ -7,7 +7,9 @@ from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 
 
-def check_iris(predict_type, threshold):
+@pytest.mark.parametrize('predict_type', ('proba', 'class'))
+@pytest.mark.parametrize('threshold', (0.9, 0.95))
+def test_iris(predict_type, threshold):
     # load iris dataset
     dataset = load_iris()
     feature_names = dataset.feature_names
@@ -59,9 +61,3 @@ def check_iris(predict_type, threshold):
     explanation = explainer.explain(X_test[0], threshold=threshold)
     assert explanation['precision'] >= threshold
     assert explanation['coverage'] >= 0.05
-
-
-@pytest.mark.parametrize('predict_type', ('proba', 'class'))
-@pytest.mark.parametrize('threshold', (0.9, 0.95))
-def test_iris(predict_type, threshold):
-    check_iris(predict_type, threshold)

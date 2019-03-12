@@ -1,7 +1,10 @@
 from . import anchor_base
 from . import anchor_explanation
+import logging
 import numpy as np
 from typing import Any, Callable, Tuple, Dict
+
+logger = logging.getLogger(__name__)
 
 
 class Neighbors(object):
@@ -204,18 +207,25 @@ class AnchorText(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        if use_unk and use_proba:
+            logger.warning('"use_unk" and "use_proba" args should not both be True. Defaults to "use_unk" behaviour.')
+
         # get the words and positions of words in the text instance and sample function
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,
                                                          use_proba=use_proba, use_unk=use_unk)
 
         # get max perturbed sample sentence length
+        # needed to set dtype of array later and ensure the full text is used
         total_len = 0
         for word in words:
-            self.neighbors.neighbors(word)
-            similar_words = self.neighbors.n[word]
-            max_len = 0
-            for similar_word in similar_words:
-                max_len = max(max_len, len(similar_word[0]))
+            if use_unk:
+                max_len = max(3, len(word))  # len('UNK') = 3
+            else:
+                self.neighbors.neighbors(word)
+                similar_words = self.neighbors.n[word]
+                max_len = 0
+                for similar_word in similar_words:
+                    max_len = max(max_len, len(similar_word[0]))
             total_len += max_len + 1
         data_type = '<U' + str(int(total_len))
 

@@ -1,7 +1,36 @@
+from io import BytesIO
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+import tarfile
 from typing import Tuple
+from urllib.request import urlopen
+
+
+def movie_sentiment() -> Tuple[list, list]:
+    """
+    The movie review dataset, equally split between negative and positive reviews.
+
+    Returns
+    -------
+    Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
+    """
+    url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
+    resp = urlopen(url)
+    tar = tarfile.open(fileobj=BytesIO(resp.read()), mode="r:gz")
+    data = []
+    labels = []
+    for i, member in enumerate(tar.getnames()[1:]):
+        f = tar.extractfile(member)
+        for line in f.readlines():
+            try:
+                line.decode('utf8')
+            except UnicodeDecodeError:
+                continue
+            data.append(line.decode('utf8').strip())
+            labels.append(i)
+    tar.close()
+    return data, labels
 
 
 def adult(features_drop: list = ["fnlwgt", "Education-Num"]) -> Tuple[np.ndarray, np.ndarray, list, dict]:

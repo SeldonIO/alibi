@@ -296,7 +296,7 @@ class AnchorBaseBeam(object):
         return list(new_tuples)
 
     @staticmethod
-    def get_sample_fns(sample_fn: Callable, tuples: list, state: dict) -> list:
+    def get_sample_fns(sample_fn: Callable, tuples: list, state: dict, data_type: str = None) -> list:
         """
         Parameters
         ----------
@@ -306,12 +306,13 @@ class AnchorBaseBeam(object):
             List of anchor candidates
         state
             Dictionary with the relevant metrics like coverage and samples for candidate anchors
+        data_type
+            Data type for raw data
 
         Returns
         -------
         List with sample functions for each candidate anchor.
         """
-
         def complete_sample_fn(t: tuple, n: int) -> int:
             """
             Parameters
@@ -339,8 +340,9 @@ class AnchorBaseBeam(object):
                 prealloc_size = state['prealloc_size']
                 current_idx = data.shape[0]
                 state['data'] = np.vstack((state['data'], np.zeros((prealloc_size, data.shape[1]), data.dtype)))
+                dtype = data_type if data_type is not None else raw_data.dtype
                 state['raw_data'] = np.vstack((state['raw_data'], np.zeros((prealloc_size, raw_data.shape[1]),
-                                                                           raw_data.dtype)))
+                                                                           dtype=dtype)))
                 state['labels'] = np.hstack((state['labels'], np.zeros(prealloc_size, labels.dtype)))
             return labels.sum()
 
@@ -417,10 +419,10 @@ class AnchorBaseBeam(object):
 
     @staticmethod
     def anchor_beam(sample_fn: Callable, delta: float = 0.05, epsilon: float = 0.1, batch_size: int = 10,
-                    desired_confidence: float = 1, beam_size: int = 1,
-                    verbose: bool = False, epsilon_stop: float = 0.05, min_samples_start: int = 0,
-                    max_anchor_size: int = None, verbose_every: int = 1,
-                    stop_on_first: bool = False, coverage_samples: int = 10000) -> dict:
+                    desired_confidence: float = 1, beam_size: int = 1, verbose: bool = False,
+                    epsilon_stop: float = 0.05, min_samples_start: int = 0, max_anchor_size: int = None,
+                    verbose_every: int = 1, stop_on_first: bool = False, coverage_samples: int = 10000,
+                    data_type: str = None) -> dict:
         """
         Parameters
         ----------
@@ -446,6 +448,8 @@ class AnchorBaseBeam(object):
             Whether to print intermediate output every verbose_every steps
         stop_on_first
         coverage_samples
+        data_type
+            Data type for raw data
 
         Returns
         -------
@@ -489,7 +493,8 @@ class AnchorBaseBeam(object):
         prealloc_size = batch_size * 10000
         current_idx = data.shape[0]
         data = np.vstack((data, np.zeros((prealloc_size, data.shape[1]), data.dtype)))
-        raw_data = np.vstack((raw_data, np.zeros((prealloc_size, raw_data.shape[1]), raw_data.dtype)))
+        dtype = data_type if data_type is not None else raw_data.dtype
+        raw_data = np.vstack((raw_data, np.zeros((prealloc_size, raw_data.shape[1]), dtype=dtype)))
         labels = np.hstack((labels, np.zeros(prealloc_size, labels.dtype)))
         n_features = data.shape[1]
         state = {'t_idx': collections.defaultdict(lambda: set()),
@@ -531,7 +536,7 @@ class AnchorBaseBeam(object):
             # these functions sample randomly for all features except for the ones in the candidate anchors
             # for the features in the anchor it uses the same category (categorical features) or samples from ...
             # ... the same bin (discretized numerical features) as the feature in the observation that is explained
-            sample_fns = AnchorBaseBeam.get_sample_fns(sample_fn, tuples, state)
+            sample_fns = AnchorBaseBeam.get_sample_fns(sample_fn, tuples, state, data_type=dtype)
 
             # for each tuple, get initial nb of samples used and prec(A)
             initial_stats = AnchorBaseBeam.get_initial_statistics(tuples, state)
@@ -606,7 +611,7 @@ class AnchorBaseBeam(object):
             tuples = []
             for i in range(0, current_size):
                 tuples.extend(best_of_size[i])
-            sample_fns = AnchorBaseBeam.get_sample_fns(sample_fn, tuples, state)
+            sample_fns = AnchorBaseBeam.get_sample_fns(sample_fn, tuples, state, data_type=dtype)
             initial_stats = AnchorBaseBeam.get_initial_statistics(tuples, state)
             chosen_tuples = AnchorBaseBeam.lucb(sample_fns, initial_stats, epsilon,
                                                 delta, batch_size, 1, verbose=verbose)

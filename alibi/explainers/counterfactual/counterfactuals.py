@@ -1,6 +1,6 @@
 from scipy.optimize import minimize
 from time import time
-from base import BaseCounterFactual
+from .base import BaseCounterFactual
 #from scipy.spatial.distance import cityblock
 import numpy as np
 from statsmodels import robust
@@ -303,7 +303,8 @@ class CounterFactualRandomSearch(BaseCounterFactual):
                 self.features_values_diff = cf_instance.flatten() - X.flatten()
                 self.l1_distance = self._metric_distance(cf_instance.flatten(), X.flatten())
 
-            self.epsilon += self.epsilon_step3            if self.epsilon >= self.max_epsilon:
+            self.epsilon += self.epsilon_step
+            if self.epsilon >= self.max_epsilon:
                 break
 
         if self.explaning_instance is None:

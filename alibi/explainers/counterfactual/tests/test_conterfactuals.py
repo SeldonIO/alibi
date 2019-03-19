@@ -19,14 +19,14 @@ def test_iris_adversarial():
     x = X[:1]
     cf = CounterFactualAdversarialSearch(clf)
     cf.fit(X_train=X)
+
     assert hasattr(cf, 'f_ranges')
     assert hasattr(cf, 'mads')
-
     assert len(cf.f_ranges) == x.shape[1]
     assert len(cf.mads) == x.shape[1]
 
     expl = cf.explain(x)
-    assert (expl.shape[1] == x.shape[1]), 'different shapes. expl shape: {}, x shape: {}'.format(expl.shape, x.shape)
+    assert (expl.shape[1:] == x.shape[1:]), 'different shapes. expl shape: {}, x shape: {}'.format(expl.shape, x.shape)
 
 
 def test_iris_randomsearch():

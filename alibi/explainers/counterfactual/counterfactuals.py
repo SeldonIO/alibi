@@ -1,6 +1,6 @@
 from scipy.optimize import minimize
 from time import time
-from .base import BaseCounterFactual
+from base import BaseCounterFactual
 #from scipy.spatial.distance import cityblock
 import numpy as np
 from statsmodels import robust
@@ -188,7 +188,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
     """
 
     def __init__(self, model, sampling_method='poisson', epsilon=0.1, epsilon_step=0.1, max_epsilon=5,
-                 nb_samples=100, metric='l1_distance', aggregate_by='closest'):
+                 nb_samples=100, metric='l1_distance', aggregate_by='closest', verbose=False):
         """
 
         Parameters
@@ -215,7 +215,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         super().__init__(model=model, sampling_method=sampling_method, epsilon=epsilon, epsilon_step=epsilon_step,
                          max_epsilon=max_epsilon, nb_samples=nb_samples, metric=metric, flip_treshold=None,
                          aggregate_by=aggregate_by, method=None, tollerance=None, maxiter=None,
-                         initial_lam=None, lam_step=None, max_lam=None)
+                         initial_lam=None, lam_step=None, max_lam=None, verbose=verbose)
 
     def fit(self, X_train, y_train=None):
         """
@@ -251,21 +251,21 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         pred_class = np.argmax(probas_x, axis=1)[0]
         max_proba_x = probas_x[:, pred_class]
         cond = False
-
+        centre = X
         # find counterfactual instance with random sampling method
         while not cond:
             rs = _calculate_radius(f_ranges=self.f_ranges , epsilon=self.epsilon)
 
             if self.sampling_method=='uniform':
-                samples_in = _reshape_X(_generate_rnd_samples(X, rs, self.nb_samples))
+                samples_in = _reshape_X(_generate_rnd_samples(centre, rs, self.nb_samples))
             elif self.sampling_method=='poisson':
-                samples_in = _reshape_X(_generate_poisson_samples(X, self.nb_samples))
+                samples_in = _reshape_X(_generate_poisson_samples(centre, self.nb_samples))
             elif self.sampling_method=='gaussian':
-                samples_in = _reshape_X(_generate_gaussian_samples(X, rs, self.nb_samples))
+                samples_in = _reshape_X(_generate_gaussian_samples(centre, rs, self.nb_samples))
             else:
                 raise NameError('method {} not implemented'.format(self.sampling_method))
 
-            probas_si = _predict(self.model, samples_in.reshape((samples_in.shape[0],) + X.shape[1:]))
+            probas_si = _predict(self.model, samples_in.reshape((samples_in.shape[0],) + centre.shape[1:]))
             pred_classes = np.argmax(probas_si, axis=1)
             unique, counts = np.unique(pred_classes, return_counts=True)
             majority_class = unique[np.argmax(counts)]
@@ -275,6 +275,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
                 cond = (pred_classes != pred_class).any()
             elif self.aggregate_by == 'mean':
                 cond = (majority_class != pred_class)
+
             if cond:
                 samples_flip = samples_in[np.where(pred_classes != pred_class)]
                 distances = [self._metric_distance(samples_flip[i], X.flatten()) for i in range(len(samples_flip))]
@@ -316,8 +317,8 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 class CounterFactualAdversarialSearch(BaseCounterFactual):
     """
     """
-    def __init__(self, model, method='OuterBoundary', tollerance=0, maxiter=300,
-                 initial_lam=1, lam_step=0.5, max_lam=10, metric='mad_distance', flip_treshold=0.5):
+    def __init__(self, model, method='OuterBoundary', target_probability=0.5, tollerance=0, maxiter=300, initial_lam=0,
+                 lam_step=0.1, max_lam=1, metric='mad_distance', optimizer=None, flip_treshold=0.5, verbose=False):
         """
 
         Parameters
@@ -343,12 +344,13 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
         flip_treshold
             probability at which the predicted class is considered flipped (e.g. 0.5 for binary classification)
         """
-        super().__init__(model=model, sampling_method=None, epsilon=None, epsilon_step=None,
+        super().__init__(model=model, target_probability=target_probability,
+                         sampling_method=None, epsilon=None, epsilon_step=None, optimizer=optimizer,
                          max_epsilon=None, nb_samples=None, metric=metric, aggregate_by=None,
                          method=method, tollerance=tollerance, flip_treshold=flip_treshold,
-                         initial_lam=initial_lam, lam_step=lam_step, max_lam=max_lam, maxiter=maxiter)
+                         initial_lam=initial_lam, lam_step=lam_step, max_lam=max_lam, maxiter=maxiter, verbose=verbose)
 
-    def fit(self, X_train, y_train=None):
+    def fit(self, X_train, y_train=None, dataset_sample_size=5000):
         """
 
         Parameters
@@ -362,16 +364,18 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
         -------
         None
         """
+        self._lam = self.lam
         self.f_ranges = _calculate_franges(X_train)
         self.mads = robust.mad(X_train, axis=0)+10e-10
-        #self._norm = 1/np.abs(X_train - np.roll(X_train, 1, axis=0)).sum(axis=1).max()
-        _samples=np.random.permutation(X_train)[:2000]
-        _distances = []
-        for i in range(_samples.shape[0]):
-            _distances.append(self._metric_distance(_samples[i], np.roll(_samples, 1, axis=0)[i]))
+        if dataset_sample_size is not None:
+            self._samples = np.random.permutation(X_train)[:dataset_sample_size]
+        else:
+            self._samples = X_train
+        _distances = [self._metric_distance(self._samples[i], np.roll(self._samples, 1, axis=0)[i])
+                      for i in range(self._samples.shape[0])]
         self._norm = 1.0/max(_distances)
 
-    def explain(self, X):
+    def explain(self, X, nb_instances=2, return_as='all'):
         """
 
         Parameters
@@ -387,105 +391,67 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
         """
         probas_x = _predict(self.model, X)
         pred_class = np.argmax(probas_x, axis=1)[0]
+        print(pred_class)
         max_proba_x = probas_x[:, pred_class]
-        cond = False
 
-        if self.method == 'Wachter' or self.method == 'OuterBoundary':
-            classes_tmp = [i for i in range(probas_x.shape[1]) if i != pred_class]
-            rs = _calculate_radius(f_ranges=self.f_ranges, epsilon=1)
-            initial_instance = _generate_rnd_samples(X, rs, 1)
-            initial_instance = _reshape_X(initial_instance)[0]
+        cf_instances={'idx': [], 'vector': [], 'distance_from_orig': []}
+        for i in range(nb_instances):
+            if self.method == 'Wachter' or self.method == 'OuterBoundary':
+                cond = False
+                _maxiter = self._maxiter
+                initial_instance = np.random.permutation(self._samples)[0]
 
-            def _countefactual_loss(x, classes=classes_tmp, XX=X.flatten(), lam=self.lam, yy=self.flip_treshold):
-                pred_tmp = _predict(self.model, x.reshape(X.shape))[:, classes].max()
-                loss_0 = lam*(pred_tmp - yy)**2
-                loss_1 = self._norm*self._metric_distance(x, XX)
-                print(loss_0, loss_1)
-                return loss_0+loss_1
+                def _countefactual_loss(x, XX=X.flatten(), pc=pred_class):
+                    pred_tmp = _predict(self.model, x.reshape(X.shape))[:, pc]
+                    loss_0 = self._lam*(pred_tmp - self.target_probability)**2
+                    loss_1 = (1-self._lam)*self._norm*self._metric_distance(x, XX)
+                    #print(loss_0,loss_1,self._lam)
+                    return loss_0+loss_1
 
-            def _contrains_diff(x, classes=classes_tmp, yy=self.flip_treshold, tollerance=self.tollerance):
-                pred_tmp = _predict(self.model, x.reshape(X.shape))[:, classes].max()
-                return -((pred_tmp - yy)**2) + tollerance
+                def _contrains_diff(x, pc=pred_class):
+                    pred_tmp = _predict(self.model, x.reshape(X.shape))[:, pc]
+                    return -(abs(pred_tmp - self.target_probability)) + self.tollerance
 
-            def _contrains_pos(x, classes=classes_tmp, yy=self.flip_treshold):
-                pred_tmp = _predict(self.model, x.reshape(X.shape))[:, classes].max()
-                return pred_tmp - yy
+                t_0 = time()
 
-            t_0 = time()
+                while not cond :
+                    print('Starting minimization with Lambda = {}'.format(self._lam))
+                    cons = ({'type': 'ineq', 'fun': _contrains_diff})
+                    res = minimize(_countefactual_loss, initial_instance, constraints=cons,
+                                   method=self.optimizer, options={'maxiter': _maxiter})
 
-            while not cond :
-                print('Starting minimization with Lambda = {}'.format(self.lam))
-                cons = ({'type': 'ineq', 'fun': _contrains_diff},
-                        {'type': 'ineq', 'fun': _contrains_pos})
-                res = minimize(_countefactual_loss, initial_instance, constraints=cons,
-                               method='COBYLA', options={'maxiter': self._maxiter})
+                    probas_exp = _predict(self.model, res.x.reshape(X.shape))
+                    pred_class_exp = np.argmax(probas_exp, axis=1)[0]
+                    max_proba_exp = probas_exp[:, pred_class_exp]
+                    probas_original = probas_exp[:, pred_class]
+                    cond = _contrains_diff(res.x) >= 0
+                    if self.verbose:
+                        print('Loss:', res.fun)
+                        print('Constrain fullfilled:', cond)
+                    initial_instance = res.x
+                    print(_maxiter)
 
-                probas_exp = _predict(self.model, res.x.reshape(X.shape))
-                pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-                max_proba_exp = probas_exp[:, pred_class_exp]
-                cond = _contrains_diff(res.x)
-                initial_instance = res.x
+                    self._lam += self.lam_step
+                    if _maxiter > self._maxiter:
+                        self._lam = self.lam
+                        break
+                    if self._lam > self.max_lam - self.lam_step:
+                        _maxiter = 2*self._maxiter
 
-                self.lam += self.lam_step
-                if self.lam >= self.max_lam:
-                    break
+                print('Minimization time: ', time() - t_0)
+                cf_instances['idx'].append(i)
+                cf_instances['vector'].append(res.x.reshape(X.shape))
+                cf_instances['distance_from_orig'].append(self._metric_distance(res.x, X.flatten()))
+                if self.verbose:
+                    print('Counterfactual instance {} of {} generated'.format(i, nb_instances-1))
+                    print('Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
+                    print('Countfact instance original class probability: {}'.format(probas_original))
+                    print('Countfact instance predicted class: {} with probability {}:'.format(pred_class_exp, max_proba_exp))
+                    print('Original instance shape', X.shape)
+                    #print('Countfact instance shape', self.explaning_instance.shape)
+                    #print('L1 distance from X', self._metric_distance(self.explaning_instance.flatten(), X.flatten()))
 
-            print('Minimization time: ', time() - t_0)
-            self.explaning_instance = res.x.reshape(X.shape)
+        self.cf_instaces = cf_instances
 
-            #probas_exp = _predict(self.model, np.asarray(self.explaning_instance).reshape(X.shape))
-
-            #pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-            #max_proba_exp = probas_exp[:, pred_class_exp]
-
-            print('Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
-            print('Countfact instance predicted class: {} with probability {}:'.format(pred_class_exp, max_proba_exp))
-            print('Original instance shape', X.shape)
-            print('Countfact instance shape', self.explaning_instance.shape)
-            print('L1 distance from X', self._metric_distance(self.explaning_instance.flatten(), X.flatten()))
-
-        elif self.method == 'InnerBoundary':
-            # find counterfactual instance with loss minimization method
-            rs = _calculate_radius(f_ranges=self.f_ranges, epsilon=1)
-            initial_instance = _generate_rnd_samples(X, rs, 1)
-            initial_instance = _reshape_X(initial_instance)[0]
-
-            def _countefactual_loss(x, XX=X.flatten(), lam=self.lam, yy=max_proba_x):
-                preds_tmp = _predict(self.model , x.reshape(X.shape))[:, pred_class]
-                return lam*(preds_tmp - yy)**2 + self._metric_distance(x, XX)
-
-            def _contrains_diff(x, yy=max_proba_x, tollerance=self.tollerance):
-                return (_predict(self.model, x.reshape(X.shape))[:, pred_class] - yy) ** 2 <= tollerance
-
-            t_0 = time()
-
-            while not cond :
-                print('Starting minimization with Lambda = {}'.format(self.lam))
-                cons = ({'type': 'ineq', 'fun': _contrains_diff})
-                res = minimize(_countefactual_loss, initial_instance, method='COBYLA', constraints=cons)
-
-                probas_exp = _predict(self.model, res.x.reshape(X.shape))
-                pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-                max_proba_exp = probas_exp[:, pred_class_exp]
-                cond = _contrains_diff(res.x)
-                initial_instance = res.x
-
-                self.lam += self.lam_step
-                if self.lam >= self.max_lam:
-                    break
-
-            print('Minimization time: ', time() - t_0)
-            self.explaning_instance = res.x.reshape(X.shape)
-
-            #probas_exp = _predict(self.model, np.asarray(self.explaning_instance).reshape(X.shape))
-
-            #pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-            #max_proba_exp = probas_exp[:, pred_class_exp]
-
-            print('Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
-            print('Countfact instance predicted class: {} with probability {}:'.format(pred_class_exp, max_proba_exp))
-            print('Original instance shape', X.shape)
-            print('Countfact instance shape', self.explaning_instance.shape)
-            print('L1 distance from X', self._metric_distance(self.explaning_instance.flatten(), X.flatten()))
-
-        return self.explaning_instance
+        if return_as=='all':
+            return self.cf_instaces

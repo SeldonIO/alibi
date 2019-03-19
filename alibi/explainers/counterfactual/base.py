@@ -24,10 +24,12 @@ class BaseCounterFactual(object):
 
     @abstractmethod
     def __init__(self, model: object, sampling_method: Union[str, None], method: Union[str, None],
-                 epsilon: Union[float, None], epsilon_step: Union[float, None], max_epsilon: Union[float, None],
-                 nb_samples: Union[int, None], metric: Union[str, callable], flip_treshold: [float, None],
+                 target_probability: Union[float, None], epsilon: Union[float, None], epsilon_step: Union[float, None],
+                 max_epsilon: Union[float, None], nb_samples: Union[int, None], optimizer: Union[str, None],
+                 metric: Union[str, callable], flip_treshold: [float, None],
                  aggregate_by: Union[str, None], tollerance: Union[float, None], maxiter: Union[int, None],
-                 initial_lam: Union[float, None], lam_step: Union[float, None], max_lam: Union[float, None]) -> None:
+                 initial_lam: Union[float, None], lam_step: Union[float, None], max_lam: Union[float, None],
+                 verbose: bool) -> None:
         """
 
         Parameters
@@ -50,11 +52,13 @@ class BaseCounterFactual(object):
         """
 
         self.model = model
+        self.target_probability = target_probability
         self.sampling_method = sampling_method
         self.epsilon = epsilon
         self.epsilon_step = epsilon_step
         self.max_epsilon = max_epsilon
         self.nb_samples = nb_samples
+        self.optimizer = optimizer
         self.callable_distance = metric
         self.flip_treshold = flip_treshold
         self.aggregate_by = aggregate_by
@@ -66,6 +70,7 @@ class BaseCounterFactual(object):
         self.max_lam = max_lam
         self.callable_distance = metric
         self.explaning_instance = None
+        self.verbose = verbose
 
     @abstractmethod
     def fit(self, X_train: np.array, y_train: np.array) -> None:
@@ -95,9 +100,9 @@ class BaseCounterFactual(object):
         distance: float
         """
         if isinstance(self.callable_distance, str):
-            if self.callable_distance=='l1_distance':
+            if self.callable_distance == 'l1_distance':
                 self.callable_distance = cityblock
-            elif self.callable_distance=='mad_distance':
+            elif self.callable_distance == 'mad_distance':
                 self.callable_distance = _mad_distance
             else:
                 raise NameError('Metric {} not implemented. '

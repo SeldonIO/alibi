@@ -23,7 +23,6 @@ setup(name='alibi',
       install_requires=[
           'beautifulsoup4',
           'keras',
-          'lime',
           'numpy',
           'opencv-python',
           'pandas',

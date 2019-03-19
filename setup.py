@@ -21,11 +21,16 @@ setup(name='alibi',
           'pytest-runner'
       ],
       install_requires=[
+          'beautifulsoup4',
+          'keras',
           'lime',
           'numpy',
+          'opencv-python',
           'pandas',
+          'requests',
           'scikit-learn',
-          'spacy'
+          'spacy',
+          'scikit-image'
       ],
       tests_require=[
           'pytest',

@@ -1,10 +1,80 @@
+from bs4 import BeautifulSoup
+import cv2
 from io import BytesIO
 import numpy as np
 import pandas as pd
+import pickle
+import random
+import requests
 from sklearn.preprocessing import LabelEncoder
+from socket import timeout
 import tarfile
 from typing import Tuple
+from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
+
+
+def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
+             min_std: float = 10., seed: int = 42) -> Tuple[list, list]:
+    """
+    Retrieve imagenet images from specified category which needs to be in the mapping dictionary.
+
+    Parameters
+    ----------
+    category
+        Imagenet category in mapping keys
+    nb_images
+        Number of images to be retrieved
+    target_size
+        Size of the returned images
+    min_std
+        Min standard deviation of image pixels. Images that are no longer available can be returned
+        without content which is undesirable. Having a min std cutoff resolves this.
+    seed
+        Random seed
+
+    Returns
+    -------
+    List with images and the labels from imagenet.
+    """
+    mapping = {'Persian cat': 'n02123394',
+               'volcano': 'n09472597',
+               'strawberry': 'n07745940',
+               'centipede': 'n01784675',
+               'jellyfish': 'n01910747'}
+    url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + mapping[category]
+    page = requests.get(url)
+    soup = BeautifulSoup(page.content, 'html.parser')
+    img_urls = str(soup).split('\r\n')  # list of url's
+    random.seed(seed)
+    random.shuffle(img_urls)  # shuffle image list
+
+    data = []
+    nb = 0
+    for img_url in img_urls:
+        try:
+            resp = urlopen(img_url, timeout=2)
+        except (HTTPError, URLError, timeout):
+            continue
+        image = np.asarray(bytearray(resp.read()), dtype="uint8")
+        resp.close()
+        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+        image = np.expand_dims(cv2.resize(image, target_size), axis=0)
+        if np.std(image) < min_std:  # do not include empty images
+            continue
+        data.append(image)
+        nb += 1
+        if nb == nb_images:
+            break
+    data = np.concatenate(data, axis=0)
+
+    url_labels = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/' \
+                 'd133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
+    label_dict = pickle.load(urlopen(url_labels))
+    inv_label = {v: k for k, v in label_dict.items()}
+    label_idx = inv_label[category]
+    labels = np.array([label_idx for _ in range(nb_images)])
+    return data, labels
 
 
 def movie_sentiment() -> Tuple[list, list]:

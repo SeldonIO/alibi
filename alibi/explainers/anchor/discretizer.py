@@ -39,7 +39,6 @@ class Discretizer(object):
             for i in range(n_bins - 1):
                 self.names[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
             self.names[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
-
             self.lambdas[feature] = lambda x, qts = qts: np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> list:

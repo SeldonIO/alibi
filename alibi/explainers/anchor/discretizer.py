@@ -1,11 +1,11 @@
 import numpy as np
-from typing import Dict, Callable
+from typing import Dict, Callable, List
 
 
 class Discretizer(object):
 
-    def __init__(self, data: np.ndarray, categorical_features: list, feature_names: list,
-                 percentiles: list = [25, 50, 75]) -> None:
+    def __init__(self, data: np.ndarray, categorical_features: List[int], feature_names: List[str],
+                 percentiles: List[int] = [25, 50, 75]) -> None:
         """
         Initialize the discretizer.
 
@@ -41,7 +41,7 @@ class Discretizer(object):
             self.names[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
             self.lambdas[feature] = lambda x, qts = qts: np.searchsorted(qts, x)
 
-    def bins(self, data: np.ndarray) -> list:
+    def bins(self, data: np.ndarray) -> List[np.ndarray]:
         """
         Parameters
         ----------

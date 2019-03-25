@@ -9,16 +9,16 @@ jobs:
       - checkout
       - run:
           name: Install dependencies
-          command: pip install -r requirements/requirements_ci.txt
+          command: pip install -r requirements/requirements_ci.txt -r requirements/requirements.txt
       - run:
           name: Lint code
-          command: make lint
+          command: flake8 .
       - run:
           name: Static typechecking
-          command: make mypy
+          command: mypy .
       - run:
           name: Run tests
-          command: make test
+          command: pytest
 
   build-docs:
       docker:

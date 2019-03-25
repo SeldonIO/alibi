@@ -144,7 +144,7 @@ class AnchorBaseBeam(object):
         epsilon
             Precision bound tolerance for convergence
         delta
-
+            Used to compute beta
         batch_size
             Number of samples
         top_n
@@ -429,7 +429,7 @@ class AnchorBaseBeam(object):
         sample_fn
             Function used to sample from training set which returns (raw) data and labels
         delta
-
+            Used to compute beta
         epsilon
             Precision bound tolerance for convergence
         batch_size
@@ -441,13 +441,17 @@ class AnchorBaseBeam(object):
         verbose
             Whether to print intermediate output
         epsilon_stop
+            Confidence bound margin around desired precision
         min_samples_start
+            Min number of initial samples
         max_anchor_size
             Max number of features in anchor
         verbose_every
             Whether to print intermediate output every verbose_every steps
         stop_on_first
+            Stop on first valid anchor found
         coverage_samples
+            Number of samples used to compute coverage
         data_type
             Data type for raw data
 
@@ -570,6 +574,7 @@ class AnchorBaseBeam(object):
                 lb = AnchorBaseBeam.dlow_bernoulli(mean, beta / state['t_nsamples'][t])
                 ub = AnchorBaseBeam.dup_bernoulli(mean, beta / state['t_nsamples'][t])
                 coverage = state['t_coverage'][t]
+
                 if verbose:
                     print(i, mean, lb, ub)
 
@@ -590,6 +595,7 @@ class AnchorBaseBeam(object):
 
                 # if prec(A) > tau and prec_lb(A) > tau - eps then we found an eligible anchor
                 if mean >= desired_confidence and lb > desired_confidence - epsilon_stop:
+
                     if verbose:
                         print('Found eligible anchor ', t, 'Coverage:',
                               coverage, 'Is best?', coverage > best_coverage)

@@ -35,7 +35,7 @@ def test_iris(predict_type, threshold):
     assert explainer.predict_fn(X_test[0].reshape(1, -1)).shape == (1,)
 
     # test explainer fit: shape and binning of ordinal features
-    explainer.fit(X_train, discretizer='quartile')
+    explainer.fit(X_train, disc_perc=[25, 50, 75])
     assert explainer.train_data.shape == explainer.d_train_data.shape == (145, 4)
     assert (np.unique(explainer.d_train_data) == np.array([0., 1., 2., 3.])).all()
     assert explainer.categorical_features == explainer.ordinal_features

@@ -6,7 +6,6 @@ import numpy as np
 from statsmodels import robust
 from functools import reduce
 
-
 def _reshape_batch_inverse(batch: np.array, X: np.array) -> np.array:
     return batch.reshape((batch.shape[0],)+X.shape[1:])
 
@@ -371,7 +370,6 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 
         return self.explaning_instance
 """
-
 
 class CounterFactualAdversarialSearch(BaseCounterFactual):
     """

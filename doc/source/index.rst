@@ -13,6 +13,8 @@ Welcome to alibi's documentation!
    examples/anchor_tabular_adult
    examples/anchor_tabular_iris
    examples/anchor_text_movie
+   examples/anchor_image_imagenet
+   examples/anchor_image_fashion_mnist
 
 .. toctree::
    :maxdepth: 1

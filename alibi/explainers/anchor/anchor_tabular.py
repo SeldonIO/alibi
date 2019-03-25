@@ -1,7 +1,6 @@
 from . import anchor_base
 from . import anchor_explanation
-import lime
-import lime.lime_tabular
+from .discretizer import Discretizer
 import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set
 
@@ -35,7 +34,7 @@ class AnchorTabular(object):
         self.feature_names = feature_names
         self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
-    def fit(self, train_data: np.ndarray, discretizer: str = 'quartile') -> None:
+    def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
 
@@ -43,20 +42,13 @@ class AnchorTabular(object):
         ----------
         train_data
             Representative sample from the training data
-        discretizer
-            Percentiles used for discretization. One of "quartile" or "decile"
+        disc_perc
+            List with percentiles (int) used for discretization
         """
         self.train_data = train_data
 
-        # quartile or decile discretization of ordinal features
-        args = [self.train_data, self.categorical_features, self.feature_names]
-        if discretizer == 'quartile':
-            self.disc = lime.lime_tabular.QuartileDiscretizer(*args)
-        elif discretizer == 'decile':
-            self.disc = lime.lime_tabular.DecileDiscretizer(*args)
-        else:
-            raise ValueError('Discretizer must be quartile or decile')
-
+        # discretization of ordinal features
+        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
 
         # add discretized ordinal features to categorical features

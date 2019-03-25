@@ -7,6 +7,9 @@ from statsmodels import robust
 from functools import reduce
 
 
+def _reshape_batch_inverse(batch: np.array, X: np.array) -> np.array:
+    return batch.reshape((batch.shape[0],)+X.shape[1:])
+
 def _reshape_X(X: np.array) -> np.array:
     """reshape batch flattening features dimentions.
 
@@ -77,12 +80,14 @@ def _generate_rnd_samples(X: np.array, rs: list, nb_samples: int, all_positive: 
     ------
     samples_in: np.array; Sampled points
     """
-    X_flatten = X.flatten()
+    X_flatten = _reshape_X(X).flatten()
     lower_bounds, upper_bounds = X_flatten - rs, X_flatten + rs
+
     if all_positive:
-        lower_bounds[lower_bounds < 0]=0
+        lower_bounds[lower_bounds < 0] = 0
+
     samples_in = np.asarray([np.random.uniform(low=lower_bounds[i], high=upper_bounds[i], size=nb_samples)
-                             for i in range(len(X_flatten))]).T
+                             for i in range(X_flatten.shape[0])]).T
     return samples_in
 
 
@@ -187,8 +192,9 @@ class CounterFactualRandomSearch(BaseCounterFactual):
     """
     """
 
-    def __init__(self, model, sampling_method='poisson', epsilon=0.1, epsilon_step=0.1, max_epsilon=5,
-                 nb_samples=100, metric='l1_distance', aggregate_by='closest', verbose=False):
+    def __init__(self, model, sampling_method='uniform', epsilon=0.1, epsilon_step=0.1, max_epsilon=5, maxiter=100,
+                 nb_samples=100, metric='l1_distance', aggregate_by='closest', verbose=False, target_probability=0.1,
+                 tollerance=0.1):
         """
 
         Parameters
@@ -214,7 +220,8 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         """
         super().__init__(model=model, sampling_method=sampling_method, epsilon=epsilon, epsilon_step=epsilon_step,
                          max_epsilon=max_epsilon, nb_samples=nb_samples, metric=metric, flip_treshold=None,
-                         aggregate_by=aggregate_by, method=None, tollerance=None, maxiter=None,
+                         aggregate_by=aggregate_by, method=None, maxiter=maxiter, optimizer=None,
+                         target_probability=target_probability, tollerance=tollerance,
                          initial_lam=None, lam_step=None, max_lam=None, verbose=verbose)
 
     def fit(self, X_train, y_train=None):
@@ -233,13 +240,15 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         """
         self.f_ranges = _calculate_franges(X_train)
 
-    def explain(self, X: np.array) -> np.array:
+    def explain(self, X: np.array, nb_instances: int=10, return_as: str='all') -> dict:
         """Generate a counterfactual instance respect to the input instance X with the expanding neighbourhoods method.
 
         Parameters
         ----------
         X
             reference instance for counterfactuals
+        nb_instances
+            nb of counterfactual instance to generate
 
         Returns
         -------
@@ -249,23 +258,71 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         """
         probas_x = _predict(self.model, X)
         pred_class = np.argmax(probas_x, axis=1)[0]
+
         max_proba_x = probas_x[:, pred_class]
-        cond = False
-        centre = X
-        # find counterfactual instance with random sampling method
-        while not cond:
-            rs = _calculate_radius(f_ranges=self.f_ranges , epsilon=self.epsilon)
 
-            if self.sampling_method=='uniform':
-                samples_in = _reshape_X(_generate_rnd_samples(centre, rs, self.nb_samples))
-            elif self.sampling_method=='poisson':
-                samples_in = _reshape_X(_generate_poisson_samples(centre, self.nb_samples))
-            elif self.sampling_method=='gaussian':
-                samples_in = _reshape_X(_generate_gaussian_samples(centre, rs, self.nb_samples))
-            else:
-                raise NameError('method {} not implemented'.format(self.sampling_method))
+        cf_instances={'idx': [], 'vector': [], 'distance_from_orig': []}
+        for i in range(nb_instances):
+            print('Instance nb {} of {}'.format(i,nb_instances))
+            t_0 = time()
+            cond = False
+            centre = X
+            _epsilon = self.epsilon
 
-            probas_si = _predict(self.model, samples_in.reshape((samples_in.shape[0],) + centre.shape[1:]))
+            def _contrains_diff(pred_tmp):
+                return (abs(pred_tmp - self.target_probability)) - self.tollerance
+
+            # find counterfactual instance with random sampling method
+            iter = 0
+            while not cond:
+                rs = _calculate_radius(f_ranges=self.f_ranges, epsilon=self.epsilon)
+
+                if self.sampling_method == 'uniform':
+                    samples_in = _reshape_batch_inverse(_generate_rnd_samples(centre, rs, self.nb_samples), X)
+                elif self.sampling_method=='poisson':
+                    samples_in = _reshape_batch_inverse(_generate_poisson_samples(centre, self.nb_samples), X)
+                elif self.sampling_method=='gaussian':
+                    samples_in = _reshape_batch_inverse(_generate_gaussian_samples(centre, rs, self.nb_samples), X)
+                else:
+                    raise NameError('method {} not implemented'.format(self.sampling_method))
+
+                prob_diff = _contrains_diff(max_proba_x) + self.tollerance
+                probas_si = _predict(self.model, samples_in)
+                proba_class = probas_si[:, pred_class]
+                diffs = [_contrains_diff(p) + self.tollerance for p in proba_class]
+                min_diff_instance = samples_in[np.argmin(diffs)]
+                min_diff_proba = proba_class[np.argmin(diffs)]
+                diff = np.min(diffs)
+                cond = _contrains_diff(min_diff_proba) <= 0
+
+                if diff >= prob_diff:
+                    print('Increasing epsion from {} to {}'.format(_epsilon,_epsilon+self.epsilon_step))
+                    _epsilon += self.epsilon_step
+                else:
+                    _epsilon = self.epsilon
+                    centre = min_diff_instance
+
+                iter += 1
+                print(diff,min_diff_proba,self.tollerance)
+                if iter >= self._maxiter:
+                    cond = True
+
+            print('Search time: ', time() - t_0)
+            cf_instances['idx'].append(i)
+            cf_instances['vector'].append(min_diff_instance.reshape(X.shape))
+            cf_instances['distance_from_orig'].append(self._metric_distance(min_diff_instance.flatten(), X.flatten()))
+            if self.verbose:
+                print('Search time', time()-t_0)
+
+        self.cf_instaces = cf_instances
+
+        if return_as == 'all':
+            return self.cf_instaces
+
+
+
+
+"""            
             pred_classes = np.argmax(probas_si, axis=1)
             unique, counts = np.unique(pred_classes, return_counts=True)
             majority_class = unique[np.argmax(counts)]
@@ -312,7 +369,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
             raise NameError('Instance not found')
 
         return self.explaning_instance
-
+"""
 
 class CounterFactualAdversarialSearch(BaseCounterFactual):
     """
@@ -436,7 +493,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                         self._lam = self.lam
                         break
                     if self._lam > self.max_lam - self.lam_step:
-                        _maxiter = 2*self._maxiter
+                        _maxiter = 5*self._maxiter
 
                 print('Minimization time: ', time() - t_0)
                 cf_instances['idx'].append(i)
@@ -446,7 +503,8 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                     print('Counterfactual instance {} of {} generated'.format(i, nb_instances-1))
                     print('Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
                     print('Countfact instance original class probability: {}'.format(probas_original))
-                    print('Countfact instance predicted class: {} with probability {}:'.format(pred_class_exp, max_proba_exp))
+                    print('Countfact instance predicted class: '
+                          '{} with probability {}:'.format(pred_class_exp, max_proba_exp))
                     print('Original instance shape', X.shape)
                     #print('Countfact instance shape', self.explaning_instance.shape)
                     #print('L1 distance from X', self._metric_distance(self.explaning_instance.flatten(), X.flatten()))

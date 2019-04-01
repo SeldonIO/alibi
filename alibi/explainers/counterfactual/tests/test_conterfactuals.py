@@ -26,7 +26,7 @@ def test_iris_adversarial():
     assert len(cf.mads) == x.shape[1]
 
     expl = cf.explain(x)
-    assert (expl.shape[1:] == x.shape[1:]), 'different shapes. expl shape: {}, x shape: {}'.format(expl.shape, x.shape)
+    assert isinstance(expl, dict), 'returned type: {}; expected type: dict'.format(type(expl))
 
 
 def test_iris_randomsearch():
@@ -42,7 +42,8 @@ def test_iris_randomsearch():
     assert len(cf.f_ranges) == x.shape[1]
 
     expl = cf.explain(x)
-    assert (expl.shape[1] == x.shape[1]), 'different shapes. expl shape: {}, x shape: {}'.format(expl.shape, x.shape)
+    assert isinstance(expl, dict), 'returned type: {}; expected type: dict'.format(type(expl))
+
 
 
 

@@ -17,7 +17,7 @@ def test_iris_adversarial():
     clf.fit(X, y)
 
     x = X[:1]
-    cf = CounterFactualAdversarialSearch(clf)
+    cf = CounterFactualAdversarialSearch(clf.predict_proba)
     cf.fit(X_train=X)
 
     assert hasattr(cf, 'f_ranges')
@@ -36,7 +36,7 @@ def test_iris_randomsearch():
     clf.fit(X, y)
 
     x = X[:1]
-    cf = CounterFactualRandomSearch(clf)
+    cf = CounterFactualRandomSearch(clf.predict_proba)
     cf.fit(X_train=X)
     assert hasattr(cf, 'f_ranges')
     assert len(cf.f_ranges) == x.shape[1]

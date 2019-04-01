@@ -31,7 +31,8 @@ setup(name='alibi',
           'scikit-learn',
           'spacy',
           'scikit-image',
-          'tensorflow'
+          'tensorflow',
+          'statsmodels'
       ],
       tests_require=[
           'pytest',

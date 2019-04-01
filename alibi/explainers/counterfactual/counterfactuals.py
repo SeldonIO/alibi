@@ -4,7 +4,7 @@ from .base import BaseCounterFactual
 import numpy as np
 from statsmodels import robust
 from functools import reduce
-from typing import Dict
+from typing import Dict, Callable
 
 
 def _reshape_batch_inverse(batch: np.array, X: np.array) -> np.array:
@@ -140,10 +140,10 @@ def _generate_gaussian_samples(X: np.array, rs: list,  nb_samples: int, all_posi
     return samples_in
 
 
-def _calculate_confidence_treshold(X: np.array, model: object, y_train: np.array) -> float:
+def _calculate_confidence_treshold(X: np.array, predict_fn: Callable, y_train: np.array) -> float:
     """Unused
     """
-    preds = model.predict(X)
+    preds = predict_fn(X)
     assert isinstance(preds, np.array), 'predictions not in a np.array format. ' \
                                         'Prediction format: {}'.format(type(preds))
     pred_class = np.argmax(preds)
@@ -170,23 +170,44 @@ def _has_predict_proba(model: object) -> bool:
         return False
 
 
-def _predict(model: object, X: np.array) -> np.array:
-    """Model prediction function wrapper.
+def _has_predict(model: object) -> bool:
+    """Check if model has method 'predict_proba'
 
     Parameters
     ----------
     model
-        model's instance
+        model instace
 
     Returns
     -------
-    predictions
-        Predictions array
+    has_predict_proba
+        returns True if the model instance has a 'predict_proba' meethod, False otherwise
     """
-    if _has_predict_proba(model):
-        return model.predict_proba(X)
+    if hasattr(model, 'predict'):
+        return True
     else:
-        return model.predict(X)
+        return False
+
+
+# def _predict(model: object, X: np.array) -> np.array:
+#     """Model prediction function wrapper.
+#
+#     Parameters
+#     ----------
+#     model
+#         model's instance
+#
+#     Returns
+#     -------
+#     predictions
+#         Predictions array
+#     """
+#     if _has_predict_proba(model):
+#         return model.predict_proba(X)
+#     elif _has_predict(model):
+#         return model.predict(X)
+#     else:
+#         return None
 
 
 class CounterFactualRandomSearch(BaseCounterFactual):

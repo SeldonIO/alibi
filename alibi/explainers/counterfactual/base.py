@@ -1,7 +1,7 @@
 from scipy.spatial.distance import cityblock
 import numpy as np
 from abc import abstractmethod
-from typing import Union, Any
+from typing import Union, Any, Callable
 
 
 def _mad_distance(x0: np.array, x1: np.array, mads: np.array) -> float:
@@ -26,7 +26,7 @@ def _mad_distance(x0: np.array, x1: np.array, mads: np.array) -> float:
 class BaseCounterFactual(object):
 
     @abstractmethod
-    def __init__(self, model: object, sampling_method: Union[str, None], method: Union[str, None],
+    def __init__(self, predict_fn: Callable, sampling_method: Union[str, None], method: Union[str, None],
                  target_probability: Union[float, None], epsilon: Union[float, None], epsilon_step: Union[float, None],
                  max_epsilon: Union[float, None], nb_samples: Union[int, None], optimizer: Union[str, None],
                  metric: Any, flip_treshold: Union[float, None],
@@ -37,8 +37,8 @@ class BaseCounterFactual(object):
 
         Parameters
         ----------
-        model
-            model instance
+        predict_fn
+            model predict function instance
         sampling_method
             sampling distributions; 'uniform', 'poisson' or 'gaussian'
         method
@@ -73,7 +73,7 @@ class BaseCounterFactual(object):
         None
         """
 
-        self.model = model
+        self.predict_fn = predict_fn
         self.target_probability = target_probability
         self.sampling_method = sampling_method
         self.epsilon = epsilon

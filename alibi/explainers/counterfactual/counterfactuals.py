@@ -442,7 +442,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                 def _countefactual_loss(x):
                     pred_tmp = self.predict_fn(x.reshape(X.shape))[:, pred_class]
 #                    pred_tmp = _predict(self.model, x.reshape(X.shape))[:, pred_class]
-                    print(pred_class, pred_tmp)
+#                    print(pred_class, pred_tmp)
                     loss_0 = self._lam*(pred_tmp - self.target_probability)**2
                     loss_1 = (1-self._lam)*self._norm*self._metric_distance(x, X.flatten())
 #                    print(loss_0,loss_1,self._lam)
@@ -464,7 +464,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                     probas_exp = self.predict_fn(res.x.reshape(X.shape))
 #                    probas_exp = _predict(self.model, res.x.reshape(X.shape))
                     pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-                    print('++++++++++++++++++++++', pred_class_exp, probas_exp)
+#                    print('++++++++++++++++++++++', pred_class_exp, probas_exp)
                     max_proba_exp = probas_exp[:, pred_class_exp]
                     probas_original = probas_exp[:, pred_class]
                     cond = _contrains_diff(res.x) >= 0

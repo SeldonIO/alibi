@@ -219,10 +219,10 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         aggregate_by
             method to choose the countefactual instance; 'closest' or 'mean'
         """
-        super().__init__(predict_fn=predict_fn, sampling_method=sampling_method, epsilon=epsilon, epsilon_step=epsilon_step,
-                         max_epsilon=max_epsilon, nb_samples=nb_samples, metric=metric, flip_treshold=None,
-                         aggregate_by=aggregate_by, method=None, maxiter=maxiter, optimizer=None,
-                         target_probability=target_probability, tollerance=tollerance,
+        super().__init__(predict_fn=predict_fn, sampling_method=sampling_method, epsilon=epsilon,
+                         epsilon_step=epsilon_step, max_epsilon=max_epsilon, nb_samples=nb_samples,
+                         metric=metric, flip_treshold=None, aggregate_by=aggregate_by, method=None, maxiter=maxiter,
+                         optimizer=None, target_probability=target_probability, tollerance=tollerance,
                          initial_lam=None, lam_step=None, max_lam=None, verbose=verbose)
 
     def fit(self, X_train, y_train=None):
@@ -260,7 +260,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 
         """
         probas_x = self.predict_fn(X)
-        #probas_x = _predict(self.model, X)
+#        probas_x = _predict(self.model, X)
         pred_class = np.argmax(probas_x, axis=1)[0]
         max_proba_x = probas_x[:, pred_class]
 
@@ -275,7 +275,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
             def _contrains_diff(pred_tmp):
                 return (abs(pred_tmp - self.target_probability)) - self.tollerance
 
-            # find counterfactual instance with random sampling method
+#            find counterfactual instance with random sampling method
             iter = 0
             while not cond:
                 rs = _calculate_radius(f_ranges=self.f_ranges, epsilon=self.epsilon)
@@ -291,7 +291,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 
                 prob_diff = _contrains_diff(max_proba_x) + self.tollerance
                 probas_si = self.predict_fn(samples_in)
-                #probas_si = _predict(self.model, samples_in)
+#                probas_si = _predict(self.model, samples_in)
                 proba_class = probas_si[:, pred_class]
                 diffs = [_contrains_diff(p) + self.tollerance for p in proba_class]
                 min_diff_instance = samples_in[np.argmin(diffs)]
@@ -329,8 +329,9 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 class CounterFactualAdversarialSearch(BaseCounterFactual):
     """
     """
-    def __init__(self, predict_fn, method='OuterBoundary', target_probability=0.5, tollerance=0, maxiter=300, initial_lam=0,
-                 lam_step=0.1, max_lam=1, metric='mad_distance', optimizer=None, flip_treshold=0.5, verbose=False):
+    def __init__(self, predict_fn, method='OuterBoundary', target_probability=0.5, tollerance=0, maxiter=300,
+                 initial_lam=0, lam_step=0.1, max_lam=1, metric='mad_distance', optimizer=None, flip_treshold=0.5,
+                 verbose=False):
         """
 
         Parameters

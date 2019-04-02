@@ -433,7 +433,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                       for i in range(self._samples.shape[0])]
         self._norm = 1.0 / max(_distances)
 
-    def explain(self, X, nb_instances=2, return_as='all'):  # TODO type hint
+    def explain(self, X, nb_instances=2, return_as='all') -> dict:
         """
 
         Parameters
@@ -453,7 +453,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
         #        print(pred_class)
         max_proba_x = probas_x[:, pred_class]
 
-        cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}
+        cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}  # type: Dict[str, list]
         for i in range(nb_instances):
             if self.method == 'Wachter' or self.method == 'OuterBoundary':
                 cond = False
@@ -520,3 +520,5 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
 
         if return_as == 'all':
             return self.cf_instaces
+        else:
+            return {}

@@ -1,6 +1,6 @@
 from scipy.spatial.distance import cityblock
 import numpy as np
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Union, Callable, Optional
 
 
@@ -23,7 +23,7 @@ def _mad_distance(x0: np.ndarray, x1: np.ndarray, mads: np.ndarray) -> float:
     return (np.abs(x0 - x1) / mads).sum()
 
 
-class BaseCounterFactual(object):
+class BaseCounterFactual(ABC):
 
     @abstractmethod
     def __init__(self, predict_fn: Callable,
@@ -61,7 +61,7 @@ class BaseCounterFactual(object):
         sampling_method
             sampling distributions; 'uniform', 'poisson' or 'gaussian'
         method
-            algorithm used; 'Watcher' or ...  TODO
+            algorithm used; 'Wachter' or ...  TODO
         epsilon
             scale parameter for neighbourhoods radius
         epsilon_step

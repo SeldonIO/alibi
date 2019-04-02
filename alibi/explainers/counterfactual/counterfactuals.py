@@ -5,6 +5,9 @@ import numpy as np
 from statsmodels import robust
 from functools import reduce
 from typing import Dict, Callable
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def _reshape_batch_inverse(batch: np.ndarray, X: np.ndarray) -> np.ndarray:
@@ -158,8 +161,8 @@ def _calculate_confidence_threshold(X: np.ndarray, predict_fn: Callable, y_train
     """Unused
     """
     preds = predict_fn(X)
-    assert isinstance(preds, np.array), 'predictions not in a np.array format. ' \
-                                        'Prediction format: {}'.format(type(preds))
+    assert isinstance(preds, np.ndarray), 'predictions not in a np.ndarray format. ' \
+                                          'Prediction format: {}'.format(type(preds))
     pred_class = np.argmax(preds)
     p_class = len(y_train[np.where(y_train == pred_class)]) / len(y_train)
     return 1 - p_class
@@ -256,7 +259,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
         max_epsilon
             maximum value of epsilon at which the search is stopped
         nb_samples
-            Number os points to sample at every iteration
+            Number of points to sample at every iteration
         aggregate_by
             method to choose the counterfactual instance; 'closest' or 'mean'
         """
@@ -277,7 +280,8 @@ class CounterFactualRandomSearch(BaseCounterFactual):
             targets
 
         """
-        self.f_ranges = _calculate_franges(X_train)
+        self.f_ranges = 1
+        _calculate_franges(X_train)  # TODO how does this work?
 
     def explain(self, X: np.ndarray, nb_instances: int = 10, return_as: str = 'all') -> dict:
         """Generate a counterfactual instance with respect to the input instance X with the
@@ -305,7 +309,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
 
         cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}  # type: Dict[str, list]
         for i in range(nb_instances):
-            print('Instance nb {} of {}'.format(i, nb_instances))
+            logger.debug('Searching instance nb {} of {}'.format(i, nb_instances))
             t_0 = time()
             cond = False
             centre = X
@@ -339,7 +343,7 @@ class CounterFactualRandomSearch(BaseCounterFactual):
                 cond = _contrains_diff(min_diff_proba) <= 0
 
                 if diff >= prob_diff:
-                    print('Increasing epsion from {} to {}'.format(_epsilon, _epsilon + self.epsilon_step))
+                    logger.debug('Increasing epsilon from {} to {}'.format(_epsilon, _epsilon + self.epsilon_step))
                     _epsilon += self.epsilon_step
                 else:
                     _epsilon = self.epsilon
@@ -350,17 +354,15 @@ class CounterFactualRandomSearch(BaseCounterFactual):
                 if iter >= self._maxiter:
                     cond = True
 
-            print('Search time: ', time() - t_0)
+            logger.debug('Search time: ', time() - t_0)
             cf_instances['idx'].append(i)
             cf_instances['vector'].append(min_diff_instance.reshape(X.shape))
             cf_instances['distance_from_orig'].append(self._metric_distance(min_diff_instance.flatten(), X.flatten()))
-            if self.verbose:
-                print('Search time', time() - t_0)
 
-        self.cf_instaces = cf_instances
+        self.cf_instances = cf_instances
 
         if return_as == 'all':
-            return self.cf_instaces
+            return self.cf_instances
         else:
             return {}
 
@@ -433,7 +435,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                       for i in range(self._samples.shape[0])]
         self._norm = 1.0 / max(_distances)
 
-    def explain(self, X, nb_instances=2, return_as='all') -> dict:
+    def explain(self, X: np.ndarray, nb_instances: int = 2, return_as: str = 'all') -> dict:
         """
 
         Parameters
@@ -478,7 +480,7 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                 t_0 = time()
 
                 while not cond:
-                    print('Starting minimization with Lambda = {}'.format(self._lam))
+                    logger.debug('Starting minimization with Lambda = {}'.format(self._lam))
                     cons = ({'type': 'ineq', 'fun': _contrains_diff})
 
                     res = minimize(_countefactual_loss, initial_instance, constraints=cons,
@@ -490,35 +492,37 @@ class CounterFactualAdversarialSearch(BaseCounterFactual):
                     max_proba_exp = probas_exp[:, pred_class_exp]
                     probas_original = probas_exp[:, pred_class]
                     cond = _contrains_diff(res.x) >= 0
-                    if self.verbose:
-                        print('Loss:', res.fun)
-                        print('Constrain fullfilled:', cond)
+
+                    logger.debug('Loss:', res.fun)
+                    logger.debug('Constraint fullfilled:', cond)
+
                     initial_instance = res.x
                     print(_maxiter)
 
                     self._lam += self.lam_step
                     if _maxiter > self._maxiter or self._lam > self.max_lam:
-                        print(self._lam, 'Stopping minimization')
+                        logger.debug(self._lam, 'Stopping minimization')
                         self._lam = self.lam
                         cond = True
                     if self._lam > self.max_lam - self.lam_step:
                         _maxiter = 1 * self._maxiter
 
-                print('Minimization time: ', time() - t_0)
+                logger.debug('Minimization time: ', time() - t_0)
                 cf_instances['idx'].append(i)
                 cf_instances['vector'].append(res.x.reshape(X.shape))
                 cf_instances['distance_from_orig'].append(self._metric_distance(res.x, X.flatten()))
-                if self.verbose:
-                    print('Counterfactual instance {} of {} generated'.format(i, nb_instances - 1))
-                    print('Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
-                    print('Countfact instance original class probability: {}'.format(probas_original))
-                    print('Countfact instance predicted class: '
-                          '{} with probability {}:'.format(pred_class_exp, max_proba_exp))
-                    print('Original instance shape', X.shape)
 
-        self.cf_instaces = cf_instances
+                logger.debug('Counterfactual instance {} of {} generated'.format(i, nb_instances - 1))
+                logger.debug(
+                    'Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
+                logger.debug('Countfact instance original class probability: {}'.format(probas_original))
+                logger.debug('Countfact instance predicted class: '
+                             '{} with probability {}:'.format(pred_class_exp, max_proba_exp))
+                logger.debug('Original instance shape', X.shape)
+
+        self.cf_instances = cf_instances
 
         if return_as == 'all':
-            return self.cf_instaces
+            return self.cf_instances
         else:
             return {}

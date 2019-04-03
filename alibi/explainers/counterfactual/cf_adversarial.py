@@ -9,6 +9,69 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _define_func(predict_fn, x, target_class='same'):
+
+    x_shape_batch_format = (1,) + x.shape
+    if target_class == 'same':
+        target_class = np.argmax(predict_fn(x.reshape(x_shape_batch_format)), axis=1)[0]
+
+    def func(x, target_class=target_class):
+        return predict_fn(x)[:, target_class]
+
+    return func
+
+
+def _calculate_funcgradx(func, x, epsilon=1.0):
+
+    x_shape = x.shape
+
+    x = x.flatten()
+    X_plus, X_minus = [], []
+    for i in range(len(x)):
+        x_plus, x_minus = np.copy(x), np.copy(x)
+        x_plus[i] += epsilon
+        x_minus[i] -= epsilon
+        x_plus, x_minus = x_plus.reshape(x_shape), x_minus.reshape(x_shape)
+        X_plus.append(x_plus)
+        X_minus.append(x_minus)
+
+    X_plus = np.asarray(X_plus)
+    X_minus = np.asarray(X_minus)
+
+    gradients = (func(X_plus) - func(X_minus)) / (2 * epsilon)
+
+    return gradients
+
+
+def _define_metric_loss(metric, x, x_0):
+
+    def _metric_loss(x):
+        batch_size = x.shape[0]
+        distances = []
+        for i in range(batch_size):
+            distances.append(metric(x[i], x_0))
+        return np.asarray(distances)
+
+    return _metric_loss
+
+
+def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _norm,
+                             epsilon_func=1.0, epsilon_metric=1e-10):
+
+    x_shape_batch_format = (1,) + x.shape
+    preds = func(x.reshape(x_shape_batch_format))
+    metric_loss = _define_metric_loss(metric, x, x_0)
+
+    funcgradx = _calculate_funcgradx(func, x, epsilon=epsilon_func)
+    metricgradx = _calculate_funcgradx(metric_loss, x, epsilon=epsilon_metric)
+
+    gradients_0 = _lam * 2 * (preds[0] - target_probability) * funcgradx
+    gradients_1 = (1 - _lam) * _norm * metricgradx
+    gradients = gradients_0 + gradients_1
+
+    return gradients
+
+
 class CounterFactualAdversarialSearch:
     """
     """

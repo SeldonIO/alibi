@@ -12,11 +12,16 @@ logger = logging.getLogger(__name__)
 def _define_func(predict_fn, x, target_class='same'):
 
     x_shape_batch_format = (1,) + x.shape
-    if target_class == 'same':
-        target_class = np.argmax(predict_fn(x.reshape(x_shape_batch_format)), axis=1)[0]
 
-    def func(x, target_class=target_class):
-        return predict_fn(x)[:, target_class]
+    if target_class == 'other':
+        def func():
+            pass
+    else:
+        if target_class == 'same':
+            target_class = np.argmax(predict_fn(x.reshape(x_shape_batch_format)), axis=1)[0]
+
+        def func(x, target_class=target_class):
+            return predict_fn(x)[:, target_class]
 
     return func
 
@@ -43,7 +48,7 @@ def _calculate_funcgradx(func, x, epsilon=1.0):
     return gradients
 
 
-def _define_metric_loss(metric, x, x_0):
+def _define_metric_loss(metric, x_0):
 
     def _metric_loss(x):
         batch_size = x.shape[0]
@@ -60,7 +65,7 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
 
     x_shape_batch_format = (1,) + x.shape
     preds = func(x.reshape(x_shape_batch_format))
-    metric_loss = _define_metric_loss(metric, x, x_0)
+    metric_loss = _define_metric_loss(metric, x_0)
 
     funcgradx = _calculate_funcgradx(func, x, epsilon=epsilon_func)
     metricgradx = _calculate_funcgradx(metric_loss, x, epsilon=epsilon_metric)
@@ -70,6 +75,25 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
     gradients = gradients_0 + gradients_1
 
     return gradients
+
+
+def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probability,
+                     epsilon_func=5, epsilon_metric=0.1,
+                     maxiter=50, initial_lam=0, lam_step=0.001, final_lam=1, norm=1, lr=50):
+    x_shape = x_i.shape
+    x_shape_batch_format = (1,) + x_i.shape
+    func = _define_func(predict_fn, x_0, target_class=target_class)
+    for i in range(maxiter):
+        _lam = 0.9
+        gradients = _calculate_watcher_grads(x_i, func, metric, x_0, target_probability,
+                                             _lam, norm,
+                                             epsilon_func=epsilon_func,
+                                             epsilon_metric=epsilon_metric)
+
+        x_i = (x_i.flatten() - lr * gradients).reshape(x_shape)
+        if i % 50 == 0:
+            print(target_class, predict_fn(x_i.reshape(x_shape_batch_format))[:, target_class])
+    return x_i
 
 
 class CounterFactualAdversarialSearch:

@@ -78,13 +78,17 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
 
 
 def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probability,
-                     epsilon_func=5, epsilon_metric=0.1,
-                     maxiter=50, initial_lam=0, lam_step=0.001, final_lam=1, norm=1, lr=50):
+                     epsilon_func=5, epsilon_metric=0.1, maxiter=50,
+                     initial_lam=0, lam_step=0.001, final_lam=1, lam_how='adiabatic',
+                     norm=1, lr=50):
     x_shape = x_i.shape
     x_shape_batch_format = (1,) + x_i.shape
     func = _define_func(predict_fn, x_0, target_class=target_class)
     for i in range(maxiter):
-        _lam = 0.9
+        if lam_how == 'fixed':
+            _lam = initial_lam
+        elif lam_how == 'adiabatic':
+            _lam = (i / maxiter) * (final_lam - initial_lam)
         gradients = _calculate_watcher_grads(x_i, func, metric, x_0, target_probability,
                                              _lam, norm,
                                              epsilon_func=epsilon_func,
@@ -92,6 +96,7 @@ def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probabil
 
         x_i = (x_i.flatten() - lr * gradients).reshape(x_shape)
         if i % 50 == 0:
+            print(_lam)
             print(target_class, predict_fn(x_i.reshape(x_shape_batch_format))[:, target_class])
     return x_i
 

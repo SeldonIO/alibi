@@ -78,9 +78,9 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
 
 
 def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probability,
-                     epsilon_func=5, epsilon_metric=0.1, maxiter=50,
-                     initial_lam=0, lam_step=0.001, final_lam=1, lam_how='adiabatic',
-                     norm=1, lr=50):
+                     epsilon_func=5.0, epsilon_metric=0.1, maxiter=50,
+                     initial_lam=0.0, lam_step=0.001, final_lam=1.0, lam_how='adiabatic',
+                     norm=1.0, lr=50.0):
     x_shape = x_i.shape
     x_shape_batch_format = (1,) + x_i.shape
     func = _define_func(predict_fn, x_0, target_class=target_class)
@@ -107,15 +107,20 @@ class CounterFactualAdversarialSearch:
 
     def __init__(self,
                  predict_fn: Callable,
-                 target_probability: float = 0.5,  # TODO what should be default?
                  metric: Union[Callable, str] = 'l1_distance',  # TODO should transition to mad_distance
+                 target_class: Union[int, str] = 'same',
+                 target_probability: float = 0.5,  # TODO what should be default?
                  tolerance: float = 0,
+                 epsilon_func: float = 5,
+                 epsilon_metric: float = 0.1,
                  maxiter: int = 300,
                  method: str = 'OuterBoundary',
                  initial_lam: float = 0,
                  lam_step: float = 0.1,
-                 max_lam: float = 1,
+                 final_lam: float = 1,
+                 lam_how: str = 'same', #
                  flip_threshold: float = 0.5,
+                 lr: float = 50.0,
                  optimizer: Optional[str] = None) -> None:
         """
 
@@ -147,19 +152,24 @@ class CounterFactualAdversarialSearch:
             TODO
         """
         self.predict_fn = predict_fn
+        self._metric_distance = _metric_distance_func(metric)
+        self.target_class = target_class
         self.target_probability = target_probability
-        self.metric = metric
+        self.epsilon_func = epsilon_func
+        self.epsilon_metric = epsilon_metric
         self.tolerance = tolerance
         self.maxiter = maxiter
         self.method = method
-        self.lam = initial_lam
+        self.initial_lam = initial_lam
         self.lam_step = lam_step
-        self.max_lam = max_lam
+        self.final_lam = final_lam
+        self.lam_how = lam_how
         self.flip_threshold = flip_threshold
+        self.lr = lr
         self.optimizer = optimizer
-
+        self.metric = metric
         # create the metric distance function
-        self._metric_distance = _metric_distance_func(metric)
+
 
     def fit(self, X_train, y_train=None, dataset_sample_size=5000):
         """
@@ -199,75 +209,57 @@ class CounterFactualAdversarialSearch:
             counterfactual instance serving as an explanation
 
         """
-        probas_x = self.predict_fn(X)
-        #        probas_x = _predict(self.model, X)
-        pred_class = np.argmax(probas_x, axis=1)[0]
-        #        print(pred_class)
-        max_proba_x = probas_x[:, pred_class]
+        probas = self.predict_fn(X)
+        class_x = np.argmax(probas, axis=1)[0]
+        proba_x = probas[:, pred_class]
 
         cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}  # type: Dict[str, list]
         for i in range(nb_instances):
             if self.method == 'Wachter' or self.method == 'OuterBoundary':
-                cond = False
-                _maxiter = self.maxiter
                 #                initial_instance = np.random.permutation(self._samples)[0]
                 initial_instance = X
 
-                def _countefactual_loss(x):
-                    pred_tmp = self.predict_fn(x.reshape(X.shape))[:, pred_class]
-                    #                    pred_tmp = _predict(self.model, x.reshape(X.shape))[:, pred_class]
-                    #                    print(pred_class, pred_tmp)
-                    loss_0 = self._lam * (pred_tmp - self.target_probability) ** 2
-                    loss_1 = (1 - self._lam) * self._norm * self._metric_distance(x, X.flatten())
-                    #                    print(loss_0,loss_1,self._lam)
-                    return loss_0 + loss_1
-
-                def _contrains_diff(x):
-                    pred_tmp = self.predict_fn(x.reshape(X.shape))[:, pred_class]
-                    #                    pred_tmp = _predict(self.model, x.reshape(X.shape))[:, pred_class]
-                    return -(abs(pred_tmp - self.target_probability)) + self.tolerance
-
                 t_0 = time()
 
-                while not cond:
-                    logger.debug('Starting minimization with Lambda = {}'.format(self._lam))
-                    cons = ({'type': 'ineq', 'fun': _contrains_diff})
+                logger.debug('Starting minimization with Lambda = {}'.format(self._lam))
 
-                    res = minimize(_countefactual_loss, initial_instance, constraints=cons,
-                                   method=self.optimizer, options={'maxiter': _maxiter})
-                    probas_exp = self.predict_fn(res.x.reshape(X.shape))
-                    #                    probas_exp = _predict(self.model, res.x.reshape(X.shape))
-                    pred_class_exp = np.argmax(probas_exp, axis=1)[0]
-                    #                    print('++++++++++++++++++++++', pred_class_exp, probas_exp)
-                    max_proba_exp = probas_exp[:, pred_class_exp]
-                    probas_original = probas_exp[:, pred_class]
-                    cond = _contrains_diff(res.x) >= 0
+                x_min = minimize_watcher(self.predict_fn, self._metric_distance , initial_instance, X,
+                                         target_class=self.target_class, target_probability=self.target_probability,
+                                         epsilon_func=self.epsilon_func,epsilon_metric=self.epsilon_metric,
+                                         initial_lam=self.initial_lam, final_lam=self.final_lam,
+                                         lam_how=self.lam_how, maxiter=self.maxiter, lr=self.lr)
 
-                    logger.debug('Loss:', res.fun)
-                    logger.debug('Constraint fullfilled:', cond)
+                #res = minimize(_countefactual_loss, initial_instance, constraints=cons,
+                #               method=self.optimizer, options={'maxiter': _maxiter})
+                #x_min=res.x
 
-                    initial_instance = res.x
-                    logger.debug('_maxiter: %s', _maxiter)
+                probas_cf = self.predict_fn(x_min.reshape(X.shape))
+                class_cf = np.argmax(probas_cf, axis=1)[0]
+                proba_cf = probas_cf[:, class_cf]
 
-                    self._lam += self.lam_step
-                    if _maxiter > self.maxiter or self._lam > self.max_lam:
-                        logger.debug(self._lam, 'Stopping minimization')
-                        self._lam = self.lam
-                        cond = True
-                    if self._lam > self.max_lam - self.lam_step:
-                        _maxiter = 1 * self.maxiter
+                proba_cf_class_x = probas_cf[:, class_x]
+
+                logger.debug('_maxiter: %s', _maxiter)
+
+                #self._lam += self.lam_step
+                #if _maxiter > self.maxiter or self._lam > self.max_lam:
+                #    logger.debug(self._lam, 'Stopping minimization')
+                #    self._lam = self.lam
+                #    cond = True
+                #if self._lam > self.max_lam - self.lam_step:
+                #    _maxiter = 1 * self.maxiter
 
                 logger.debug('Minimization time: ', time() - t_0)
                 cf_instances['idx'].append(i)
-                cf_instances['vector'].append(res.x.reshape(X.shape))
-                cf_instances['distance_from_orig'].append(self._metric_distance(res.x, X.flatten()))
+                cf_instances['vector'].append(x_min.reshape(X.shape))
+                cf_instances['distance_from_orig'].append(self._metric_distance(x_min, X.flatten()))
 
                 logger.debug('Counterfactual instance {} of {} generated'.format(i, nb_instances - 1))
                 logger.debug(
-                    'Original instance predicted class: {} with probability {}:'.format(pred_class, max_proba_x))
-                logger.debug('Countfact instance original class probability: {}'.format(probas_original))
+                    'Original instance predicted class: {} with probability {}:'.format(class_x, proba_x))
+                logger.debug('Countfact instance original class probability: {}'.format(proba_cf_class_x))
                 logger.debug('Countfact instance predicted class: '
-                             '{} with probability {}:'.format(pred_class_exp, max_proba_exp))
+                             '{} with probability {}:'.format(class_cf, proba_cf))
                 logger.debug('Original instance shape', X.shape)
 
         self.cf_instances = cf_instances

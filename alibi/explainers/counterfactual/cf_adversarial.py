@@ -18,16 +18,17 @@ def _define_func(predict_fn, x, target_class='same'):
             pass
     else:
         if target_class == 'same':
-            target_class = np.argmax(predict_fn(x.reshape(x_shape_batch_format)), axis=1)[0]
+            target_class = np.argmax(predict_fn(x), axis=1)[0]
 
         def func(x, target_class=target_class):
             return predict_fn(x)[:, target_class]
 
-    return func
+    return func, target_class
 
 
 def _calculate_funcgradx(func, x, epsilon=1.0):
 
+    x = x.reshape(x.shape[1:])
     x_shape = x.shape
 
     x = x.flatten()
@@ -54,7 +55,7 @@ def _define_metric_loss(metric, x_0):
         batch_size = x.shape[0]
         distances = []
         for i in range(batch_size):
-            distances.append(metric(x[i], x_0))
+            distances.append(metric(x[i].flatten(), x_0.flatten()))
         return np.asarray(distances)
 
     return _metric_loss
@@ -64,7 +65,7 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
                              epsilon_func=1.0, epsilon_metric=1e-10):
 
     x_shape_batch_format = (1,) + x.shape
-    preds = func(x.reshape(x_shape_batch_format))
+    preds = func(x)
     metric_loss = _define_metric_loss(metric, x_0)
 
     funcgradx = _calculate_funcgradx(func, x, epsilon=epsilon_func)
@@ -83,7 +84,7 @@ def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probabil
                      norm=1.0, lr=50.0):
     x_shape = x_i.shape
     x_shape_batch_format = (1,) + x_i.shape
-    func = _define_func(predict_fn, x_0, target_class=target_class)
+    func, target_class = _define_func(predict_fn, x_0, target_class=target_class)
     for i in range(maxiter):
         if lam_how == 'fixed':
             _lam = initial_lam
@@ -96,8 +97,10 @@ def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probabil
 
         x_i = (x_i.flatten() - lr * gradients).reshape(x_shape)
         if i % 50 == 0:
-            print(_lam)
-            print(target_class, predict_fn(x_i.reshape(x_shape_batch_format))[:, target_class])
+            print('Target class:', target_class)
+            print('Proba:', predict_fn(x_i)[:, target_class])
+            logger.debug('Target class:', target_class)
+            logger.debug('Proba:', predict_fn(x_i)[:, target_class])
     return x_i
 
 
@@ -118,7 +121,7 @@ class CounterFactualAdversarialSearch:
                  initial_lam: float = 0,
                  lam_step: float = 0.1,
                  final_lam: float = 1,
-                 lam_how: str = 'same', #
+                 lam_how: str = 'fixed', #
                  flip_threshold: float = 0.5,
                  lr: float = 50.0,
                  optimizer: Optional[str] = None) -> None:
@@ -195,7 +198,7 @@ class CounterFactualAdversarialSearch:
                       for i in range(self._samples.shape[0])]
         self._norm = 1.0 / max(_distances)
 
-    def explain(self, X: np.ndarray, nb_instances: int = 2, return_as: str = 'all') -> dict:
+    def explain(self, X: np.ndarray,  nb_instances: int = 2, return_as: str = 'all') -> dict:
         """
 
         Parameters
@@ -209,9 +212,11 @@ class CounterFactualAdversarialSearch:
             counterfactual instance serving as an explanation
 
         """
+        if X.shape[0] != 1:
+            X = X.reshape((1,)+X.shape)
         probas = self.predict_fn(X)
         class_x = np.argmax(probas, axis=1)[0]
-        proba_x = probas[:, pred_class]
+        proba_x = probas[:, class_x]
 
         cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}  # type: Dict[str, list]
         for i in range(nb_instances):
@@ -221,7 +226,7 @@ class CounterFactualAdversarialSearch:
 
                 t_0 = time()
 
-                logger.debug('Starting minimization with Lambda = {}'.format(self._lam))
+                logger.debug('Starting minimization')
 
                 x_min = minimize_watcher(self.predict_fn, self._metric_distance , initial_instance, X,
                                          target_class=self.target_class, target_probability=self.target_probability,
@@ -239,8 +244,6 @@ class CounterFactualAdversarialSearch:
 
                 proba_cf_class_x = probas_cf[:, class_x]
 
-                logger.debug('_maxiter: %s', _maxiter)
-
                 #self._lam += self.lam_step
                 #if _maxiter > self.maxiter or self._lam > self.max_lam:
                 #    logger.debug(self._lam, 'Stopping minimization')
@@ -252,7 +255,7 @@ class CounterFactualAdversarialSearch:
                 logger.debug('Minimization time: ', time() - t_0)
                 cf_instances['idx'].append(i)
                 cf_instances['vector'].append(x_min.reshape(X.shape))
-                cf_instances['distance_from_orig'].append(self._metric_distance(x_min, X.flatten()))
+                cf_instances['distance_from_orig'].append(self._metric_distance(x_min.flatten(), X.flatten()))
 
                 logger.debug('Counterfactual instance {} of {} generated'.format(i, nb_instances - 1))
                 logger.debug(

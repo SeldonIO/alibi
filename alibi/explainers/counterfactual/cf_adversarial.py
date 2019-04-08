@@ -3,7 +3,7 @@ from time import time
 from typing import Callable, Dict, Optional, Union
 from statsmodels import robust
 from scipy.optimize import minimize
-from .util import _metric_distance_func, _calculate_franges
+from util import _metric_distance_func, _calculate_franges
 import logging
 
 logger = logging.getLogger(__name__)
@@ -117,14 +117,13 @@ class CounterFactualAdversarialSearch:
                  epsilon_func: float = 5,
                  epsilon_metric: float = 0.1,
                  maxiter: int = 300,
-                 method: str = 'OuterBoundary',
+                 method: str = 'Wachter',
                  initial_lam: float = 0,
                  lam_step: float = 0.1,
                  final_lam: float = 1,
                  lam_how: str = 'fixed', #
                  flip_threshold: float = 0.5,
-                 lr: float = 50.0,
-                 optimizer: Optional[str] = None) -> None:
+                 lr: float = 50.0) -> None:
         """
 
         Parameters
@@ -169,10 +168,32 @@ class CounterFactualAdversarialSearch:
         self.lam_how = lam_how
         self.flip_threshold = flip_threshold
         self.lr = lr
-        self.optimizer = optimizer
+        #self.optimizer = optimizer
         self.metric = metric
         # create the metric distance function
 
+    def _initialize(self, X, initialization):
+
+        if initialization is None:
+            initial_instance = X
+
+        else:
+            if hasattr(self, 'f_ranges') and hasattr(self, '_samples'):
+                if initialization == 'random_from_train_set':
+                    initial_instance = np.random.permutation(self._samples)[0]
+                elif initialization == 'random_uniform':
+                    initial_instance = np.random.uniform(low=[t[0] for t in self.f_ranges],
+                                                        high=[t[1] for t in self.f_ranges],
+                                                        size=X.flatten().shape).reshape(X.shape)
+                else:
+                    raise NameError('initialization method {} not implemented'.format(initialization))
+            else:
+                if initialization == 'random_uniform':
+                    initial_instance = np.random.uniform(size=X.shape)
+                else:
+                    raise NameError('initialization method {} not implemented'.format(initialization))
+
+        return initial_instance
 
     def fit(self, X_train, y_train=None, dataset_sample_size=5000):
         """
@@ -187,24 +208,34 @@ class CounterFactualAdversarialSearch:
             nb of data points to sample from training data
 
         """
-        self._lam = self.lam
+        #self._lam = self.lam
         self.f_ranges = _calculate_franges(X_train)
         self.mads = robust.mad(X_train, axis=0) + 10e-10
         if dataset_sample_size is not None:
             self._samples = np.random.permutation(X_train)[:dataset_sample_size]
         else:
             self._samples = X_train
-        _distances = [self._metric_distance(self._samples[i], np.roll(self._samples, 1, axis=0)[i])
+
+        _distances = [self._metric_distance(self._samples[i].flatten(), np.roll(self._samples, 1, axis=0)[i].flatten())
                       for i in range(self._samples.shape[0])]
         self._norm = 1.0 / max(_distances)
 
-    def explain(self, X: np.ndarray,  nb_instances: int = 2, return_as: str = 'all') -> dict:
+    def explain(self, X: np.ndarray,
+                initialization: str = 'random_uniform',
+                nb_instances: int = 2,
+                return_as: str = 'all') -> dict:
         """
 
         Parameters
         ----------
         X
             instance to explain
+        initialization
+            initialization method for minimization
+        nb_instances
+            number of instances to generate
+        return_as
+            how to return counterfactuals
 
         Returns
         -------
@@ -221,38 +252,25 @@ class CounterFactualAdversarialSearch:
         cf_instances = {'idx': [], 'vector': [], 'distance_from_orig': []}  # type: Dict[str, list]
         for i in range(nb_instances):
             if self.method == 'Wachter' or self.method == 'OuterBoundary':
-                #                initial_instance = np.random.permutation(self._samples)[0]
-                initial_instance = X
 
-                t_0 = time()
+                initial_instance = self._initialize(X, initialization)
 
                 logger.debug('Starting minimization')
+                t_0 = time()
 
-                x_min = minimize_watcher(self.predict_fn, self._metric_distance , initial_instance, X,
+                x_min = minimize_watcher(self.predict_fn, self._metric_distance, initial_instance, X,
                                          target_class=self.target_class, target_probability=self.target_probability,
                                          epsilon_func=self.epsilon_func,epsilon_metric=self.epsilon_metric,
                                          initial_lam=self.initial_lam, final_lam=self.final_lam,
                                          lam_how=self.lam_how, maxiter=self.maxiter, lr=self.lr)
 
-                #res = minimize(_countefactual_loss, initial_instance, constraints=cons,
-                #               method=self.optimizer, options={'maxiter': _maxiter})
-                #x_min=res.x
-
                 probas_cf = self.predict_fn(x_min.reshape(X.shape))
                 class_cf = np.argmax(probas_cf, axis=1)[0]
                 proba_cf = probas_cf[:, class_cf]
-
                 proba_cf_class_x = probas_cf[:, class_x]
 
-                #self._lam += self.lam_step
-                #if _maxiter > self.maxiter or self._lam > self.max_lam:
-                #    logger.debug(self._lam, 'Stopping minimization')
-                #    self._lam = self.lam
-                #    cond = True
-                #if self._lam > self.max_lam - self.lam_step:
-                #    _maxiter = 1 * self.maxiter
-
                 logger.debug('Minimization time: ', time() - t_0)
+
                 cf_instances['idx'].append(i)
                 cf_instances['vector'].append(x_min.reshape(X.shape))
                 cf_instances['distance_from_orig'].append(self._metric_distance(x_min.flatten(), X.flatten()))

@@ -3,13 +3,13 @@ from time import time
 from typing import Callable, Dict, Optional, Union
 from statsmodels import robust
 from scipy.optimize import minimize
-from util import _metric_distance_func, _calculate_franges
+from .util import _metric_distance_func, _calculate_franges
 import logging
 
 logger = logging.getLogger(__name__)
 
 
-def _define_func(predict_fn, x, target_class='same'):
+def _define_func(predict_fn, x, target_class):
 
     x_shape_batch_format = (1,) + x.shape
 
@@ -21,6 +21,7 @@ def _define_func(predict_fn, x, target_class='same'):
             target_class = np.argmax(predict_fn(x), axis=1)[0]
 
         def func(x, target_class=target_class):
+            #print(target_class)
             return predict_fn(x)[:, target_class]
 
     return func, target_class
@@ -71,8 +72,8 @@ def _calculate_watcher_grads(x, func, metric, x_0, target_probability, _lam, _no
     funcgradx = _calculate_funcgradx(func, x, epsilon=epsilon_func)
     metricgradx = _calculate_funcgradx(metric_loss, x, epsilon=epsilon_metric)
 
-    gradients_0 = _lam * 2 * (preds[0] - target_probability) * funcgradx
-    gradients_1 = (1 - _lam) * _norm * metricgradx
+    gradients_0 = (1 - _lam) * 2 * (preds[0] - target_probability) * funcgradx
+    gradients_1 = _lam * _norm * metricgradx
     gradients = gradients_0 + gradients_1
 
     return gradients
@@ -84,7 +85,7 @@ def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probabil
                      norm=1.0, lr=50.0):
     x_shape = x_i.shape
     x_shape_batch_format = (1,) + x_i.shape
-    func, target_class = _define_func(predict_fn, x_0, target_class=target_class)
+    func, target_class = _define_func(predict_fn, x_0, target_class)
     for i in range(maxiter):
         if lam_how == 'fixed':
             _lam = initial_lam
@@ -96,11 +97,11 @@ def minimize_watcher(predict_fn, metric, x_i, x_0, target_class, target_probabil
                                              epsilon_metric=epsilon_metric)
 
         x_i = (x_i.flatten() - lr * gradients).reshape(x_shape)
-        if i % 50 == 0:
-            print('Target class:', target_class)
-            print('Proba:', predict_fn(x_i)[:, target_class])
-            logger.debug('Target class:', target_class)
-            logger.debug('Proba:', predict_fn(x_i)[:, target_class])
+        if i % 1 == 0:
+            #print('Target class: {}'.format(target_class))
+            #print('Proba:', predict_fn(x_i)[:, target_class])
+            logger.debug('Target class: {}'.format(target_class))
+            logger.debug('Proba: {}'.format(predict_fn(x_i)[:, target_class][0]))
     return x_i
 
 
@@ -175,13 +176,16 @@ class CounterFactualAdversarialSearch:
     def _initialize(self, X, initialization):
 
         if initialization is None:
+            print('init is none')
             initial_instance = X
 
         else:
             if hasattr(self, 'f_ranges') and hasattr(self, '_samples'):
                 if initialization == 'random_from_train_set':
-                    initial_instance = np.random.permutation(self._samples)[0]
+                    print('random_from_train_set')
+                    initial_instance = np.random.permutation(self._samples)[0].reshape(X.shape)
                 elif initialization == 'random_uniform':
+                    print('random_uniform with f_ranges')
                     initial_instance = np.random.uniform(low=[t[0] for t in self.f_ranges],
                                                         high=[t[1] for t in self.f_ranges],
                                                         size=X.flatten().shape).reshape(X.shape)
@@ -189,6 +193,7 @@ class CounterFactualAdversarialSearch:
                     raise NameError('initialization method {} not implemented'.format(initialization))
             else:
                 if initialization == 'random_uniform':
+                    print('random_uniform. No f_ranges')
                     initial_instance = np.random.uniform(size=X.shape)
                 else:
                     raise NameError('initialization method {} not implemented'.format(initialization))
@@ -269,7 +274,7 @@ class CounterFactualAdversarialSearch:
                 proba_cf = probas_cf[:, class_cf]
                 proba_cf_class_x = probas_cf[:, class_x]
 
-                logger.debug('Minimization time: ', time() - t_0)
+                logger.debug('Minimization time: {}'.format(time() - t_0))
 
                 cf_instances['idx'].append(i)
                 cf_instances['vector'].append(x_min.reshape(X.shape))
@@ -281,7 +286,7 @@ class CounterFactualAdversarialSearch:
                 logger.debug('Countfact instance original class probability: {}'.format(proba_cf_class_x))
                 logger.debug('Countfact instance predicted class: '
                              '{} with probability {}:'.format(class_cf, proba_cf))
-                logger.debug('Original instance shape', X.shape)
+                logger.debug('Original instance shape {}'.format(X.shape))
 
         self.cf_instances = cf_instances
 

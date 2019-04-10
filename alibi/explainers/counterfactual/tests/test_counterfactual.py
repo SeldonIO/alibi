@@ -5,7 +5,7 @@ from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 from scipy.spatial.distance import cityblock
 
-from alibi.explainers.counterfactual.counterfactual import _define_func, num_grad
+from alibi.explainers.counterfactual.counterfactual import _define_func, num_grad, get_wachter_grads
 
 
 @pytest.fixture
@@ -67,3 +67,17 @@ def test_get_num_gradients_logistic_iris(logistic_iris):
 
     assert grad_approx.shape == grad_true.shape
     assert np.allclose(grad_true, grad_approx)
+
+
+def test_get_wachter_grads(logistic_iris):
+    X, y, lr = logistic_iris
+    predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))
+    x = X[0]
+    probas = predict_fn(x)
+    pred_class = probas.argmax()
+    func, target = _define_func(predict_fn, pred_class, 'same')
+
+    grad_loss = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock,
+                                  X_test=x, target_proba=0.1, lam=1)
+
+    assert grad_loss.shape == x.shape

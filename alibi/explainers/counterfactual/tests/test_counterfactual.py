@@ -1,3 +1,4 @@
+# flake8: noqa E731
 import pytest
 import numpy as np
 from sklearn.datasets import load_iris
@@ -53,22 +54,16 @@ def test_get_num_gradients_cityblock(dim):
 
 def test_get_num_gradients_logistic_iris(logistic_iris):
     X, y, lr = logistic_iris
-    predict_fn = lr.predict_proba
-    x = X[0].reshape(1, -1)
+    predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))  # need squeezed x for numerical gradient
+    x = X[0]
     probas = predict_fn(x)
     pred_class = probas.argmax()
 
-    # true gradient of the softmax function wrt x
-    grad_true = (probas.T * (np.eye(3, 3) - probas) @ lr.coef_).sum(axis=1)
+    # true gradient of the logistic regression wrt x
+    grad_true = (probas.T * (np.eye(3, 3) - probas) @ lr.coef_)
+    assert grad_true.shape == (3, 4)
+
     grad_approx = num_grad(predict_fn, x)
-
-    assert grad_approx.shape == grad_true.shape
-    assert np.allclose(grad_true, grad_approx)
-
-    # now restrict to just one class
-    func, target = _define_func(predict_fn, pred_class, 'same')
-    grad_true = grad_true[0]
-    grad_approx = num_grad(func, x)
 
     assert grad_approx.shape == grad_true.shape
     assert np.allclose(grad_true, grad_approx)

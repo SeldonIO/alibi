@@ -49,3 +49,23 @@ def _define_func(predict_fn: Callable,
         return predict_fn(X)[:, target_class]
 
     return func, target_class
+
+
+def get_num_grads(): ...
+
+
+def get_wachter_grads(): ...
+
+
+def minimize_wachter_loss(): ...
+
+
+class CounterFactual:
+
+    def __init__(self): ...
+
+    def _initialize(self): ...
+
+    def fit(self): ...
+
+    def explain(self): ...

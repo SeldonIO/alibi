@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Callable, Tuple, Union
+from statsmodels.tools.numdiff import approx_fprime
 import logging
 
 logger = logging.getLogger(__name__)
@@ -51,7 +52,25 @@ def _define_func(predict_fn: Callable,
     return func, target_class
 
 
-def get_num_grads(): ...
+def num_grad(func: Callable, X: np.ndarray, args: Tuple = (), epsilon: float = 1e-08) -> np.ndarray:
+    """
+    Compute the numerical gradient using the symmetric difference. Currently wraps statsmodels implementation.
+    Parameters
+    ----------
+    func
+        Function to differentiate
+    X
+        Point at which to compute the gradient
+    args
+        Additional arguments to the function
+    epsilon
+        Step size for computing the gradient
+    Returns
+    -------
+    Numerical gradient
+    """
+    gradient = approx_fprime(X, func, epsilon=epsilon, args=args, centered=True)
+    return gradient
 
 
 def get_wachter_grads(): ...

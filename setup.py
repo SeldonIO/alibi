@@ -33,6 +33,7 @@ setup(name='alibi',
           'scikit-image',
           'tensorflow',
           'seaborn'
+          'statsmodels'
       ],
       tests_require=[
           'pytest',

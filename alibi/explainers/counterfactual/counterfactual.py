@@ -73,7 +73,24 @@ def num_grad(func: Callable, X: np.ndarray, args: Tuple = (), epsilon: float = 1
     return gradient
 
 
-def get_wachter_grads(): ...
+def get_wachter_grads(X_current: np.ndarray,
+                      predict_class_fn: Callable,
+                      distance_fn: Callable,
+                      X_test: np.ndarray,
+                      target_proba: float,
+                      lam: float) -> np.ndarray:
+    pred = predict_class_fn(X_current)
+
+    # numerical gradient of the black-box prediction function (specific to the target class)
+    prediction_grad = num_grad(predict_class_fn, X_current.squeeze())
+
+    # numerical gradient of the distance function between the current point and the point to be explained
+    distance_grad = num_grad(distance_fn, X_current.squeeze(), args=tuple([X_test.squeeze()]))
+
+    # gradient of the Wachter loss
+    grad_loss = 2 * lam * (pred - target_proba) * prediction_grad + distance_grad
+
+    return grad_loss
 
 
 def minimize_wachter_loss(): ...

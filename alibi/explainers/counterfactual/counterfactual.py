@@ -79,6 +79,28 @@ def get_wachter_grads(X_current: np.ndarray,
                       X_test: np.ndarray,
                       target_proba: float,
                       lam: float) -> np.ndarray:
+    """
+    Calculate the gradients of the loss function in Wachter et al. (2017)
+    Parameters
+    ----------
+    X_current
+        Candidate counterfactual wrt which the gradient is taken
+    predict_class_fn
+        Prediction function specific to the target class of the counterfactual
+    distance_fn
+        Distance function in feature space
+    X_test
+        Sample to be explained
+    target_proba
+        Target probability to for the counterfactual instance to satisfy
+    lam
+        Hyperparameter balancing the loss contribution of the distance in prediction (higher lam -> more weight)
+
+    Returns
+    -------
+    Gradient of the Wachter loss
+
+    """
     pred = predict_class_fn(X_current)
 
     # numerical gradient of the black-box prediction function (specific to the target class)

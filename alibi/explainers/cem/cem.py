@@ -39,7 +39,7 @@ class CEM(object):
         ae_model
             Optional auto-encoder model used for loss regularization
         learning_rate_init
-            Initial learning rate
+            Initial learning rate of optimizer
         max_iterations
             Maximum number of iterations for finding a PN or PP
         c_init
@@ -223,7 +223,6 @@ class CEM(object):
             var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][0]
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)
-            #self.train = optimizer.minimize(self.loss_opt, var_list=[self.adv_s], global_step=self.global_step)
             end_vars = tf.global_variables()
             new_vars = [x for x in end_vars if x.name not in start_vars]
 
@@ -241,19 +240,9 @@ class CEM(object):
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
 
-            if len(self.shape) == 4:
-                if self.mode == 'PP':
-                    imgs = [self.orig, self.orig - self.adv_s]
-                elif self.mode == 'PN':
-                    imgs = [self.orig, self.adv_s]
-                titles = ['Original Instance', self.mode]
-                labels = ['Pixel Values', 'Pixel Values']
-                img_tensor = img_cem(imgs, titles, labels)
-                img_summary = tf.summary.image('Instance', img_tensor)
-
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
-        Compute attack loss.
+        Compute the attack loss.
 
         Parameters
         ----------
@@ -299,6 +288,7 @@ class CEM(object):
         -------
         Instances where a positive and negative perturbation is applied.
         """
+        # N = batch size; F = nb of features in X
         shape = X.shape
         X = np.reshape(X, (shape[0], -1))  # NxF
         dim = X.shape[1]  # F
@@ -317,7 +307,6 @@ class CEM(object):
         """
         Compute numerical gradients of the attack loss term:
         dL/dx = (dL/dP)*(dP/dx) with L = loss_attack_s; P = predict; x = adv_s
-        N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
 
         Parameters
         ----------
@@ -330,6 +319,7 @@ class CEM(object):
         -------
         Array with gradients.
         """
+        # N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
         # dL/dP -> BxP
         preds = self.predict(X)  # NxP
         preds_pert_pos, preds_pert_neg = self.perturb(preds, self.eps[0], proba=True)  # (N*P)xP
@@ -368,13 +358,13 @@ class CEM(object):
     def attack(self, X: np.ndarray, Y: np.ndarray, verbose: bool = False) \
             -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Find pertinant negative or pertinant positive for instances X using a fast iterative
+        Find pertinant negative or pertinant positive for instance X using a fast iterative
         shrinkage-thresholding algorithm (FISTA).
 
         Parameters
         ----------
         X
-            Instances to attack
+            Instance to attack
         Y
             Labels for X
         verbose
@@ -391,7 +381,7 @@ class CEM(object):
 
         def compare(x: Union[float, int, np.ndarray], y: int) -> bool:
             """
-            Compare predictions or target labels and return whether PP or PN conditions hold.
+            Compare predictions with target labels and return whether PP or PN conditions hold.
 
             Parameters
             ----------

@@ -1,3 +1,5 @@
+# flake8: noqa F841
+
 import logging
 import numpy as np
 import sys
@@ -227,7 +229,7 @@ class CEM(object):
             new_vars = [x for x in end_vars if x.name not in start_vars]
 
         # variables to initialize
-        self.setup = []
+        self.setup = []  # type: list
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.target.assign(self.assign_target))
         self.setup.append(self.const.assign(self.assign_const))

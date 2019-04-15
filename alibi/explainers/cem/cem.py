@@ -111,7 +111,8 @@ class CEM(object):
             self.assign_adv = tf.multiply(cond[0], upper)+tf.multiply(cond[1], self.orig) + tf.multiply(cond[2], lower)
 
         # perturbation update for delta and vector projection on correct set depending on PP or PN (eq.5)
-        # delta(k) = adv; delta(k+1) = assign_adv = x + d
+        # delta(k) = adv; delta(k+1) = assign_adv
+        # TODO: implies that adding features >0 and removing features <0! no general solution!
         with tf.name_scope('perturbation_delta') as scope:
             proj_d = [tf.cast(tf.greater(tf.subtract(self.assign_adv, self.orig), 0), tf.float32),
                       tf.cast(tf.less_equal(tf.subtract(self.assign_adv, self.orig), 0), tf.float32)]
@@ -121,6 +122,7 @@ class CEM(object):
                 self.assign_adv = tf.multiply(proj_d[0], self.assign_adv) + tf.multiply(proj_d[1], self.orig)
 
         # perturbation update and vector projection on correct set for y: y(k+1) = assign_adv_s (eq.6)
+        # TODO: same implication as assign_adv
         with tf.name_scope('perturbation_y') as scope:
             self.zt = tf.divide(self.global_step, self.global_step + tf.cast(3, tf.float32))  # k/(k+3) in (eq.6)
             self.assign_adv_s = self.assign_adv + tf.multiply(self.zt, self.assign_adv - self.adv)
@@ -137,10 +139,9 @@ class CEM(object):
             self.adv_updater_s = tf.assign(self.adv_s, self.assign_adv_s)
 
         # from perturbed instance, derive deviation delta
-        # see notes (1)!
         with tf.name_scope('update_delta') as scope:
-            self.delta = self.orig - self.adv  # x - (x + d) = -d but -d > 0 b/c of proj_d
-            self.delta_s = self.orig - self.adv_s
+            self.delta = self.orig - self.adv  # x - (x + d) = -d but -d >= 0 for PP b/c of proj_d
+            self.delta_s = self.orig - self.adv_s  # >= 0 for PP b/c of proj_d_s
 
         # define L1 and L2 loss terms; L1+L2 is later used as an optimization constraint for FISTA
         ax_sum = list(np.arange(1, len(shape)))
@@ -153,7 +154,6 @@ class CEM(object):
             self.l1_l2_s = self.l2_s + tf.multiply(self.l1_s, self.beta)
 
             # sum losses
-            # see notes (4)!
             self.loss_l1 = tf.reduce_sum(self.l1)
             self.loss_l1_s = tf.reduce_sum(self.l1_s)
             self.loss_l2 = tf.reduce_sum(self.l2)
@@ -219,7 +219,7 @@ class CEM(object):
             optimizer = tf.train.GradientDescentOptimizer(self.learning_rate)
             start_vars = set(x.name for x in tf.global_variables())
 
-            # first compute, then apply grads after clipping
+            # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
             var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][0]

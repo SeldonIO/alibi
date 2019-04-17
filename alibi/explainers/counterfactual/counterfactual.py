@@ -102,7 +102,10 @@ def get_wachter_grads(X_current: np.ndarray,
         Target probability to for the counterfactual instance to satisfy
     lam
         Hyperparameter balancing the loss contribution of the distance in prediction (higher lam -> more weight)
-
+    epsilons
+        Steps sizes for computing the gradient passed to the num_grad function
+    method
+        Loss optimization method - one of 'wachter' or 'adiabatic'
     Returns
     -------
     Loss and gradient of the Wachter loss

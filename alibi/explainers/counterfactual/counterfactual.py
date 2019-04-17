@@ -319,7 +319,8 @@ class CounterFactual:
                        'grads': grads,
                        'Xs': Xs,
                        'lambdas': lambdas,
-                       'n_iter': num_iter}
+                       'n_iter': num_iter,
+                       'success': True}
         # main loop
         while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
             logger.debug('######################################################## ITERATION: %s', num_iter + 1)
@@ -327,6 +328,7 @@ class CounterFactual:
                 logger.warning(
                     'Maximum number of iterations reached without finding a counterfactual.'
                     'Increase max_iter, tolerance or the lambda hyperparameter.')
+                return_dict['success'] = False
                 return return_dict
 
             # minimize the loss

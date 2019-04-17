@@ -219,6 +219,7 @@ class CounterFactual:
 
         # TODO: support predict and predict_proba types for functions
         self.predict_fn = lambda x: predict_fn(x.reshape(1, -1))  # Is this safe?
+        # self.predict_fn = predict_fn
 
         try:
             self.distance_fn = _metric_dict[distance_fn]
@@ -233,23 +234,23 @@ class CounterFactual:
         self.fitted = False
 
         # set up graph session
-        self.cf = tf.get_variable('counterfactual', shape=data_shape,
-                                  dtype=tf.float32)  # TODO initialize when explain is called
+        with tf.variable_scope('cf_search'):
+            self.cf = tf.get_variable('counterfactual', shape=data_shape,
+                                      dtype=tf.float32)  # TODO initialize when explain is called
 
-        # optimizer
-        opt = tf.train.AdamOptimizer()  # TODO optional argument to change type
+            # optimizer
+            opt = tf.train.AdamOptimizer()  # TODO optional argument to change type
 
-        # training setup
-        self.global_step = tf.Variable(0, trainable=False, name='global_step')
-        # grads_and_vars = opt.compute_gradients(, vars = [cf]) TODO if differentiable distance
-        self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32)
-        grad_and_var = [(self.grad_ph, self.cf)]  # could be cf.name
+            # training setup
+            self.global_step = tf.Variable(0, trainable=False, name='global_step')
+            # grads_and_vars = opt.compute_gradients(, vars = [cf]) TODO if differentiable distance
+            self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32)
+            grad_and_var = [(self.grad_ph, self.cf)]  # could be cf.name
 
-        self.apply_grad = opt.apply_gradients(grad_and_var, global_step=self.global_step)  # TODO gradient clipping?
+            self.apply_grad = opt.apply_gradients(grad_and_var, global_step=self.global_step)  # TODO gradient clipping?
 
-        # self.init = tf.variables_initializer(var_list=[self.global_step, self.cf])
-        # self.sess.run(self.init)  # where to put this?
-        self.sess.run(tf.global_variables_initializer())  # TODO replace with localized version?
+        self.init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
+        self.sess.run(self.init)  # where to put this?
 
         return
 

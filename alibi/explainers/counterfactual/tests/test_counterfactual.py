@@ -18,14 +18,17 @@ def logistic_iris():
 
 
 @pytest.fixture
-def iris_explainer(logistic_iris):
+def iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))
     sess = tf.Session()
 
-    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, data_shape=(4,), lam_init=1000, max_iter=2000)
+    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, data_shape=(4,),
+                                  target_class=request.param, lam_init=1000, max_iter=2000)
 
-    return cf_explainer
+    yield cf_explainer
+    tf.reset_default_graph()
+    sess.close()
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -97,6 +100,9 @@ def test_get_wachter_grads(logistic_iris):
     assert grad_loss.shape == x.shape
 
 
+@pytest.mark.parametrize('iris_explainer',
+                         ['other', 'same', 0, 1, 2],
+                         indirect=True)
 def test_cf_explainer_iris(iris_explainer, logistic_iris):
     X, y, lr = logistic_iris
     x = X[0]
@@ -113,9 +119,25 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
     probas_cf = iris_explainer.predict_fn(x_cf)
     pred_class_cf = probas_cf.argmax()
 
-    # check if 'other' class condition is met
-    assert pred_class != pred_class_cf
+    # get attributes for testing
+    target_class = iris_explainer.target_class
+    target_proba = iris_explainer.target_proba
+    tol = iris_explainer.tol
+    max_iter = iris_explainer.max_iter
+    pred_class_fn = iris_explainer.predict_class_fn
+
+    # check if target_class condition is met
+    if target_class == 'same':
+        assert pred_class  == pred_class_cf
+    elif target_class == 'other':
+        assert pred_class != pred_class_cf
+    elif exp['success']:
+        assert pred_class_cf == target_class
 
     # check if probability is within tolerance
-    assert np.abs((iris_explainer.predict_class_fn(x_cf) - iris_explainer.target_proba)) <= iris_explainer.tol
-
+    if exp['success']:
+        assert exp['n_iter'] <= max_iter
+        assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
+    else:
+        assert exp['n_iter'] == max_iter
+        assert np.abs(pred_class_fn(x_cf) - target_proba) > tol

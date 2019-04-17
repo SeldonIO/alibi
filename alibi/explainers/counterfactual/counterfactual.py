@@ -60,6 +60,7 @@ def _define_func(predict_fn: Callable,
 def num_grad(func: Callable, X: np.ndarray, args: Tuple = (), epsilon: float = 1e-08) -> np.ndarray:
     """
     Compute the numerical gradient using the symmetric difference. Currently wraps statsmodels implementation.
+
     Parameters
     ----------
     func
@@ -88,6 +89,7 @@ def get_wachter_grads(X_current: np.ndarray,
                       method: str = 'wachter') -> Tuple[Union[float, np.ndarray], ...]:
     """
     Calculate the gradients of the loss function in Wachter et al. (2017)
+
     Parameters
     ----------
     X_current
@@ -165,6 +167,41 @@ class CounterFactual:
                  feature_range: Union[Tuple, str] = None,  # important for positive features
                  epsilons: Union[float, np.ndarray] = None,  # feature-wise epsilons
                  method: str = 'wachter'):
+        """
+        Initialize counterfactual explanation method based on Wachter et al. (2017)
+
+        Parameters
+        ----------
+        sess
+            TensorFlow session
+        predict_fn
+            A model's prediction function returning class probabilities
+        data_shape
+            Shape of input data TODO: specify format
+        distance_fn
+            Distance function to use in the loss term
+        target_proba
+            Target probability for the counterfactual to reach
+        target_class
+            Target class for the counterfactual to reach, one of 'other', 'same' or an integer denoting
+            desired class membership for the counterfactual instance
+        max_iter
+            Maximum number of interations to run the search for
+        lam_init
+            Initial regularization constant for the prediction part of the Wachter loss
+        lam_step
+            Regularization constant step size used in the search
+        tol
+            Tolerance for the counterfactual target probability
+        feature_range
+            Tuple with min ahnd max ranges to allow for the counterfactual search. TODO
+        epsilons
+            Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
+            features, but can be passed an array for feature-wise step sizes
+        method
+            Optimization method, one of 'wachter' or 'adiabatic' TODO: method or different algorithm?
+        """
+
         logger.warning('Counterfactual explainer currently only supports numeric features')
         self.sess = sess
         self.data_shape = data_shape

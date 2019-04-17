@@ -15,7 +15,8 @@ class CEM(object):
                  kappa: float = 0., beta: float = .1, feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0., ae_model: Callable = None, learning_rate_init: float = 1e-2,
                  max_iterations: int = 1000, c_init: float = 10., c_steps: int = 10, eps: tuple = (1e-3, 1e-3),
-                 clip: tuple = (-100., 100.), update_num_grad: int = 1, write_dir: str = None) -> None:
+                 clip: tuple = (-100., 100.), update_num_grad: int = 1, no_info_val: Union[float, np.ndarray] = None,
+                 write_dir: str = None) -> None:
         """
         Initialize contrastive explanation method.
 
@@ -58,6 +59,8 @@ class CEM(object):
             obtained from the TensorFlow graph
         update_num_grad
             If numerical gradients are used, they will be updated every update_num_grad iterations
+        no_info_val
+            Global or feature-wise value considered as containing no information
         write_dir
             Directory to write tensorboard files to
         """
@@ -83,6 +86,14 @@ class CEM(object):
         self.eps = eps
         self.clip = clip
         self.write_dir = write_dir
+        if type(no_info_val) == float:
+            self.no_info_val = np.ones(self.shape) * no_info_val
+        else:
+            self.no_info_val = no_info_val
+
+        # values regarded as containing no information
+        # PNs will deviate away from these values while PPs will gravitate towards them
+        self.no_info = tf.Variable(np.zeros(shape), dtype=tf.float32, name='no_info')
 
         # define tf variables for original and perturbed instances, and target labels
         self.orig = tf.Variable(np.zeros(shape), dtype=tf.float32, name='orig')
@@ -100,6 +111,7 @@ class CEM(object):
         self.assign_adv_s = tf.placeholder(tf.float32, shape, name='assign_adv_s')
         self.assign_target = tf.placeholder(tf.float32, (self.batch_size, classes), name='assign_target')
         self.assign_const = tf.placeholder(tf.float32, [self.batch_size], name='assign_const')
+        self.assign_no_info = tf.placeholder(tf.float32, shape, name='assign_no_info')
 
         # define conditions and values for element-wise shrinkage thresholding (eq.7)
         with tf.name_scope('shrinkage_thresholding') as scope:
@@ -112,22 +124,24 @@ class CEM(object):
 
         # perturbation update for delta and vector projection on correct set depending on PP or PN (eq.5)
         # delta(k) = adv; delta(k+1) = assign_adv
-        # TODO: implies that adding features >0 and removing features <0! no general solution!
         with tf.name_scope('perturbation_delta') as scope:
-            proj_d = [tf.cast(tf.greater(tf.subtract(self.assign_adv, self.orig), 0), tf.float32),
-                      tf.cast(tf.less_equal(tf.subtract(self.assign_adv, self.orig), 0), tf.float32)]
+            proj_d = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv, self.orig)),
+                                         tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32),
+                      tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv, self.orig)),
+                                            tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32)]
             if self.mode == "PP":
                 self.assign_adv = tf.multiply(proj_d[1], self.assign_adv) + tf.multiply(proj_d[0], self.orig)
             elif self.mode == "PN":
                 self.assign_adv = tf.multiply(proj_d[0], self.assign_adv) + tf.multiply(proj_d[1], self.orig)
 
         # perturbation update and vector projection on correct set for y: y(k+1) = assign_adv_s (eq.6)
-        # TODO: same implication as assign_adv
         with tf.name_scope('perturbation_y') as scope:
             self.zt = tf.divide(self.global_step, self.global_step + tf.cast(3, tf.float32))  # k/(k+3) in (eq.6)
             self.assign_adv_s = self.assign_adv + tf.multiply(self.zt, self.assign_adv - self.adv)
-            proj_d_s = [tf.cast(tf.greater(tf.subtract(self.assign_adv_s, self.orig), 0), tf.float32),
-                        tf.cast(tf.less_equal(tf.subtract(self.assign_adv_s, self.orig), 0), tf.float32)]
+            proj_d_s = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv_s, self.orig)),
+                                           tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32),
+                        tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv_s, self.orig)),
+                                              tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32)]
             if self.mode == "PP":
                 self.assign_adv_s = tf.multiply(proj_d_s[1], self.assign_adv_s) + tf.multiply(proj_d_s[0], self.orig)
             elif self.mode == "PN":
@@ -235,12 +249,36 @@ class CEM(object):
         self.setup.append(self.const.assign(self.assign_const))
         self.setup.append(self.adv.assign(self.assign_adv))
         self.setup.append(self.adv_s.assign(self.assign_adv_s))
+        self.setup.append(self.no_info.assign(self.assign_no_info))
 
         self.init = tf.variables_initializer(var_list=[self.global_step] + [self.adv_s] + [self.adv] + new_vars)
 
         if self.write_dir is not None:
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
+
+    def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> None:
+        """
+        Get 'no information' values from the training data.
+
+        Parameters
+        ----------
+        train_data
+            Representative sample from the training data
+        no_info_type
+            Median or mean value by feature supported
+        """
+        if self.no_info_val is not None:
+            logger.warning('"no_info_type" variable already defined. Previous values will be overwritten.')
+
+        # reshape train data
+        train_flat = train_data.reshape((train_data.shape[0], -1))
+
+        # calculate no info values by feature and reshape to original shape
+        if no_info_type == 'median':
+            self.no_info_val = np.median(train_flat, axis=0).reshape(self.shape)
+        elif no_info_type == 'mean':
+            self.no_info_val = np.mean(train_flat, axis=0).reshape(self.shape)
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
@@ -381,6 +419,11 @@ class CEM(object):
         # make sure nb of instances in X equals batch size
         assert self.batch_size == X.shape[0]
 
+        # check if no info value has been set either through init or fit
+        if self.no_info_val is None:
+            logger.exception('No value specified for "no_info_val" through init or fit method.')
+            raise ValueError
+
         def compare(x: Union[float, int, np.ndarray], y: int) -> bool:
             """
             Compare predictions with target labels and return whether PP or PN conditions hold.
@@ -434,7 +477,8 @@ class CEM(object):
                                        self.assign_target: Y,
                                        self.assign_const: const,
                                        self.assign_adv: X,
-                                       self.assign_adv_s: X})
+                                       self.assign_adv_s: X,
+                                       self.assign_no_info: self.no_info_val})
 
             X_der_batch, X_der_batch_s = [], []
 

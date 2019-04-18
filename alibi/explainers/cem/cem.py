@@ -155,8 +155,8 @@ class CEM(object):
 
         # from perturbed instance, derive deviation delta
         with tf.name_scope('update_delta') as scope:
-            self.delta = self.orig - self.adv  # x - (x + d) = -d but -d >= 0 for PP b/c of proj_d
-            self.delta_s = self.orig - self.adv_s  # >= 0 for PP b/c of proj_d_s
+            self.delta = self.orig - self.adv
+            self.delta_s = self.orig - self.adv_s
 
         # define L1 and L2 loss terms; L1+L2 is later used as an optimization constraint for FISTA
         ax_sum = list(np.arange(1, len(shape)))

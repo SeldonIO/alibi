@@ -119,7 +119,7 @@ def get_wachter_grads(X_current: np.ndarray,
         eps = None
 
     pred = predict_class_fn(X_current)
-    logger.debug('Current prediction: %s', pred)
+    logger.debug('Current prediction: p=%s', pred)
 
     # numerical gradient of the black-box prediction function (specific to the target class)
     prediction_grad = num_grad(predict_class_fn, X_current.squeeze(), epsilon=eps)  # TODO feature-wise epsilons
@@ -137,6 +137,10 @@ def get_wachter_grads(X_current: np.ndarray,
         loss = lam * (pred - target_proba) ** 2 + distance_fn(X_current, X_test)
         grad_loss = 2 * lam * (pred - target_proba) * prediction_grad + distance_grad  # TODO convex combination
 
+    elif method == 'wachter_rev':
+        loss = (pred - target_proba) ** 2 + lam * distance_fn(X_current, X_test)
+        grad_loss = 2 * (pred - target_proba) * prediction_grad + lam * distance_grad
+
     elif method == 'adiabatic':
         loss = lam * (pred - target_proba) ** 2 + (1 - lam) * distance_fn(X_current, X_test)
         grad_loss = 2 * lam * (pred - target_proba) * prediction_grad + (1 - lam) * distance_grad
@@ -144,7 +148,6 @@ def get_wachter_grads(X_current: np.ndarray,
     else:
         raise ValueError('Only loss optimization methods available are wachter and adiabatic')
 
-    logger.debug('Method: %s', method)
     logger.debug('Loss: %s', loss)
     logger.debug('Norm of grad_loss: %s', np.linalg.norm(grad_loss.flatten()))
 
@@ -166,7 +169,8 @@ class CounterFactual:
                  tol: float = 0.05,
                  feature_range: Union[Tuple, str] = None,  # important for positive features
                  epsilons: Union[float, np.ndarray] = None,  # feature-wise epsilons
-                 method: str = 'wachter'):
+                 method: str = 'wachter',
+                 init: str = 'random'):
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -200,6 +204,8 @@ class CounterFactual:
             features, but can be passed an array for feature-wise step sizes
         method
             Optimization method, one of 'wachter' or 'adiabatic' TODO: method or different algorithm?
+        init
+            Initialization method for the search of counterfactuals, one of 'random' or 'identity'
         """
 
         logger.warning('Counterfactual explainer currently only supports numeric features')
@@ -216,6 +222,7 @@ class CounterFactual:
 
         self.epsilons = epsilons
         self.method = method
+        self.init = init
 
         # TODO: support predict and predict_proba types for functions
         self.predict_fn = lambda x: predict_fn(x.reshape(1, -1))  # Is this safe?
@@ -234,7 +241,7 @@ class CounterFactual:
         self.fitted = False
 
         # set up graph session
-        with tf.variable_scope('cf_search'):
+        with tf.variable_scope('cf_search', reuse=tf.AUTO_REUSE):
             self.cf = tf.get_variable('counterfactual', shape=data_shape,
                                       dtype=tf.float32)  # TODO initialize when explain is called
 
@@ -249,15 +256,25 @@ class CounterFactual:
 
             self.apply_grad = opt.apply_gradients(grad_and_var, global_step=self.global_step)  # TODO gradient clipping?
 
-        self.init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
-        self.sess.run(self.init)  # where to put this?
+        self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
+        self.sess.run(self.tf_init)  # where to put this?
 
         return
 
-    def _initialize(self):
+    def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
 
-        pass
+        if self.init == 'identity':
+            X_init = X
+            logger.debug('Initializing search at the test point X')
+        elif self.init == 'random':
+            # TODO: handle ranges
+            X_init = np.random.rand(*self.data_shape)
+            logger.debug('Initializing search at a random test point')
+        else:
+            raise ValueError('Initialization method should be one of "random" or "identity"')
+
+        return X_init
 
     def fit(self,
             X: np.ndarray,
@@ -271,6 +288,7 @@ class CounterFactual:
         # make a prediction
         probas = self.predict_fn(X)
         pred_class = probas.argmax()
+        logger.debug('Initial prediction: %s with p=%s', pred_class, probas.max())
 
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
@@ -279,7 +297,7 @@ class CounterFactual:
             logger.warning('Explain called before fit, explainer will operate in unsupervised mode.')
 
         # initialize with an instance
-        X_init = X  # TODO use _initialize
+        X_init = self._initialize(X)
 
         # minimize loss iteratively
         exp_dict = self._minimize_wachter_loss(X, X_init)
@@ -290,7 +308,7 @@ class CounterFactual:
                                X: np.ndarray,
                                X_init: np.ndarray) -> Dict:
         # first minimization
-        logger.debug('######################################################## ITERATION: 0')
+        logger.debug('############################################## ITERATION: 0')
 
         X_current = X_init
         lam = self.lam_init
@@ -324,7 +342,7 @@ class CounterFactual:
                        'success': True}
         # main loop
         while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
-            logger.debug('######################################################## ITERATION: %s', num_iter + 1)
+            logger.debug('############################################## ITERATION: %s', num_iter + 1)
             if num_iter == self.max_iter:
                 logger.warning(
                     'Maximum number of iterations reached without finding a counterfactual.'

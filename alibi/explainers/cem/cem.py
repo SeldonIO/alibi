@@ -87,7 +87,7 @@ class CEM(object):
         self.clip = clip
         self.write_dir = write_dir
         if type(no_info_val) == float:
-            self.no_info_val = np.ones(self.shape) * no_info_val
+            self.no_info_val = np.ones(shape) * no_info_val
         else:
             self.no_info_val = no_info_val
 
@@ -125,9 +125,9 @@ class CEM(object):
         # perturbation update for delta and vector projection on correct set depending on PP or PN (eq.5)
         # delta(k) = adv; delta(k+1) = assign_adv
         with tf.name_scope('perturbation_delta') as scope:
-            proj_d = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv, self.orig)),
+            proj_d = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv, self.no_info)),
                                          tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32),
-                      tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv, self.orig)),
+                      tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv, self.no_info)),
                                             tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32)]
             if self.mode == "PP":
                 self.assign_adv = tf.multiply(proj_d[1], self.assign_adv) + tf.multiply(proj_d[0], self.orig)
@@ -138,9 +138,9 @@ class CEM(object):
         with tf.name_scope('perturbation_y') as scope:
             self.zt = tf.divide(self.global_step, self.global_step + tf.cast(3, tf.float32))  # k/(k+3) in (eq.6)
             self.assign_adv_s = self.assign_adv + tf.multiply(self.zt, self.assign_adv - self.adv)
-            proj_d_s = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv_s, self.orig)),
+            proj_d_s = [tf.cast(tf.greater(tf.abs(tf.subtract(self.assign_adv_s, self.no_info)),
                                            tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32),
-                        tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv_s, self.orig)),
+                        tf.cast(tf.less_equal(tf.abs(tf.subtract(self.assign_adv_s, self.no_info)),
                                               tf.abs(tf.subtract(self.orig, self.no_info))), tf.float32)]
             if self.mode == "PP":
                 self.assign_adv_s = tf.multiply(proj_d_s[1], self.assign_adv_s) + tf.multiply(proj_d_s[0], self.orig)

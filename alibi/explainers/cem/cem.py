@@ -19,6 +19,7 @@ class CEM(object):
                  write_dir: str = None) -> None:
         """
         Initialize contrastive explanation method.
+        Paper: https://arxiv.org/abs/1802.07623
 
         Parameters
         ----------

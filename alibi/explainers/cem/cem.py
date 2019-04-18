@@ -268,6 +268,7 @@ class CEM(object):
         no_info_type
             Median or mean value by feature supported
         """
+        # TODO: find equal distance area in distribution to different classes as "no info" area
         if self.no_info_val is not None:
             logger.warning('"no_info_type" variable already defined. Previous values will be overwritten.')
 
@@ -382,7 +383,10 @@ class CEM(object):
 
         # dP/dx -> PxF
         X_pert_pos, X_pert_neg = self.perturb(X, self.eps[1], proba=False)  # (N*F)x(shape of X[0])
-        dp_dx = self.predict(X_pert_pos) - self.predict(X_pert_neg)  # (N*F)*P
+        X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)
+        preds_concat = self.predict(X_pert)
+        n_pert = X_pert_pos.shape[0]
+        dp_dx = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P
         dp_dx = np.reshape(np.reshape(dp_dx, (X.shape[0], -1)),
                            (X.shape[0], preds.shape[1], -1), order='F') / (2 * self.eps[1])  # NxPxF
 

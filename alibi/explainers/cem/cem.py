@@ -629,6 +629,10 @@ class CEM(object):
         explanation
             Dictionary containing the PP or PN with additional metadata
         """
+        if X.shape[0] != 1:
+            logger.warning('Currently only single instance explanations supported (first dim = 1), '
+                           'but first dim = %s', X.shape[0])
+
         if Y is None:
             if self.model:
                 Y = self.sess.run(self.predict(tf.convert_to_tensor(X, dtype=tf.float32)))

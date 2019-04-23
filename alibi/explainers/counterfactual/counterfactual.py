@@ -166,8 +166,9 @@ class CounterFactual:
                  max_iter: int = 100,
                  lam_init: float = 0.01,
                  lam_step: float = 0.001,
+                 max_lam_steps: int = 100,
                  tol: float = 0.05,
-                 feature_range: Union[Tuple, str] = None,  # important for positive features
+                 feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
                  epsilons: Union[float, np.ndarray] = None,  # feature-wise epsilons
                  method: str = 'wachter',
                  init: str = 'random'):
@@ -179,9 +180,9 @@ class CounterFactual:
         sess
             TensorFlow session
         predict_fn
-            A model's prediction function returning class probabilities
+            Keras or TensorFlow model or any other model's prediction function returning class probabilities
         data_shape
-            Shape of input data TODO: specify format
+            Shape of input data starting with batch size
         distance_fn
             Distance function to use in the loss term
         target_proba
@@ -190,15 +191,18 @@ class CounterFactual:
             Target class for the counterfactual to reach, one of 'other', 'same' or an integer denoting
             desired class membership for the counterfactual instance
         max_iter
-            Maximum number of interations to run the search for
+            Maximum number of interations to run the gradient descent for (inner loop)
         lam_init
             Initial regularization constant for the prediction part of the Wachter loss
         lam_step
             Regularization constant step size used in the search
+        max_lam_steps
+            Maximum number of times to increase the regularization constant (outer loop) before terminating the search
         tol
             Tolerance for the counterfactual target probability
         feature_range
-            Tuple with min ahnd max ranges to allow for the counterfactual search. TODO
+            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
+            numpy arrays with dimension (1 x nb of features) for feature-wise ranges
         epsilons
             Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
             features, but can be passed an array for feature-wise step sizes
@@ -211,6 +215,7 @@ class CounterFactual:
         logger.warning('Counterfactual explainer currently only supports numeric features')
         self.sess = sess
         self.data_shape = data_shape
+        self.batch_size = data_shape[0]
         self.target_proba = target_proba
         self.target_class = target_class
 
@@ -219,15 +224,26 @@ class CounterFactual:
         self.lam_init = lam_init
         self.lam_step = lam_step
         self.tol = tol
+        self.max_lam_steps = max_lam_steps
 
         self.epsilons = epsilons
         self.method = method
         self.init = init
+        self.feature_range = feature_range
 
         # TODO: support predict and predict_proba types for functions
-        self.predict_fn = lambda x: predict_fn(x.reshape(1, -1))  # Is this safe?
-        # self.predict_fn = predict_fn
+        self.predict_fn = predict_fn
+        if hasattr(predict_fn, 'predict'):  # Keras or TF model
+            self.model = True
+            # self.predict_fn = lambda x: predict_fn(tf.reshape(x, (1, -1)))  # Is this safe? batch?
+            n_classes = self.sess.run(self.predict_fn(tf.convert_to_tensor(np.zeros(data_shape),
+                                                                           dtype=tf.float32))).shape[1]
+        else:
+            self.model = False  # black-box model
+            self.predict_fn = lambda x: predict_fn(x.reshape(1, -1))  # Is this safe?
+            n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
 
+        # TODO remove this entirely?
         try:
             self.distance_fn = _metric_dict[distance_fn]
         except KeyError:
@@ -242,11 +258,24 @@ class CounterFactual:
 
         # set up graph session
         with tf.variable_scope('cf_search', reuse=tf.AUTO_REUSE):
+
+            # original instance, candidate counterfactual within feature range and target labels
+            self.orig = tf.get_variable('original', shape=data_shape, dtype=tf.float32)
             self.cf = tf.get_variable('counterfactual', shape=data_shape,
-                                      dtype=tf.float32)  # TODO initialize when explain is called
+                                      dtype=tf.float32,
+                                      constraint=lambda x: tf.clip_by_value(x, feature_range[0], feature_range[1]))
+            # TODO initialize when explain is called
+            self.target = tf.get_variable('target', shape=(1, n_classes), dtype=tf.float32)
+
+            # hyperparameter in the loss
+            self.lam = tf.Variable(self.lam_init, name='lambda')
+
+            # L1 distance and MAD constants
+            self.l1 = tf.norm(tf.subtract(self.cf, self.orig), ord=1)
+            # self.mads = tf.Variable(np.ones(), name='mads')  # TODO size
 
             # optimizer
-            opt = tf.train.AdamOptimizer()  # TODO optional argument to change type
+            opt = tf.train.AdamOptimizer()  # TODO optional argument to change type, learning rate scheduler
 
             # training setup
             self.global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -257,7 +286,7 @@ class CounterFactual:
             self.apply_grad = opt.apply_gradients(grad_and_var, global_step=self.global_step)  # TODO gradient clipping?
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
-        self.sess.run(self.tf_init)  # where to put this?
+        self.sess.run(self.tf_init)  # where to put this
 
         return
 
@@ -312,16 +341,17 @@ class CounterFactual:
 
         X_current = X_init
         lam = self.lam_init
-        loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
-                                            distance_fn=self.distance_fn, X_test=X, target_proba=self.target_proba,
-                                            lam=lam, epsilons=self.epsilons, method=self.method)
-        self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
-        X_current = self.sess.run(self.cf)
-        probas = self.predict_fn(X_current)
-        pred_class = probas.argmax()
-        p = probas.max()
-        logger.debug('Iteration: 0, cf pred_class: %s, cf proba: %s', pred_class, p)
-        logger.debug('Iteration: 0, distance d(X_current, X): %s', self.distance_fn(X, X_current))
+        for i in range(self.max_iter):
+            loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
+                                                distance_fn=self.distance_fn, X_test=X, target_proba=self.target_proba,
+                                                lam=lam, epsilons=self.epsilons, method=self.method)
+            self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
+            X_current = self.sess.run(self.cf)
+            probas = self.predict_fn(X_current)
+            pred_class = probas.argmax()
+            p = probas.max()
+        logger.info('Iteration: 0, cf pred_class: %s, cf proba: %s', pred_class, p)
+        logger.info('Iteration: 0, distance d(X_current, X): %s', self.distance_fn(X, X_current))
 
         Xs = []
         losses = []
@@ -332,39 +362,53 @@ class CounterFactual:
         grads.append(gradients)
         lambdas.append(lam)
 
-        num_iter = 0
+        # num_iter = 0
         return_dict = {'X_cf': X_current,
                        'loss': losses,
                        'grads': grads,
                        'Xs': Xs,
                        'lambdas': lambdas,
-                       'n_iter': num_iter,
-                       'success': True}
+                       'success': False}
         # main loop
+        lam += self.lam_step
+        lam_steps = 1
         while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
-            logger.debug('############################################## ITERATION: %s', num_iter + 1)
-            if num_iter == self.max_iter:
+            logger.info('Outer loop: %s', lam_steps)
+
+            if lam_steps == self.max_lam_steps:
                 logger.warning(
                     'Maximum number of iterations reached without finding a counterfactual.'
-                    'Increase max_iter, tolerance or the lambda hyperparameter.')
-                return_dict['success'] = False
+                    'Increase max_lam_steps, tolerance or the lambda hyperparameter.')
                 return return_dict
 
-            # minimize the loss
-            num_iter += 1
-            lam += self.lam_step
-            logger.debug('Increased lambda to %s', lam)
-            loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
-                                                distance_fn=self.distance_fn, X_test=X, target_proba=self.target_proba,
-                                                lam=lam, epsilons=self.epsilons, method=self.method)
-            self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
-            X_current = self.sess.run(self.cf)
+            num_iter = 0
 
-            probas = self.predict_fn(X_current)
-            pred_class = probas.argmax()
-            p = probas.max()
-            logger.debug('Iteration: %s, cf pred_class: %s, cf proba: %s', num_iter, pred_class, p)
-            logger.debug('Iteration: %s, distance d(X_current, X): %s', num_iter, self.distance_fn(X, X_current))
+            # number of gradient descent steps in each inner loop
+            for i in range(self.max_iter):
+                # logger.debug('############################################## ITERATION: %s', num_iter + 1)
+                # if num_iter == self.max_iter:
+                #    logger.warning(
+                #        'Maximum number of iterations reached without finding a counterfactual.'
+                #        'Increase max_iter, tolerance or the lambda hyperparameter.')
+                #    return_dict['success'] = False
+                #    return return_dict
+
+                # minimize the loss
+                num_iter += 1
+                # lam += self.lam_step
+                loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
+                                                    distance_fn=self.distance_fn, X_test=X,
+                                                    target_proba=self.target_proba,
+                                                    lam=lam, epsilons=self.epsilons, method=self.method)
+                self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
+                X_current = self.sess.run(self.cf)
+
+                probas = self.predict_fn(X_current)
+                pred_class = probas.argmax()
+                p = probas.max()
+
+            logger.info('Iteration: %s, cf pred_class: %s, cf proba: %s', lam_steps, pred_class, p)
+            logger.info('Iteration: %s, distance d(X_current, X): %s', lam_steps, self.distance_fn(X, X_current))
 
             Xs.append(X_current)
             losses.append(loss)
@@ -372,6 +416,12 @@ class CounterFactual:
             lambdas.append(lam)
 
             return_dict['X_cf'] = X_current
-            return_dict['n_iter'] = num_iter
+
+            lam += self.lam_step
+            logger.debug('Increased lambda to %s', lam)
+
+            lam_steps += 1
+
+        return_dict['success'] = True
 
         return return_dict

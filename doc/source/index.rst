@@ -15,6 +15,8 @@ Welcome to alibi's documentation!
    examples/anchor_text_movie
    examples/anchor_image_imagenet
    examples/anchor_image_fashion_mnist
+   examples/cem_mnist
+   examples/cem_iris
 
 .. toctree::
    :maxdepth: 1

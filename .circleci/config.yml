@@ -19,6 +19,7 @@ jobs:
       - run:
           name: Run tests
           command: pytest
+          no_output_timeout: 30m
 
   build-docs:
       docker:

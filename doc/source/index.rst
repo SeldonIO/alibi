@@ -8,6 +8,12 @@ Welcome to alibi's documentation!
 
 .. toctree::
    :maxdepth: 1
+   :caption: Methods
+   
+   methods/CEM.ipynb
+   
+.. toctree::
+   :maxdepth: 1
    :caption: Examples
 
    examples/anchor_tabular_adult

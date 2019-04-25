@@ -6,7 +6,8 @@ from sklearn.linear_model import LogisticRegression
 from scipy.spatial.distance import cityblock
 import tensorflow as tf
 
-from alibi.explainers.counterfactual.counterfactual import _define_func, num_grad, get_wachter_grads
+from alibi.explainers.counterfactual.counterfactual import _define_func, num_grad, \
+    num_grad_batch, cityblock_batch, get_wachter_grads
 from alibi.explainers import CounterFactual
 
 
@@ -68,6 +69,19 @@ def test_get_num_gradients_cityblock(dim):
     assert np.allclose(grad_true, grad_approx)
 
 
+@pytest.mark.parametrize('shape', [(1,), (2, 3), (1, 3, 5)])
+@pytest.mark.parametrize('batch_size', [1, 3, 10])
+def test_get_batch_num_gradients_cityblock(shape, batch_size):
+    u = np.random.rand(batch_size, *shape)
+    v = np.random.rand(1, *shape)
+
+    grad_true = np.sign(u - v).reshape(batch_size, 1, *shape)  # expand dims to incorporate 1-d scalar response
+    grad_approx = num_grad_batch(cityblock_batch, u, args=tuple([v]))
+
+    assert grad_approx.shape == grad_true.shape
+    assert np.allclose(grad_true, grad_approx)
+
+
 def test_get_num_gradients_logistic_iris(logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))  # need squeezed x for numerical gradient
@@ -80,6 +94,27 @@ def test_get_num_gradients_logistic_iris(logistic_iris):
     assert grad_true.shape == (3, 4)
 
     grad_approx = num_grad(predict_fn, x)
+
+    assert grad_approx.shape == grad_true.shape
+    assert np.allclose(grad_true, grad_approx)
+
+
+@pytest.mark.parametrize('batch_size', [1, 2, 5])
+def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
+    X, y, lr = logistic_iris
+    predict_fn = lr.predict_proba  # need squeezed x for numerical gradient
+    x = X[0:batch_size]
+    probas = predict_fn(x)
+
+    # true gradient of the logistic regression wrt x
+    grad_true = np.zeros((batch_size, 3, 4))
+    for i, p in enumerate(probas):
+        p = p.reshape(1, 3)
+        grad = (p.T * (np.eye(3, 3) - p) @ lr.coef_)
+        grad_true[i, :, :] = grad
+    assert grad_true.shape == (batch_size, 3, 4)
+
+    grad_approx = num_grad_batch(predict_fn, x)
 
     assert grad_approx.shape == grad_true.shape
     assert np.allclose(grad_true, grad_approx)
@@ -128,16 +163,17 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
 
     # check if target_class condition is met
     if target_class == 'same':
-        assert pred_class  == pred_class_cf
+        assert pred_class == pred_class_cf
     elif target_class == 'other':
         assert pred_class != pred_class_cf
     elif exp['success']:
         assert pred_class_cf == target_class
 
     # check if probability is within tolerance
-    if exp['success']:
-        assert exp['n_iter'] <= max_iter
-        assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
-    else:
-        assert exp['n_iter'] == max_iter
-        assert np.abs(pred_class_fn(x_cf) - target_proba) > tol
+    # if exp['success']:
+    # assert exp['n_iter'] <= max_iter
+    assert exp['success']
+    assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
+    # else:
+    # assert exp['n_iter'] == max_iter
+    #    assert np.abs(pred_class_fn(x_cf) - target_proba) > tol

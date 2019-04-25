@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Dict, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from statsmodels.tools.numdiff import approx_fprime
 from scipy.spatial.distance import cityblock
 import tensorflow as tf
@@ -8,6 +8,34 @@ import logging
 logger = logging.getLogger(__name__)
 
 _metric_dict = {'l1': cityblock}  # type: Dict[str, Callable]
+
+
+def cityblock_batch(X: np.ndarray,
+                    y: np.ndarray) -> np.ndarray:
+    """
+    Calculate the L1 distances between a batch of arrays X and an array of the same shape y.
+
+    Parameters
+    ----------
+    X
+        Batch of arrays to calculate the distances from
+    y
+        Array to calculate the distance to
+
+    Returns
+    -------
+    Array of distances from each array in X to y
+
+    """
+    X_dim = len(X.shape)
+    y_dim = len(y.shape)
+
+    if X_dim == y_dim:
+        assert y.shape[0] == 1, 'y mush have batch size equal to 1'
+    else:
+        assert X.shape[1:] == y.shape, 'X and y must have matching shapes'
+
+    return np.abs(X - y).sum(axis=tuple(np.arange(1, X_dim))).reshape(X.shape[0], -1)
 
 
 def _define_func(predict_fn: Callable,
@@ -77,6 +105,85 @@ def num_grad(func: Callable, X: np.ndarray, args: Tuple = (), epsilon: float = 1
     """
     gradient = approx_fprime(X, func, epsilon=epsilon, args=args, centered=True)
     return gradient
+
+
+def _perturb(X: np.ndarray,
+             eps: Union[float, np.ndarray] = 1e-08,
+             proba: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Apply perturbation to instance or prediction probabilities. Used for numerical calculation of gradients.
+
+    Parameters
+    ----------
+    X
+        Array to be perturbed
+    eps
+        Size of perturbation
+    proba
+        If True, the net effect of the perturbation needs to be 0 to keep the sum of the probabilities equal to 1
+
+    Returns
+    -------
+    Instances where a positive and negative perturbation is applied.
+    """
+    # N = batch size; F = nb of features in X
+    shape = X.shape
+    X = np.reshape(X, (shape[0], -1))  # NxF
+    dim = X.shape[1]  # F
+    pert = np.tile(np.eye(dim) * eps, (shape[0], 1))  # (N*F)xF
+    if proba:
+        eps_n = eps / (dim - 1)
+        pert += np.tile((np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1))  # (N*F)xF
+    X_rep = np.repeat(X, dim, axis=0)  # (N*F)xF
+    X_pert_pos, X_pert_neg = X_rep + pert, X_rep - pert
+    shape = (dim * shape[0],) + shape[1:]
+    X_pert_pos = np.reshape(X_pert_pos, shape)  # (N*F)x(shape of X[0])
+    X_pert_neg = np.reshape(X_pert_neg, shape)  # (N*F)x(shape of X[0])
+    return X_pert_pos, X_pert_neg
+
+
+def num_grad_batch(func: Callable,
+                   X: np.ndarray,
+                   args: Tuple = (),
+                   eps: Union[float, np.ndarray] = 1e-08) -> np.ndarray:
+    """
+    Calculate the numerical gradients of a vector-valued function (typically a prediction function in classification)
+    with respect to a batch of arrays X.
+
+    Parameters
+    ----------
+    func
+        Function to be differentiated
+    X
+        A batch of vectors at which to evaluate the gradient of the function
+    args
+        Any additional arguments to pass to the function
+    eps
+        Gradient step to use in the numerical calculation, can be a single float or one for each feature
+
+    Returns
+    -------
+    An array of gradients at each point in the batch X
+
+    """
+    # N = gradient batch size; F = nb of features in X, P = nb of prediction classes, B = instance batch size
+    batch_size = X.shape[0]
+    data_shape = X[0].shape
+    preds = func(X, *args)
+
+    X_pert_pos, X_pert_neg = _perturb(X, eps)  # (N*F)x(shape of X[0])
+    X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)  # concatenate to make just one batch prediction call
+    preds_concat = func(X_pert, *args)  # make predictions
+    n_pert = X_pert_pos.shape[0]
+
+    grad_numerator = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P
+    grad_numerator = np.reshape(np.reshape(grad_numerator, (batch_size, -1)),
+                                (batch_size, preds.shape[1], -1), order='F')  # NxPxF
+
+    grad = grad_numerator / (2 * eps)  # NxPxF
+    grad = grad.reshape(preds.shape + data_shape)  # BxPx(shape of X[0])
+
+    return grad
 
 
 def get_wachter_grads(X_current: np.ndarray,
@@ -171,7 +278,7 @@ class CounterFactual:
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
                  epsilons: Union[float, np.ndarray] = None,  # feature-wise epsilons
                  method: str = 'wachter',
-                 init: str = 'random'):
+                 init: str = 'identity'):
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -283,7 +390,8 @@ class CounterFactual:
             self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32)
             grad_and_var = [(self.grad_ph, self.cf)]  # could be cf.name
 
-            self.apply_grad = opt.apply_gradients(grad_and_var, global_step=self.global_step)  # TODO gradient clipping?
+            self.apply_grad = opt.apply_gradients(grad_and_var,
+                                                  global_step=self.global_step)  # TODO gradient clipping?
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
         self.sess.run(self.tf_init)  # where to put this
@@ -333,46 +441,38 @@ class CounterFactual:
 
         return exp_dict
 
+    def _prob_condition(self, X_current):
+        return np.abs(self.predict_class_fn(X_current) - self.target_proba) <= self.tol
+
     def _minimize_wachter_loss(self,
                                X: np.ndarray,
                                X_init: np.ndarray) -> Dict:
-        # first minimization
-        logger.debug('############################################## ITERATION: 0')
+        Xs = []  # type: List[np.ndarray]
+        losses = []  # type: List[float]
+        grads = []  # type: List[np.ndarray]
+        dists = []  # type: List[float]
+        lambdas = []  # type: List[float]
+        prob_cond = []  # type: List[bool]
+        prob = []  # type: List[float]
+        classes = []  # type: List[int]
 
-        X_current = X_init
-        lam = self.lam_init
-        for i in range(self.max_iter):
-            loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
-                                                distance_fn=self.distance_fn, X_test=X, target_proba=self.target_proba,
-                                                lam=lam, epsilons=self.epsilons, method=self.method)
-            self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
-            X_current = self.sess.run(self.cf)
-            probas = self.predict_fn(X_current)
-            pred_class = probas.argmax()
-            p = probas.max()
-        logger.info('Iteration: 0, cf pred_class: %s, cf proba: %s', pred_class, p)
-        logger.info('Iteration: 0, distance d(X_current, X): %s', self.distance_fn(X, X_current))
-
-        Xs = []
-        losses = []
-        grads = []
-        lambdas = []
-        Xs.append(X_current)
-        losses.append(loss)
-        grads.append(gradients)
-        lambdas.append(lam)
-
-        # num_iter = 0
-        return_dict = {'X_cf': X_current,
+        return_dict = {'X_cf': X_init,
                        'loss': losses,
                        'grads': grads,
+                       'dists': dists,
                        'Xs': Xs,
                        'lambdas': lambdas,
+                       'prob_cond': prob_cond,
+                       'prob': prob,
+                       'classes': classes,
                        'success': False}
-        # main loop
-        lam += self.lam_step
-        lam_steps = 1
-        while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
+
+        lam = self.lam_init
+        lam_steps = 0
+        X_current = X_init
+        for _ in range(self.max_lam_steps):
+            # TODO need some early stopping when lambda grows too big to satisfy prob_cond
+            # while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
             logger.info('Outer loop: %s', lam_steps)
 
             if lam_steps == self.max_lam_steps:
@@ -385,17 +485,8 @@ class CounterFactual:
 
             # number of gradient descent steps in each inner loop
             for i in range(self.max_iter):
-                # logger.debug('############################################## ITERATION: %s', num_iter + 1)
-                # if num_iter == self.max_iter:
-                #    logger.warning(
-                #        'Maximum number of iterations reached without finding a counterfactual.'
-                #        'Increase max_iter, tolerance or the lambda hyperparameter.')
-                #    return_dict['success'] = False
-                #    return return_dict
-
                 # minimize the loss
                 num_iter += 1
-                # lam += self.lam_step
                 loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
                                                     distance_fn=self.distance_fn, X_test=X,
                                                     target_proba=self.target_proba,
@@ -403,24 +494,31 @@ class CounterFactual:
                 self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
                 X_current = self.sess.run(self.cf)
 
+                # if probability condition satisfied, add to list of potential CFs TODO keep track of all for debugging
+                # if self._prob_condition(X_current):
+                Xs.append(X_current)
+                losses.append(loss)
+                grads.append(gradients)
+                dists.append(self.distance_fn(X, X_current))
+                lambdas.append(lam)
+                prob_cond.append(self._prob_condition(X_current))
+
                 probas = self.predict_fn(X_current)
                 pred_class = probas.argmax()
                 p = probas.max()
 
-            logger.info('Iteration: %s, cf pred_class: %s, cf proba: %s', lam_steps, pred_class, p)
-            logger.info('Iteration: %s, distance d(X_current, X): %s', lam_steps, self.distance_fn(X, X_current))
+                prob.append(p)
+                classes.append(pred_class)
 
-            Xs.append(X_current)
-            losses.append(loss)
-            grads.append(gradients)
-            lambdas.append(lam)
+                logger.debug('Iteration: %s, cf pred_class: %s, cf proba: %s', lam_steps, pred_class, p)
+                logger.info('Iteration: %s, distance d(X_current, X): %s', lam_steps,
+                            self.distance_fn(X, X_current))
 
             return_dict['X_cf'] = X_current
 
-            lam += self.lam_step
-            logger.debug('Increased lambda to %s', lam)
-
+            lam *= self.lam_step
             lam_steps += 1
+            logger.debug('Increased lambda to %s', lam)
 
         return_dict['success'] = True
 

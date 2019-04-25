@@ -1,13 +1,10 @@
 import numpy as np
 from typing import Callable, Dict, List, Optional, Tuple, Union
 from statsmodels.tools.numdiff import approx_fprime
-from scipy.spatial.distance import cityblock
 import tensorflow as tf
 import logging
 
 logger = logging.getLogger(__name__)
-
-_metric_dict = {'l1': cityblock}  # type: Dict[str, Callable]
 
 
 def cityblock_batch(X: np.ndarray,
@@ -38,9 +35,13 @@ def cityblock_batch(X: np.ndarray,
     return np.abs(X - y).sum(axis=tuple(np.arange(1, X_dim))).reshape(X.shape[0], -1)
 
 
+_metric_dict = {'l1': cityblock_batch}  # type: Dict[str, Callable]
+
+
 def _define_func(predict_fn: Callable,
                  pred_class: int,
                  target_class: Union[str, int] = 'same') -> Tuple[Callable, Union[str, int]]:
+    # TODO: convert to batchwise function
     """
     Define the class-specific prediction function to be used in the optimization.
 
@@ -59,6 +60,7 @@ def _define_func(predict_fn: Callable,
 
     """
     if target_class == 'other':
+        # TODO: need to optimize this
 
         def func(X):
             probas = predict_fn(X)
@@ -72,7 +74,7 @@ def _define_func(predict_fn: Callable,
                 target_class = sorted[0, 0]
 
             # logger.debug('Current best target class: %s', target_class)
-            return predict_fn(X)[:, target_class]
+            return (predict_fn(X)[:, target_class]).reshape(-1, 1)
 
         return func, target_class
 
@@ -80,7 +82,7 @@ def _define_func(predict_fn: Callable,
         target_class = pred_class
 
     def func(X):  # type: ignore
-        return predict_fn(X)[:, target_class]
+        return (predict_fn(X)[:, target_class]).reshape(-1, 1)
 
     return func, target_class
 
@@ -170,9 +172,8 @@ def num_grad_batch(func: Callable,
     batch_size = X.shape[0]
     data_shape = X[0].shape
     preds = func(X, *args)
-
     X_pert_pos, X_pert_neg = _perturb(X, eps)  # (N*F)x(shape of X[0])
-    X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)  # concatenate to make just one batch prediction call
+    X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)
     preds_concat = func(X_pert, *args)  # make predictions
     n_pert = X_pert_pos.shape[0]
 
@@ -192,8 +193,8 @@ def get_wachter_grads(X_current: np.ndarray,
                       X_test: np.ndarray,
                       target_proba: float,
                       lam: float,
-                      epsilons: Union[float, np.ndarray] = None,
-                      method: str = 'wachter') -> Tuple[Union[float, np.ndarray], ...]:
+                      eps: Union[float, np.ndarray] = 1e-08
+                      ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the gradients of the loss function in Wachter et al. (2017)
 
@@ -211,17 +212,15 @@ def get_wachter_grads(X_current: np.ndarray,
         Target probability to for the counterfactual instance to satisfy
     lam
         Hyperparameter balancing the loss contribution of the distance in prediction (higher lam -> more weight)
-    epsilons
+    eps
         Steps sizes for computing the gradient passed to the num_grad function
-    method
-        Loss optimization method - one of 'wachter' or 'adiabatic'
     Returns
     -------
     Loss and gradient of the Wachter loss
 
     """
-    if isinstance(epsilons, float):
-        eps = epsilons
+    if isinstance(eps, float):
+        eps = eps
     else:
         eps = None
 
@@ -229,31 +228,19 @@ def get_wachter_grads(X_current: np.ndarray,
     logger.debug('Current prediction: p=%s', pred)
 
     # numerical gradient of the black-box prediction function (specific to the target class)
-    prediction_grad = num_grad(predict_class_fn, X_current.squeeze(), epsilon=eps)  # TODO feature-wise epsilons
+    prediction_grad = num_grad_batch(predict_class_fn, X_current, eps=eps)  # TODO feature-wise epsilons
 
     # numerical gradient of the distance function between the current point and the point to be explained
-    distance_grad = num_grad(distance_fn, X_current.squeeze(), args=tuple([X_test.squeeze()]),
-                             epsilon=eps)  # TODO epsilons
+    distance_grad = num_grad_batch(distance_fn, X_current, args=tuple([X_test]),
+                                   eps=eps)  # TODO epsilons
 
     logger.debug('Norm of prediction_grad: %s', np.linalg.norm(prediction_grad.flatten()))
     logger.debug('Norm of distance_grad: %s', np.linalg.norm(distance_grad.flatten()))
     logger.debug('pred - target_proba = %s', pred - target_proba)
 
-    # gradient of the Wachter loss
-    if method == 'wachter':
-        loss = lam * (pred - target_proba) ** 2 + distance_fn(X_current, X_test)
-        grad_loss = 2 * lam * (pred - target_proba) * prediction_grad + distance_grad  # TODO convex combination
-
-    elif method == 'wachter_rev':
-        loss = (pred - target_proba) ** 2 + lam * distance_fn(X_current, X_test)
-        grad_loss = 2 * (pred - target_proba) * prediction_grad + lam * distance_grad
-
-    elif method == 'adiabatic':
-        loss = lam * (pred - target_proba) ** 2 + (1 - lam) * distance_fn(X_current, X_test)
-        grad_loss = 2 * lam * (pred - target_proba) * prediction_grad + (1 - lam) * distance_grad
-
-    else:
-        raise ValueError('Only loss optimization methods available are wachter and adiabatic')
+    # numeric loss and gradient
+    loss = (pred - target_proba) ** 2 + lam * distance_fn(X_current, X_test)
+    grad_loss = 2 * (pred - target_proba) * prediction_grad + lam * distance_grad
 
     logger.debug('Loss: %s', loss)
     logger.debug('Norm of grad_loss: %s', np.linalg.norm(grad_loss.flatten()))
@@ -276,8 +263,7 @@ class CounterFactual:
                  max_lam_steps: int = 100,
                  tol: float = 0.05,
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
-                 epsilons: Union[float, np.ndarray] = None,  # feature-wise epsilons
-                 method: str = 'wachter',
+                 eps: Union[float, np.ndarray] = None,  # feature-wise epsilons
                  init: str = 'identity'):
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
@@ -310,11 +296,9 @@ class CounterFactual:
         feature_range
             Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
             numpy arrays with dimension (1 x nb of features) for feature-wise ranges
-        epsilons
+        eps
             Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
             features, but can be passed an array for feature-wise step sizes
-        method
-            Optimization method, one of 'wachter' or 'adiabatic' TODO: method or different algorithm?
         init
             Initialization method for the search of counterfactuals, one of 'random' or 'identity'
         """
@@ -333,8 +317,7 @@ class CounterFactual:
         self.tol = tol
         self.max_lam_steps = max_lam_steps
 
-        self.epsilons = epsilons
-        self.method = method
+        self.eps = eps
         self.init = init
         self.feature_range = feature_range
 
@@ -347,7 +330,7 @@ class CounterFactual:
                                                                            dtype=tf.float32))).shape[1]
         else:
             self.model = False  # black-box model
-            self.predict_fn = lambda x: predict_fn(x.reshape(1, -1))  # Is this safe?
+            self.predict_fn = predict_fn  # x: predict_fn(x.reshape(1, -1))  # Is this safe?
             n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
 
         # TODO remove this entirely?
@@ -382,7 +365,8 @@ class CounterFactual:
             # self.mads = tf.Variable(np.ones(), name='mads')  # TODO size
 
             # optimizer
-            opt = tf.train.AdamOptimizer()  # TODO optional argument to change type, learning rate scheduler
+            opt = tf.train.AdamOptimizer(
+                learning_rate=0.01)  # TODO optional argument to change type, learning rate scheduler
 
             # training setup
             self.global_step = tf.Variable(0, trainable=False, name='global_step')
@@ -490,18 +474,21 @@ class CounterFactual:
                 loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
                                                     distance_fn=self.distance_fn, X_test=X,
                                                     target_proba=self.target_proba,
-                                                    lam=lam, epsilons=self.epsilons, method=self.method)
+                                                    lam=lam, eps=self.eps)
+                # squeeze out class dimension
+                gradients = gradients.reshape(self.data_shape)
+
                 self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
                 X_current = self.sess.run(self.cf)
 
                 # if probability condition satisfied, add to list of potential CFs TODO keep track of all for debugging
                 # if self._prob_condition(X_current):
                 Xs.append(X_current)
-                losses.append(loss)
+                losses.append(loss.squeeze())
                 grads.append(gradients)
-                dists.append(self.distance_fn(X, X_current))
+                dists.append(self.distance_fn(X, X_current).squeeze())
                 lambdas.append(lam)
-                prob_cond.append(self._prob_condition(X_current))
+                prob_cond.append(self._prob_condition(X_current).squeeze())
 
                 probas = self.predict_fn(X_current)
                 pred_class = probas.argmax()

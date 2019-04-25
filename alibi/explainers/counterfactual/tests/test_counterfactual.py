@@ -102,7 +102,7 @@ def test_get_num_gradients_logistic_iris(logistic_iris):
 @pytest.mark.parametrize('batch_size', [1, 2, 5])
 def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
     X, y, lr = logistic_iris
-    predict_fn = lr.predict_proba  # need squeezed x for numerical gradient
+    predict_fn = lr.predict_proba
     x = X[0:batch_size]
     probas = predict_fn(x)
 
@@ -122,19 +122,20 @@ def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
 
 def test_get_wachter_grads(logistic_iris):
     X, y, lr = logistic_iris
-    predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))
-    x = X[0]
+    predict_fn = lr.predict_proba
+    x = X[0].reshape(1, -1)
     probas = predict_fn(x)
     pred_class = probas.argmax()
     func, target = _define_func(predict_fn, pred_class, 'same')
 
-    loss, grad_loss = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock,
+    loss, grad_loss = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock_batch,
                                         X_test=x, target_proba=0.1, lam=1)
 
-    assert loss.shape == (1,)
-    assert grad_loss.shape == x.shape
+    assert loss.shape == (1, 1)
+    assert grad_loss.shape == x.reshape(1, 1, 4).shape
 
 
+@pytest.mark.skip(reason='This will change')
 @pytest.mark.parametrize('iris_explainer',
                          ['other', 'same', 0, 1, 2],
                          indirect=True)

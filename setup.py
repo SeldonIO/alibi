@@ -32,7 +32,7 @@ setup(name='alibi',
           'spacy',
           'scikit-image',
           'tensorflow',
-          'seaborn'
+          'seaborn',
           'statsmodels'
       ],
       tests_require=[

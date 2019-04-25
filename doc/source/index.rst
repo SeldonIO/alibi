@@ -10,6 +10,7 @@ Welcome to alibi's documentation!
    :maxdepth: 1
    :caption: Methods
    
+   methods/Anchors.ipynb
    methods/CEM.ipynb
    
 .. toctree::

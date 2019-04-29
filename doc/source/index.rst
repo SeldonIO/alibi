@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to alibi's documentation!
-=================================
+.. Landing page shared with the Github repository README
+.. mdinclude:: ../../README.md
 
 .. toctree::
   :maxdepth: 1

@@ -15,13 +15,14 @@ logger = logging.getLogger(__name__)
 class TrustScore(object):
 
     def __init__(self, k_filter: int = 10, alpha: float = 0., filter_type: str = None,
-                 leaf_size: int = 40, metric: str = 'euclidean', dist_type: str = 'point') -> None:
+                 leaf_size: int = 40, metric: str = 'euclidean', dist_filter_type: str = 'point') -> None:
         """
         Initialize trust scores.
 
         Parameters
         ----------
         k_filter
+            Number of neighbors used during either kNN distance or probability filtering.
         alpha
             Fraction of instances to filter out to reduce impact of outliers.
         filter_type
@@ -31,9 +32,9 @@ class TrustScore(object):
             Memory to store the tree scales with n_samples / leaf_size.
         metric
             Distance metric used for the tree. See sklearn's DistanceMetric class for a list of available metrics.
-        dist_type
-            Use either the distance to the k-nearest point (dist_type = 'point') or
-            the average distance from the first to the k-nearest point in the data (dist_type = 'mean').
+        dist_filter_type
+            Use either the distance to the k-nearest point (dist_filter_type = 'point') or
+            the average distance from the first to the k-nearest point in the data (dist_filter_type = 'mean').
         """
         self.k_filter = k_filter
         self.alpha = alpha
@@ -41,7 +42,7 @@ class TrustScore(object):
         self.eps = 1e-12
         self.leaf_size = leaf_size
         self.metric = metric
-        self.dist_type = dist_type
+        self.dist_filter_type = dist_filter_type
 
     def filter_by_distance_knn(self, X: np.ndarray) -> np.ndarray:
         """
@@ -59,9 +60,9 @@ class TrustScore(object):
         """
         kdtree = KDTree(X, leaf_size=self.leaf_size, metric=self.metric)
         knn_r = kdtree.query(X, k=self.k_filter + 1)[0]  # distances from 0 to k-nearest points
-        if self.dist_type == 'point':
+        if self.dist_filter_type == 'point':
             knn_r = knn_r[:, -1]
-        elif self.dist_type == 'mean':
+        elif self.dist_filter_type == 'mean':
             knn_r = np.mean(knn_r[:, 1:], axis=1)  # exclude distance of instance to itself
         cutoff_r = np.percentile(knn_r, (1 - self.alpha) * 100)  # cutoff distance
         X_keep = X[np.where(knn_r <= cutoff_r)[0], :]  # define instances to keep
@@ -134,7 +135,7 @@ class TrustScore(object):
             # TODO: check if works for e.g. images? reshape? sklearn docs say: [n_samples, n_features]
             self.kdtrees[c] = KDTree(X_fit, leaf_size=self.leaf_size, metric=self.metric)  # build KDTree for class c
 
-    def score(self, X: np.ndarray, Y: np.ndarray, k: int = 1) -> np.ndarray:
+    def score(self, X: np.ndarray, Y: np.ndarray, k: int = 2, dist_type: str = 'point') -> np.ndarray:
         """
         Calculate trust scores = ratio of distance to closest class other than the
         predicted class to distance to predicted class.
@@ -147,6 +148,9 @@ class TrustScore(object):
             Either prediction probabilities for each class or the predicted class.
         k
             Number of nearest neighbors used for distance calculation.
+        dist_type
+            Use either the distance to the k-nearest point (dist_type = 'point') or
+            the average distance from the first to the k-nearest point in the data (dist_type = 'mean').
 
         Returns
         -------
@@ -159,7 +163,11 @@ class TrustScore(object):
         d = np.tile(None, (X.shape[0], self.classes))  # init distance matrix: [nb instances, nb classes]
 
         for c in range(self.classes):
-            d[:, c] = self.kdtrees[c].query(X, k=k)[0][:, -1]  # get nearest neighbor for each class
+            d_tmp = self.kdtrees[c].query(X, k=k)[0]  # get k nearest neighbors for each class
+            if dist_type == 'point':
+                d[:, c] = d_tmp[:, -1]
+            elif dist_type == 'mean':
+                d[:, c] = np.mean(d_tmp, axis=1)
 
         sorted_d = np.sort(d, axis=1)  # sort distance each instance in batch over classes
         # get distance to predicted and closest other class and calculate trust score

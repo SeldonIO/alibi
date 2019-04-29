@@ -7,6 +7,11 @@
 
 .. toctree::
   :maxdepth: 1
+
+  Home <self>
+
+.. toctree::
+  :maxdepth: 1
   :caption: Overview
 
   overview/getting_started

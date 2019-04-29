@@ -194,7 +194,7 @@ def get_wachter_grads(X_current: np.ndarray,
                       target_proba: float,
                       lam: float,
                       eps: Union[float, np.ndarray] = 1e-08
-                      ) -> Tuple[np.ndarray, np.ndarray]:
+                      ) -> Tuple[np.ndarray, np.ndarray, Tuple]:
     """
     Calculate the gradients of the loss function in Wachter et al. (2017)
 
@@ -234,18 +234,23 @@ def get_wachter_grads(X_current: np.ndarray,
     distance_grad = num_grad_batch(distance_fn, X_current, args=tuple([X_test]),
                                    eps=eps)  # TODO epsilons
 
-    logger.debug('Norm of prediction_grad: %s', np.linalg.norm(prediction_grad.flatten()))
-    logger.debug('Norm of distance_grad: %s', np.linalg.norm(distance_grad.flatten()))
+    norm_pred_grad = np.linalg.norm(prediction_grad.flatten())
+    norm_dist_grad = np.linalg.norm(distance_grad.flatten())
+    logger.debug('Norm of prediction_grad: %s', norm_pred_grad)
+    logger.debug('Norm of distance_grad: %s', norm_dist_grad)
     logger.debug('pred - target_proba = %s', pred - target_proba)
 
     # numeric loss and gradient
     loss = (pred - target_proba) ** 2 + lam * distance_fn(X_current, X_test)
     grad_loss = 2 * (pred - target_proba) * prediction_grad + lam * distance_grad
 
+    norm_grad = np.linalg.norm(grad_loss.flatten())
     logger.debug('Loss: %s', loss)
-    logger.debug('Norm of grad_loss: %s', np.linalg.norm(grad_loss.flatten()))
+    logger.debug('Norm of grad_loss: %s', norm_grad)
 
-    return loss, grad_loss
+    debug_info = tuple([norm_pred_grad, norm_dist_grad, norm_grad])
+
+    return loss, grad_loss, debug_info
 
 
 class CounterFactual:
@@ -255,16 +260,19 @@ class CounterFactual:
                  predict_fn: Callable,
                  data_shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
-                 target_proba: float = 0.9,
+                 target_proba: float = 0.95,
                  target_class: Union[str, int] = 'other',
-                 max_iter: int = 100,
-                 lam_init: float = 0.01,
-                 lam_step: float = 0.001,
-                 max_lam_steps: int = 100,
-                 tol: float = 0.05,
+                 max_iter: int = 1000,
+                 lam_init: float = 1e-07,
+                 lam_step: float = 10,
+                 max_lam_steps: int = 10,
+                 tol: float = 0.025,
+                 learning_rate_init=0.1,
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
-                 eps: Union[float, np.ndarray] = None,  # feature-wise epsilons
-                 init: str = 'identity'):
+                 eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
+                 init: str = 'identity',
+                 bisect=True,
+                 decay=True):
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -321,6 +329,8 @@ class CounterFactual:
         self.init = init
         self.feature_range = feature_range
 
+        self.bisect = bisect
+
         # TODO: support predict and predict_proba types for functions
         self.predict_fn = predict_fn
         if hasattr(predict_fn, 'predict'):  # Keras or TF model
@@ -365,11 +375,17 @@ class CounterFactual:
             # self.mads = tf.Variable(np.ones(), name='mads')  # TODO size
 
             # optimizer
+            self.global_step = tf.Variable(0.0, trainable=False, name='global_step')
+            if decay:
+                self.learning_rate = tf.train.polynomial_decay(learning_rate_init, self.global_step,
+                                                               self.max_iter, 0.0, power=0.5)
+            else:
+                self.learning_rate = learning_rate_init
+
             opt = tf.train.AdamOptimizer(
-                learning_rate=0.01)  # TODO optional argument to change type, learning rate scheduler
+                self.learning_rate)  # TODO optional argument to change type, learning rate scheduler
 
             # training setup
-            self.global_step = tf.Variable(0, trainable=False, name='global_step')
             # grads_and_vars = opt.compute_gradients(, vars = [cf]) TODO if differentiable distance
             self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32)
             grad_and_var = [(self.grad_ph, self.cf)]  # could be cf.name
@@ -378,7 +394,6 @@ class CounterFactual:
                                                   global_step=self.global_step)  # TODO gradient clipping?
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
-        self.sess.run(self.tf_init)  # where to put this
 
         return
 
@@ -439,6 +454,9 @@ class CounterFactual:
         prob_cond = []  # type: List[bool]
         prob = []  # type: List[float]
         classes = []  # type: List[int]
+        debug_info = []  # type: List[Tuple]
+
+        cf_found = np.zeros((self.max_lam_steps), dtype=bool)
 
         return_dict = {'X_cf': X_init,
                        'loss': losses,
@@ -449,21 +467,31 @@ class CounterFactual:
                        'prob_cond': prob_cond,
                        'prob': prob,
                        'classes': classes,
+                       'debug_info': debug_info,
+                       'cf_found': cf_found,
                        'success': False}
 
         lam = self.lam_init
+        lam_lb = 0
+        lam_ub = 1e10
+
         lam_steps = 0
         X_current = X_init
-        for _ in range(self.max_lam_steps):
+        # expanding = True  # flag to check if we are expanding the search or zooming in on a solution
+        for l in range(self.max_lam_steps):
+            self.sess.run(self.tf_init)  # where to put this
+
+            # cf_found = False  # flag to use for increasing/decreasing lambda
             # TODO need some early stopping when lambda grows too big to satisfy prob_cond
             # while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
-            logger.info('Outer loop: %s', lam_steps)
+            lr = self.sess.run(self.learning_rate)
+            logger.info('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps+1, self.max_lam_steps, lam, lr)
 
-            if lam_steps == self.max_lam_steps:
-                logger.warning(
-                    'Maximum number of iterations reached without finding a counterfactual.'
-                    'Increase max_lam_steps, tolerance or the lambda hyperparameter.')
-                return return_dict
+            # if lam_steps == self.max_lam_steps:
+            #    logger.warning(
+            #        'Maximum number of iterations reached without finding a counterfactual.'
+            #        'Increase max_lam_steps, tolerance or the lambda hyperparameter.')
+            #    return return_dict
 
             num_iter = 0
 
@@ -471,10 +499,10 @@ class CounterFactual:
             for i in range(self.max_iter):
                 # minimize the loss
                 num_iter += 1
-                loss, gradients = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
-                                                    distance_fn=self.distance_fn, X_test=X,
-                                                    target_proba=self.target_proba,
-                                                    lam=lam, eps=self.eps)
+                loss, gradients, d_info = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
+                                                            distance_fn=self.distance_fn, X_test=X,
+                                                            target_proba=self.target_proba,
+                                                            lam=lam, eps=self.eps)
                 # squeeze out class dimension
                 gradients = gradients.reshape(self.data_shape)
 
@@ -488,7 +516,13 @@ class CounterFactual:
                 grads.append(gradients)
                 dists.append(self.distance_fn(X, X_current).squeeze())
                 lambdas.append(lam)
-                prob_cond.append(self._prob_condition(X_current).squeeze())
+
+                cond = self._prob_condition(X_current).squeeze()
+                if cond:
+                    cf_found[l] = True
+                    return_dict['X_cf'] = X_current
+                    logger.debug('CF found')
+                prob_cond.append(cond)
 
                 probas = self.predict_fn(X_current)
                 pred_class = probas.argmax()
@@ -496,16 +530,49 @@ class CounterFactual:
 
                 prob.append(p)
                 classes.append(pred_class)
+                debug_info.append(d_info)
 
                 logger.debug('Iteration: %s, cf pred_class: %s, cf proba: %s', lam_steps, pred_class, p)
-                logger.info('Iteration: %s, distance d(X_current, X): %s', lam_steps,
-                            self.distance_fn(X, X_current))
+                logger.debug('Iteration: %s, distance d(X_current, X): %s', lam_steps,
+                             self.distance_fn(X, X_current))
 
-            return_dict['X_cf'] = X_current
+                lr = self.sess.run(self.learning_rate)
+                gs = self.sess.run(self.global_step)
+                logger.info('Current learning rate lr=%s', lr)
+                logger.info('Current global step: %s', gs)
 
-            lam *= self.lam_step
-            lam_steps += 1
-            logger.debug('Increased lambda to %s', lam)
+            # adjust the lambda constant
+            if self.bisect:
+                if cf_found[l]:
+                    # want to improve the solution by putting more weight on the distance term
+                    # by increasing lambda
+                    lam_lb = max(lam, lam_lb)
+                    logger.debug('Lambda bounds: (%s, %s)', lam_lb, lam_ub)
+                    if lam_ub < 1e9:
+                        lam = (lam_lb + lam_ub) / 2
+                    else:
+                        lam *= self.lam_step
+                        logger.debug('Changed lambda to %s', lam)
+
+                elif not cf_found[l]:
+                    if l == 0:
+                        logger.warning('No solution found in the first iteration, try to reduce target_proba'
+                                       'or increase tolerance.')
+                        return return_dict
+
+                    # want to refine the last solution by finding the closest solution that is
+                    # still a counterfactual by bisecting lambda
+
+                    lam_ub = min(lam_ub, lam)
+                    logger.debug('Lambda bounds: (%s, %s)', lam_lb, lam_ub)
+                    if lam_ub < 1e9:
+                        lam = (lam_lb + lam_ub) / 2
+                        logger.debug('Changed lambda to %s', lam)
+
+                lam_steps += 1
+            else:
+                lam_steps += 1
+                lam *= self.lam_step
 
         return_dict['success'] = True
 

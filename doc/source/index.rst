@@ -3,8 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. Landing page shared with the Github repository README
-.. mdinclude:: ../../README.md
+.. mdinclude:: landing.md 
 
 .. toctree::
   :maxdepth: 1

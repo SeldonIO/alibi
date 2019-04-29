@@ -38,10 +38,10 @@ was trained on:
 ```python
 explainer.fit(X_train)
 ```
-Finally, we can call the explainer on a test instance which will return a dictionary containint the
+Finally, we can call the explainer on a test instance which will return a dictionary containing the
 explanation and any additional metadata returned by the computation:
 ```python
  explainer.explain(x)
 ```
 The exact details will vary slightly from method to method, so we encourage the reader to become
-familiar with the types of algorithms supported in Alibi.
+familiar with the [types of algorithms supported](../overview/algorithms.md) in Alibi.

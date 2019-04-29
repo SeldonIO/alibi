@@ -114,6 +114,7 @@ class TrustScore(object):
         if len(Y.shape) > 1:
             Y = np.argmax(Y, axis=1)
 
+        # TODO: discrepancy between filter by prob or dist -> prob: overall filter, not class proportional!
         if self.filter == 'probability_knn':
             X_filter, Y_filter = self.filter_by_probability_knn(X, Y)
 

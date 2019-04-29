@@ -9,7 +9,7 @@ pip install alibi
 ## Available methods
 To get a list of the latest available model explanation algorithms, you can type:
 ```python
-import alibi.explainers
+import alibi
 alibi.explainers.__all__
 ```
 <div class="highlight"><pre>

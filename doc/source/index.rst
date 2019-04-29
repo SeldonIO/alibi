@@ -7,6 +7,14 @@ Welcome to alibi's documentation!
 =================================
 
 .. toctree::
+  :maxdepth: 1
+  :caption: Overview
+
+  overview/getting_started
+  overview/algorithms
+  overview/roadmap
+
+.. toctree::
    :maxdepth: 1
    :caption: Methods
    

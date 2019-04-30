@@ -1,11 +1,13 @@
 from setuptools import find_packages, setup
-from alibi import __version__
 
 
 def readme():
     with open('README.md') as f:
         return f.read()
 
+
+# read version file
+exec(open('alibi/version.py').read())
 
 setup(name='alibi',
       author='Seldon Technologies Ltd.',

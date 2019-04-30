@@ -1,6 +1,6 @@
-from . import anchor_base
-from . import anchor_explanation
-from .discretizer import Discretizer
+from .anchor_base import AnchorBaseBeam
+from .anchor_explanation import AnchorExplanation
+from alibi.utils.discretizer import Discretizer
 import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set
 
@@ -300,13 +300,13 @@ class AnchorTabular(object):
         sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
 
         # get anchors and add metadata
-        exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
-                                                     batch_size=batch_size, desired_confidence=threshold,
-                                                     max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
+                                         batch_size=batch_size, desired_confidence=threshold,
+                                         max_anchor_size=max_anchor_size, **kwargs)  # type: Any
         self.add_names_to_exp(exp, mapping)
         exp['instance'] = X
         exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
-        exp = anchor_explanation.AnchorExplanation('tabular', exp)
+        exp = AnchorExplanation('tabular', exp)
 
         # output explanation dictionary
         explanation = {}

@@ -5,7 +5,7 @@ to having high quality reference implementations of the most promising algorithm
 documentation and case studies comparing the different interpretability methods and their respective
 pros and cons. A clean and a usable API is also a priority. Additionally we want to move beyond
 model explanation and provide tools to gauge ML model confidence, measure concept drift, detect
-outliers and bias among other things.
+outliers and algorithmic bias among other things.
 
 ## Additional explanation methods
 * [Counterfactual examples](https://christophm.github.io/interpretable-ml-book/counterfactual.html)

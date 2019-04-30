@@ -3,8 +3,21 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to alibi's documentation!
-=================================
+.. mdinclude:: landing.md 
+
+.. toctree::
+  :maxdepth: 1
+  :hidden:
+
+  Home <self>
+
+.. toctree::
+  :maxdepth: 1
+  :caption: Overview
+
+  overview/getting_started
+  overview/algorithms
+  overview/roadmap
 
 .. toctree::
    :maxdepth: 1

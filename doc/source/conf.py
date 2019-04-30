@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'alibi'
+project = 'Alibi'
 copyright = '2019, Seldon Technologies Ltd'
 author = 'Seldon Technologies Ltd'
 
@@ -48,12 +48,13 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'recommonmark',
+    #'recommonmark',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
     'nbsphinx',
     'nbsphinx_link',  # for linking notebooks from outside sphinx source root
+    'm2r'
 ]
 
 # nbsphinx settings

@@ -2,14 +2,9 @@ import logging
 import numpy as np
 from sklearn.neighbors import KDTree
 from sklearn.neighbors import KNeighborsClassifier
-from typing import Tuple
+from typing import Tuple, Any
 
 logger = logging.getLogger(__name__)
-
-# test:
-# Y: class or proba
-# filter_by_distance_knn: point or mean
-# shape of input X
 
 
 class TrustScore(object):
@@ -28,7 +23,7 @@ class TrustScore(object):
         filter_type
             Filter method; either 'distance_knn' or 'probability_knn'
         leaf_size
-            Number of points at which to switch to brute-force. Affects speeds and memory required to build trees.
+            Number of points at which to switch to brute-force. Affects speed and memory required to build trees.
             Memory to store the tree scales with n_samples / leaf_size.
         metric
             Distance metric used for the tree. See sklearn's DistanceMetric class for a list of available metrics.
@@ -103,12 +98,12 @@ class TrustScore(object):
         X
             Data
         Y
-            Either prediction probabilities for each class or the predicted class.
+            Target labels, either one-hot encoded or the actual class label.
         classes
             Number of prediction classes, needs to be provided if Y equals the predicted class.
         """
         self.classes = classes if classes is not None else Y.shape[1]
-        self.kdtrees = [None] * self.classes
+        self.kdtrees = [None] * self.classes  # type: Any
 
         # make sure Y represents predicted classes, not probabilities
         if len(Y.shape) > 1:

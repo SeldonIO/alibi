@@ -109,6 +109,12 @@ class TrustScore(object):
         self.classes = classes if classes is not None else Y.shape[1]
         self.kdtrees = [None] * self.classes  # type: Any
 
+        # KDTree and kNeighborsClassifier need 2D data
+        if len(X.shape) > 2:
+            logger.warning('Reshaping data from {0} to {1} so k-d trees can '
+                           'be built.'.format(X.shape, X.reshape(X.shape[0], -1).shape))
+            X = X.reshape(X.shape[0], -1)
+
         # make sure Y represents predicted classes, not one-hot encodings
         if len(Y.shape) > 1:
             Y = np.argmax(Y, axis=1)
@@ -131,7 +137,6 @@ class TrustScore(object):
             elif no_x_fit:
                 logger.warning('Filtered all the instances for class %s. Lower alpha or check data.', c)
 
-            # TODO: check if works for e.g. images? reshape? sklearn docs say: [n_samples, n_features]
             self.kdtrees[c] = KDTree(X_fit, leaf_size=self.leaf_size, metric=self.metric)  # build KDTree for class c
 
     def score(self, X: np.ndarray, Y: np.ndarray, k: int = 2, dist_type: str = 'point') -> np.ndarray:
@@ -158,6 +163,12 @@ class TrustScore(object):
         # make sure Y represents predicted classes, not probabilities
         if len(Y.shape) > 1:
             Y = np.argmax(Y, axis=1)
+
+        # KDTree needs 2D data
+        if len(X.shape) > 2:
+            logger.warning('Reshaping data from {0} to {1} so k-d trees can '
+                           'be queried.'.format(X.shape, X.reshape(X.shape[0], -1).shape))
+            X = X.reshape(X.shape[0], -1)
 
         d = np.tile(None, (X.shape[0], self.classes))  # init distance matrix: [nb instances, nb classes]
 

@@ -78,6 +78,10 @@ class TrustScore(object):
         -------
         Filtered data and labels.
         """
+        if self.k_filter == 1:
+            logger.warning('Number of nearest neighbors used for probability density filtering should '
+                           'be >1, otherwise the prediction probabilities are either 0 or 1 making '
+                           'probability filtering useless.')
         # fit kNN classifier and make predictions on X
         clf = KNeighborsClassifier(n_neighbors=self.k_filter, leaf_size=self.leaf_size, metric=self.metric)
         clf.fit(X, Y)
@@ -105,7 +109,7 @@ class TrustScore(object):
         self.classes = classes if classes is not None else Y.shape[1]
         self.kdtrees = [None] * self.classes  # type: Any
 
-        # make sure Y represents predicted classes, not probabilities
+        # make sure Y represents predicted classes, not one-hot encodings
         if len(Y.shape) > 1:
             Y = np.argmax(Y, axis=1)
 

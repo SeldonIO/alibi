@@ -9,10 +9,11 @@ Welcome to alibi's documentation!
 .. toctree::
    :maxdepth: 1
    :caption: Methods
-   
+
    methods/Anchors.ipynb
    methods/CEM.ipynb
-   
+   methods/Trust Scores.ipynb
+
 .. toctree::
    :maxdepth: 1
    :caption: Examples
@@ -24,6 +25,7 @@ Welcome to alibi's documentation!
    examples/anchor_image_fashion_mnist
    examples/cem_mnist
    examples/cem_iris
+   examples/trustscore_iris
 
 .. toctree::
    :maxdepth: 1

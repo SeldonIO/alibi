@@ -12,7 +12,7 @@ def test_trustscore(filter_type):
     dataset = load_iris()
 
     # define train and test set
-    idx = 145
+    idx = 140
     X_train, Y_train = dataset.data[:idx, :], dataset.target[:idx]
     X_test, Y_test = dataset.data[idx + 1:, :], dataset.target[idx + 1:]  # noqa F841
 

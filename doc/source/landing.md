@@ -1,6 +1,6 @@
 # Alibi
 
-[Alibi](https://github.com/SeldonIO/alibi) is a open source Python library aimed at machine learning
+[Alibi](https://github.com/SeldonIO/alibi) is an open source Python library aimed at machine learning
 model inspection and interpretation. The initial focus on the library is on black-box, instance
 based model explanations.
 

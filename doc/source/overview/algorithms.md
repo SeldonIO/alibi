@@ -31,10 +31,17 @@ instance that would result in a different prediction). [Documentation](../method
 
 ## Model Confidence
 These algorihtms provide instance-specific scores measuring the model confidence for making a
-certain prediction.
+particular prediction.
 
 |Algorithm|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
 |---|---|---|---|---|
 |[Trust Scores](../methods/Trust\ Scores.ipynb)|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
+
+**Trust scores**: produce a "trust score" of a classifier's prediction. The trust score is the ratio
+between the distance to the nearest class different from the predicted class and the distance to the
+predicted class, higher scores correspond to more trustworthy predictions.
+[Documentation](../methods/Trust\ Scores.ipynb),
+[tabular example](../examples/trustscore_iris.nblink).
+
 [^1]: Depending on model
 [^2]: May require dimensionality reduction

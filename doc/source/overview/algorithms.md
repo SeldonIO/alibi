@@ -41,7 +41,7 @@ particular prediction.
 between the distance to the nearest class different from the predicted class and the distance to the
 predicted class, higher scores correspond to more trustworthy predictions.
 [Documentation](../methods/TrustScores.ipynb),
-[tabular example](../examples/trustscore_iris.nblink).
+[tabular example](../examples/trustscore_iris.nblink), [image classification](../examples/trustscore_mnist.nblink)
 
 [^1]: Depending on model
 [^2]: May require dimensionality reduction

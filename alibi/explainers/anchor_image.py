@@ -1,5 +1,5 @@
-from . import anchor_base
-from . import anchor_explanation
+from .anchor_base import AnchorBaseBeam
+from .anchor_explanation import AnchorExplanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple
@@ -250,9 +250,9 @@ class AnchorImage(object):
         segments, sample_fn = self.get_sample_fn(image, p_sample=p_sample)
 
         # get anchors and add metadata
-        exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
-                                                     epsilon=tau, batch_size=batch_size,
-                                                     desired_confidence=threshold, **kwargs)  # type: Any
+        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
+                                         epsilon=tau, batch_size=batch_size,
+                                         desired_confidence=threshold, **kwargs)  # type: Any
         exp['instance'] = image
         exp['prediction'] = self.predict_fn(np.expand_dims(image, axis=0))[0]
 
@@ -265,7 +265,7 @@ class AnchorImage(object):
                        for i in range(ex[opt].shape[0])]
                 ex[opt] = tmp
 
-        exp = anchor_explanation.AnchorExplanation('image', exp)
+        exp = AnchorExplanation('image', exp)
 
         # output explanation dictionary
         explanation = {}

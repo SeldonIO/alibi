@@ -1,5 +1,5 @@
-from . import anchor_base
-from . import anchor_explanation
+from .anchor_base import AnchorBaseBeam
+from .anchor_explanation import AnchorExplanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple, Dict
@@ -173,6 +173,7 @@ class AnchorText(object):
                 labels = (self.predict_fn(raw_data) == true_label).astype(int)
             raw_data = np.array(raw_data).reshape(-1, 1)
             return raw_data, data, labels
+
         return words, positions, sample_fn
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
@@ -230,17 +231,17 @@ class AnchorText(object):
         data_type = '<U' + str(int(total_len))
 
         # get anchors and add metadata
-        exp = anchor_base.AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
-                                                     epsilon=tau, batch_size=batch_size,
-                                                     desired_confidence=threshold,
-                                                     stop_on_first=True, data_type=data_type,
-                                                     **kwargs)  # type: Any
+        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
+                                         epsilon=tau, batch_size=batch_size,
+                                         desired_confidence=threshold,
+                                         stop_on_first=True, data_type=data_type,
+                                         **kwargs)  # type: Any
 
         exp['names'] = [words[x] for x in exp['feature']]
         exp['positions'] = [positions[x] for x in exp['feature']]
         exp['instance'] = text
         exp['prediction'] = self.predict_fn([text])[0]
-        exp = anchor_explanation.AnchorExplanation('text', exp)
+        exp = AnchorExplanation('text', exp)
 
         # output explanation dictionary
         explanation = {}

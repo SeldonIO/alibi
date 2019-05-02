@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
 import spacy
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor.anchor_text import Neighbors
+from alibi.explainers.anchor_text import Neighbors
 from alibi.datasets import movie_sentiment
 from alibi.utils.download import spacy_model
 

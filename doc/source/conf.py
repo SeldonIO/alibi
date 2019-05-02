@@ -65,6 +65,8 @@ apidoc_module_dir = '../../alibi'
 apidoc_output_dir = 'api'
 apidoc_excluded_paths = ['**/*test*']
 apidoc_module_first = True
+apidoc_separate_modules = True
+apidoc_extra_args = ['-d 6']
 
 # Napoleon settings
 napoleon_google_docstring = True

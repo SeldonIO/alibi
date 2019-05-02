@@ -59,6 +59,8 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
         image = np.asarray(bytearray(resp.read()), dtype="uint8")
         resp.close()
         image = cv2.imdecode(image, cv2.IMREAD_COLOR)
+        if image is None:
+            continue
         image = np.expand_dims(cv2.resize(image, target_size), axis=0)
         if np.std(image) < min_std:  # do not include empty images
             continue

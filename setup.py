@@ -12,7 +12,7 @@ exec(open('alibi/version.py').read())
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
-      version=__version__,  # type: ignore
+      version=__version__,
       description='Algorithms for monitoring and explaining machine learning models',
       long_description=readme(),
       url='https://github.com/SeldonIO/alibi',

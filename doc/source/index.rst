@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. mdinclude:: landing.md 
+.. mdinclude:: landing.md
 
 .. toctree::
   :maxdepth: 1
@@ -39,6 +39,7 @@
    examples/cem_mnist
    examples/cem_iris
    examples/trustscore_iris
+   examples/trustscore_mnist
 
 .. toctree::
    :maxdepth: 1

@@ -12,10 +12,10 @@ jobs:
           command: pip install -r requirements/requirements_ci.txt -r requirements/requirements.txt
       - run:
           name: Lint code
-          command: flake8 .
+          command: flake8 alibi
       - run:
           name: Static typechecking
-          command: mypy .
+          command: mypy alibi
       - run:
           name: Run tests
           command: pytest

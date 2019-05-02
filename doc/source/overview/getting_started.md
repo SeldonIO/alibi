@@ -17,14 +17,25 @@ To get a list of the latest available model explanation algorithms, you can type
 import alibi
 alibi.explainers.__all__
 ```
-<div class="highlight"><pre>
+```
 ['AnchorTabular', 'AnchorText', 'AnchorImage', 'CEM'] 
-</pre></div>
+```
+
+For gauging model confidence:
+```python
+alibi.confidence.__all__
+```
+```
+['TrustScore']
+```
+
+
 
 For detailed information on the methods:
 *  [Overview of available methods](../overview/algorithms.md)
     * [Anchor explanations](../methods/Anchors.ipynb)
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
+    * [Trust Scores](../methods/Trust\ Scores.ipynb)
 
 ## Basic Usage
 We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data) to illustrate

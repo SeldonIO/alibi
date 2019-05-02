@@ -69,6 +69,10 @@ apidoc_module_first = True
 apidoc_separate_modules = True
 apidoc_extra_args = ['-d 6']
 
+# mock imports
+autodoc_mock_imports = ['numpy', 'pandas', 'sklearn', 'spacy', 'skimage', 'requests',
+                        'cv2', 'bs4', 'keras', 'tensorflow', 'seaborn']
+
 # Napoleon settings
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True

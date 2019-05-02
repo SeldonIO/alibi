@@ -24,11 +24,12 @@ copyright = '2019, Seldon Technologies Ltd'
 author = 'Seldon Technologies Ltd'
 
 # The short X.Y version
-import alibi
+#import alibi
+exec(open('../../alibi/version.py').read())
 
-version = alibi.__version__
+version = __version__
 # The full version, including alpha/beta/rc tags
-release = alibi.__version__
+release = __version__
 
 # -- General configuration ---------------------------------------------------
 

@@ -70,7 +70,7 @@ apidoc_separate_modules = True
 apidoc_extra_args = ['-d 6']
 
 # mock imports
-autodoc_mock_imports = ['numpy', 'pandas', 'sklearn', 'spacy', 'skimage', 'requests',
+autodoc_mock_imports = ['pandas', 'sklearn', 'spacy', 'skimage', 'requests',
                         'cv2', 'bs4', 'keras', 'tensorflow', 'seaborn']
 
 # Napoleon settings

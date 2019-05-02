@@ -12,3 +12,4 @@ nbsphinx-link>=1.2.0
 ipykernel>=5.1.0
 ipython>=7.2.0
 numpy>=1.14.5
+tensorflow>=1.13.1

@@ -25,7 +25,7 @@
 
    methods/Anchors.ipynb
    methods/CEM.ipynb
-   methods/Trust Scores.ipynb
+   methods/TrustScores.ipynb
 
 .. toctree::
    :maxdepth: 1

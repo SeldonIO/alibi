@@ -23,7 +23,7 @@ almost always result in the same model prediction. [Documentation](../methods/An
 **Contrastive explanation method (CEM)**: produce a pertinent positive (PP) and a pertinent negative
 (PN) instance. The PP instance finds the features that should me minimally and sufficiently present
 to predict the same class as the original prediction (a PP acts as the "most compact" representation
-of the instance to keep the same prediciton). The PN instance identifies the features that should be
+of the instance to keep the same prediction). The PN instance identifies the features that should be
 minimally and necessarily absent to maintain the original prediction (a PN acts as the closest
 instance that would result in a different prediction). [Documentation](../methods/CEM.ipynb),
 [tabular example](../examples/cem_iris.ipynb), [image classification](../examples/cem_mnist.ipynb).

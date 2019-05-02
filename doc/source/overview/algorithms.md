@@ -27,3 +27,14 @@ of the instance to keep the same prediciton). The PN instance identifies the fea
 minimally and necessarily absent to maintain the original prediction (a PN acts as the closest
 instance that would result in a different prediction). [Documentation](../methods/CEM.ipynb),
 [tabular example](../examples/cem_iris.ipynb), [image classification](../examples/cem_mnist.ipynb).
+
+
+## Model Confidence
+These algorihtms provide instance-specific scores measuring the model confidence for making a
+certain prediction.
+
+|Algorithm|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
+|---|---|---|---|---|
+|[Trust Scores](../methods/Trust\ Scores.ipynb)|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
+[^1]: Depending on model
+[^2]: May require dimensionality reduction

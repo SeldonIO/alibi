@@ -1,4 +1,4 @@
-from . import datasets, explainers, utils
+from . import confidence, datasets, explainers, utils
 from .version import __version__
 
-__all__ = ['datasets', 'explainers', 'utils']
+__all__ = ['confidence', 'datasets', 'explainers', 'utils']

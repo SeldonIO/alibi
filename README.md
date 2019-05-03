@@ -1,4 +1,6 @@
-# Alibi
+<p align="center">
+  <img src="doc/source/_static/Alibi_Logo.png" alt="Alibi Logo" width="50%">
+</p>
 
 [Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation. The initial focus on the library is on black-box, instance based model explanations.
 
@@ -31,4 +33,7 @@ Prediction: 4             |  Pertinent Negative: 9               | Pertinent Pos
 :-------------------------:|:-------------------:|:------------------:
 ![mnist_orig](doc/source/methods/mnist_orig.png)  | ![mnsit_pn](doc/source/methods/mnist_pn.png) | ![mnist_pp](doc/source/methods/mnist_pp.png)
 
+[**Trust scores applied to a softmax classifier trained on MNIST:**](examples/trustscore_mnist.ipynb)
+
+![trust_mnist](doc/source/_static/trustscores.png)
 

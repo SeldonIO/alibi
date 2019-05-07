@@ -1,7 +1,10 @@
 import numpy as np
 import copy
 import collections
+import logging
 from typing import Callable, Tuple, Set, Dict, Sequence
+
+logger = logging.getLogger(__name__)
 
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
@@ -611,8 +614,8 @@ class AnchorBaseBeam(object):
 
         # if no anchor is found, choose highest precision of best anchor candidate from every round
         if best_tuple == ():
-            if verbose:
-                print('Could not find an anchor, now doing best of each size')
+            logger.warning('Could not find an anchor satisfying the {} precision constraint. Now returning '
+                           'the best non-eligible anchor.'.format(desired_confidence))
             tuples = []
             for i in range(0, current_size):
                 tuples.extend(best_of_size[i])

@@ -139,7 +139,8 @@ class TrustScore(object):
 
             self.kdtrees[c] = KDTree(X_fit, leaf_size=self.leaf_size, metric=self.metric)  # build KDTree for class c
 
-    def score(self, X: np.ndarray, Y: np.ndarray, k: int = 2, dist_type: str = 'point') -> np.ndarray:
+    def score(self, X: np.ndarray, Y: np.ndarray, k: int = 2, dist_type: str = 'point') \
+            -> Tuple[np.ndarray, np.ndarray]:
         """
         Calculate trust scores = ratio of distance to closest class other than the
         predicted class to distance to predicted class.
@@ -158,7 +159,7 @@ class TrustScore(object):
 
         Returns
         -------
-        Batch with trust scores.
+        Batch with trust scores and the closest not predicted class.
         """
         # make sure Y represents predicted classes, not probabilities
         if len(Y.shape) > 1:
@@ -184,4 +185,6 @@ class TrustScore(object):
         d_to_pred = d[range(d.shape[0]), Y]
         d_to_closest_not_pred = np.where(sorted_d[:, 0] != d_to_pred, sorted_d[:, 0], sorted_d[:, 1])
         trust_score = d_to_closest_not_pred / (d_to_pred + self.eps)
-        return trust_score
+        # closest not predicted class
+        class_closest_not_pred = np.where(d == d_to_closest_not_pred.reshape(-1, 1))[1]
+        return trust_score, class_closest_not_pred

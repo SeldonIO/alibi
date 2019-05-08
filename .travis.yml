@@ -6,6 +6,7 @@ python:
   - "3.7"
 install:
   - pip install -r requirements/requirements_all.txt
+  - python -m spacy download en_core_web_md
 script:
   - flake8 alibi
   - mypy alibi

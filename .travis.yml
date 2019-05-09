@@ -10,4 +10,4 @@ install:
 script:
   - flake8 alibi
   - mypy alibi
-  - pytest
+  - travis_wait pytest

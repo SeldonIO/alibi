@@ -53,8 +53,8 @@ def test_trustscore(filter_type):
     # test one-hot encoding of Y vs. class labels
     ts = TrustScore()
     ts.fit(X_train, Y_train, classes=3)
-    score_class = ts.score(X_test, Y_pred)
+    score_class, _ = ts.score(X_test, Y_pred)
     ts = TrustScore()
     ts.fit(X_train, to_categorical(Y_train), classes=3)
-    score_ohe = ts.score(X_test, Y_pred_proba)
+    score_ohe, _ = ts.score(X_test, Y_pred_proba)
     assert (score_class != score_ohe).astype(int).sum() == 0

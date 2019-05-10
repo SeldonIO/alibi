@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Callable, Dict, List, Optional, Tuple, Union
-from statsmodels.tools.numdiff import approx_fprime
 import tensorflow as tf
 import logging
 
@@ -85,28 +84,6 @@ def _define_func(predict_fn: Callable,
         return (predict_fn(X)[:, target_class]).reshape(-1, 1)
 
     return func, target_class
-
-
-def num_grad(func: Callable, X: np.ndarray, args: Tuple = (), epsilon: float = 1e-08) -> np.ndarray:
-    """
-    Compute the numerical gradient using the symmetric difference. Currently wraps statsmodels implementation.
-
-    Parameters
-    ----------
-    func
-        Function to differentiate
-    X
-        Point at which to compute the gradient
-    args
-        Additional arguments to the function
-    epsilon
-        Step size for computing the gradient
-    Returns
-    -------
-    Numerical gradient
-    """
-    gradient = approx_fprime(X, func, epsilon=epsilon, args=args, centered=True)
-    return gradient
 
 
 def _perturb(X: np.ndarray,
@@ -472,20 +449,20 @@ class CounterFactual:
                        'success': False}
 
         lam = self.lam_init
-        lam_lb = 0
+        lam_lb = 0.0
         lam_ub = 1e10
 
         lam_steps = 0
         X_current = X_init
         # expanding = True  # flag to check if we are expanding the search or zooming in on a solution
-        for l in range(self.max_lam_steps):
+        for l_step in range(self.max_lam_steps):
             self.sess.run(self.tf_init)  # where to put this
 
             # cf_found = False  # flag to use for increasing/decreasing lambda
             # TODO need some early stopping when lambda grows too big to satisfy prob_cond
             # while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
             lr = self.sess.run(self.learning_rate)
-            logger.info('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps+1, self.max_lam_steps, lam, lr)
+            logger.info('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps + 1, self.max_lam_steps, lam, lr)
 
             # if lam_steps == self.max_lam_steps:
             #    logger.warning(
@@ -519,7 +496,7 @@ class CounterFactual:
 
                 cond = self._prob_condition(X_current).squeeze()
                 if cond:
-                    cf_found[l] = True
+                    cf_found[l_step] = True
                     return_dict['X_cf'] = X_current
                     logger.debug('CF found')
                 prob_cond.append(cond)
@@ -543,7 +520,7 @@ class CounterFactual:
 
             # adjust the lambda constant
             if self.bisect:
-                if cf_found[l]:
+                if cf_found[l_step]:
                     # want to improve the solution by putting more weight on the distance term
                     # by increasing lambda
                     lam_lb = max(lam, lam_lb)
@@ -554,8 +531,8 @@ class CounterFactual:
                         lam *= self.lam_step
                         logger.debug('Changed lambda to %s', lam)
 
-                elif not cf_found[l]:
-                    if l == 0:
+                elif not cf_found[l_step]:
+                    if l_step == 0:
                         logger.warning('No solution found in the first iteration, try to reduce target_proba'
                                        'or increase tolerance.')
                         return return_dict

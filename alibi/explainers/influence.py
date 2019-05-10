@@ -2,7 +2,7 @@ from .datafeeder import DataFeeder
 import logging
 import numpy as np
 import os
-from typing import List, Sequence, Optional, Dict, Union, Any
+from typing import Sequence, Optional, Dict, Any
 import tensorflow as tf
 import tensorflow.keras as keras
 import tensorflow.keras.backend as K
@@ -64,7 +64,8 @@ class InfluenceKeras:
         else:
             self.ihvp_config = ihvp_config
 
-        # gradients = model.optimizer.get_gradients(model.total_loss, trainable_vars)  # same as K.gradients or tf.gradients
+        # gradients = model.optimizer.get_gradients(model.total_loss, trainable_vars)
+        # same as K.gradients or tf.gradients
         # input_tensors = [model.inputs[0],  # TODO extend to multiple inputs/outputs?
         #                 model.sample_weights[0],
         #                 model.targets[0],

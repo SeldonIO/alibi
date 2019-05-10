@@ -6,7 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from scipy.spatial.distance import cityblock
 import tensorflow as tf
 
-from alibi.explainers.counterfactual.counterfactual import _define_func, num_grad, \
+from alibi.explainers.counterfactual import _define_func, \
     num_grad_batch, cityblock_batch, get_wachter_grads
 from alibi.explainers import CounterFactual
 
@@ -57,18 +57,6 @@ def test_define_func(logistic_iris, target_class):
         assert func(x) == probas[:, ix2]
 
 
-@pytest.mark.parametrize('dim', [1, 2, 3, 10])
-def test_get_num_gradients_cityblock(dim):
-    u = np.random.rand(dim)
-    v = np.random.rand(dim)
-
-    grad_true = np.sign(u - v)
-    grad_approx = num_grad(cityblock, u, args=tuple([v])).flatten()  # promote 0-D to 1-D
-
-    assert grad_approx.shape == grad_true.shape
-    assert np.allclose(grad_true, grad_approx)
-
-
 @pytest.mark.parametrize('shape', [(1,), (2, 3), (1, 3, 5)])
 @pytest.mark.parametrize('batch_size', [1, 3, 10])
 def test_get_batch_num_gradients_cityblock(shape, batch_size):
@@ -77,23 +65,6 @@ def test_get_batch_num_gradients_cityblock(shape, batch_size):
 
     grad_true = np.sign(u - v).reshape(batch_size, 1, *shape)  # expand dims to incorporate 1-d scalar response
     grad_approx = num_grad_batch(cityblock_batch, u, args=tuple([v]))
-
-    assert grad_approx.shape == grad_true.shape
-    assert np.allclose(grad_true, grad_approx)
-
-
-def test_get_num_gradients_logistic_iris(logistic_iris):
-    X, y, lr = logistic_iris
-    predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))  # need squeezed x for numerical gradient
-    x = X[0]
-    probas = predict_fn(x)
-    pred_class = probas.argmax()
-
-    # true gradient of the logistic regression wrt x
-    grad_true = (probas.T * (np.eye(3, 3) - probas) @ lr.coef_)
-    assert grad_true.shape == (3, 4)
-
-    grad_approx = num_grad(predict_fn, x)
 
     assert grad_approx.shape == grad_true.shape
     assert np.allclose(grad_true, grad_approx)
@@ -128,7 +99,7 @@ def test_get_wachter_grads(logistic_iris):
     pred_class = probas.argmax()
     func, target = _define_func(predict_fn, pred_class, 'same')
 
-    loss, grad_loss = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock_batch,
+    loss, grad_loss, debug_info = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock_batch,
                                         X_test=x, target_proba=0.1, lam=1)
 
     assert loss.shape == (1, 1)

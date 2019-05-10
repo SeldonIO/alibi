@@ -1,5 +1,5 @@
-from alibi.explainers.influence.influence import InfluenceKeras
-from alibi.explainers.influence.datafeeder import NumpyFeeder
+from alibi.explainers.influence import InfluenceKeras
+from alibi.explainers.datafeeder import NumpyFeeder
 import pytest
 import tensorflow as tf
 import numpy as np

@@ -237,19 +237,19 @@ class CounterFactual:
                  predict_fn: Callable,
                  data_shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
-                 target_proba: float = 0.95,
+                 target_proba: float = 1.0,
                  target_class: Union[str, int] = 'other',
                  max_iter: int = 1000,
-                 lam_init: float = 1e-07,
-                 lam_step: float = 10,
+                 lam_init: float = 1e-04,
                  max_lam_steps: int = 10,
-                 tol: float = 0.025,
+                 tol: float = 0.05,
                  learning_rate_init=0.1,
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
                  eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
                  init: str = 'identity',
-                 bisect=True,
-                 decay=True):
+                 decay=True,
+                 write_dir: str = None,
+                 debug=False) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -272,12 +272,12 @@ class CounterFactual:
             Maximum number of interations to run the gradient descent for (inner loop)
         lam_init
             Initial regularization constant for the prediction part of the Wachter loss
-        lam_step
-            Regularization constant step size used in the search
         max_lam_steps
-            Maximum number of times to increase the regularization constant (outer loop) before terminating the search
+            Maximum number of times to adjust the regularization constant (outer loop) before terminating the search
         tol
             Tolerance for the counterfactual target probability
+        learning_rate_init
+            Initial learning rate for each outer loop of lambda
         feature_range
             Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
             numpy arrays with dimension (1 x nb of features) for feature-wise ranges
@@ -286,19 +286,23 @@ class CounterFactual:
             features, but can be passed an array for feature-wise step sizes
         init
             Initialization method for the search of counterfactuals, one of 'random' or 'identity'
+        decay
+            Flag to decay learning rate to zero for each outer loop over lambda
+        write_dir
+            Directory to write Tensorboard files to
+        debug
+            Flag to write Tensorboard summaries for debugging
         """
 
         logger.warning('Counterfactual explainer currently only supports numeric features')
         self.sess = sess
         self.data_shape = data_shape
         self.batch_size = data_shape[0]
-        self.target_proba = target_proba
         self.target_class = target_class
 
         # options for the optimizer
         self.max_iter = max_iter
         self.lam_init = lam_init
-        self.lam_step = lam_step
         self.tol = tol
         self.max_lam_steps = max_lam_steps
 
@@ -306,73 +310,119 @@ class CounterFactual:
         self.init = init
         self.feature_range = feature_range
 
-        self.bisect = bisect
+        self.debug = debug
 
         # TODO: support predict and predict_proba types for functions
-        self.predict_fn = predict_fn
-        if hasattr(predict_fn, 'predict'):  # Keras or TF model
+        if hasattr(predict_fn, 'predict'):  # Keras or TF model TODO: what if it's sklearn predict? Check types?
             self.model = True
-            # self.predict_fn = lambda x: predict_fn(tf.reshape(x, (1, -1)))  # Is this safe? batch?
-            n_classes = self.sess.run(self.predict_fn(tf.convert_to_tensor(np.zeros(data_shape),
-                                                                           dtype=tf.float32))).shape[1]
+            self.predict_fn = predict_fn.predict  # array function
+            self.predict_tn = predict_fn  # tensor function
+            self.n_classes = self.sess.run(self.predict_tn(tf.convert_to_tensor(np.zeros(data_shape),
+                                                                                dtype=tf.float32))).shape[1]
         else:
+            self.predict_fn = predict_fn
+            self.predict_tn = None
             self.model = False  # black-box model
-            self.predict_fn = predict_fn  # x: predict_fn(x.reshape(1, -1))  # Is this safe?
-            n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
-
-        # TODO remove this entirely?
-        try:
-            self.distance_fn = _metric_dict[distance_fn]
-        except KeyError:
-            logger.exception('Distance metrics %s not supported', distance_fn)
-            raise
-
-        if feature_range is not None:
-            logger.warning('Feature range specified')
+            self.n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
 
         # flag to keep track if explainer is fit or not
         self.fitted = False
 
-        # set up graph session
+        # set up graph session for optimization (counterfactual search)
         with tf.variable_scope('cf_search', reuse=tf.AUTO_REUSE):
 
-            # original instance, candidate counterfactual within feature range and target labels
+            # define variables for original and candidate counterfactual instances, target labels and lambda
             self.orig = tf.get_variable('original', shape=data_shape, dtype=tf.float32)
             self.cf = tf.get_variable('counterfactual', shape=data_shape,
                                       dtype=tf.float32,
                                       constraint=lambda x: tf.clip_by_value(x, feature_range[0], feature_range[1]))
-            # TODO initialize when explain is called
-            self.target = tf.get_variable('target', shape=(1, n_classes), dtype=tf.float32)
+            # the following will be a 1-hot encoding of the target class (as predicted by the model)
+            self.target = tf.get_variable('target', shape=(self.batch_size, self.n_classes), dtype=tf.float32)
+            self.lam = tf.Variable(self.lam_init * np.ones(self.batch_size), name='lambda', dtype=tf.float32)
 
-            # hyperparameter in the loss
-            self.lam = tf.Variable(self.lam_init, name='lambda')
+            # constant target probability and global step variable
+            self.target_proba = tf.constant(target_proba * np.ones(self.batch_size), dtype=tf.float32,
+                                            name='target_proba')
+            self.global_step = tf.Variable(0.0, trainable=False, name='global_step')
+
+            # define placeholders that will be assigned to relevant variables
+            self.assign_orig = tf.placeholder(tf.float32, data_shape, name='assing_orig')
+            self.assign_cf = tf.placeholder(tf.float32, data_shape, name='assign_cf')
+            self.assign_target = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_classes),
+                                                name='assign_target')
+            self.assign_lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='assign_lam')
 
             # L1 distance and MAD constants
-            self.l1 = tf.norm(tf.subtract(self.cf, self.orig), ord=1)
-            # self.mads = tf.Variable(np.ones(), name='mads')  # TODO size
+            # TODO: refactor? MADs?
+            ax_sum = list(np.arange(1, len(self.data_shape)))
+            if distance_fn == 'l1':
+                self.dist = tf.reduce_sum(tf.abs(self.cf - self.orig), axis=ax_sum, name='l1')
+                # self.dist = tf.norm(tf.subtract(self.cf, self.orig), ord=1, name='l1')
+            else:
+                logger.exception('Distance metric %s not supported', distance_fn)
+                raise ValueError
+
+            # distance loss
+            self.loss_dist = self.lam * self.dist
+
+            # prediction loss
+            if not self.model:
+                # will need to calculate gradients numerically
+                # self.pred_proba_class = tf.get_variable('pred_proba_class', shape=(self.batch_size, 1),
+                #                                        dtype=tf.float32)
+                # self.loss_pred = tf.get_variable('loss_pred', shape=(self.batch_size, 1), dtype=tf.float32)
+                self.loss_opt = self.loss_dist
+            else:
+                # autograd gradients throughout
+                self.pred_proba = self.predict_tn(self.cf)
+
+                # 3 cases for target_class
+                if target_class == 'same':
+                    self.pred_proba_class = tf.reduce_max(self.target * self.pred_proba, 1)
+                elif target_class == 'other':
+                    self.pred_proba_class = tf.reduce_max((1 - self.target) * self.pred_proba, 1)
+                elif isinstance(target_class, int):
+                    # if class is specified, this is known in advance
+                    # TODO: try/except to handle invalid cases
+                    self.pred_proba_class = tf.reduce_max(tf.one_hot(target_class, self.n_classes, dtype=tf.float32)
+                                                          * self.pred_proba, 1)
+                else:
+                    logger.exception('Target class %s unknown', target_class)
+                    raise ValueError
+
+                self.loss_pred = tf.square(self.pred_proba_class - self.target_proba)
+
+                self.loss_opt = self.loss_pred + self.loss_dist
 
             # optimizer
-            self.global_step = tf.Variable(0.0, trainable=False, name='global_step')
             if decay:
                 self.learning_rate = tf.train.polynomial_decay(learning_rate_init, self.global_step,
                                                                self.max_iter, 0.0, power=0.5)
             else:
                 self.learning_rate = learning_rate_init
 
-            opt = tf.train.AdamOptimizer(
-                self.learning_rate)  # TODO optional argument to change type, learning rate scheduler
+            # TODO optional argument to change type, learning rate scheduler
+            opt = tf.train.AdamOptimizer(self.learning_rate)
 
-            # training setup
-            # grads_and_vars = opt.compute_gradients(, vars = [cf]) TODO if differentiable distance
-            self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32)
-            grad_and_var = [(self.grad_ph, self.cf)]  # could be cf.name
+            # first compute gradients, then apply them
+            self.compute_grads = opt.compute_gradients(self.loss_opt, var_list=[self.cf])
+            self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32, name='grad_cf')
+            grad_and_var = [(self.grad_ph, self.cf)]
+            self.apply_grads = opt.apply_gradients(grad_and_var, global_step=self.global_step)
 
-            self.apply_grad = opt.apply_gradients(grad_and_var,
-                                                  global_step=self.global_step)  # TODO gradient clipping?
+        # variables to initialize
+        self.setup = []  # type: list
+        self.setup.append(self.orig.assign(self.assign_orig))
+        self.setup.append(self.cf.assign(self.assign_cf))
+        self.setup.append(self.target.assign(self.assign_target))
+        self.setup.append(self.lam.assign(self.assign_lam))
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
 
-        return
+        # tensorboard
+        if write_dir is not None:
+            self.writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
+            self.writer.add_graph(tf.get_default_graph())
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
@@ -397,11 +447,18 @@ class CounterFactual:
         self.fitted = True
 
     def explain(self, X: np.ndarray) -> Dict:
+        if X.shape[0] != 1:
+            logger.warning('Currently only single instance explanations supported (first dim = 1), '
+                           'but first dim = %s', X.shape[0])
 
         # make a prediction
-        probas = self.predict_fn(X)
-        pred_class = probas.argmax()
-        logger.debug('Initial prediction: %s with p=%s', pred_class, probas.max())
+        if self.model:
+            Y = self.sess.run(self.predict_tn(tf.convert_to_tensor(X, dtype=tf.float32)))
+        else:
+            Y = self.predict_fn(X)
+
+        pred_class = Y.argmax()
+        logger.debug('Initial prediction: %s with p=%s', pred_class, Y.max())
 
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
@@ -413,144 +470,133 @@ class CounterFactual:
         X_init = self._initialize(X)
 
         # minimize loss iteratively
-        exp_dict = self._minimize_wachter_loss(X, X_init)
+        exp_dict = self._minimize_wachter_loss(X, X_init, Y)
 
         return exp_dict
 
     def _prob_condition(self, X_current):
-        return np.abs(self.predict_class_fn(X_current) - self.target_proba) <= self.tol
+        return np.abs(self.predict_class_fn(X_current) - self.sess.run(self.target_proba)) <= self.tol
 
     def _minimize_wachter_loss(self,
                                X: np.ndarray,
-                               X_init: np.ndarray) -> Dict:
-        Xs = []  # type: List[np.ndarray]
-        losses = []  # type: List[float]
-        grads = []  # type: List[np.ndarray]
-        dists = []  # type: List[float]
-        lambdas = []  # type: List[float]
-        prob_cond = []  # type: List[bool]
-        prob = []  # type: List[float]
-        classes = []  # type: List[int]
-        debug_info = []  # type: List[Tuple]
+                               X_init: np.ndarray,
+                               Y: np.ndarray) -> Dict:
 
-        cf_found = np.zeros((self.max_lam_steps), dtype=bool)
+        cf_found = np.zeros((self.batch_size, self.max_lam_steps), dtype=bool)
 
         return_dict = {'X_cf': X_init,
-                       'loss': losses,
-                       'grads': grads,
-                       'dists': dists,
-                       'Xs': Xs,
-                       'lambdas': lambdas,
-                       'prob_cond': prob_cond,
-                       'prob': prob,
-                       'classes': classes,
-                       'debug_info': debug_info,
-                       'cf_found': cf_found,
                        'success': False}
 
-        lam = self.lam_init
-        lam_lb = 0.0
-        lam_ub = 1e10
+        # set the lower and upper bound for lamda to scale the distance loss term
+        lam = np.ones(self.batch_size) * self.lam_init
+        lam_lb = np.zeros(self.batch_size)
+        lam_ub = np.ones(self.batch_size) * 1e10
 
         lam_steps = 0
         X_current = X_init
-        # expanding = True  # flag to check if we are expanding the search or zooming in on a solution
-        for l_step in range(self.max_lam_steps):
-            self.sess.run(self.tf_init)  # where to put this
 
-            # cf_found = False  # flag to use for increasing/decreasing lambda
-            # TODO need some early stopping when lambda grows too big to satisfy prob_cond
-            # while np.abs(self.predict_class_fn(X_current) - self.target_proba) > self.tol:
+        # make a one-hot vector of targets
+        Y_ohe = np.zeros(Y.shape)
+        np.put(Y_ohe, np.argmax(Y, axis=1), 1)
+
+        for l_step in range(self.max_lam_steps):
+            self.sess.run(self.tf_init)
             lr = self.sess.run(self.learning_rate)
             logger.info('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps + 1, self.max_lam_steps, lam, lr)
 
-            # if lam_steps == self.max_lam_steps:
-            #    logger.warning(
-            #        'Maximum number of iterations reached without finding a counterfactual.'
-            #        'Increase max_lam_steps, tolerance or the lambda hyperparameter.')
-            #    return return_dict
+            # assign variables for the current iteration
+            self.sess.run(self.setup, {self.assign_orig: X,
+                                       self.assign_cf: X_current,
+                                       self.assign_target: Y_ohe,
+                                       self.assign_lam: lam})
 
             num_iter = 0
 
             # number of gradient descent steps in each inner loop
             for i in range(self.max_iter):
+
+                # numerical gradients
+                grads_num = np.zeros(self.data_shape)
+                if not self.model:
+                    pred = self.predict_class_fn(X_current)
+                    prediction_grad = num_grad_batch(self.predict_class_fn, X_current, eps=self.eps)
+
+                    # squared difference prediction loss
+                    loss_pred = (pred - self.target_proba.eval(session=self.sess)) ** 2
+                    grads_num = 2 * (pred - self.target_proba.eval(session=self.sess)) * prediction_grad
+
+                    grads_num = grads_num.reshape(self.data_shape)  # TODO? correct?
+
+                # add values to tensorboard (1st item in batch only) every n steps
+                if self.debug and not i % 50:
+                    if self.model:
+                        scalars_tf = [self.global_step, self.learning_rate, self.lam[0], self.dist[0],
+                                      self.loss_pred[0], self.loss_opt[0], self.pred_proba_class[0]]
+                        gs, lr, lm, dist, loss_pred, loss_opt, pred = self.sess.run(scalars_tf)
+                    else:
+                        scalars_tf = [self.global_step, self.learning_rate, self.lam[0], self.dist[0],
+                                      self.loss_opt[0]]
+                        gs, lr, lm, dist, loss_opt = self.sess.run(scalars_tf)
+
+                    summary = tf.Summary()
+                    summary.value.add(tag='lr/global_step', simple_value=gs)
+                    summary.value.add(tag='lr/lr', simple_value=lr)
+
+                    summary.value.add(tag='lambda/lambda', simple_value=lm)
+                    summary.value.add(tag='lambda/l_bound', simple_value=lam_lb[0])
+                    summary.value.add(tag='lambda/u_bound', simple_value=lam_ub[0])
+
+                    summary.value.add(tag='losses/dist', simple_value=dist)
+                    summary.value.add(tag='losses/loss_pred', simple_value=loss_pred)
+                    summary.value.add(tag='losses/loss_opt', simple_value=loss_opt)
+
+                    summary.value.add(tag='Y/pred_proba_class', simple_value=pred)
+                    summary.value.add(tag='Y/pred_class_fn(X_current)', simple_value=self.predict_class_fn(X_current))
+
+                    self.writer.add_summary(summary)
+                    self.writer.flush()
+
                 # minimize the loss
                 num_iter += 1
-                loss, gradients, d_info = get_wachter_grads(X_current=X_current, predict_class_fn=self.predict_class_fn,
-                                                            distance_fn=self.distance_fn, X_test=X,
-                                                            target_proba=self.target_proba,
-                                                            lam=lam, eps=self.eps)
-                # squeeze out class dimension
-                gradients = gradients.reshape(self.data_shape)
+                # compute graph gradients
+                grads_vars_graph = self.sess.run(self.compute_grads)
+                grads_graph = [g for g, _ in grads_vars_graph][0]
 
-                self.sess.run(self.apply_grad, feed_dict={self.grad_ph: gradients})
+                # apply gradients
+                gradients = grads_graph + grads_num
+                self.sess.run(self.apply_grads, feed_dict={self.grad_ph: gradients})
+
+                # for debugging
                 X_current = self.sess.run(self.cf)
-
-                # if probability condition satisfied, add to list of potential CFs TODO keep track of all for debugging
-                # if self._prob_condition(X_current):
-                Xs.append(X_current)
-                losses.append(loss.squeeze())
-                grads.append(gradients)
-                dists.append(self.distance_fn(X, X_current).squeeze())
-                lambdas.append(lam)
-
                 cond = self._prob_condition(X_current).squeeze()
                 if cond:
-                    cf_found[l_step] = True
+                    cf_found[0][l_step] = True  # TODO: batch support
                     return_dict['X_cf'] = X_current
                     logger.debug('CF found')
-                prob_cond.append(cond)
 
-                probas = self.predict_fn(X_current)
-                pred_class = probas.argmax()
-                p = probas.max()
-
-                prob.append(p)
-                classes.append(pred_class)
-                debug_info.append(d_info)
-
-                logger.debug('Iteration: %s, cf pred_class: %s, cf proba: %s', lam_steps, pred_class, p)
-                logger.debug('Iteration: %s, distance d(X_current, X): %s', lam_steps,
-                             self.distance_fn(X, X_current))
-
-                lr = self.sess.run(self.learning_rate)
-                gs = self.sess.run(self.global_step)
-                logger.info('Current learning rate lr=%s', lr)
-                logger.info('Current global step: %s', gs)
-
-            # adjust the lambda constant
-            if self.bisect:
-                if cf_found[l_step]:
+            # adjust the lambda constant via bisection
+            for batch_idx in range(self.batch_size):  # TODO: batch not supported
+                if cf_found[batch_idx][l_step]:
                     # want to improve the solution by putting more weight on the distance term
                     # by increasing lambda
-                    lam_lb = max(lam, lam_lb)
-                    logger.debug('Lambda bounds: (%s, %s)', lam_lb, lam_ub)
-                    if lam_ub < 1e9:
-                        lam = (lam_lb + lam_ub) / 2
+                    lam_lb[batch_idx] = max(lam[batch_idx], lam_lb[batch_idx])
+                    logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
+                    if lam_ub[batch_idx] < 1e9:
+                        lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
                     else:
-                        lam *= self.lam_step
-                        logger.debug('Changed lambda to %s', lam)
+                        lam[batch_idx] *= 10
+                        logger.debug('Changed lambda to %s', lam[batch_idx])
 
-                elif not cf_found[l_step]:
-                    if l_step == 0:
-                        logger.warning('No solution found in the first iteration, try to reduce target_proba'
-                                       'or increase tolerance.')
-                        return return_dict
+                elif not cf_found[batch_idx][l_step]:
 
-                    # want to refine the last solution by finding the closest solution that is
-                    # still a counterfactual by bisecting lambda
-
-                    lam_ub = min(lam_ub, lam)
-                    logger.debug('Lambda bounds: (%s, %s)', lam_lb, lam_ub)
-                    if lam_ub < 1e9:
-                        lam = (lam_lb + lam_ub) / 2
-                        logger.debug('Changed lambda to %s', lam)
+                    lam_ub[batch_idx] = min(lam_ub[batch_idx], lam[batch_idx])
+                    logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
+                    if lam_ub[batch_idx] < 1e9:
+                        lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
+                        logger.debug('Changed lambda to %s', lam[batch_idx])
 
                 lam_steps += 1
-            else:
-                lam_steps += 1
-                lam *= self.lam_step
 
-        return_dict['success'] = True
+            return_dict['success'] = True
 
         return return_dict

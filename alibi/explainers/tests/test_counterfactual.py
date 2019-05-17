@@ -9,8 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 import tensorflow.keras.backend as K
 
-from alibi.explainers.counterfactual import _define_func, \
-    num_grad_batch, cityblock_batch, get_wachter_grads
+from alibi.explainers.counterfactual import _define_func, num_grad_batch, cityblock_batch
 from alibi.explainers import CounterFactual
 
 
@@ -130,21 +129,6 @@ def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
 
     assert grad_approx.shape == grad_true.shape
     assert np.allclose(grad_true, grad_approx)
-
-
-def test_get_wachter_grads(logistic_iris):
-    X, y, lr = logistic_iris
-    predict_fn = lr.predict_proba
-    x = X[0].reshape(1, -1)
-    probas = predict_fn(x)
-    pred_class = probas.argmax()
-    func, target = _define_func(predict_fn, pred_class, 'same')
-
-    loss, grad_loss, debug_info = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock_batch,
-                                                    X_test=x, target_proba=0.1, lam=1)
-
-    assert loss.shape == (1, 1)
-    assert grad_loss.shape == x.reshape(1, 1, 4).shape
 
 
 @pytest.mark.parametrize('iris_explainer',

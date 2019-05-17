@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, Optional, Tuple, Union
 import tensorflow as tf
+import keras
 import logging
 
 logger = logging.getLogger(__name__)
@@ -234,7 +235,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Callable,
+                 predict_fn: Union[Callable, tf.keras.Model],
                  data_shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -312,17 +313,17 @@ class CounterFactual:
 
         self.debug = debug
 
-        # TODO: support predict and predict_proba types for functions
-        if hasattr(predict_fn, 'predict'):  # Keras or TF model TODO: what if it's sklearn predict? Check types?
+        if isinstance(predict_fn, (tf.keras.Model, keras.Model)):  # Keras or TF model
+            # types?
             self.model = True
             self.predict_fn = predict_fn.predict  # array function
             self.predict_tn = predict_fn  # tensor function
             self.n_classes = self.sess.run(self.predict_tn(tf.convert_to_tensor(np.zeros(data_shape),
                                                                                 dtype=tf.float32))).shape[1]
-        else:
+        else:  # black-box model
             self.predict_fn = predict_fn
             self.predict_tn = None
-            self.model = False  # black-box model
+            self.model = False
             self.n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
 
         # flag to keep track if explainer is fit or not
@@ -357,7 +358,6 @@ class CounterFactual:
             ax_sum = list(np.arange(1, len(self.data_shape)))
             if distance_fn == 'l1':
                 self.dist = tf.reduce_sum(tf.abs(self.cf - self.orig), axis=ax_sum, name='l1')
-                # self.dist = tf.norm(tf.subtract(self.cf, self.orig), ord=1, name='l1')
             else:
                 logger.exception('Distance metric %s not supported', distance_fn)
                 raise ValueError
@@ -368,9 +368,6 @@ class CounterFactual:
             # prediction loss
             if not self.model:
                 # will need to calculate gradients numerically
-                # self.pred_proba_class = tf.get_variable('pred_proba_class', shape=(self.batch_size, 1),
-                #                                        dtype=tf.float32)
-                # self.loss_pred = tf.get_variable('loss_pred', shape=(self.batch_size, 1), dtype=tf.float32)
                 self.loss_opt = self.loss_dist
             else:
                 # autograd gradients throughout
@@ -447,6 +444,8 @@ class CounterFactual:
         self.fitted = True
 
     def explain(self, X: np.ndarray) -> Dict:
+        # TODO change init parameters on the fly
+
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '
                            'but first dim = %s', X.shape[0])
@@ -482,6 +481,7 @@ class CounterFactual:
                                X_init: np.ndarray,
                                Y: np.ndarray) -> Dict:
 
+        # keep track of found CFs for each lambda in outer loop
         cf_found = np.zeros((self.batch_size, self.max_lam_steps), dtype=bool)
 
         return_dict = {'X_cf': X_init,
@@ -502,7 +502,7 @@ class CounterFactual:
         for l_step in range(self.max_lam_steps):
             self.sess.run(self.tf_init)
             lr = self.sess.run(self.learning_rate)
-            logger.info('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps + 1, self.max_lam_steps, lam, lr)
+            logger.debug('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps + 1, self.max_lam_steps, lam, lr)
 
             # assign variables for the current iteration
             self.sess.run(self.setup, {self.assign_orig: X,
@@ -588,12 +588,15 @@ class CounterFactual:
                         logger.debug('Changed lambda to %s', lam[batch_idx])
 
                 elif not cf_found[batch_idx][l_step]:
-
+                    # if no solution found so far, decrease lambda by a factor of 10,
+                    # otherwise bisect up to the last known successful lambda
                     lam_ub[batch_idx] = min(lam_ub[batch_idx], lam[batch_idx])
                     logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
-                    if lam_ub[batch_idx] < 1e9:
+                    if lam_lb[batch_idx] > 0:
                         lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
                         logger.debug('Changed lambda to %s', lam[batch_idx])
+                    else:
+                        lam[batch_idx] /= 10
 
                 lam_steps += 1
 

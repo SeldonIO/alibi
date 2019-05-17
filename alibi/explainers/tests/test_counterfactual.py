@@ -3,8 +3,11 @@ import pytest
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-from scipy.spatial.distance import cityblock
 import tensorflow as tf
+from tensorflow.keras.utils import to_categorical
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+import tensorflow.keras.backend as K
 
 from alibi.explainers.counterfactual import _define_func, \
     num_grad_batch, cityblock_batch, get_wachter_grads
@@ -18,18 +21,56 @@ def logistic_iris():
     return X, y, lr
 
 
+@pytest.fixture()
+def tf_keras_logistic_mnist():
+    (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
+    input_dim = 784
+    output_dim = nb_classes = 10
+
+    X = X_train.reshape(60000, input_dim)[:1000]  # only train on 1000 instances
+    X = X.astype('float32')
+    X /= 255
+
+    y = to_categorical(y_train[:1000], nb_classes)
+
+    model = Sequential([
+        Dense(output_dim,
+              input_dim=input_dim,
+              activation='softmax')
+    ])
+
+    model.compile(optimizer='adam',
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
+
+    model.fit(X, y, epochs=5)
+
+    return X, y, model
+
+
 @pytest.fixture
 def iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
-    predict_fn = lambda x: lr.predict_proba(x.reshape(1, -1))
+    predict_fn = lr.predict_proba
     sess = tf.Session()
-
-    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, data_shape=(4,),
-                                  target_class=request.param, lam_init=1000, max_iter=2000)
+    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, data_shape=(1, 4),
+                                  target_class=request.param, lam_init=1e-4, max_iter=1000,
+                                  max_lam_steps=5)
 
     yield cf_explainer
     tf.reset_default_graph()
     sess.close()
+
+
+@pytest.fixture
+def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
+    X, y, model = tf_keras_logistic_mnist
+    sess = K.get_session()
+
+    cf_explainer = CounterFactual(sess=sess, predict_fn=model, data_shape=(1, 784),
+                                  target_class=request.param, lam_init=1e-4, max_iter=1000,
+                                  max_lam_steps=5)
+    yield cf_explainer
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -100,23 +141,22 @@ def test_get_wachter_grads(logistic_iris):
     func, target = _define_func(predict_fn, pred_class, 'same')
 
     loss, grad_loss, debug_info = get_wachter_grads(X_current=x, predict_class_fn=func, distance_fn=cityblock_batch,
-                                        X_test=x, target_proba=0.1, lam=1)
+                                                    X_test=x, target_proba=0.1, lam=1)
 
     assert loss.shape == (1, 1)
     assert grad_loss.shape == x.reshape(1, 1, 4).shape
 
 
-@pytest.mark.skip(reason='This will change')
 @pytest.mark.parametrize('iris_explainer',
                          ['other', 'same', 0, 1, 2],
                          indirect=True)
 def test_cf_explainer_iris(iris_explainer, logistic_iris):
     X, y, lr = logistic_iris
-    x = X[0]
+    x = X[0].reshape(1, -1)
     probas = iris_explainer.predict_fn(x)
     pred_class = probas.argmax()
 
-    assert iris_explainer.data_shape == (4,)
+    assert iris_explainer.data_shape == (1, 4)
 
     # test explanation
     exp = iris_explainer.explain(x)
@@ -128,9 +168,8 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
 
     # get attributes for testing
     target_class = iris_explainer.target_class
-    target_proba = iris_explainer.target_proba
+    target_proba = iris_explainer.sess.run(iris_explainer.target_proba)
     tol = iris_explainer.tol
-    max_iter = iris_explainer.max_iter
     pred_class_fn = iris_explainer.predict_class_fn
 
     # check if target_class condition is met
@@ -138,14 +177,45 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
         assert pred_class == pred_class_cf
     elif target_class == 'other':
         assert pred_class != pred_class_cf
-    elif exp['success']:
+    elif isinstance(target_class, int):
         assert pred_class_cf == target_class
 
-    # check if probability is within tolerance
-    # if exp['success']:
-    # assert exp['n_iter'] <= max_iter
-    assert exp['success']
-    assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
-    # else:
-    # assert exp['n_iter'] == max_iter
-    #    assert np.abs(pred_class_fn(x_cf) - target_proba) > tol
+    if exp['success']:
+        assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
+
+
+@pytest.mark.parametrize('tf_keras_mnist_explainer',
+                         ['other', 'same', 9],
+                         indirect=True)
+def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer, tf_keras_logistic_mnist):
+    X, y, model = tf_keras_logistic_mnist
+    x = X[0].reshape(1, -1)
+    probas = tf_keras_mnist_explainer.predict_fn(x)
+    pred_class = probas.argmax()
+
+    assert tf_keras_mnist_explainer.data_shape == (1, 784)
+
+    # test explanation
+    exp = tf_keras_mnist_explainer.explain(x)
+    x_cf = exp['X_cf']
+    assert x.shape == x_cf.shape
+
+    probas_cf = tf_keras_mnist_explainer.predict_fn(x_cf)
+    pred_class_cf = probas_cf.argmax()
+
+    # get attributes for testing
+    target_class = tf_keras_mnist_explainer.target_class
+    target_proba = tf_keras_mnist_explainer.sess.run(tf_keras_mnist_explainer.target_proba)
+    tol = tf_keras_mnist_explainer.tol
+    pred_class_fn = tf_keras_mnist_explainer.predict_class_fn
+
+    # check if target_class condition is met
+    if target_class == 'same':
+        assert pred_class == pred_class_cf
+    elif target_class == 'other':
+        assert pred_class != pred_class_cf
+    elif isinstance(target_class, int):
+        assert pred_class_cf == target_class
+
+    if exp['success']:
+        assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol

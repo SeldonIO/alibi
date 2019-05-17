@@ -35,9 +35,6 @@ def cityblock_batch(X: np.ndarray,
     return np.abs(X - y).sum(axis=tuple(np.arange(1, X_dim))).reshape(X.shape[0], -1)
 
 
-_metric_dict = {'l1': cityblock_batch}  # type: Dict[str, Callable]
-
-
 def _define_func(predict_fn: Callable,
                  pred_class: int,
                  target_class: Union[str, int] = 'same') -> Tuple[Callable, Union[str, int]]:
@@ -165,72 +162,6 @@ def num_grad_batch(func: Callable,
     return grad
 
 
-def get_wachter_grads(X_current: np.ndarray,
-                      predict_class_fn: Callable,
-                      distance_fn: Callable,
-                      X_test: np.ndarray,
-                      target_proba: float,
-                      lam: float,
-                      eps: Union[float, np.ndarray] = 1e-08
-                      ) -> Tuple[np.ndarray, np.ndarray, Tuple]:
-    """
-    Calculate the gradients of the loss function in Wachter et al. (2017)
-
-    Parameters
-    ----------
-    X_current
-        Candidate counterfactual wrt which the gradient is taken
-    predict_class_fn
-        Prediction function specific to the target class of the counterfactual
-    distance_fn
-        Distance function in feature space
-    X_test
-        Sample to be explained
-    target_proba
-        Target probability to for the counterfactual instance to satisfy
-    lam
-        Hyperparameter balancing the loss contribution of the distance in prediction (higher lam -> more weight)
-    eps
-        Steps sizes for computing the gradient passed to the num_grad function
-    Returns
-    -------
-    Loss and gradient of the Wachter loss
-
-    """
-    if isinstance(eps, float):
-        eps = eps
-    else:
-        eps = None
-
-    pred = predict_class_fn(X_current)
-    logger.debug('Current prediction: p=%s', pred)
-
-    # numerical gradient of the black-box prediction function (specific to the target class)
-    prediction_grad = num_grad_batch(predict_class_fn, X_current, eps=eps)  # TODO feature-wise epsilons
-
-    # numerical gradient of the distance function between the current point and the point to be explained
-    distance_grad = num_grad_batch(distance_fn, X_current, args=tuple([X_test]),
-                                   eps=eps)  # TODO epsilons
-
-    norm_pred_grad = np.linalg.norm(prediction_grad.flatten())
-    norm_dist_grad = np.linalg.norm(distance_grad.flatten())
-    logger.debug('Norm of prediction_grad: %s', norm_pred_grad)
-    logger.debug('Norm of distance_grad: %s', norm_dist_grad)
-    logger.debug('pred - target_proba = %s', pred - target_proba)
-
-    # numeric loss and gradient
-    loss = (pred - target_proba) ** 2 + lam * distance_fn(X_current, X_test)
-    grad_loss = 2 * (pred - target_proba) * prediction_grad + lam * distance_grad
-
-    norm_grad = np.linalg.norm(grad_loss.flatten())
-    logger.debug('Loss: %s', loss)
-    logger.debug('Norm of grad_loss: %s', norm_grad)
-
-    debug_info = tuple([norm_pred_grad, norm_dist_grad, norm_grad])
-
-    return loss, grad_loss, debug_info
-
-
 class CounterFactual:
 
     def __init__(self,
@@ -314,7 +245,6 @@ class CounterFactual:
         self.debug = debug
 
         if isinstance(predict_fn, (tf.keras.Model, keras.Model)):  # Keras or TF model
-            # types?
             self.model = True
             self.predict_fn = predict_fn.predict  # array function
             self.predict_tn = predict_fn  # tensor function
@@ -469,17 +399,17 @@ class CounterFactual:
         X_init = self._initialize(X)
 
         # minimize loss iteratively
-        exp_dict = self._minimize_wachter_loss(X, X_init, Y)
+        exp_dict = self._minimize_loss(X, X_init, Y)
 
         return exp_dict
 
     def _prob_condition(self, X_current):
         return np.abs(self.predict_class_fn(X_current) - self.sess.run(self.target_proba)) <= self.tol
 
-    def _minimize_wachter_loss(self,
-                               X: np.ndarray,
-                               X_init: np.ndarray,
-                               Y: np.ndarray) -> Dict:
+    def _minimize_loss(self,
+                       X: np.ndarray,
+                       X_init: np.ndarray,
+                       Y: np.ndarray) -> Dict:
 
         # keep track of found CFs for each lambda in outer loop
         cf_found = np.zeros((self.batch_size, self.max_lam_steps), dtype=bool)

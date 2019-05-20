@@ -393,7 +393,7 @@ class CounterFactual:
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
 
-        #if not self.fitted:
+        # if not self.fitted:
         #    logger.warning('Explain called before fit, explainer will operate in unsupervised mode.')
 
         # initialize with an instance
@@ -412,12 +412,12 @@ class CounterFactual:
                        X_init: np.ndarray,
                        Y: np.ndarray) -> Dict:
 
-        # keep track of found CFs for each lambda in outer loop
-        cf_found = np.zeros((self.batch_size, self.max_lam_steps), dtype=bool)
+        # keep track of the number of CFs found for each lambda in outer loop
+        cf_found = np.zeros((self.batch_size, self.max_lam_steps))
 
         # returned explanation as the best counterfactual+metrics and all the other samples found on the way that
         # satisfy the probability constraint
-        return_dict = {'cf': None, 'all': [], 'orig_class': Y.argmax(),'orig_prob': Y.max()}
+        return_dict = {'cf': None, 'all': [], 'orig_class': Y.argmax(), 'orig_prob': Y.max()}
         instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
 
         # set the lower and upper bound for lamda to scale the distance loss term
@@ -482,9 +482,11 @@ class CounterFactual:
                     summary.value.add(tag='losses/dist', simple_value=dist)
                     summary.value.add(tag='losses/loss_pred', simple_value=loss_pred)
                     summary.value.add(tag='losses/loss_opt', simple_value=loss_opt)
+                    summary.value.add(tag='losses/pred_div_dist', simple_value=loss_pred / (lm * dist))
 
                     summary.value.add(tag='Y/pred_proba_class', simple_value=pred)
                     summary.value.add(tag='Y/pred_class_fn(X_current)', simple_value=self.predict_class_fn(X_current))
+                    summary.value.add(tag='Y/n_cf_found', simple_value=cf_found[0].sum())
 
                     self.writer.add_summary(summary)
                     self.writer.flush()
@@ -504,7 +506,7 @@ class CounterFactual:
                     X_current = self.sess.run(self.cf)
                     cond = self._prob_condition(X_current).squeeze()
                     if cond:
-                        cf_found[0][l_step] = True  # TODO: batch support
+                        cf_found[0][l_step] += 1  # TODO: batch support
 
                         # populate the return dict
                         instance_dict['X'] = X_current
@@ -528,24 +530,26 @@ class CounterFactual:
 
             # adjust the lambda constant via bisection
             for batch_idx in range(self.batch_size):  # TODO: batch not supported
-                if cf_found[batch_idx][l_step]:
+                if cf_found[batch_idx][l_step] >= 5:  # minimum number of CF instances to warrant increasing lambda
                     # want to improve the solution by putting more weight on the distance term
                     # by increasing lambda
                     lam_lb[batch_idx] = max(lam[batch_idx], lam_lb[batch_idx])
                     logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
                     if lam_ub[batch_idx] < 1e9:
-                        lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
+                        # lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) * 0.1
+                        lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
                     else:
                         lam[batch_idx] *= 10
                         logger.debug('Changed lambda to %s', lam[batch_idx])
 
-                elif not cf_found[batch_idx][l_step]:
-                    # if no solution found so far, decrease lambda by a factor of 10,
+                elif cf_found[batch_idx][l_step] < 5:
+                    # if not enough solutions found so far, decrease lambda by a factor of 10,
                     # otherwise bisect up to the last known successful lambda
                     lam_ub[batch_idx] = min(lam_ub[batch_idx], lam[batch_idx])
                     logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
                     if lam_lb[batch_idx] > 0:
-                        lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
+                        #lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) * 0.1
+                        lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
                         logger.debug('Changed lambda to %s', lam[batch_idx])
                     else:
                         lam[batch_idx] /= 10

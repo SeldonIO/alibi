@@ -108,6 +108,7 @@ class TrustScore(object):
         """
         self.classes = classes if classes is not None else Y.shape[1]
         self.kdtrees = [None] * self.classes  # type: Any
+        self.X_kdtree = [None] * self.classes  # type: Any
 
         # KDTree and kNeighborsClassifier need 2D data
         if len(X.shape) > 2:
@@ -138,6 +139,7 @@ class TrustScore(object):
                 logger.warning('Filtered all the instances for class %s. Lower alpha or check data.', c)
 
             self.kdtrees[c] = KDTree(X_fit, leaf_size=self.leaf_size, metric=self.metric)  # build KDTree for class c
+            self.X_kdtree[c] = X_fit
 
     def score(self, X: np.ndarray, Y: np.ndarray, k: int = 2, dist_type: str = 'point') \
             -> Tuple[np.ndarray, np.ndarray]:

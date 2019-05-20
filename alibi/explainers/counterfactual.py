@@ -241,6 +241,7 @@ class CounterFactual:
         self.eps = eps
         self.init = init
         self.feature_range = feature_range
+        self.target_proba_arr = target_proba * np.ones(self.batch_size)
 
         self.debug = debug
 
@@ -392,8 +393,8 @@ class CounterFactual:
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
 
-        if not self.fitted:
-            logger.warning('Explain called before fit, explainer will operate in unsupervised mode.')
+        #if not self.fitted:
+        #    logger.warning('Explain called before fit, explainer will operate in unsupervised mode.')
 
         # initialize with an instance
         X_init = self._initialize(X)
@@ -404,7 +405,7 @@ class CounterFactual:
         return exp_dict
 
     def _prob_condition(self, X_current):
-        return np.abs(self.predict_class_fn(X_current) - self.sess.run(self.target_proba)) <= self.tol
+        return np.abs(self.predict_class_fn(X_current) - self.target_proba_arr) <= self.tol
 
     def _minimize_loss(self,
                        X: np.ndarray,
@@ -414,8 +415,10 @@ class CounterFactual:
         # keep track of found CFs for each lambda in outer loop
         cf_found = np.zeros((self.batch_size, self.max_lam_steps), dtype=bool)
 
-        return_dict = {'X_cf': X_init,
-                       'success': False}
+        # returned explanation as the best counterfactual+metrics and all the other samples found on the way that
+        # satisfy the probability constraint
+        return_dict = {'cf': None, 'all': [], 'orig_class': Y.argmax(),'orig_prob': Y.max()}
+        instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
 
         # set the lower and upper bound for lamda to scale the distance loss term
         lam = np.ones(self.batch_size) * self.lam_init
@@ -496,13 +499,32 @@ class CounterFactual:
                 gradients = grads_graph + grads_num
                 self.sess.run(self.apply_grads, feed_dict={self.grad_ph: gradients})
 
-                # for debugging
-                X_current = self.sess.run(self.cf)
-                cond = self._prob_condition(X_current).squeeze()
-                if cond:
-                    cf_found[0][l_step] = True  # TODO: batch support
-                    return_dict['X_cf'] = X_current
-                    logger.debug('CF found')
+                # does the counterfactual condition hold?
+                if not i % 10:
+                    X_current = self.sess.run(self.cf)
+                    cond = self._prob_condition(X_current).squeeze()
+                    if cond:
+                        cf_found[0][l_step] = True  # TODO: batch support
+
+                        # populate the return dict
+                        instance_dict['X'] = X_current
+                        instance_dict['distance'] = self.sess.run(self.dist).item()
+                        instance_dict['lambda'] = lam[0]
+                        instance_dict['index'] = l_step * self.max_iter + i
+
+                        preds = self.predict_fn(X_current)
+                        pred_class = preds.argmax()
+                        prob = preds.max()
+                        instance_dict['pred_class'] = pred_class
+                        instance_dict['prob'] = prob
+
+                        instance_dict['loss'] = (instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + instance_dict[
+                            'lambda'] * instance_dict['distance']
+
+                        return_dict['cf'] = instance_dict.copy()
+                        return_dict['all'].append(instance_dict.copy())
+
+                        logger.debug('CF found')
 
             # adjust the lambda constant via bisection
             for batch_idx in range(self.batch_size):  # TODO: batch not supported

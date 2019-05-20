@@ -144,7 +144,7 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
 
     # test explanation
     exp = iris_explainer.explain(x)
-    x_cf = exp['X_cf']
+    x_cf = exp['cf']['X']
     assert x.shape == x_cf.shape
 
     probas_cf = iris_explainer.predict_fn(x_cf)
@@ -181,7 +181,7 @@ def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer, tf_keras_logistic_mn
 
     # test explanation
     exp = tf_keras_mnist_explainer.explain(x)
-    x_cf = exp['X_cf']
+    x_cf = exp['cf']['X']
     assert x.shape == x_cf.shape
 
     probas_cf = tf_keras_mnist_explainer.predict_fn(x_cf)

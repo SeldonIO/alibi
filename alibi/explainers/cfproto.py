@@ -1,5 +1,6 @@
 # flake8: noqa F841
 
+import keras
 import logging
 import numpy as np
 import sys
@@ -12,12 +13,26 @@ logger = logging.getLogger(__name__)
 
 class CounterFactualProto(object):
 
-    def __init__(self, sess: tf.Session, predict: Callable, shape: tuple,
-                 kappa: float = 0., beta: float = .1, feature_range: tuple = (-1e10, 1e10),
-                 gamma: float = 0., ae_model: Callable = None, enc_model: Callable = None, theta: float = 0.,
-                 use_kdtree: bool = False, learning_rate_init: float = 1e-2, max_iterations: int = 1000,
-                 c_init: float = 10., c_steps: int = 10, eps: tuple = (1e-3, 1e-3),
-                 clip: tuple = (-1000., 1000.), update_num_grad: int = 1, write_dir: str = None) -> None:
+    def __init__(self,
+                 sess: tf.Session,
+                 predict: Union[Callable, tf.keras.Model, keras.Model],
+                 shape: tuple,
+                 kappa: float = 0.,
+                 beta: float = .1,
+                 feature_range: tuple = (-1e10, 1e10),
+                 gamma: float = 0.,
+                 ae_model: Union[Callable, tf.keras.Model, keras.Model] = None,
+                 enc_model: Union[Callable, tf.keras.Model, keras.Model] = None,
+                 theta: float = 0.,
+                 use_kdtree: bool = False,
+                 learning_rate_init: float = 1e-2,
+                 max_iterations: int = 1000,
+                 c_init: float = 10.,
+                 c_steps: int = 10,
+                 eps: tuple = (1e-3, 1e-3),
+                 clip: tuple = (-1000., 1000.),
+                 update_num_grad: int = 1,
+                 write_dir: str = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -67,22 +82,35 @@ class CounterFactualProto(object):
         write_dir
             Directory to write tensorboard files to
         """
-        if use_kdtree and callable(enc_model):
-            logger.warning('Both an encoder and k-d trees enabled. Using the encoder for the prototype loss term.')
-
-        if use_kdtree or callable(enc_model):
-            self.enc_or_kdtree = True
-        else:
-            self.enc_or_kdtree = False
-
         self.sess = sess
         self.predict = predict
-        if hasattr(predict, 'predict'):
+
+        # check whether the model, encoder and auto-encoder are Keras or TF models
+        if isinstance(predict, (tf.keras.Model, keras.Model)):
             self.model = True
             self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
+
+        if isinstance(enc_model, (tf.keras.Model, keras.Model)):
+            self.enc_model = True
+        else:
+            self.enc_model = False
+
+        if isinstance(ae_model, (tf.keras.Model, keras.Model)):
+            self.ae_model = True
+        else:
+            self.ae_model = False
+
+        if use_kdtree and self.enc_model:
+            logger.warning('Both an encoder and k-d trees enabled. Using the encoder for the prototype loss term.')
+
+        if use_kdtree or self.enc_model:
+            self.enc_or_kdtree = True
+        else:
+            self.enc_or_kdtree = False
+
         self.shape = shape
         self.kappa = kappa
         self.beta = beta
@@ -107,9 +135,12 @@ class CounterFactualProto(object):
         self.target = tf.Variable(np.zeros((self.batch_size, self.classes)), dtype=tf.float32, name='target')
 
         # variable for target class proto
-        if callable(self.enc):
+        if self.enc_model:
             self.shape_enc = self.enc.predict(np.zeros(shape)).shape
-            self.target_proto = tf.Variable(np.zeros(self.shape_enc), dtype=tf.float32, name='target_proto')
+        else:
+            self.shape_enc = shape
+
+        self.target_proto = tf.Variable(np.zeros(self.shape_enc), dtype=tf.float32, name='target_proto')
 
         # define tf variable for constant used in FISTA optimization
         self.const = tf.Variable(np.zeros(self.batch_size), dtype=tf.float32, name='const')
@@ -168,7 +199,7 @@ class CounterFactualProto(object):
 
         with tf.name_scope('loss_ae') as scope:
             # gamma * AE loss
-            if callable(self.ae):
+            if self.ae_model:
                 self.loss_ae = self.gamma * tf.square(tf.norm(self.ae(self.adv) - self.adv))
                 self.loss_ae_s = self.gamma * tf.square(tf.norm(self.ae(self.adv_s) - self.adv_s))
             else:  # no auto-encoder available
@@ -207,7 +238,7 @@ class CounterFactualProto(object):
                 self.loss_attack_s = tf.reduce_sum(self.const * loss_attack_s)
 
         with tf.name_scope('loss_prototype') as scope:
-            if callable(self.enc):
+            if self.enc_model:
                 self.loss_proto = self.theta * tf.square(tf.norm(self.enc(self.adv) - self.target_proto))
                 self.loss_proto_s = self.theta * tf.square(tf.norm(self.enc(self.adv_s) - self.target_proto))
             elif self.use_kdtree:
@@ -277,9 +308,9 @@ class CounterFactualProto(object):
         else:
             preds = np.argmax(self.predict(train_data), axis=1)
 
-        if callable(self.enc):
+        if self.enc_model:
             enc_data = self.enc.predict(train_data)
-            self.class_proto = {}
+            self.class_proto = {}  # type: dict
             for i in range(self.classes):
                 idx = np.where(preds == i)[0]
                 self.class_proto[i] = np.expand_dims(np.mean(enc_data[idx], axis=0), axis=0)
@@ -424,7 +455,7 @@ class CounterFactualProto(object):
         Ratio between the distance to the prototype of the predicted class for the original instance and
         the prototype of the predicted class for the perturbed instance.
         """
-        if callable(self.enc):
+        if self.enc_model:
             X_enc = self.enc.predict(X)
             adv_proto = self.class_proto[adv_class]
             orig_proto = self.class_proto[orig_class]
@@ -433,11 +464,6 @@ class CounterFactualProto(object):
         elif self.use_kdtree:
             dist_adv = self.kdtrees[adv_class].query(X, k=1)[0]
             dist_orig = self.kdtrees[orig_class].query(X, k=1)[0]
-
-            print('\ntrust score constraint:')
-            print('     distance adv: {}'.format(dist_adv))
-            print('     distance orig: {}'.format(dist_orig))
-
         else:
             logger.warning('Need either an encoder or the k-d trees enabled to compute distance scores.')
         return dist_orig / (dist_adv + eps)
@@ -508,7 +534,7 @@ class CounterFactualProto(object):
 
         # find closest prototype in the target class list
         dist_proto = {}
-        if callable(self.enc):
+        if self.enc_model:
             for k, v in self.class_proto.items():
                 if k not in target_class:
                     continue
@@ -520,7 +546,7 @@ class CounterFactualProto(object):
                     continue
                 dist_c, idx_c = self.kdtrees[c].query(X, k=1)
                 dist_proto[c] = dist_c[0]
-                self.class_proto[c] = self.X_by_class[idx_c[0]]
+                self.class_proto[c] = self.X_by_class[c][idx_c[0]]
 
         if self.enc_or_kdtree:
             self.id_proto = min(dist_proto, key=dist_proto.get)
@@ -540,11 +566,6 @@ class CounterFactualProto(object):
         overall_best_dist = [1e10] * self.batch_size
         overall_best_attack = [np.zeros(self.shape[1:])] * self.batch_size
         overall_best_grad = (np.zeros(self.shape), np.zeros(self.shape))
-
-        # TODO: remove after inspection
-        self.adv_s_list = {i: [] for i in range(self.classes)}
-        self.cf_global = {i: [] for i in range(self.classes)}
-        self.cf_local = {i: [] for i in range(self.classes)}
 
         # iterate over nb of updates for 'c'
         for _ in range(self.c_steps):
@@ -618,10 +639,6 @@ class CounterFactualProto(object):
                     loss_tot, loss_l1_l2, adv = self.sess.run([self.loss_total, self.l1_l2, self.adv],
                                                               feed_dict=feed_dict)
 
-                if i % (self.max_iterations // 100) == 0:
-                    # TODO: remove after inspection
-                    self.adv_s_list[_].append(self.adv_s.eval(session=self.sess))
-
                 if i % log_every == 0 or i % print_every == 0:
                     loss_l2, loss_l1, loss_ae, loss_proto = \
                         self.sess.run([self.loss_l2, self.loss_l1, self.loss_ae, self.loss_proto])
@@ -683,17 +700,10 @@ class CounterFactualProto(object):
                         current_best_dist[batch_idx] = dist
                         current_best_proba[batch_idx] = np.argmax(proba)
 
-                        # TODO: remove after inspection?!
-                        self.cf_local[_].append(adv_idx)
-
                     # global
                     if dist < overall_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold:
                         if verbose:
                             print('\nNew best counterfactual found!')
-
-                        # TODO: remove after inspection?!
-                        self.cf_global[_].append(adv_idx)
-
                         overall_best_dist[batch_idx] = dist
                         overall_best_attack[batch_idx] = adv_idx
                         overall_best_grad = (grads_graph, grads_num)

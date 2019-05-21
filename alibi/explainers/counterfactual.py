@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Callable, Dict, Optional, Tuple, Union
+import keras
 import tensorflow as tf
 import keras
 import logging
@@ -166,7 +167,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Union[Callable, tf.keras.Model],
+                 predict_fn: Union[Callable, tf.keras.Model, keras.Model],
                  data_shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -179,9 +180,10 @@ class CounterFactual:
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
                  eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
                  init: str = 'identity',
-                 decay=True,
+                 decay: bool = False,
                  write_dir: str = None,
-                 debug=False) -> None:
+                 debug=False,
+                 bisect: bool = True) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -244,6 +246,7 @@ class CounterFactual:
         self.target_proba_arr = target_proba * np.ones(self.batch_size)
 
         self.debug = debug
+        self.bisect = bisect
 
         if isinstance(predict_fn, (tf.keras.Model, keras.Model)):  # Keras or TF model
             self.model = True
@@ -270,19 +273,25 @@ class CounterFactual:
                                       constraint=lambda x: tf.clip_by_value(x, feature_range[0], feature_range[1]))
             # the following will be a 1-hot encoding of the target class (as predicted by the model)
             self.target = tf.get_variable('target', shape=(self.batch_size, self.n_classes), dtype=tf.float32)
-            self.lam = tf.Variable(self.lam_init * np.ones(self.batch_size), name='lambda', dtype=tf.float32)
 
             # constant target probability and global step variable
             self.target_proba = tf.constant(target_proba * np.ones(self.batch_size), dtype=tf.float32,
                                             name='target_proba')
             self.global_step = tf.Variable(0.0, trainable=False, name='global_step')
 
+            # lambda hyperparameter - annealed in the first epoch
+            # if anneal_lam:
+            #    self.lam_anneal = tf.reshape(tf.train.exponential_decay(self.lam_init, self.global_step,
+            #                                          self.max_iter, 1e-10 / lam_init), (1, -1))
+            # self.lam = tf.Variable(self.lam_init * np.ones(self.batch_size), name='lambda', dtype=tf.float32)
+            self.lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='lam')
+
             # define placeholders that will be assigned to relevant variables
             self.assign_orig = tf.placeholder(tf.float32, data_shape, name='assing_orig')
             self.assign_cf = tf.placeholder(tf.float32, data_shape, name='assign_cf')
             self.assign_target = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_classes),
                                                 name='assign_target')
-            self.assign_lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='assign_lam')
+            # self.assign_lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='assign_lam')
 
             # L1 distance and MAD constants
             # TODO: refactor? MADs?
@@ -327,7 +336,8 @@ class CounterFactual:
                 self.learning_rate = tf.train.polynomial_decay(learning_rate_init, self.global_step,
                                                                self.max_iter, 0.0, power=0.5)
             else:
-                self.learning_rate = learning_rate_init
+                self.learning_rate = tf.convert_to_tensor(learning_rate_init)
+            # self.learning_rate = tf.placeholder(dtype=tf.float32, name='lr')
 
             # TODO optional argument to change type, learning rate scheduler
             opt = tf.train.AdamOptimizer(self.learning_rate)
@@ -343,7 +353,7 @@ class CounterFactual:
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.cf.assign(self.assign_cf))
         self.setup.append(self.target.assign(self.assign_target))
-        self.setup.append(self.lam.assign(self.assign_lam))
+        # self.setup.append(self.lam.assign(self.assign_lam))
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
 
@@ -351,6 +361,10 @@ class CounterFactual:
         if write_dir is not None:
             self.writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             self.writer.add_graph(tf.get_default_graph())
+
+        # return templates
+        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}
+        self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
@@ -388,6 +402,10 @@ class CounterFactual:
             Y = self.predict_fn(X)
 
         pred_class = Y.argmax()
+        pred_prob = Y.max()
+        self.return_dict['orig_class'] = pred_class
+        self.return_dict['orig_prob'] = pred_prob
+
         logger.debug('Initial prediction: %s with p=%s', pred_class, Y.max())
 
         # define the class-specific prediction function
@@ -400,51 +418,204 @@ class CounterFactual:
         X_init = self._initialize(X)
 
         # minimize loss iteratively
-        exp_dict = self._minimize_loss(X, X_init, Y)
+        self._minimize_loss(X, X_init, Y)
 
-        return exp_dict
+        return_dict = self.return_dict.copy()
+        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}
+
+        return return_dict
 
     def _prob_condition(self, X_current):
         return np.abs(self.predict_class_fn(X_current) - self.target_proba_arr) <= self.tol
 
+    def _update_exp(self, i, l_step, lam, cf_found, X_current):
+        cf_found[0][l_step] += 1  # TODO: batch support
+
+        # populate the return dict
+        self.instance_dict['X'] = X_current
+        self.instance_dict['distance'] = self.sess.run(self.dist).item()
+        self.instance_dict['lambda'] = lam[0]
+        self.instance_dict['index'] = l_step * self.max_iter + i
+
+        preds = self.predict_fn(X_current)
+        pred_class = preds.argmax()
+        prob = preds.max()
+        self.instance_dict['pred_class'] = pred_class
+        self.instance_dict['prob'] = prob
+
+        self.instance_dict['loss'] = (self.instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + \
+                                     self.instance_dict[
+                                         'lambda'] * self.instance_dict['distance']
+
+        self.return_dict['cf'] = self.instance_dict.copy()
+        self.return_dict['all'].append(self.instance_dict.copy())
+
+        logger.debug('CF found at step %s', l_step * self.max_iter + i)
+
+    def _write_tb(self, lam, lam_lb, lam_ub, cf_found, X_current, **kwargs):
+        if self.model:
+            scalars_tf = [self.global_step, self.learning_rate, self.dist[0],
+                          self.loss_pred[0], self.loss_opt[0], self.pred_proba_class[0]]
+            gs, lr, dist, loss_pred, loss_opt, pred = self.sess.run(scalars_tf, feed_dict={self.lam: lam})
+        else:
+            scalars_tf = [self.global_step, self.learning_rate, self.dist[0],
+                          self.loss_opt[0]]
+            gs, lr, dist, loss_opt = self.sess.run(scalars_tf, feed_dict={self.lam: lam})
+            loss_pred = kwargs['loss_pred']
+            pred = kwargs['pred']
+
+        try:
+            found = kwargs['found']
+            not_found = kwargs['not_found']
+        except KeyError:
+            found = 0
+            not_found = 0
+
+        summary = tf.Summary()
+        summary.value.add(tag='lr/global_step', simple_value=gs)
+        summary.value.add(tag='lr/lr', simple_value=lr)
+
+        summary.value.add(tag='lambda/lambda', simple_value=lam[0])
+        summary.value.add(tag='lambda/l_bound', simple_value=lam_lb[0])
+        summary.value.add(tag='lambda/u_bound', simple_value=lam_ub[0])
+
+        summary.value.add(tag='losses/dist', simple_value=dist)
+        summary.value.add(tag='losses/loss_pred', simple_value=loss_pred)
+        summary.value.add(tag='losses/loss_opt', simple_value=loss_opt)
+        summary.value.add(tag='losses/pred_div_dist', simple_value=loss_pred / (lam[0] * dist))
+
+        summary.value.add(tag='Y/pred_proba_class', simple_value=pred)
+        summary.value.add(tag='Y/pred_class_fn(X_current)', simple_value=self.predict_class_fn(X_current))
+        summary.value.add(tag='Y/n_cf_found', simple_value=cf_found[0].sum())
+        summary.value.add(tag='Y/found', simple_value=found)
+        summary.value.add(tag='Y/not_found', simple_value=not_found)
+
+        self.writer.add_summary(summary)
+        self.writer.flush()
+
+    def _bisect_lambda(self, cf_found, l_step, lam, lam_lb, lam_ub):
+
+        for batch_idx in range(self.batch_size):  # TODO: batch not supported
+            if cf_found[batch_idx][l_step] >= 5:  # minimum number of CF instances to warrant increasing lambda
+                # want to improve the solution by putting more weight on the distance term
+                # by increasing lambda
+                lam_lb[batch_idx] = max(lam[batch_idx], lam_lb[batch_idx])
+                logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
+                if lam_ub[batch_idx] < 1e9:
+                    lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
+                    # lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
+                else:
+                    lam[batch_idx] *= 10
+                    logger.debug('Changed lambda to %s', lam[batch_idx])
+
+            elif cf_found[batch_idx][l_step] < 5:
+                # if not enough solutions found so far, decrease lambda by a factor of 10,
+                # otherwise bisect up to the last known successful lambda
+                lam_ub[batch_idx] = min(lam_ub[batch_idx], lam[batch_idx])
+                logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
+                if lam_lb[batch_idx] > 0:
+                    lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
+                    # lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
+                    logger.debug('Changed lambda to %s', lam[batch_idx])
+                else:
+                    lam[batch_idx] /= 10
+
+        return lam, lam_lb, lam_ub
+
     def _minimize_loss(self,
                        X: np.ndarray,
                        X_init: np.ndarray,
-                       Y: np.ndarray) -> Dict:
+                       Y: np.ndarray) -> None:
 
         # keep track of the number of CFs found for each lambda in outer loop
         cf_found = np.zeros((self.batch_size, self.max_lam_steps))
-
-        # returned explanation as the best counterfactual+metrics and all the other samples found on the way that
-        # satisfy the probability constraint
-        return_dict = {'cf': None, 'all': [], 'orig_class': Y.argmax(), 'orig_prob': Y.max()}
-        instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
 
         # set the lower and upper bound for lamda to scale the distance loss term
         lam = np.ones(self.batch_size) * self.lam_init
         lam_lb = np.zeros(self.batch_size)
         lam_ub = np.ones(self.batch_size) * 1e10
 
-        lam_steps = 0
-        X_current = X_init
-
         # make a one-hot vector of targets
         Y_ohe = np.zeros(Y.shape)
         np.put(Y_ohe, np.argmax(Y, axis=1), 1)
 
+        # on first run estimate lambda bounds
+        n_orders = 10
+        n_steps = self.max_iter // n_orders
+        lams = np.array([self.lam_init / 10 ** i for i in range(n_orders)])  # exponential decay
+        cf_count = np.zeros_like(lams)
+        logger.debug('Initial lambda sweep: %s', lams)
+
+        X_current = X_init
+        # TODO this whole initial loop should be optional?
+        for ix, l_step in enumerate(lams):
+            lam = np.ones(self.batch_size) * l_step
+            self.sess.run(self.tf_init)
+            self.sess.run(self.setup, {self.assign_orig: X,
+                                       self.assign_cf: X_current,
+                                       self.assign_target: Y_ohe})
+
+            for i in range(n_steps):
+
+                # numerical gradients
+                grads_num = np.zeros(self.data_shape)
+                if not self.model:
+                    pred = self.predict_class_fn(X_current)
+                    prediction_grad = num_grad_batch(self.predict_class_fn, X_current, eps=self.eps)
+
+                    # squared difference prediction loss
+                    loss_pred = (pred - self.target_proba.eval(session=self.sess)) ** 2
+                    grads_num = 2 * (pred - self.target_proba.eval(session=self.sess)) * prediction_grad
+
+                    grads_num = grads_num.reshape(self.data_shape)  # TODO? correct?
+
+                # add values to tensorboard (1st item in batch only) every n steps
+                if self.debug and not i % 50:
+                    if not self.model:
+                        self._write_tb(lam, lam_lb, lam_ub, cf_found, X_current, loss_pred=loss_pred, pred=pred)
+                    else:
+                        self._write_tb(lam, lam_lb, lam_ub, cf_found, X_current)
+
+                # compute graph gradients
+                grads_vars_graph = self.sess.run(self.compute_grads, feed_dict={self.lam: lam})
+                grads_graph = [g for g, _ in grads_vars_graph][0]
+
+                # apply gradients
+                gradients = grads_graph + grads_num
+                self.sess.run(self.apply_grads, feed_dict={self.grad_ph: gradients, self.lam: lam})
+
+                # does the counterfactual condition hold?
+                X_current = self.sess.run(self.cf)
+                cond = self._prob_condition(X_current).squeeze()
+                if cond:
+                    cf_count[ix] += 1
+
+        # find the lower bound
+        logger.debug('cf_count: %s', cf_count)
+        # lb_ix = np.where(cf_count == n_steps)[0][0]  # TODO is n_steps robust?
+        lb_ix = np.where(cf_count > 0)[0][1]  # take the second order of magnitude with some CFs as lower-bound
+        lam_lb = np.ones(self.batch_size) * lams[lb_ix]
+
+        # find the upper bound
+        ub_ix = np.where(cf_count == 0)[0][-1]  # TODO is 0 robust?
+        lam_ub = np.ones(self.batch_size) * lams[ub_ix]
+
+        # start the search in the middle
+        lam = (lam_lb + lam_ub) / 2
+
+        logger.debug('Found upper and lower bounds: %s, %s', lam_lb[0], lam_ub[0])
+
+        # on subsequent runs bisect lambda within the bounds found initially
+        X_current = X_init
         for l_step in range(self.max_lam_steps):
             self.sess.run(self.tf_init)
-            lr = self.sess.run(self.learning_rate)
-            logger.debug('Starting outer loop: %s/%s with lambda=%s, lr=%s', lam_steps + 1, self.max_lam_steps, lam, lr)
 
             # assign variables for the current iteration
             self.sess.run(self.setup, {self.assign_orig: X,
                                        self.assign_cf: X_current,
-                                       self.assign_target: Y_ohe,
-                                       self.assign_lam: lam})
+                                       self.assign_target: Y_ohe})
 
-            num_iter = 0
-
+            found, not_found = 0, 0
             # number of gradient descent steps in each inner loop
             for i in range(self.max_iter):
 
@@ -462,100 +633,37 @@ class CounterFactual:
 
                 # add values to tensorboard (1st item in batch only) every n steps
                 if self.debug and not i % 50:
-                    if self.model:
-                        scalars_tf = [self.global_step, self.learning_rate, self.lam[0], self.dist[0],
-                                      self.loss_pred[0], self.loss_opt[0], self.pred_proba_class[0]]
-                        gs, lr, lm, dist, loss_pred, loss_opt, pred = self.sess.run(scalars_tf)
+                    if not self.model:
+                        self._write_tb(lam, lam_lb, lam_ub, cf_found, X_current, found=found, not_found=not_found,
+                                       loss_pred=loss_pred, pred=pred)
                     else:
-                        scalars_tf = [self.global_step, self.learning_rate, self.lam[0], self.dist[0],
-                                      self.loss_opt[0]]
-                        gs, lr, lm, dist, loss_opt = self.sess.run(scalars_tf)
+                        self._write_tb(lam, lam_lb, lam_ub, cf_found, X_current, found=found, not_found=not_found)
 
-                    summary = tf.Summary()
-                    summary.value.add(tag='lr/global_step', simple_value=gs)
-                    summary.value.add(tag='lr/lr', simple_value=lr)
-
-                    summary.value.add(tag='lambda/lambda', simple_value=lm)
-                    summary.value.add(tag='lambda/l_bound', simple_value=lam_lb[0])
-                    summary.value.add(tag='lambda/u_bound', simple_value=lam_ub[0])
-
-                    summary.value.add(tag='losses/dist', simple_value=dist)
-                    summary.value.add(tag='losses/loss_pred', simple_value=loss_pred)
-                    summary.value.add(tag='losses/loss_opt', simple_value=loss_opt)
-                    summary.value.add(tag='losses/pred_div_dist', simple_value=loss_pred / (lm * dist))
-
-                    summary.value.add(tag='Y/pred_proba_class', simple_value=pred)
-                    summary.value.add(tag='Y/pred_class_fn(X_current)', simple_value=self.predict_class_fn(X_current))
-                    summary.value.add(tag='Y/n_cf_found', simple_value=cf_found[0].sum())
-
-                    self.writer.add_summary(summary)
-                    self.writer.flush()
-
-                # minimize the loss
-                num_iter += 1
                 # compute graph gradients
-                grads_vars_graph = self.sess.run(self.compute_grads)
+                grads_vars_graph = self.sess.run(self.compute_grads, feed_dict={self.lam: lam})
                 grads_graph = [g for g, _ in grads_vars_graph][0]
 
                 # apply gradients
                 gradients = grads_graph + grads_num
-                self.sess.run(self.apply_grads, feed_dict={self.grad_ph: gradients})
+                self.sess.run(self.apply_grads, feed_dict={self.grad_ph: gradients, self.lam: lam})
 
                 # does the counterfactual condition hold?
-                if not i % 10:
-                    X_current = self.sess.run(self.cf)
-                    cond = self._prob_condition(X_current).squeeze()
-                    if cond:
-                        cf_found[0][l_step] += 1  # TODO: batch support
+                X_current = self.sess.run(self.cf)
+                cond = self._prob_condition(X_current)
+                if cond:
+                    self._update_exp(i, l_step, lam, cf_found, X_current)
+                    found += 1
+                    not_found = 0
+                else:
+                    found = 0
+                    not_found += 1
 
-                        # populate the return dict
-                        instance_dict['X'] = X_current
-                        instance_dict['distance'] = self.sess.run(self.dist).item()
-                        instance_dict['lambda'] = lam[0]
-                        instance_dict['index'] = l_step * self.max_iter + i
+                # early stopping criterion - if no solutions or enough solutions found, change lambda
+                if found >= 50 or not_found >= 50:
+                    break
 
-                        preds = self.predict_fn(X_current)
-                        pred_class = preds.argmax()
-                        prob = preds.max()
-                        instance_dict['pred_class'] = pred_class
-                        instance_dict['prob'] = prob
+            # adjust the lambda constant via bisection at the end of the outer loop
+            if self.bisect:
+                self._bisect_lambda(cf_found, l_step, lam, lam_lb, lam_ub)
 
-                        instance_dict['loss'] = (instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + instance_dict[
-                            'lambda'] * instance_dict['distance']
-
-                        return_dict['cf'] = instance_dict.copy()
-                        return_dict['all'].append(instance_dict.copy())
-
-                        logger.debug('CF found')
-
-            # adjust the lambda constant via bisection
-            for batch_idx in range(self.batch_size):  # TODO: batch not supported
-                if cf_found[batch_idx][l_step] >= 5:  # minimum number of CF instances to warrant increasing lambda
-                    # want to improve the solution by putting more weight on the distance term
-                    # by increasing lambda
-                    lam_lb[batch_idx] = max(lam[batch_idx], lam_lb[batch_idx])
-                    logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
-                    if lam_ub[batch_idx] < 1e9:
-                        # lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) * 0.1
-                        lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
-                    else:
-                        lam[batch_idx] *= 10
-                        logger.debug('Changed lambda to %s', lam[batch_idx])
-
-                elif cf_found[batch_idx][l_step] < 5:
-                    # if not enough solutions found so far, decrease lambda by a factor of 10,
-                    # otherwise bisect up to the last known successful lambda
-                    lam_ub[batch_idx] = min(lam_ub[batch_idx], lam[batch_idx])
-                    logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
-                    if lam_lb[batch_idx] > 0:
-                        #lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) * 0.1
-                        lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
-                        logger.debug('Changed lambda to %s', lam[batch_idx])
-                    else:
-                        lam[batch_idx] /= 10
-
-                lam_steps += 1
-
-            return_dict['success'] = True
-
-        return return_dict
+            self.return_dict['success'] = True

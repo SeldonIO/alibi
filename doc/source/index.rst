@@ -25,6 +25,7 @@
 
    methods/Anchors.ipynb
    methods/CEM.ipynb
+   methods/CF.ipynb
    methods/CFProto.ipynb
    methods/TrustScores.ipynb
 

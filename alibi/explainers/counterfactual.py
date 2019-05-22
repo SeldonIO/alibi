@@ -1,6 +1,5 @@
 import numpy as np
 from typing import Callable, Dict, Optional, Tuple, Union
-import keras
 import tensorflow as tf
 import keras
 import logging
@@ -363,7 +362,7 @@ class CounterFactual:
             self.writer.add_graph(tf.get_default_graph())
 
         # return templates
-        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}
+        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}  # type: dict
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
@@ -444,8 +443,7 @@ class CounterFactual:
         self.instance_dict['prob'] = prob
 
         self.instance_dict['loss'] = (self.instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + \
-                                     self.instance_dict[
-                                         'lambda'] * self.instance_dict['distance']
+            self.instance_dict['lambda'] * self.instance_dict['distance']
 
         self.return_dict['cf'] = self.instance_dict.copy()
         self.return_dict['all'].append(self.instance_dict.copy())
@@ -592,12 +590,20 @@ class CounterFactual:
 
         # find the lower bound
         logger.debug('cf_count: %s', cf_count)
-        # lb_ix = np.where(cf_count == n_steps)[0][0]  # TODO is n_steps robust?
-        lb_ix = np.where(cf_count > 0)[0][1]  # take the second order of magnitude with some CFs as lower-bound
+        try:
+            lb_ix = np.where(cf_count > 0)[0][1]  # take the second order of magnitude with some CFs as lower-bound
+            # TODO robust?
+        except IndexError:
+            logger.exception('No appropriate lambda range found, try decreasing lam_init')
         lam_lb = np.ones(self.batch_size) * lams[lb_ix]
 
         # find the upper bound
-        ub_ix = np.where(cf_count == 0)[0][-1]  # TODO is 0 robust?
+        try:
+            ub_ix = np.where(cf_count == 0)[0][-1]  # TODO is 0 robust?
+        except IndexError:
+            ub_ix = 0
+            logger.exception('Could not find upper bound for lambda where no solutions found, setting upper bound to '
+                             'lam_init=%s', lams[ub_ix])
         lam_ub = np.ones(self.batch_size) * lams[ub_ix]
 
         # start the search in the middle
@@ -629,7 +635,7 @@ class CounterFactual:
                     loss_pred = (pred - self.target_proba.eval(session=self.sess)) ** 2
                     grads_num = 2 * (pred - self.target_proba.eval(session=self.sess)) * prediction_grad
 
-                    grads_num = grads_num.reshape(self.data_shape)  # TODO? correct?
+                    grads_num = grads_num.reshape(self.data_shape)
 
                 # add values to tensorboard (1st item in batch only) every n steps
                 if self.debug and not i % 50:

@@ -53,8 +53,8 @@ def iris_explainer(request, logistic_iris):
     predict_fn = lr.predict_proba
     sess = tf.Session()
     cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, data_shape=(1, 4),
-                                  target_class=request.param, lam_init=1e-4, max_iter=1000,
-                                  max_lam_steps=5)
+                                  target_class=request.param, lam_init=1e-1, max_iter=1000,
+                                  max_lam_steps=10)
 
     yield cf_explainer
     tf.reset_default_graph()
@@ -67,8 +67,8 @@ def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
     sess = K.get_session()
 
     cf_explainer = CounterFactual(sess=sess, predict_fn=model, data_shape=(1, 784),
-                                  target_class=request.param, lam_init=1e-4, max_iter=1000,
-                                  max_lam_steps=5)
+                                  target_class=request.param, lam_init=1e-1, max_iter=1000,
+                                  max_lam_steps=10)
     yield cf_explainer
 
 
@@ -131,9 +131,7 @@ def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
     assert np.allclose(grad_true, grad_approx)
 
 
-@pytest.mark.parametrize('iris_explainer',
-                         ['other', 'same', 0, 1, 2],
-                         indirect=True)
+@pytest.mark.parametrize('iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
 def test_cf_explainer_iris(iris_explainer, logistic_iris):
     X, y, lr = logistic_iris
     x = X[0].reshape(1, -1)
@@ -168,9 +166,7 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 
-@pytest.mark.parametrize('tf_keras_mnist_explainer',
-                         ['other', 'same', 9],
-                         indirect=True)
+@pytest.mark.parametrize('tf_keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
 def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer, tf_keras_logistic_mnist):
     X, y, model = tf_keras_logistic_mnist
     x = X[0].reshape(1, -1)

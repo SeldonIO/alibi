@@ -180,10 +180,9 @@ class CounterFactual:
                  feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
                  eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
                  init: str = 'identity',
-                 decay: bool = False,
+                 decay: bool = True,
                  write_dir: str = None,
-                 debug=False,
-                 bisect: bool = True) -> None:
+                 debug=False) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -249,7 +248,6 @@ class CounterFactual:
         self.target_proba_arr = target_proba * np.ones(self.batch_size)
 
         self.debug = debug
-        self.bisect = bisect
 
         if isinstance(predict_fn, (tf.keras.Model, keras.Model)):  # Keras or TF model
             self.model = True
@@ -668,7 +666,6 @@ class CounterFactual:
                     break
 
             # adjust the lambda constant via bisection at the end of the outer loop
-            if self.bisect:
-                self._bisect_lambda(cf_found, l_step, lam, lam_lb, lam_ub)
+            self._bisect_lambda(cf_found, l_step, lam, lam_lb, lam_ub)
 
             self.return_dict['success'] = True

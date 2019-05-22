@@ -56,7 +56,7 @@ def iris_explainer(request, logistic_iris):
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
 
-    yield cf_explainer
+    yield X, y, lr, cf_explainer
     tf.reset_default_graph()
     sess.close()
 
@@ -69,7 +69,7 @@ def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
     cf_explainer = CounterFactual(sess=sess, predict_fn=model, data_shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-    yield cf_explainer
+    yield X, y, model, cf_explainer
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -98,27 +98,27 @@ def test_define_func(logistic_iris, target_class):
 
 
 @pytest.mark.parametrize('iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
-def test_cf_explainer_iris(iris_explainer, logistic_iris):
-    X, y, lr = logistic_iris
+def test_cf_explainer_iris(iris_explainer):
+    X, y, lr, cf = iris_explainer
     x = X[0].reshape(1, -1)
-    probas = iris_explainer.predict_fn(x)
+    probas = cf.predict_fn(x)
     pred_class = probas.argmax()
 
-    assert iris_explainer.data_shape == (1, 4)
+    assert cf.data_shape == (1, 4)
 
     # test explanation
-    exp = iris_explainer.explain(x)
+    exp = cf.explain(x)
     x_cf = exp['cf']['X']
     assert x.shape == x_cf.shape
 
-    probas_cf = iris_explainer.predict_fn(x_cf)
+    probas_cf = cf.predict_fn(x_cf)
     pred_class_cf = probas_cf.argmax()
 
     # get attributes for testing
-    target_class = iris_explainer.target_class
-    target_proba = iris_explainer.sess.run(iris_explainer.target_proba)
-    tol = iris_explainer.tol
-    pred_class_fn = iris_explainer.predict_class_fn
+    target_class = cf.target_class
+    target_proba = cf.sess.run(cf.target_proba)
+    tol = cf.tol
+    pred_class_fn = cf.predict_class_fn
 
     # check if target_class condition is met
     if target_class == 'same':
@@ -133,27 +133,27 @@ def test_cf_explainer_iris(iris_explainer, logistic_iris):
 
 
 @pytest.mark.parametrize('tf_keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
-def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer, tf_keras_logistic_mnist):
-    X, y, model = tf_keras_logistic_mnist
+def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer):
+    X, y, model, cf = tf_keras_mnist_explainer
     x = X[0].reshape(1, -1)
-    probas = tf_keras_mnist_explainer.predict_fn(x)
+    probas = cf.predict_fn(x)
     pred_class = probas.argmax()
 
-    assert tf_keras_mnist_explainer.data_shape == (1, 784)
+    assert cf.data_shape == (1, 784)
 
     # test explanation
-    exp = tf_keras_mnist_explainer.explain(x)
+    exp = cf.explain(x)
     x_cf = exp['cf']['X']
     assert x.shape == x_cf.shape
 
-    probas_cf = tf_keras_mnist_explainer.predict_fn(x_cf)
+    probas_cf = cf.predict_fn(x_cf)
     pred_class_cf = probas_cf.argmax()
 
     # get attributes for testing
-    target_class = tf_keras_mnist_explainer.target_class
-    target_proba = tf_keras_mnist_explainer.sess.run(tf_keras_mnist_explainer.target_proba)
-    tol = tf_keras_mnist_explainer.tol
-    pred_class_fn = tf_keras_mnist_explainer.predict_class_fn
+    target_class = cf.target_class
+    target_proba = cf.sess.run(cf.target_proba)
+    tol = cf.tol
+    pred_class_fn = cf.predict_class_fn
 
     # check if target_class condition is met
     if target_class == 'same':

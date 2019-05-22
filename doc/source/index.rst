@@ -25,6 +25,7 @@
 
    methods/Anchors.ipynb
    methods/CEM.ipynb
+   methods/CF.ipynb
    methods/TrustScores.ipynb
 
 .. toctree::

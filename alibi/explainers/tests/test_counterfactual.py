@@ -71,6 +71,7 @@ def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
                                   max_lam_steps=10)
     yield cf_explainer
 
+
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
 def test_define_func(logistic_iris, target_class):
     X, y, model = logistic_iris

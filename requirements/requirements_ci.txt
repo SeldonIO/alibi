@@ -1,6 +1,7 @@
 pytest>=4.2.0
 pytest-cov>=2.6.1
 sphinx>=2.1.2
+pytest-xdist>=1.28.0
 flake8>=3.7.7
 mypy>=0.670
 sphinx-autodoc-typehints>=1.6.0

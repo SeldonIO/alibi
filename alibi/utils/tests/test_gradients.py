@@ -5,11 +5,13 @@ from sklearn.linear_model import LogisticRegression
 from alibi.utils.distance import cityblock_batch
 from alibi.utils.gradients import num_grad_batch
 
+
 @pytest.fixture
 def logistic_iris():
     X, y = load_iris(return_X_y=True)
     lr = LogisticRegression(solver='lbfgs', multi_class='multinomial', max_iter=200).fit(X, y)
     return X, y, lr
+
 
 @pytest.mark.parametrize('shape', [(1,), (2, 3), (1, 3, 5)])
 @pytest.mark.parametrize('batch_size', [1, 3, 10])

@@ -9,7 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 import tensorflow.keras.backend as K
 
-from alibi.explainers.counterfactual import _define_func, num_grad_batch, cityblock_batch
+from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
 
 
@@ -20,7 +20,7 @@ def logistic_iris():
     return X, y, lr
 
 
-@pytest.fixture()
+@pytest.fixture
 def tf_keras_logistic_mnist():
     (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
     input_dim = 784
@@ -71,7 +71,6 @@ def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
                                   max_lam_steps=10)
     yield cf_explainer
 
-
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
 def test_define_func(logistic_iris, target_class):
     X, y, model = logistic_iris
@@ -95,40 +94,6 @@ def test_define_func(logistic_iris, target_class):
         # highest probability different to the class of x
         ix2 = np.argsort(-probas)[:, 1]
         assert func(x) == probas[:, ix2]
-
-
-@pytest.mark.parametrize('shape', [(1,), (2, 3), (1, 3, 5)])
-@pytest.mark.parametrize('batch_size', [1, 3, 10])
-def test_get_batch_num_gradients_cityblock(shape, batch_size):
-    u = np.random.rand(batch_size, *shape)
-    v = np.random.rand(1, *shape)
-
-    grad_true = np.sign(u - v).reshape(batch_size, 1, *shape)  # expand dims to incorporate 1-d scalar response
-    grad_approx = num_grad_batch(cityblock_batch, u, args=tuple([v]))
-
-    assert grad_approx.shape == grad_true.shape
-    assert np.allclose(grad_true, grad_approx)
-
-
-@pytest.mark.parametrize('batch_size', [1, 2, 5])
-def test_get_batch_num_gradients_logistic_iris(logistic_iris, batch_size):
-    X, y, lr = logistic_iris
-    predict_fn = lr.predict_proba
-    x = X[0:batch_size]
-    probas = predict_fn(x)
-
-    # true gradient of the logistic regression wrt x
-    grad_true = np.zeros((batch_size, 3, 4))
-    for i, p in enumerate(probas):
-        p = p.reshape(1, 3)
-        grad = (p.T * (np.eye(3, 3) - p) @ lr.coef_)
-        grad_true[i, :, :] = grad
-    assert grad_true.shape == (batch_size, 3, 4)
-
-    grad_approx = num_grad_batch(predict_fn, x)
-
-    assert grad_approx.shape == grad_true.shape
-    assert np.allclose(grad_true, grad_approx)
 
 
 @pytest.mark.parametrize('iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)

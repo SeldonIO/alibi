@@ -255,13 +255,13 @@ class CounterFactual:
             self.model = True
             self.predict_fn = predict_fn.predict  # array function
             self.predict_tn = predict_fn  # tensor function
-            self.n_classes = self.sess.run(self.predict_tn(tf.convert_to_tensor(np.zeros(data_shape),
-                                                                                dtype=tf.float32))).shape[1]
+
         else:  # black-box model
             self.predict_fn = predict_fn
             self.predict_tn = None
             self.model = False
-            self.n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
+
+        self.n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
 
         # flag to keep track if explainer is fit or not
         self.fitted = False
@@ -359,8 +359,8 @@ class CounterFactual:
             self.writer.add_graph(tf.get_default_graph())
 
         # return templates
-        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}  # type: dict
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
+        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}  # type: dict
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
@@ -423,10 +423,11 @@ class CounterFactual:
 
     def _update_exp(self, i, l_step, lam, cf_found, X_current):
         cf_found[0][l_step] += 1  # TODO: batch support
+        dist = self.sess.run(self.dist).item()
 
         # populate the return dict
         self.instance_dict['X'] = X_current
-        self.instance_dict['distance'] = self.sess.run(self.dist).item()
+        self.instance_dict['distance'] = dist
         self.instance_dict['lambda'] = lam[0]
         self.instance_dict['index'] = l_step * self.max_iter + i
 
@@ -437,10 +438,16 @@ class CounterFactual:
         self.instance_dict['prob'] = prob
 
         self.instance_dict['loss'] = (self.instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + \
-            self.instance_dict['lambda'] * self.instance_dict['distance']
+                                     self.instance_dict['lambda'] * self.instance_dict['distance']
 
-        self.return_dict['cf'] = self.instance_dict.copy()
         self.return_dict['all'].append(self.instance_dict.copy())
+
+        # update best CF if it has a smaller distance
+        if self.return_dict['cf'] is None:
+            self.return_dict['cf'] = self.instance_dict.copy()
+
+        elif dist < self.return_dict['cf']['distance']:
+            self.return_dict['cf'] = self.instance_dict.copy()
 
         logger.debug('CF found at step %s', l_step * self.max_iter + i)
 

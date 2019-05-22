@@ -118,7 +118,6 @@ def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) ->
 	Parameters
 	----------
 	x
-
 	epsilon
 	nb_samples
 
@@ -132,8 +131,9 @@ def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) ->
 	dim = len(x)
 	assert dim > 0, 'Dimension of the sphere must be bigger than 0'
 
-	u = np.random.normal(scale=epsilon, (nb_samples, dim))
-	u /= np.linalg.norm(u, axis=1).reshape(-1, 1)  # uniform distribution on the unit dim-sphere
+	u = np.random.normal(scale=epsilon, size=(nb_samples, dim))
+	u /= u.max()
+	#u /= np.linalg.norm(u, axis=1).reshape(-1, 1)  # uniform distribution on the unit dim-sphere
 
 	X_sampled = x + u
 	X_sampled = _reshape_features(X_sampled, features_shape)

@@ -304,7 +304,7 @@ class CounterFactualProto(object):
             Optional arguments to initialize the trust scores method
         """
         if self.model:
-            preds = np.argmax(self.predict.predict(train_data), axis=1)
+            preds = np.argmax(self.predict.predict(train_data), axis=1)  # type: ignore
         else:
             preds = np.argmax(self.predict(train_data), axis=1)
 
@@ -567,6 +567,9 @@ class CounterFactualProto(object):
         overall_best_attack = [np.zeros(self.shape[1:])] * self.batch_size
         overall_best_grad = (np.zeros(self.shape), np.zeros(self.shape))
 
+        # keep track of counterfactual evolution
+        self.cf_global = {i: [] for i in range(self.c_steps)}  # type: dict
+
         # iterate over nb of updates for 'c'
         for _ in range(self.c_steps):
 
@@ -708,6 +711,7 @@ class CounterFactualProto(object):
                         overall_best_attack[batch_idx] = adv_idx
                         overall_best_grad = (grads_graph, grads_num)
                         self.best_attack = True
+                        self.cf_global[_].append(adv_idx)
 
             # adjust the 'c' constant for the first loss term
             for batch_idx in range(self.batch_size):

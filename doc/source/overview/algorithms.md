@@ -13,6 +13,7 @@ algorithms:
 |---|---|---|---|---|
 |[Anchors](../methods/Anchors.ipynb)|✔|✘|✔|✔|✔|✔|For Tabular|
 |[CEM](../methods/CEM.ipynb)|✔|✘|✘|✔|✘|✔|Optional|
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|✔|✘|✘|✔|✘|✔|Optional|
 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -27,6 +28,8 @@ of the instance to keep the same prediction). The PN instance identifies the fea
 minimally and necessarily absent to maintain the original prediction (a PN acts as the closest
 instance that would result in a different prediction). [Documentation](../methods/CEM.ipynb),
 [tabular example](../examples/cem_iris.ipynb), [image classification](../examples/cem_mnist.ipynb).
+
+**Prototype Counterfactuals** generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [image classification](../examples/cfproto_mnist.ipynb).
 
 
 ## Model Confidence

@@ -36,6 +36,7 @@ def test_cem():
     sess.run(tf.global_variables_initializer())
     cem = CEM(sess, predict_fn, 'PN', shape, feature_range=feature_range, max_iterations=10, no_info_val=-1.)
     explanation = cem.explain(X_expl, verbose=False)
+    tf.reset_default_graph()
     sess.close()
 
     assert not cem.model

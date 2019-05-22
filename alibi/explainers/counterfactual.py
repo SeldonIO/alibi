@@ -177,12 +177,12 @@ class CounterFactual:
                  max_lam_steps: int = 10,
                  tol: float = 0.05,
                  learning_rate_init=0.1,
-                 feature_range: Union[Tuple, str] = (-1e10, 1e10),  # important for positive features
+                 feature_range: Union[Tuple, str] = (-1e10, 1e10),
                  eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
                  init: str = 'identity',
                  decay: bool = True,
                  write_dir: str = None,
-                 debug=False) -> None:
+                 debug: bool = False) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -220,7 +220,7 @@ class CounterFactual:
             Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
             features, but can be passed an array for feature-wise step sizes
         init
-            Initialization method for the search of counterfactuals, one of 'random' or 'identity'
+            Initialization method for the search of counterfactuals, currently must be 'identity'
         decay
             Flag to decay learning rate to zero for each outer loop over lambda
         write_dir
@@ -314,9 +314,8 @@ class CounterFactual:
                     self.pred_proba_class = tf.reduce_max(self.target * self.pred_proba, 1)
                 elif target_class == 'other':
                     self.pred_proba_class = tf.reduce_max((1 - self.target) * self.pred_proba, 1)
-                elif isinstance(target_class, int):
+                elif target_class in range(self.n_classes):
                     # if class is specified, this is known in advance
-                    # TODO: try/except to handle invalid cases
                     self.pred_proba_class = tf.reduce_max(tf.one_hot(target_class, self.n_classes, dtype=tf.float32)
                                                           * self.pred_proba, 1)
                 else:
@@ -366,12 +365,8 @@ class CounterFactual:
         if self.init == 'identity':
             X_init = X
             logger.debug('Initializing search at the test point X')
-        elif self.init == 'random':
-            # TODO: handle ranges
-            X_init = np.random.rand(*self.data_shape)
-            logger.debug('Initializing search at a random test point')
         else:
-            raise ValueError('Initialization method should be one of "random" or "identity"')
+            raise ValueError('Initialization method should be "identity"')
 
         return X_init
 
@@ -390,17 +385,14 @@ class CounterFactual:
                            'but first dim = %s', X.shape[0])
 
         # make a prediction
-        if self.model:
-            Y = self.sess.run(self.predict_tn(tf.convert_to_tensor(X, dtype=tf.float32)))
-        else:
-            Y = self.predict_fn(X)
+        Y = self.predict_fn(X)
 
-        pred_class = Y.argmax()
-        pred_prob = Y.max()
+        pred_class = Y.argmax(axis=1).item()
+        pred_prob = Y.max(axis=1).item()
         self.return_dict['orig_class'] = pred_class
         self.return_dict['orig_prob'] = pred_prob
 
-        logger.debug('Initial prediction: %s with p=%s', pred_class, Y.max())
+        logger.debug('Initial prediction: %s with p=%s', pred_class, pred_prob)
 
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
@@ -526,7 +518,6 @@ class CounterFactual:
         cf_found = np.zeros((self.batch_size, self.max_lam_steps))
 
         # set the lower and upper bound for lamda to scale the distance loss term
-        lam = np.ones(self.batch_size) * self.lam_init
         lam_lb = np.zeros(self.batch_size)
         lam_ub = np.ones(self.batch_size) * 1e10
 
@@ -668,4 +659,4 @@ class CounterFactual:
             # adjust the lambda constant via bisection at the end of the outer loop
             self._bisect_lambda(cf_found, l_step, lam, lam_lb, lam_ub)
 
-            self.return_dict['success'] = True
+        self.return_dict['success'] = True

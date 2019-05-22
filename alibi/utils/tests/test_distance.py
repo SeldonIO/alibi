@@ -6,13 +6,15 @@ from alibi.utils.distance import cityblock_batch
 
 dims = np.array([1, 10, 50])
 shapes = list(product(dims, dims))
-n_tests = len(dims)**2
+n_tests = len(dims) ** 2
+
 
 @pytest.fixture
 def random_matrix(request):
     shape = shapes[request.param]
     matrix = np.random.rand(*shape)
     return matrix
+
 
 @pytest.mark.parametrize('random_matrix', list(range(n_tests)), indirect=True)
 def test_cityblock_batch(random_matrix):

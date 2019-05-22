@@ -324,7 +324,7 @@ class CounterFactual:
         self.instance_dict['prob'] = prob
 
         self.instance_dict['loss'] = (self.instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + \
-                                     self.instance_dict['lambda'] * self.instance_dict['distance']
+            self.instance_dict['lambda'] * self.instance_dict['distance']
 
         self.return_dict['all'].append(self.instance_dict.copy())
 

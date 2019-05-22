@@ -172,7 +172,8 @@ class CounterFactual:
                  target_proba: float = 1.0,
                  target_class: Union[str, int] = 'other',
                  max_iter: int = 1000,
-                 lam_init: float = 1e-04,
+                 early_stop: int = 50,
+                 lam_init: float = 1e-1,
                  max_lam_steps: int = 10,
                  tol: float = 0.05,
                  learning_rate_init=0.1,
@@ -203,6 +204,8 @@ class CounterFactual:
             desired class membership for the counterfactual instance
         max_iter
             Maximum number of interations to run the gradient descent for (inner loop)
+        early_stop
+            Number of steps after which to terminate gradient descent if all or none of found instances are solutions
         lam_init
             Initial regularization constant for the prediction part of the Wachter loss
         max_lam_steps
@@ -238,6 +241,7 @@ class CounterFactual:
         self.lam_init = lam_init
         self.tol = tol
         self.max_lam_steps = max_lam_steps
+        self.early_stop = early_stop
 
         self.eps = eps
         self.init = init
@@ -278,11 +282,7 @@ class CounterFactual:
                                             name='target_proba')
             self.global_step = tf.Variable(0.0, trainable=False, name='global_step')
 
-            # lambda hyperparameter - annealed in the first epoch
-            # if anneal_lam:
-            #    self.lam_anneal = tf.reshape(tf.train.exponential_decay(self.lam_init, self.global_step,
-            #                                          self.max_iter, 1e-10 / lam_init), (1, -1))
-            # self.lam = tf.Variable(self.lam_init * np.ones(self.batch_size), name='lambda', dtype=tf.float32)
+            # lambda hyperparameter - placeholder instead of variable as annealed in first epoch
             self.lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='lam')
 
             # define placeholders that will be assigned to relevant variables
@@ -290,10 +290,9 @@ class CounterFactual:
             self.assign_cf = tf.placeholder(tf.float32, data_shape, name='assign_cf')
             self.assign_target = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_classes),
                                                 name='assign_target')
-            # self.assign_lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='assign_lam')
 
             # L1 distance and MAD constants
-            # TODO: refactor? MADs?
+            # TODO: MADs?
             ax_sum = list(np.arange(1, len(self.data_shape)))
             if distance_fn == 'l1':
                 self.dist = tf.reduce_sum(tf.abs(self.cf - self.orig), axis=ax_sum, name='l1')
@@ -333,10 +332,9 @@ class CounterFactual:
             # optimizer
             if decay:
                 self.learning_rate = tf.train.polynomial_decay(learning_rate_init, self.global_step,
-                                                               self.max_iter, 0.0, power=0.5)
+                                                               self.max_iter, 0.0, power=1.0)
             else:
                 self.learning_rate = tf.convert_to_tensor(learning_rate_init)
-            # self.learning_rate = tf.placeholder(dtype=tf.float32, name='lr')
 
             # TODO optional argument to change type, learning rate scheduler
             opt = tf.train.AdamOptimizer(self.learning_rate)
@@ -352,7 +350,6 @@ class CounterFactual:
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.cf.assign(self.assign_cf))
         self.setup.append(self.target.assign(self.assign_target))
-        # self.setup.append(self.lam.assign(self.assign_lam))
 
         self.tf_init = tf.variables_initializer(var_list=tf.global_variables(scope='cf_search'))
 
@@ -409,9 +406,6 @@ class CounterFactual:
 
         # define the class-specific prediction function
         self.predict_class_fn, t_class = _define_func(self.predict_fn, pred_class, self.target_class)
-
-        # if not self.fitted:
-        #    logger.warning('Explain called before fit, explainer will operate in unsupervised mode.')
 
         # initialize with an instance
         X_init = self._initialize(X)
@@ -495,13 +489,12 @@ class CounterFactual:
 
         for batch_idx in range(self.batch_size):  # TODO: batch not supported
             if cf_found[batch_idx][l_step] >= 5:  # minimum number of CF instances to warrant increasing lambda
-                # want to improve the solution by putting more weight on the distance term
+                # want to improve the solution by putting more weight on the distance term TODO: hyperparameter?
                 # by increasing lambda
                 lam_lb[batch_idx] = max(lam[batch_idx], lam_lb[batch_idx])
                 logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
                 if lam_ub[batch_idx] < 1e9:
                     lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
-                    # lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
                 else:
                     lam[batch_idx] *= 10
                     logger.debug('Changed lambda to %s', lam[batch_idx])
@@ -513,7 +506,6 @@ class CounterFactual:
                 logger.debug('Lambda bounds: (%s, %s)', lam_lb[batch_idx], lam_ub[batch_idx])
                 if lam_lb[batch_idx] > 0:
                     lam[batch_idx] = (lam_lb[batch_idx] + lam_ub[batch_idx]) / 2
-                    # lam[batch_idx] = lam_lb[batch_idx] + (lam_ub[batch_idx] - lam_lb[batch_idx]) * 0.1
                     logger.debug('Changed lambda to %s', lam[batch_idx])
                 else:
                     lam[batch_idx] /= 10
@@ -665,7 +657,7 @@ class CounterFactual:
                     not_found += 1
 
                 # early stopping criterion - if no solutions or enough solutions found, change lambda
-                if found >= 50 or not_found >= 50:
+                if found >= self.early_stop or not_found >= self.early_stop:
                     break
 
             # adjust the lambda constant via bisection at the end of the outer loop

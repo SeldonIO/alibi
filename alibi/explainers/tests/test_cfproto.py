@@ -54,9 +54,8 @@ def test_cfproto(iris_explainer):
     # test explanation
     explanation = cf.explain(X_expl)
     assert cf.id_proto != pred_class
-    assert clf.predict(explanation['CF']) == cf.id_proto == explanation['CF_pred']
-    assert (explanation['X'] == X_expl).all()
-    assert explanation['grads_num'].shape == explanation['grads_graph'].shape == X_expl.shape
+    assert clf.predict(explanation['cf']['X']) == cf.id_proto == explanation['cf']['class']
+    assert explanation['cf']['grads_num'].shape == explanation['cf']['grads_graph'].shape == X_expl.shape
 
     # test gradient shapes
     Y_expl = np.zeros((1, cf.classes))

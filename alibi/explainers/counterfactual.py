@@ -62,7 +62,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Union[Callable, tf.keras.Model, keras.Model],
+                 predict_fn: Union[Callable, tf.keras.Model],
                  data_shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -252,8 +252,9 @@ class CounterFactual:
             self.writer.add_graph(tf.get_default_graph())
 
         # return templates
-        self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'pred_class', 'prob', 'loss'])
-        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}  # type: dict
+        self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
+        self.return_dict = {'cf': None, 'all': {i:[] for i in range(self.max_lam_steps)}, 'orig_class': None,
+                            'orig_proba': None}  # type: dict
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
@@ -300,7 +301,9 @@ class CounterFactual:
         self._minimize_loss(X, X_init, Y)
 
         return_dict = self.return_dict.copy()
-        self.return_dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_prob': None}
+        self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
+        self.return_dict = {'cf': None, 'all': {i:[] for i in range(self.max_lam_steps)}, 'orig_class': None,
+                            'orig_proba': None}
 
         return return_dict
 
@@ -319,14 +322,13 @@ class CounterFactual:
 
         preds = self.predict_fn(X_current)
         pred_class = preds.argmax()
-        prob = preds.max()
-        self.instance_dict['pred_class'] = pred_class
-        self.instance_dict['prob'] = prob
+        proba = preds.max()
+        self.instance_dict['class'] = pred_class
+        self.instance_dict['proba'] = preds
 
-        self.instance_dict['loss'] = (self.instance_dict['prob'] - self.target_proba_arr[0]) ** 2 + \
-            self.instance_dict['lambda'] * self.instance_dict['distance']
+        self.instance_dict['loss'] = (proba - self.target_proba_arr[0]) ** 2 + lam[0] * dist
 
-        self.return_dict['all'].append(self.instance_dict.copy())
+        self.return_dict['all'][l_step].append(self.instance_dict.copy())
 
         # update best CF if it has a smaller distance
         if self.return_dict['cf'] is None:

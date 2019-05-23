@@ -479,7 +479,7 @@ class CounterFactualProto(object):
         X
             Instance to attack
         Y
-            Labels for X
+            Labels for X as one-hot-encoding
         target_class
             List with target classes used to find closest prototype. If None, the nearest prototype
             except for the predict class on the instance is used.
@@ -748,7 +748,7 @@ class CounterFactualProto(object):
         X
             Instances to attack
         Y
-            Labels for X
+            Labels for X as one-hot-encoding
         target_class
             List with target classes used to find closest prototype. If None, the nearest prototype
             except for the predict class on the instance is used.
@@ -773,34 +773,43 @@ class CounterFactualProto(object):
             logger.warning('Currently only single instance explanations supported (first dim = 1), '
                            'but first dim = %s', X.shape[0])
 
+        # output explanation dictionary
+        explanation = {}
+
         if Y is None:
             if self.model:
-                Y = self.sess.run(self.predict(tf.convert_to_tensor(X, dtype=tf.float32)))
+                Y_proba = self.sess.run(self.predict(tf.convert_to_tensor(X, dtype=tf.float32)))
             else:
-                Y = self.predict(X)
-            Y_ohe = np.zeros(Y.shape)
-            Y_ohe[np.arange(Y.shape[0]), np.argmax(Y, axis=1)] = 1
+                Y_proba = self.predict(X)
+            Y_ohe = np.zeros(Y_proba.shape)
+            Y_class = np.argmax(Y_proba, axis=1)
+            Y_ohe[np.arange(Y_proba.shape[0]), Y_class] = 1
             Y = Y_ohe.copy()
+            explanation['orig_proba'] = Y_proba
+        else:  # provided one-hot-encoding of prediction on X
+            explanation['orig_proba'] = None
+        explanation['orig_class'] = np.argmax(Y, axis=1)[0]
 
         # find best counterfactual
         self.best_attack = False
         best_attack, grads = self.attack(X, Y=Y, target_class=target_class, verbose=verbose,
                                          threshold=threshold, print_every=print_every, log_every=log_every)
 
-        # output explanation dictionary
-        explanation = {}
-        explanation['X'] = X
-        explanation['X_pred'] = np.argmax(Y, axis=1)[0]
-
+        # add to explanation dict
         if not self.best_attack:
             logger.warning('No counterfactual found!')
+            explanation['cf'] = None
+            explanation['all'] = []
             return explanation
 
-        explanation['CF'] = best_attack
+        explanation['all'] = self.cf_global
+        explanation['cf'] = {}
+        explanation['cf']['X'] = best_attack
         if self.model:
             Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
         else:
             Y_pert = self.predict(best_attack)
-        explanation['CF_pred'] = np.argmax(Y_pert, axis=1)[0]
-        explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
+        explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
+        explanation['cf']['proba'] = Y_pert
+        explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
         return explanation

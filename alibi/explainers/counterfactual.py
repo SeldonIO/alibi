@@ -63,7 +63,7 @@ class CounterFactual:
     def __init__(self,
                  sess: tf.Session,
                  predict_fn: Union[Callable, tf.keras.Model],
-                 data_shape: Tuple[int, ...],
+                 shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
                  target_class: Union[str, int] = 'other',
@@ -88,7 +88,7 @@ class CounterFactual:
             TensorFlow session
         predict_fn
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
-        data_shape
+        shape
             Shape of input data starting with batch size
         distance_fn
             Distance function to use in the loss term
@@ -127,8 +127,8 @@ class CounterFactual:
 
         logger.warning('Counterfactual explainer currently only supports numeric features')
         self.sess = sess
-        self.data_shape = data_shape
-        self.batch_size = data_shape[0]
+        self.data_shape = shape
+        self.batch_size = shape[0]
         self.target_class = target_class
 
         # options for the optimizer
@@ -155,7 +155,7 @@ class CounterFactual:
             self.predict_tn = None
             self.model = False
 
-        self.n_classes = self.predict_fn(np.zeros(data_shape)).shape[1]
+        self.n_classes = self.predict_fn(np.zeros(shape)).shape[1]
 
         # flag to keep track if explainer is fit or not
         self.fitted = False
@@ -164,8 +164,8 @@ class CounterFactual:
         with tf.variable_scope('cf_search', reuse=tf.AUTO_REUSE):
 
             # define variables for original and candidate counterfactual instances, target labels and lambda
-            self.orig = tf.get_variable('original', shape=data_shape, dtype=tf.float32)
-            self.cf = tf.get_variable('counterfactual', shape=data_shape,
+            self.orig = tf.get_variable('original', shape=shape, dtype=tf.float32)
+            self.cf = tf.get_variable('counterfactual', shape=shape,
                                       dtype=tf.float32,
                                       constraint=lambda x: tf.clip_by_value(x, feature_range[0], feature_range[1]))
             # the following will be a 1-hot encoding of the target class (as predicted by the model)
@@ -180,8 +180,8 @@ class CounterFactual:
             self.lam = tf.placeholder(tf.float32, shape=(self.batch_size), name='lam')
 
             # define placeholders that will be assigned to relevant variables
-            self.assign_orig = tf.placeholder(tf.float32, data_shape, name='assing_orig')
-            self.assign_cf = tf.placeholder(tf.float32, data_shape, name='assign_cf')
+            self.assign_orig = tf.placeholder(tf.float32, shape, name='assing_orig')
+            self.assign_cf = tf.placeholder(tf.float32, shape, name='assign_cf')
             self.assign_target = tf.placeholder(tf.float32, shape=(self.batch_size, self.n_classes),
                                                 name='assign_target')
 
@@ -234,7 +234,7 @@ class CounterFactual:
 
             # first compute gradients, then apply them
             self.compute_grads = opt.compute_gradients(self.loss_opt, var_list=[self.cf])
-            self.grad_ph = tf.placeholder(shape=data_shape, dtype=tf.float32, name='grad_cf')
+            self.grad_ph = tf.placeholder(shape=shape, dtype=tf.float32, name='grad_cf')
             grad_and_var = [(self.grad_ph, self.cf)]
             self.apply_grads = opt.apply_gradients(grad_and_var, global_step=self.global_step)
 

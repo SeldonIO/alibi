@@ -18,7 +18,12 @@ import alibi
 alibi.explainers.__all__
 ```
 ```
-['AnchorTabular', 'AnchorText', 'AnchorImage', 'CEM', 'CounterFactual', 'CounterFactualProto'] 
+['AnchorTabular',
+ 'AnchorText',
+ 'AnchorImage',
+ 'CEM',
+ 'CounterFactual',
+ 'CounterFactualProto'] 
 ```
 
 For gauging model confidence:

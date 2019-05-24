@@ -269,11 +269,28 @@ class CounterFactual:
     def fit(self,
             X: np.ndarray,
             y: Optional[np.ndarray]) -> None:
+        """
+        Fit method - currently unused as the counterfactual search is fully unsupervised.
+
+        """
         # TODO feature ranges, epsilons and MADs
 
         self.fitted = True
 
-    def explain(self, X: np.ndarray) -> Dict:
+    def explain(self, X: np.ndarray) -> dict:
+        """
+        Explain an instance and return the counterfactual with metadata.
+
+        Parameters
+        ----------
+        X
+            Instance to be explained
+
+        Returns
+        -------
+        *explanation* - a dictionary containing the counterfactual with additional metadata.
+
+        """
         # TODO change init parameters on the fly
 
         if X.shape[0] != 1:

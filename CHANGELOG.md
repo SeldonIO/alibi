@@ -1,5 +1,52 @@
 # Change Log
 
+## [v0.2.0](https://github.com/SeldonIO/alibi/tree/v0.2.0) (2019-05-24)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.1.0...v0.2.0)
+
+**New features:**
+
+- Counterfactual instances [\#78](https://github.com/SeldonIO/alibi/pull/78) ([jklaise](https://github.com/jklaise))
+- Prototypical counterfactuals [\#86](https://github.com/SeldonIO/alibi/pull/86) ([arnaudvl](https://github.com/arnaudvl))
+
+**Implemented enhancements:**
+
+- Return nearest not predicted class for trust scores [\#63](https://github.com/SeldonIO/alibi/issues/63)
+- Migrate Keras dependency to tf.keras [\#51](https://github.com/SeldonIO/alibi/issues/51)
+- Add warning when no anchor is found [\#30](https://github.com/SeldonIO/alibi/issues/30)
+- add anchor warning [\#74](https://github.com/SeldonIO/alibi/pull/74) ([arnaudvl](https://github.com/arnaudvl))
+- Return closest not predicted class for trust scores [\#67](https://github.com/SeldonIO/alibi/pull/67) ([arnaudvl](https://github.com/arnaudvl))
+
+**Closed issues:**
+
+- Build docs on Travis [\#70](https://github.com/SeldonIO/alibi/issues/70)
+- High level documentation for 0.1 [\#37](https://github.com/SeldonIO/alibi/issues/37)
+- Counterfactual explainers [\#12](https://github.com/SeldonIO/alibi/issues/12)
+
+**Merged pull requests:**
+
+- Update example [\#100](https://github.com/SeldonIO/alibi/pull/100) ([jklaise](https://github.com/jklaise))
+- Revert "Don't mock keras for docs" [\#99](https://github.com/SeldonIO/alibi/pull/99) ([jklaise](https://github.com/jklaise))
+- Don't mock keras for docs [\#98](https://github.com/SeldonIO/alibi/pull/98) ([jklaise](https://github.com/jklaise))
+- Cf [\#97](https://github.com/SeldonIO/alibi/pull/97) ([jklaise](https://github.com/jklaise))
+- Cf [\#96](https://github.com/SeldonIO/alibi/pull/96) ([jklaise](https://github.com/jklaise))
+- Cf [\#95](https://github.com/SeldonIO/alibi/pull/95) ([jklaise](https://github.com/jklaise))
+- Cf [\#94](https://github.com/SeldonIO/alibi/pull/94) ([jklaise](https://github.com/jklaise))
+- Cf [\#92](https://github.com/SeldonIO/alibi/pull/92) ([jklaise](https://github.com/jklaise))
+- Cf [\#90](https://github.com/SeldonIO/alibi/pull/90) ([jklaise](https://github.com/jklaise))
+- Cf [\#88](https://github.com/SeldonIO/alibi/pull/88) ([jklaise](https://github.com/jklaise))
+- Add return type for counterfactuals [\#87](https://github.com/SeldonIO/alibi/pull/87) ([jklaise](https://github.com/jklaise))
+- prototypical counterfactuals [\#86](https://github.com/SeldonIO/alibi/pull/86) ([arnaudvl](https://github.com/arnaudvl))
+- Remove unnecessary method, rename loss minimization [\#85](https://github.com/SeldonIO/alibi/pull/85) ([jklaise](https://github.com/jklaise))
+- Cf [\#84](https://github.com/SeldonIO/alibi/pull/84) ([jklaise](https://github.com/jklaise))
+- Fix linting and remove old statsmodels tests [\#82](https://github.com/SeldonIO/alibi/pull/82) ([jklaise](https://github.com/jklaise))
+- Some style and test fixes [\#81](https://github.com/SeldonIO/alibi/pull/81) ([jklaise](https://github.com/jklaise))
+- Influence functions current work [\#79](https://github.com/SeldonIO/alibi/pull/79) ([jklaise](https://github.com/jklaise))
+- WIP: Counterfactual instances [\#78](https://github.com/SeldonIO/alibi/pull/78) ([jklaise](https://github.com/jklaise))
+- Counterfactual work so far [\#77](https://github.com/SeldonIO/alibi/pull/77) ([jklaise](https://github.com/jklaise))
+- Add additional Python versions to CI [\#73](https://github.com/SeldonIO/alibi/pull/73) ([jklaise](https://github.com/jklaise))
+- Add building docs and the Python package in CI [\#72](https://github.com/SeldonIO/alibi/pull/72) ([jklaise](https://github.com/jklaise))
+- Bump master version to 0.1.1dev [\#68](https://github.com/SeldonIO/alibi/pull/68) ([jklaise](https://github.com/jklaise))
+
 ## [v0.1.0](https://github.com/SeldonIO/alibi/tree/v0.1.0) (2019-05-03)
 **Closed issues:**
 

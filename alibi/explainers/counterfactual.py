@@ -253,7 +253,7 @@ class CounterFactual:
 
         # return templates
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
-        self.return_dict = {'cf': None, 'all': {i:[] for i in range(self.max_lam_steps)}, 'orig_class': None,
+        self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}  # type: dict
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
@@ -302,7 +302,7 @@ class CounterFactual:
 
         return_dict = self.return_dict.copy()
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
-        self.return_dict = {'cf': None, 'all': {i:[] for i in range(self.max_lam_steps)}, 'orig_class': None,
+        self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}
 
         return return_dict

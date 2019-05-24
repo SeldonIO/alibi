@@ -125,7 +125,6 @@ class CounterFactual:
             Flag to write Tensorboard summaries for debugging
         """
 
-        logger.warning('Counterfactual explainer currently only supports numeric features')
         self.sess = sess
         self.data_shape = shape
         self.batch_size = shape[0]

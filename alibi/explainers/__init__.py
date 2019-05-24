@@ -13,5 +13,5 @@ __all__ = ["AnchorTabular",
            "AnchorText",
            "AnchorImage",
            "CEM",
-           "CounterFactualProto"]
+           "CounterFactualProto",
            "CounterFactual"]

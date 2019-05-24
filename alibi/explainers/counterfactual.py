@@ -62,7 +62,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Union[Callable, tf.keras.Model],
+                 predict_fn: Union[Callable, tf.keras.Model, keras.Model],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,

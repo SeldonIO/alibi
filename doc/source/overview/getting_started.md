@@ -35,7 +35,8 @@ For detailed information on the methods:
 *  [Overview of available methods](../overview/algorithms.md)
     * [Anchor explanations](../methods/Anchors.ipynb)
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
-    * [Trust Scores](../methods/Trust\ Scores.ipynb)
+    * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
+    * [Trust Scores](../methods/TrustScores.ipynb)
 
 ## Basic Usage
 We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data) to illustrate

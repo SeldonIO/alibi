@@ -18,7 +18,7 @@ import alibi
 alibi.explainers.__all__
 ```
 ```
-['AnchorTabular', 'AnchorText', 'AnchorImage', 'CEM'] 
+['AnchorTabular', 'AnchorText', 'AnchorImage', 'CEM', 'CounterFactual', 'CounterFactualProto'] 
 ```
 
 For gauging model confidence:
@@ -35,6 +35,7 @@ For detailed information on the methods:
 *  [Overview of available methods](../overview/algorithms.md)
     * [Anchor explanations](../methods/Anchors.ipynb)
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
+    * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 

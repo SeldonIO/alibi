@@ -7,14 +7,16 @@ logger = logging.getLogger(__name__)
 
 
 def _flatten_features(X_train: np.ndarray) -> Tuple:
-	"""
+	"""Flatten training set
 
 	Parameters
 	----------
 	X_train
+	    Training set
 
 	Returns
 	-------
+	Flatten training set, original features shape
 
 	"""
 	X_train_reshaped = X_train.reshape((X_train.shape[0], reduce(lambda x, y: x * y, X_train.shape[1:])))
@@ -23,15 +25,18 @@ def _flatten_features(X_train: np.ndarray) -> Tuple:
 
 
 def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
-	"""
+	"""Reshape training set
 
 	Parameters
 	----------
 	X
+	    Training set
 	features_shape
+	    Original features shape
 
 	Returns
 	-------
+	Reshaped training set
 
 	"""
 	return X.reshape((X.shape[0],) + features_shape)
@@ -39,17 +44,23 @@ def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
 
 def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.ndarray],
 	alphas: List, verbose: bool=False) -> Tuple:
-	"""
+	"""Calculates the similarity between the model's output of a linear superposition of features vectors and
+	the linear superposition of the model's output for each of the components of the superposition.
 
 	Parameters
 	----------
 	predict_fn
+	    Predict function
 	samples
+	    List of features vectors in the linear superposition
 	alphas
+	    List of coefficients in the linear superposition
 	verbose
+	    Prints logs if true
 
 	Returns
 	-------
+	Output of the superpositon, superposition of the outpu, linearity score
 
 	"""
 
@@ -73,16 +84,20 @@ def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.n
 
 
 def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
-	"""
+	"""Samples data points from training set around instance x
 
 	Parameters
 	----------
 	x
+	    Centre instance for sampling
 	X_train
+	    Training set
 	nb_samples
+	    Number of samples to generate
 
 	Returns
 	-------
+	Sampled vectors
 
 	"""
 	X_train, _ = _flatten_features(X_train)
@@ -101,16 +116,20 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
 
 
 def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) -> np.ndarray:
-	"""
+	"""Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
 
 	Parameters
 	----------
 	x
+	    Centre of the Gaussian
 	epsilon
+	    Standard deviation of the Gaussian
 	nb_samples
+	    Number of samples to generate
 
 	Returns
 	-------
+	Sampled vectors
 
 	"""
 	features_shape = x.shape
@@ -130,20 +149,28 @@ def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) ->
 
 def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 0.5, nb_samples: int = 10,
 	order: int = 2, superposition: str = 'uniform', verbose: bool = False) -> Tuple:
-	"""
+	"""Generates the components of the linear superposition and their coefficients.
 
 	Parameters
 	----------
 	x
+	    Central instance
 	X_train
+	    Training set
 	epsilon
+	    Standard deviation of Gaussian for sampling
 	nb_samples
+	    Number of samples to genarate
 	order
+	    Number of components in the linear superposition
 	superposition
+	    Defines the way the vectors are combined in the superposition.
 	verbose
+	    Prints logs if true
 
 	Returns
 	-------
+	Vectors in the linear superposition, coefficients.
 
 	"""
 	if X_train is not None:
@@ -176,21 +203,30 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
 def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
 	epsilon: float = 0.5, nb_samples: int = 10, order: int = 2,
 	superposition: str = 'uniform', verbose: bool = False) -> float:
-	"""
+	"""Calculate the linearity measure of the model around a certain instance.
 
 	Parameters
 	----------
 	predict_fn
+	    Predict function
 	x
+	    Central instance
 	X_train
+	    Training set
 	epsilon
+	    Standard deviation of the Gaussian for sampling
 	nb_samples
+	    Number of samples to generate
 	order
+	    Number of component in the linear superposition
 	superposition
+	    Defines the way the vectors are combined in the superposition
 	verbose
+	    Prints logs if true
 
 	Returns
 	-------
+	Linearity measure
 
 	"""
 

@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from functools import reduce
 from typing import Any, Tuple, Callable, Union, List
+
 logger = logging.getLogger(__name__)
 
 

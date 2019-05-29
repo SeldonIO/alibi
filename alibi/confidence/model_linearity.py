@@ -3,71 +3,90 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from functools import reduce
 from typing import Any, Tuple, Callable, Union, List
+
 logger = logging.getLogger(__name__)
 
 
 def _flatten_features(X_train: np.ndarray) -> Tuple:
-	""" Flatten features in batches
+	"""Flatten training set
+
 	Parameters
 	----------
 	X_train
 	    Training set
 
 	Returns
-	Flatten features train set and original shape
 	-------
+	Flatten training set, original features shape
 
 	"""
-	return X_train.reshape((X_train.shape[0], reduce(lambda x, y: x * y, X_train.shape[1:]))), X_train.shape[1:]
+	X_train_reshaped = X_train.reshape((X_train.shape[0], reduce(lambda x, y: x * y, X_train.shape[1:])))
+	original_shape = X_train.shape[1:]
+	return X_train_reshaped, original_shape
 
 
 def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
-	'''
+	"""Reshape training set
 
 	Parameters
 	----------
 	X
-	    Flatten features train set
+	    Training set
 	features_shape
-	    Original shape
+	    Original features shape
 
 	Returns
-	Train set original shape
 	-------
+	Reshaped training set
 
-	'''
+	"""
 	return X.reshape((X.shape[0],) + features_shape)
 
 
 def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.ndarray],
-								 alphas: List, verbose: bool=False) -> Tuple:
-	'''
+	alphas: List, verbose: bool=False) -> Tuple:
+	"""Calculates the similarity between the model's output of a linear superposition of features vectors and
+	the linear superposition of the model's output for each of the components of the superposition.
 
 	Parameters
 	----------
 	predict_fn
-	    predict function
+	    Predict function
 	samples
-	    list of vectors used to create a linear combination
+	    List of features vectors in the linear superposition
 	alphas
-	    coefficients of the each vector in the linear combination
+	    List of coefficients in the linear superposition
 	verbose
-	    print logs if True
+	    Prints logs if true
 
 	Returns
-	    Output of the sum, sum of the outputs and liniearity score
 	-------
+	Output of the superpositon, superposition of the outpu, linearity score
 
-	'''
+	"""
 
 	assert len(samples) == len(alphas), 'The number of elements in samples and alphas must be the same; ' \
-										'len(samples)={}, len(alphas)={}'.format(len(samples),len(alphas))
+	'len(samples)={}, len(alphas)={}'.format(len(samples),len(alphas))
 
-	ps = [predict_fn(samples[i: i + 1]) for i in range(len(alphas))]
+	ps = []
+	for s in samples:
+		#print(s.shape)
+		try:
+			ps.append(predict_fn(s))
+		except ValueError:
+			ps.append(predict_fn(s.reshape((1,) + s.shape)))
+	#ps = [predict_fn(samples[i]) for i in range(len(alphas))]
+
 	outs = [np.log(p + 1e-10) for p in ps]
 	summ = reduce(lambda x, y: x + y, [alphas[i] * samples[i] for i in range(len(alphas))])
-	summ = summ.reshape((1,) + summ.shape)
-	out_sum = np.log(predict_fn(summ) + 1e-10)
+	#print(summ.shape)
+
+	try:
+		out_sum = np.log(predict_fn(summ) + 1e-10)
+	except ValueError:
+		summ = summ.reshape((1,) + summ.shape)
+		out_sum = np.log(predict_fn(summ) + 1e-10)
+
 	sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[i] for i in range(len(alphas))])
 
 	if verbose:
@@ -80,23 +99,22 @@ def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.n
 
 
 def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
-	'''
+	"""Samples data points from training set around instance x
 
 	Parameters
 	----------
 	x
-	    Central instance for sampling
+	    Centre instance for sampling
 	X_train
 	    Training set
 	nb_samples
-        Number of samples to generate
+	    Number of samples to generate
+
 	Returns
-	k nearest neighbors to x, with k=nb_samples
-
 	-------
+	Sampled vectors
 
-	'''
-
+	"""
 	X_train, _ = _flatten_features(X_train)
 	X_stack = np.stack([x for i in range(X_train.shape[0])], axis=0)
 
@@ -113,19 +131,22 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
 
 
 def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) -> np.ndarray:
-	"""
+	"""Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
 
 	Parameters
 	----------
 	x
+	    Centre of the Gaussian
 	epsilon
+	    Standard deviation of the Gaussian
 	nb_samples
+	    Number of samples to generate
 
 	Returns
 	-------
+	Sampled vectors
 
 	"""
-
 	features_shape = x.shape
 	x = x.flatten()
 	dim = len(x)
@@ -142,24 +163,31 @@ def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) ->
 
 
 def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 0.5, nb_samples: int = 10,
-					order: int = 2, superposition: str = 'uniform', verbose: bool = False) -> Tuple:
-	'''
+	order: int = 2, superposition: str = 'uniform', verbose: bool = False) -> Tuple:
+	"""Generates the components of the linear superposition and their coefficients.
 
 	Parameters
 	----------
 	x
+	    Central instance
 	X_train
+	    Training set
 	epsilon
+	    Standard deviation of Gaussian for sampling
 	nb_samples
+	    Number of samples to genarate
 	order
+	    Number of components in the linear superposition
 	superposition
+	    Defines the way the vectors are combined in the superposition.
 	verbose
+	    Prints logs if true
 
 	Returns
 	-------
+	Vectors in the linear superposition, coefficients.
 
-	'''
-
+	"""
 	if X_train is not None:
 		X_sampled = _sample_train(x, X_train, nb_samples=nb_samples)
 
@@ -179,6 +207,7 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
 	else:
 		logs = np.asarray([np.random.rand() + np.random.randint(1) for i in range(order)])
 		alphas = np.exp(logs) / np.exp(logs).sum()
+
 	if verbose:
 		logger.debug([X_tmp.shape for X_tmp in X_pairs])
 		logger.debug(len(alphas))
@@ -187,11 +216,37 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
 
 
 def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-					  epsilon: float = 0.5, nb_samples: int = 10, order: int = 2,
-					  superposition: str = 'uniform', verbose: bool = False) -> float:
+	epsilon: float = 0.5, nb_samples: int = 10, order: int = 2,
+	superposition: str = 'uniform', verbose: bool = False) -> float:
+	"""Calculate the linearity measure of the model around a certain instance.
+
+	Parameters
+	----------
+	predict_fn
+	    Predict function
+	x
+	    Central instance
+	X_train
+	    Training set
+	epsilon
+	    Standard deviation of the Gaussian for sampling
+	nb_samples
+	    Number of samples to generate
+	order
+	    Number of component in the linear superposition
+	superposition
+	    Defines the way the vectors are combined in the superposition
+	verbose
+	    Prints logs if true
+
+	Returns
+	-------
+	Linearity measure
+
+	"""
 
 	X_pairs, alphas = _generate_pairs(x, X_train=X_train, epsilon=epsilon, nb_samples=nb_samples, order=order,
-									superposition=superposition, verbose=verbose)
+									  superposition=superposition, verbose=verbose)
 	scores = []
 	for pair in X_pairs:
 		out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)

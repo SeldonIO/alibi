@@ -68,11 +68,25 @@ def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.n
 	assert len(samples) == len(alphas), 'The number of elements in samples and alphas must be the same; ' \
 	'len(samples)={}, len(alphas)={}'.format(len(samples),len(alphas))
 
-	ps = [predict_fn(samples[i: i + 1]) for i in range(len(alphas))]
+	ps = []
+	for s in samples:
+		#print(s.shape)
+		try:
+			ps.append(predict_fn(s))
+		except ValueError:
+			ps.append(predict_fn(s.reshape((1,) + s.shape)))
+	#ps = [predict_fn(samples[i]) for i in range(len(alphas))]
+
 	outs = [np.log(p + 1e-10) for p in ps]
 	summ = reduce(lambda x, y: x + y, [alphas[i] * samples[i] for i in range(len(alphas))])
-	summ = summ.reshape((1,) + summ.shape)
-	out_sum = np.log(predict_fn(summ) + 1e-10)
+	#print(summ.shape)
+
+	try:
+		out_sum = np.log(predict_fn(summ) + 1e-10)
+	except ValueError:
+		summ = summ.reshape((1,) + summ.shape)
+		out_sum = np.log(predict_fn(summ) + 1e-10)
+
 	sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[i] for i in range(len(alphas))])
 
 	if verbose:

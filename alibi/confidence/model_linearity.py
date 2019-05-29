@@ -43,10 +43,56 @@ def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
     return X.reshape((X.shape[0],) + features_shape)
 
 
+def _calculate_linearity_regression(predict_fn: Callable, samples: Union[List, np.ndarray],
+                                    alphas: List, verbose: bool = True):
+    """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
+    the linear superposition of the regressor's output for each of the components of the superposition.
+
+    Parameters
+    ----------
+    predict_fn
+        Predict function
+    samples
+        List of features vectors in the linear superposition
+    alphas
+        List of coefficients in the linear superposition
+    verbose
+        Prints logs if true
+
+    Returns
+    -------
+    Output of the superpositon, superposition of the outpu, linearity score
+
+    """
+    outs = []
+    for s in samples:
+        try:
+            outs.append(predict_fn(s))
+        except ValueError:
+            outs.append(predict_fn(s.reshape((1,) + s.shape)))
+    summ = reduce(lambda x, y: x + y, [alphas[i] * samples[i] for i in range(len(alphas))])
+
+    try:
+        out_sum = predict_fn(summ)
+    except ValueError:
+        summ = summ.reshape((1,) + summ.shape)
+        out_sum = predict_fn(summ)
+
+    sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[i] for i in range(len(alphas))])
+
+    if verbose:
+        logger.debug(out_sum.shape)
+        logger.debug(sum_out.shape)
+
+    linearity_score = ((out_sum - sum_out) ** 2).sum()
+
+    return out_sum, sum_out, linearity_score
+
+
 def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.ndarray],
                                  alphas: List, verbose: bool = False) -> Tuple:
-    """Calculates the similarity between the model's output of a linear superposition of features vectors and
-    the linear superposition of the model's output for each of the components of the superposition.
+    """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
+    the linear superposition of the classifier's output for each of the components of the superposition.
 
     Parameters
     ----------
@@ -96,6 +142,7 @@ def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.n
     linearity_score = ((out_sum - sum_out) ** 2).sum() / out_sum.shape[1]  # normalize or not normalize ...
 
     return out_sum, sum_out, linearity_score
+
 
 
 def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
@@ -217,7 +264,7 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
 
 def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
                       epsilon: float = 0.5, nb_samples: int = 10, order: int = 2,
-                      superposition: str = 'uniform', verbose: bool = False) -> float:
+                      superposition: str = 'uniform', model_type: str = 'classifier', verbose: bool = False) -> float:
     """Calculate the linearity measure of the model around a certain instance.
 
     Parameters
@@ -249,6 +296,14 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray =
                                       superposition=superposition, verbose=verbose)
     scores = []
     for pair in X_pairs:
-        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)
+
+        if model_type == 'classifier':
+            out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)
+        elif model_type == 'regressor':
+            out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, pair, alphas, verbose=verbose)
+        else:
+            raise NameError('model_type not supported. Supported model types: classifier, regressor')
+
         scores.append(score)
+
     return np.asarray(scores).mean()

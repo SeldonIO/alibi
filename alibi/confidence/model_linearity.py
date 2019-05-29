@@ -20,8 +20,9 @@ def _flatten_features(X_train: np.ndarray) -> Tuple:
     Flatten training set, original features shape
 
     """
-    X_train_reshaped = X_train.reshape((X_train.shape[0], reduce(lambda x, y: x * y, X_train.shape[1:])))
     original_shape = X_train.shape[1:]
+    X_train_reshaped = X_train.reshape(X_train.shape[0], -1)
+    # X_train_reshaped = X_train.reshape((X_train.shape[0], reduce(lambda x, y: x * y, X_train.shape[1:])))
     return X_train_reshaped, original_shape
 
 

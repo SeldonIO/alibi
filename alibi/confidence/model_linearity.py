@@ -178,7 +178,8 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
     return X_sampled
 
 
-def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) -> np.ndarray:
+def _sample_sphere(x: np.ndarray, features_range: Union[List, str] = 'infer', epsilon: float = 0.01,
+                   nb_samples: int = 10) -> np.ndarray:
     """Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
 
     Parameters
@@ -195,13 +196,30 @@ def _sample_sphere(x: np.ndarray, epsilon: float = 0.5, nb_samples: int = 10) ->
     Sampled vectors
 
     """
+
     features_shape = x.shape
     x = x.flatten()
     dim = len(x)
     assert dim > 0, 'Dimension of the sphere must be bigger than 0'
 
-    u = np.random.normal(scale=epsilon, size=(nb_samples, dim))
-    u /= u.max()
+    if type(features_range) == list:
+        features_range = np.asarray(features_range)
+
+    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) * 0.01)
+    size = np.round(epsilon * 100).astype(int)
+    if size == 0:
+        size = 1
+
+    rnd_minus = -np.random.randint((2 * size) / 2, size=(nb_samples,dim)) - 1
+    rnd_plus = np.random.randint((2 * size) / 2, size=(nb_samples,dim)) + 1
+    rnd = np.concatenate([rnd_minus, rnd_plus])
+    rnd = np.random.permutation(rnd.T)[:dim].T
+
+    vprime = rnd * deltas
+    u = x + vprime
+
+    #u = np.random.normal(scale=epsilon, size=(nb_samples, dim))
+    #u /= u.max()
     # u /= np.linalg.norm(u, axis=1).reshape(-1, 1)  # uniform distribution on the unit dim-sphere
 
     X_sampled = x + u

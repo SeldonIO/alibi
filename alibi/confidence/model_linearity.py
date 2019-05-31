@@ -145,7 +145,6 @@ def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.n
     return out_sum, sum_out, linearity_score
 
 
-
 def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
     """Samples data points from training set around instance x
 
@@ -163,6 +162,7 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
     Sampled vectors
 
     """
+    print('Sampling from X_train')
     X_train, _ = _flatten_features(X_train)
     X_stack = np.stack([x for i in range(X_train.shape[0])], axis=0)
 
@@ -178,7 +178,7 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
     return X_sampled
 
 
-def _sample_sphere(x: np.ndarray, features_range: Union[List, str] = 'infer', epsilon: float = 0.01,
+def _sample_sphere(x: np.ndarray, features_range: List = None, epsilon: float = 0.04,
                    nb_samples: int = 10) -> np.ndarray:
     """Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
 
@@ -186,8 +186,10 @@ def _sample_sphere(x: np.ndarray, features_range: Union[List, str] = 'infer', ep
     ----------
     x
         Centre of the Gaussian
+    features_range
+        Array with min and max values for each feature
     epsilon
-        Standard deviation of the Gaussian
+        Size of the sampling region around central instance as percentage of features range
     nb_samples
         Number of samples to generate
 
@@ -196,19 +198,19 @@ def _sample_sphere(x: np.ndarray, features_range: Union[List, str] = 'infer', ep
     Sampled vectors
 
     """
-
+    print('Sampling no X_train')
     features_shape = x.shape
     x = x.flatten()
     dim = len(x)
     assert dim > 0, 'Dimension of the sphere must be bigger than 0'
+    assert features_range is not None, 'Features range can not be None'
 
-    if type(features_range) == list:
-        features_range = np.asarray(features_range)
+    features_range = np.asarray(features_range)
 
     deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) * 0.01)
     size = np.round(epsilon * 100).astype(int)
-    if size == 0:
-        size = 1
+    if size <= 2:
+        size = 2
 
     rnd_minus = -np.random.randint((2 * size) / 2, size=(nb_samples,dim)) - 1
     rnd_plus = np.random.randint((2 * size) / 2, size=(nb_samples,dim)) + 1
@@ -216,20 +218,21 @@ def _sample_sphere(x: np.ndarray, features_range: Union[List, str] = 'infer', ep
     rnd = np.random.permutation(rnd.T)[:dim].T
 
     vprime = rnd * deltas
-    u = x + vprime
+    X_sampled = x + vprime
 
     #u = np.random.normal(scale=epsilon, size=(nb_samples, dim))
     #u /= u.max()
     # u /= np.linalg.norm(u, axis=1).reshape(-1, 1)  # uniform distribution on the unit dim-sphere
+    #X_sampled = x + u
 
-    X_sampled = x + u
     X_sampled = _reshape_features(X_sampled, features_shape)
 
     return X_sampled
 
 
-def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 0.5, nb_samples: int = 10,
-                    order: int = 2, superposition: str = 'uniform', verbose: bool = False) -> Tuple:
+def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: List = None,
+                    epsilon: float = 0.5, nb_samples: int = 10, order: int = 2, superposition: str = 'uniform',
+                    verbose: bool = False) -> Tuple:
     """Generates the components of the linear superposition and their coefficients.
 
     Parameters
@@ -238,8 +241,10 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
         Central instance
     X_train
         Training set
+    features_range
+        Array with min and max values for each feature
     epsilon
-        Standard deviation of Gaussian for sampling
+        Size of the sampling region around central instance as percentage of features range
     nb_samples
         Number of samples to genarate
     order
@@ -258,7 +263,7 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
         X_sampled = _sample_train(x, X_train, nb_samples=nb_samples)
 
     else:
-        X_sampled = _sample_sphere(x, epsilon=epsilon, nb_samples=nb_samples)
+        X_sampled = _sample_sphere(x, features_range=features_range, epsilon=epsilon, nb_samples=nb_samples)
 
     x = x.reshape((1,) + x.shape)
 
@@ -281,9 +286,10 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, epsilon: float = 
     return X_pairs, alphas
 
 
-def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-                      epsilon: float = 0.5, nb_samples: int = 10, order: int = 2,
-                      superposition: str = 'uniform', model_type: str = 'classifier', verbose: bool = False) -> float:
+def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
+                      features_range: Union[List, str] = None, epsilon: float = 0.04, nb_samples: int = 10,
+                      order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
+                      verbose: bool = False) -> float:
     """Calculate the linearity measure of the model around a certain instance.
 
     Parameters
@@ -292,6 +298,141 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray =
         Predict function
     x
         Central instance
+    X_train
+        Training set
+    features_range
+        Array with min and max values for each feature
+    epsilon
+        Size of the sampling region around central instance as percentage of features range
+    nb_samples
+        Number of samples to generate
+    order
+        Number of component in the linear superposition
+    superposition
+        Defines the way the vectors are combined in the superposition
+    verbose
+        Prints logs if true
+
+    Returns
+    -------
+    Linearity measure
+
+    """
+    X_pairs, alphas = _generate_pairs(x, X_train=X_train, features_range=features_range, epsilon=epsilon,
+                                      nb_samples=nb_samples, order=order, superposition=superposition, verbose=verbose)
+    scores = []
+    for pair in X_pairs:
+
+        if model_type == 'classifier':
+            out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)
+        elif model_type == 'regressor':
+            out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, pair, alphas, verbose=verbose)
+        else:
+            raise NameError('model_type not supported. Supported model types: classifier, regressor')
+
+        scores.append(score)
+
+    return np.asarray(scores).mean()
+
+
+def _infer_features_range(X_train: np.ndarray) -> np.ndarray:
+    return np.vstack((X_train.min(axis=0), X_train.max(axis=0))).T
+
+
+class LinearityMeasure(object):
+
+    def __init__(self, method: str = 'gridSampling', epsilon: float = 0.04, nb_samples: int = 10, order: int = 2,
+                 superposition: str = 'uniform', model_type: str = 'classifier', verbose: bool = False) -> None:
+        """
+
+        Parameters
+        ----------
+        method
+            Method for sampling. Supported methods 'knn' or 'gridSampling'
+        epsilon
+            Size of the sampling region around central instance as percentage of features range
+        nb_samples
+            Number of samples to generate
+        order
+            Number of component in the linear superposition
+        superposition
+            Defines the way the vectors are combined in the superposition
+        model_type
+            'classifier' or 'regressor'
+        verbose
+            Prints logs if true
+        """
+        self.method = method
+        self.epsilon = epsilon
+        self.nb_samples = nb_samples
+        self.order = order
+        self.superposition = superposition
+        self.model_type = model_type
+        self.verbose = verbose
+        self.is_fit = False
+
+    def fit(self, X_train: np.ndarray) -> None:
+        """
+
+        Parameters
+        ----------
+        X_train
+            Features vectors of the training set
+
+        Returns
+        -------
+        None
+        """
+        self.X_train = X_train
+        self.features_range = _infer_features_range(X_train)
+        self.is_fit = True
+
+    def linearity_measure(self, predict_fn: Callable, x: np.ndarray) -> float:
+        """
+
+        Parameters
+        ----------
+        predict_fn
+            Predict function
+        x
+            Central instance
+
+        Returns
+        -------
+        Linearity measure
+
+        """
+        assert self.is_fit, 'call fit method'  # can only be used if fit ?
+        if self.method == 'knn':
+            lin = _linearity_measure(predict_fn, x, X_train=self.X_train, features_range=None,
+                                     nb_samples=self.nb_samples, epsilon=self.epsilon, order=self.order,
+                                     superposition=self.superposition, model_type=self.model_type, verbose=self.verbose)
+
+        elif self.method == 'gridSampling':
+            lin = _linearity_measure(predict_fn, x, X_train=None, features_range=self.features_range,
+                                     nb_samples=self.nb_samples, epsilon=self.epsilon, order=self.order,
+                                     superposition=self.superposition, model_type=self.model_type, verbose=self.verbose)
+
+        else:
+            raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
+
+        return lin
+
+
+def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union[List, str] = None,
+                      X_train: np.ndarray = None, epsilon: float = 0.5, nb_samples: int = 10,
+                      order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
+                      verbose: bool = False) -> float:
+    """Calculate the linearity measure of the model around a certain instance.
+
+    Parameters
+    ----------
+    predict_fn
+        Predict function
+    x
+        Central instance
+    features_range
+        Array with min and max values for each feature
     X_train
         Training set
     epsilon
@@ -310,9 +451,16 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray =
     Linearity measure
 
     """
+    if features_range is None and X_train is not None:
+        features_range = _infer_features_range(X_train)  # infer from dataset
+    elif features_range is None and X_train is None:
+        features_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
+    elif features_range == 'infer' and X_train is not None:
+        features_range = _infer_features_range(X_train)
+        X_train = None
 
-    X_pairs, alphas = _generate_pairs(x, X_train=X_train, epsilon=epsilon, nb_samples=nb_samples, order=order,
-                                      superposition=superposition, verbose=verbose)
+    X_pairs, alphas = _generate_pairs(x, X_train=X_train, features_range=features_range, epsilon=epsilon,
+                                      nb_samples=nb_samples, order=order, superposition=superposition, verbose=verbose)
     scores = []
     for pair in X_pairs:
 

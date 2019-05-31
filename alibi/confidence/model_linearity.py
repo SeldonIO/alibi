@@ -162,7 +162,6 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
     Sampled vectors
 
     """
-    print('Sampling from X_train')
     X_train, _ = _flatten_features(X_train)
     X_stack = np.stack([x for i in range(X_train.shape[0])], axis=0)
 
@@ -198,7 +197,6 @@ def _sample_sphere(x: np.ndarray, features_range: List = None, epsilon: float = 
     Sampled vectors
 
     """
-    print('Sampling no X_train')
     features_shape = x.shape
     x = x.flatten()
     dim = len(x)
@@ -212,8 +210,8 @@ def _sample_sphere(x: np.ndarray, features_range: List = None, epsilon: float = 
     if size <= 2:
         size = 2
 
-    rnd_minus = -np.random.randint((2 * size) / 2, size=(nb_samples,dim)) - 1
-    rnd_plus = np.random.randint((2 * size) / 2, size=(nb_samples,dim)) + 1
+    rnd_minus = -np.random.randint(size, size=(nb_samples, dim)) - 1
+    rnd_plus = np.random.randint(size, size=(nb_samples, dim)) + 1
     rnd = np.concatenate([rnd_minus, rnd_plus])
     rnd = np.random.permutation(rnd.T)[:dim].T
 

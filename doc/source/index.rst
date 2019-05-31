@@ -25,6 +25,8 @@
 
    methods/Anchors.ipynb
    methods/CEM.ipynb
+   methods/CF.ipynb
+   methods/CFProto.ipynb
    methods/TrustScores.ipynb
 
 .. toctree::
@@ -38,6 +40,9 @@
    examples/anchor_image_fashion_mnist
    examples/cem_mnist
    examples/cem_iris
+   examples/cf_mnist.ipynb
+   examples/cfproto_mnist.ipynb
+   examples/cfproto_housing.ipynb
    examples/trustscore_iris
    examples/trustscore_mnist
 

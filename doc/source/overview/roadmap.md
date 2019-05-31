@@ -8,9 +8,7 @@ model explanation and provide tools to gauge ML model confidence, measure concep
 outliers and algorithmic bias among other things.
 
 ## Additional explanation methods
-* [Counterfactual examples](https://christophm.github.io/interpretable-ml-book/counterfactual.html)
-  [[WIP](https://github.com/SeldonIO/alibi/pull/35)]
-* [Influence functions](https://arxiv.org/abs/1703.04730)
+* [Influence functions](https://arxiv.org/abs/1703.04730) [[WIP]](https://github.com/SeldonIO/alibi/pull/80)
 * Feature attribution methods (e.g. [SHAP](https://github.com/slundberg/shap))
 * Global methods (e.g. [ALE](https://christophm.github.io/interpretable-ml-book/ale.html#fn31))
 

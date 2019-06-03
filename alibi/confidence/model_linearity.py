@@ -285,7 +285,7 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: L
 
 
 def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-                      features_range: Union[List, str] = None, epsilon: float = 0.04, nb_samples: int = 10,
+                      features_range: Union[List, np.ndarray, str] = None, epsilon: float = 0.04, nb_samples: int = 10,
                       order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
                       verbose: bool = False) -> float:
     """Calculate the linearity measure of the model around a certain instance.

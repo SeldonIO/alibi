@@ -5,7 +5,6 @@ from functools import reduce
 from typing import Any, Tuple, Callable, Union, List
 from time import time
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -44,110 +43,6 @@ def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
     """
     return X.reshape((X.shape[0],) + features_shape)
 
-'''
-
-def _calculate_linearity_regression(predict_fn: Callable, samples: Union[List, np.ndarray],
-                                    alphas: List, verbose: bool = True):
-    """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
-    the linear superposition of the regressor's output for each of the components of the superposition.
-
-    Parameters
-    ----------
-    predict_fn
-        Predict function
-    samples
-        List of features vectors in the linear superposition
-    alphas
-        List of coefficients in the linear superposition
-    verbose
-        Prints logs if true
-
-    Returns
-    -------
-    Output of the superpositon, superposition of the outpu, linearity score
-
-    """
-    print('v1')
-    outs = []
-    for s in samples:
-        try:
-            outs.append(predict_fn(s))
-        except ValueError:
-            outs.append(predict_fn(s.reshape((1,) + s.shape)))
-
-    summ = reduce(lambda x, y: x + y, [alphas[i] * samples[i] for i in range(len(alphas))])
-    try:
-        out_sum = predict_fn(summ)
-    except ValueError:
-        summ = summ.reshape((1,) + summ.shape)
-        out_sum = predict_fn(summ)
-
-    sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[i] for i in range(len(alphas))])
-
-    if verbose:
-        logger.debug(out_sum.shape)
-        logger.debug(sum_out.shape)
-
-    linearity_score = ((out_sum - sum_out) ** 2).sum()
-
-    return out_sum, sum_out, linearity_score
-
-
-def _calculate_linearity_measure(predict_fn: Callable, samples: Union[List, np.ndarray],
-                                 alphas: List, verbose: bool = False) -> Tuple:
-    """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
-    the linear superposition of the classifier's output for each of the components of the superposition.
-
-    Parameters
-    ----------
-    predict_fn
-        Predict function
-    samples
-        List of features vectors in the linear superposition
-    alphas
-        List of coefficients in the linear superposition
-    verbose
-        Prints logs if true
-
-    Returns
-    -------
-    Output of the superpositon, superposition of the outpu, linearity score
-
-    """
-    print('v1')
-    assert len(samples) == len(alphas), 'The number of elements in samples and alphas must be the same; ' \
-                                        'len(samples)={}, len(alphas)={}'.format(len(samples), len(alphas))
-
-    ps = []
-    for s in samples:
-        # print(s.shape)
-        try:
-            ps.append(predict_fn(s))
-        except ValueError:
-            ps.append(predict_fn(s.reshape((1,) + s.shape)))
-    # ps = [predict_fn(samples[i]) for i in range(len(alphas))]
-
-    outs = [np.log(p + 1e-10) for p in ps]
-    summ = reduce(lambda x, y: x + y, [alphas[i] * samples[i] for i in range(len(alphas))])
-    # print(summ.shape)
-
-    try:
-        out_sum = np.log(predict_fn(summ) + 1e-10)
-    except ValueError:
-        summ = summ.reshape((1,) + summ.shape)
-        out_sum = np.log(predict_fn(summ) + 1e-10)
-
-    sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[i] for i in range(len(alphas))])
-
-    if verbose:
-        logger.debug(out_sum.shape)
-        logger.debug(sum_out.shape)
-
-    linearity_score = ((out_sum - sum_out) ** 2).sum() / out_sum.shape[1]  # normalize or not normalize ...
-
-    return out_sum, sum_out, linearity_score
-
-'''
 
 def _calculate_linearity_regression(predict_fn: Callable, input_shape: Tuple, samples: Union[List, np.ndarray],
                                     alphas: List, verbose: bool = True):
@@ -371,56 +266,6 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: L
 
     return X_pairs, alphas
 
-'''
-def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-                      features_range: Union[List, np.ndarray, str] = None, epsilon: float = 0.04, nb_samples: int = 10,
-                      order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
-                      verbose: bool = False) -> float:
-    """Calculate the linearity measure of the model around a certain instance.
-
-    Parameters
-    ----------
-    predict_fn
-        Predict function
-    x
-        Central instance
-    X_train
-        Training set
-    features_range
-        Array with min and max values for each feature
-    epsilon
-        Size of the sampling region around central instance as percentage of features range
-    nb_samples
-        Number of samples to generate
-    order
-        Number of component in the linear superposition
-    superposition
-        Defines the way the vectors are combined in the superposition
-    verbose
-        Prints logs if true
-
-    Returns
-    -------
-    Linearity measure
-
-    """
-    print('v1')
-    X_pairs, alphas = _generate_pairs(x, X_train=X_train, features_range=features_range, epsilon=epsilon,
-                                      nb_samples=nb_samples, order=order, superposition=superposition, verbose=verbose)
-    scores = []
-    for pair in X_pairs:
-
-        if model_type == 'classifier':
-            out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)
-        elif model_type == 'regressor':
-            out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, pair, alphas, verbose=verbose)
-        else:
-            raise NameError('model_type not supported. Supported model types: classifier, regressor')
-
-        scores.append(score)
-
-    return np.asarray(scores).mean()
-'''
 
 def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
                       features_range: Union[List, np.ndarray, str] = None, epsilon: float = 0.04, nb_samples: int = 10,
@@ -460,9 +305,11 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
                                       nb_samples=nb_samples, order=order, superposition=superposition, verbose=verbose)
     #print(X_pairs.shape)
     if model_type == 'classifier':
-        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, input_shape, X_pairs, alphas, verbose=verbose)
+        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, input_shape,
+                                                               X_pairs, alphas, verbose=verbose)
     elif model_type == 'regressor':
-        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, input_shape, X_pairs, alphas, verbose=verbose)
+        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, input_shape,
+                                                                  X_pairs, alphas, verbose=verbose)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
 
@@ -590,6 +437,8 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
     Linearity measure
 
     """
+    input_shape = x.shape[1:]
+
     if features_range is None and X_train is not None:
         features_range = _infer_features_range(X_train)  # infer from dataset
     elif features_range is None and X_train is None:
@@ -600,16 +449,14 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
 
     X_pairs, alphas = _generate_pairs(x, X_train=X_train, features_range=features_range, epsilon=epsilon,
                                       nb_samples=nb_samples, order=order, superposition=superposition, verbose=verbose)
-    scores = []
-    for pair in X_pairs:
 
-        if model_type == 'classifier':
-            out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, pair, alphas, verbose=verbose)
-        elif model_type == 'regressor':
-            out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, pair, alphas, verbose=verbose)
-        else:
-            raise NameError('model_type not supported. Supported model types: classifier, regressor')
+    if model_type == 'classifier':
+        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, input_shape, X_pairs,
+                                                               alphas, verbose=verbose)
+    elif model_type == 'regressor':
+        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, input_shape, X_pairs,
+                                                                  alphas, verbose=verbose)
+    else:
+        raise NameError('model_type not supported. Supported model types: classifier, regressor')
 
-        scores.append(score)
-
-    return np.asarray(scores).mean()
+    return score

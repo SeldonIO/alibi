@@ -17,6 +17,6 @@ def test_linearity_measure():
         return lg.predict_proba(x)
 
     # predict_fn = lambda x: lg.predict_proba(x)
-    lin = linearity_measure(predict_fn, x, X_train)
+    lin = linearity_measure(predict_fn, x.reshape(1, -1), X_train=X_train)
 
     assert lin >= 0, 'Linearity measure must be >= 0'

@@ -5,16 +5,18 @@ from alibi.confidence.model_linearity import linearity_measure
 
 def test_linearity_measure():
 
-	iris = load_iris()
-	X_train = iris.data
-	y_train = iris.target
-	x = X_train[0]
+    iris = load_iris()
+    X_train = iris.data
+    y_train = iris.target
+    x = X_train[0]
 
-	lg = LogisticRegression()
-	lg.fit(X_train, y_train)
+    lg = LogisticRegression()
+    lg.fit(X_train, y_train)
 
-	predict_fn = lambda x: lg.predict_proba(x)
+    def predict_fn(x):
+        return lg.predict_proba(x)
 
-	lin = linearity_measure(predict_fn, x, X_train)
+    # predict_fn = lambda x: lg.predict_proba(x)
+    lin = linearity_measure(predict_fn, x, X_train)
 
-	assert lin >= 0, 'Linearity measure must be >= 0'
+    assert lin >= 0, 'Linearity measure must be >= 0'

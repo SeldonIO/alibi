@@ -422,6 +422,8 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         Number of component in the linear superposition
     superposition
         Defines the way the vectors are combined in the superposition
+    model_type
+        Type of task: 'regressor' or 'classifier'
     verbose
         Prints logs if true
 

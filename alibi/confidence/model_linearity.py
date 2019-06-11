@@ -8,42 +8,6 @@ from time import time
 logger = logging.getLogger(__name__)
 
 
-def _flatten_features(X_train: np.ndarray) -> Tuple:
-    """Flatten training set
-
-    Parameters
-    ----------
-    X_train
-        Training set
-
-    Returns
-    -------
-    Flatten training set, original features shape
-
-    """
-    original_shape = X_train.shape[1:]
-    X_train_reshaped = X_train.reshape(X_train.shape[0], -1)
-    return X_train_reshaped, original_shape
-
-
-def _reshape_features(X: np.ndarray, features_shape: Tuple) -> np.ndarray:
-    """Reshape training set
-
-    Parameters
-    ----------
-    X
-        Training set
-    features_shape
-        Original features shape
-
-    Returns
-    -------
-    Reshaped training set
-
-    """
-    return X.reshape((X.shape[0],) + features_shape)
-
-
 def _calculate_linearity_regression(predict_fn: Callable, input_shape: Tuple, samples: np.ndarray,
                                     alphas: List, verbose: bool = True):
     """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
@@ -135,7 +99,7 @@ def _calculate_linearity_measure(predict_fn: Callable, input_shape: Tuple, sampl
     return out_sum, sum_out, linearity_score
 
 
-def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
+def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
     """Samples data points from training set around instance x
 
     Parameters
@@ -152,22 +116,22 @@ def _sample_train(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> n
     Sampled vectors
 
     """
-    X_train, _ = _flatten_features(X_train)
-    X_stack = np.stack([x for i in range(X_train.shape[0])], axis=0)
+    X_train = X_train.reshape(X_train.shape[0], -1)
+    X_stack = np.stack([x for _ in range(X_train.shape[0])], axis=0)
 
-    X_stack, features_shape = _flatten_features(X_stack)
+    X_stack = X_stack.reshape(X_stack.shape[0], -1)
     nbrs = NearestNeighbors(n_neighbors=nb_samples, algorithm='ball_tree').fit(X_train)
     distances, indices = nbrs.kneighbors(X_stack)
     distances, indices = distances[0], indices[0]
 
     X_sampled = X_train[indices]
-    X_sampled = X_sampled.reshape(X_sampled.shape[0], -1)
+    # X_sampled = X_sampled.reshape(X_sampled.shape[0], -1)
 
     return X_sampled
 
 
-def _sample_sphere(x: np.ndarray, features_range: np.ndarray = None, epsilon: float = 0.04,
-                   nb_samples: int = 10) -> np.ndarray:
+def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsilon: float = 0.04,
+                         nb_samples: int = 10) -> np.ndarray:
     """Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
 
     Parameters
@@ -241,13 +205,13 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: U
 
     if method == 'knn':
         assert X_train is not None, "The 'knn' method requires X_train != None"
-        X_sampled = _sample_train(x, X_train, nb_samples=nb_samples)
+        X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
 
     elif method == 'gridSampling':
         assert features_range is not None, "The 'gridSampling' method requires features_range != None."
         if type(features_range) == list:
             features_range = np.asarray(features_range)
-        X_sampled = _sample_sphere(x, features_range=features_range, epsilon=epsilon, nb_samples=nb_samples)
+        X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon, nb_samples=nb_samples)
 
     else:
         raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
@@ -260,10 +224,11 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: U
     X_pairs = np.asarray([np.vstack((x.flatten(), X_sampled[i: i + order - 1])) for i in range(X_sampled.shape[0])])
     t_f = time() - t_0
     logger.debug('time stacking', t_f)
+
     if superposition == 'uniform':
         alphas = [1 / float(order) for j in range(order)]
     else:
-        logs = np.asarray([np.random.rand() + np.random.randint(1) for i in range(order)])
+        logs = np.asarray([np.random.rand() + np.random.randint(1) for _ in range(order)])
         alphas = np.exp(logs) / np.exp(logs).sum()
 
     if verbose:
@@ -420,7 +385,7 @@ class LinearityMeasure(object):
 
 
 def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union[List, np.ndarray] = None,
-                      method: str = 'gridSampling', X_train: np.ndarray = None, epsilon: float = 0.5,
+                      method: str = 'gridSampling', X_train: np.ndarray = None, epsilon: float = 0.04,
                       nb_samples: int = 10, order: int = 2, superposition: str = 'uniform',
                       model_type: str = 'classifier', verbose: bool = False) -> float:
     """Calculate the linearity measure of the model around a certain instance.

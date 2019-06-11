@@ -65,8 +65,6 @@ def _calculate_linearity_regression(predict_fn: Callable, input_shape: Tuple, sa
     Output of the superpositon, superposition of the outpu, linearity score
 
     """
-
-    print('v2reg')
     ss = samples.shape[:2]
     samples = samples.reshape((samples.shape[0] * samples.shape[1],) + input_shape)
     outs = predict_fn(samples)
@@ -111,13 +109,12 @@ def _calculate_linearity_measure(predict_fn: Callable, input_shape: Tuple, sampl
     Output of the superpositon, superposition of the outpu, linearity score
 
     """
-    print('v2class')
     ss = samples.shape[:2]
     samples = samples.reshape((samples.shape[0] * samples.shape[1],) + input_shape)
     t_0 = time()
     outs = np.log(predict_fn(samples) + 1e-10)
     t_f = time() - t_0
-    print('predict time', t_f)
+    logger.debug('predict time', t_f)
     samples = samples.reshape(ss + input_shape)
     outs = outs.reshape(ss + outs.shape[-1:])
     sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[:, i] for i in range(len(alphas))])
@@ -262,7 +259,7 @@ def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: U
     t_0 = time()
     X_pairs = np.asarray([np.vstack((x.flatten(), X_sampled[i: i + order - 1])) for i in range(X_sampled.shape[0])])
     t_f = time() - t_0
-    print('time stacking', t_f)
+    logger.debug('time stacking', t_f)
     if superposition == 'uniform':
         alphas = [1 / float(order) for j in range(order)]
     else:

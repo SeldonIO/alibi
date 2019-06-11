@@ -6,7 +6,8 @@ from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
 @pytest.mark.parametrize('epsilon', (0.04, 0.1, 0.9))
-def test_linearity_measure_class(method, epsilon):
+@pytest.mark.parametrize('res', (10, 100, 1000))
+def test_linearity_measure_class(method, epsilon, res):
 
     iris = load_iris()
     X_train = iris.data
@@ -19,18 +20,20 @@ def test_linearity_measure_class(method, epsilon):
     def predict_fn(x):
         return lg.predict_proba(x)
 
-    lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, model_type='classifier')
+    lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res,
+                            model_type='classifier')
     assert lin >= 0, 'Linearity measure must be >= 0'
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
-                              model_type='classifier')
+                              res=res, model_type='classifier')
     assert lin_2 >= 0, 'Linearity measure must be >= 0'
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
 @pytest.mark.parametrize('epsilon', (0.04, 0.1, 0.9))
-def test_linearity_measure_reg(method, epsilon):
+@pytest.mark.parametrize('res', (10, 100, 1000))
+def test_linearity_measure_reg(method, epsilon, res):
 
     boston = load_boston()
     X_train, y_train = boston.data, boston.target
@@ -42,18 +45,20 @@ def test_linearity_measure_reg(method, epsilon):
     def predict_fn(x):
         return lg.predict(x)
 
-    lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, model_type='regressor')
+    lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res,
+                            model_type='regressor')
     assert lin >= 0, 'Linearity measure must be >= 0'
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
-                              model_type='regressor')
+                              res=res, model_type='regressor')
     assert lin_2 >= 0, 'Linearity measure must be >= 0'
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
 @pytest.mark.parametrize('epsilon', (0.04, 0.1, 0.9))
-def test_LinearityMeasure_class(method, epsilon):
+@pytest.mark.parametrize('res', (10, 100, 1000))
+def test_LinearityMeasure_class(method, epsilon, res):
 
     iris = load_iris()
     X_train = iris.data
@@ -66,7 +71,7 @@ def test_LinearityMeasure_class(method, epsilon):
     def predict_fn(x):
         return lg.predict_proba(x)
 
-    lm = LinearityMeasure(method=method, epsilon=epsilon, model_type='classifier')
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='classifier')
     lm.fit(X_train)
     lin = lm.linearity_measure(predict_fn, x)
     assert lin >= 0, 'Linearity measure must be >= 0'
@@ -74,7 +79,8 @@ def test_LinearityMeasure_class(method, epsilon):
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
 @pytest.mark.parametrize('epsilon', (0.04, 0.1, 0.9))
-def test_LinearityMeasure_reg(method, epsilon):
+@pytest.mark.parametrize('res', (10, 100, 1000))
+def test_LinearityMeasure_reg(method, epsilon, res):
 
     boston = load_boston()
     X_train, y_train = boston.data, boston.target
@@ -86,7 +92,7 @@ def test_LinearityMeasure_reg(method, epsilon):
     def predict_fn(x):
         return lg.predict(x)
 
-    lm = LinearityMeasure(method=method, epsilon=epsilon, model_type='regressor')
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor')
     lm.fit(X_train)
     lin = lm.linearity_measure(predict_fn, x)
     assert lin >= 0, 'Linearity measure must be >= 0'

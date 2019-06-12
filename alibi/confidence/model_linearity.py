@@ -1,14 +1,13 @@
 import logging
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-from functools import reduce
 from typing import Tuple, Callable, Union, List
 from time import time
 
 logger = logging.getLogger(__name__)
 
 
-def _calculate_linearity_regression(predict_fn: Callable, input_shape: Tuple, samples: np.ndarray,
+def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
                                     alphas: List, verbose: bool = True):
     """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
     the linear superposition of the regressor's output for each of the components of the superposition.
@@ -29,30 +28,35 @@ def _calculate_linearity_regression(predict_fn: Callable, input_shape: Tuple, sa
     Output of the superpositon, superposition of the outpu, linearity score
 
     """
-    ss = samples.shape[:2]
-    samples = samples.reshape((samples.shape[0] * samples.shape[1],) + input_shape)
-    outs = predict_fn(samples)
-    samples = samples.reshape(ss + input_shape)
-    outs = outs.reshape(ss)
-    sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[:, i] for i in range(len(alphas))])
+    ss = X_samples.shape[:2]
+    X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
 
-    summ = reduce(lambda x, y: x + y, [alphas[i] * samples[:, i] for i in range(len(alphas))])
-    try:
-        out_sum = predict_fn(summ)
-    except ValueError:
-        summ = summ.reshape((1,) + summ.shape)
-        out_sum = predict_fn(summ)
+    t_0 = time()
+    outs = predict_fn(X_samples).reshape(ss + (1,))
+    x_out = predict_fn(x)
+    t_f = time() - t_0
+    logger.debug('predict time', t_f)
+
+    x_out = x_out.reshape(x_out.shape + (1,))
+    x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
+    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T
+
+    X_samples = X_samples.reshape(ss + input_shape)
+    x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
+    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T
+    out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
+    out_sum = out_sum.reshape(ss + (1,))
 
     if verbose:
         logger.debug(out_sum.shape)
         logger.debug(sum_out.shape)
 
-    linearity_score = ((out_sum - sum_out) ** 2).mean()
+    linearity_score = ((out_sum - sum_out) ** 2).mean(tuple([i for i in range(1, len(sum_out.shape))]))
 
     return out_sum, sum_out, linearity_score
 
 
-def _calculate_linearity_measure(predict_fn: Callable, input_shape: Tuple, samples: np.ndarray,
+def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
                                  alphas: List, verbose: bool = False) -> Tuple:
     """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
     the linear superposition of the classifier's output for each of the components of the superposition.
@@ -73,28 +77,31 @@ def _calculate_linearity_measure(predict_fn: Callable, input_shape: Tuple, sampl
     Output of the superpositon, superposition of the outpu, linearity score
 
     """
-    ss = samples.shape[:2]
-    samples = samples.reshape((samples.shape[0] * samples.shape[1],) + input_shape)
+
+    ss = X_samples.shape[:2]
+    X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
+
     t_0 = time()
-    outs = np.log(predict_fn(samples) + 1e-10)
+    outs = np.log(predict_fn(X_samples) + 1e-10)
+    x_out = np.log(predict_fn(x) + 1e-10)
     t_f = time() - t_0
     logger.debug('predict time', t_f)
-    samples = samples.reshape(ss + input_shape)
-    outs = outs.reshape(ss + outs.shape[-1:])
-    sum_out = reduce(lambda x, y: x + y, [alphas[i] * outs[:, i] for i in range(len(alphas))])
 
-    summ = reduce(lambda x, y: x + y, [alphas[i] * samples[:, i] for i in range(len(alphas))])
-    try:
-        out_sum = np.log(predict_fn(summ) + 1e-10)
-    except ValueError:
-        summ = summ.reshape((1,) + input_shape)
-        out_sum = np.log(predict_fn(summ) + 1e-10)
+    outs = outs.reshape(ss + outs.shape[-1:])
+    x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
+    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T
+
+    X_samples = X_samples.reshape(ss + input_shape)
+    x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
+    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T
+    out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
+    out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
 
     if verbose:
         logger.debug(out_sum.shape)
         logger.debug(sum_out.shape)
 
-    linearity_score = ((out_sum - sum_out) ** 2).sum(axis=1).mean() / out_sum.shape[-1]
+    linearity_score = ((out_sum - sum_out) ** 2).mean(tuple([i for i in range(1, len(sum_out.shape))]))
 
     return out_sum, sum_out, linearity_score
 
@@ -116,15 +123,23 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
     Sampled vectors
 
     """
-    X_train = X_train.reshape(X_train.shape[0], -1)
-    X_stack = np.stack([x for _ in range(X_train.shape[0])], axis=0)
+    x = x.reshape(x.shape[0], -1)
+    nb_instances = x.shape[0]
 
-    X_stack = X_stack.reshape(X_stack.shape[0], -1)
-    nbrs = NearestNeighbors(n_neighbors=nb_samples, algorithm='ball_tree').fit(X_train)
-    distances, indices = nbrs.kneighbors(X_stack)
-    distances, indices = distances[0], indices[0]
+    X_sampled = []
+    for i in range(nb_instances):
+        X_train = X_train.reshape(X_train.shape[0], -1)
+        X_stack = np.stack([x[i] for _ in range(X_train.shape[0])], axis=0)
 
-    X_sampled = X_train[indices]
+        X_stack = X_stack.reshape(X_stack.shape[0], -1)
+        nbrs = NearestNeighbors(n_neighbors=nb_samples, algorithm='ball_tree').fit(X_train)
+        distances, indices = nbrs.kneighbors(X_stack)
+        distances, indices = distances[0], indices[0]
+
+        X_sampled_tmp = X_train[indices]
+        X_sampled.append(X_sampled_tmp)
+
+    X_sampled = np.array(X_sampled)
 
     return X_sampled
 
@@ -149,9 +164,9 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
     Sampled vectors
 
     """
-
-    x = x.flatten()
-    dim = len(x)
+    nb_instances = x.shape[0]
+    x = x.reshape(x.shape[0], -1)
+    dim = x.shape[1]
 
     assert dim > 0, 'Dimension of the sphere must be bigger than 0'
     assert features_range is not None, 'Features range can not be None'
@@ -162,82 +177,14 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
 
     deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) * (1 / float(res)))
 
-    rnd_sign = 2 * (np.random.randint(2, size=(nb_samples, dim))) - 1
-    rnd = np.random.randint(size, size=(nb_samples, dim)) + 1
+    rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
+    rnd = np.random.randint(size, size=(nb_instances, nb_samples, dim)) + 1
     rnd = rnd_sign * rnd
 
     vprime = rnd * deltas
-    X_sampled = x + vprime
+    X_sampled = x.reshape(x.shape[0], 1, x.shape[1]) + vprime
 
     return X_sampled
-
-
-def _generate_pairs(x: np.ndarray, X_train: np.ndarray = None, features_range: Union[List, np.ndarray] = None,
-                    method: str = None, epsilon: float = 0.5, nb_samples: int = 10, res: int = 100, order: int = 2,
-                    superposition: str = 'uniform', verbose: bool = False) -> Tuple:
-    """Generates the components of the linear superposition and their coefficients.
-
-    Parameters
-    ----------
-    x
-        Central instance
-    X_train
-        Training set
-    features_range
-        Array with min and max values for each feature
-    epsilon
-        Size of the sampling region around central instance as percentage of features range
-    nb_samples
-        Number of samples to genarate
-    order
-        Number of components in the linear superposition
-    superposition
-        Defines the way the vectors are combined in the superposition.
-    verbose
-        Prints logs if true
-
-    Returns
-    -------
-    Vectors in the linear superposition, coefficients.
-
-    """
-    assert method == 'knn' or method == 'gridSampling', "sampling method not supported. " \
-                                                        "Supported methods 'knn' or 'gridSampling'. "
-
-    if method == 'knn':
-        assert X_train is not None, "The 'knn' method requires X_train != None"
-        X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
-
-    elif method == 'gridSampling':
-        assert features_range is not None, "The 'gridSampling' method requires features_range != None."
-        if type(features_range) == list:
-            features_range = np.asarray(features_range)
-        X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon,
-                                         nb_samples=nb_samples, res=res)
-
-    else:
-        raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
-
-    if verbose:
-        logger.debug(x.shape)
-        logger.debug(X_sampled.shape)
-
-    t_0 = time()
-    X_pairs = np.asarray([np.vstack((x.flatten(), X_sampled[i: i + order - 1])) for i in range(X_sampled.shape[0])])
-    t_f = time() - t_0
-    logger.debug('time stacking', t_f)
-
-    if superposition == 'uniform':
-        alphas = [1 / float(order) for j in range(order)]
-    else:
-        logs = np.asarray([np.random.rand() + np.random.randint(1) for _ in range(order)])
-        alphas = np.exp(logs) / np.exp(logs).sum()
-
-    if verbose:
-        logger.debug([X_tmp.shape for X_tmp in X_pairs])
-        logger.debug(len(alphas))
-
-    return X_pairs, alphas
 
 
 def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
@@ -279,16 +226,43 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
     """
     input_shape = x.shape[1:]
 
-    X_pairs, alphas = _generate_pairs(x, X_train=X_train, features_range=features_range, method=method, epsilon=epsilon,
-                                      nb_samples=nb_samples, res=res, order=order, superposition=superposition,
-                                      verbose=verbose)
+    assert method == 'knn' or method == 'gridSampling', "sampling method not supported. " \
+                                                        "Supported methods 'knn' or 'gridSampling'. "
+
+    if method == 'knn':
+        assert X_train is not None, "The 'knn' method requires X_train != None"
+        X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
+
+    elif method == 'gridSampling':
+        assert features_range is not None, "The 'gridSampling' method requires features_range != None."
+        if type(features_range) == list:
+            features_range = np.asarray(features_range)
+        X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon,
+                                         nb_samples=nb_samples, res=res)
+
+    else:
+        raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
+
+    if verbose:
+        logger.debug(x.shape)
+        logger.debug(X_sampled.shape)
+
+    if superposition == 'uniform':
+        alphas = np.array([1 / float(order) for j in range(order)])
+    else:
+        logs = np.asarray([np.random.rand() + np.random.randint(1) for _ in range(order)])
+        alphas = np.exp(logs) / np.exp(logs).sum()
+
+    if verbose:
+        logger.debug(X_sampled.shape)
+        logger.debug(len(alphas))
 
     if model_type == 'classifier':
-        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, input_shape,
-                                                               X_pairs, alphas, verbose=verbose)
+        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, x, input_shape,
+                                                               X_sampled, alphas, verbose=verbose)
     elif model_type == 'regressor':
-        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, input_shape,
-                                                                  X_pairs, alphas, verbose=verbose)
+        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, x, input_shape,
+                                                                  X_sampled, alphas, verbose=verbose)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
 

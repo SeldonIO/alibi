@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                    alphas: List, verbose: bool = True):
+                                    alphas: np.ndarray, verbose: bool = True) -> Tuple:
     """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
     the linear superposition of the regressor's output for each of the components of the superposition.
 
@@ -57,7 +57,7 @@ def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_s
 
 
 def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                 alphas: List, verbose: bool = False) -> Tuple:
+                                 alphas: np.ndarray, verbose: bool = False) -> Tuple:
     """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
     the linear superposition of the classifier's output for each of the components of the superposition.
 
@@ -190,8 +190,8 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
 def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
                        features_range: Union[List, np.ndarray] = None, method: str = None,
                        epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
-                       order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
-                       verbose: bool = False) -> float:
+                       alphas: np.ndarray = None, model_type: str = 'classifier',
+                       verbose: bool = False) -> np.ndarray:
     """Calculate the linearity measure of the model around a certain instance.
 
     Parameters
@@ -213,9 +213,7 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
     res
         Resolution of the grind. Number of interval in which the features range is discretized
     order
-        Number of component in the linear superposition
-    superposition
-        Defines the way the vectors are combined in the superposition
+        Coefficients in the superposition
     verbose
         Prints logs if true
 
@@ -247,11 +245,8 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
         logger.debug(x.shape)
         logger.debug(X_sampled.shape)
 
-    if superposition == 'uniform':
-        alphas = np.array([1 / float(order) for j in range(order)])
-    else:
-        logs = np.asarray([np.random.rand() + np.random.randint(1) for _ in range(order)])
-        alphas = np.exp(logs) / np.exp(logs).sum()
+    if alphas is None:
+        alphas = np.array([0.5, 0.5])
 
     if verbose:
         logger.debug(X_sampled.shape)
@@ -277,7 +272,7 @@ def _infer_features_range(X_train: np.ndarray) -> np.ndarray:
 class LinearityMeasure(object):
 
     def __init__(self, method: str = 'gridSampling', epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
-                 order: int = 2, superposition: str = 'uniform', model_type: str = 'classifier',
+                 alphas: np.ndarray = None, model_type: str = 'classifier',
                  verbose: bool = False) -> None:
         """
 
@@ -291,10 +286,8 @@ class LinearityMeasure(object):
             Number of samples to generate
         res
             Resolution of the grind. Number of interval in which the features range is discretized
-        order
-            Number of component in the linear superposition
-        superposition
-            Defines the way the vectors are combined in the superposition
+        alphas
+            Coefficients in the superposition
         model_type
             'classifier' or 'regressor'
         verbose
@@ -304,8 +297,7 @@ class LinearityMeasure(object):
         self.epsilon = epsilon
         self.nb_samples = nb_samples
         self.res = res
-        self.order = order
-        self.superposition = superposition
+        self.alphas = alphas
         self.model_type = model_type
         self.verbose = verbose
         self.is_fit = False
@@ -327,7 +319,7 @@ class LinearityMeasure(object):
         self.input_shape = X_train.shape[1:]
         self.is_fit = True
 
-    def linearity_measure(self, predict_fn: Callable, x: np.ndarray) -> float:
+    def linearity_measure(self, predict_fn: Callable, x: np.ndarray) -> np.ndarray:
         """
 
         Parameters
@@ -350,8 +342,8 @@ class LinearityMeasure(object):
         if self.method == 'knn':
             assert self.is_fit, "Method 'knn' cannot be use without calling fit(). "
             lin = _linearity_measure(predict_fn, x, X_train=self.X_train, features_range=None, method=self.method,
-                                     nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon, order=self.order,
-                                     superposition=self.superposition, model_type=self.model_type, verbose=self.verbose)
+                                     nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon, alphas=self.alphas,
+                                     model_type=self.model_type, verbose=self.verbose)
 
         elif self.method == 'gridSampling':
             if not self.is_fit:
@@ -359,7 +351,7 @@ class LinearityMeasure(object):
 
             lin = _linearity_measure(predict_fn, x, X_train=None, features_range=self.features_range,
                                      method=self.method, nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon,
-                                     order=self.order, superposition=self.superposition, model_type=self.model_type,
+                                     alphas=self.alphas, model_type=self.model_type,
                                      verbose=self.verbose)
 
         else:
@@ -370,8 +362,8 @@ class LinearityMeasure(object):
 
 def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union[List, np.ndarray] = None,
                       method: str = 'gridSampling', X_train: np.ndarray = None, epsilon: float = 0.04,
-                      nb_samples: int = 10, res: int = 100, order: int = 2, superposition: str = 'uniform',
-                      model_type: str = 'classifier', verbose: bool = False) -> float:
+                      nb_samples: int = 10, res: int = 100, alphas: np.ndarray = None,
+                      model_type: str = 'classifier', verbose: bool = False) -> np.ndarray:
     """Calculate the linearity measure of the model around a certain instance.
 
     Parameters
@@ -392,10 +384,8 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         Number of samples to generate
     res
         Resolution of the grind. Number of interval in which the features range is discretized
-    order
-        Number of component in the linear superposition
-    superposition
-        Defines the way the vectors are combined in the superposition
+    alphas
+        Coefficients in the superposition
     model_type
         Type of task: 'regressor' or 'classifier'
     verbose
@@ -410,8 +400,8 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         assert X_train is not None, " Method 'knn' requires X_train != None"
 
         lin = _linearity_measure(predict_fn, x, X_train=X_train, features_range=None, method=method,
-                                 nb_samples=nb_samples, res=res, epsilon=epsilon, order=order,
-                                 superposition=superposition, model_type=model_type, verbose=verbose)
+                                 nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
+                                 model_type=model_type, verbose=verbose)
 
     elif method == 'gridSampling':
         assert features_range is not None or X_train is not None, "Method 'gridSampling' requires " \
@@ -421,8 +411,8 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         elif features_range is not None:
             features_range = np.asarray(features_range)
         lin = _linearity_measure(predict_fn, x, X_train=None, features_range=features_range, method=method,
-                                 nb_samples=nb_samples, res=res, epsilon=epsilon, order=order,
-                                 superposition=superposition, model_type=model_type, verbose=verbose)
+                                 nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
+                                 model_type=model_type, verbose=verbose)
 
     else:
         raise NameError('method not understood. Supported methods: "knn", "gridSampling"')

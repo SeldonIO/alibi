@@ -34,18 +34,18 @@ def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_s
     t_0 = time()
     outs = predict_fn(X_samples).reshape(ss + (1,))
     x_out = predict_fn(x)
+    x_out = x_out.reshape(x_out.shape + (1,))
     t_f = time() - t_0
     logger.debug('predict time', t_f)
 
-    x_out = x_out.reshape(x_out.shape + (1,))
     x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
     sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T
 
     X_samples = X_samples.reshape(ss + input_shape)
     x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
     summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T
-    out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
-    out_sum = out_sum.reshape(ss + (1,))
+    out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])).reshape(ss + (1,))
+    # out_sum = out_sum.reshape(ss + (1,))
 
     if verbose:
         logger.debug(out_sum.shape)

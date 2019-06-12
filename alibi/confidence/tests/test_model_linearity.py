@@ -24,11 +24,13 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances):
     lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res,
                             model_type='classifier')
     assert lin.shape[0] == nb_instances, 'Checking shapes'
+    assert (lin >= 0).all(), 'Linearity measure must be >= 0'
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
                               res=res, model_type='classifier')
     assert lin_2.shape[0] == nb_instances, 'Checking shapes'
+    assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))

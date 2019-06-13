@@ -16,7 +16,7 @@ def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_s
     ----------
     predict_fn
         Predict function
-    samples
+    X_samples
         List of features vectors in the linear superposition
     alphas
         List of coefficients in the linear superposition
@@ -65,7 +65,7 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     ----------
     predict_fn
         Predict function
-    samples
+    X_samples
         List of features vectors in the linear superposition
     alphas
         List of coefficients in the linear superposition
@@ -175,7 +175,7 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
     if size <= 2:
         size = 2
 
-    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) * (1 / float(res)))
+    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) / float(res))
 
     rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
     rnd = np.random.randint(size, size=(nb_instances, nb_samples, dim)) + 1
@@ -410,6 +410,7 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
             features_range = _infer_features_range(X_train)  # infer from dataset
         elif features_range is not None:
             features_range = np.asarray(features_range)
+
         lin = _linearity_measure(predict_fn, x, X_train=None, features_range=features_range, method=method,
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, verbose=verbose)

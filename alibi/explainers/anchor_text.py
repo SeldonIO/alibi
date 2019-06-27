@@ -2,6 +2,7 @@ from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 import logging
 import numpy as np
+import spacy
 from typing import Any, Callable, Tuple, Dict
 
 logger = logging.getLogger(__name__)
@@ -9,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class Neighbors(object):
 
-    def __init__(self, nlp_obj: Any, n_similar: int = 500, w_prob: float = -15.) -> None:
+    def __init__(self, nlp_obj: spacy.language.Language, n_similar: int = 500, w_prob: float = -15.) -> None:
         """
         Initialize class identifying neighbouring words from the embedding for a given word.
 
@@ -60,7 +61,7 @@ class Neighbors(object):
 
 class AnchorText(object):
 
-    def __init__(self, nlp: Any, predict_fn: Callable) -> None:
+    def __init__(self, nlp: spacy.language.Language, predict_fn: Callable) -> None:
         """
         Initialize anchor text explainer.
 

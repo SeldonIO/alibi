@@ -9,6 +9,10 @@ def readme():
 # read version file
 exec(open('alibi/version.py').read())
 
+extras_require = {
+    'examples': ['seaborn', 'Keras']
+}
+
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
@@ -26,7 +30,6 @@ setup(name='alibi',
       ],
       install_requires=[
           'beautifulsoup4',
-          'keras',
           'numpy',
           'opencv-python',
           'pandas',
@@ -40,5 +43,6 @@ setup(name='alibi',
           'pytest',
           'pytest-cov'
       ],
+      extras_require=extras_require,
       test_suite='tests',
       zip_safe=False)

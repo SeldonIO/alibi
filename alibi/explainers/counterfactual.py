@@ -1,7 +1,6 @@
 import numpy as np
 from typing import Callable, Optional, Tuple, Union
 import tensorflow as tf
-import keras
 import logging
 
 from alibi.utils.gradients import num_grad_batch
@@ -62,7 +61,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Union[Callable, tf.keras.Model, keras.Model],
+                 predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -144,7 +143,13 @@ class CounterFactual:
 
         self.debug = debug
 
-        if isinstance(predict_fn, (tf.keras.Model, keras.Model)):  # Keras or TF model
+        try:
+            import keras
+            is_model = isinstance(predict_fn, (tf.keras.Model, keras.Model))
+        except ModuleNotFoundError:
+            is_model = isinstance(predict_fn, tf.keras.Model)
+
+        if is_model:  # Keras or TF model
             self.model = True
             self.predict_fn = predict_fn.predict  # array function
             self.predict_tn = predict_fn  # tensor function

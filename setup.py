@@ -35,7 +35,6 @@ setup(name='alibi',
           'spacy',
           'scikit-image',
           'tensorflow',
-          'seaborn'
       ],
       tests_require=[
           'pytest',

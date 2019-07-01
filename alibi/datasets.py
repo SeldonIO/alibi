@@ -1,21 +1,20 @@
 from bs4 import BeautifulSoup
-import cv2
+import PIL
 from io import BytesIO
 import numpy as np
 import pandas as pd
 import pickle
 import random
 import requests
+from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
-from socket import timeout
 import tarfile
 from typing import Tuple
-from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
 
 def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
-             min_std: float = 10., seed: int = 42) -> Tuple[list, list]:
+             min_std: float = 10., seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieve imagenet images from specified category which needs to be in the mapping dictionary.
 
@@ -48,20 +47,20 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
     img_urls = str(soup).split('\r\n')  # list of url's
     random.seed(seed)
     random.shuffle(img_urls)  # shuffle image list
-
     data = []
     nb = 0
     for img_url in img_urls:
         try:
-            resp = urlopen(img_url, timeout=2)
-        except (HTTPError, URLError, timeout):
+            resp = requests.get(img_url, timeout=2)
+        except RequestException:
             continue
-        image = np.asarray(bytearray(resp.read()), dtype="uint8")
-        resp.close()
-        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        if image is None:
+        if resp.status_code != 200:
             continue
-        image = np.expand_dims(cv2.resize(image, target_size), axis=0)
+        try:
+            image = PIL.Image.open(BytesIO(resp.content)).convert('RGB')
+        except OSError:
+            continue
+        image = np.expand_dims(image.resize(target_size), axis=0)
         if np.std(image) < min_std:  # do not include empty images
             continue
         data.append(image)

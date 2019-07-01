@@ -31,7 +31,7 @@ setup(name='alibi',
       install_requires=[
           'beautifulsoup4',
           'numpy',
-          'opencv-python',
+          'Pillow',
           'pandas',
           'requests',
           'scikit-learn',

@@ -149,7 +149,7 @@ class CounterFactual:
         try:
             import keras  # noqa
             is_model = isinstance(predict_fn, (tf.keras.Model, keras.Model))
-        except (ModuleNotFoundError, ImportError):
+        except ImportError:
             is_model = isinstance(predict_fn, tf.keras.Model)
 
         if is_model:  # Keras or TF model

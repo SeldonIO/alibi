@@ -93,7 +93,7 @@ class CounterFactualProto(object):
             is_model = isinstance(predict, (tf.keras.Model, keras.Model))
             is_ae = isinstance(ae_model, (tf.keras.Model, keras.Model))
             is_enc = isinstance(enc_model, (tf.keras.Model, keras.Model))
-        except (ModuleNotFoundError, ImportError):
+        except ImportError:
             is_model = isinstance(predict, (tf.keras.Model))
             is_ae = isinstance(ae_model, (tf.keras.Model))
             is_enc = isinstance(enc_model, (tf.keras.Model))

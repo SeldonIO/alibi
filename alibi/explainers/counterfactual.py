@@ -6,7 +6,7 @@ import logging
 from alibi.utils.gradients import num_grad_batch
 
 if TYPE_CHECKING:
-    import keras
+    import keras # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ class CounterFactual:
 
     def __init__(self,
                  sess: tf.Session,
-                 predict_fn: Union[Callable, tf.keras.Model, keras.Model],
+                 predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -147,7 +147,7 @@ class CounterFactual:
         self.debug = debug
 
         try:
-            import keras # noqa
+            import keras  # noqa
             is_model = isinstance(predict_fn, (tf.keras.Model, keras.Model))
         except (ModuleNotFoundError, ImportError):
             is_model = isinstance(predict_fn, tf.keras.Model)

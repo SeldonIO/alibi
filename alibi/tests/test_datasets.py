@@ -1,5 +1,5 @@
 import pytest
-from alibi.datasets import imagenet
+from alibi.datasets import imagenet, movie_sentiment
 
 
 @pytest.mark.parametrize('nb_images', [3])
@@ -12,3 +12,10 @@ def test_imagenet(nb_images, category):
     assert data.min() >= 0
 
     assert len(labels) == nb_images
+
+
+def test_movie_sentiment():
+    data, labels = movie_sentiment()
+
+    assert len(data) == len(labels)
+    assert len(set(labels)) == 2  # binary classification

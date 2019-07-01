@@ -10,7 +10,9 @@ from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
 import tarfile
 from typing import Tuple
-from urllib.request import urlopen
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
@@ -52,9 +54,8 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
     for img_url in img_urls:
         try:
             resp = requests.get(img_url, timeout=2)
+            resp.raise_for_status()
         except RequestException:
-            continue
-        if resp.status_code != 200:
             continue
         try:
             image = PIL.Image.open(BytesIO(resp.content)).convert('RGB')
@@ -69,9 +70,16 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
             break
     data = np.concatenate(data, axis=0)
 
+    # consider hosting list ourselves?
     url_labels = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/' \
                  'd133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
-    label_dict = pickle.load(urlopen(url_labels))
+    try:
+        resp = requests.get(url_labels)
+        resp.raise_for_status()
+        label_dict = pickle.load(BytesIO(resp.content))
+    except RequestException:
+        logger.exception("Could not download labels, URL may be out of service")
+
     inv_label = {v: k for k, v in label_dict.items()}
     label_idx = inv_label[category]
     labels = np.array([label_idx for _ in range(nb_images)])
@@ -87,8 +95,12 @@ def movie_sentiment() -> Tuple[list, list]:
     Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
     """
     url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
-    resp = urlopen(url)
-    tar = tarfile.open(fileobj=BytesIO(resp.read()), mode="r:gz")
+    try:
+        resp = requests.get(url, timeout=2)
+    except RequestException:
+        logger.exception("Could not connect, URL may be out of service")
+
+    tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
     data = []
     labels = []
     for i, member in enumerate(tar.getnames()[1:]):

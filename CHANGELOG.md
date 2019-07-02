@@ -1,5 +1,13 @@
 # Change Log
 
+## [v0.2.1](https://github.com/SeldonIO/alibi/tree/v0.2.1) (2019-07-02)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.0...v0.2.1)
+### Changed
+- Remove `Keras` and `seaborn` from install requirements and create optional `[examples]` `extras_require`
+- Remove `python-opencv` dependency in favour of `PIL`
+- Improve type checking with unimported modules - now requires `python>3.5.1`
+- Add some tests for `alibi.datasets`
+
 ## [v0.2.0](https://github.com/SeldonIO/alibi/tree/v0.2.0) (2019-05-24)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.1.0...v0.2.0)
 

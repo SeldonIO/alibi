@@ -11,4 +11,3 @@ nbsphinx>=0.4.2
 nbsphinx-link>=1.2.0
 ipykernel>=5.1.0
 ipython>=7.2.0
-numpy>=1.14.5

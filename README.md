@@ -25,6 +25,25 @@ Alibi can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```
+This will install `alibi` with all its dependencies:
+```bash
+  beautifulsoup4
+  numpy
+  Pillow
+  pandas
+  requests
+  scikit-learn
+  spacy
+  scikit-image
+  tensorflow
+```
+
+To run all the example notebooks, you may additionally run `pip install alibi[examples]` which will
+install the following:
+```bash
+  seaborn
+  Keras
+```
 
 ## Examples
 

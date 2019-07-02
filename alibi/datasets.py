@@ -1,21 +1,22 @@
 from bs4 import BeautifulSoup
-import cv2
+import PIL
 from io import BytesIO
 import numpy as np
 import pandas as pd
 import pickle
 import random
 import requests
+from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
-from socket import timeout
 import tarfile
 from typing import Tuple
-from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
-             min_std: float = 10., seed: int = 42) -> Tuple[list, list]:
+             min_std: float = 10., seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:
     """
     Retrieve imagenet images from specified category which needs to be in the mapping dictionary.
 
@@ -48,20 +49,19 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
     img_urls = str(soup).split('\r\n')  # list of url's
     random.seed(seed)
     random.shuffle(img_urls)  # shuffle image list
-
     data = []
     nb = 0
     for img_url in img_urls:
         try:
-            resp = urlopen(img_url, timeout=2)
-        except (HTTPError, URLError, timeout):
+            resp = requests.get(img_url, timeout=2)
+            resp.raise_for_status()
+        except RequestException:
             continue
-        image = np.asarray(bytearray(resp.read()), dtype="uint8")
-        resp.close()
-        image = cv2.imdecode(image, cv2.IMREAD_COLOR)
-        if image is None:
+        try:
+            image = PIL.Image.open(BytesIO(resp.content)).convert('RGB')
+        except OSError:
             continue
-        image = np.expand_dims(cv2.resize(image, target_size), axis=0)
+        image = np.expand_dims(image.resize(target_size), axis=0)
         if np.std(image) < min_std:  # do not include empty images
             continue
         data.append(image)
@@ -70,9 +70,16 @@ def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tu
             break
     data = np.concatenate(data, axis=0)
 
+    # consider hosting list ourselves?
     url_labels = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/' \
                  'd133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
-    label_dict = pickle.load(urlopen(url_labels))
+    try:
+        resp = requests.get(url_labels)
+        resp.raise_for_status()
+        label_dict = pickle.load(BytesIO(resp.content))
+    except RequestException:
+        logger.exception("Could not download labels, URL may be out of service")
+
     inv_label = {v: k for k, v in label_dict.items()}
     label_idx = inv_label[category]
     labels = np.array([label_idx for _ in range(nb_images)])
@@ -88,8 +95,12 @@ def movie_sentiment() -> Tuple[list, list]:
     Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
     """
     url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
-    resp = urlopen(url)
-    tar = tarfile.open(fileobj=BytesIO(resp.read()), mode="r:gz")
+    try:
+        resp = requests.get(url, timeout=2)
+    except RequestException:
+        logger.exception("Could not connect, URL may be out of service")
+
+    tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
     data = []
     labels = []
     for i, member in enumerate(tar.getnames()[1:]):

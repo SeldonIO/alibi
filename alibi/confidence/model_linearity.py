@@ -1,63 +1,15 @@
 import logging
+from time import time
+from typing import Tuple, Callable, Union, List
+
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
-from typing import Tuple, Callable, Union, List
-from time import time
 
 logger = logging.getLogger(__name__)
 
 
-def _calculate_linearity_regression(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                    alphas: np.ndarray, verbose: bool = True) -> Tuple:
-    """Calculates the similarity between a regressor's output of a linear superposition of features vectors and
-    the linear superposition of the regressor's output for each of the components of the superposition.
-
-    Parameters
-    ----------
-    predict_fn
-        Predict function
-    X_samples
-        List of features vectors in the linear superposition
-    alphas
-        List of coefficients in the linear superposition
-    verbose
-        Prints logs if true
-
-    Returns
-    -------
-    Output of the superpositon, superposition of the outpu, linearity score
-
-    """
-    ss = X_samples.shape[:2]
-    X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
-
-    t_0 = time()
-    outs = predict_fn(X_samples).reshape(ss + (1,))
-    x_out = predict_fn(x)
-    x_out = x_out.reshape(x_out.shape + (1,))
-    t_f = time() - t_0
-    logger.debug('predict time', t_f)
-
-    x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
-    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T
-
-    X_samples = X_samples.reshape(ss + input_shape)
-    x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
-    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T
-    out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])).reshape(ss + (1,))
-    # out_sum = out_sum.reshape(ss + (1,))
-
-    if verbose:
-        logger.debug(out_sum.shape)
-        logger.debug(sum_out.shape)
-
-    linearity_score = ((out_sum - sum_out) ** 2).mean(tuple([i for i in range(1, len(sum_out.shape))]))
-
-    return out_sum, sum_out, linearity_score
-
-
 def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                 alphas: np.ndarray, verbose: bool = False) -> Tuple:
+                                 model_type: str, alphas: np.ndarray, verbose: bool = False) -> Tuple:
     """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
     the linear superposition of the classifier's output for each of the components of the superposition.
 
@@ -77,25 +29,47 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     Output of the superpositon, superposition of the outpu, linearity score
 
     """
-
-    ss = X_samples.shape[:2]
+    ss = X_samples.shape[:2]  # X_samples shape=(nb_instances, nb_samples, nb_features)
     X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
 
     t_0 = time()
-    outs = np.log(predict_fn(X_samples) + 1e-10)
-    x_out = np.log(predict_fn(x) + 1e-10)
+
+    if model_type == 'classifier':
+        outs = np.log(predict_fn(X_samples) + 1e-10)
+        x_out = np.log(predict_fn(x) + 1e-10)  # shape=(nb_instances, nb_classes)
+        outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_classes)
+    elif model_type == 'regressor':
+        outs = predict_fn(X_samples)
+        x_out = predict_fn(x)
+        if len(outs.shape) == 1:
+            outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
+            x_out = x_out.reshape(x_out.shape + (1,))  # shape=(nb_instances, 1)
+        else:  # if regression on multiple targets
+            outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_targets)
+    else:
+        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+
     t_f = time() - t_0
     logger.debug('predict time', t_f)
 
-    outs = outs.reshape(ss + outs.shape[-1:])
     x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
-    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T
+    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T  # shape=(nb_instances,nb_samples,nb_targets)
 
     X_samples = X_samples.reshape(ss + input_shape)
     x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
-    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T
-    out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
-    out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
+    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T  # shape=(nb_instances,nb_samples,input_shape)
+
+    if model_type == 'classifier':
+        out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
+        out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
+    elif model_type == 'regressor':
+        out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
+        if len(out_sum.shape) == 1:
+            out_sum = out_sum.reshape(ss + (1,))
+        else:
+            out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
+    else:
+        raise NameError('model_type not supported. Supported model types: classifier, regressor')
 
     if verbose:
         logger.debug(out_sum.shape)
@@ -139,7 +113,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
         X_sampled_tmp = X_train[indices]
         X_sampled.append(X_sampled_tmp)
 
-    X_sampled = np.array(X_sampled)
+    X_sampled = np.array(X_sampled)  # shape=(nb_instances, nb_samples, nb_features)
 
     return X_sampled
 
@@ -166,23 +140,20 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
     """
     nb_instances = x.shape[0]
     x = x.reshape(x.shape[0], -1)
-    dim = x.shape[1]
-
-    assert dim > 0, 'Dimension of the sphere must be bigger than 0'
-    assert features_range is not None, 'Features range can not be None'
+    dim = x.shape[1]  # number of features
 
     size = np.round(epsilon * res).astype(int)
     if size <= 2:
         size = 2
 
-    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) / float(res))
+    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) / float(res))  # shape=(nb_features)
 
     rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
     rnd = np.random.randint(size, size=(nb_instances, nb_samples, dim)) + 1
-    rnd = rnd_sign * rnd
+    rnd = rnd_sign * rnd  # shape=(nb_instances, nb_samples, nb_features)
 
     vprime = rnd * deltas
-    X_sampled = x.reshape(x.shape[0], 1, x.shape[1]) + vprime
+    X_sampled = x.reshape(x.shape[0], 1, x.shape[1]) + vprime  # shape=(nb_instances, nb_samples, nb_features)
 
     return X_sampled
 
@@ -252,14 +223,8 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
         logger.debug(X_sampled.shape)
         logger.debug(len(alphas))
 
-    if model_type == 'classifier':
-        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, x, input_shape,
-                                                               X_sampled, alphas, verbose=verbose)
-    elif model_type == 'regressor':
-        out_sum, sum_out, score = _calculate_linearity_regression(predict_fn, x, input_shape,
-                                                                  X_sampled, alphas, verbose=verbose)
-    else:
-        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+    out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, x, input_shape,
+                                                           X_sampled, model_type, alphas, verbose=verbose)
 
     return score
 
@@ -319,7 +284,7 @@ class LinearityMeasure(object):
         self.input_shape = X_train.shape[1:]
         self.is_fit = True
 
-    def linearity_measure(self, predict_fn: Callable, x: np.ndarray) -> np.ndarray:
+    def score(self, predict_fn: Callable, x: np.ndarray) -> np.ndarray:
         """
 
         Parameters

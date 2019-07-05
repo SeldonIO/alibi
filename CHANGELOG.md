@@ -1,5 +1,12 @@
 # Change Log
 
+## [v0.2.2](https://github.com/SeldonIO/alibi/tree/v0.2.2) (2019-07-05)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.1...v0.2.2)
+### Added
+- `codecov` support to CI
+### Fixed
+- Remove lexemes without word vectors in `spacy` models for `AnchorTabular`. This suppresses `spacy` warnings and also make the method (and tests) run a lot faster.
+
 ## [v0.2.1](https://github.com/SeldonIO/alibi/tree/v0.2.1) (2019-07-02)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.0...v0.2.1)
 ### Changed

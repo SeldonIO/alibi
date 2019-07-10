@@ -18,8 +18,7 @@ class BaseExplainer(ABC):
 
 class Explainer(BaseExplainer):
     @property
-    @abstractmethod
-    def explainer_type(self) -> str:
+    def meta(self) -> Dict:
         pass
 
     @abstractmethod
@@ -39,8 +38,7 @@ class Explanation(ABC):
     """
 
     @property
-    @abstractmethod
-    def explanation_type(self) -> str:
+    def meta(self) -> Dict:
         pass
 
     @abstractmethod

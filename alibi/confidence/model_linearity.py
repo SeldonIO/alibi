@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray,
-                         model_type: str, alphas: np.ndarray) -> Tuple:
+                         model_type: str, alphas: np.ndarray) -> np.ndarray:
     """
 
     Parameters
@@ -66,11 +66,11 @@ def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np
 
     linearity_score = norm(out_sum - sum_out, axis=1)
 
-    return out_sum, sum_out, linearity_score
+    return linearity_score
 
 
 def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                 model_type: str, alphas: np.ndarray) -> Tuple:
+                                 model_type: str, alphas: np.ndarray) -> np.ndarray:
     """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
     the linear superposition of the classifier's output for each of the components of the superposition.
 
@@ -136,7 +136,7 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     # linearity_score = ((out_sum - sum_out) ** 2).mean(tuple([i for i in range(1, len(sum_out.shape))]))
     linearity_score = norm(out_sum - sum_out, axis=2).mean(axis=1)
 
-    return out_sum, sum_out, linearity_score
+    return linearity_score
 
 
 def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
@@ -265,7 +265,7 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
 
     elif method == 'gridSampling':
         assert features_range is not None, "The 'gridSampling' method requires features_range != None."
-        if type(features_range) == list:
+        if isinstance(features_range, list):
             features_range = np.asarray(features_range)
         X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon,
                                          nb_samples=nb_samples, res=res)
@@ -280,16 +280,14 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
     if agg == 'pairwise':
         if alphas is None:
             alphas = np.array([0.5, 0.5])
-        out_sum, sum_out, score = _calculate_linearity_measure(predict_fn, x, input_shape,
-                                                               X_sampled, model_type, alphas)
+        score = _calculate_linearity_measure(predict_fn, x, input_shape, X_sampled, model_type, alphas)
     elif agg == 'global':
         if alphas is None:
             alphas = np.array([1 / float(nb_samples) for _ in range(nb_samples)])
-        out_sum, sum_out, score = _calculate_linearity(predict_fn, input_shape,
-                                                       X_sampled, model_type, alphas)
-
+        score = _calculate_linearity(predict_fn, input_shape, X_sampled, model_type, alphas)
     else:
         raise NameError('Aggregation argument agg allowed values: "global" or "pairwise "')
+
     return score
 
 

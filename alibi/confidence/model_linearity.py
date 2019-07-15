@@ -46,7 +46,7 @@ def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
     t_f = time() - t_0
-    logger.debug('predict time', t_f)
+    logger.debug('predict time {}'.format(t_f))
     sum_out = np.matmul(alphas, outs)
 
     X_samples = X_samples.reshape(ss + input_shape)

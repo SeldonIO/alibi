@@ -10,7 +10,8 @@ from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
 @pytest.mark.parametrize('epsilon', (0.04, 0.9))
 @pytest.mark.parametrize('res', (10, 100))
 @pytest.mark.parametrize('nb_instances', (1, 10))
-def test_linearity_measure_class(method, epsilon, res, nb_instances):
+@pytest.mark.parametrize('agg', ('global', 'pairwise'))
+def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
 
     iris = load_iris()
     X_train = iris.data
@@ -24,13 +25,13 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances):
         return lg.predict_proba(x)
 
     lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res,
-                            model_type='classifier')
+                            model_type='classifier', agg=agg)
     assert lin.shape[0] == nb_instances, 'Checking shapes'
     assert (lin >= 0).all(), 'Linearity measure must be >= 0'
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
-                              res=res, model_type='classifier')
+                              res=res, model_type='classifier', agg=agg)
     assert lin_2.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
 
@@ -39,7 +40,8 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances):
 @pytest.mark.parametrize('epsilon', (0.04, 0.9))
 @pytest.mark.parametrize('res', (10, 100))
 @pytest.mark.parametrize('nb_instances', (1, 10))
-def test_linearity_measure_reg(method, epsilon, res, nb_instances):
+@pytest.mark.parametrize('agg', ('global', 'pairwise'))
+def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
 
     boston = load_boston()
     X_train, y_train = boston.data, boston.target
@@ -57,26 +59,26 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances):
         return lg.predict(x)
 
     lin = linearity_measure(predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res,
-                            model_type='regressor')
+                            model_type='regressor', agg=agg)
     assert lin.shape[0] == nb_instances, 'Checking shapes'
     assert (lin >= 0).all(), 'Linearity measure must be >= 0'
     assert np.allclose(lin, np.zeros(lin.shape))
 
     lin_svr = linearity_measure(predict_fn_svr, x, method=method, epsilon=epsilon, X_train=X_train,
-                                res=res, model_type='regressor')
+                                res=res, model_type='regressor', agg=agg)
     assert lin_svr.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_svr >= 0).all(), 'Linearity measure must be >= 0'
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
-                              res=res, model_type='regressor')
+                              res=res, model_type='regressor', agg=agg)
     assert lin_2.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
     assert np.allclose(lin_2, np.zeros(lin_2.shape))
 
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2_svr = linearity_measure(predict_fn_svr, x, method='gridSampling', epsilon=epsilon,
-                                  features_range=features_range, res=res, model_type='regressor')
+                                  features_range=features_range, res=res, model_type='regressor', agg=agg)
     assert lin_2_svr.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2_svr >= 0).all(), 'Linearity measure must be >= 0'
 
@@ -85,7 +87,8 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances):
 @pytest.mark.parametrize('epsilon', (0.04, 0.9))
 @pytest.mark.parametrize('res', (10, 100))
 @pytest.mark.parametrize('nb_instances', (1, 10))
-def test_LinearityMeasure_class(method, epsilon, res, nb_instances):
+@pytest.mark.parametrize('agg', ('global', 'pairwise'))
+def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
 
     iris = load_iris()
     X_train = iris.data
@@ -98,7 +101,7 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances):
     def predict_fn(x):
         return lg.predict_proba(x)
 
-    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='classifier')
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='classifier', agg=agg)
     lm.fit(X_train)
     lin = lm.score(predict_fn, x)
     assert lin.shape[0] == nb_instances, 'Checking shapes'
@@ -109,7 +112,8 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances):
 @pytest.mark.parametrize('epsilon', (0.04, 0.9))
 @pytest.mark.parametrize('res', (10, 100))
 @pytest.mark.parametrize('nb_instances', (1, 10))
-def test_LinearityMeasure_reg(method, epsilon, res, nb_instances):
+@pytest.mark.parametrize('agg', ('global', 'pairwise'))
+def test_LinearityMeasure_reg(method, epsilon, res, nb_instances, agg):
 
     boston = load_boston()
     X_train, y_train = boston.data, boston.target
@@ -121,7 +125,7 @@ def test_LinearityMeasure_reg(method, epsilon, res, nb_instances):
     def predict_fn(x):
         return lg.predict(x)
 
-    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor')
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor', agg=agg)
     lm.fit(X_train)
     lin = lm.score(predict_fn, x)
     assert lin.shape[0] == nb_instances, 'Checking shapes'

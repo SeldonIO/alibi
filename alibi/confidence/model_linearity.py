@@ -9,6 +9,12 @@ import string
 logger = logging.getLogger(__name__)
 
 
+def _linear_superposition(alphas, vecs, shape):
+    input_str = string.ascii_lowercase[2: 2 + len(shape)]
+    einstr = 'a,ba{}->b{}'.format(input_str, input_str)
+    return np.einsum(einstr, alphas, vecs)
+
+
 def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray,
                          model_type: str, alphas: np.ndarray) -> np.ndarray:
     """
@@ -37,25 +43,28 @@ def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np
     t_0 = time()
     if model_type == 'classifier':
         outs = np.log(predict_fn(X_samples) + 1e-10)
-        outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_classes)
+        outs_shape = outs.shape[1:]
+        outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_classes)
     elif model_type == 'regressor':
         outs = predict_fn(X_samples)
+        outs_shape = outs.shape[1:]
         if len(outs.shape) == 1:
             outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
         else:  # if regression on multiple targets
-            outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_targets)
+            outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
     t_f = time() - t_0
     logger.debug('predict time {}'.format(t_f))
-    sum_out = np.matmul(alphas, outs)
+
+    if len(outs_shape) == 0:
+        sum_out = np.matmul(alphas, outs)
+    else:
+        sum_out = _linear_superposition(alphas, outs, outs_shape)
 
     X_samples = X_samples.reshape(ss + input_shape)
-    input_str = string.ascii_lowercase[2: 2 + len(input_shape)]
-    eigenstr = 'a,ba{}->b{}'.format(input_str, input_str)
-    summ = np.einsum(eigenstr, alphas, X_samples)
+    summ = _linear_superposition(alphas, X_samples, input_shape)
 
-    # summ = np.matmul(alphas, X_samples)
     if model_type == 'classifier':
         out_sum = np.log(predict_fn(summ) + 1e-10)
     elif model_type == 'regressor':
@@ -99,16 +108,18 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     t_0 = time()
     if model_type == 'classifier':
         outs = np.log(predict_fn(X_samples) + 1e-10)
+        outs_shape = outs.shape[1:]
         x_out = np.log(predict_fn(x) + 1e-10)  # shape=(nb_instances, nb_classes)
-        outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_classes)
+        outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_classes)
     elif model_type == 'regressor':
         outs = predict_fn(X_samples)
+        outs_shape = outs.shape
         x_out = predict_fn(x)
         if len(outs.shape) == 1:
             outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
             x_out = x_out.reshape(x_out.shape + (1,))  # shape=(nb_instances, 1)
         else:  # if regression on multiple targets
-            outs = outs.reshape(ss + outs.shape[-1:])  # shape=(nb_instances, nb_samples, nb_targets)
+            outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
     t_f = time() - t_0
@@ -134,7 +145,6 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
-    # linearity_score = ((out_sum - sum_out) ** 2).mean(tuple([i for i in range(1, len(sum_out.shape))]))
     linearity_score = norm(out_sum - sum_out, axis=2).mean(axis=1)
 
     return linearity_score

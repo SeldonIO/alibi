@@ -4,6 +4,7 @@ from typing import Tuple, Callable, Union, List
 from numpy.linalg import norm
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
+import string
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,11 @@ def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np
     sum_out = np.matmul(alphas, outs)
 
     X_samples = X_samples.reshape(ss + input_shape)
-    summ = np.matmul(alphas, X_samples)
+    input_str = string.ascii_lowercase[2: 2 + len(input_shape)]
+    eigenstr = 'a,ba{}->b{}'.format(input_str, input_str)
+    summ = np.einsum(eigenstr, alphas, X_samples)
+
+    # summ = np.matmul(alphas, X_samples)
     if model_type == 'classifier':
         out_sum = np.log(predict_fn(summ) + 1e-10)
     elif model_type == 'regressor':
@@ -402,7 +407,6 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         Resolution of the grind. Number of interval in which the features range is discretized
     alphas
         Coefficients in the superposition
-
     agg
         Aggragation method
     model_type

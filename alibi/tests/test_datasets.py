@@ -15,7 +15,7 @@ def test_adult(return_X_y):
         assert len(data) == 2
         X, y = data
     else:
-        assert len(data) == 4
+        assert len(data) == 5
         X = data.data
         y = data.target
 
@@ -54,7 +54,7 @@ def test_movie_sentiment(return_X_y):
         assert len(data) == 2
         X, y = data
     else:
-        assert len(data) == 2
+        assert len(data) == 3
         X = data.data
         y = data.target
 

@@ -124,7 +124,8 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     if return_X_y:
         return data, labels
 
-    return Bunch(data=data, target=labels)
+    target_names = [category for _ in range(nb_images)]
+    return Bunch(data=data, target=labels, target_names=target_names)
 
 
 def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, list]]:
@@ -160,7 +161,8 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     if return_X_y:
         return data, labels
 
-    return Bunch(data=data, target=labels)
+    target_names = ['negative', 'positive']
+    return Bunch(data=data, target=labels, target_names=target_names)
 
 
 def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[Bunch, Tuple[np.ndarray,
@@ -264,8 +266,9 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
 
     # only return data values
     data = data.values
+    target_names = ['<=50K', '>50K']
 
     if return_X_y:
         return data, labels
 
-    return Bunch(data=data, target=labels, feature_names=features, category_map=category_map)
+    return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)

@@ -18,7 +18,7 @@ arr = dframe.values
 def test_get_category_map(categorical_columns, df):
     # test numpy case with no categorical_columns raises error
     if df is arr and categorical_columns is None:
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError):
             _ = get_category_map(df)
 
     else:

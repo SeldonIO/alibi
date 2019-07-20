@@ -45,12 +45,14 @@ def get_category_map(data: Union[pd.DataFrame, np.ndarray],
         that column. Implicitly each category is mapped to the index of its position in the list.
 
     """
-    assert data.ndim == 2, 'Expected 2-dimensional dataframe'
+    if data.ndim != 2:
+        raise TypeError('Expected a 2-dimensional dataframe or array')
     n_features = data.shape[1]
 
     if isinstance(data, np.ndarray):
         # if numpy array, we need categorical_columns, otherwise impossible to infer
-        assert categorical_columns is not None, 'If passing a numpy array, `categorical_columns` is required'
+        if categorical_columns is None:
+            raise ValueError('If passing a numpy array, `categorical_columns` is required')
         data = pd.DataFrame(data)
 
     # infer categorical columns

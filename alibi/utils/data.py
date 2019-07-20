@@ -26,7 +26,7 @@ class Bunch(dict):
             raise AttributeError(key)
 
 
-def get_category_map(data: Union[pd.DataFrame, np.ndarray],
+def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
                      categorical_columns: list = None) -> Dict[int, list]:
     """
 

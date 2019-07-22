@@ -15,10 +15,10 @@ def _linear_superposition(alphas, vecs, shape):
     return np.einsum(einstr, alphas, vecs)
 
 
-def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray,
-                         model_type: str, alphas: np.ndarray) -> np.ndarray:
-    """
-
+def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray,
+                                model_type: str, alphas: np.ndarray) -> np.ndarray:
+    """Calculates the norm of the difference between the output of a linear superposition of vectors and the
+    linear superposition of the outputs for each individual vectors.
     Parameters
     ----------
     predict_fn
@@ -83,10 +83,10 @@ def _calculate_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np
     return linearity_score
 
 
-def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
+def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
                                  model_type: str, alphas: np.ndarray) -> np.ndarray:
-    """Calculates the similarity between a classifier's output of a linear superposition of features vectors and
-    the linear superposition of the classifier's output for each of the components of the superposition.
+    """Calculates norm of the difference between the output of a linear superposition of the vector x and a vector
+    in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
 
     Parameters
     ----------
@@ -126,12 +126,17 @@ def _calculate_linearity_measure(predict_fn: Callable, x: np.ndarray, input_shap
     logger.debug('predict time', t_f)
 
     x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1,) + (x_out.shape[1:])), outs.shape[1], axis=1)
+
+    # linear superposition of the outputs
     sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T  # shape=(nb_instances,nb_samples,nb_targets)
 
     X_samples = X_samples.reshape(ss + input_shape)
     x_stack = np.repeat(x.reshape((x.shape[0], 1,) + (x.shape[1:])), X_samples.shape[1], axis=1)
+
+    # linear superposition of the inputs
     summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T  # shape=(nb_instances,nb_samples,input_shape)
     if model_type == 'classifier':
+        # output of the linear superposition of inputs
         out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
         out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
     elif model_type == 'regressor':
@@ -279,20 +284,20 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
         X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon,
                                          nb_samples=nb_samples, res=res)
     else:
-        raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
+        raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
     logger.debug(x.shape)
     logger.debug(X_sampled.shape)
 
     if agg == 'pairwise':
         if alphas is None:
             alphas = np.array([0.5, 0.5])
-        score = _calculate_linearity_measure(predict_fn, x, input_shape, X_sampled, model_type, alphas)
+        score = _calculate_pairwise_linearity(predict_fn, x, input_shape, X_sampled, model_type, alphas)
     elif agg == 'global':
         if alphas is None:
             alphas = np.array([1 / float(nb_samples) for _ in range(nb_samples)])
-        score = _calculate_linearity(predict_fn, input_shape, X_sampled, model_type, alphas)
+        score = _calculate_global_linearity(predict_fn, input_shape, X_sampled, model_type, alphas)
     else:
-        raise NameError('Aggregation argument agg allowed values: "global" or "pairwise "')
+        raise ValueError('Aggregation argument agg allowed values: "global" or "pairwise "')
 
     return score
 
@@ -386,7 +391,7 @@ class LinearityMeasure(object):
                                      method=self.method, nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon,
                                      alphas=self.alphas, model_type=self.model_type, agg=self.agg)
         else:
-            raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
+            raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
 
         return lin
 
@@ -446,6 +451,6 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, agg=agg)
     else:
-        raise NameError('method not understood. Supported methods: "knn", "gridSampling"')
+        raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
 
     return lin

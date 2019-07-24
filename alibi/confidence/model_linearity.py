@@ -113,7 +113,7 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
         outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_classes)
     elif model_type == 'regressor':
         outs = predict_fn(X_samples)
-        outs_shape = outs.shape
+        outs_shape = outs.shape[1:]
         x_out = predict_fn(x)
         if len(outs.shape) == 1:
             outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)

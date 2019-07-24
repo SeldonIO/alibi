@@ -18,6 +18,9 @@ class BaseExplainer(ABC):
 
 class Explainer(BaseExplainer):
 
+    def __init__(self):
+        self.meta = {}
+
     @property
     def meta(self) -> Dict:
         return self._meta
@@ -44,6 +47,10 @@ class Explanation(ABC):
     """
     Base class for explanations returned by explainers
     """
+
+    def __init__(self):
+        self.meta = {}
+        self.data = {}
 
     @property
     def meta(self) -> Dict:

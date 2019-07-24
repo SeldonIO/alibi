@@ -68,7 +68,7 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
     return X_train, model, ae, enc
 
 
-@pytest.fixture
+@pytest.fixture(scope='module')
 def tf_keras_iris_explainer(request, tf_keras_iris):
     X_train, model, ae, enc = tf_keras_iris
     sess = K.get_session()

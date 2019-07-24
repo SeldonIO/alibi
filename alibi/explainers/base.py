@@ -50,7 +50,7 @@ class Explanation(ABC):
 
     def __init__(self):
         self.meta = {}
-        self.data = {}
+        self.data = {"local": None, "global": None}
 
     @property
     def meta(self) -> Dict:
@@ -59,8 +59,7 @@ class Explanation(ABC):
     @meta.setter
     # TODO validation here
     def meta(self, value):
-        if not isinstance(value, dict):
-            raise TypeError('meta must be a dictionary')
+        _validate_meta(value)
         self._meta = value
 
     @property
@@ -70,6 +69,25 @@ class Explanation(ABC):
     @data.setter
     # TODO validation here
     def data(self, value):
-        if not isinstance(value, dict):
-            raise TypeError('data must be a dictionary')
+        _validate_data(value)
         self._data = value
+
+
+class DataException(Exception):
+    pass
+
+
+class MetaException(Exception):
+    pass
+
+
+def _validate_meta(meta):
+    if not isinstance(meta, dict):
+        raise MetaException('Meta must be a dictionary')
+
+
+def _validate_data(data):
+    if not isinstance(data, dict):
+        raise DataException('Data must be a dictionary')
+    if set(data.keys()) != {'local', 'global'}:
+        raise DataException('Data must have `local` and `global` as top level fields')

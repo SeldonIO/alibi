@@ -1,9 +1,12 @@
-from alibi.explainers.base import Explainer, Explanation, FitMixin
+from alibi.explainers.base import Explainer, Explanation, FitMixin, DataException, MetaException
 import numpy as np
 import pytest
 
-meta = {"scope": "local", "type": "blackbox"}
-data = {"local": {0: None}, "global": None}
+valid_meta = {"scope": "local", "type": "blackbox"}
+valid_data = {"local": {0: None}, "global": None}
+
+invalid_meta = []
+invalid_data = {}
 
 
 class IncompleteExplainer(Explainer):
@@ -34,8 +37,8 @@ class SimpleFitExplainer(FitMixin, Explainer):
 @pytest.fixture
 def min_exp():
     exp = Explanation()
-    exp.meta = meta
-    exp.data = data
+    exp.meta = valid_meta
+    exp.data = valid_data
     return exp
 
 
@@ -61,11 +64,11 @@ def test_explainer():
         pytest.fail("Unknown exception")
 
 
-def test_explainer_meta():
+def test_explainer_valid_meta():
     try:
         exp = SimpleExplainer()
-        exp.meta = meta
-        assert exp.meta == meta
+        exp.meta = valid_meta
+        assert exp.meta == valid_meta
         assert isinstance(exp.__class__.meta, property)
         assert hasattr(exp, "explain")
     except Exception:
@@ -90,11 +93,11 @@ def test_fitexplainer():
 
 def test_complete_explanation():
     try:
-        exp = CompleteExplanation(meta=meta, data=data)
-        assert exp.meta == meta
+        exp = CompleteExplanation(meta=valid_meta, data=valid_data)
+        assert exp.meta == valid_meta
         assert isinstance(exp.__class__.meta, property)
 
-        assert exp.data == data
+        assert exp.data == valid_data
         assert exp.data["local"][0] is None
         assert exp.data["global"] is None
 
@@ -107,10 +110,10 @@ def test_complete_explanation():
 
 def test_minimal_explanation(min_exp):
     try:
-        assert min_exp.meta == meta
+        assert min_exp.meta == valid_meta
         assert isinstance(min_exp.__class__.meta, property)
 
-        assert min_exp.data == data
+        assert min_exp.data == valid_data
         assert min_exp.data["local"][0] is None
         assert min_exp.data["global"] is None
 
@@ -119,3 +122,12 @@ def test_minimal_explanation(min_exp):
 
     except Exception:
         pytest.fail("Unknown exception")
+
+
+def test_invalid_explanation():
+    with pytest.raises(DataException):
+        exp = CompleteExplanation(meta=valid_meta, data=invalid_data)
+    with pytest.raises(MetaException):
+        exp = CompleteExplanation(meta=invalid_meta, data=valid_data)
+    with pytest.raises(MetaException):
+        exp = CompleteExplanation(meta=invalid_meta, data=invalid_data)

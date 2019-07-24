@@ -17,9 +17,17 @@ class BaseExplainer(ABC):
 
 
 class Explainer(BaseExplainer):
+
     @property
     def meta(self) -> Dict:
-        pass
+        return self._meta
+
+    @meta.setter
+    # TODO validation here
+    def meta(self, value):
+        if not isinstance(value, dict):
+            raise TypeError('meta must be a dictionary')
+        self._meta = value
 
     @abstractmethod
     def explain(self, X: np.ndarray, y: np.ndarray = None) -> "Explanation":
@@ -39,8 +47,22 @@ class Explanation(ABC):
 
     @property
     def meta(self) -> Dict:
-        pass
+        return self._meta
 
-    @abstractmethod
-    def data(self, key: int = None) -> Data:
-        pass
+    @meta.setter
+    # TODO validation here
+    def meta(self, value):
+        if not isinstance(value, dict):
+            raise TypeError('meta must be a dictionary')
+        self._meta = value
+
+    @property
+    def data(self) -> Data:
+        return self._data
+
+    @data.setter
+    # TODO validation here
+    def data(self, value):
+        if not isinstance(value, dict):
+            raise TypeError('data must be a dictionary')
+        self._data = value

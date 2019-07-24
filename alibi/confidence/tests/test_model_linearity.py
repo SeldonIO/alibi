@@ -103,6 +103,20 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
     assert lin_2_svr.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2_svr >= 0).all(), 'Linearity measure must be >= 0'
 
+    y_train_multi = np.stack((y_train, y_train), axis=1)
+    lg_multi = LinearRegression()
+    lg_multi.fit(X_train, y_train_multi)
+
+    def predict_fn_multi(x):
+        return lg_multi.predict(x)
+
+    lm_multi = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor', agg=agg)
+    lm_multi.fit(X_train)
+    lin_multi = lm_multi.score(predict_fn_multi, x)
+    assert lin_multi.shape[0] == nb_instances, 'Checking shapes'
+    assert (lin_multi >= 0).all(), 'Linearity measure must be >= 0'
+    assert np.allclose(lin_multi, np.zeros(lin_multi.shape))
+
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
 @pytest.mark.parametrize('epsilon', (0.04,))
@@ -146,9 +160,23 @@ def test_LinearityMeasure_reg(method, epsilon, res, nb_instances, agg):
     def predict_fn(x):
         return lg.predict(x)
 
+    y_train_multi = np.stack((y_train, y_train), axis=1)
+    lg_multi = LinearRegression()
+    lg_multi.fit(X_train, y_train_multi)
+
+    def predict_fn_multi(x):
+        return lg_multi.predict(x)
+
     lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor', agg=agg)
     lm.fit(X_train)
     lin = lm.score(predict_fn, x)
     assert lin.shape[0] == nb_instances, 'Checking shapes'
     assert (lin >= 0).all(), 'Linearity measure must be >= 0'
     assert np.allclose(lin, np.zeros(lin.shape))
+
+    lm_multi = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type='regressor', agg=agg)
+    lm_multi.fit(X_train)
+    lin_multi = lm_multi.score(predict_fn_multi, x)
+    assert lin_multi.shape[0] == nb_instances, 'Checking shapes'
+    assert (lin_multi >= 0).all(), 'Linearity measure must be >= 0'
+    assert np.allclose(lin_multi, np.zeros(lin_multi.shape))

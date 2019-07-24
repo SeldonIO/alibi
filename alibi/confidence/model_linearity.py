@@ -84,7 +84,7 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
 
 
 def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
-                                 model_type: str, alphas: np.ndarray) -> np.ndarray:
+                                  model_type: str, alphas: np.ndarray) -> np.ndarray:
     """Calculates norm of the difference between the output of a linear superposition of the vector x and a vector
     in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
 

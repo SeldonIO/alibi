@@ -1,5 +1,13 @@
 # Change Log
 
+## Unreleased
+
+### Added
+- `gen_category_map` utility function to facilitate using AnchorTabular explainer
+### Changed
+- Sample datasets now return a `Bunch` object by default, bundling all necessary and optional attributes for each dataset
+- Loading sample datasets are now invoked via the `fetch_` functions to indicate that a network download is being made
+
 ## [v0.2.2](https://github.com/SeldonIO/alibi/tree/v0.2.2) (2019-07-05)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.1...v0.2.2)
 ### Added

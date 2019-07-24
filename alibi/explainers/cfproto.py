@@ -584,8 +584,8 @@ class CounterFactualProto(object):
                 if c not in target_class:
                     continue
                 dist_c, idx_c = self.kdtrees[c].query(X, k=k)
-                dist_proto[c] = dist_c[0]
-                self.class_proto[c] = self.X_by_class[c][idx_c[0]]
+                dist_proto[c] = dist_c[0][-1]
+                self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
             self.id_proto = min(dist_proto, key=dist_proto.get)

@@ -3,12 +3,33 @@ import numpy as np
 from sklearn.datasets import load_iris, load_boston
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
-from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
+from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure, _linear_superposition
+from functools import reduce
+
+
+@pytest.mark.parametrize('input_shape', ((3,), (4, 4, 1)))
+@pytest.mark.parametrize('nb_instances', (1, 10))
+def test_linear_superposition(input_shape, nb_instances):
+    alphas = np.array([0.5, 0.5])
+
+    vecs_list = []
+    for i in range(nb_instances):
+        v0 = np.zeros((1,) + input_shape)
+        v1 = np.ones((1,) + input_shape)
+        vec = np.stack((v0, v1), axis=1)
+        vecs_list.append(vec)
+    vecs = reduce(lambda x, y: np.vstack((x, y)), vecs_list)
+
+    summ = _linear_superposition(alphas, vecs, input_shape)
+
+    assert summ.shape[0] == nb_instances
+    assert summ.shape[1:] == input_shape
+    assert (summ == 0.5).all()
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
-@pytest.mark.parametrize('epsilon', (0.04, 0.9))
-@pytest.mark.parametrize('res', (10, 100))
+@pytest.mark.parametrize('epsilon', (0.04,))
+@pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
@@ -37,8 +58,8 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
-@pytest.mark.parametrize('epsilon', (0.04, 0.9))
-@pytest.mark.parametrize('res', (10, 100))
+@pytest.mark.parametrize('epsilon', (0.04,))
+@pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
@@ -84,8 +105,8 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
-@pytest.mark.parametrize('epsilon', (0.04, 0.9))
-@pytest.mark.parametrize('res', (10, 100))
+@pytest.mark.parametrize('epsilon', (0.04,))
+@pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
@@ -109,8 +130,8 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
-@pytest.mark.parametrize('epsilon', (0.04, 0.9))
-@pytest.mark.parametrize('res', (10, 100))
+@pytest.mark.parametrize('epsilon', (0.04,))
+@pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_LinearityMeasure_reg(method, epsilon, res, nb_instances, agg):

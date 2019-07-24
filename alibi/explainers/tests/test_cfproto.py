@@ -68,7 +68,7 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
     return X_train, model, ae, enc
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture
 def tf_keras_iris_explainer(request, tf_keras_iris):
     X_train, model, ae, enc = tf_keras_iris
     sess = K.get_session()
@@ -125,7 +125,7 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     # test explanation
     explanation = cf.explain(x, k=k)
     assert cf.id_proto != pred_class
-    assert np.argmax(model.predict(explanation['cf']['X'])) == cf.id_proto == explanation['cf']['class']
+    assert np.argmax(model.predict(explanation['cf']['X'])) == explanation['cf']['class']
     assert explanation['cf']['grads_num'].shape == explanation['cf']['grads_graph'].shape == x.shape
 
     # test gradient shapes

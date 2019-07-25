@@ -1,5 +1,28 @@
 # Change Log
 
+## Unreleased
+
+### Added
+- `gen_category_map` utility function to facilitate using AnchorTabular explainer
+### Changed
+- Sample datasets now return a `Bunch` object by default, bundling all necessary and optional attributes for each dataset
+- Loading sample datasets are now invoked via the `fetch_` functions to indicate that a network download is being made
+
+## [v0.2.2](https://github.com/SeldonIO/alibi/tree/v0.2.2) (2019-07-05)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.1...v0.2.2)
+### Added
+- `codecov` support to CI
+### Fixed
+- Remove lexemes without word vectors in `spacy` models for `AnchorTabular`. This suppresses `spacy` warnings and also make the method (and tests) run a lot faster.
+
+## [v0.2.1](https://github.com/SeldonIO/alibi/tree/v0.2.1) (2019-07-02)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.0...v0.2.1)
+### Changed
+- Remove `Keras` and `seaborn` from install requirements and create optional `[examples]` `extras_require`
+- Remove `python-opencv` dependency in favour of `PIL`
+- Improve type checking with unimported modules - now requires `python>3.5.1`
+- Add some tests for `alibi.datasets`
+
 ## [v0.2.0](https://github.com/SeldonIO/alibi/tree/v0.2.0) (2019-05-24)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.1.0...v0.2.0)
 

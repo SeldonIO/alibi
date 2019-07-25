@@ -15,3 +15,5 @@ script:
   - travis_wait pytest
   - make build_pypi
   - make build_docs
+after_success:
+  - codecov

@@ -18,19 +18,20 @@ def _linear_superposition(alphas, vecs, shape):
 def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray,
                                 model_type: str, alphas: np.ndarray) -> np.ndarray:
     """Calculates the norm of the difference between the output of a linear superposition of vectors and the
-    linear superposition of the outputs for each individual vectors.
+    linear superposition of the outputs for each individual vector.
+
     Parameters
     ----------
     predict_fn
-        predict function
+        Model prediction function
     input_shape
         Shape of the input
     X_samples
-        List of features vectors in the linear superposition
+        Array of feature vectors in the linear superposition
     model_type
-        Classifier or regressor
+        'classifier' or 'regressor'
     alphas
-        Coefficients of the linear superposition
+        Array of coefficients in the linear superposition
 
     Returns
     -------
@@ -53,7 +54,7 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
         else:  # if regression on multiple targets
             outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
-        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     t_f = time() - t_0
     logger.debug('predict time {}'.format(t_f))
 
@@ -74,7 +75,7 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
         else:
             out_sum = out_sum.reshape((ss[0],) + out_sum.shape[-1:])
     else:
-        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
@@ -85,17 +86,23 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
 
 def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
                                   model_type: str, alphas: np.ndarray) -> np.ndarray:
-    """Calculates norm of the difference between the output of a linear superposition of the vector x and a vector
-    in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
+    """Calculates the norm of the difference between the output of a linear superposition of a test vector x and
+    vectors in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
 
     Parameters
     ----------
     predict_fn
-        Predict function
+        Model prediction function
+    x
+        Test instance for which to calculate the linearity measure
+    input_shape
+        Shape of the input
     X_samples
-        List of features vectors in the linear superposition
+        Array of feature vectors in the linear superposition
+    model_type
+        'classifier' or 'regressor'
     alphas
-        List of coefficients in the linear superposition
+        Array of coefficients in the linear superposition
 
     Returns
     -------
@@ -121,7 +128,7 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
         else:  # if regression on multiple targets
             outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
-        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     t_f = time() - t_0
     logger.debug('predict time', t_f)
 
@@ -146,7 +153,7 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
         else:
             out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
     else:
-        raise NameError('model_type not supported. Supported model types: classifier, regressor')
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
@@ -156,12 +163,12 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
 
 
 def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
-    """Samples data points from training set around instance x
+    """Samples data points from a training set around instance x using k-nearest neighbours.
 
     Parameters
     ----------
     x
-        Centre instance for sampling
+        Central instance for sampling
     X_train
         Training set
     nb_samples
@@ -195,7 +202,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
 
 def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsilon: float = 0.04,
                          nb_samples: int = 10, res: int = 100) -> np.ndarray:
-    """Samples datapoints from a gaussian distribution centered at x and with standard deviation epsilon.
+    """Samples data points from a gaussian distribution centered at x and with standard deviation epsilon.
 
     Parameters
     ----------
@@ -234,33 +241,33 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
 
 
 def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-                       features_range: Union[List, np.ndarray] = None, method: str = None,
+                       feature_range: Union[List, np.ndarray] = None, method: str = None,
                        epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
                        alphas: np.ndarray = None, model_type: str = 'classifier', agg: str = 'global') -> np.ndarray:
-    """Calculate the linearity measure of the model around a certain instance.
+    """Calculate the linearity measure of the model around a test instance.
 
     Parameters
     ----------
     predict_fn
-        Predict function
+        Model prediction function
     x
         Central instance
     X_train
         Training set
-    features_range
+    feature_range
         Array with min and max values for each feature
     method
-        Method for sampling. Supported methods 'knn' or 'gridSampling'
+        Method for sampling. Supported methods: 'knn' or 'gridSampling'
     epsilon
-        Size of the sampling region around central instance as percentage of features range
+        Size of the sampling region around central instance as percentage of feature range
     nb_samples
         Number of samples to generate
     res
-        Resolution of the grind. Number of interval in which the features range is discretized
-    order
-        Coefficients in the superposition
+        Resolution of the grind. Number of intervals in which the feature range is discretized
+    alphas
+        Array of coefficients in the superposition
     agg
-        Aggragation method
+        Aggregation method. Supported methods: 'global' or 'pairwise'
     verbose
         Prints logs if true
 
@@ -278,10 +285,10 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
         assert X_train is not None, "The 'knn' method requires X_train != None"
         X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
     elif method == 'gridSampling':
-        assert features_range is not None, "The 'gridSampling' method requires features_range != None."
-        if isinstance(features_range, list):
-            features_range = np.asarray(features_range)
-        X_sampled = _sample_gridSampling(x, features_range=features_range, epsilon=epsilon,
+        assert feature_range is not None, "The 'gridSampling' method requires features_range != None."
+        if isinstance(feature_range, list):
+            feature_range = np.asarray(feature_range)
+        X_sampled = _sample_gridSampling(x, features_range=feature_range, epsilon=epsilon,
                                          nb_samples=nb_samples, res=res)
     else:
         raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
@@ -302,7 +309,7 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
     return score
 
 
-def _infer_features_range(X_train: np.ndarray) -> np.ndarray:
+def _infer_feature_range(X_train: np.ndarray) -> np.ndarray:
     X_train = X_train.reshape(X_train.shape[0], -1)
     return np.vstack((X_train.min(axis=0), X_train.max(axis=0))).T
 
@@ -325,7 +332,7 @@ class LinearityMeasure(object):
         res
             Resolution of the grind. Number of interval in which the features range is discretized
         alphas
-            Coefficients in the superposition
+            Array of coefficients in the superposition
         model_type
             'classifier' or 'regressor'
         verbose
@@ -354,7 +361,7 @@ class LinearityMeasure(object):
         None
         """
         self.X_train = X_train
-        self.features_range = _infer_features_range(X_train)
+        self.features_range = _infer_feature_range(X_train)
         self.input_shape = X_train.shape[1:]
         self.is_fit = True
 
@@ -380,14 +387,14 @@ class LinearityMeasure(object):
 
         if self.method == 'knn':
             assert self.is_fit, "Method 'knn' cannot be use without calling fit(). "
-            lin = _linearity_measure(predict_fn, x, X_train=self.X_train, features_range=None, method=self.method,
+            lin = _linearity_measure(predict_fn, x, X_train=self.X_train, feature_range=None, method=self.method,
                                      nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon, alphas=self.alphas,
                                      model_type=self.model_type, agg=self.agg)
         elif self.method == 'gridSampling':
             if not self.is_fit:
                 self.features_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
 
-            lin = _linearity_measure(predict_fn, x, X_train=None, features_range=self.features_range,
+            lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=self.features_range,
                                      method=self.method, nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon,
                                      alphas=self.alphas, model_type=self.model_type, agg=self.agg)
         else:
@@ -400,7 +407,7 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
                       method: str = 'gridSampling', X_train: np.ndarray = None, epsilon: float = 0.04,
                       nb_samples: int = 10, res: int = 100, alphas: np.ndarray = None, agg: str = 'global',
                       model_type: str = 'classifier', verbose: bool = False) -> np.ndarray:
-    """Calculate the linearity measure of the model around a certain instance.
+    """Calculate the linearity measure of the model around a test instance.
 
     Parameters
     ----------
@@ -436,18 +443,18 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
     """
     if method == 'knn':
         assert X_train is not None, " Method 'knn' requires X_train != None"
-        lin = _linearity_measure(predict_fn, x, X_train=X_train, features_range=None, method=method,
+        lin = _linearity_measure(predict_fn, x, X_train=X_train, feature_range=None, method=method,
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, agg=agg)
     elif method == 'gridSampling':
         assert features_range is not None or X_train is not None, "Method 'gridSampling' requires " \
                                                                   "features_range != None or X_train != None"
         if X_train is not None and features_range is None:
-            features_range = _infer_features_range(X_train)  # infer from dataset
+            features_range = _infer_feature_range(X_train)  # infer from dataset
         elif features_range is not None:
             features_range = np.asarray(features_range)
 
-        lin = _linearity_measure(predict_fn, x, X_train=None, features_range=features_range, method=method,
+        lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=features_range, method=method,
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, agg=agg)
     else:

@@ -4,6 +4,9 @@
 
 ### Added
 - `gen_category_map` utility function to facilitate using AnchorTabular explainer
+- Extend `CounterFactualProto` with a more flexible choice for prototypes using k closest encoded instances
+- Allow user to specify a hard target class for `CounterFactualProto`
+- Distributed tests usign `pytest-xdist` to overcome TF global session interfering with tests running in the same process
 ### Changed
 - Sample datasets now return a `Bunch` object by default, bundling all necessary and optional attributes for each dataset
 - Loading sample datasets are now invoked via the `fetch_` functions to indicate that a network download is being made

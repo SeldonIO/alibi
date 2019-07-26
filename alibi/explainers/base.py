@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections.abc import Sequence
 from typing import Any, Dict, List, Union
 
 # input and output types
@@ -42,7 +43,7 @@ class FitMixin(ABC):
         pass
 
 
-class BaseExplanation(Base):
+class BaseExplanation(Base, Sequence):
     """
     Base class for explanations returned by explainers
     """
@@ -50,6 +51,12 @@ class BaseExplanation(Base):
     def __init__(self):
         self.meta = {}
         self.data = {"local": None, "global": None}
+
+    def __len__(self):
+        return len(self.data['local'])
+
+    def __getitem__(self, key):
+        return self.data['local'][key]
 
     @property
     def meta(self) -> Dict:

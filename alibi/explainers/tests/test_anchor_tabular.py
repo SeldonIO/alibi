@@ -59,5 +59,5 @@ def test_iris(predict_type, threshold):
 
     # test explanation
     explanation = explainer.explain(X_test[0], threshold=threshold)
-    assert explanation.data['local'][0]['precision'] >= threshold
-    assert explanation.data['local'][0]['coverage'] >= 0.05
+    assert explanation[0]['precision'] >= threshold
+    assert explanation[0]['coverage'] >= 0.05

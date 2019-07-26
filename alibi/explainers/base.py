@@ -1,14 +1,13 @@
 from abc import ABC, abstractmethod
-import numpy as np
-from typing import Dict, List, Union
+from typing import Any, Dict, List, Union
 
 # input and output types
 Data = Union[Dict, List]
 
 
-class BaseExplainer(ABC):
+class Base(ABC):
     """
-    Base class for explainers.
+    Base class for explainers and explanations.
     """
 
     def __repr__(self):
@@ -16,7 +15,7 @@ class BaseExplainer(ABC):
         return self.__class__.__name__
 
 
-class Explainer(BaseExplainer):
+class BaseExplainer(Base):
 
     def __init__(self):
         self.meta = {}
@@ -33,17 +32,17 @@ class Explainer(BaseExplainer):
         self._meta = value
 
     @abstractmethod
-    def explain(self, X: np.ndarray, y: np.ndarray = None) -> "Explanation":
+    def explain(self, X: Any) -> "BaseExplanation":
         pass
 
 
-class FitMixin(Explainer):
+class FitMixin(ABC):
     @abstractmethod
-    def fit(self, X: np.ndarray = None, y: np.ndarray = None) -> "Explainer":
-        return self
+    def fit(self, X: Any) -> "BaseExplainer":
+        pass
 
 
-class Explanation(ABC):
+class BaseExplanation(Base):
     """
     Base class for explanations returned by explainers
     """

@@ -1,4 +1,4 @@
-from alibi.explainers.base import Explainer, Explanation, FitMixin, DataException, MetaException
+from alibi.explainers.base import BaseExplainer, BaseExplanation, FitMixin, DataException, MetaException
 import numpy as np
 import pytest
 
@@ -9,40 +9,40 @@ invalid_meta = []
 invalid_data = {}
 
 
-class IncompleteExplainer(Explainer):
+class IncompleteExplainer(BaseExplainer):
     pass
 
 
-class SimpleExplainer(Explainer):
+class SimpleExplainer(BaseExplainer):
 
-    def explain(self, X: np.ndarray, y: np.ndarray = None):
+    def explain(self, X: np.ndarray):
         pass
 
 
-class IncompleteFitExplainer(FitMixin, Explainer):
+class IncompleteFitExplainer(FitMixin, BaseExplainer):
 
-    def explain(self, X: np.ndarray, y: np.ndarray = None):
+    def explain(self, X: np.ndarray):
         pass
 
 
-class SimpleFitExplainer(FitMixin, Explainer):
+class SimpleFitExplainer(FitMixin, BaseExplainer):
 
-    def fit(self, X: np.ndarray = None, y: np.ndarray = None):
+    def fit(self, X: np.ndarray):
         pass
 
-    def explain(self, X: np.ndarray, y: np.ndarray = None):
+    def explain(self, X: np.ndarray):
         pass
 
 
 @pytest.fixture
 def min_exp():
-    exp = Explanation()
+    exp = BaseExplanation()
     exp.meta = valid_meta
     exp.data = valid_data
     return exp
 
 
-class CompleteExplanation(Explanation):
+class CompleteExplanation(BaseExplanation):
 
     def __init__(self, meta, data):
         self.meta = meta
@@ -126,8 +126,8 @@ def test_minimal_explanation(min_exp):
 
 def test_invalid_explanation():
     with pytest.raises(DataException):
-        exp = CompleteExplanation(meta=valid_meta, data=invalid_data)
+        CompleteExplanation(meta=valid_meta, data=invalid_data)
     with pytest.raises(MetaException):
-        exp = CompleteExplanation(meta=invalid_meta, data=valid_data)
+        CompleteExplanation(meta=invalid_meta, data=valid_data)
     with pytest.raises(MetaException):
-        exp = CompleteExplanation(meta=invalid_meta, data=invalid_data)
+        CompleteExplanation(meta=invalid_meta, data=invalid_data)

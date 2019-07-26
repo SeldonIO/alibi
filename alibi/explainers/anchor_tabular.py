@@ -1,13 +1,23 @@
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import BaseExplainer, BaseExplanation, FitMixin
 from alibi.utils.discretizer import Discretizer
 import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set
 
+DEFAULT_DISC_PERC = [25, 50, 75]
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"]}
+DEFAULT_DATA = {"global": None, "local": {}}  # type: Dict
 
-class AnchorTabular(object):
 
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
+class AnchorTabularExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
+
+
+class AnchorTabular(BaseExplainer, FitMixin):
+
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = None) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -20,6 +30,8 @@ class AnchorTabular(object):
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature
         """
+        super().__init__()
+
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
         if np.argmax(predict_fn(np.zeros([1, len(feature_names)])).shape) == 0:
@@ -28,13 +40,21 @@ class AnchorTabular(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         # define column indices of categorical and ordinal features
+        if categorical_names is None:
+            categorical_names = {}
         self.categorical_features = sorted(categorical_names.keys())
         self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
         self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
-    def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
+        # set metadata
+        meta = DEFAULT_META
+        meta["name"] = self.__class__.__name__
+        # TODO add params
+        self.meta = meta
+
+    def fit(self, train_data: np.ndarray, disc_perc: list = None) -> "AnchorTabular":
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
 
@@ -48,6 +68,8 @@ class AnchorTabular(object):
         self.train_data = train_data
 
         # discretization of ordinal features
+        if disc_perc is None:
+            disc_perc = DEFAULT_DISC_PERC
         self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
 
@@ -65,6 +87,8 @@ class AnchorTabular(object):
             self.min[f] = np.min(train_data[:, f])
             self.max[f] = np.max(train_data[:, f])
             self.std[f] = np.std(train_data[:, f])
+
+        return self
 
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
                           conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
@@ -269,7 +293,7 @@ class AnchorTabular(object):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: Any) -> dict:
+                desired_label: int = None, **kwargs) -> "AnchorTabularExplanation":
         """
         Explain instance and return anchor with metadata.
 
@@ -314,7 +338,12 @@ class AnchorTabular(object):
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
-        return explanation
+
+        newexp = AnchorTabularExplanation()
+        newexp.data = DEFAULT_DATA
+        newexp.data['local'][0] = explanation  # only supporting single instances for now
+        newexp.meta = self.meta
+        return newexp
 
     def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:
         """

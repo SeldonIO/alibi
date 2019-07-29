@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 
 valid_meta = {"scope": "local", "type": "blackbox"}
-valid_data = {"local": {0: None}, "global": None}
+valid_data = {"local": [None], "overall": None}
 
 invalid_meta = []
 invalid_data = {}
@@ -57,7 +57,7 @@ def test_incomplete_explainer():
 def test_explainer():
     try:
         exp = SimpleExplainer()
-        assert exp.meta == {}
+        assert exp.meta["name"] == exp.__class__.__name__
         assert isinstance(exp.__class__.meta, property)
         assert hasattr(exp, "explain")
     except Exception:
@@ -83,7 +83,7 @@ def test_incomplete_fitexplainer():
 def test_fitexplainer():
     try:
         exp = SimpleFitExplainer()
-        assert exp.meta == {}
+        assert exp.meta["name"] == exp.__class__.__name__
         assert isinstance(exp.__class__.meta, property)
         assert hasattr(exp, "fit")
         assert hasattr(exp, "explain")
@@ -99,7 +99,7 @@ def test_complete_explanation():
 
         assert exp.data == valid_data
         assert exp.data["local"][0] is None
-        assert exp.data["global"] is None
+        assert exp.data["overall"] is None
 
         with pytest.raises((IndexError, KeyError)):  # both?
             exp.data["local"][1]
@@ -115,7 +115,7 @@ def test_minimal_explanation(min_exp):
 
         assert min_exp.data == valid_data
         assert min_exp.data["local"][0] is None
-        assert min_exp.data["global"] is None
+        assert min_exp.data["overall"] is None
 
         with pytest.raises((IndexError, KeyError)):  # both?
             min_exp.data["local"][1]

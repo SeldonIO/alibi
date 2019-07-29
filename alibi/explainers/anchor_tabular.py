@@ -7,7 +7,6 @@ from typing import Callable, Tuple, Dict, Any, Set
 
 DEFAULT_DISC_PERC = [25, 50, 75]
 DEFAULT_META = {"type": "blackbox", "explanations": ["local"]}
-DEFAULT_DATA = {"global": None, "local": {}}  # type: Dict
 
 
 class AnchorTabularExplanation(BaseExplanation):
@@ -50,9 +49,8 @@ class AnchorTabular(BaseExplainer, FitMixin):
 
         # set metadata
         meta = DEFAULT_META
-        meta["name"] = self.__class__.__name__
         # TODO add params
-        self.meta = meta
+        self.meta.update(meta)
 
     def fit(self, train_data: np.ndarray, disc_perc: list = None) -> "AnchorTabular":
         """
@@ -339,10 +337,10 @@ class AnchorTabular(BaseExplainer, FitMixin):
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
 
+        # create explanation object
         newexp = AnchorTabularExplanation()
-        newexp.data = DEFAULT_DATA
-        newexp.data['local'][0] = explanation  # only supporting single instances for now
-        newexp.meta = self.meta
+        newexp.data['local'].append(explanation)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
         return newexp
 
     def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:

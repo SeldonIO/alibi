@@ -6,8 +6,8 @@ from typing import Any, Dict, List, Union
 Data = Union[Dict, List]
 
 # default data and metadata
-DEFAULT_META = {}  # type: Dict
-DEFAULT_DATA = {"global": None, "local": []}  # type: Dict
+DEFAULT_META = {"name": None}  # type: Dict
+DEFAULT_DATA = {"overall": None, "local": []}  # type: Dict
 
 
 class Base(ABC):
@@ -24,13 +24,13 @@ class BaseExplainer(Base):
 
     def __init__(self):
         self.meta = DEFAULT_META
+        self.meta["name"] = self.__class__.__name__
 
     @property
     def meta(self) -> Dict:
         return self._meta
 
     @meta.setter
-    # TODO validation here
     def meta(self, value):
         if not isinstance(value, dict):
             raise TypeError('meta must be a dictionary')
@@ -54,6 +54,7 @@ class BaseExplanation(Base, Sequence):
 
     def __init__(self):
         self.meta = DEFAULT_META
+        self.meta["name"] = self.__class__.__name__
         self.data = DEFAULT_DATA
 
     def __len__(self):
@@ -67,7 +68,6 @@ class BaseExplanation(Base, Sequence):
         return self._meta
 
     @meta.setter
-    # TODO validation here
     def meta(self, value):
         _validate_meta(value)
         self._meta = value
@@ -77,10 +77,17 @@ class BaseExplanation(Base, Sequence):
         return self._data
 
     @data.setter
-    # TODO validation here
     def data(self, value):
         _validate_data(value)
         self._data = value
+
+    @property
+    def local(self) -> List:
+        return self._data['local']
+
+    @property
+    def overall_(self) -> Data:
+        return self._data['overall']
 
 
 class DataException(Exception):
@@ -99,7 +106,7 @@ def _validate_meta(meta):
 def _validate_data(data):
     if not isinstance(data, dict):
         raise DataException('Data must be a dictionary')
-    if set(data.keys()) != {'local', 'global'}:
-        raise DataException('Data must have `local` and `global` as top level fields')
+    if set(data.keys()) != {'local', 'overall'}:
+        raise DataException('Data must have `local` and `overall` as top level fields')
     if not isinstance(data['local'], list):
         raise DataException('data[local] must be a list')

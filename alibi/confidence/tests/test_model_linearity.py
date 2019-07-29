@@ -3,7 +3,8 @@ import numpy as np
 from sklearn.datasets import load_iris, load_boston
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
-from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure, _linear_superposition
+from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
+from alibi.confidence.model_linearity import _linear_superposition, _sample_gridSampling
 from functools import reduce
 
 
@@ -25,6 +26,21 @@ def test_linear_superposition(input_shape, nb_instances):
     assert summ.shape[0] == nb_instances
     assert summ.shape[1:] == input_shape
     assert (summ == 0.5).all()
+
+
+@pytest.mark.parametrize('nb_instances', (5, ))
+@pytest.mark.parametrize('nb_samples', (3, ))
+@pytest.mark.parametrize('input_shape', ((3,), (4, 4, 1)))
+def test_sample_gridSampling(nb_instances, nb_samples, input_shape):
+
+    x = np.ones((nb_instances, ) + input_shape)
+    nb_features = x.reshape(x.shape[0], -1).shape[1]
+    features_range = np.array([[0, 1] for _ in range(nb_features)])
+
+    X_samples = _sample_gridSampling(x, features_range, nb_samples=nb_samples)
+
+    assert X_samples.shape[0] == nb_instances
+    assert X_samples.shape[1] == nb_samples
 
 
 @pytest.mark.parametrize('method', ('knn', 'gridSampling'))
@@ -53,7 +69,7 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
     features_range = [[0, 1] for _ in range(X_train.shape[1])]
     lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
                               res=res, model_type='classifier', agg=agg)
-    assert lin_2.shape[0] == nb_instances, 'Checking shapes'
+    assert lin_2.shape[0] == nb_instances, 'Nb of linearity values returned different from number of instances'
     assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
 
 

@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
+import tensorflow.keras.backend as K
 import logging
 
 from alibi.utils.gradients import num_grad_batch
@@ -63,7 +64,6 @@ def _define_func(predict_fn: Callable,
 class CounterFactual:
 
     def __init__(self,
-                 sess: tf.Session,
                  predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
@@ -86,8 +86,6 @@ class CounterFactual:
 
         Parameters
         ----------
-        sess
-            TensorFlow session
         predict_fn
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         shape
@@ -127,7 +125,6 @@ class CounterFactual:
             Flag to write Tensorboard summaries for debugging
         """
 
-        self.sess = sess
         self.data_shape = shape
         self.batch_size = shape[0]
         self.target_class = target_class
@@ -156,11 +153,13 @@ class CounterFactual:
             self.model = True
             self.predict_fn = predict_fn.predict  # type: ignore # array function
             self.predict_tn = predict_fn  # tensor function
+            self.sess = K.get_session()
 
         else:  # black-box model
             self.predict_fn = predict_fn
             self.predict_tn = None
             self.model = False
+            self.sess = tf.Session()
 
         self.n_classes = self.predict_fn(np.zeros(shape)).shape[1]
 
@@ -311,7 +310,7 @@ class CounterFactual:
         pred_class = Y.argmax(axis=1).item()
         pred_prob = Y.max(axis=1).item()
         self.return_dict['orig_class'] = pred_class
-        self.return_dict['orig_prob'] = pred_prob
+        self.return_dict['orig_proba'] = pred_prob
 
         logger.debug('Initial prediction: %s with p=%s', pred_class, pred_prob)
 

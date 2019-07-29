@@ -51,25 +51,22 @@ def tf_keras_logistic_mnist():
 def iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lr.predict_proba
-    sess = tf.Session()
-    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, shape=(1, 4),
+    cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
 
     yield X, y, lr, cf_explainer
     tf.reset_default_graph()
-    sess.close()
 
 
 @pytest.fixture
 def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
     X, y, model = tf_keras_logistic_mnist
-    sess = K.get_session()
 
-    cf_explainer = CounterFactual(sess=sess, predict_fn=model, shape=(1, 784),
+    cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-    yield X, y, model, cf_explainer
+    return X, y, model, cf_explainer
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])

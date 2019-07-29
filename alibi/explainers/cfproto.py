@@ -1,12 +1,14 @@
 # flake8: noqa F841
 
-import keras
 import logging
 import numpy as np
 import sys
 import tensorflow as tf
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, TYPE_CHECKING
 from ..confidence import TrustScore
+
+if TYPE_CHECKING:
+    import keras
 
 logger = logging.getLogger(__name__)
 
@@ -15,14 +17,14 @@ class CounterFactualProto(object):
 
     def __init__(self,
                  sess: tf.Session,
-                 predict: Union[Callable, tf.keras.Model, keras.Model],
+                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model, keras.Model] = None,
-                 enc_model: Union[tf.keras.Model, keras.Model] = None,
+                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 enc_model: Union[tf.keras.Model, 'keras.Model'] = None,
                  theta: float = 0.,
                  use_kdtree: bool = False,
                  learning_rate_init: float = 1e-2,
@@ -86,19 +88,29 @@ class CounterFactualProto(object):
         self.predict = predict
 
         # check whether the model, encoder and auto-encoder are Keras or TF models
-        if isinstance(predict, (tf.keras.Model, keras.Model)):
+        try:
+            import keras # noqa
+            is_model = isinstance(predict, (tf.keras.Model, keras.Model))
+            is_ae = isinstance(ae_model, (tf.keras.Model, keras.Model))
+            is_enc = isinstance(enc_model, (tf.keras.Model, keras.Model))
+        except ImportError:
+            is_model = isinstance(predict, (tf.keras.Model))
+            is_ae = isinstance(ae_model, (tf.keras.Model))
+            is_enc = isinstance(enc_model, (tf.keras.Model))
+
+        if is_model:
             self.model = True
             self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
 
-        if isinstance(enc_model, (tf.keras.Model, keras.Model)):
+        if is_enc:
             self.enc_model = True
         else:
             self.enc_model = False
 
-        if isinstance(ae_model, (tf.keras.Model, keras.Model)):
+        if is_ae:
             self.ae_model = True
         else:
             self.ae_model = False
@@ -161,7 +173,8 @@ class CounterFactualProto(object):
                     tf.cast(tf.less(tf.subtract(self.adv_s, self.orig), tf.negative(self.beta)), tf.float32)]
             upper = tf.minimum(tf.subtract(self.adv_s, self.beta), tf.cast(feature_range[1], tf.float32))
             lower = tf.maximum(tf.add(self.adv_s, self.beta), tf.cast(feature_range[0], tf.float32))
-            self.assign_adv = tf.multiply(cond[0], upper)+tf.multiply(cond[1], self.orig) + tf.multiply(cond[2], lower)
+            self.assign_adv = tf.multiply(cond[0], upper) + tf.multiply(cond[1], self.orig) + tf.multiply(cond[2],
+                                                                                                          lower)
 
         # perturbation update and vector projection on correct feature range set
         with tf.name_scope('perturbation_y') as scope:

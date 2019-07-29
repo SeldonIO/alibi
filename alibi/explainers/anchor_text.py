@@ -2,14 +2,17 @@ from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 import logging
 import numpy as np
-from typing import Any, Callable, Tuple, Dict
+from typing import Any, Callable, Tuple, Dict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import spacy
 
 logger = logging.getLogger(__name__)
 
 
 class Neighbors(object):
 
-    def __init__(self, nlp_obj: Any, n_similar: int = 500, w_prob: float = -15.) -> None:
+    def __init__(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob: float = -15.) -> None:
         """
         Initialize class identifying neighbouring words from the embedding for a given word.
 
@@ -24,7 +27,8 @@ class Neighbors(object):
         """
         self.nlp = nlp_obj
         self.w_prob = w_prob
-        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob]  # list with spaCy lexemes in vocabulary
+        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]  # list with spaCy lexemes
+        # in vocabulary
         self.n = {}  # type: Dict[str, list]
         self.n_similar = n_similar
 
@@ -60,7 +64,7 @@ class Neighbors(object):
 
 class AnchorText(object):
 
-    def __init__(self, nlp: Any, predict_fn: Callable) -> None:
+    def __init__(self, nlp: 'spacy.language.Language', predict_fn: Callable) -> None:
         """
         Initialize anchor text explainer.
 

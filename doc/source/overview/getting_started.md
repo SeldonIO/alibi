@@ -31,7 +31,9 @@ For gauging model confidence:
 alibi.confidence.__all__
 ```
 ```
-['TrustScore']
+['linearity_measure',
+ 'LinearityMeasure',
+ 'TrustScore']
 ```
 
 
@@ -42,6 +44,7 @@ For detailed information on the methods:
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
+    * [Linearity Measure](../examples/linearity_measure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 
 ## Basic Usage

@@ -43,6 +43,7 @@
    examples/cf_mnist.ipynb
    examples/cfproto_mnist.ipynb
    examples/cfproto_housing.ipynb
+   examples/linearity_measure
    examples/trustscore_iris
    examples/trustscore_mnist
 

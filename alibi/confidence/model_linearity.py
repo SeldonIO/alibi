@@ -67,18 +67,21 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
 
     if model_type == 'classifier':
         out_sum = np.log(predict_fn(summ) + 1e-10)
+        out_sum_shape = out_sum.shape[1:]
     elif model_type == 'regressor':
         out_sum = predict_fn(summ)
+        out_sum_shape = out_sum.shape[1:]
         if len(out_sum.shape) == 1:
             out_sum = out_sum.reshape((ss[0],) + (1,))
         else:
-            out_sum = out_sum.reshape((ss[0],) + out_sum.shape[-1:])
+            out_sum = out_sum.reshape((ss[0],) + out_sum_shape)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
-    linearity_score = norm(out_sum - sum_out, axis=1)
+    diff = out_sum - sum_out
+    linearity_score = norm(diff.reshape(diff.shape[0], -1), axis=1)
 
     return linearity_score
 
@@ -138,19 +141,22 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
     if model_type == 'classifier':
         # output of the linear superposition of inputs
         out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
-        out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
+        out_sum_shape = out_sum.shape[1:]
+        out_sum = out_sum.reshape(ss + out_sum_shape)
     elif model_type == 'regressor':
         out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
+        out_sum_shape = out_sum.shape[1:]
         if len(out_sum.shape) == 1:
             out_sum = out_sum.reshape(ss + (1,))
         else:
-            out_sum = out_sum.reshape(ss + out_sum.shape[-1:])
+            out_sum = out_sum.reshape(ss + out_sum_shape)
     else:
         raise NameError('model_type not supported. Supported model types: classifier, regressor')
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
-    linearity_score = norm(out_sum - sum_out, axis=2).mean(axis=1)
+    diff = out_sum - sum_out
+    linearity_score = norm(diff.reshape(diff.shape[0], diff.shape[1], -1), axis=2).mean(axis=1)
 
     return linearity_score
 

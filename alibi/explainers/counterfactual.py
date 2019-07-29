@@ -1,13 +1,12 @@
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
-import tensorflow.keras.backend as K
 import logging
 
 from alibi.utils.gradients import num_grad_batch
 
 if TYPE_CHECKING:
-    import keras # noqa
+    import keras  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -145,11 +144,21 @@ class CounterFactual:
 
         try:
             import keras  # noqa
-            is_model = isinstance(predict_fn, (tf.keras.Model, keras.Model))
+            is_model = isinstance(predict_fn, keras.Model)
+            if is_model:
+                is_keras = True
+            else:
+                is_model = isinstance(predict_fn, tf.keras.Model)
+                is_keras = False
         except ImportError:
             is_model = isinstance(predict_fn, tf.keras.Model)
+            is_keras = False
 
         if is_model:  # Keras or TF model
+            if is_keras:
+                import keras.backend as K
+            else:
+                import tensorflow.keras.backend as K
             self.model = True
             self.predict_fn = predict_fn.predict  # type: ignore # array function
             self.predict_tn = predict_fn  # tensor function

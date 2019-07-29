@@ -1,7 +1,7 @@
 # Change Log
 
-## Unreleased
-
+## [v0.2.3](https://github.com/SeldonIO/alibi/tree/v0.2.3) (2019-07-29)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.2...v0.2.3)
 ### Added
 - `gen_category_map` utility function to facilitate using AnchorTabular explainer
 - Extend `CounterFactualProto` with a more flexible choice for prototypes using k closest encoded instances

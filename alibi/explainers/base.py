@@ -5,6 +5,10 @@ from typing import Any, Dict, List, Union
 # input and output types
 Data = Union[Dict, List]
 
+# default data and metadata
+DEFAULT_META = {}  # type: Dict
+DEFAULT_DATA = {"global": None, "local": []}  # type: Dict
+
 
 class Base(ABC):
     """
@@ -19,7 +23,7 @@ class Base(ABC):
 class BaseExplainer(Base):
 
     def __init__(self):
-        self.meta = {}
+        self.meta = DEFAULT_META
 
     @property
     def meta(self) -> Dict:
@@ -49,8 +53,8 @@ class BaseExplanation(Base, Sequence):
     """
 
     def __init__(self):
-        self.meta = {}
-        self.data = {"local": None, "global": None}
+        self.meta = DEFAULT_META
+        self.data = DEFAULT_DATA
 
     def __len__(self):
         return len(self.data['local'])
@@ -97,3 +101,5 @@ def _validate_data(data):
         raise DataException('Data must be a dictionary')
     if set(data.keys()) != {'local', 'global'}:
         raise DataException('Data must have `local` and `global` as top level fields')
+    if not isinstance(data['local'], list):
+        raise DataException('data[local] must be a list')

@@ -3,7 +3,7 @@
 </p>
 
 [![Build Status](https://travis-ci.com/SeldonIO/alibi.svg?branch=master)](https://travis-ci.com/SeldonIO/alibi)
-[![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=v0.2.0)](https://docs.seldon.io/projects/alibi/en/v0.2.0/?badge=v0.2.0)
+[![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)](https://docs.seldon.io/projects/alibi/en/latest/?badge=latest)
 ![Python version](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg)
 [![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
 ![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)

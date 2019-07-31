@@ -27,7 +27,8 @@ class Neighbors(object):
         """
         self.nlp = nlp_obj
         self.w_prob = w_prob
-        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob]  # list with spaCy lexemes in vocabulary
+        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]  # list with spaCy lexemes
+        # in vocabulary
         self.n = {}  # type: Dict[str, list]
         self.n_similar = n_similar
 

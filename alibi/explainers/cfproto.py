@@ -6,17 +6,17 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from ..confidence import TrustScore
+from .utils import _check_keras_or_tf
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     import keras
 
 logger = logging.getLogger(__name__)
 
 
-class CounterFactualProto(object):
+class CounterFactualProto:
 
     def __init__(self,
-                 sess: tf.Session,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: tuple,
                  kappa: float = 0.,
@@ -40,8 +40,6 @@ class CounterFactualProto(object):
 
         Parameters
         ----------
-        sess
-            TensorFlow session
         predict
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         shape
@@ -84,26 +82,26 @@ class CounterFactualProto(object):
         write_dir
             Directory to write tensorboard files to
         """
-        self.sess = sess
         self.predict = predict
 
         # check whether the model, encoder and auto-encoder are Keras or TF models
-        try:
-            import keras  # noqa
-            is_model = isinstance(predict, (tf.keras.Model, keras.Model))
-            is_ae = isinstance(ae_model, (tf.keras.Model, keras.Model))
-            is_enc = isinstance(enc_model, (tf.keras.Model, keras.Model))
-        except ImportError:
-            is_model = isinstance(predict, (tf.keras.Model))
-            is_ae = isinstance(ae_model, (tf.keras.Model))
-            is_enc = isinstance(enc_model, (tf.keras.Model))
+        is_model, is_model_keras = _check_keras_or_tf(predict)
+        is_ae, is_ae_keras = _check_keras_or_tf(ae_model)
+        is_enc, is_enc_keras = _check_keras_or_tf(enc_model)
 
-        if is_model:
+        # self.sess = tf.Session()
+        if is_model:  # Keras or TF model
+            if is_model_keras:
+                import keras.backend as K
+            else:
+                import tensorflow.keras.backend as K  # type: ignore
             self.model = True
+            self.sess = K.get_session()
             self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
-        else:
+        else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
+            self.sess = tf.Session()
 
         if is_enc:
             self.enc_model = True

@@ -4,8 +4,9 @@ import tensorflow as tf
 import logging
 
 from alibi.utils.gradients import num_grad_batch
+from .utils import _check_keras_or_tf
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
@@ -142,23 +143,14 @@ class CounterFactual:
 
         self.debug = debug
 
-        try:
-            import keras  # noqa
-            is_model = isinstance(predict_fn, keras.Model)
-            if is_model:
-                is_keras = True
-            else:
-                is_model = isinstance(predict_fn, tf.keras.Model)
-                is_keras = False
-        except ImportError:
-            is_model = isinstance(predict_fn, tf.keras.Model)
-            is_keras = False
+        # check if the passed object is a model
+        is_model, is_keras = _check_keras_or_tf(predict_fn)
 
         if is_model:  # Keras or TF model
             if is_keras:
                 import keras.backend as K
             else:
-                import tensorflow.keras.backend as K
+                import tensorflow.keras.backend as K  # type: ignore
             self.model = True
             self.predict_fn = predict_fn.predict  # type: ignore # array function
             self.predict_tn = predict_fn  # tensor function

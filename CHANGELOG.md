@@ -2,7 +2,7 @@
 
 ## Unreleased
 ### Fixed
-- `CounterFactualProto` bug when the class is initialized a second time it wouldn't run as the TF graph would become disconnected
+- `CounterFactualProto` and `CEM` bug when the class is initialized a second time it wouldn't run as the TF graph would become disconnected
 
 ## [v0.2.3](https://github.com/SeldonIO/alibi/tree/v0.2.3) (2019-07-29)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.2...v0.2.3)

@@ -121,7 +121,8 @@ class CEM(object):
                     tf.cast(tf.less(tf.subtract(self.adv_s, self.orig), tf.negative(self.beta)), tf.float32)]
             upper = tf.minimum(tf.subtract(self.adv_s, self.beta), tf.cast(feature_range[1], tf.float32))
             lower = tf.maximum(tf.add(self.adv_s, self.beta), tf.cast(feature_range[0], tf.float32))
-            self.assign_adv = tf.multiply(cond[0], upper)+tf.multiply(cond[1], self.orig) + tf.multiply(cond[2], lower)
+            self.assign_adv = tf.multiply(cond[0], upper) + tf.multiply(cond[1], self.orig) + tf.multiply(cond[2],
+                                                                                                          lower)
 
         # perturbation update for delta and vector projection on correct set depending on PP or PN (eq.5)
         # delta(k) = adv; delta(k+1) = assign_adv
@@ -237,7 +238,8 @@ class CEM(object):
             # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
-            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][0]
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1]  # get the last in
+            # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)
             end_vars = tf.global_variables()

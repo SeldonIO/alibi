@@ -281,7 +281,8 @@ class CounterFactualProto(object):
             # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
-            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][0]
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1] # get the last in
+            # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)
             end_vars = tf.global_variables()

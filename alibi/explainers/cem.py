@@ -32,7 +32,8 @@ class CEM:
                  clip: tuple = (-100., 100.),
                  update_num_grad: int = 1,
                  no_info_val: Union[float, np.ndarray] = None,
-                 write_dir: str = None) -> None:
+                 write_dir: str = None,
+                 sess: tf.Session = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
@@ -78,6 +79,8 @@ class CEM:
             Global or feature-wise value considered as containing no information
         write_dir
             Directory to write tensorboard files to
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
         self.predict = predict
 
@@ -85,6 +88,7 @@ class CEM:
         is_model, is_model_keras = _check_keras_or_tf(predict)
         is_ae, is_ae_keras = _check_keras_or_tf(ae_model)
 
+        # TF session creation
         if is_model:  # Keras or TF model
             if is_model_keras:
                 import keras.backend as K
@@ -97,6 +101,11 @@ class CEM:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
             self.sess = tf.Session()
+
+        # if session provided, use that instead
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+
         self.mode = mode
         self.shape = shape
         self.kappa = kappa

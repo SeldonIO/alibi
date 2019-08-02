@@ -80,7 +80,8 @@ class CounterFactual:
                  init: str = 'identity',
                  decay: bool = True,
                  write_dir: str = None,
-                 debug: bool = False) -> None:
+                 debug: bool = False,
+                 sess: tf.Session = None) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -123,6 +124,8 @@ class CounterFactual:
             Directory to write Tensorboard files to
         debug
             Flag to write Tensorboard summaries for debugging
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
 
         self.data_shape = shape
@@ -146,6 +149,7 @@ class CounterFactual:
         # check if the passed object is a model
         is_model, is_keras = _check_keras_or_tf(predict_fn)
 
+        # TF session creation
         if is_model:  # Keras or TF model
             if is_keras:
                 import keras.backend as K
@@ -161,6 +165,10 @@ class CounterFactual:
             self.predict_tn = None
             self.model = False
             self.sess = tf.Session()
+
+        # if session provided, use that instead
+        if isinstance(sess, tf.Session):
+            self.sess = sess
 
         self.n_classes = self.predict_fn(np.zeros(shape)).shape[1]
 

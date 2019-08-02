@@ -34,7 +34,8 @@ class CounterFactualProto:
                  eps: tuple = (1e-3, 1e-3),
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
-                 write_dir: str = None) -> None:
+                 write_dir: str = None,
+                 sess: tf.Session = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -81,6 +82,8 @@ class CounterFactualProto:
             If numerical gradients are used, they will be updated every update_num_grad iterations
         write_dir
             Directory to write tensorboard files to
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
         self.predict = predict
 
@@ -89,7 +92,7 @@ class CounterFactualProto:
         is_ae, is_ae_keras = _check_keras_or_tf(ae_model)
         is_enc, is_enc_keras = _check_keras_or_tf(enc_model)
 
-        # self.sess = tf.Session()
+        # TF session creation
         if is_model:  # Keras or TF model
             if is_model_keras:
                 import keras.backend as K
@@ -97,11 +100,16 @@ class CounterFactualProto:
                 import tensorflow.keras.backend as K  # type: ignore
             self.model = True
             self.sess = K.get_session()
-            self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
+            self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape),
+                                                                           dtype=tf.float32))).shape[1]
         else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
             self.sess = tf.Session()
+
+        # if session provided, use that instead
+        if isinstance(sess, tf.Session):
+            self.sess = sess
 
         if is_enc:
             self.enc_model = True
@@ -279,7 +287,7 @@ class CounterFactualProto:
             # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
-            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1] # get the last in
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1]  # get the last in
             # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)

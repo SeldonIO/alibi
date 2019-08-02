@@ -4,7 +4,6 @@ import pytest
 from sklearn.datasets import load_iris
 import tensorflow as tf
 import keras
-from tensorflow.keras.utils import to_categorical
 
 from alibi.explainers import CounterFactualProto
 
@@ -68,11 +67,6 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
     np.random.seed(1)
     tf.set_random_seed(1)
 
-    # init tf session
-    # sess = tf.Session()
-    # K.set_session(sess)
-    # sess.run(tf.global_variables_initializer())
-
     model = tf_keras_iris_model
     model.fit(X_train, y_train, batch_size=128, epochs=500, verbose=0)
 
@@ -85,7 +79,6 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
 @pytest.fixture
 def tf_keras_iris_explainer(request, tf_keras_iris):
     X_train, model, ae, enc = tf_keras_iris
-    # sess = K.get_session()
 
     if request.param[0]:  # use k-d trees
         ae = None
@@ -150,6 +143,3 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     cf.predict = cf.predict.predict  # make model black box
     grads = cf.get_gradients(x, y)
     assert grads.shape == x.shape
-
-    # tf.reset_default_graph()
-    # sess.close()

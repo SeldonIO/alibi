@@ -4,7 +4,7 @@ from sklearn.datasets import load_iris, load_boston
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
 from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
-from alibi.confidence.model_linearity import _linear_superposition, _sample_gridSampling
+from alibi.confidence.model_linearity import _linear_superposition, _sample_gridSampling, _sample_knn
 from functools import reduce
 
 
@@ -26,6 +26,21 @@ def test_linear_superposition(input_shape, nb_instances):
     assert summ.shape[0] == nb_instances
     assert summ.shape[1:] == input_shape
     assert (summ == 0.5).all()
+
+
+@pytest.mark.parametrize('nb_instances', (1, 5))
+@pytest.mark.parametrize('nb_samples', (2, 10))
+def test_sample_knn(nb_instances, nb_samples):
+
+    iris = load_iris()
+    X_train = iris.data
+    input_shape = X_train.shape[1:]
+    x = np.ones((nb_instances, ) + input_shape)
+
+    X_samples = _sample_knn(x=x, X_train=X_train, nb_samples=nb_samples)
+
+    assert X_samples.shape[0] == nb_instances
+    assert X_samples.shape[1] == nb_samples
 
 
 @pytest.mark.parametrize('nb_instances', (5, ))

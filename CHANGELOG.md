@@ -1,12 +1,21 @@
 # Change Log
 
 ## Unreleased
+### Fixed
+- `CounterFactualProto` and `CEM` bug when the class is initialized a second time it wouldn't run as the TF graph would become disconnected
 
+## [v0.2.3](https://github.com/SeldonIO/alibi/tree/v0.2.3) (2019-07-29)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.2...v0.2.3)
 ### Added
 - `gen_category_map` utility function to facilitate using AnchorTabular explainer
+- Extend `CounterFactualProto` with a more flexible choice for prototypes using k closest encoded instances
+- Allow user to specify a hard target class for `CounterFactualProto`
+- Distributed tests usign `pytest-xdist` to overcome TF global session interfering with tests running in the same process
 ### Changed
 - Sample datasets now return a `Bunch` object by default, bundling all necessary and optional attributes for each dataset
 - Loading sample datasets are now invoked via the `fetch_` functions to indicate that a network download is being made
+### Fixed
+- Remove `Home` from docs sidebar as this was causing the sidebar logo to not show up on landing page
 
 ## [v0.2.2](https://github.com/SeldonIO/alibi/tree/v0.2.2) (2019-07-05)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.1...v0.2.2)

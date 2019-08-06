@@ -89,7 +89,7 @@ class CounterFactualProto(object):
 
         # check whether the model, encoder and auto-encoder are Keras or TF models
         try:
-            import keras # noqa
+            import keras  # noqa
             is_model = isinstance(predict, (tf.keras.Model, keras.Model))
             is_ae = isinstance(ae_model, (tf.keras.Model, keras.Model))
             is_enc = isinstance(enc_model, (tf.keras.Model, keras.Model))
@@ -281,7 +281,8 @@ class CounterFactualProto(object):
             # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
-            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][0]
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1] # get the last in
+            # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)
             end_vars = tf.global_variables()
@@ -324,9 +325,11 @@ class CounterFactualProto(object):
         if self.enc_model:
             enc_data = self.enc.predict(train_data)
             self.class_proto = {}  # type: dict
+            self.class_enc = {}  # type: dict
             for i in range(self.classes):
                 idx = np.where(preds == i)[0]
                 self.class_proto[i] = np.expand_dims(np.mean(enc_data[idx], axis=0), axis=0)
+                self.class_enc[i] = enc_data[idx]
         else:
             logger.warning('No encoder specified. Using k-d trees to represent class prototypes.')
             if trustscore_kwargs is not None:
@@ -481,8 +484,8 @@ class CounterFactualProto(object):
             logger.warning('Need either an encoder or the k-d trees enabled to compute distance scores.')
         return dist_orig / (dist_adv + eps)
 
-    def attack(self, X: np.ndarray, Y: np.ndarray, target_class: list = None, threshold: float = 0.,
-               verbose: bool = False, print_every: int = 100, log_every: int = 100) \
+    def attack(self, X: np.ndarray, Y: np.ndarray, target_class: list = None, k: int = None, k_type: str = 'mean',
+               threshold: float = 0., verbose: bool = False, print_every: int = 100, log_every: int = 100) \
             -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Find a counterfactual (CF) for instance X using a fast iterative shrinkage-thresholding algorithm (FISTA).
@@ -496,6 +499,13 @@ class CounterFactualProto(object):
         target_class
             List with target classes used to find closest prototype. If None, the nearest prototype
             except for the predict class on the instance is used.
+        k
+            Number of nearest instances used to define the prototype for a class. Defaults to using all
+            instances belonging to the class if an encoder is used and to 1 for k-d trees.
+        k_type
+            Use either the average encoding of the k nearest instances in a class (k_type='mean') or
+            the k-nearest encoding in the class (k_type='point') to define the prototype of that class.
+            Only relevant if an encoder is used to define the prototypes.
         threshold
             Threshold level for the ratio between the distance of the counterfactual to the prototype of the
             predicted class for the original instance over the distance to the prototype of the predicted class
@@ -548,18 +558,35 @@ class CounterFactualProto(object):
         # find closest prototype in the target class list
         dist_proto = {}
         if self.enc_model:
-            for k, v in self.class_proto.items():
-                if k not in target_class:
+
+            X_enc = self.enc.predict(X)
+            class_dict = self.class_proto if k is None else self.class_enc
+
+            for c, v in class_dict.items():
+                if c not in target_class:
                     continue
-                dist_proto[k] = np.linalg.norm(self.enc.predict(X) - v)
+
+                if k is None:
+                    dist_proto[c] = np.linalg.norm(X_enc - v)
+                elif k is not None:
+                    dist_k = np.linalg.norm(X_enc.reshape(X_enc.shape[0], -1) -
+                                            v.reshape(v.shape[0], -1), axis=1)
+                    idx = np.argsort(dist_k)[:k]
+                    if k_type == 'mean':
+                        dist_proto[c] = np.mean(dist_k[idx])
+                    else:
+                        dist_proto[c] = dist_k[idx[-1]]
+                    self.class_proto[c] = np.expand_dims(np.mean(v[idx], axis=0), axis=0)
         elif self.use_kdtree:
+            if k is None:
+                k = 1
             self.class_proto = {}
             for c in range(self.classes):
                 if c not in target_class:
                     continue
-                dist_c, idx_c = self.kdtrees[c].query(X, k=1)
-                dist_proto[c] = dist_c[0]
-                self.class_proto[c] = self.X_by_class[c][idx_c[0]]
+                dist_c, idx_c = self.kdtrees[c].query(X, k=k)
+                dist_proto[c] = dist_c[0][-1]
+                self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
             self.id_proto = min(dist_proto, key=dist_proto.get)
@@ -703,21 +730,24 @@ class CounterFactualProto(object):
                 # update best current step or global perturbations
                 for batch_idx, (dist, proba, adv_idx) in enumerate(zip(loss_l1_l2, pred_proba, adv)):
                     Y_class = np.argmax(Y[batch_idx])
+                    adv_class = np.argmax(proba)
 
                     # calculate trust score
                     if threshold > 0.:
-                        score = self.score(np.expand_dims(adv_idx, axis=0), np.argmax(pred_proba), Y_class)
+                        score = self.score(np.expand_dims(adv_idx, axis=0), adv_class, Y_class)
                         above_threshold = score > threshold
                     else:
                         above_threshold = True
 
                     # current step
-                    if dist < current_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold:
+                    if (dist < current_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold
+                            and adv_class in target_class):
                         current_best_dist[batch_idx] = dist
-                        current_best_proba[batch_idx] = np.argmax(proba)
+                        current_best_proba[batch_idx] = adv_class
 
                     # global
-                    if dist < overall_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold:
+                    if (dist < overall_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold
+                            and adv_class in target_class):
                         if verbose:
                             print('\nNew best counterfactual found!')
                         overall_best_dist[batch_idx] = dist
@@ -751,8 +781,9 @@ class CounterFactualProto(object):
 
         return best_attack, overall_best_grad
 
-    def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, threshold: float = 0.,
-                verbose: bool = False, print_every: int = 100, log_every: int = 100) -> dict:
+    def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, k: int = None,
+                k_type: str = 'mean', threshold: float = 0., verbose: bool = False,
+                print_every: int = 100, log_every: int = 100) -> dict:
         """
         Explain instance and return counterfactual with metadata.
 
@@ -765,6 +796,13 @@ class CounterFactualProto(object):
         target_class
             List with target classes used to find closest prototype. If None, the nearest prototype
             except for the predict class on the instance is used.
+        k
+            Number of nearest instances used to define the prototype for a class. Defaults to using all
+            instances belonging to the class if an encoder is used and to 1 for k-d trees.
+        k_type
+            Use either the average encoding of the k nearest instances in a class (k_type='mean') or
+            the k-nearest encoding in the class (k_type='point') to define the prototype of that class.
+            Only relevant if an encoder is used to define the prototypes.
         threshold
             Threshold level for the ratio between the distance of the counterfactual to the prototype of the
             predicted class for the original instance over the distance to the prototype of the predicted class
@@ -805,8 +843,9 @@ class CounterFactualProto(object):
 
         # find best counterfactual
         self.best_attack = False
-        best_attack, grads = self.attack(X, Y=Y, target_class=target_class, verbose=verbose,
-                                         threshold=threshold, print_every=print_every, log_every=log_every)
+        best_attack, grads = self.attack(X, Y=Y, target_class=target_class, k=k, k_type=k_type,
+                                         verbose=verbose, threshold=threshold,
+                                         print_every=print_every, log_every=log_every)
 
         # add to explanation dict
         if not self.best_attack:

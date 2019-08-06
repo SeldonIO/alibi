@@ -42,7 +42,7 @@ particular prediction.
 |Algorithm|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
 |---|---|---|---|---|
 |[Trust Scores](../methods/TrustScores.ipynb)|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
-|[Linearity Measure](../examples/linearity_measure.ipynb)|✔|✔|✘|✔|✘|✔|Optional|
+|[Linearity Measure](../examples/linearity_measure_iris.ipynb)|✔|✔|✘|✔|✘|✔|Optional|
 
 **Trust scores**: produce a "trust score" of a classifier's prediction. The trust score is the ratio
 between the distance to the nearest class different from the predicted class and the distance to the

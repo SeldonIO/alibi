@@ -49,31 +49,36 @@ install the following:
 ### Black-box model explanaton
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)
-   - [Anchor explanations for income prediction](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_adult.html)
-   - [Anchor explanations on the iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_iris.html)
-   - [Anchor explanations for movie sentiment classification](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html)
-   - [Anchor explanations on ImageNet](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_imagenet.html)
-   - [Anchor explanations on fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_fashion_mnist.html)
+   - Examples:
+     [income prediction](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_adult.html),
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_iris.html),
+     [movie sentiment classification](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html),
+     [ImageNet](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_imagenet.html),
+     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_fashion_mnist.html)
 
 - Contrastive Explanation Method (CEM, [Dhurandhar et al., 2018](https://papers.nips.cc/paper/7340-explanations-based-on-the-missing-towards-contrastive-explanations-with-pertinent-negatives))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)
-  - [CEM on MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_mnist.html)
-  - [CEM on the iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_iris.html)
+  - Examples: [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_mnist.html),
+    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_iris.html)
 
-- Counterfactual Explanations (extension of [Wachter et al., 2017](https://arxiv.org/abs/1711.00399))
+- Counterfactual Explanations (extension of
+  [Wachter et al., 2017](https://arxiv.org/abs/1711.00399))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)
-  - [Counterfactual explanations on MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cf_mnist.html)
+  - Examples: 
+    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cf_mnist.html)
 
 - Counterfactual Explanations Guided by Prototypes ([Van Looveren et al., 2019](https://arxiv.org/abs/1907.02584))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
-  - [Counterfactuals guided by prototypes on MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html)
-  - [Counterfactuals guided by prototypes on Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html)
+  - Examples:
+    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html),
+    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html)
 
 ### Model confidence metrics
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)
-  - [Trust scores on MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html)
-  - [Trust scores on the iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html)
+  - Examples:
+    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html),
+    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html)
 
 ## Example outputs
 

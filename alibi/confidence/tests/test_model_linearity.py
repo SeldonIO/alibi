@@ -4,7 +4,7 @@ from sklearn.datasets import load_iris, load_boston
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
 from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
-from alibi.confidence.model_linearity import _linear_superposition, _sample_gridSampling, _sample_knn
+from alibi.confidence.model_linearity import _linear_superposition, _sample_grid, _sample_knn
 from functools import reduce
 
 
@@ -46,19 +46,19 @@ def test_sample_knn(nb_instances, nb_samples):
 @pytest.mark.parametrize('nb_instances', (5, ))
 @pytest.mark.parametrize('nb_samples', (3, ))
 @pytest.mark.parametrize('input_shape', ((3,), (4, 4, 1)))
-def test_sample_gridSampling(nb_instances, nb_samples, input_shape):
+def test_sample_grid(nb_instances, nb_samples, input_shape):
 
     x = np.ones((nb_instances, ) + input_shape)
     nb_features = x.reshape(x.shape[0], -1).shape[1]
-    features_range = np.array([[0, 1] for _ in range(nb_features)])
+    feature_range = np.array([[0, 1] for _ in range(nb_features)])
 
-    X_samples = _sample_gridSampling(x, features_range, nb_samples=nb_samples)
+    X_samples = _sample_grid(x, feature_range, nb_samples=nb_samples)
 
     assert X_samples.shape[0] == nb_instances
     assert X_samples.shape[1] == nb_samples
 
 
-@pytest.mark.parametrize('method', ('knn', 'gridSampling'))
+@pytest.mark.parametrize('method', ('knn', 'grid'))
 @pytest.mark.parametrize('epsilon', (0.04,))
 @pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
@@ -81,14 +81,14 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
     assert lin.shape[0] == nb_instances, 'Checking shapes'
     assert (lin >= 0).all(), 'Linearity measure must be >= 0'
 
-    features_range = [[0, 1] for _ in range(X_train.shape[1])]
-    lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
+    feature_range = [[0, 1] for _ in range(X_train.shape[1])]
+    lin_2 = linearity_measure(predict_fn, x, method='grid', epsilon=epsilon, feature_range=feature_range,
                               res=res, model_type='classifier', agg=agg)
     assert lin_2.shape[0] == nb_instances, 'Nb of linearity values returned different from number of instances'
     assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
 
 
-@pytest.mark.parametrize('method', ('knn', 'gridSampling'))
+@pytest.mark.parametrize('method', ('knn', 'grid'))
 @pytest.mark.parametrize('epsilon', (0.04,))
 @pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
@@ -121,16 +121,16 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
     assert lin_svr.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_svr >= 0).all(), 'Linearity measure must be >= 0'
 
-    features_range = [[0, 1] for _ in range(X_train.shape[1])]
-    lin_2 = linearity_measure(predict_fn, x, method='gridSampling', epsilon=epsilon, features_range=features_range,
+    feature_range = [[0, 1] for _ in range(X_train.shape[1])]
+    lin_2 = linearity_measure(predict_fn, x, method='grid', epsilon=epsilon, feature_range=feature_range,
                               res=res, model_type='regressor', agg=agg)
     assert lin_2.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2 >= 0).all(), 'Linearity measure must be >= 0'
     assert np.allclose(lin_2, np.zeros(lin_2.shape))
 
-    features_range = [[0, 1] for _ in range(X_train.shape[1])]
-    lin_2_svr = linearity_measure(predict_fn_svr, x, method='gridSampling', epsilon=epsilon,
-                                  features_range=features_range, res=res, model_type='regressor', agg=agg)
+    feature_range = [[0, 1] for _ in range(X_train.shape[1])]
+    lin_2_svr = linearity_measure(predict_fn_svr, x, method='grid', epsilon=epsilon,
+                                  feature_range=feature_range, res=res, model_type='regressor', agg=agg)
     assert lin_2_svr.shape[0] == nb_instances, 'Checking shapes'
     assert (lin_2_svr >= 0).all(), 'Linearity measure must be >= 0'
 
@@ -149,7 +149,7 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
     assert np.allclose(lin_multi, np.zeros(lin_multi.shape))
 
 
-@pytest.mark.parametrize('method', ('knn', 'gridSampling'))
+@pytest.mark.parametrize('method', ('knn', 'grid'))
 @pytest.mark.parametrize('epsilon', (0.04,))
 @pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))
@@ -174,7 +174,7 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
     assert (lin >= 0).all(), 'Linearity measure must be >= 0'
 
 
-@pytest.mark.parametrize('method', ('knn', 'gridSampling'))
+@pytest.mark.parametrize('method', ('knn', 'grid'))
 @pytest.mark.parametrize('epsilon', (0.04,))
 @pytest.mark.parametrize('res', (100,))
 @pytest.mark.parametrize('nb_instances', (1, 10))

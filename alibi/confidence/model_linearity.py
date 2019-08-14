@@ -15,15 +15,15 @@ def _linear_superposition(alphas, vecs, shape):
     Parameters
     ----------
     alphas
-        Coefficients of the superposition.
+        Coefficients of the superposition
     vecs
-        Tensors of the superposition.
+        Tensors of the superposition
     shape
-        Shape of each tensor.
+        Shape of each tensor
 
     Returns
     -------
-
+    Linear tensor superposition
     """
     input_str = string.ascii_lowercase[2: 2 + len(shape)]
     einstr = 'a,ba{}->b{}'.format(input_str, input_str)
@@ -38,19 +38,19 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
     Parameters
     ----------
     predict_fn
-        Model prediction function.
+        Model prediction function
     input_shape
-        Shape of the input.
+        Shape of the input
     X_samples
-        Array of feature vectors in the linear superposition.
+        Array of feature vectors in the linear superposition
     model_type
-        Type of task. Supported values 'regressor' or 'classifier'.
+        'classifier' or 'regressor'
     alphas
-        Array of coefficients in the linear superposition.
+        Array of coefficients in the linear superposition
 
     Returns
     -------
-    linearity score
+    Linearity score
 
     """
     ss = X_samples.shape[:2]  # X_samples shape=(nb_instances, nb_samples, nb_features)
@@ -104,9 +104,8 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
 
 def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
                                   model_type: str, alphas: np.ndarray) -> np.ndarray:
-    """Calculates the norm of the  difference between the output of a linear superposition of the instance of
-    interest x and the instances in X_samples and the linear superposition of the outputs,
-    averaged over all the vectors in X_samples.
+    """Calculates the norm of the difference between the output of a linear superposition of a test vector x and
+    vectors in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
 
     Parameters
     ----------
@@ -125,7 +124,7 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
 
     Returns
     -------
-    linearity score
+    Linearity score
 
     """
     ss = X_samples.shape[:2]  # X_samples shape=(nb_instances, nb_samples, nb_features)
@@ -190,7 +189,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
     Parameters
     ----------
     x
-        Instance of interest.
+        Central instance for sampling
     X_train
         Training set.
     nb_samples
@@ -221,8 +220,8 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
     return X_sampled
 
 
-def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsilon: float = 0.04,
-                         nb_samples: int = 10, res: int = 100) -> np.ndarray:
+def _sample_grid(x: np.ndarray, feature_range: np.ndarray = None, epsilon: float = 0.04,
+                 nb_samples: int = 10, res: int = 100) -> np.ndarray:
     """Samples data points uniformly from an interval centered at x and with size epsilon * Delta,
     with delta = f_max - f_min the features ranges.
 
@@ -230,7 +229,7 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
     ----------
     x
         Instance of interest.
-    features_range
+    feature_range
         Array with min and max values for each feature
     epsilon
         Size of the sampling region around central instance as percentage of features range.
@@ -250,7 +249,7 @@ def _sample_gridSampling(x: np.ndarray, features_range: np.ndarray = None, epsil
     if size <= 2:
         size = 2
 
-    deltas = (np.abs(features_range[:, 1] - features_range[:, 0]) / float(res))  # shape=(nb_features)
+    deltas = (np.abs(feature_range[:, 1] - feature_range[:, 0]) / float(res))  # shape=(nb_features)
 
     rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
     rnd = np.random.randint(size, size=(nb_instances, nb_samples, dim)) + 1
@@ -266,7 +265,7 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
                        feature_range: Union[List, np.ndarray] = None, method: str = None,
                        epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
                        alphas: np.ndarray = None, model_type: str = 'classifier', agg: str = 'global') -> np.ndarray:
-    """Calculate the linearity measure of the model around a instance of interest x.
+    """Calculate the linearity measure of the model around an instance of interest x.
 
     Parameters
     ----------
@@ -279,41 +278,38 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
     feature_range
         Array with min and max values for each feature.
     method
-        Method for sampling. Supported values 'knn' or 'gridSampling'.
+        Method for sampling. Supported values 'knn' or 'grid'.
     epsilon
-        Size of the sampling region around central instance as percentage of feature range.
+        Size of the sampling region around the central instance as a percentage of feature range.
     nb_samples
         Number of samples to generate.
     res
-        Resolution of the grind. Number of intervals in which the feature range is discretized.
+        Resolution of the grid. Number of intervals in which the feature range is discretized.
     alphas
         Array of coefficients in the superposition.
     model_type
-        Type of task. Supported values 'regressor' or 'classifier'.
+        Type of task. Supported values are 'regressor' or 'classifier'.
     agg
-        Aggregation method. Supported values 'global' or 'pairwise'.
+        Aggregation method. Supported values are 'global' or 'pairwise'.
 
     Returns
     -------
-    Linearity measure
+    Linearity score
 
     """
     input_shape = x.shape[1:]
 
-    assert method == 'knn' or method == 'gridSampling', "sampling method not supported. " \
-                                                        "Supported methods 'knn' or 'gridSampling'. "
-
     if method == 'knn':
         assert X_train is not None, "The 'knn' method requires X_train != None"
         X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
-    elif method == 'gridSampling':
-        assert feature_range is not None, "The 'gridSampling' method requires features_range != None."
+    elif method == 'grid':
+        assert feature_range is not None, "The 'grid' method requires feature_range != None."
         if isinstance(feature_range, list):
             feature_range = np.asarray(feature_range)
-        X_sampled = _sample_gridSampling(x, features_range=feature_range, epsilon=epsilon,
-                                         nb_samples=nb_samples, res=res)
+        X_sampled = _sample_grid(x, feature_range=feature_range, epsilon=epsilon,
+                                 nb_samples=nb_samples, res=res)
     else:
-        raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
+        raise ValueError('Method not understood. Supported methods: "knn", "grid"')
     logger.debug(x.shape)
     logger.debug(X_sampled.shape)
 
@@ -326,22 +322,22 @@ def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray 
             alphas = np.array([1 / float(nb_samples) for _ in range(nb_samples)])
         score = _calculate_global_linearity(predict_fn, input_shape, X_sampled, model_type, alphas)
     else:
-        raise ValueError('Aggregation argument agg allowed values: "global" or "pairwise "')
+        raise ValueError('Aggregation argument supported values: "global" or "pairwise "')
 
     return score
 
 
 def _infer_feature_range(X_train: np.ndarray) -> np.ndarray:
-    """Infers the features range from the training set.
+    """Infers the feature range from the training set.
 
     Parameters
     ----------
     X_train
-        Training set.
+        Training set
 
     Returns
     -------
-    Features range
+    Feature range
     """
     X_train = X_train.reshape(X_train.shape[0], -1)
     return np.vstack((X_train.min(axis=0), X_train.max(axis=0))).T
@@ -349,7 +345,7 @@ def _infer_feature_range(X_train: np.ndarray) -> np.ndarray:
 
 class LinearityMeasure(object):
 
-    def __init__(self, method: str = 'gridSampling', epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
+    def __init__(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
                  alphas: np.ndarray = None, model_type: str = 'classifier', agg: str = 'pairwise',
                  verbose: bool = False) -> None:
         """
@@ -357,19 +353,19 @@ class LinearityMeasure(object):
         Parameters
         ----------
         method
-            Method for sampling. Supported values 'knn' or 'gridSampling'.
+            Method for sampling. Supported methods are 'knn' or 'grid'.
         epsilon
-            Size of the sampling region as percentage of features range.
+            Size of the sampling region around the central instance as a percentage of the features range.
         nb_samples
             Number of samples to generate.
         res
-            Resolution of the grind. Number of interval in which the features range is discretized.
+            Resolution of the grid. Number of intervals in which the feature range is discretized.
         alphas
             Coefficients in the superposition.
         agg
-            Aggragation method. Supported values 'global' or 'pairwise'.
+            Aggregation method. Supported values are 'global' or 'pairwise'.
         model_type
-            Type of task. Supported values 'regressor' or 'classifier'.
+            Type of task. Supported values are 'regressor' or 'classifier'.
         """
         self.method = method
         self.epsilon = epsilon
@@ -387,14 +383,14 @@ class LinearityMeasure(object):
         Parameters
         ----------
         X_train
-            Training set.
+            Training set
 
         Returns
         -------
         None
         """
         self.X_train = X_train
-        self.features_range = _infer_feature_range(X_train)
+        self.feature_range = _infer_feature_range(X_train)
         self.input_shape = X_train.shape[1:]
         self.is_fit = True
 
@@ -404,9 +400,9 @@ class LinearityMeasure(object):
         Parameters
         ----------
         predict_fn
-            Predict function.
+            Prediction function
         x
-            Instance of interest.
+            Instance of interest
 
         Returns
         -------
@@ -419,28 +415,29 @@ class LinearityMeasure(object):
             assert input_shape == self.input_shape
 
         if self.method == 'knn':
-            assert self.is_fit, "Method 'knn' cannot be use without calling fit(). "
+            if not self.is_fit:
+                raise ValueError("Method 'knn' cannot be used without calling fit().")
             lin = _linearity_measure(predict_fn, x, X_train=self.X_train, feature_range=None, method=self.method,
                                      nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon, alphas=self.alphas,
                                      model_type=self.model_type, agg=self.agg)
-        elif self.method == 'gridSampling':
+        elif self.method == 'grid':
             if not self.is_fit:
-                self.features_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
+                self.feature_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
 
-            lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=self.features_range,
+            lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=self.feature_range,
                                      method=self.method, nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon,
                                      alphas=self.alphas, model_type=self.model_type, agg=self.agg)
         else:
-            raise ValueError('method not understood. Supported methods: "knn", "gridSampling"')
+            raise ValueError('Method not understood. Supported methods: "knn", "grid"')
 
         return lin
 
 
-def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union[List, np.ndarray] = None,
-                      method: str = 'gridSampling', X_train: np.ndarray = None, epsilon: float = 0.04,
+def linearity_measure(predict_fn: Callable, x: np.ndarray, feature_range: Union[List, np.ndarray] = None,
+                      method: str = 'grid', X_train: np.ndarray = None, epsilon: float = 0.04,
                       nb_samples: int = 10, res: int = 100, alphas: np.ndarray = None, agg: str = 'global',
                       model_type: str = 'classifier') -> np.ndarray:
-    """Calculate the linearity measure of the model around a instance of interest x.
+    """Calculate the linearity measure of the model around an instance of interest x.
 
     Parameters
     ----------
@@ -448,22 +445,22 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         Predict function.
     x
         Instance of interest.
-    features_range
+    feature_range
         Array with min and max values for each feature.
     method
-        Method for sampling. Supported values 'knn' or 'gridSampling'.
+        Method for sampling. Supported values 'knn' or 'grid'.
     X_train
         Training set.
     epsilon
-        Size of the sampling region as percentage of the features range.
+        Size of the sampling region as a percentage of the feature range.
     nb_samples
         Number of samples to generate.
     res
-        Resolution of the grind. Number of interval in which the features range is discretized.
+        Resolution of the grid. Number of intervals in which the features range is discretized.
     alphas
         Coefficients in the superposition.
     agg
-        Aggragation method. Supported values 'global' or 'pairwise'.
+        Aggregation method. Supported values 'global' or 'pairwise'.
     model_type
         Type of task. Supported values 'regressor' or 'classifier'.
 
@@ -477,18 +474,18 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, features_range: Union
         lin = _linearity_measure(predict_fn, x, X_train=X_train, feature_range=None, method=method,
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, agg=agg)
-    elif method == 'gridSampling':
-        assert features_range is not None or X_train is not None, "Method 'gridSampling' requires " \
-                                                                  "features_range != None or X_train != None"
-        if X_train is not None and features_range is None:
-            features_range = _infer_feature_range(X_train)  # infer from dataset
-        elif features_range is not None:
-            features_range = np.asarray(features_range)
+    elif method == 'grid':
+        assert feature_range is not None or X_train is not None, "Method 'grid' requires " \
+                                                                  "feature_range != None or X_train != None"
+        if X_train is not None and feature_range is None:
+            feature_range = _infer_feature_range(X_train)  # infer from dataset
+        elif feature_range is not None:
+            feature_range = np.asarray(feature_range)
 
-        lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=features_range, method=method,
+        lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=feature_range, method=method,
                                  nb_samples=nb_samples, res=res, epsilon=epsilon, alphas=alphas,
                                  model_type=model_type, agg=agg)
     else:
-        raise ValueError('Method not understood. Supported methods: "knn", "gridSampling"')
+        raise ValueError('Method not understood. Supported methods: "knn", "grid"')
 
     return lin

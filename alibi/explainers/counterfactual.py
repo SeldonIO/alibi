@@ -146,25 +146,19 @@ class CounterFactual:
 
         self.debug = debug
 
-        # check if the passed object is a model
-        is_model, is_keras = _check_keras_or_tf(predict_fn)
+        # check if the passed object is a model and get session
+        is_model, is_keras, sess = _check_keras_or_tf(predict_fn)
+        self.sess = sess
 
-        # TF session creation
         if is_model:  # Keras or TF model
-            if is_keras:
-                import keras.backend as K
-            else:
-                import tensorflow.keras.backend as K  # type: ignore
             self.model = True
             self.predict_fn = predict_fn.predict  # type: ignore # array function
             self.predict_tn = predict_fn  # tensor function
-            self.sess = K.get_session()
 
         else:  # black-box model
             self.predict_fn = predict_fn
             self.predict_tn = None
             self.model = False
-            self.sess = tf.Session()
 
         # if session provided, use that instead
         if isinstance(sess, tf.Session):

@@ -84,23 +84,19 @@ class CEM:
         """
         self.predict = predict
 
-        # check whether the model and the auto-encoder are Keras or TF models
-        is_model, is_model_keras = _check_keras_or_tf(predict)
-        is_ae, is_ae_keras = _check_keras_or_tf(ae_model)
+        # check whether the model and the auto-encoder are Keras or TF models and get session
+        is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
+        is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
+        # TODO: check ae and model are compatible
 
-        # TF session creation
+        self.sess = model_sess
+
         if is_model:  # Keras or TF model
-            if is_model_keras:
-                import keras.backend as K
-            else:
-                import tensorflow.keras.backend as K  # type: ignore
-            self.sess = K.get_session()
             self.model = True
             classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
-            self.sess = tf.Session()
 
         # if session provided, use that instead
         if isinstance(sess, tf.Session):

@@ -8,12 +8,13 @@ import copy
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SLIC_SEGMENTATION_KWARGS = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+
 
 class AnchorImage(object):
 
     def __init__(self, predict_fn: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = {'n_segments': 10, 'compactness': 10, 'sigma': .5},
-                 images_background: np.ndarray = None) -> None:
+                 segmentation_kwargs: dict = None, images_background: np.ndarray = None) -> None:
         """
         Initialize anchor image explainer.
 
@@ -32,7 +33,10 @@ class AnchorImage(object):
         images_background
             Images to overlay superpixels on.
         """
-        if callable(segmentation_fn) and segmentation_kwargs is not None:
+        if segmentation_fn == 'slic' and segmentation_kwargs is None:
+            segmentation_kwargs = DEFAULT_SLIC_SEGMENTATION_KWARGS
+
+        elif callable(segmentation_fn) and segmentation_kwargs is not None:
             logger.warning('Specified both a segmentation function to create superpixels and keyword '
                            'arguments for built segmentation functions. By default '
                            'the specified segmentation function will be used.')

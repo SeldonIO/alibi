@@ -73,7 +73,7 @@ class BaseExplanation(Base, Sequence):
         self._meta = value
 
     @property
-    def data(self) -> Data:
+    def data(self) -> dict:
         return self._data
 
     @data.setter

@@ -6,7 +6,7 @@ import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set
 
 DEFAULT_DISC_PERC = [25, 50, 75]
-DEFAULT_META = {"type": "blackbox", "explanations": ["local"]}
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
 
 
 class AnchorTabularExplanation(BaseExplanation):
@@ -85,6 +85,9 @@ class AnchorTabular(BaseExplainer, FitMixin):
             self.min[f] = np.min(train_data[:, f])
             self.max[f] = np.max(train_data[:, f])
             self.std[f] = np.std(train_data[:, f])
+
+        # update metadata
+        self.meta['hparams'].update(disc_perc=disc_perc)
 
         return self
 
@@ -317,6 +320,9 @@ class AnchorTabular(BaseExplainer, FitMixin):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        # get hparams for storage in meta, TODO: keep or discard X, self, kwargs etc.?
+        hparams = locals()
+
         # build sampling function and ...
         # ... mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
         sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
@@ -341,6 +347,9 @@ class AnchorTabular(BaseExplainer, FitMixin):
         newexp = AnchorTabularExplanation()
         newexp.data['local'].append(explanation)  # only supporting single instances for now
         newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        # hparams passed to explain
+        newexp.meta['hparams'].update(hparams)
         return newexp
 
     def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:

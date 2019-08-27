@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Dict, List, Union
+import copy
 
 # input and output types
 Data = Union[Dict, List]
@@ -23,7 +24,7 @@ class Base(ABC):
 class BaseExplainer(Base):
 
     def __init__(self):
-        self.meta = DEFAULT_META
+        self.meta = copy.deepcopy(DEFAULT_META)
         self.meta["name"] = self.__class__.__name__
 
     @property
@@ -53,9 +54,9 @@ class BaseExplanation(Base, Sequence):
     """
 
     def __init__(self):
-        self.meta = DEFAULT_META
+        self.meta = copy.deepcopy(DEFAULT_META)
         self.meta["name"] = self.__class__.__name__
-        self.data = DEFAULT_DATA
+        self.data = copy.deepcopy(DEFAULT_DATA)
 
     def __len__(self):
         return len(self.data['local'])

@@ -87,7 +87,7 @@ class BaseExplanation(Base, Sequence):
         return self._data['local']
 
     @property
-    def overall_(self) -> Data:
+    def overall(self) -> Data:
         return self._data['overall']
 
 

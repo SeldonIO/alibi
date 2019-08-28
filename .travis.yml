@@ -1,19 +1,15 @@
 dist: xenial
 language: python
-python:
-  - "3.5"
-  - "3.6"
-  - "3.7"
+services:
+  - docker
 before_install:
+  - docker pull marcogorelli/alibi-ci:3.7
   - sudo apt-get install pandoc
-install:
-  - pip install -r requirements/requirements_all.txt
-  - python -m spacy download en_core_web_md
 script:
-  - flake8 alibi
-  - mypy alibi
-  - travis_wait pytest
-  - make build_pypi
-  - make build_docs
+  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci flake8 alibi
+  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci mypy alibi
+  - travis_wait docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci pytest
+  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci make build_pypi
+  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci make build_docs
 after_success:
-  - codecov
+  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci codecov

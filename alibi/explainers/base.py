@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Dict, List, Union
 import copy
+import json
+import numpy as np
 
 # input and output types
 Data = Union[Dict, List]
@@ -90,6 +92,19 @@ class BaseExplanation(Base, Sequence):
     def overall(self) -> Data:
         return self._data['overall']
 
+    def serialize(self) -> str:
+        """
+        Serialize the explanation data and metadata into a json format.
+
+        Returns
+        -------
+        String containing json representation of the explanation
+        """
+        meta = self.meta
+        data = self.data
+        all = {"meta": meta, "data": data}
+        return json.dumps(all, cls=NumpyEncoder)
+
 
 class DataException(Exception):
     pass
@@ -111,3 +126,16 @@ def _validate_data(data):
         raise DataException('Data must have `local` and `overall` as top level fields')
     if not isinstance(data['local'], list):
         raise DataException('data[local] must be a list')
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, (
+                np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64, np.uint8, np.uint16, np.uint32,
+                np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)

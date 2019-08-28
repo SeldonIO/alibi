@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.manifold import MDS
 
 
 def cityblock_batch(X: np.ndarray,
@@ -155,3 +156,51 @@ def abdm(X: np.ndarray,
                 d_pair_col[i, j] = min(d_ij_tmp, d_pair_ceil)
         d_pair[col] = d_pair_col
     return d_pair
+
+
+def multidim_scaling(d_pair: dict, n_components: int = 2, use_metric: bool = True,
+                     standardize_cat_vars: bool = True, feature_range: tuple = None) -> dict:
+    """
+    Apply multidimensional scaling to pairwise distance matrices.
+
+    Parameters
+    ----------
+    d_pair
+        Dict with as keys the column index of the categorical variables and as values
+        a pairwise distance matrix for the categories of the variable.
+    n_components
+        Number of dimensions in which to immerse the dissimilarities.
+    use_metric
+        If True, perform metric MDS; otherwise, perform nonmetric MDS.
+    standardize_cat_vars
+        Standardize numerical values of categorical variables if True.
+    feature_range
+        Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
+        numpy arrays with dimension (1 x nb of features) for feature-wise ranges.
+
+    Returns
+    -------
+    Dict with multidimensional scaled version of pairwise distance matrices.
+    """
+    d_abs = {}
+    for k, v in d_pair.items():
+        mds = MDS(n_components=n_components, max_iter=5000, eps=1e-9, random_state=0, n_init=4,
+                  dissimilarity="precomputed", metric=use_metric)
+        d_fit = mds.fit(v)
+        emb = d_fit.embedding_  # coordinates in embedding space
+        # use biggest single observation Frobenius norm as origin
+        origin = np.argsort(np.linalg.norm(emb, axis=1))[-1]
+        # calculate distance from origin for each category
+        d_origin = np.linalg.norm(emb - emb[origin].reshape(1, -1), axis=1)
+        # scale numerical values for the category
+        if standardize_cat_vars:
+            d_origin_scale = (d_origin - d_origin.mean()) / (d_origin.std() + 1e-12)
+        else:
+            try:
+                rng = (feature_range[0][0, k], feature_range[1][0, k])
+            except:
+                raise TypeError('Feature-wise min and max ranges need to be specified.')
+            d_min, d_max = d_origin.min(), d_origin.max()
+            d_origin_scale = (d_origin - d_min) / (d_max - d_min) * (rng[1] - rng[0]) + rng[0]
+        d_abs[k] = d_origin_scale  # scaled distance from the origin for each category
+    return d_abs

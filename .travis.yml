@@ -6,10 +6,10 @@ before_install:
   - docker pull marcogorelli/alibi-ci:3.7
   - sudo apt-get install pandoc
 script:
-  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci flake8 alibi
-  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci mypy alibi
-  - travis_wait docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci pytest
-  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci make build_pypi
-  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci make build_docs
+  - docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci flake8 alibi
+  - docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci mypy alibi
+  - travis_wait docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci pytest
+  - docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci make build_pypi
+  - docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci make build_docs
 after_success:
-  - docker run -v $(pwd)/.:/workdir -w /workdir alibi-ci codecov
+  - docker run -v $(pwd)/.:/workdir -w /workdir marcogorelli/alibi-ci codecov

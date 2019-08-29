@@ -79,7 +79,7 @@ class AnchorText(object):
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
-        if np.argmax(predict_fn([b'Hello world']).shape) == 0:
+        if np.argmax(predict_fn(['Hello world']).shape) == 0:
             self.predict_fn = predict_fn
         else:
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
@@ -87,7 +87,8 @@ class AnchorText(object):
         self.neighbors = Neighbors(self.nlp)
 
     def get_sample_fn(self, text: str, desired_label: int = None, use_proba: bool = False,
-                      use_unk: bool = True) -> Tuple[list, list, Callable]:
+                      use_unk: bool = True, sample_prob_unk: float = 0.5, top_n: int = 500,
+                      **kwargs) -> Tuple[list, list, Callable]:
         """
         Create sampling function as well as lists with the words and word positions in the text.
 
@@ -102,6 +103,10 @@ class AnchorText(object):
         use_unk
             If True, perturbation distribution will replace words randomly with UNKs.
             If False, words will be replaced by similar words using word embeddings.
+        sample_prob_unk
+            Sample probability for UNKs
+        top_n
+            Sample using only top_n instances from similar words in the corpus
 
         Returns
         -------
@@ -121,8 +126,8 @@ class AnchorText(object):
         words = [x.text for x in processed]  # list with words in text
         positions = [x.idx for x in processed]  # positions of words in text
 
-        def sample_fn(present: list, num_samples: int, compute_labels: bool = True,
-                      sample_prob_unk: float = 0.5, top_n: int = 500) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def sample_fn(present: list, num_samples: int, compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray,
+                                                                                             np.ndarray]:
             """
             Create sampling function using similar words in the embedding space.
 
@@ -134,10 +139,6 @@ class AnchorText(object):
                 Number of samples used when sampling from the corpus
             compute_labels
                 Boolean whether to use labels coming from model predictions as 'true' labels
-            sample_prob_unk
-                Sample probability for UNKs
-            top_n
-                Sample using only top_n instances from similar words in the corpus
 
             Returns
             -------
@@ -169,7 +170,8 @@ class AnchorText(object):
 
             else:  # replace words by similar words instead of UNKs
 
-                raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n, use_proba=use_proba)
+                raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n, use_proba=use_proba,
+                                                       **kwargs)
 
             # create labels using model predictions as true labels
             labels = np.array([])
@@ -206,6 +208,8 @@ class AnchorText(object):
         use_unk
             If True, perturbation distribution will replace words randomly with UNKs.
             If False, words will be replaced by similar words using word embeddings.
+        kwargs
+            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions
 
         Returns
         -------
@@ -217,7 +221,7 @@ class AnchorText(object):
 
         # get the words and positions of words in the text instance and sample function
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,
-                                                         use_proba=use_proba, use_unk=use_unk)
+                                                         use_proba=use_proba, use_unk=use_unk, **kwargs)
 
         # get max perturbed sample sentence length
         # needed to set dtype of array later and ensure the full text is used
@@ -259,7 +263,7 @@ class AnchorText(object):
                          top_n: int = 50, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_proba: bool = True, temperature: float = .4) -> Tuple[list, np.ndarray]:
+                         use_proba: bool = True, temperature: float = .4, **kwargs) -> Tuple[list, np.ndarray]:
         """
         Perturb the text instance to be explained.
 

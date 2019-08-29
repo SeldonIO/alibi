@@ -55,7 +55,6 @@ def mvdm(X: np.ndarray,
     Dict with as keys the categorical columns and as values the pairwise distance matrix for the variable.
     """
     # TODO: vectorize the damn thing!
-    # TODO: expand for y as ordinal or OHE of labels + support probabilities
     n_y = len(np.unique(y))
     cat_cols = list(cat_vars.keys())
     for col in cat_cols:
@@ -82,7 +81,8 @@ def mvdm(X: np.ndarray,
 
 
 def abdm(X: np.ndarray,
-         cat_vars: dict):
+         cat_vars: dict,
+         cat_vars_bin: dict = dict()):
     """
     Calculate the pair-wise distances between categories of a categorical variable using
     the Association-Based Distance Metric.
@@ -95,6 +95,9 @@ def abdm(X: np.ndarray,
     cat_vars
         Dict with as keys the categorical columns and as optional values
         the number of categories per categorical variable.
+    cat_vars_bin
+        Dict with as keys the binned numerical columns and as optional values
+        the number of bins per variable.
 
     Returns
     -------
@@ -112,11 +115,15 @@ def abdm(X: np.ndarray,
     eps = 1e-12
     d_pair_ceil = 100000
 
+    # infer number of categories per categorical variable
     cat_cols = list(cat_vars.keys())
     for col in cat_cols:
         if cat_vars[col] is not None:
             continue
         cat_vars[col] = len(np.unique(X[:, col]))
+
+    # combine dict for categorical with binned features
+    cat_vars_combined = {**cat_vars, **cat_vars_bin}
 
     d_pair = {}
     X_cat_eq = {}
@@ -128,7 +135,7 @@ def abdm(X: np.ndarray,
 
         # conditional probabilities
         p_cond = []
-        for col_t, n_cat_t in cat_vars.items():
+        for col_t, n_cat_t in cat_vars_combined.items():
             if col == col_t:
                 continue
             p_cond_t = np.zeros([n_cat_t, n_cat])

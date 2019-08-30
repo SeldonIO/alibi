@@ -68,8 +68,9 @@ def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
     num_samples = 100
     sample_prob_unk = .5
     top_n = 500
-    words, positions, sample_fn = explainer.get_sample_fn(text, use_proba=use_proba, use_unk=use_unk)
-    raw_data, data, labels = sample_fn(present, num_samples, sample_prob_unk=sample_prob_unk, top_n=top_n)
+    words, positions, sample_fn = explainer.get_sample_fn(text, use_proba=use_proba, use_unk=use_unk,
+                                                          sample_prob_unk=sample_prob_unk, top_n=top_n)
+    raw_data, data, labels = sample_fn(present, num_samples)
 
     if use_proba:  # check that words in present are in the proposed anchor
         assert len(present) * data.shape[0] == data[:, :-1].sum()  # exclude '.'

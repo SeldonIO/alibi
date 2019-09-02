@@ -13,21 +13,18 @@ DEFAULT_META = {"name": None}  # type: Dict
 DEFAULT_DATA = {"overall": None, "local": []}  # type: Dict
 
 
-class Base(ABC):
+class BaseExplainer(ABC):
     """
-    Base class for explainers and explanations.
+    Base class for explainer algorithms
     """
-
-    def __repr__(self):
-        # TODO get and pretty print all attributes a la sklearn
-        return self.__class__.__name__
-
-
-class BaseExplainer(Base):
 
     def __init__(self):
         self.meta = copy.deepcopy(DEFAULT_META)
         self.meta["name"] = self.__class__.__name__
+
+    def __repr__(self):
+        # TODO get and pretty print all attributes a la sklearn
+        return self.__class__.__name__
 
     @property
     def meta(self) -> Dict:
@@ -50,7 +47,7 @@ class FitMixin(ABC):
         pass
 
 
-class BaseExplanation(Base, Sequence):
+class BaseExplanation(Sequence):
     """
     Base class for explanations returned by explainers
     """
@@ -65,6 +62,18 @@ class BaseExplanation(Base, Sequence):
 
     def __getitem__(self, key):
         return self.data['local'][key]
+
+    def __repr__(self):
+        name = self.__class__.__name__
+        is_overall = False
+        len_loc = 0
+        # check what is explained
+        if self.overall is not None:
+            is_overall = True
+        if self.local != []:
+            len_loc = len(self.local)
+        dictrepr = f' {{overall: {is_overall}, local: {len_loc}}}'
+        return '<' + name + dictrepr + '>'
 
     @property
     def meta(self) -> Dict:

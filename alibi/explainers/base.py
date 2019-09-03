@@ -72,7 +72,7 @@ class BaseExplanation(Sequence):
             is_overall = True
         if self.local != []:
             len_loc = len(self.local)
-        dictrepr = f' {{overall: {is_overall}, local: {len_loc}}}'
+        dictrepr = ' {{overall: {}, local: {}}}'.format(is_overall, len_loc)
         return '<' + name + dictrepr + '>'
 
     @property

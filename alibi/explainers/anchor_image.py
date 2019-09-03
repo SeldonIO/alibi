@@ -69,7 +69,7 @@ class AnchorImage(BaseExplainer):
             try:
                 self.segmentation_fn = lambda x: fn_options[segmentation_fn](x, **segmentation_kwargs)
             except KeyError:
-                logger.warn("Unknown segmentation function `{}`, defaulting to `slic`".format(segmentation_fn))
+                logger.warning("Unknown segmentation function `{}`, defaulting to `slic`".format(segmentation_fn))
                 self.segmentation_fn = lambda x: fn_options['slic'](x, **segmentation_kwargs)
 
         self.images_background = images_background
@@ -247,9 +247,9 @@ class AnchorImage(BaseExplainer):
 
         return segments, sample_fn_fudged
 
-    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
+    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
                 tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5,
-                **kwargs: Any) -> "AnchorImageExplanation":
+                **kwargs) -> "AnchorImageExplanation":
         """
         Explain instance and return anchor with metadata.
 

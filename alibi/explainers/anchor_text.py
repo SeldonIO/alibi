@@ -87,7 +87,7 @@ class AnchorText(object):
         self.neighbors = Neighbors(self.nlp)
 
     def get_sample_fn(self, text: str, desired_label: int = None, use_proba: bool = False,
-                      use_unk: bool = True, sample_prob_unk: float = 0.5, top_n: int = 500,
+                      use_unk: bool = True, sample_prob_unk: float = 0.5, top_n: int = 100,
                       **kwargs) -> Tuple[list, list, Callable]:
         """
         Create sampling function as well as lists with the words and word positions in the text.
@@ -183,7 +183,7 @@ class AnchorText(object):
         return words, positions, sample_fn
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, desired_label: int = None,
+                tau: float = 0.15, batch_size: int = 100, top_n: int = 50, desired_label: int = None,
                 use_proba: bool = False, use_unk: bool = True, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
@@ -200,6 +200,8 @@ class AnchorText(object):
             Margin between lower confidence bound and minimum precision or upper bound
         batch_size
             Batch size used for sampling
+        top_n
+            Number of similar words to sample for perturbations, only used if use_proba=True
         desired_label
             Label to use as true label for the instance to be explained
         use_proba
@@ -221,7 +223,8 @@ class AnchorText(object):
 
         # get the words and positions of words in the text instance and sample function
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,
-                                                         use_proba=use_proba, use_unk=use_unk, **kwargs)
+                                                         use_proba=use_proba, use_unk=use_unk,
+                                                         top_n=top_n, **kwargs)
 
         # get max perturbed sample sentence length
         # needed to set dtype of array later and ensure the full text is used
@@ -260,7 +263,7 @@ class AnchorText(object):
         return explanation
 
     def perturb_sentence(self, text: str, present: list, n: int, proba_change: float = 0.5,
-                         top_n: int = 50, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
+                         top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
                          use_proba: bool = True, temperature: float = .4, **kwargs) -> Tuple[list, np.ndarray]:

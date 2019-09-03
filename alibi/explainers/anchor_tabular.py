@@ -48,9 +48,7 @@ class AnchorTabular(BaseExplainer, FitMixin):
         self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
         # set metadata
-        meta = DEFAULT_META
-        # TODO add params
-        self.meta.update(meta)
+        self.meta.update(DEFAULT_META)
 
     def fit(self, train_data: np.ndarray, disc_perc: list = None) -> "AnchorTabular":
         """
@@ -322,6 +320,9 @@ class AnchorTabular(BaseExplainer, FitMixin):
         """
         # get hparams for storage in meta, TODO: keep or discard X, self, kwargs etc.?
         hparams = locals()
+        remove = ['X', 'self']
+        for key in remove:
+            hparams.pop(key)
 
         # build sampling function and ...
         # ... mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
@@ -336,7 +337,7 @@ class AnchorTabular(BaseExplainer, FitMixin):
         exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
         exp = AnchorExplanation('tabular', exp)
 
-        # output explanation dictionary
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         explanation = {}
         explanation['names'] = exp.names()
         explanation['precision'] = exp.precision()

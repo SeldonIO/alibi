@@ -1,5 +1,6 @@
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import BaseExplainer, BaseExplanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple
@@ -9,9 +10,15 @@ import copy
 logger = logging.getLogger(__name__)
 
 DEFAULT_SLIC_SEGMENTATION_KWARGS = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
 
 
-class AnchorImage(object):
+class AnchorImageExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
+
+
+class AnchorImage(BaseExplainer):
 
     def __init__(self, predict_fn: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None, images_background: np.ndarray = None) -> None:
@@ -33,6 +40,8 @@ class AnchorImage(object):
         images_background
             Images to overlay superpixels on.
         """
+        super().__init__()
+
         if segmentation_fn == 'slic' and segmentation_kwargs is None:
             segmentation_kwargs = DEFAULT_SLIC_SEGMENTATION_KWARGS
 
@@ -53,12 +62,24 @@ class AnchorImage(object):
         if callable(segmentation_fn):
             self.custom_segmentation = True
             self.segmentation_fn = segmentation_fn
+            seg_fn_name = 'custom'
         else:
             self.custom_segmentation = False
-            self.segmentation_fn = lambda x: fn_options[segmentation_fn](x, **segmentation_kwargs)
+            seg_fn_name = segmentation_fn
+            try:
+                self.segmentation_fn = lambda x: fn_options[segmentation_fn](x, **segmentation_kwargs)
+            except KeyError:
+                logger.warn("Unknown segmentation function `{}`, defaulting to `slic`".format(segmentation_fn))
+                self.segmentation_fn = lambda x: fn_options['slic'](x, **segmentation_kwargs)
 
         self.images_background = images_background
         self.image_shape = image_shape
+
+        # set metadata
+        self.meta.update(DEFAULT_META)
+        self.meta['hparams'].update(custom_segmentation=self.custom_segmentation)
+        self.meta['hparams'].update(segmentation_kwargs=segmentation_kwargs)
+        self.meta['hparams'].update(segmentation_fn=seg_fn_name)
 
     def get_sample_fn(self, image: np.ndarray, p_sample: float = 0.5) -> Tuple[np.ndarray, Callable]:
         """
@@ -227,7 +248,8 @@ class AnchorImage(object):
         return segments, sample_fn_fudged
 
     def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5, **kwargs: Any):
+                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5,
+                **kwargs: Any) -> "AnchorImageExplanation":
         """
         Explain instance and return anchor with metadata.
 
@@ -251,6 +273,12 @@ class AnchorImage(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        # get hparams for storage in meta, TODO: keep or discard X, self, kwargs etc.?
+        hparams = locals()
+        remove = ['image', 'self']
+        for key in remove:
+            hparams.pop(key)
+
         # build sampling function and segments
         segments, sample_fn = self.get_sample_fn(np.reshape(image, self.image_shape), p_sample=p_sample)
 
@@ -272,14 +300,22 @@ class AnchorImage(object):
 
         exp = AnchorExplanation('image', exp)
 
-        # output explanation dictionary
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         explanation = {}
         explanation['anchor'] = anchor
         explanation['segments'] = segments
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
-        return explanation
+
+        # create explanation object
+        newexp = AnchorImageExplanation()
+        newexp.data['local'].append(explanation)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        # hparams passed to explain
+        newexp.meta['hparams'].update(hparams)
+        return newexp
 
     @staticmethod
     def overlay_mask(image: np.ndarray, segments: np.ndarray, mask_features: list,

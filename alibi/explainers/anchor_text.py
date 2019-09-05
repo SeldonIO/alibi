@@ -79,15 +79,16 @@ class AnchorText(object):
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
-        if np.argmax(predict_fn([b'Hello world']).shape) == 0:
+        if np.argmax(predict_fn(['Hello world']).shape) == 0:
             self.predict_fn = predict_fn
         else:
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         self.neighbors = Neighbors(self.nlp)
 
-    def get_sample_fn(self, text: str, desired_label: int = None, use_proba: bool = False,
-                      use_unk: bool = True) -> Tuple[list, list, Callable]:
+    def get_sample_fn(self, text: str, desired_label: int = None, use_similarity_proba: bool = False,
+                      use_unk: bool = True, sample_proba: float = 0.5, top_n: int = 100,
+                      temperature: float = 0.4, **kwargs) -> Tuple[list, list, Callable]:
         """
         Create sampling function as well as lists with the words and word positions in the text.
 
@@ -97,11 +98,17 @@ class AnchorText(object):
             Text instance to be explained
         desired_label
             Label to use as true label for the instance to be explained
-        use_proba
+        use_similarity_proba
             Bool whether to sample according to a similarity score with the corpus embeddings
         use_unk
             If True, perturbation distribution will replace words randomly with UNKs.
             If False, words will be replaced by similar words using word embeddings.
+        sample_proba
+            Sample probability if use_similarity_proba is False
+        top_n
+            Sample using only top_n instances from similar words in the corpus
+        temperature
+            Sample weight hyperparameter if use_similarity_proba equals True
 
         Returns
         -------
@@ -121,8 +128,8 @@ class AnchorText(object):
         words = [x.text for x in processed]  # list with words in text
         positions = [x.idx for x in processed]  # positions of words in text
 
-        def sample_fn(present: list, num_samples: int, compute_labels: bool = True,
-                      sample_prob_unk: float = 0.5, top_n: int = 500) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def sample_fn(present: list, num_samples: int, compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray,
+                                                                                             np.ndarray]:
             """
             Create sampling function using similar words in the embedding space.
 
@@ -134,10 +141,6 @@ class AnchorText(object):
                 Number of samples used when sampling from the corpus
             compute_labels
                 Boolean whether to use labels coming from model predictions as 'true' labels
-            sample_prob_unk
-                Sample probability for UNKs
-            top_n
-                Sample using only top_n instances from similar words in the corpus
 
             Returns
             -------
@@ -159,7 +162,7 @@ class AnchorText(object):
                         continue
 
                     # sample the words in the text outside of the anchor that are replaced with UNKs
-                    n_changed = np.random.binomial(num_samples, sample_prob_unk)
+                    n_changed = np.random.binomial(num_samples, sample_proba)
                     changed = np.random.choice(num_samples, n_changed, replace=False)
                     raw[changed, i] = 'UNK'
                     data[changed, i] = 0
@@ -169,7 +172,10 @@ class AnchorText(object):
 
             else:  # replace words by similar words instead of UNKs
 
-                raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n, use_proba=use_proba)
+                raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n,
+                                                       use_similarity_proba=use_similarity_proba,
+                                                       sample_proba=sample_proba, temperature=temperature,
+                                                       **kwargs)
 
             # create labels using model predictions as true labels
             labels = np.array([])
@@ -181,8 +187,9 @@ class AnchorText(object):
         return words, positions, sample_fn
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, desired_label: int = None,
-                use_proba: bool = False, use_unk: bool = True, **kwargs: Any) -> dict:
+                tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
+                use_similarity_proba: bool = False, use_unk: bool = True,
+                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -198,26 +205,37 @@ class AnchorText(object):
             Margin between lower confidence bound and minimum precision or upper bound
         batch_size
             Batch size used for sampling
+        top_n
+            Number of similar words to sample for perturbations, only used if use_proba=True
         desired_label
             Label to use as true label for the instance to be explained
-        use_proba
+        use_similarity_proba
             Bool whether to sample according to a similarity score with the corpus embeddings.
-            use_unk needs to be False in order for use_proba equals True to work.
+            use_unk needs to be False in order for use_similarity_proba equals True to be used.
         use_unk
             If True, perturbation distribution will replace words randomly with UNKs.
             If False, words will be replaced by similar words using word embeddings.
+        sample_proba
+            Sample probability if use_similarity_proba is False
+        temperature
+            Sample weight hyperparameter if use_similarity_proba equals True
+        kwargs
+            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions
 
         Returns
         -------
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
-        if use_unk and use_proba:
-            logger.warning('"use_unk" and "use_proba" args should not both be True. Defaults to "use_unk" behaviour.')
+        if use_unk and use_similarity_proba:
+            logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
+                           'Defaults to "use_unk" behaviour.')
 
         # get the words and positions of words in the text instance and sample function
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,
-                                                         use_proba=use_proba, use_unk=use_unk)
+                                                         use_similarity_proba=use_similarity_proba,
+                                                         use_unk=use_unk, sample_proba=sample_proba,
+                                                         temperature=temperature, top_n=top_n, **kwargs)
 
         # get max perturbed sample sentence length
         # needed to set dtype of array later and ensure the full text is used
@@ -255,11 +273,12 @@ class AnchorText(object):
         explanation['raw'] = exp.exp_map
         return explanation
 
-    def perturb_sentence(self, text: str, present: list, n: int, proba_change: float = 0.5,
-                         top_n: int = 50, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
+    def perturb_sentence(self, text: str, present: list, n: int, sample_proba: float = 0.5,
+                         top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_proba: bool = True, temperature: float = .4) -> Tuple[list, np.ndarray]:
+                         use_similarity_proba: bool = True, temperature: float = 1.,
+                         **kwargs) -> Tuple[list, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -271,8 +290,8 @@ class AnchorText(object):
             List with the word index in the text for the words in the proposed anchor
         n
             Number of samples used when sampling from the corpus
-        proba_change
-            Probability of a word being changed
+        sample_proba
+            Sample probability for a word if use_similarity_proba is False
         top_n
             Keep only top_n instances from similar words in the corpus
         forbidden
@@ -283,10 +302,10 @@ class AnchorText(object):
             Forbidden words
         pos
             POS that can be changed during perturbation
-        use_proba
+        use_similarity_proba
             Bool whether to sample according to a similarity score with the corpus embeddings
         temperature
-            Sample weight hyperparameter if use_proba equals True
+            Sample weight hyperparameter if use_similarity_proba equals True
 
         Returns
         -------
@@ -319,22 +338,33 @@ class AnchorText(object):
                     continue
 
                 t_neighbors = [x[0] for x in r_neighbors]  # words of neighbors
-                weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
 
-                if use_proba:  # sample perturbations according to similarity score
-                    weights = weights ** (1. / temperature)
-                    weights = weights / sum(weights)
-                    raw[:, i] = np.random.choice(t_neighbors, n, p=weights, replace=True)
-                    data[:, i] = raw[:, i] == t.text
-                else:  # don't use similarity score in sampling distribution
-                    n_changed = np.random.binomial(n, proba_change)
-                    changed = np.random.choice(n, n_changed, replace=False)
-                    if t.text in t_neighbors:
-                        idx = t_neighbors.index(t.text)
+                # idx for changed words with sample_proba
+                n_changed = np.random.binomial(n, sample_proba)
+                changed = np.random.choice(n, n_changed, replace=False)
+
+                # check if token present in the neighbors and set weight to 0
+                if t.text.encode('utf-8') in t_neighbors:
+                    idx = t_neighbors.index(t.text.encode('utf-8'))
+                else:
+                    idx = None
+
+                if use_similarity_proba:  # use similarity scores to sample changed tokens
+                    weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
+                    if idx is not None:
                         weights[idx] = 0
+                    weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
-                    raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights)
-                    data[changed, i] = 0
+                else:
+                    weights = np.ones((len(r_neighbors), ))
+                    if idx is not None:
+                        weights /= (len(r_neighbors) - 1)
+                        weights[idx] = 0
+                    else:
+                        weights /= len(r_neighbors)
+
+                raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights, replace=True)
+                data[changed, i] = 0
 
         # convert numpy array into list
         raw = [' '.join([y.decode() for y in x]) for x in raw]

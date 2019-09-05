@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import spacy
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
-from alibi.datasets import movie_sentiment
+from alibi.datasets import fetch_movie_sentiment
 from alibi.utils.download import spacy_model
 
 # load spaCy model
@@ -32,16 +32,18 @@ def test_neighbors():
     assert sorted(similarity_score, reverse=True) == similarity_score
 
 
-@pytest.mark.parametrize("predict_type,present,use_proba,use_unk,threshold", [
+@pytest.mark.parametrize("predict_type,present,use_similarity_proba,use_unk,threshold", [
     ('class', [], False, True, 0.95),
     ('proba', [], False, True, 0.95),
     ('class', [], False, True, 0.9),
     ('class', [], True, False, 0.95),
     ('class', [3], True, False, 0.95)
 ])
-def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
+def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, threshold):
     # load data and create train and test sets
-    data, labels = movie_sentiment()
+    movies = fetch_movie_sentiment()
+    data = movies.data
+    labels = movies.target
     train, test, train_labels, test_labels = train_test_split(data, labels, test_size=.2, random_state=0)
     train_labels = np.array(train_labels)
 
@@ -66,13 +68,14 @@ def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
     # test sampling function
     text = 'This is a good book .'
     num_samples = 100
-    sample_prob_unk = .5
+    sample_proba = .5
     top_n = 500
-    words, positions, sample_fn = explainer.get_sample_fn(text, use_proba=use_proba, use_unk=use_unk)
-    raw_data, data, labels = sample_fn(present, num_samples, sample_prob_unk=sample_prob_unk, top_n=top_n)
+    words, positions, sample_fn = explainer.get_sample_fn(text, use_similarity_proba=use_similarity_proba,
+                                                          use_unk=use_unk, sample_proba=sample_proba, top_n=top_n)
+    raw_data, data, labels = sample_fn(present, num_samples)
 
-    if use_proba:  # check that words in present are in the proposed anchor
-        assert len(present) * data.shape[0] == data[:, :-1].sum()  # exclude '.'
+    if use_similarity_proba and len(present) > 0:  # check that words in present are in the proposed anchor
+        assert len(present) * data.shape[0] == data[:, present].sum()
 
     if use_unk:
         # get list of unique words
@@ -88,7 +91,7 @@ def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
         assert data.shape[0] * data.shape[1] - data.sum() == Counter(all_words)['UNK']
 
     # test explanation
-    explanation = explainer.explain(text, threshold=threshold, use_proba=use_proba, use_unk=use_unk)
+    explanation = explainer.explain(text, threshold=threshold, use_proba=use_similarity_proba, use_unk=use_unk)
     assert explanation['precision'] >= threshold
     # check if sampled sentences are not cut short
     keys = ['covered', 'covered_true', 'covered_false']

@@ -189,7 +189,7 @@ class AnchorText(object):
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
                 use_similarity_proba: bool = False, use_unk: bool = True,
-                sample_proba: float = 0.5, temperature: float = 0.4, **kwargs: Any) -> dict:
+                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -277,7 +277,7 @@ class AnchorText(object):
                          top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_similarity_proba: bool = True, temperature: float = .4,
+                         use_similarity_proba: bool = True, temperature: float = 1.,
                          **kwargs) -> Tuple[list, np.ndarray]:
         """
         Perturb the text instance to be explained.
@@ -338,22 +338,33 @@ class AnchorText(object):
                     continue
 
                 t_neighbors = [x[0] for x in r_neighbors]  # words of neighbors
-                weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
 
-                if use_similarity_proba:  # sample perturbations according to similarity score
-                    weights = weights ** (1. / temperature)
-                    weights = weights / sum(weights)
-                    raw[:, i] = np.random.choice(t_neighbors, n, p=weights, replace=True)
-                    data[:, i] = raw[:, i] == t.text
-                else:  # don't use similarity score in sampling distribution
-                    n_changed = np.random.binomial(n, sample_proba)
-                    changed = np.random.choice(n, n_changed, replace=False)
-                    if t.text in t_neighbors:
-                        idx = t_neighbors.index(t.text)
+                # idx for changed words with sample_proba
+                n_changed = np.random.binomial(n, sample_proba)
+                changed = np.random.choice(n, n_changed, replace=False)
+
+                # check if token present in the neighbors and set weight to 0
+                if t.text.encode('utf-8') in t_neighbors:
+                    idx = t_neighbors.index(t.text.encode('utf-8'))
+                else:
+                    idx = None
+
+                if use_similarity_proba:  # use similarity scores to sample changed tokens
+                    weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
+                    if idx is not None:
                         weights[idx] = 0
+                    weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
-                    raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights)
-                    data[changed, i] = 0
+                else:
+                    weights = np.ones((len(r_neighbors), ))
+                    if idx is not None:
+                        weights /= (len(r_neighbors) - 1)
+                        weights[idx] = 0
+                    else:
+                        weights /= len(r_neighbors)
+
+                raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights, replace=True)
+                data[changed, i] = 0
 
         # convert numpy array into list
         raw = [' '.join([y.decode() for y in x]) for x in raw]

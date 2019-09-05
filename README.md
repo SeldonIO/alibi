@@ -16,7 +16,7 @@
 ## Goals
 * Provide high quality reference implementations of black-box ML model explanation algorithms
 * Define a consistent API for interpretable ML methods
-* Support multiple use cases (e.g. tabular, text and image data classification, regression)
+* Support multiple use cases (e.g. tabular, text and image data classification)
 * Implement the latest model explanation, concept drift, algorithmic bias detection and other ML
   model monitoring and interpretation methods
 

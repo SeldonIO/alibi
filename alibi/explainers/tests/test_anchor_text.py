@@ -32,14 +32,14 @@ def test_neighbors():
     assert sorted(similarity_score, reverse=True) == similarity_score
 
 
-@pytest.mark.parametrize("predict_type,present,use_proba,use_unk,threshold", [
+@pytest.mark.parametrize("predict_type,present,use_similarity_proba,use_unk,threshold", [
     ('class', [], False, True, 0.95),
     ('proba', [], False, True, 0.95),
     ('class', [], False, True, 0.9),
     ('class', [], True, False, 0.95),
     ('class', [3], True, False, 0.95)
 ])
-def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
+def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, threshold):
     # load data and create train and test sets
     data, labels = movie_sentiment()
     train, test, train_labels, test_labels = train_test_split(data, labels, test_size=.2, random_state=0)
@@ -66,13 +66,13 @@ def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
     # test sampling function
     text = 'This is a good book .'
     num_samples = 100
-    sample_prob_unk = .5
+    sample_proba = .5
     top_n = 500
-    words, positions, sample_fn = explainer.get_sample_fn(text, use_proba=use_proba, use_unk=use_unk,
-                                                          sample_prob_unk=sample_prob_unk, top_n=top_n)
+    words, positions, sample_fn = explainer.get_sample_fn(text, use_similarity_proba=use_similarity_proba,
+                                                          use_unk=use_unk, sample_proba=sample_proba, top_n=top_n)
     raw_data, data, labels = sample_fn(present, num_samples)
 
-    if use_proba:  # check that words in present are in the proposed anchor
+    if use_similarity_proba:  # check that words in present are in the proposed anchor
         assert len(present) * data.shape[0] == data[:, :-1].sum()  # exclude '.'
 
     if use_unk:
@@ -89,7 +89,7 @@ def test_anchor_text(predict_type, present, use_proba, use_unk, threshold):
         assert data.shape[0] * data.shape[1] - data.sum() == Counter(all_words)['UNK']
 
     # test explanation
-    explanation = explainer.explain(text, threshold=threshold, use_proba=use_proba, use_unk=use_unk)
+    explanation = explainer.explain(text, threshold=threshold, use_proba=use_similarity_proba, use_unk=use_unk)
     assert explanation['precision'] >= threshold
     # check if sampled sentences are not cut short
     keys = ['covered', 'covered_true', 'covered_false']

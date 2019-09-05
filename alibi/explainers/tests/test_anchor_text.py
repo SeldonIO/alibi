@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import spacy
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
-from alibi.datasets import movie_sentiment
+from alibi.datasets import fetch_movie_sentiment
 from alibi.utils.download import spacy_model
 
 # load spaCy model
@@ -41,7 +41,9 @@ def test_neighbors():
 ])
 def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, threshold):
     # load data and create train and test sets
-    data, labels = movie_sentiment()
+    movies = fetch_movie_sentiment()
+    data = movies.data
+    labels = movies.target
     train, test, train_labels, test_labels = train_test_split(data, labels, test_size=.2, random_state=0)
     train_labels = np.array(train_labels)
 
@@ -72,8 +74,8 @@ def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, thres
                                                           use_unk=use_unk, sample_proba=sample_proba, top_n=top_n)
     raw_data, data, labels = sample_fn(present, num_samples)
 
-    if use_similarity_proba:  # check that words in present are in the proposed anchor
-        assert len(present) * data.shape[0] == data[:, :-1].sum()  # exclude '.'
+    if use_similarity_proba and len(present) > 0:  # check that words in present are in the proposed anchor
+        assert len(present) * data.shape[0] == data[:, present].sum()
 
     if use_unk:
         # get list of unique words

@@ -4,10 +4,7 @@ import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense
-import tensorflow.keras.backend as K
+import keras
 
 from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
@@ -21,8 +18,26 @@ def logistic_iris():
 
 
 @pytest.fixture
-def tf_keras_logistic_mnist():
-    (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
+def iris_explainer(request, logistic_iris):
+    X, y, lr = logistic_iris
+    predict_fn = lr.predict_proba
+    cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
+                                  target_class=request.param, lam_init=1e-1, max_iter=1000,
+                                  max_lam_steps=10)
+
+    return X, y, lr, cf_explainer
+
+
+@pytest.fixture
+def keras_logistic_mnist(request):
+    if request.param == 'keras':
+        k = keras
+    elif request.param == 'tf':
+        k = tf.keras
+    else:
+        raise ValueError('Unknown parameter')
+
+    (X_train, y_train), (X_test, y_test) = k.datasets.mnist.load_data()
     input_dim = 784
     output_dim = nb_classes = 10
 
@@ -30,12 +45,12 @@ def tf_keras_logistic_mnist():
     X = X.astype('float32')
     X /= 255
 
-    y = to_categorical(y_train[:1000], nb_classes)
+    y = k.utils.to_categorical(y_train[:1000], nb_classes)
 
-    model = Sequential([
-        Dense(output_dim,
-              input_dim=input_dim,
-              activation='softmax')
+    model = k.models.Sequential([
+        k.layers.Dense(output_dim,
+                       input_dim=input_dim,
+                       activation='softmax')
     ])
 
     model.compile(optimizer='adam',
@@ -48,28 +63,12 @@ def tf_keras_logistic_mnist():
 
 
 @pytest.fixture
-def iris_explainer(request, logistic_iris):
-    X, y, lr = logistic_iris
-    predict_fn = lr.predict_proba
-    sess = tf.Session()
-    cf_explainer = CounterFactual(sess=sess, predict_fn=predict_fn, shape=(1, 4),
+def keras_mnist_explainer(request, keras_logistic_mnist):
+    X, y, model = keras_logistic_mnist
+    cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-
-    yield X, y, lr, cf_explainer
-    tf.reset_default_graph()
-    sess.close()
-
-
-@pytest.fixture
-def tf_keras_mnist_explainer(request, tf_keras_logistic_mnist):
-    X, y, model = tf_keras_logistic_mnist
-    sess = K.get_session()
-
-    cf_explainer = CounterFactual(sess=sess, predict_fn=model, shape=(1, 784),
-                                  target_class=request.param, lam_init=1e-1, max_iter=1000,
-                                  max_lam_steps=10)
-    yield X, y, model, cf_explainer
+    return X, y, model, cf_explainer
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -132,9 +131,10 @@ def test_cf_explainer_iris(iris_explainer):
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 
-@pytest.mark.parametrize('tf_keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
-def test_tf_keras_mnist_explainer(tf_keras_mnist_explainer):
-    X, y, model, cf = tf_keras_mnist_explainer
+@pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
+@pytest.mark.parametrize('keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
+def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explainer):
+    X, y, model, cf = keras_mnist_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
     pred_class = probas.argmax()

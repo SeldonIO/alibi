@@ -4,7 +4,6 @@ from alibi.explainers import CEM
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
-import tensorflow as tf
 
 
 def test_cem():
@@ -32,18 +31,14 @@ def test_cem():
     # test explainer initialization
     shape = (1, 4)
     feature_range = (X.min(axis=0).reshape(shape) - .1, X.max(axis=0).reshape(shape) + .1)
-    sess = tf.Session()
-    sess.run(tf.global_variables_initializer())
-    cem = CEM(sess, predict_fn, 'PN', shape, feature_range=feature_range, max_iterations=10, no_info_val=-1.)
+    cem = CEM(predict_fn, 'PN', shape, feature_range=feature_range, max_iterations=10, no_info_val=-1.)
     explanation = cem.explain(X_expl, verbose=False)
-    tf.reset_default_graph()
-    sess.close()
 
     assert not cem.model
     if cem.best_attack:
-        assert set(explanation.keys()) == set(['X', 'X_pred', 'PN', 'PN_pred', 'grads_graph', 'grads_num'])
+        assert set(explanation.keys()) == {'X', 'X_pred', 'PN', 'PN_pred', 'grads_graph', 'grads_num'}
         assert (explanation['X'] != explanation['PN']).astype(int).sum() > 0
         assert explanation['X_pred'] != explanation['PN_pred']
         assert explanation['grads_graph'].shape == explanation['grads_num'].shape
     else:
-        assert set(explanation.keys()) == set(['X', 'X_pred'])
+        assert set(explanation.keys()) == {'X', 'X_pred'}

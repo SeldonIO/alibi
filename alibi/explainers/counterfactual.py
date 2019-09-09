@@ -4,9 +4,10 @@ import tensorflow as tf
 import logging
 
 from alibi.utils.gradients import num_grad_batch
+from alibi.utils.tf import _check_keras_or_tf
 
-if TYPE_CHECKING:
-    import keras # noqa
+if TYPE_CHECKING:  # pragma: no cover
+    import keras  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +64,6 @@ def _define_func(predict_fn: Callable,
 class CounterFactual:
 
     def __init__(self,
-                 sess: tf.Session,
                  predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
@@ -80,14 +80,13 @@ class CounterFactual:
                  init: str = 'identity',
                  decay: bool = True,
                  write_dir: str = None,
-                 debug: bool = False) -> None:
+                 debug: bool = False,
+                 sess: tf.Session = None) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
         Parameters
         ----------
-        sess
-            TensorFlow session
         predict_fn
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         shape
@@ -125,9 +124,10 @@ class CounterFactual:
             Directory to write Tensorboard files to
         debug
             Flag to write Tensorboard summaries for debugging
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
 
-        self.sess = sess
         self.data_shape = shape
         self.batch_size = shape[0]
         self.target_class = target_class
@@ -146,11 +146,14 @@ class CounterFactual:
 
         self.debug = debug
 
-        try:
-            import keras  # noqa
-            is_model = isinstance(predict_fn, (tf.keras.Model, keras.Model))
-        except ImportError:
-            is_model = isinstance(predict_fn, tf.keras.Model)
+        # check if the passed object is a model and get session
+        is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
+
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+        else:
+            self.sess = model_sess
 
         if is_model:  # Keras or TF model
             self.model = True
@@ -311,7 +314,7 @@ class CounterFactual:
         pred_class = Y.argmax(axis=1).item()
         pred_prob = Y.max(axis=1).item()
         self.return_dict['orig_class'] = pred_class
-        self.return_dict['orig_prob'] = pred_prob
+        self.return_dict['orig_proba'] = pred_prob
 
         logger.debug('Initial prediction: %s with p=%s', pred_class, pred_prob)
 

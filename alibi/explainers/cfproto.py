@@ -6,17 +6,17 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from ..confidence import TrustScore
+from alibi.utils.tf import _check_keras_or_tf
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     import keras
 
 logger = logging.getLogger(__name__)
 
 
-class CounterFactualProto(object):
+class CounterFactualProto:
 
     def __init__(self,
-                 sess: tf.Session,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: tuple,
                  kappa: float = 0.,
@@ -34,14 +34,13 @@ class CounterFactualProto(object):
                  eps: tuple = (1e-3, 1e-3),
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
-                 write_dir: str = None) -> None:
+                 write_dir: str = None,
+                 sess: tf.Session = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
         Parameters
         ----------
-        sess
-            TensorFlow session
         predict
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         shape
@@ -83,25 +82,28 @@ class CounterFactualProto(object):
             If numerical gradients are used, they will be updated every update_num_grad iterations
         write_dir
             Directory to write tensorboard files to
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
-        self.sess = sess
         self.predict = predict
 
-        # check whether the model, encoder and auto-encoder are Keras or TF models
-        try:
-            import keras  # noqa
-            is_model = isinstance(predict, (tf.keras.Model, keras.Model))
-            is_ae = isinstance(ae_model, (tf.keras.Model, keras.Model))
-            is_enc = isinstance(enc_model, (tf.keras.Model, keras.Model))
-        except ImportError:
-            is_model = isinstance(predict, (tf.keras.Model))
-            is_ae = isinstance(ae_model, (tf.keras.Model))
-            is_enc = isinstance(enc_model, (tf.keras.Model))
+        # check whether the model, encoder and auto-encoder are Keras or TF models and get session
+        is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
+        is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
+        is_enc, is_enc_keras, enc_sess = _check_keras_or_tf(enc_model)
+        # TODO: check ae, enc and model are all compatible
 
-        if is_model:
-            self.model = True
-            self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
         else:
+            self.sess = model_sess
+
+        if is_model:  # Keras or TF model
+            self.model = True
+            self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape),
+                                                                           dtype=tf.float32))).shape[1]
+        else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
 
@@ -281,7 +283,7 @@ class CounterFactualProto(object):
             # first compute, then apply grads
             self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name='grad_adv_s')
-            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1] # get the last in
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith('adv_s')][-1]  # get the last in
             # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
             self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)

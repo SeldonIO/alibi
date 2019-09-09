@@ -4,27 +4,42 @@ import logging
 import numpy as np
 import sys
 import tensorflow as tf
-from typing import Callable, Tuple, Union
+from typing import Callable, Tuple, Union, TYPE_CHECKING
+from alibi.utils.tf import _check_keras_or_tf
+
+if TYPE_CHECKING:  # pragma: no cover
+    import keras
 
 logger = logging.getLogger(__name__)
 
 
-class CEM(object):
+class CEM:
 
-    def __init__(self, sess: tf.Session, predict: Callable, mode: str, shape: tuple,
-                 kappa: float = 0., beta: float = .1, feature_range: tuple = (-1e10, 1e10),
-                 gamma: float = 0., ae_model: Callable = None, learning_rate_init: float = 1e-2,
-                 max_iterations: int = 1000, c_init: float = 10., c_steps: int = 10, eps: tuple = (1e-3, 1e-3),
-                 clip: tuple = (-100., 100.), update_num_grad: int = 1, no_info_val: Union[float, np.ndarray] = None,
-                 write_dir: str = None) -> None:
+    def __init__(self,
+                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 mode: str,
+                 shape: tuple,
+                 kappa: float = 0.,
+                 beta: float = .1,
+                 feature_range: tuple = (-1e10, 1e10),
+                 gamma: float = 0.,
+                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 learning_rate_init: float = 1e-2,
+                 max_iterations: int = 1000,
+                 c_init: float = 10.,
+                 c_steps: int = 10,
+                 eps: tuple = (1e-3, 1e-3),
+                 clip: tuple = (-100., 100.),
+                 update_num_grad: int = 1,
+                 no_info_val: Union[float, np.ndarray] = None,
+                 write_dir: str = None,
+                 sess: tf.Session = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
 
         Parameters
         ----------
-        sess
-            TensorFlow session
         predict
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         mode
@@ -64,15 +79,29 @@ class CEM(object):
             Global or feature-wise value considered as containing no information
         write_dir
             Directory to write tensorboard files to
+        sess
+            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
-        self.sess = sess
         self.predict = predict
-        if hasattr(predict, 'predict'):
+
+        # check whether the model and the auto-encoder are Keras or TF models and get session
+        is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
+        is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
+        # TODO: check ae and model are compatible
+
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+        else:
+            self.sess = model_sess
+
+        if is_model:  # Keras or TF model
             self.model = True
             classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
+
         self.mode = mode
         self.shape = shape
         self.kappa = kappa
@@ -405,7 +434,7 @@ class CEM(object):
     def attack(self, X: np.ndarray, Y: np.ndarray, verbose: bool = False) \
             -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Find pertinant negative or pertinant positive for instance X using a fast iterative
+        Find pertinent negative or pertinent positive for instance X using a fast iterative
         shrinkage-thresholding algorithm (FISTA).
 
         Parameters

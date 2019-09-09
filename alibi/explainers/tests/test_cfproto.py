@@ -3,39 +3,52 @@ import numpy as np
 import pytest
 from sklearn.datasets import load_iris
 import tensorflow as tf
-import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
+import keras
 
 from alibi.explainers import CounterFactualProto
 
+
 @pytest.fixture
-def tf_keras_iris_model():
-    x_in = Input(shape=(4,))
-    x = Dense(10, activation='relu')(x_in)
-    x_out = Dense(3, activation='softmax')(x)
-    model = Model(inputs=x_in, outputs=x_out)
-    model.compile(loss='categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
+def tf_keras_iris_model(request):
+    if request.param == 'keras':
+        k = keras
+    elif request.param == 'tf':
+        k = tf.keras
+    else:
+        raise ValueError('Unknown parameter')
+
+    x_in = k.layers.Input(shape=(4,))
+    x = k.layers.Dense(10, activation='relu')(x_in)
+    x_out = k.layers.Dense(3, activation='softmax')(x)
+    model = k.models.Model(inputs=x_in, outputs=x_out)
+    model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
     return model
 
+
 @pytest.fixture
-def tf_keras_iris_ae():
+def tf_keras_iris_ae(request):
+    if request.param == 'keras':
+        k = keras
+    elif request.param == 'tf':
+        k = tf.keras
+    else:
+        raise ValueError('Unknown parameter')
+
     # encoder
-    x_in = Input(shape=(4,))
-    x = Dense(5, activation='relu')(x_in)
-    encoded = Dense(2, activation=None)(x)
-    encoder = Model(x_in, encoded)
+    x_in = k.layers.Input(shape=(4,))
+    x = k.layers.Dense(5, activation='relu')(x_in)
+    encoded = k.layers.Dense(2, activation=None)(x)
+    encoder = k.models.Model(x_in, encoded)
 
     # decoder
-    dec_in = Input(shape=(2,))
-    x = Dense(5, activation='relu')(dec_in)
-    decoded = Dense(4, activation=None)(x)
-    decoder = Model(dec_in, decoded)
+    dec_in = k.layers.Input(shape=(2,))
+    x = k.layers.Dense(5, activation='relu')(dec_in)
+    decoded = k.layers.Dense(4, activation=None)(x)
+    decoder = k.models.Model(dec_in, decoded)
 
     # autoencoder = encoder + decoder
     x_out = decoder(encoder(x_in))
-    autoencoder = Model(x_in, x_out)
+    autoencoder = k.models.Model(x_in, x_out)
     autoencoder.compile(optimizer='adam', loss='mse')
 
     return autoencoder, encoder, decoder
@@ -48,16 +61,11 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
 
     idx = 145
     X_train, y_train = X[:idx, :], y[:idx]
-    y_train = to_categorical(y_train)
+    # y_train = to_categorical(y_train) # TODO: fine to leave as is?
 
     # set random seed
     np.random.seed(1)
     tf.set_random_seed(1)
-
-    # init tf session
-    sess = tf.Session()
-    K.set_session(sess)
-    sess.run(tf.global_variables_initializer())
 
     model = tf_keras_iris_model
     model.fit(X_train, y_train, batch_size=128, epochs=500, verbose=0)
@@ -71,19 +79,18 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
 @pytest.fixture
 def tf_keras_iris_explainer(request, tf_keras_iris):
     X_train, model, ae, enc = tf_keras_iris
-    sess = K.get_session()
 
     if request.param[0]:  # use k-d trees
         ae = None
         enc = None
 
     shape = (1, 4)
-    cf_explainer = CounterFactualProto(sess, model, shape, gamma=100, theta=100,
+    cf_explainer = CounterFactualProto(model, shape, gamma=100, theta=100,
                                        ae_model=ae, enc_model=enc, use_kdtree=request.param[0],
                                        max_iterations=1000, c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(X_train.min(axis=0).reshape(shape),
                                                       X_train.max(axis=0).reshape(shape)))
-    yield X_train, model, cf_explainer, sess
+    yield X_train, model, cf_explainer
 
 
 @pytest.mark.parametrize('tf_keras_iris_explainer,use_kdtree,k', [
@@ -96,8 +103,10 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
     ((True, 0., 1), True, 2),
     ((True, 1., 3), True, 2)
 ], indirect=['tf_keras_iris_explainer'])
+@pytest.mark.parametrize('tf_keras_iris_model,tf_keras_iris_ae', [('tf', 'tf'), ('keras', 'keras')],
+                         indirect=True)
 def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
-    X_train, model, cf, sess = tf_keras_iris_explainer
+    X_train, model, cf = tf_keras_iris_explainer
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)
@@ -134,6 +143,3 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     cf.predict = cf.predict.predict  # make model black box
     grads = cf.get_gradients(x, y)
     assert grads.shape == x.shape
-
-    tf.reset_default_graph()
-    sess.close()

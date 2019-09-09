@@ -3,7 +3,7 @@ import tensorflow as tf
 import keras
 import mock
 
-from alibi.explainers.utils import _check_keras_or_tf
+from alibi.utils.tf import _check_keras_or_tf
 
 blackbox_model = lambda x: x
 keras_model = keras.Model()

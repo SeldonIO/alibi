@@ -6,7 +6,7 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from ..confidence import TrustScore
-from .utils import _check_keras_or_tf
+from alibi.utils.tf import _check_keras_or_tf
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras
@@ -93,7 +93,11 @@ class CounterFactualProto:
         is_enc, is_enc_keras, enc_sess = _check_keras_or_tf(enc_model)
         # TODO: check ae, enc and model are all compatible
 
-        self.sess = model_sess
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+        else:
+            self.sess = model_sess
 
         if is_model:  # Keras or TF model
             self.model = True
@@ -102,10 +106,6 @@ class CounterFactualProto:
         else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
-
-        # if session provided, use that instead
-        if isinstance(sess, tf.Session):
-            self.sess = sess
 
         if is_enc:
             self.enc_model = True

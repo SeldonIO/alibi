@@ -4,7 +4,7 @@ import tensorflow as tf
 import logging
 
 from alibi.utils.gradients import num_grad_batch
-from .utils import _check_keras_or_tf
+from alibi.utils.tf import _check_keras_or_tf
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -147,8 +147,13 @@ class CounterFactual:
         self.debug = debug
 
         # check if the passed object is a model and get session
-        is_model, is_keras, sess = _check_keras_or_tf(predict_fn)
-        self.sess = sess
+        is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
+
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+        else:
+            self.sess = model_sess
 
         if is_model:  # Keras or TF model
             self.model = True
@@ -159,10 +164,6 @@ class CounterFactual:
             self.predict_fn = predict_fn
             self.predict_tn = None
             self.model = False
-
-        # if session provided, use that instead
-        if isinstance(sess, tf.Session):
-            self.sess = sess
 
         self.n_classes = self.predict_fn(np.zeros(shape)).shape[1]
 

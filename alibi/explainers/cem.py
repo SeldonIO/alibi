@@ -5,7 +5,7 @@ import numpy as np
 import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
-from .utils import _check_keras_or_tf
+from alibi.utils.tf import _check_keras_or_tf
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras
@@ -89,7 +89,11 @@ class CEM:
         is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
         # TODO: check ae and model are compatible
 
-        self.sess = model_sess
+        # if session provided, use it
+        if isinstance(sess, tf.Session):
+            self.sess = sess
+        else:
+            self.sess = model_sess
 
         if is_model:  # Keras or TF model
             self.model = True
@@ -97,10 +101,6 @@ class CEM:
         else:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
-
-        # if session provided, use that instead
-        if isinstance(sess, tf.Session):
-            self.sess = sess
 
         self.mode = mode
         self.shape = shape

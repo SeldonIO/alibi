@@ -42,12 +42,21 @@ particular prediction.
 |Algorithm|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
 |---|---|---|---|---|
 |[Trust Scores](../methods/TrustScores.ipynb)|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
+|[Linearity Measure](../examples/linearity_measure_iris.ipynb)|✔|✔|✘|✔|✘|✔|Optional|
 
 **Trust scores**: produce a "trust score" of a classifier's prediction. The trust score is the ratio
 between the distance to the nearest class different from the predicted class and the distance to the
 predicted class, higher scores correspond to more trustworthy predictions.
 [Documentation](../methods/TrustScores.ipynb),
-[tabular example](../examples/trustscore_iris.nblink), [image classification](../examples/trustscore_mnist.nblink)
+[tabular example](../examples/trustscore_iris.nblink),
+[image classification](../examples/trustscore_mnist.nblink)
 
 [^1]: Depending on model
 [^2]: May require dimensionality reduction
+
+**Linearity measure**: produces a score quantifying how linear the model is around a test instance.
+The linearity score measures the model linearity around a test instance by feeding the model linear
+superpositions of inputs and comparing the outputs with the linear combination of outputs from
+predictions on single inputs.
+[Tabular example](../examples/linearity_measure_iris.nblink),
+[image classification](../examples/linearity_measure_fashion_mnist.nblink)

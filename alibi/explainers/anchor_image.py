@@ -58,6 +58,7 @@ class AnchorImage(object):
             self.segmentation_fn = lambda x: fn_options[segmentation_fn](x, **segmentation_kwargs)
 
         self.images_background = images_background
+        self.image_shape = image_shape
 
     def get_sample_fn(self, image: np.ndarray, p_sample: float = 0.5) -> Tuple[np.ndarray, Callable]:
         """
@@ -91,7 +92,7 @@ class AnchorImage(object):
         n_features = len(features)
 
         # true label is prediction on original image
-        true_label = self.predict_fn(np.expand_dims(image, axis=0))[0]
+        true_label = self.predict_fn(np.reshape(image, (1,) + self.image_shape))[0]
 
         def sample_fn_image(present: list, num_samples: int,
                             compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -251,14 +252,14 @@ class AnchorImage(object):
             Dictionary containing the anchor explaining the instance with additional metadata
         """
         # build sampling function and segments
-        segments, sample_fn = self.get_sample_fn(image, p_sample=p_sample)
+        segments, sample_fn = self.get_sample_fn(np.reshape(image, self.image_shape), p_sample=p_sample)
 
         # get anchors and add metadata
         exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
                                          epsilon=tau, batch_size=batch_size,
                                          desired_confidence=threshold, **kwargs)  # type: Any
         exp['instance'] = image
-        exp['prediction'] = self.predict_fn(np.expand_dims(image, axis=0))[0]
+        exp['prediction'] = self.predict_fn(np.reshape(image, (1,) + self.image_shape))[0]
 
         # overlay image with anchor mask and do same for the examples
         anchor = AnchorImage.overlay_mask(image, segments, exp['feature'])

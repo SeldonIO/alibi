@@ -1,5 +1,6 @@
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import BaseExplainer, BaseExplanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple, Dict, TYPE_CHECKING
@@ -9,8 +10,15 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
 
-class Neighbors(object):
+
+class AnchorTextExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
+
+
+class Neighbors:
 
     def __init__(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob: float = -15.) -> None:
         """
@@ -62,7 +70,7 @@ class Neighbors(object):
         return self.n[word]
 
 
-class AnchorText(object):
+class AnchorText(BaseExplainer):
 
     def __init__(self, nlp: 'spacy.language.Language', predict_fn: Callable) -> None:
         """
@@ -75,6 +83,8 @@ class AnchorText(object):
         predict_fn
             Model prediction function
         """
+        super().__init__()
+
         self.nlp = nlp
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
@@ -85,6 +95,9 @@ class AnchorText(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         self.neighbors = Neighbors(self.nlp)
+
+        # set metadata
+        self.meta.update(DEFAULT_META)
 
     def get_sample_fn(self, text: str, desired_label: int = None, use_similarity_proba: bool = False,
                       use_unk: bool = True, sample_proba: float = 0.5, top_n: int = 100,
@@ -186,10 +199,10 @@ class AnchorText(object):
 
         return words, positions, sample_fn
 
-    def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
+    def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
                 use_similarity_proba: bool = False, use_unk: bool = True,
-                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> dict:
+                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> 'AnchorTextExplanation':
         """
         Explain instance and return anchor with metadata.
 
@@ -227,6 +240,12 @@ class AnchorText(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        # get hparams for storage in meta
+        hparams = locals()
+        remove = ['text', 'self']
+        for key in remove:
+            hparams.pop(key)
+
         if use_unk and use_similarity_proba:
             logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
                            'Defaults to "use_unk" behaviour.')
@@ -265,13 +284,21 @@ class AnchorText(object):
         exp['prediction'] = self.predict_fn([text])[0]
         exp = AnchorExplanation('text', exp)
 
-        # output explanation dictionary
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         explanation = {}
-        explanation['names'] = exp.names()
+        explanation['anchor'] = exp.names()
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
-        return explanation
+
+        # create explanation object
+        newexp = AnchorTextExplanation()
+        newexp.data['local'].append(explanation)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        # hparams passed to explain
+        newexp.meta['hparams'].update(hparams)
+        return newexp
 
     def perturb_sentence(self, text: str, present: list, n: int, sample_proba: float = 0.5,
                          top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
@@ -356,7 +383,7 @@ class AnchorText(object):
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
-                    weights = np.ones((len(r_neighbors), ))
+                    weights = np.ones((len(r_neighbors),))
                     if idx is not None:
                         weights /= (len(r_neighbors) - 1)
                         weights[idx] = 0

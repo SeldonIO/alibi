@@ -339,7 +339,7 @@ class AnchorTabular(BaseExplainer, FitMixin):
 
         # output explanation dictionary TODO: get rid of this in favour of new API?
         explanation = {}
-        explanation['names'] = exp.names()
+        explanation['anchor'] = exp.names()
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map

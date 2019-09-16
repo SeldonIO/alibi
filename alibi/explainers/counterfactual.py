@@ -81,7 +81,7 @@ class CounterFactual:
                  decay: bool = True,
                  write_dir: str = None,
                  debug: bool = False,
-                 sess: tf.Session = None) -> None:
+                 sess: tf.compat.v1.Session = None) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -150,7 +150,7 @@ class CounterFactual:
         is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
 
         # if session provided, use it
-        if isinstance(sess, tf.Session):
+        if isinstance(sess, tf.compat.v1.Session):
             self.sess = sess
         else:
             self.sess = model_sess

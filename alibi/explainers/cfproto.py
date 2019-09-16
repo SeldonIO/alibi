@@ -35,7 +35,7 @@ class CounterFactualProto:
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
                  write_dir: str = None,
-                 sess: tf.Session = None) -> None:
+                 sess: tf.compat.v1.Session = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -94,7 +94,7 @@ class CounterFactualProto:
         # TODO: check ae, enc and model are all compatible
 
         # if session provided, use it
-        if isinstance(sess, tf.Session):
+        if isinstance(sess, tf.compat.v1.Session):
             self.sess = sess
         else:
             self.sess = model_sess

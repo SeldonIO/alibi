@@ -7,7 +7,8 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 
-def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model']) -> Tuple[bool, bool, tf.Session]:
+def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model']) -> \
+        Tuple[bool, bool, tf.compat.v1.Session]:
     """
     Test if the prediction function is a tf.keras or keras model and return the associated TF session.
 

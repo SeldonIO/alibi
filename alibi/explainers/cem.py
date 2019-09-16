@@ -33,7 +33,7 @@ class CEM:
                  update_num_grad: int = 1,
                  no_info_val: Union[float, np.ndarray] = None,
                  write_dir: str = None,
-                 sess: tf.Session = None) -> None:
+                 sess: tf.compat.v1.Session = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
@@ -90,7 +90,7 @@ class CEM:
         # TODO: check ae and model are compatible
 
         # if session provided, use it
-        if isinstance(sess, tf.Session):
+        if isinstance(sess, tf.compat.v1.Session):
             self.sess = sess
         else:
             self.sess = model_sess

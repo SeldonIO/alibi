@@ -6,7 +6,7 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from alibi.utils.tf import _check_keras_or_tf
-from .base import BaseExplainer, BaseExplanation
+from .base import BaseExplainer, BaseExplanation, FitMixin
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras
@@ -21,7 +21,7 @@ class CEMExplanation(BaseExplanation):
         super().__init__()
 
 
-class CEM(BaseExplainer):
+class CEM(BaseExplainer, FitMixin):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -309,7 +309,7 @@ class CEM(BaseExplainer):
         self.meta.update(DEFAULT_META)
         self.meta['hparams'].update(hparams)
 
-    def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> None:
+    def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> "CEM":
         """
         Get 'no information' values from the training data.
 
@@ -335,6 +335,8 @@ class CEM(BaseExplainer):
 
         # update metadata
         self.meta['hparams'].update({'no_info_type': no_info_type})
+
+        return self
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """

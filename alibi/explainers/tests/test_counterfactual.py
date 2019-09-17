@@ -130,6 +130,9 @@ def test_cf_explainer_iris(iris_explainer):
     if exp[0]['success']:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
+    # test serialization
+    exp.serialize()
+
 
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
 @pytest.mark.parametrize('keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
@@ -165,3 +168,6 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explai
 
     if exp[0]['success']:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
+
+    # test serialization
+    exp.serialize()

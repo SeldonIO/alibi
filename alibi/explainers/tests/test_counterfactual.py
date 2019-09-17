@@ -21,7 +21,7 @@ def logistic_iris():
 def iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lr.predict_proba
-    cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
+    cf_explainer = CounterFactual(predict=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
 
@@ -65,7 +65,7 @@ def keras_logistic_mnist(request):
 @pytest.fixture
 def keras_mnist_explainer(request, keras_logistic_mnist):
     X, y, model = keras_logistic_mnist
-    cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
+    cf_explainer = CounterFactual(predict=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
     return X, y, model, cf_explainer

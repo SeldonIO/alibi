@@ -6,14 +6,22 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from alibi.utils.tf import _check_keras_or_tf
+from .base import BaseExplainer, BaseExplanation
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
 
-class CEM:
+
+class CEMExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
+
+
+class CEM(BaseExplainer):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -82,6 +90,14 @@ class CEM:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+
+        # get hparams for storage in meta
+        hparams = locals()
+        remove = ['predict', 'self', '__class__']
+        for key in remove:
+            hparams.pop(key)
+
         self.predict = predict
 
         # check whether the model and the auto-encoder are Keras or TF models and get session
@@ -289,6 +305,10 @@ class CEM:
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
 
+        # set metadata
+        self.meta.update(DEFAULT_META)
+        self.meta['hparams'].update(hparams)
+
     def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> None:
         """
         Get 'no information' values from the training data.
@@ -312,6 +332,9 @@ class CEM:
             self.no_info_val = np.median(train_flat, axis=0).reshape(self.shape)
         elif no_info_type == 'mean':
             self.no_info_val = np.mean(train_flat, axis=0).reshape(self.shape)
+
+        # update metadata
+        self.meta['hparams'].update({'no_info_type': no_info_type})
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
@@ -642,7 +665,7 @@ class CEM:
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
-    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> dict:
+    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> 'CEMExplanation':
         """
         Explain instance and return PP or PN with metadata.
 
@@ -677,20 +700,25 @@ class CEM:
         self.best_attack = False
         best_attack, grads = self.attack(X, Y=Y, verbose=verbose)
 
-        # output explanation dictionary
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         explanation = {}
         explanation['X'] = X
         explanation['X_pred'] = np.argmax(Y, axis=1)[0]
 
         if not self.best_attack:
             logger.warning('No {} found!'.format(self.mode))
-            return explanation
-
-        explanation[self.mode] = best_attack
-        if self.model:
-            Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
         else:
-            Y_pert = self.predict(best_attack)
-        explanation[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
-        explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
-        return explanation
+            explanation[self.mode] = best_attack
+            if self.model:
+                Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
+            else:
+                Y_pert = self.predict(best_attack)
+            explanation[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
+            explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
+
+        # create explanation object
+        newexp = CEMExplanation()
+        newexp.data['local'].append(explanation)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        return newexp

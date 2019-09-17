@@ -92,11 +92,11 @@ def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, thres
 
     # test explanation
     explanation = explainer.explain(text, threshold=threshold, use_proba=use_similarity_proba, use_unk=use_unk)
-    assert explanation['precision'] >= threshold
+    assert explanation[0]['precision'] >= threshold
     # check if sampled sentences are not cut short
     keys = ['covered', 'covered_true', 'covered_false']
-    for i in range(len(explanation['raw']['feature'])):
-        example_dict = explanation['raw']['examples'][i]
+    for i in range(len(explanation[0]['raw']['feature'])):
+        example_dict = explanation[0]['raw']['examples'][i]
         for k in keys:
             for example in example_dict[k]:
                 assert example[0][-1] in ['.', 'K']

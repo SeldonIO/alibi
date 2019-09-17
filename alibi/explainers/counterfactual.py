@@ -71,7 +71,7 @@ def _define_func(predict_fn: Callable,
 class CounterFactual(BaseExplainer, FitMixin):
 
     def __init__(self,
-                 predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -94,7 +94,7 @@ class CounterFactual(BaseExplainer, FitMixin):
 
         Parameters
         ----------
-        predict_fn
+        predict
             Keras or TensorFlow model or any other model's prediction function returning class probabilities
         shape
             Shape of input data starting with batch size
@@ -138,7 +138,7 @@ class CounterFactual(BaseExplainer, FitMixin):
 
         # get hparams for storage in meta
         hparams = locals()
-        remove = ['predict_fn', 'self', '__class__']
+        remove = ['predict', 'self', '__class__']
         for key in remove:
             hparams.pop(key)
 
@@ -161,7 +161,7 @@ class CounterFactual(BaseExplainer, FitMixin):
         self.debug = debug
 
         # check if the passed object is a model and get session
-        is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
+        is_model, is_keras, model_sess = _check_keras_or_tf(predict)
 
         # if session provided, use it
         if isinstance(sess, tf.compat.v1.Session):
@@ -171,13 +171,15 @@ class CounterFactual(BaseExplainer, FitMixin):
 
         if is_model:  # Keras or TF model
             self.model = True
-            self.predict_fn = predict_fn.predict  # type: ignore # array function
-            self.predict_tn = predict_fn  # tensor function
+            self.predict_fn = predict.predict  # type: ignore # array function
+            self.predict_tn = predict  # tensor function
+            hparams['predict'] = 'model'
 
         else:  # black-box model
-            self.predict_fn = predict_fn
+            self.predict_fn = predict
             self.predict_tn = None
             self.model = False
+            hparams['predict'] = 'blackbox'
 
         self.n_classes = self.predict_fn(np.zeros(shape)).shape[1]
 

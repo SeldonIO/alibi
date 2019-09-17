@@ -113,10 +113,12 @@ class CEM(BaseExplainer, FitMixin):
 
         if is_model:  # Keras or TF model
             self.model = True
+            hparams['predict'] = 'model'
             classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
+            hparams['predict'] = 'blackbox'
 
         self.mode = mode
         self.shape = shape

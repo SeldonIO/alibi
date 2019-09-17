@@ -47,12 +47,15 @@ def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
     Numpy array with transformed categorical data into numerical values.
     """
     rng = data.shape[0]
-    data = data.astype(np.float16, copy=False)
+    X = data.astype(np.float16, copy=True)
     for k, v in dist.items():
-        cat_col = data[:, k].copy()
+        cat_col = X[:, k].copy()
         cat_col = np.array([v[int(cat_col[i])] for i in range(rng)])
-        data[:, k] = cat_col
-    return data.astype(np.float32)
+        if type(X) == np.matrix:
+            X[:, k] = cat_col.reshape(-1, 1)
+        else:
+            X[:, k] = cat_col
+    return X.astype(np.float32)
 
 
 def num_to_ord(data: np.ndarray, dist: dict) -> np.ndarray:
@@ -71,11 +74,12 @@ def num_to_ord(data: np.ndarray, dist: dict) -> np.ndarray:
     -------
     Numpy array with transformed numerical data into categories.
     """
+    X = data.copy()
     for k, v in dist.items():
-        num_col = np.repeat(data[:, k].reshape(-1, 1), v.shape[0], axis=1)
+        num_col = np.repeat(X[:, k].reshape(-1, 1), v.shape[0], axis=1)
         diff = np.abs(num_col - v.reshape(1, -1))
-        data[:, k] = np.argmin(diff, axis=1)
-    return data
+        X[:, k] = np.argmin(diff, axis=1)
+    return X
 
 
 def ord_to_ohe(X_ord: np.ndarray, cat_vars_ord: dict) -> Tuple[np.ndarray, dict]:

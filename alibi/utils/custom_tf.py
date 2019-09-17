@@ -2,7 +2,7 @@ import tensorflow as tf
 
 
 @tf.custom_gradient
-def argmin_custom_grad(x, y):
+def argmin_grad(x, y):
     abs_diff = tf.abs(tf.subtract(x, y))
     argmin = tf.cast(tf.argmin(abs_diff), tf.float32)
 
@@ -14,24 +14,33 @@ def argmin_custom_grad(x, y):
 
 
 @tf.custom_gradient
-def one_hot_custom_grad(x, y):
+def one_hot_grad(x, y):
     cat_ohe = tf.one_hot(indices=tf.cast(x, tf.int32), depth=tf.shape(y)[0])
 
     def grad(dy):
         """ Let gradients pass through. """
-        return tf.reduce_sum(dy), None  # TODO: check if reduce_sum is correct!
-        #return dy[tf.cast(x, tf.int32)], None
-        #return dy[1], None
+        return tf.reduce_sum(dy), None
 
     return cat_ohe, grad
 
 
 @tf.custom_gradient
-def argmax_custom_grad(x):
+def argmax_grad(x):
     argmax = tf.argmax(x)
 
     def grad(dy):
         """ Let gradients pass through. """
-        return tf.ones(tf.shape(x)) * dy  # TODO: check if gradient broadcasting makes sense!
+        return tf.ones(tf.shape(x)) * dy
 
     return argmax, grad
+
+
+@tf.custom_gradient
+def round_grad(x):
+    idx = tf.cast(tf.round(x), tf.int32)
+
+    def grad(dy):
+        """ Let gradients pass through. """
+        return dy
+
+    return idx, grad

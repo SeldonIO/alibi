@@ -2,7 +2,7 @@ import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
 import logging
-
+from .base import BaseExplainer, BaseExplanation, FitMixin
 from alibi.utils.gradients import num_grad_batch
 from alibi.utils.tf import _check_keras_or_tf
 
@@ -10,6 +10,13 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
+
+
+class CounterFactualExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
 
 
 def _define_func(predict_fn: Callable,
@@ -61,7 +68,7 @@ def _define_func(predict_fn: Callable,
     return func, target_class
 
 
-class CounterFactual:
+class CounterFactual(BaseExplainer, FitMixin):
 
     def __init__(self,
                  predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -127,6 +134,13 @@ class CounterFactual:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+
+        # get hparams for storage in meta
+        hparams = locals()
+        remove = ['predict_fn', 'self', '__class__']
+        for key in remove:
+            hparams.pop(key)
 
         self.data_shape = shape
         self.batch_size = shape[0]
@@ -266,6 +280,10 @@ class CounterFactual:
         self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}  # type: dict
 
+        # set metadata
+        self.meta.update(DEFAULT_META)
+        self.meta['hparams'].update(hparams)
+
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
 
@@ -279,7 +297,7 @@ class CounterFactual:
 
     def fit(self,
             X: np.ndarray,
-            y: Optional[np.ndarray]) -> None:
+            y: Optional[np.ndarray] = None) -> "CounterFactual":
         """
         Fit method - currently unused as the counterfactual search is fully unsupervised.
 
@@ -287,8 +305,9 @@ class CounterFactual:
         # TODO feature ranges, epsilons and MADs
 
         self.fitted = True
+        return self
 
-    def explain(self, X: np.ndarray) -> dict:
+    def explain(self, X: np.ndarray) -> 'CounterFactualExplanation':
         """
         Explain an instance and return the counterfactual with metadata.
 
@@ -327,12 +346,18 @@ class CounterFactual:
         # minimize loss iteratively
         self._minimize_loss(X, X_init, Y)
 
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         return_dict = self.return_dict.copy()
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
         self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}
 
-        return return_dict
+        # create explanation object
+        newexp = CounterFactualExplanation()
+        newexp.data['local'].append(return_dict)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        return newexp
 
     def _prob_condition(self, X_current):
         return np.abs(self.predict_class_fn(X_current) - self.target_proba_arr) <= self.tol

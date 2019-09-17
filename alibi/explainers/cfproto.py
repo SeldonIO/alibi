@@ -6,6 +6,7 @@ import sys
 import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from ..confidence import TrustScore
+from .base import BaseExplainer, BaseExplanation, FitMixin
 from alibi.utils.tf import _check_keras_or_tf
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -13,8 +14,15 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_META = {"type": "blackbox", "explanations": ["local"], "hparams": {}}
 
-class CounterFactualProto:
+
+class CounterFactualProtoExplanation(BaseExplanation):
+    def __init__(self):
+        super().__init__()
+
+
+class CounterFactualProto(BaseExplainer, FitMixin):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -85,6 +93,14 @@ class CounterFactualProto:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+
+        # get hparams for storage in meta
+        hparams = locals()
+        remove = ['predict', 'self', '__class__']
+        for key in remove:
+            hparams.pop(key)
+
         self.predict = predict
 
         # check whether the model, encoder and auto-encoder are Keras or TF models and get session
@@ -103,17 +119,21 @@ class CounterFactualProto:
             self.model = True
             self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape),
                                                                            dtype=tf.float32))).shape[1]
+            hparams['predict'] = 'model'
         else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
+            hparams['predict'] = 'blackbox'
 
         if is_enc:
             self.enc_model = True
+            hparams['enc_model'] = True
         else:
             self.enc_model = False
 
         if is_ae:
             self.ae_model = True
+            hparams['ae_model'] = True
         else:
             self.ae_model = False
 
@@ -307,7 +327,11 @@ class CounterFactualProto:
         else:
             self.writer = None
 
-    def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None) -> None:
+        # set metadata
+        self.meta.update(DEFAULT_META)
+        self.meta['hparams'].update(hparams)
+
+    def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None) -> "CounterFactualProto":
         """
         Get prototypes for each class using the encoder or k-d trees.
         The prototypes are used for the encoder loss term or to calculate the optional trust scores.
@@ -336,11 +360,14 @@ class CounterFactualProto:
             logger.warning('No encoder specified. Using k-d trees to represent class prototypes.')
             if trustscore_kwargs is not None:
                 ts = TrustScore(**trustscore_kwargs)
+                self.meta['hparams'].update(trustscore_kwargs)
             else:
                 ts = TrustScore()
             ts.fit(train_data, preds, classes=self.classes)
             self.kdtrees = ts.kdtrees
             self.X_by_class = ts.X_kdtree
+
+        return self
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
@@ -785,7 +812,7 @@ class CounterFactualProto:
 
     def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, k: int = None,
                 k_type: str = 'mean', threshold: float = 0., verbose: bool = False,
-                print_every: int = 100, log_every: int = 100) -> dict:
+                print_every: int = 100, log_every: int = 100) -> 'CounterFactualProtoExplanation':
         """
         Explain instance and return counterfactual with metadata.
 
@@ -822,6 +849,12 @@ class CounterFactualProto:
         explanation
             Dictionary containing the counterfactual with additional metadata
         """
+        # get hparams for storage in meta
+        hparams = locals()
+        remove = ['self', 'X', 'Y']
+        for key in remove:
+            hparams.pop(key)
+
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '
                            'but first dim = %s', X.shape[0])
@@ -849,21 +882,27 @@ class CounterFactualProto:
                                          verbose=verbose, threshold=threshold,
                                          print_every=print_every, log_every=log_every)
 
+        # output explanation dictionary TODO: get rid of this in favour of new API?
         # add to explanation dict
         if not self.best_attack:
             logger.warning('No counterfactual found!')
             explanation['cf'] = None
             explanation['all'] = []
-            return explanation
-
-        explanation['all'] = self.cf_global
-        explanation['cf'] = {}
-        explanation['cf']['X'] = best_attack
-        if self.model:
-            Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
         else:
-            Y_pert = self.predict(best_attack)
-        explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
-        explanation['cf']['proba'] = Y_pert
-        explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
-        return explanation
+            explanation['all'] = self.cf_global
+            explanation['cf'] = {}
+            explanation['cf']['X'] = best_attack
+            if self.model:
+                Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
+            else:
+                Y_pert = self.predict(best_attack)
+            explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
+            explanation['cf']['proba'] = Y_pert
+            explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
+
+        # create explanation object
+        newexp = CounterFactualProtoExplanation()
+        newexp.data['local'].append(explanation)  # only supporting single instances for now
+        newexp.meta.update(self.meta)  # copy explainer metadata to explanation metadata
+
+        return newexp

@@ -134,8 +134,11 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     # test explanation
     explanation = cf.explain(x, k=k)
     assert cf.id_proto != pred_class
-    assert np.argmax(model.predict(explanation['cf']['X'])) == explanation['cf']['class']
-    assert explanation['cf']['grads_num'].shape == explanation['cf']['grads_graph'].shape == x.shape
+    assert np.argmax(model.predict(explanation[0]['cf']['X'])) == explanation[0]['cf']['class']
+    assert explanation[0]['cf']['grads_num'].shape == explanation[0]['cf']['grads_graph'].shape == x.shape
+
+    # test serialization
+    explanation.serialize()
 
     # test gradient shapes
     y = np.zeros((1, cf.classes))

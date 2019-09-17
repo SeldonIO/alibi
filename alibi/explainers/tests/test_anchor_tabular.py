@@ -61,3 +61,6 @@ def test_iris(predict_type, threshold):
     explanation = explainer.explain(X_test[0], threshold=threshold)
     assert explanation.local[0]['precision'] >= threshold
     assert explanation.local[0]['coverage'] >= 0.05
+
+    # test serialization
+    explanation.serialize()

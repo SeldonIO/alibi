@@ -26,6 +26,7 @@ def test_anchor_image():
         cnn = Model(inputs=x_in, outputs=x_out)
         cnn.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         return cnn
+
     cnn = model()
     cnn.fit(x_train, y_train, batch_size=256, epochs=1)
 
@@ -52,3 +53,6 @@ def test_anchor_image():
     assert explanation.local[0]['anchor'].shape == image_shape
     assert explanation.local[0]['precision'] >= threshold
     assert len(np.unique(explanation.local[0]['segments'])) == len(np.unique(segments))
+
+    # test serialization
+    explanation.serialize()

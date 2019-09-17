@@ -100,3 +100,6 @@ def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, thres
         for k in keys:
             for example in example_dict[k]:
                 assert example[0][-1] in ['.', 'K']
+
+    # test serialization
+    explanation.serialize()

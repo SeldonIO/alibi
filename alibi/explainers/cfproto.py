@@ -155,6 +155,7 @@ class CounterFactualProto:
         self.max_iterations = max_iterations
         self.c_init = c_init
         self.c_steps = c_steps
+        self.feature_range = feature_range
         self.update_num_grad = update_num_grad
         self.eps = eps
         self.clip = clip
@@ -196,9 +197,9 @@ class CounterFactualProto:
                     k += 1
                     c += 1
                 cat_keys_ord = list(cat_vars_ord.keys())
-                cat_cols_ord = tf.Variable(cat_keys_ord)
+                cat_cols_ord = tf.constant(cat_keys_ord, name='cat_keys_ord')
             else:
-                cat_cols_ord = tf.Variable(cat_keys)
+                cat_cols_ord = tf.constant(cat_keys, name='cat_keys_ord')
 
             # mapping from numerical values to categories and vice versa
             # supports mapping to and from both ordinal encoding and OHE
@@ -219,7 +220,7 @@ class CounterFactualProto:
                 """
                 eq = tf.math.equal(col, cat_cols)
                 eq_any = tf.reduce_any(eq)
-                return tf.equal(eq_any, tf.Variable(True))
+                return tf.equal(eq_any, tf.constant(True))
 
             def cond_loop(icol, iohe, icat, adv_to_map, adv_map, map_cols):
                 """
@@ -263,6 +264,7 @@ class CounterFactualProto:
                     try:
                         return self.map_cat_to_num[icat][adv_to_map[0, icol]]
                     except:  # the value of adv_to_map[0, icol] is a float
+                        # TODO: add error type
                         idx = round_grad(adv_to_map[0, icol])
                         return self.map_cat_to_num[icat][idx]
 
@@ -337,7 +339,7 @@ class CounterFactualProto:
                 # nb of categories
                 v = tf.cond(eq_any_true,
                             lambda: tf.shape(self.map_cat_to_num[icat])[0],
-                            lambda: tf.Variable(1))
+                            lambda: tf.constant(1))
 
                 # map category to its numerical value
                 def true_fn():
@@ -424,9 +426,9 @@ class CounterFactualProto:
                 -------
                 Mapped instance.
                 """
-                icol = tf.Variable(0)
-                iohe = tf.Variable(0)
-                icat = tf.Variable(0)
+                icol = tf.constant(0)
+                iohe = tf.constant(0)
+                icat = tf.constant(0)
 
                 if self.ohe:
                     body_to_num, body_to_cat = body_ohe_to_num, body_num_to_ohe
@@ -824,7 +826,7 @@ class CounterFactualProto:
         # N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
         # dL/dP -> BxP
         preds = self.predict(X_pred)  # NxP
-        preds_pert_pos, preds_pert_neg = self.perturb(preds, self.eps[0], proba=True)  # (N*P)xP
+        preds_pert_pos, preds_pert_neg = perturb(preds, self.eps[0], proba=True)  # (N*P)xP
 
         def f(preds_pert):
             return np.sum(Y * preds_pert, axis=1)
@@ -963,7 +965,7 @@ class CounterFactualProto:
             return x != y
 
         # define target classes for prototype if not specified yet
-        if target_class is None and self.enc_or_kdtree:
+        if target_class is None:
             target_class = list(range(self.classes))
             target_class.remove(np.argmax(Y, axis=1))
             if verbose:
@@ -1006,7 +1008,7 @@ class CounterFactualProto:
             for c in range(self.classes):
                 if c not in target_class:
                     continue
-                dist_c, idx_c = self.kdtrees[c].query(X, k=k)
+                dist_c, idx_c = self.kdtrees[c].query(X_num, k=k)
                 dist_proto[c] = dist_c[0][-1]
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 

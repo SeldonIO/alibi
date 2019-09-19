@@ -2,10 +2,13 @@
 import numpy as np
 import pytest
 from sklearn.datasets import load_iris
+from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf
+from tensorflow.keras.utils import to_categorical
 import keras
-
+from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
+from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
 
 
 @pytest.fixture
@@ -143,3 +146,129 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     cf.predict = cf.predict.predict  # make model black box
     grads = cf.get_gradients(x, y, x.shape[1:])
     assert grads.shape == x.shape
+
+
+@pytest.fixture
+def tf_keras_adult_model(request):
+    if request.param == 'keras':
+        k = keras
+    elif request.param == 'tf':
+        k = tf.keras
+    else:
+        raise ValueError('Unknown parameter')
+
+    x_in = k.layers.Input(shape=(57,))
+    x = k.layers.Dense(60, activation='relu')(x_in)
+    x = k.layers.Dense(60, activation='relu')(x)
+    x_out = k.layers.Dense(2, activation='softmax')(x)
+    model = k.models.Model(inputs=x_in, outputs=x_out)
+    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+
+@pytest.fixture
+def tf_keras_adult(tf_keras_adult_model):
+    # fetch data
+    adult = fetch_adult()
+    X = adult.data
+    X_ord = np.c_[X[:, 1:8], X[:, 11], X[:, 0], X[:, 8:11]]
+    y = adult.target
+
+    # scale numerical features
+    X_num = X_ord[:, -4:].astype(np.float32, copy=False)
+    xmin, xmax = X_num.min(axis=0), X_num.max(axis=0)
+    rng = (-1., 1.)
+    X_num_scaled = (X_num - xmin) / (xmax - xmin) * (rng[1] - rng[0]) + rng[0]
+
+    # OHE categorical features
+    X_cat = X_ord[:, :-4].copy()
+    ohe = OneHotEncoder()
+    ohe.fit(X_cat)
+    X_cat_ohe = ohe.transform(X_cat)
+
+    # combine categorical and numerical data
+    X_comb = np.c_[X_cat_ohe.todense(), X_num_scaled].astype(np.float32, copy=False)
+
+    # split in train and test set
+    idx = 30000
+    X_train, y_train = X_comb[:idx, :], y[:idx]
+
+    assert X_train.shape[1] == 57
+
+    # set random seed
+    np.random.seed(1)
+    tf.set_random_seed(1)
+
+    model = tf_keras_adult_model
+    model.fit(X_train, to_categorical(y_train), batch_size=128, epochs=5, verbose=0)
+
+    # create categorical variable dict
+    cat_vars_ord = {}
+    n_categories = 8
+    for i in range(n_categories):
+        cat_vars_ord[i] = len(np.unique(X_ord[:, i]))
+    cat_vars_ohe = ord_to_ohe(X_ord, cat_vars_ord)[1]
+
+    return X_train, model, cat_vars_ohe
+
+
+@pytest.fixture
+def tf_keras_adult_explainer(request, tf_keras_adult):
+    X_train, model, cat_vars_ohe = tf_keras_adult
+
+    shape = (1, 57)
+    cf_explainer = CounterFactualProto(model, shape, beta=.01, cat_vars=cat_vars_ohe, ohe=True,
+                                       use_kdtree=request.param[0], max_iterations=1000,
+                                       c_init=request.param[1], c_steps=request.param[2],
+                                       feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))
+    yield X_train, model, cf_explainer
+
+
+@pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
+    ((False, 1., 3), False, None, 'mvdm'),
+    ((True, 1., 3), True, 2, 'mvdm'),
+    ((True, 1., 3), True, 2, 'abdm'),
+], indirect=['tf_keras_adult_explainer'])
+@pytest.mark.parametrize('tf_keras_adult_model', ['tf', 'keras'], indirect=True)
+def test_tf_keras_adult_explainer(tf_keras_adult_explainer, use_kdtree, k, d_type):
+    X_train, model, cf = tf_keras_adult_explainer
+
+    # instance to be explained
+    x = X_train[0].reshape(1, -1)
+    pred_class = np.argmax(model.predict(x))
+    not_pred_class = np.argmin(model.predict(x))
+
+    # test fit
+    cf.fit(X_train, d_type=d_type)
+
+    # checked ragged tensor shape
+    n_cat = len(list(cf.cat_vars_ord.keys()))
+    max_key = max(cf.cat_vars_ord, key=cf.cat_vars_ord.get)
+    max_cat = cf.cat_vars_ord[max_key]
+    assert cf.d_abs_ragged.shape == (n_cat, max_cat)
+
+    if use_kdtree:  # k-d trees
+        assert len(cf.kdtrees) == cf.classes  # each class has a k-d tree
+        n_by_class = 0
+        for c in range(cf.classes):
+            n_by_class += cf.X_by_class[c].shape[0]
+        assert n_by_class == X_train.shape[0]  # all training instances are stored in the trees
+
+    # test explanation
+    explanation = cf.explain(x, k=k)
+    if use_kdtree:
+        assert cf.id_proto != pred_class
+    assert np.argmax(model.predict(explanation['cf']['X'])) == explanation['cf']['class']
+    num_shape = (1, 12)
+    assert explanation['cf']['grads_num'].shape == explanation['cf']['grads_graph'].shape == num_shape
+
+    # test gradient shapes
+    y = np.zeros((1, cf.classes))
+    np.put(y, pred_class, 1)
+    cf.predict = cf.predict.predict  # make model black box
+    # convert instance to numerical space
+    x_ord = ohe_to_ord(x, cf.cat_vars)[0]
+    x_num = ord_to_num(x_ord, cf.d_abs)
+    # check gradients
+    grads = cf.get_gradients(x_num, y, num_shape[1:], cf.cat_vars_ord)
+    assert grads.shape == num_shape

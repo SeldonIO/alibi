@@ -114,6 +114,7 @@ def ord_to_ohe(X_ord: np.ndarray, cat_vars_ord: dict) -> Tuple[np.ndarray, dict]
             X_list.append(X_ohe_c)
         else:
             X_list.append(X_ord[:, c].reshape(n, 1))
+            k += 1
         c += 1
     X_ohe = np.concatenate(X_list, axis=1)
     return X_ohe, cat_vars_ohe

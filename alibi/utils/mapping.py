@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Tuple
+from typing import Tuple, List
 
 
 def ohe_to_ord_shape(shape: tuple, cat_vars: dict = None, is_ohe: bool = False) -> tuple:
@@ -137,7 +137,7 @@ def ohe_to_ord(X_ohe: np.ndarray, cat_vars_ohe: dict) -> Tuple[np.ndarray, dict]
     """
     n, cols = X_ohe.shape
     ohe_vars_keys = list(cat_vars_ohe.keys())
-    X_list = []
+    X_list = []  # type: List
     c = 0
     cat_vars_ord = {}
     while c < cols:

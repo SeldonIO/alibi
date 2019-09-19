@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.manifold import MDS
-from typing import Tuple
+from typing import Dict, Tuple
 
 
 def cityblock_batch(X: np.ndarray,
@@ -122,8 +122,8 @@ def abdm(X: np.ndarray,
     # combine dict for categorical with binned features
     cat_vars_combined = {**cat_vars, **cat_vars_bin}
 
-    d_pair = {}
-    X_cat_eq = {}
+    d_pair = {}  # type: Dict
+    X_cat_eq = {}  # type: Dict
     for col, n_cat in cat_vars.items():
         X_cat_eq[col] = []
         for i in range(n_cat):  # for each category in categorical variable, store instances of each category
@@ -228,7 +228,7 @@ def multidim_scaling(d_pair: dict,
         else:  # scale by overall min and max
             try:
                 rng = (feature_range[0][0, k], feature_range[1][0, k])
-            except:
+            except TypeError:
                 raise TypeError('Feature-wise min and max ranges need to be specified.')
             d_scaled = (v - d_min) / (d_max - d_min) * (rng[1] - rng[0]) + rng[0]
             if center:  # center the numerical feature values between the min and max feature range

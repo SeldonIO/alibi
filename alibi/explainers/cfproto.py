@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow as tf
-from typing import Callable, Tuple, Union, TYPE_CHECKING
+from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING
 from alibi.confidence import TrustScore
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
@@ -113,7 +113,7 @@ class CounterFactualProto:
 
         if is_model:  # Keras or TF model
             self.model = True
-            self.classes = self.predict.predict(np.zeros(shape)).shape[1]
+            self.classes = self.predict.predict(np.zeros(shape)).shape[1]  # type: ignore
         else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
@@ -722,7 +722,7 @@ class CounterFactualProto:
                                                  update_feature_range=False)
 
                 # combine abdm and mvdm
-                self.d_abs = {}
+                self.d_abs = {}  # type: Dict
                 new_feature_range = tuple([f.copy() for f in self.feature_range])
                 for k, v in d_abs_abdm.items():
                     self.d_abs[k] = v * w + d_abs_mvdm[k] * (1 - w)
@@ -741,7 +741,7 @@ class CounterFactualProto:
                                                                   update_feature_range=update_feature_range)
 
             # create array used for ragged tensor placeholder
-            self.d_abs_ragged = []
+            self.d_abs_ragged = []  # type: List
             for _, v in self.d_abs.items():
                 n_pad = self.max_cat - len(v)
                 v_pad = np.pad(v, (0, n_pad), 'constant')
@@ -1272,7 +1272,7 @@ class CounterFactualProto:
 
         if Y is None:
             if self.model:
-                Y_proba = self.predict.predict(X)
+                Y_proba = self.predict.predict(X)  # type: ignore
             else:
                 Y_proba = self.predict(X)
             Y_ohe = np.zeros(Y_proba.shape)
@@ -1301,7 +1301,7 @@ class CounterFactualProto:
         explanation['cf'] = {}
         explanation['cf']['X'] = best_attack
         if self.model:
-            Y_pert = self.predict.predict(best_attack)
+            Y_pert = self.predict.predict(best_attack)  # type: ignore
         else:
             Y_pert = self.predict(best_attack)
         explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]

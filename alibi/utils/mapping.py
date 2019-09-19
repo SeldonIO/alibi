@@ -47,7 +47,7 @@ def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
     Numpy array with transformed categorical data into numerical values.
     """
     rng = data.shape[0]
-    X = data.astype(np.float16, copy=True)
+    X = data.astype(np.float32, copy=True)
     for k, v in dist.items():
         cat_col = X[:, k].copy()
         cat_col = np.array([v[int(cat_col[i])] for i in range(rng)])

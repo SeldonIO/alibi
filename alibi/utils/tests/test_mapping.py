@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import alibi.utils.mapping as mp
 
 X_ohe = np.array([[0, 1, 0.1, 1, 0, 0.2]])

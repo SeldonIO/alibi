@@ -141,5 +141,5 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     y = np.zeros((1, cf.classes))
     np.put(y, pred_class, 1)
     cf.predict = cf.predict.predict  # make model black box
-    grads = cf.get_gradients(x, y)
+    grads = cf.get_gradients(x, y, x.shape)
     assert grads.shape == x.shape

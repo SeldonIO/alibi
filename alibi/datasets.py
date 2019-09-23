@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import PIL
-from io import BytesIO
+from io import BytesIO, StringIO
 import numpy as np
 import pandas as pd
 import pickle
@@ -80,7 +80,12 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
                'centipede': 'n01784675',
                'jellyfish': 'n01910747'}
     url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + mapping[category]
-    page = requests.get(url)
+    try:
+        page = requests.get(url)
+        page.raise_for_status()
+    except RequestException:
+        logger.exception('Imagenet API down')
+        raise
     soup = BeautifulSoup(page.content, 'html.parser')
     img_urls = str(soup).split('\r\n')  # list of url's
     random.seed(seed)
@@ -115,6 +120,7 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
         label_dict = pickle.load(BytesIO(resp.content))
     except RequestException:
         logger.exception("Could not download labels, URL may be out of service")
+        raise
 
     inv_label = {v: k for k, v in label_dict.items()}
     label_idx = inv_label[category]
@@ -141,8 +147,10 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
     try:
         resp = requests.get(url, timeout=2)
+        resp.raise_for_status()
     except RequestException:
         logger.exception("Could not connect, URL may be out of service")
+        raise
 
     tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
     data = []
@@ -191,7 +199,14 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
     raw_features = ['Age', 'Workclass', 'fnlwgt', 'Education', 'Education-Num', 'Marital Status',
                     'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss',
                     'Hours per week', 'Country', 'Target']
-    raw_data = pd.read_csv(dataset_url, names=raw_features, delimiter=', ', engine='python').fillna('?')
+    try:
+        resp = requests.get(dataset_url)
+        resp.raise_for_status()
+    except RequestException:
+        logger.exception("Could not connect, URL may be out of service")
+        raise
+
+    raw_data = pd.read_csv(StringIO(resp.text), names=raw_features, delimiter=', ', engine='python').fillna('?')
 
     # get labels, features and drop unnecessary features
     labels = (raw_data['Target'] == '>50K').astype(int).values

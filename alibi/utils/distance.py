@@ -151,7 +151,7 @@ def abdm(X: np.ndarray,
                 for p in p_cond:  # loop over other categorical variables
                     for t in range(p.shape[0]):  # loop over categories of each categorical variable
                         a, b = p[t, i], p[t, j]
-                        d_ij_t = a * np.log((a + eps) / (b + eps)) + b * np.log((b + eps) / (a + eps))
+                        d_ij_t = a * np.log((a + eps) / (b + eps)) + b * np.log((b + eps) / (a + eps))  # KL divergence
                         d_ij_tmp += d_ij_t
                 d_pair_col[i, j] = d_ij_tmp
                 j += 1

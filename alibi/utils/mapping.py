@@ -129,8 +129,8 @@ def ohe_to_ord(X_ohe: np.ndarray, cat_vars_ohe: dict) -> Tuple[np.ndarray, dict]
     X_ohe
         Data with mixture of one-hot encoded and numerical variables.
     cat_vars_ohe
-        Dict with as keys the categorical columns and as values
-        the number of categories per categorical variable.
+        Dict with as keys the first column index for each one-hot encoded categorical variable
+        and as values the number of categories per categorical variable.
 
     Returns
     -------
@@ -144,7 +144,7 @@ def ohe_to_ord(X_ohe: np.ndarray, cat_vars_ohe: dict) -> Tuple[np.ndarray, dict]
     while c < cols:
         if c in ohe_vars_keys:
             v = cat_vars_ohe[c]
-            X_ohe_c = X_ohe[:, c:c+v]
+            X_ohe_c = X_ohe[:, c:c + v]
             assert int(np.sum(X_ohe_c, axis=1).sum()) == n
             X_ord_c = np.argmax(X_ohe_c, axis=1)
             cat_vars_ord[len(X_list)] = v

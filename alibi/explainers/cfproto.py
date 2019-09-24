@@ -30,7 +30,7 @@ class CounterFactualProto:
                  ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
                  enc_model: Union[tf.keras.Model, 'keras.Model'] = None,
                  theta: float = 0.,
-                 cat_vars: dict = dict(),
+                 cat_vars: dict = None,
                  ohe: bool = False,
                  use_kdtree: bool = False,
                  learning_rate_init: float = 1e-2,
@@ -386,7 +386,7 @@ class CounterFactualProto:
                     return cat_ohe
 
                 def false_fn():
-                    return tf.reshape(adv_to_map[0, icol], (1, ))
+                    return tf.reshape(adv_to_map[0, icol], (1,))
 
                 # get OHE mapped columns
                 adv_map_col = tf.cond(eq_any_true, true_fn, false_fn)

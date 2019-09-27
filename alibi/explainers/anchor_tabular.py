@@ -27,16 +27,19 @@ class AnchorTabular(object):
         else:
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
-        # define column indices of categorical and ordinal features
+        # define column indices of categorical and numerical (aka continuous) features
         self.categorical_features = sorted(categorical_names.keys())
-        self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
+        self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
         self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
-    def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
+    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75)) -> None:
         """
-        Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
+        Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for numerical
+        features. Create a mapping between the bin numbers of each discretised numerical feature and the row id in the
+        training set where it occurs
+
 
         Parameters
         ----------
@@ -45,26 +48,36 @@ class AnchorTabular(object):
         disc_perc
             List with percentiles (int) used for discretization
         """
+        # TODO: This is not scalable? What if the dataset does not fit in memory?
         self.train_data = train_data
 
         # discretization of ordinal features
+        # TODO: Change discretizer so that it takes self.numerical features as input
         self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
-
-        # add discretized ordinal features to categorical features
         self.categorical_names.update(self.disc.names)
-        self.categorical_features += self.ordinal_features
 
-        # calculate min, max and std for ordinal features in training data
+        # calculate min, max and std for numerical features in training data
         self.min = {}  # type: Dict[int, float]
         self.max = {}  # type: Dict[int, float]
         self.std = {}  # type: Dict[int, float]
-        for f in range(self.train_data.shape[1]):
-            if f in self.categorical_features and f not in self.ordinal_features:
-                continue
-            self.min[f] = np.min(train_data[:, f])
-            self.max[f] = np.max(train_data[:, f])
-            self.std[f] = np.std(train_data[:, f])
+
+        min = np.min(train_data[self.numerical_features], axis=0)
+        max = np.max(train_data[self.numerical_features], axis=0)
+        std = np.std(train_data[self.numerical_features], axis=0)
+
+        for idx in range(len(min)):
+            self.min[self.numerical_features[idx]] = min[idx]
+            self.max[self.numerical_features[idx]] = max[idx]
+            self.std[self.numerical_features[idx]] = std[idx]
+
+        # key (int): feat. col ID for numerical feat., value (dict) with key(int) bin idx , value: list where each elem
+        # is a row idx in the training data where a data record with feature in that bin can be found
+        self.ord2idx = {feat_col_id: {} for feat_col_id in self.numerical_features}
+        ord_feats = self.d_train_data[self.numerical_features]  # nb: ordinal features are just discretised cont. feats.
+        for i in range(ord_feats.shape[1]):
+            for bin_id in range(len(self.disc.names[self.numerical_features[i]])):
+                self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
 
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
                           conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
@@ -187,7 +200,7 @@ class AnchorTabular(object):
         mapping = {}  # type: Dict[int,Tuple[int, str, float]]
         X = self.disc.discretize(X.reshape(1, -1))[0]
         for f in self.categorical_features:
-            if f in self.ordinal_features:
+            if f in self.numerical_features:
                 for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
                     idx = len(mapping)
                     if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value

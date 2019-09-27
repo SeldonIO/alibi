@@ -1,11 +1,11 @@
 import numpy as np
-from typing import Dict, Callable, List
+from typing import Dict, Callable, Tuple
 
 
 class Discretizer(object):
 
     def __init__(self, data: np.ndarray, categorical_features: List[int], feature_names: List[str],
-                 percentiles: List[int] = [25, 50, 75]) -> None:
+                 percentiles: Tuple[int] = (25, 50, 75)) -> None:
         """
         Initialize the discretizer.
 

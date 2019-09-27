@@ -79,6 +79,113 @@ class AnchorTabular(object):
             for bin_id in range(len(self.disc.names[self.numerical_features[i]])):
                 self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
 
+    def create_mapping(self, X: np.ndarray):
+        """Maps the continuos features to a tuple containing (feat_col_id, 'eq', feat_value) and the discretised feats.
+        to a series of tuples containing (feat_col_id, 'leq'/'geq', value) where value is a number in [0, n_bins]. 'leq'
+        and 'geq' indicate if the value in the tuple is <= or >, respectively, than the bin value of the instance
+        to be explained
+
+        Parameters
+        ----------
+        X:
+            instance to be explained
+
+        Returns
+        -------
+        mapping
+            dict: key = feature column or bin for ordinal features in categorized data; value = tuple containing
+                  (feature column, flag for categorical/ordinal feature, feature value or bin value)
+        """
+        # TODO: See if this is necessary for adding names to anchor or if this can be done in a more simple fashion
+        # discretize ordinal features of instance to be explained
+        # create mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
+        mapping = {}  # type: Dict[int,Tuple[int, str, float]]
+        X = self.disc.discretize(X.reshape(1, -1))[0]
+        for f in self.numerical_features:
+            for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
+                idx = len(mapping)
+                if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
+                    mapping[idx] = (f, 'leq', v)  # store bin value
+                elif X[f] > v:  # feature value > bin value
+                    mapping[idx] = (f, 'geq', v)  # store bin value
+                else:
+                    idx = len(mapping)
+                    mapping[idx] = (f, 'eq', X[f])  # store feature value
+
+        return mapping
+
+    def build_sampling_lookups(self, X: np.ndarray) -> None:
+        """ TODO: Finish doc
+            cat_lookup: a dict with key: encoded feature id (int) and value (int) of the categorical variable
+            ord_lookup: a dict with key: encoded feature id (int) and value (set) containing the set of bins
+                that samples should be drawn from if a sampling request contains an encoded feature value amongst the
+                keys in ord_lookup
+            enc2feat_idx: a dict whose keys (int) are the union of keys in cat_lookup and ord_lookup, values are the
+                feature column ids in the training dataset (e.g., {0: {0}, 1: {0}, 2: {0}} says that encoded features
+                0, 1 & 2 are indices of the bins for a numerical feature in column 0 of the training set)
+            # TODO: Write test to verify this union condition
+
+        Parameters
+        ---------
+        X:
+            instance to be explained
+        """
+        # for discretized continuous features, create a mapping that states which bins should the sampling occur from
+        # as a function of the bins where the continuous features of the observation fall.
+
+        cat_lookup = {}
+        ord_lookup = {}
+        enc2feat_idx = {}
+
+        first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0])
+        if first_numerical_idx > 0:  # First column(s) might contain categorical data
+            for cat_enc_idx in range(0, first_numerical_idx):
+                cat_lookup[cat_enc_idx] = X[cat_enc_idx]
+                enc2feat_idx[cat_enc_idx] = cat_enc_idx
+
+        ord_enc_idx = first_numerical_idx[0] - 1
+        for i, feature in enumerate(self.numerical_features):
+            n_bins = len(self.categorical_names[feature])
+            for bin_val in range(n_bins):
+                ord_enc_idx += 1
+                # TODO: This is probably an erroneous update if we don't add the value to ord_lookup / delete the last key if we don't add it ...
+                enc2feat_idx[ord_enc_idx] = feature
+                # if feat. value falls in same or lower bin, sample from same or lower bin only ...
+                if X[feature] <= bin_val != n_bins - 1:
+                    ord_lookup[ord_enc_idx] = set(i for i in range(bin_val + 1))
+                # if feat. value falls in a higher bin, sample from higher bins only
+                elif X[feature] > bin_val:
+                    ord_lookup[ord_enc_idx] = set(i for i in range(bin_val + 1, n_bins + 1))   # TODO: Should it be n_bins + 1 or n_bins ?
+                else:
+                    ord_enc_idx -= 1  # when a discretized feat. of the instance to be explained falls in the last bin
+
+            # check if a categorical feature follows the current numerical feature & update mappings
+            if i < len(self.numerical_features) - 1:  # TODO: check extreme condition works correctly
+                n_categoricals = self.numerical_features[i + 1] - self.numerical_features[i] - 1
+                if n_categoricals > 0:
+                    cat_feat_idx = feature + 1
+                    for cat_enc_idx in range(ord_enc_idx + 1, ord_enc_idx + n_categoricals + 1):
+                        cat_lookup[cat_enc_idx] = X[cat_feat_idx]
+                        enc2feat_idx[cat_enc_idx] = cat_feat_idx
+                        cat_feat_idx += 1
+                    ord_enc_idx += n_categoricals + 1
+
+        # TODO: Check this is correct and that it doesn't clash with the above?
+        # check if the last columns are categorical variables and update mappings
+        last_ord_feat_idx = np.searchsorted(self.categorical_features, self.numerical_features[-1])
+        if last_ord_feat_idx != len(self.categorical_features):
+            cat_enc_idx = max(ord_lookup.keys()) + 1
+            for cat_feat_idx in range(self.numerical_features[-1] + 1, self.categorical_features[-1]):
+                cat_lookup[cat_enc_idx] = X[cat_feat_idx]
+                enc2feat_idx[cat_enc_idx] = cat_feat_idx
+                cat_enc_idx += 1
+
+        # TODO: Edge cases (only one categorical variable, only one numerical variable)
+        # TODO: What happens if you have only one numerical variable at the beginning/end/arb. position in the feature array?
+        # TODO: Deal with the case of last column being represented by one or more categorical variables
+        # TODO: Add skipped entries to a map with the values of categorical variables
+        # TODO: Build a map between original feature column ids and new column ids
+
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
                           conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
         """
@@ -88,13 +195,13 @@ class AnchorTabular(object):
         Parameters
         ----------
         conditions_eq
-            Dict: key = feature column; value = categorical feature value
+            key = feature column; value = categorical feature value
         conditions_neq
             Not used at the moment
         conditions_geq
-            Dict: key = feature column; value = bin value of ordinal feature where bin value < feature value
+            key = feature column; value = bin value of ordinal feature where bin value < feature value
         conditions_leq
-            Dict: key = feature column; value = bin value of ordinal feature where bin value >= feature value
+            key = feature column; value = bin value of ordinal feature where bin value >= feature value
         num_samples
             Number of samples used when sampling from training set
 
@@ -195,22 +302,6 @@ class AnchorTabular(object):
         if true_label is None:
             true_label = self.predict_fn(X.reshape(1, -1))[0]
 
-        # discretize ordinal features of instance to be explained
-        # create mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        mapping = {}  # type: Dict[int,Tuple[int, str, float]]
-        X = self.disc.discretize(X.reshape(1, -1))[0]
-        for f in self.categorical_features:
-            if f in self.numerical_features:
-                for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
-                    idx = len(mapping)
-                    if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
-                        mapping[idx] = (f, 'leq', v)  # store bin value
-                    elif X[f] > v:  # feature value > bin value
-                        mapping[idx] = (f, 'geq', v)  # store bin value
-            else:
-                idx = len(mapping)
-                mapping[idx] = (f, 'eq', X[f])  # store feature value
-
         def sample_fn(present: list, num_samples: int, compute_labels: bool = True) \
                 -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
@@ -278,7 +369,7 @@ class AnchorTabular(object):
                 labels = (self.predict_fn(raw_data) == true_label).astype(int)
             return raw_data, data, labels
 
-        return sample_fn, mapping
+        return sample_fn
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
@@ -308,15 +399,20 @@ class AnchorTabular(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
-        # build sampling function and ...
-        # ... mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
+
+        X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
+        self.build_sampling_lookups(X)
+
+        # build sampling function and
+
+        sample_fn = self.get_sample_fn(X, desired_label=desired_label)
+
 
         # get anchors and add metadata
         exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
                                          batch_size=batch_size, desired_confidence=threshold,
                                          max_anchor_size=max_anchor_size, **kwargs)  # type: Any
-        self.add_names_to_exp(exp, mapping)
+        self.add_names_to_exp(X, exp)
         exp['instance'] = X
         exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
         exp = AnchorExplanation('tabular', exp)
@@ -329,21 +425,21 @@ class AnchorTabular(object):
         explanation['raw'] = exp.exp_map
         return explanation
 
-    def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:
+    def add_names_to_exp(self, X, explanation: dict) -> None:
         """
         Add feature names to explanation dictionary.
 
         Parameters
         ----------
-        hoeffding_exp
+        explanation
             Dict with anchors and additional metadata
-        mapping
-            Dict: key = feature column or bin for ordinal features in categorized data; value = tuple containing
-                  (feature column, flag for categorical/ordinal feature, feature value or bin value)
         """
-        idxs = hoeffding_exp['feature']
-        hoeffding_exp['names'] = []
-        hoeffding_exp['feature'] = [mapping[idx][0] for idx in idxs]
+
+        mapping = self.create_mapping(X)
+
+        idxs = explanation['feature']
+        explanation['names'] = []
+        explanation['feature'] = [mapping[idx][0] for idx in idxs]
 
         ordinal_ranges = {}  # type: Dict[int, list]
         for idx in idxs:
@@ -398,4 +494,4 @@ class AnchorTabular(object):
                 elif geq_val:
                     fname = '%s > %s' % (self.feature_names[f], geq_val)
                 handled.add(f)
-            hoeffding_exp['names'].append(fname)
+            explanation['names'].append(fname)

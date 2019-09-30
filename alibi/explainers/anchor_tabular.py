@@ -87,7 +87,7 @@ class AnchorTabular(object):
 
         Parameters
         ----------
-        X:
+        X
             instance to be explained
 
         Returns
@@ -114,41 +114,57 @@ class AnchorTabular(object):
 
         return mapping
 
-    def build_sampling_lookups(self, X: np.ndarray) -> None:
-        """ TODO: Finish doc
-            cat_lookup: a dict with key: encoded feature id (int) and value (int) of the categorical variable
-            ord_lookup: a dict with key: encoded feature id (int) and value (set) containing the set of bins
-                that samples should be drawn from if a sampling request contains an encoded feature value amongst the
-                keys in ord_lookup
-            enc2feat_idx: a dict whose keys (int) are the union of keys in cat_lookup and ord_lookup, values are the
-                feature column ids in the training dataset (e.g., {0: {0}, 1: {0}, 2: {0}} says that encoded features
-                0, 1 & 2 are indices of the bins for a numerical feature in column 0 of the training set)
-            # TODO: Write test to verify this union condition
+    def build_sampling_lookups(self, X: np.ndarray) -> (dict, dict, dict):
+        """ An encoding of the features is created by assigning each bin of a discretized numerical variable a unique
+        index. For a dataset containg a numerical variable with 5 bins and 3 categorical variables, indices 0 - 4
+        represent bins of the numerical variable whereas indices 5, 6, 7 represent the encoded indices of the categ.
+        variables. The encoding is necessary so that the different ranges of the categorical variable can be sampled
+        during anchor construction. These encoded IDs are keys of:
+            - a dictionary mapping categorical variables to their value in X (instance to be explained)
+            - a dictionary mapping discretized numerical variables to the bins they can be sampled from given X
+            - a dictionary mapping the encoded IDs to the original feature IDs
+
+        NB: TODO: Document the weird handling of X[f] <= bin_val && bin_val == n_bins - 1
 
         Parameters
         ---------
-        X:
+        X
             instance to be explained
+
+        Returns
+        -------
+        cat_lookup
+            key: encoded feature idx (int) and value (int) of the categorical variable
+        ord_lookup
+            key: encoded feature idx (int) and value (set) containing the set of bins that samples should be drawn from
+            if a sampling request contains an encoded feature value amongst the keys in ord_lookup
+        enc2feat_idx
+            keys (int) are the union of keys in cat_lookup and ord_lookup, values are the feature column ids in the
+            training dataset (e.g., {0: {0}, 1: {0}, 2: {0}} says that encoded features 0, 1 & 2 are indices of the bins
+            for a numerical feature in column 0 of the training set)
+            # TODO: Write test to verify this union condition
         """
-        # for discretized continuous features, create a mapping that states which bins should the sampling occur from
-        # as a function of the bins where the continuous features of the observation fall.
 
         cat_lookup = {}
         ord_lookup = {}
         enc2feat_idx = {}
 
-        first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0])
+        if not self.numerical_features:  # data contains only categorical variables
+            cat_lookup = dict(zip(self.categorical_features, X))
+            enc2feat_idx = dict(zip(*[self.categorical_features]*2))
+            return cat_lookup, ord_lookup, enc2feat_idx
+
+        first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
         if first_numerical_idx > 0:  # First column(s) might contain categorical data
             for cat_enc_idx in range(0, first_numerical_idx):
                 cat_lookup[cat_enc_idx] = X[cat_enc_idx]
                 enc2feat_idx[cat_enc_idx] = cat_enc_idx
 
-        ord_enc_idx = first_numerical_idx[0] - 1
+        ord_enc_idx = first_numerical_idx[0] - 1  # -1 as increment comes first
         for i, feature in enumerate(self.numerical_features):
-            n_bins = len(self.categorical_names[feature])
+            n_bins = len(self.categorical_names[feature])  # TODO: We should keep the two separate - this is confusing
             for bin_val in range(n_bins):
                 ord_enc_idx += 1
-                # TODO: This is probably an erroneous update if we don't add the value to ord_lookup / delete the last key if we don't add it ...
                 enc2feat_idx[ord_enc_idx] = feature
                 # if feat. value falls in same or lower bin, sample from same or lower bin only ...
                 if X[feature] <= bin_val != n_bins - 1:
@@ -157,35 +173,31 @@ class AnchorTabular(object):
                 elif X[feature] > bin_val:
                     ord_lookup[ord_enc_idx] = set(i for i in range(bin_val + 1, n_bins + 1))   # TODO: Should it be n_bins + 1 or n_bins ?
                 else:
+                    del enc2feat_idx[ord_enc_idx]
                     ord_enc_idx -= 1  # when a discretized feat. of the instance to be explained falls in the last bin
 
             # check if a categorical feature follows the current numerical feature & update mappings
-            if i < len(self.numerical_features) - 1:  # TODO: check extreme condition works correctly
+            if i < len(self.numerical_features) - 1:
                 n_categoricals = self.numerical_features[i + 1] - self.numerical_features[i] - 1
                 if n_categoricals > 0:
                     cat_feat_idx = feature + 1
-                    for cat_enc_idx in range(ord_enc_idx + 1, ord_enc_idx + n_categoricals + 1):
+                    for cat_enc_idx in range(ord_enc_idx + 1, ord_enc_idx + 1 + n_categoricals):
                         cat_lookup[cat_enc_idx] = X[cat_feat_idx]
                         enc2feat_idx[cat_enc_idx] = cat_feat_idx
                         cat_feat_idx += 1
                     ord_enc_idx += n_categoricals + 1
 
-        # TODO: Check this is correct and that it doesn't clash with the above?
         # check if the last columns are categorical variables and update mappings
-        last_ord_feat_idx = np.searchsorted(self.categorical_features, self.numerical_features[-1])
-        if last_ord_feat_idx != len(self.categorical_features):
+        last_num_idx = np.searchsorted(self.categorical_features, self.numerical_features[-1]).item()
+        if last_num_idx != len(self.categorical_features):
             cat_enc_idx = max(ord_lookup.keys()) + 1
-            for cat_feat_idx in range(self.numerical_features[-1] + 1, self.categorical_features[-1]):
+            for cat_feat_idx in range(self.numerical_features[-1] + 1, self.categorical_features[-1] + 1):
                 cat_lookup[cat_enc_idx] = X[cat_feat_idx]
                 enc2feat_idx[cat_enc_idx] = cat_feat_idx
                 cat_enc_idx += 1
 
-        # TODO: Edge cases (only one categorical variable, only one numerical variable)
-        # TODO: What happens if you have only one numerical variable at the beginning/end/arb. position in the feature array?
-        # TODO: Deal with the case of last column being represented by one or more categorical variables
-        # TODO: Add skipped entries to a map with the values of categorical variables
-        # TODO: Build a map between original feature column ids and new column ids
-
+        return cat_lookup, ord_lookup, enc2feat_idx
+    
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
                           conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
         """

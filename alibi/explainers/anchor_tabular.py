@@ -2,6 +2,7 @@ from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.discretizer import Discretizer
 from collections import OrderedDict
+import bisect
 import itertools
 import numpy as np
 import random
@@ -201,9 +202,13 @@ class AnchorTabular(object):
             Sampled data from training set
         """
 
+        # TODO: What happens if the empty anchor is sent in ... Deal with that case here or outside?
+
         train = self.train_data         # TODO: For parallel algorithm this will need to change - we required data to live in shared memory? otherwise we need to pickle everything which will slow things down?
         d_train = self.d_train_data
-        samples = np.zeros(num_samples, train.shape[1])
+        # TODO: These dicts need to be ordered
+        allowed_bins = {}  # bins one can sample from for each numerical feature
+        allowed_rows = {}  # rows where each numerical feature requested can be found in
         ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
         ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
         ord_feat_ids_uniq = list(OrderedDict.fromkeys(ord_feat_ids))
@@ -211,29 +216,66 @@ class AnchorTabular(object):
         idxs = set()
         intermediate_idxs = []
 
-        for i in range(len(ord_feat_ids) - 1):  # TODO: Ensure that the encoded feature indices coming from AnchorBaseBeam are sorted!
-            # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
-            if ord_feat_ids[i+1] == ord_feat_ids[i]:
-                sample_from_bins.intersection(ord_lookup[ord_enc_ids[i+1]])
-            else:
-                train_row_ids = itertools.chain(
-                                                *[ord2idx[ord_feat_ids[i]][bin_idx] for bin_idx in sample_from_bins]
-                                                )
-                if idxs:
-                    idxs = idxs.intersection(train_row_ids)
-                    if not idxs:  # No data record with the specified combination of features exists
-                        # TODO: Discuss this case - no point to extend an anchor with zero coverage!?
-                        return np.array([]), np.array([]), np.array([])
-                else:
-                    idxs = train_row_ids
-                intermediate_idxs.append(idxs)
-                sample_from_bins = ord_lookup[ord_enc_ids[i+1]]
+        # Set categorical variables to the anchor values
+        samples = np.zeros(num_samples, train.shape[1])
+        cat_enc_ids = list(set(anchor).intersection(cat_lookup.keys()))
+        cat_feat_vals = [cat_lookup[cat_enc_id] for cat_enc_id in cat_enc_ids]
+        cat_feat_ids = [enc2feat_idx[idx] for idx in cat_enc_ids]
+        samples[:, cat_feat_ids] = np.stack([cat_feat_vals] * num_samples)
 
-        train_row_ids = itertools.chain(
-                                *[ord2idx[ord_feat_ids[len(ord_feat_ids) - 1]][bin_idx] for bin_idx in sample_from_bins]
-                                 )
-        idxs.intersection(train_row_ids)
-        intermediate_idxs.append(idxs)
+        # determine bins from which ordinal data should be drawn
+        for i in range(len(ord_feat_ids)):  # TODO: Ensure that the encoded feature indices coming from AnchorBaseBeam are sorted!
+            # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
+            if ord_feat_ids[i] not in allowed_bins:
+                allowed_bins[ord_feat_ids[i]] = ord_lookup[ord_enc_ids[i]]
+            else:
+                allowed_bins[ord_feat_ids[i]].intersect(ord_lookup[ord_enc_ids[i]])
+
+        # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
+        # data coming from the same bin (or range of bins)
+        # TODO: This is a saving as it allows to immediately check which data records we can draw from to replace
+        #  records that do not come from correct bin(s). In calculating options one queries the entire database currently
+        for feature in allowed_bins:
+            allowed_rows[feature] = set(itertools.chain(*[ord2idx[feature][bin_idx] for bin_idx in allowed_bins[feature]]))
+
+        # NB: partial is at feature level not encoded feature level
+        n_partial_anchors, partial_anchor_rows = [len(allowed_rows[ord_feat_ids[0]])], [allowed_rows[ord_feat_ids[0]]]
+        # TODO: Make sure this is correct ...
+        for feature in ord_feat_ids_uniq[1:]:
+            partial_anchor_rows.append(partial_anchor_rows[-1].intersection(allowed_rows[feature]))
+            n_partial_anchors.append(len(partial_anchor_rows[-1]))
+
+        n_partial_anchors = list(reversed(n_partial_anchors))
+
+        # search num_samples in the list containing the number of training records containing each sub-anchor
+        num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
+        if num_samples_pos == 0: # training set has more than num_samples records containing the anchor
+            samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
+            samples[:, ord_feat_ids] = train[samples_idxs, ord_feat_ids]
+
+            return samples
+
+        # find maximal length sub-anchor that allows one to draw num_samples
+        sub_anchor_max_len = len(n_partial_anchors) - num_samples_pos - 1
+
+
+
+
+
+
+        anchor_matches_ids = set.intersection(*allowed_rows.values()) # rows in training set where anchor was found
+        if len(anchor_matches_ids) >= num_samples:
+            sample_idxs = random.sample(anchor_matches_ids, num_samples)
+            samples = train[sample_idxs, :]
+
+
+            return samples
+
+        remaining_samples = num_samples - len(anchor_matches_ids)
+
+
+
+
 
         if not idxs:  # Anchor has zero coverage, no point extending that path
             return np.array([]), np.array([]), np.array([])

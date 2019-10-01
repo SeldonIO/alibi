@@ -1,9 +1,13 @@
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.discretizer import Discretizer
+from collections import OrderedDict
+import itertools
 import numpy as np
+import random
 from typing import Callable, Tuple, Dict, Any, Set
 
+# TODO: Fix random seed
 
 class AnchorTabular(object):
 
@@ -79,47 +83,12 @@ class AnchorTabular(object):
             for bin_id in range(len(self.disc.names[self.numerical_features[i]])):
                 self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
 
-    def create_mapping(self, X: np.ndarray):
-        """Maps the continuos features to a tuple containing (feat_col_id, 'eq', feat_value) and the discretised feats.
-        to a series of tuples containing (feat_col_id, 'leq'/'geq', value) where value is a number in [0, n_bins]. 'leq'
-        and 'geq' indicate if the value in the tuple is <= or >, respectively, than the bin value of the instance
-        to be explained
-
-        Parameters
-        ----------
-        X
-            instance to be explained
-
-        Returns
-        -------
-        mapping
-            dict: key = feature column or bin for ordinal features in categorized data; value = tuple containing
-                  (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        """
-        # TODO: See if this is necessary for adding names to anchor or if this can be done in a more simple fashion
-        # discretize ordinal features of instance to be explained
-        # create mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        mapping = {}  # type: Dict[int,Tuple[int, str, float]]
-        X = self.disc.discretize(X.reshape(1, -1))[0]
-        for f in self.numerical_features:
-            for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
-                idx = len(mapping)
-                if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
-                    mapping[idx] = (f, 'leq', v)  # store bin value
-                elif X[f] > v:  # feature value > bin value
-                    mapping[idx] = (f, 'geq', v)  # store bin value
-                else:
-                    idx = len(mapping)
-                    mapping[idx] = (f, 'eq', X[f])  # store feature value
-
-        return mapping
-
     def build_sampling_lookups(self, X: np.ndarray) -> (dict, dict, dict):
-        """ An encoding of the features is created by assigning each bin of a discretized numerical variable a unique
-        index. For a dataset containg a numerical variable with 5 bins and 3 categorical variables, indices 0 - 4
+        """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable a unique
+        index. For a dataset containg, e.g., a numerical variable with 5 bins and 3 categorical variables, indices 0 - 4
         represent bins of the numerical variable whereas indices 5, 6, 7 represent the encoded indices of the categ.
         variables. The encoding is necessary so that the different ranges of the categorical variable can be sampled
-        during anchor construction. These encoded IDs are keys of:
+        during anchor construction. These encoded feature IDs are keys of:
             - a dictionary mapping categorical variables to their value in X (instance to be explained)
             - a dictionary mapping discretized numerical variables to the bins they can be sampled from given X
             - a dictionary mapping the encoded IDs to the original feature IDs
@@ -160,7 +129,7 @@ class AnchorTabular(object):
                 cat_lookup[cat_enc_idx] = X[cat_enc_idx]
                 enc2feat_idx[cat_enc_idx] = cat_enc_idx
 
-        ord_enc_idx = first_numerical_idx[0] - 1  # -1 as increment comes first
+        ord_enc_idx = first_numerical_idx - 1  # -1 as increment comes first
         for i, feature in enumerate(self.numerical_features):
             n_bins = len(self.categorical_names[feature])  # TODO: We should keep the two separate - this is confusing
             for bin_val in range(n_bins):
@@ -197,96 +166,120 @@ class AnchorTabular(object):
                 cat_enc_idx += 1
 
         return cat_lookup, ord_lookup, enc2feat_idx
-    
-    def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
-                          conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
+
+    def sample_from_train(self, anchor: list, ord2idx: dict, ord_lookup: dict, cat_lookup: dict, enc2feat_idx: dict,
+                          num_samples: int) -> (np.ndarray, np.ndarray, np.ndarray):
         """
         Sample data from training set but keep features which are present in the proposed anchor the same
-        as the feature value or bin (for ordinal features) as the instance to be explained.
+        as the feature value or bin (for ordinal features) as the instance to be explained.s
+
+        # TODO: Improve documentation as the current version is misleading (e.g., we don't sample from the 'same' bin)
 
         Parameters
         ----------
-        conditions_eq
-            key = feature column; value = categorical feature value
-        conditions_neq
-            Not used at the moment
-        conditions_geq
-            key = feature column; value = bin value of ordinal feature where bin value < feature value
-        conditions_leq
-            key = feature column; value = bin value of ordinal feature where bin value >= feature value
+        anchor:
+            Each int is an encoded feature id
+        ord2idx
+            Mapping with keys feature column id (int). The values are dict with key (int) representing a bin number
+            (0-indexed) and values a list of ints representing the row numbers in the training set where a record
+            has the value indicated by the key
+        ord_lookup:
+            Mapping of feature encoded ids to the bins from which data should be sampled (see build_sampling_lookups
+            for details)
+        cat_lookup
+            Mapping of feature encoded ids to the values the corresponding feature in the instance to be explained takes
+            (see build_sampling_lookups for details)
+        enc2feat_idx
+            Mapping between encoded feature IDs and feature IDs in the dataset
         num_samples
             Number of samples used when sampling from training set
 
         Returns
         -------
+
         sample
             Sampled data from training set
         """
-        train = self.train_data
+
+        train = self.train_data         # TODO: For parallel algorithm this will need to change - we required data to live in shared memory? otherwise we need to pickle everything which will slow things down?
         d_train = self.d_train_data
+        samples = np.zeros(num_samples, train.shape[1])
+        ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
+        ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
+        ord_feat_ids_uniq = list(OrderedDict.fromkeys(ord_feat_ids))
+        sample_from_bins = ord_lookup[ord_enc_ids[0]]
+        idxs = set()
+        intermediate_idxs = []
 
-        # sample from train and d_train data sets with replacement
-        idx = np.random.choice(range(train.shape[0]), num_samples, replace=True)
-        sample = train[idx]
-        d_sample = d_train[idx]
+        for i in range(len(ord_feat_ids) - 1):  # TODO: Ensure that the encoded feature indices coming from AnchorBaseBeam are sorted!
+            # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
+            if ord_feat_ids[i+1] == ord_feat_ids[i]:
+                sample_from_bins.intersection(ord_lookup[ord_enc_ids[i+1]])
+            else:
+                train_row_ids = itertools.chain(
+                                                *[ord2idx[ord_feat_ids[i]][bin_idx] for bin_idx in sample_from_bins]
+                                                )
+                if idxs:
+                    idxs = idxs.intersection(train_row_ids)
+                    if not idxs:  # No data record with the specified combination of features exists
+                        # TODO: Discuss this case - no point to extend an anchor with zero coverage!?
+                        return np.array([]), np.array([]), np.array([])
+                else:
+                    idxs = train_row_ids
+                intermediate_idxs.append(idxs)
+                sample_from_bins = ord_lookup[ord_enc_ids[i+1]]
 
-        # for each sampled instance, use the categorical feature values specified in conditions_eq ...
-        # ... which is equal to the feature value in the instance to be explained
-        for f in conditions_eq:
-            sample[:, f] = np.repeat(conditions_eq[f], num_samples)
+        train_row_ids = itertools.chain(
+                                *[ord2idx[ord_feat_ids[len(ord_feat_ids) - 1]][bin_idx] for bin_idx in sample_from_bins]
+                                 )
+        idxs.intersection(train_row_ids)
+        intermediate_idxs.append(idxs)
 
-        # for the features in condition_geq: make sure sampled feature comes from correct ordinal bin
-        for f in conditions_geq:
+        if not idxs:  # Anchor has zero coverage, no point extending that path
+            return np.array([]), np.array([]), np.array([])
+        n_sampled = len(idxs)
 
-            # idx of samples where feature value is in a lower bin than the observation to be explained
-            idx = d_sample[:, f] <= conditions_geq[f]
+        if n_sampled >= num_samples:
+            sample_idxs = random.sample(idxs, num_samples)
+            samples = train[sample_idxs, :]
+        else:  # Not enough samples contain the anchor
+            samples[:n_sampled, :] = train[idxs, :]
+            num_remaining = num_samples - n_sampled
+            for index in reversed(range(len(intermediate_idxs) - 1)):
+                additional_samples = intermediate_idxs[index] - intermediate_idxs[index+1]
+                n_available_samples = len(additional_samples)
+                if n_available_samples >= num_remaining:
+                    # Sample records which contain a partial anchor
+                    sampled_idx = random.sample(intermediate_idxs[index], num_remaining)
+                    samples[n_sampled:, :] = train[sampled_idx, :]
+                    # Replace the remaining features with values sampled from the appropriate bins
+                    to_replace = intermediate_idxs
 
-            # add idx where feature value is in a higher bin than the observation
-            if f in conditions_leq:
-                idx = (idx + (d_sample[:, f] > conditions_leq[f])).astype(bool)
+                    samples[n_sampled:, ord_feat_ids_uniq[index + 1:]] =
+                    # TODO: Set feature to the anchor value!!!
 
-            if idx.sum() == 0:
-                continue  # if all values in sampled data have same bin as instance to be explained
 
-            # options: idx in train set where with feature value in same bin than instance to be explained
-            options = d_train[:, f] > conditions_geq[f]
-            if f in conditions_leq:
-                options = options * (d_train[:, f] <= conditions_leq[f])
 
-            # if no options, uniformly sample between min and max of feature ...
-            if options.sum() == 0:
-                min_ = conditions_geq.get(f, self.min[f])
-                max_ = conditions_leq.get(f, self.max[f])
-                to_rep = np.random.uniform(min_, max_, idx.sum())
-            else:  # ... otherwise draw random samples from training set
-                to_rep = np.random.choice(train[options, f], idx.sum(), replace=True)
 
-            # replace sample values for ordinal features where feature values are in a different bin ...
-            # ... than the instance to be explained by random values from training set from the correct bin
-            sample[idx, f] = to_rep
 
-        # for the features in condition_leq: make sure sampled feature comes from correct ordinal bin
-        for f in conditions_leq:
 
-            if f in conditions_geq:
-                continue
 
-            idx = d_sample[:, f] > conditions_leq[f]  # idx where feature value is in a higher bin than the observation
 
-            if idx.sum() == 0:
-                continue  # if all values in sampled data have same bin as instance to be explained
 
-            # options: idx in train set where with feature value in same bin than instance to be explained
-            options = d_train[:, f] <= conditions_leq[f]
 
-            # if no options, uniformly sample between min and max of feature ...
-            if options.sum() == 0:
-                min_ = conditions_geq.get(f, self.min[f])
-                max_ = conditions_leq.get(f, self.max[f])
-                to_rep = np.random.uniform(min_, max_, idx.sum())
-            else:  # ... otherwise draw random samples from training set
-                to_rep = np.random.choice(train[options, f], idx.sum(), replace=True)
-            sample[idx, f] = to_rep
+
+
+
+
+
+        # sample
+        # TODO: Deal with numerical variables
+        # TODO: Deal with categorical variables
+        cat_enc_ids = list(set(anchor).intersection(cat_lookup.keys()))
+        cat_feat_ids = [enc2feat_idx[idx] for idx in cat_enc_ids]
+
+        # TODO: Strategy for sampling when there are no records
+        # TODO: Ensure equivalence with previous algorithm behaviour
 
         return sample
 

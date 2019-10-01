@@ -1,5 +1,10 @@
 # Change Log
 
+## [v0.3.1](https://github.com/SeldonIO/alibi/tree/v0.3.1) (2019-10-01)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.0...v0.3.1)
+### Fixed
+- Pin `tensorflow` dependency to versions 1.x as the new 2.0 release introduces breaking changes
+
 ## [v0.3.0](https://github.com/SeldonIO/alibi/tree/v0.3.0) (2019-09-25)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.3...v0.3.0)
 ### Added

@@ -62,8 +62,7 @@ class AnchorTabular(object):
         self.train_data = train_data
 
         # discretization of ordinal features
-        # TODO: Change discretizer so that it takes self.numerical features as input
-        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
+        self.disc = Discretizer(self.train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
         self.categorical_names.update(self.disc.names)
 
@@ -157,7 +156,7 @@ class AnchorTabular(object):
                 cat_enc_idx += 1
 
     def sample_from_train(self, anchor: list, ord2idx: dict, ord_lookup: dict, cat_lookup: dict, enc2feat_idx: dict,
-                          num_samples: int) -> np.ndarray:
+                          num_samples: int) -> (np.ndarray, np.ndarray):
         """
         Sample data from training set but keep features which are anchor in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.s
@@ -191,19 +190,24 @@ class AnchorTabular(object):
         """
 
         train = self.train_data         # TODO: For parallel algorithm this will need to change - we required data to live in shared memory? otherwise we need to pickle everything which will slow things down?
+        d_train = self.d_train_data
+
         # Initialise samples randomly
         init_sample_idx = np.random.choice(range(train.shape[0]), num_samples, replace=True)
         samples = train[init_sample_idx]
+        d_samples = d_train[init_sample_idx]
+
         # Set categorical variables to the anchor values
         cat_enc_ids = set(anchor).intersection(cat_lookup.keys())
         if cat_enc_ids:
             cat_feat_vals = [cat_lookup[cat_enc_id] for cat_enc_id in cat_enc_ids]
             cat_feat_ids = [enc2feat_idx[idx] for idx in cat_enc_ids]
             samples[:, cat_feat_ids] = np.stack([cat_feat_vals] * num_samples)
+            d_samples[:, cat_feat_ids] = samples[:, cat_feat_ids]
 
         ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
         if not ord_enc_ids:  # anchor only contains categorical data or is empty
-            return samples
+            return samples, d_samples
         allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
         allowed_rows = {}  # rows where each numerical feature requested can be found in (key: feat id)
         ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
@@ -233,7 +237,7 @@ class AnchorTabular(object):
 
         ord_feat_ids = [feat for feat in ord_feat_ids if feat not in rand_sampled_feats]
         if not ord_feat_ids:  # sampled everything U.A.R, because no data in training set fell in specified bins ...
-            return samples
+            return samples, self.disc.discretize(samples)
 
         ord_feat_ids_uniq = list(OrderedDict.fromkeys(ord_feat_ids))
         # for each partial anchor count number of samples available and find their indices
@@ -249,7 +253,8 @@ class AnchorTabular(object):
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
             samples[:, ord_feat_ids_uniq] = train[samples_idxs, ord_feat_ids_uniq]
-            return samples
+            d_samples[:, ord_feat_ids_uniq] = d_train[samples_idxs, ord_feat_ids_uniq]
+            return samples, d_samples
 
         # find maximal length sub-anchor that allows one to draw num_samples
         sub_anchor_max_len_pos = len(n_partial_anchors) - num_samples_pos
@@ -262,8 +267,10 @@ class AnchorTabular(object):
         to_replace = [random.choices(allowed_rows[feature], k=num_samples) for feature in feats_to_replace]
         samples[:, feats_to_replace] = np.array(to_replace).transpose()
 
-        # TODO: Review this and ensure it is correct
-        return samples
+        # TODO: Review this and ensure it is correct. Ensure discretisation works as intended
+        # TODO: Understand what is serialised during parallelisation and see if using self.disc.discretize increases
+        #  the overhead
+        return samples, self.disc.discretize(samples)
 
     def get_sample_fn(self, X: np.ndarray, desired_label: int = None) -> Tuple[Callable, dict]:
         """
@@ -285,8 +292,7 @@ class AnchorTabular(object):
                   (feature column, flag for categorical/ordinal feature, feature value or bin value)
         """
 
-
-        return sample_fn
+        pass
 
     def sampler(self, anchor: list, instance_label: int, num_samples: int, compute_labels: bool = True) \
             -> Tuple[np.ndarray, np.ndarray, np.ndarray]:

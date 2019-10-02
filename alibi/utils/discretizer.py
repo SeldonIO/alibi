@@ -1,10 +1,10 @@
 import numpy as np
-from typing import Dict, Callable, Tuple
+from typing import Dict, Callable, Tuple, List
 
 
 class Discretizer(object):
 
-    def __init__(self, data: np.ndarray, categorical_features: List[int], feature_names: List[str],
+    def __init__(self, data: np.ndarray, numerical_features: List[int], feature_names: List[str],
                  percentiles: Tuple[int] = (25, 50, 75)) -> None:
         """
         Initialize the discretizer.
@@ -13,15 +13,15 @@ class Discretizer(object):
         ----------
         data
             Data to discretize
-        categorical_features
-            List of indices corresponding to the categorical columns. These features will not be discretized.
-            The other features will be considered continuous and therefore discretized.
+        numerical_features
+            List of indices corresponding to the continuous feature columns. Only these features will be discretized.
         feature_names
             List with feature names
         percentiles
             Percentiles used for discretization
         """
-        self.to_discretize = ([x for x in range(data.shape[1]) if x not in categorical_features])
+
+        self.to_discretize = numerical_features
         self.percentiles = percentiles
 
         bins = self.bins(data)

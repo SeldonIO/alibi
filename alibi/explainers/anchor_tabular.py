@@ -12,7 +12,7 @@ from typing import Callable, Tuple, Dict, Any, Set
 
 
 class AnchorTabular(object):
-
+    # TODO: kwarg defaults should not be mutable!!!
     def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
         """
         Initialize the anchor tabular explainer.
@@ -38,7 +38,7 @@ class AnchorTabular(object):
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
-        self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
+        self.feature_values = categorical_names.copy()  # dict with {col: categorical feature options}
 
         self.cat_lookup = {}
         self.ord_lookup = {}
@@ -58,13 +58,12 @@ class AnchorTabular(object):
         disc_perc
             List with percentiles (int) used for discretization
         """
-        # TODO: This is not scalable? What if the dataset does not fit in memory?
         self.train_data = train_data
 
         # discretization of ordinal features
         self.disc = Discretizer(self.train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
-        self.categorical_names.update(self.disc.names)
+        self.feature_values.update(self.disc.names)
 
         # calculate min, max and std for numerical features in training data
         self.min = {}  # type: Dict[int, float]
@@ -108,6 +107,8 @@ class AnchorTabular(object):
             # TODO: Write test to verify cat and ord keys union results in keys of enc2feat_idx
         """
 
+        X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
+
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
             self.enc2feat_idx = dict(zip(*[self.categorical_features]*2))
@@ -121,7 +122,7 @@ class AnchorTabular(object):
 
         ord_enc_idx = first_numerical_idx - 1  # -1 as increment comes first
         for i, feature in enumerate(self.numerical_features):
-            n_bins = len(self.categorical_names[feature])  # TODO: We should keep the two separate - this is confusing
+            n_bins = len(self.feature_values[feature])
             for bin_val in range(n_bins):
                 ord_enc_idx += 1
                 self.enc2feat_idx[ord_enc_idx] = feature
@@ -189,7 +190,7 @@ class AnchorTabular(object):
             Sampled data from training set
         """
 
-        train = self.train_data         # TODO: For parallel algorithm this will need to change - we required data to live in shared memory? otherwise we need to pickle everything which will slow things down?
+        train = self.train_data     # TODO: Only works for data that fits in memory.
         d_train = self.d_train_data
 
         # Initialise samples randomly
@@ -272,29 +273,7 @@ class AnchorTabular(object):
         #  the overhead
         return samples, self.disc.discretize(samples)
 
-    def get_sample_fn(self, X: np.ndarray, desired_label: int = None) -> Tuple[Callable, dict]:
-        """
-        Create sampling function and mapping dictionary between categorized data and the feature types and values.
-
-        Parameters
-        ----------
-        X
-            Instance to be explained
-        desired_label
-            Label to use as true label for the instance to be explained
-
-        Returns
-        -------
-        sample_fn
-            Function returning raw and categorized sampled data, and labels
-        mapping
-            Dict: key = feature column or bin for ordinal features in categorized data; value = tuple containing
-                  (feature column, flag for categorical/ordinal feature, feature value or bin value)
-        """
-
-        pass
-
-    def sampler(self, anchor: list, instance_label: int, num_samples: int, compute_labels: bool = True) \
+    def sampler(self, anchor: list, num_samples: int, compute_labels: bool = True) \
             -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Create sampling function from training data.
@@ -303,8 +282,6 @@ class AnchorTabular(object):
         ----------
         anchor
             Ints representing encoded feature ids
-        instance_label
-            Label of the instance to be explained
         num_samples
             Number of samples used when sampling from training set
         compute_labels
@@ -320,13 +297,8 @@ class AnchorTabular(object):
             Create labels using model predictions if compute_labels equals True
         """
 
-        # sample data from training set
-        # feature values are from same discretized bin or category as the explained instance ...
-        # ... if defined in conditions dicts
-        raw_data = self.sample_from_train(anchor, self.ord2idx, self.ord_lookup, self.cat_lookup, self.enc2feat_idx,
-                                          num_samples)
-        # discretize sampled data # TODO: Can we return directly discretized data?
-        d_raw_data = self.disc.discretize(raw_data)
+        raw_data, d_raw_data = self.sample_from_train(anchor, self.ord2idx, self.ord_lookup, self.cat_lookup,
+                                                      self.enc2feat_idx, num_samples)
 
         # use the sampled, discretized raw data to construct a data matrix with the categorical ...
         # ... and binned ordinal data (1 if in bin, 0 otherwise)
@@ -343,7 +315,7 @@ class AnchorTabular(object):
         # create labels using model predictions as true labels
         labels = np.array([])
         if compute_labels:
-            labels = (self.predict_fn(raw_data) == instance_label).astype(int)
+            labels = (self.predict_fn(raw_data) == self.instance_label).astype(int)
 
         return raw_data, data, labels
 
@@ -379,16 +351,12 @@ class AnchorTabular(object):
         # if no true label available; true label = predicted label
         true_label = desired_label
         if true_label is None:
-            true_label = self.predict_fn(X.reshape(1, -1))[0]
+            self.instance_label = self.predict_fn(X.reshape(1, -1))[0]
 
-        X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
         self.build_sampling_lookups(X)
 
-        # build sampling function and
-        sample_fn = self.get_sample_fn(X, desired_label=desired_label)
-
         # get anchors and add metadata
-        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
+        exp = AnchorBaseBeam.anchor_beam(self.sampler, delta=delta, epsilon=tau,
                                          batch_size=batch_size, desired_confidence=threshold,
                                          max_anchor_size=max_anchor_size, **kwargs)  # type: Any
         self.add_names_to_exp(X, exp)
@@ -404,6 +372,7 @@ class AnchorTabular(object):
         explanation['raw'] = exp.exp_map
         return explanation
 
+
     def add_names_to_exp(self, X, explanation: dict) -> None:
         """
         Add feature names to explanation dictionary.
@@ -413,15 +382,13 @@ class AnchorTabular(object):
         explanation
             Dict with anchors and additional metadata
         """
-
-        mapping = self.create_mapping(X)
-
-        idxs = explanation['feature']
+        mapping = {}
+        anchor_idxs = explanation['feature']
         explanation['names'] = []
-        explanation['feature'] = [mapping[idx][0] for idx in idxs]
+        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates
 
         ordinal_ranges = {}  # type: Dict[int, list]
-        for idx in idxs:
+        for idx in anchor_idxs:
             f, op, v = mapping[idx]
             if op == 'geq' or op == 'leq':
                 if f not in ordinal_ranges:
@@ -432,16 +399,16 @@ class AnchorTabular(object):
                 ordinal_ranges[f][1] = min(ordinal_ranges[f][1], v)
 
         handled = set()  # type: Set[int]
-        for idx in idxs:
+        for idx in anchor_idxs:
             f, op, v = mapping[idx]
             if op == 'eq':
                 fname = '%s = ' % self.feature_names[f]
-                if f in self.categorical_names:
+                if f in self.feature_values:
                     v = int(v)
-                    if ('<' in self.categorical_names[f][v]
-                            or '>' in self.categorical_names[f][v]):
+                    if ('<' in self.feature_values[f][v]
+                            or '>' in self.feature_values[f][v]):
                         fname = ''
-                    fname = '%s%s' % (fname, self.categorical_names[f][v])
+                    fname = '%s%s' % (fname, self.feature_values[f][v])
                 else:
                     fname = '%s%.2f' % (fname, v)
             else:
@@ -452,15 +419,15 @@ class AnchorTabular(object):
                 geq_val = ''
                 leq_val = ''
                 if geq > float('-inf'):
-                    if geq == len(self.categorical_names[f]) - 1:
+                    if geq == len(self.feature_values[f]) - 1:
                         geq = geq - 1
-                    name = self.categorical_names[f][geq + 1]
+                    name = self.feature_values[f][geq + 1]
                     if '<' in name:
                         geq_val = name.split()[0]
                     elif '>' in name:
                         geq_val = name.split()[-1]
                 if leq < float('inf'):
-                    name = self.categorical_names[f][leq]
+                    name = self.feature_values[f][leq]
                     if leq == 0:
                         leq_val = name.split()[-1]
                     elif '<' in name:

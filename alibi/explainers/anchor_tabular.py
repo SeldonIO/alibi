@@ -206,15 +206,6 @@ class AnchorTabular(object):
 
         train = self.train_data         # TODO: For parallel algorithm this will need to change - we required data to live in shared memory? otherwise we need to pickle everything which will slow things down?
         d_train = self.d_train_data
-        # TODO: These dicts need to be ordered
-        allowed_bins = {}  # bins one can sample from for each numerical feature
-        allowed_rows = {}  # rows where each numerical feature requested can be found in
-        ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
-        ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
-        ord_feat_ids_uniq = list(OrderedDict.fromkeys(ord_feat_ids))
-        sample_from_bins = ord_lookup[ord_enc_ids[0]]
-        idxs = set()
-        intermediate_idxs = []
 
         # Set categorical variables to the anchor values
         samples = np.zeros(num_samples, train.shape[1])
@@ -223,13 +214,24 @@ class AnchorTabular(object):
         cat_feat_ids = [enc2feat_idx[idx] for idx in cat_enc_ids]
         samples[:, cat_feat_ids] = np.stack([cat_feat_vals] * num_samples)
 
+        ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
+        # TODO: These dicts need to be ordered? Check if so.
+        # TODO: Handle the case where we literally need to fill the remainder of the rows with random crap because
+        #  the request does not have any numerical variables ...
+        allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
+        allowed_rows = {}  # rows where each numerical feature requested can be found in (key: feat id)
+        ord_feat_ids = [enc2feat_idx[id] for id in ord_enc_ids]
+        idxs = set()
+        rand_sampled_feats = [] # If there are no rows in the database with a specified feat, sample unif at random
+
+
         # determine bins from which ordinal data should be drawn
         for i in range(len(ord_feat_ids)):  # TODO: Ensure that the encoded feature indices coming from AnchorBaseBeam are sorted!
             # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
             if ord_feat_ids[i] not in allowed_bins:
                 allowed_bins[ord_feat_ids[i]] = ord_lookup[ord_enc_ids[i]]
             else:
-                allowed_bins[ord_feat_ids[i]].intersect(ord_lookup[ord_enc_ids[i]])
+                allowed_bins[ord_feat_ids[i]] = allowed_bins[ord_feat_ids[i]].intersect(ord_lookup[ord_enc_ids[i]])
 
         # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
         # data coming from the same bin (or range of bins)
@@ -237,8 +239,23 @@ class AnchorTabular(object):
         #  records that do not come from correct bin(s). In calculating options one queries the entire database currently
         for feature in allowed_bins:
             allowed_rows[feature] = set(itertools.chain(*[ord2idx[feature][bin_idx] for bin_idx in allowed_bins[feature]]))
+            if not allowed_rows[feature]:  # no instances in training data are in the specified bins ...
+                rand_sampled_feats.append(feature)
 
-        # NB: partial is at feature level not encoded feature level
+        if rand_sampled_feats: # draw uniformly at random from the feature range if no training data falls in those bins
+            min_vals = [self.min[feature] for feature in rand_sampled_feats]
+            max_vals = [self.max[feature] for feature in rand_sampled_feats]
+            samples[:, rand_sampled_feats] = np.random.uniform(low=min_vals,
+                                                               high=max_vals,
+                                                               size=(num_samples, len(rand_sampled_feats))).squeeze()
+
+        ord_feat_ids = [feat for feat in ord_feat_ids if feat not in rand_sampled_feats]
+
+        if not ord_feat_ids:
+            return samples
+
+        ord_feat_ids_uniq = list(OrderedDict.fromkeys(ord_feat_ids))
+        # NB: 'partial' anchor is at feature level not encoded feature level
         n_partial_anchors, partial_anchor_rows = [len(allowed_rows[ord_feat_ids[0]])], [allowed_rows[ord_feat_ids[0]]]
         # TODO: Make sure this is correct ...
         for feature in ord_feat_ids_uniq[1:]:
@@ -251,12 +268,16 @@ class AnchorTabular(object):
         num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
         if num_samples_pos == 0: # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
-            samples[:, ord_feat_ids] = train[samples_idxs, ord_feat_ids]
+            samples[:, ord_feat_ids_uniq] = train[samples_idxs, ord_feat_ids_uniq]
 
             return samples
 
         # find maximal length sub-anchor that allows one to draw num_samples
-        sub_anchor_max_len = len(n_partial_anchors) - num_samples_pos - 1
+        sub_anchor_max_len_pos = len(n_partial_anchors) - num_samples_pos
+        # draw n_samples containing the maximal length sub-anchor
+        sample_idxs = random.sample(set.intersection(*partial_anchor_rows[:sub_anchor_max_len_pos]))
+        # the remainder variables get replaced with random draws from the
+
 
 
 

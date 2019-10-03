@@ -8,12 +8,13 @@ import numpy as np
 import random
 from typing import Callable, Tuple, Dict, Any, Set
 
-# TODO: Fix random seed
+random.seed(23)  # TODO: Do this properly
+np.random.seed(23)
 
 
 class AnchorTabular(object):
-    # TODO: kwarg defaults should not be mutable!!!
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
+
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = None) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -34,11 +35,15 @@ class AnchorTabular(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         # define column indices of categorical and numerical (aka continuous) features
-        self.categorical_features = sorted(categorical_names.keys())
+        if self.categorical_features:
+            self.categorical_features = sorted(categorical_names.keys())
+        else:
+            self.categorical_features = []
+
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
-        self.feature_values = categorical_names.copy()  # dict with {col: categorical feature options}
+        self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
 
         self.cat_lookup = {}
         self.ord_lookup = {}
@@ -63,7 +68,7 @@ class AnchorTabular(object):
         # discretization of ordinal features
         self.disc = Discretizer(self.train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
-        self.feature_values.update(self.disc.names)
+        self.feature_values.update(self.disc.feature_intervals)
 
         # calculate min, max and std for numerical features in training data
         self.min = {}  # type: Dict[int, float]
@@ -84,20 +89,21 @@ class AnchorTabular(object):
         self.ord2idx = {feat_col_id: {} for feat_col_id in self.numerical_features}
         ord_feats = self.d_train_data[self.numerical_features]  # nb: ordinal features are just discretised cont. feats.
         for i in range(ord_feats.shape[1]):
-            for bin_id in range(len(self.disc.names[self.numerical_features[i]])):
+            for bin_id in range(len(self.disc.feature_intervals[self.numerical_features[i]])):
                 self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
 
     def build_sampling_lookups(self, X: np.ndarray) -> None:
-        """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable a unique
-        index. For a dataset containg, e.g., a numerical variable with 5 bins and 3 categorical variables, indices 0 - 4
-        represent bins of the numerical variable whereas indices 5, 6, 7 represent the encoded indices of the categ.
-        variables. The encoding is necessary so that the different ranges of the categorical variable can be sampled
-        during anchor construction. These encoded feature IDs are keys of:
-            - a dictionary mapping categorical variables to their value in X (instance to be explained)
-            - a dictionary mapping discretized numerical variables to the bins they can be sampled from given X
-            - a dictionary mapping the encoded IDs to the original feature IDs
+        """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
+         categorical variable a unique index. For a dataset containg, e.g., a numerical variable with 5 bins and
+         3 categorical variables, indices 0 - 4 represent bins of the numerical variable whereas indices 5, 6, 7
+         represent the encoded indices of the categorical variables (but see note for caviats). The encoding is
+         necessary so that the different ranges of the numerical variable can be sampled during anchor construction.
+        These encoded feature IDs are keys of:
+            - cat_lookup: maps categorical variables to their value in X (instance to be explained)
+            - ord_lookup: maps discretized numerical variables to the bins they can be sampled from given X
+            - enc2feat_idx: maps the encoded IDs to the original feature IDs
 
-        NB: TODO: Document the weird handling of X[f] <= bin_val && bin_val == n_bins - 1
+        Note: Each continuous variable has n_bins - 1 corresponding entries in ord_lookup
 
         Parameters
         ---------
@@ -353,6 +359,7 @@ class AnchorTabular(object):
         if true_label is None:
             self.instance_label = self.predict_fn(X.reshape(1, -1))[0]
 
+        # build feature encoding and mappings from the instance values to database rows where similar records are found
         self.build_sampling_lookups(X)
 
         # get anchors and add metadata
@@ -360,8 +367,11 @@ class AnchorTabular(object):
                                          batch_size=batch_size, desired_confidence=threshold,
                                          max_anchor_size=max_anchor_size, **kwargs)  # type: Any
         self.add_names_to_exp(X, exp)
+        if true_label is None:
+            exp['prediction'] = self.instance_label
+        else:
+            exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
         exp['instance'] = X
-        exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
         exp = AnchorExplanation('tabular', exp)
 
         # output explanation dictionary
@@ -372,8 +382,7 @@ class AnchorTabular(object):
         explanation['raw'] = exp.exp_map
         return explanation
 
-
-    def add_names_to_exp(self, X, explanation: dict) -> None:
+    def add_names_to_exp(self, explanation: dict) -> None:
         """
         Add feature names to explanation dictionary.
 
@@ -382,62 +391,60 @@ class AnchorTabular(object):
         explanation
             Dict with anchors and additional metadata
         """
-        mapping = {}
         anchor_idxs = explanation['feature']
         explanation['names'] = []
-        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates
+        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates, beware
 
-        ordinal_ranges = {}  # type: Dict[int, list]
+        ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
         for idx in anchor_idxs:
-            f, op, v = mapping[idx]
-            if op == 'geq' or op == 'leq':
-                if f not in ordinal_ranges:
-                    ordinal_ranges[f] = [float('-inf'), float('inf')]
-            if op == 'geq':
-                ordinal_ranges[f][0] = max(ordinal_ranges[f][0], v)
-            if op == 'leq':
-                ordinal_ranges[f][1] = min(ordinal_ranges[f][1], v)
+            if 0 in self.ord_lookup[idx]:  # tells if the feature falls in a higher or lower bin
+                ordinal_ranges[self.enc2feat_idx[idx]][1] = min(ordinal_ranges[self.enc2feat_idx[idx]][1],
+                                                                max(list(self.ord_lookup[idx])))
+            else:
+                ordinal_ranges[self.enc2feat_idx[idx]][0] = max(ordinal_ranges[self.enc2feat_idx[idx]][0],
+                                                                min(list(self.ord_lookup[idx])) - 1)
 
         handled = set()  # type: Set[int]
         for idx in anchor_idxs:
-            f, op, v = mapping[idx]
-            if op == 'eq':
-                fname = '%s = ' % self.feature_names[f]
-                if f in self.feature_values:
-                    v = int(v)
-                    if ('<' in self.feature_values[f][v]
-                            or '>' in self.feature_values[f][v]):
+            feat_id = self.enc2feat_idx[idx]
+            if idx in self.cat_lookup:
+                v = int(self.cat_lookup[feat_id])
+                fname = '%s = ' % self.feature_names[feat_id]
+                if feat_id in self.feature_values:
+                    v = int(v)                    # TODO: Discuss, what's the point of this all: f is always in feature values due to update?
+                    if ('<' in self.feature_values[feat_id][v]
+                            or '>' in self.feature_values[feat_id][v]):
                         fname = ''
-                    fname = '%s%s' % (fname, self.feature_values[f][v])
+                    fname = '%s%s' % (fname, self.feature_values[feat_id][v])
                 else:
                     fname = '%s%.2f' % (fname, v)
             else:
-                if f in handled:
+                if feat_id in handled:
                     continue
-                geq, leq = ordinal_ranges[f]
+                geq, leq = ordinal_ranges[feat_id]
                 fname = ''
                 geq_val = ''
                 leq_val = ''
                 if geq > float('-inf'):
-                    if geq == len(self.feature_values[f]) - 1:
+                    if geq == len(self.feature_values[feat_id]) - 1:
                         geq = geq - 1
-                    name = self.feature_values[f][geq + 1]
+                    name = self.feature_values[feat_id][geq + 1]
                     if '<' in name:
                         geq_val = name.split()[0]
                     elif '>' in name:
                         geq_val = name.split()[-1]
                 if leq < float('inf'):
-                    name = self.feature_values[f][leq]
+                    name = self.feature_values[feat_id][leq]
                     if leq == 0:
                         leq_val = name.split()[-1]
                     elif '<' in name:
                         leq_val = name.split()[-1]
                 if leq_val and geq_val:
-                    fname = '%s < %s <= %s' % (geq_val, self.feature_names[f],
+                    fname = '%s < %s <= %s' % (geq_val, self.feature_names[feat_id],
                                                leq_val)
                 elif leq_val:
-                    fname = '%s <= %s' % (self.feature_names[f], leq_val)
+                    fname = '%s <= %s' % (self.feature_names[feat_id], leq_val)
                 elif geq_val:
-                    fname = '%s > %s' % (self.feature_names[f], geq_val)
-                handled.add(f)
+                    fname = '%s > %s' % (self.feature_names[feat_id], geq_val)
+                handled.add(feat_id)
             explanation['names'].append(fname)

@@ -304,7 +304,7 @@ class AnchorTabular(object):
         labels
             Create labels using model predictions if compute_labels equals True
         """
-        
+
         raw_data, d_raw_data = self.sample_from_train(anchor, self.ord2idx, self.ord_lookup, self.cat_lookup,
                                                       self.enc2feat_idx, num_samples)
 
@@ -398,7 +398,7 @@ class AnchorTabular(object):
         explanation['names'] = []
         explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates, beware
         ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
-        for idx in anchor_idxs:
+        for idx in set(anchor_idxs) - self.cat_lookup.keys():
             if 0 in self.ord_lookup[idx]:  # tells if the feature falls in a higher or lower bin
                 ordinal_ranges[self.enc2feat_idx[idx]][1] = min(ordinal_ranges[self.enc2feat_idx[idx]][1],
                                                                 max(list(self.ord_lookup[idx])))
@@ -410,7 +410,7 @@ class AnchorTabular(object):
         for idx in anchor_idxs:
             feat_id = self.enc2feat_idx[idx]
             if idx in self.cat_lookup:
-                v = int(self.cat_lookup[feat_id])
+                v = int(self.cat_lookup[idx])
                 fname = '%s = ' % self.feature_names[feat_id]
                 if feat_id in self.feature_values:
                     v = int(v)                    # TODO: Discuss, what's the point of this all: f is always in feature values due to update?

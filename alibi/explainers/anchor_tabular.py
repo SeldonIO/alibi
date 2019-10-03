@@ -35,7 +35,7 @@ class AnchorTabular(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         # define column indices of categorical and numerical (aka continuous) features
-        if self.categorical_features:
+        if categorical_names:
             self.categorical_features = sorted(categorical_names.keys())
         else:
             self.categorical_features = []

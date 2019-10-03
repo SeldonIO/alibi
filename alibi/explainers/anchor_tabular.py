@@ -75,9 +75,9 @@ class AnchorTabular(object):
         self.max = {}  # type: Dict[int, float]
         self.std = {}  # type: Dict[int, float]
 
-        min = np.min(train_data[self.numerical_features], axis=0)
-        max = np.max(train_data[self.numerical_features], axis=0)
-        std = np.std(train_data[self.numerical_features], axis=0)
+        min = np.min(train_data[:, self.numerical_features], axis=0)
+        max = np.max(train_data[:, self.numerical_features], axis=0)
+        std = np.std(train_data[:, self.numerical_features], axis=0)
 
         for idx in range(len(min)):
             self.min[self.numerical_features[idx]] = min[idx]
@@ -87,7 +87,7 @@ class AnchorTabular(object):
         # key (int): feat. col ID for numerical feat., value (dict) with key(int) bin idx , value: list where each elem
         # is a row idx in the training data where a data record with feature in that bin can be found
         self.ord2idx = {feat_col_id: {} for feat_col_id in self.numerical_features}
-        ord_feats = self.d_train_data[self.numerical_features]  # nb: ordinal features are just discretised cont. feats.
+        ord_feats = self.d_train_data[:, self.numerical_features]  # nb: ordinal features are just discretised cont. feats.
         for i in range(ord_feats.shape[1]):
             for bin_id in range(len(self.disc.feature_intervals[self.numerical_features[i]])):
                 self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())

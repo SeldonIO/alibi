@@ -311,11 +311,12 @@ class AnchorTabular(object):
         data = np.zeros((num_samples, len(self.enc2feat_idx)), int)
         for i in self.enc2feat_idx:
             if i in self.cat_lookup:
-                data[:, i] = (d_raw_data[:, i] == self.cat_lookup[i])
+                data[:, i] = (d_raw_data[:, self.enc2feat_idx[i]] == self.cat_lookup[i])
             else:
                 d_records_sampled = d_raw_data[:, self.enc2feat_idx[i]]
                 lower_bin, upper_bin = min(list(self.ord_lookup[i])), max(list(self.ord_lookup[i]))
-                idxs = np.where(lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin)
+
+                idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
 
         # create labels using model predictions as true labels

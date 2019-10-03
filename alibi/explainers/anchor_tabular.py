@@ -215,6 +215,7 @@ class AnchorTabular(object):
         ord_enc_ids = list(set(anchor).intersection(ord_lookup.keys()))
         if not ord_enc_ids:  # anchor only contains categorical data or is empty
             return samples, d_samples
+
         allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
         allowed_rows = {}  # rows where each numerical feature requested can be found in (key: feat id)
         ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
@@ -259,8 +260,9 @@ class AnchorTabular(object):
         num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
-            samples[:, ord_feat_ids_uniq] = train[samples_idxs, ord_feat_ids_uniq]
-            d_samples[:, ord_feat_ids_uniq] = d_train[samples_idxs, ord_feat_ids_uniq]
+            col_idx = ord_feat_ids_uniq[0] if len(ord_feat_ids_uniq) == 1 else ord_feat_ids_uniq
+            samples[:, col_idx] = train[samples_idxs, col_idx]
+            d_samples[:, col_idx] = d_train[samples_idxs, col_idx]
             return samples, d_samples
 
         # find maximal length sub-anchor that allows one to draw num_samples
@@ -302,7 +304,7 @@ class AnchorTabular(object):
         labels
             Create labels using model predictions if compute_labels equals True
         """
-
+        
         raw_data, d_raw_data = self.sample_from_train(anchor, self.ord2idx, self.ord_lookup, self.cat_lookup,
                                                       self.enc2feat_idx, num_samples)
 
@@ -367,7 +369,7 @@ class AnchorTabular(object):
         exp = AnchorBaseBeam.anchor_beam(self.sampler, delta=delta, epsilon=tau,
                                          batch_size=batch_size, desired_confidence=threshold,
                                          max_anchor_size=max_anchor_size, **kwargs)  # type: Any
-        self.add_names_to_exp(X, exp)
+        self.add_names_to_exp(exp)
         if true_label is None:
             exp['prediction'] = self.instance_label
         else:
@@ -395,7 +397,6 @@ class AnchorTabular(object):
         anchor_idxs = explanation['feature']
         explanation['names'] = []
         explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates, beware
-
         ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
         for idx in anchor_idxs:
             if 0 in self.ord_lookup[idx]:  # tells if the feature falls in a higher or lower bin

@@ -27,7 +27,7 @@ class Discretizer(object):
         bins = self.bins(data)
         bins = [np.unique(x) for x in bins]
 
-        self.names = {}  # type: Dict[int, list]
+        self.feature_intervals = {}  # type: Dict[int, list]
         self.lambdas = {}  # type: Dict[int, Callable]
         for feature, qts in zip(self.to_discretize, bins):
             # get nb of borders (nb of bins - 1) and the feature name
@@ -35,10 +35,10 @@ class Discretizer(object):
             name = feature_names[feature]
 
             # create names for bins of discretized features
-            self.names[feature] = ['%s <= %.2f' % (name, qts[0])]
+            self.feature_intervals[feature] = ['%s <= %.2f' % (name, qts[0])]
             for i in range(n_bins - 1):
-                self.names[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
-            self.names[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
+                self.feature_intervals[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
+            self.feature_intervals[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
             self.lambdas[feature] = lambda x, qts = qts: np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:

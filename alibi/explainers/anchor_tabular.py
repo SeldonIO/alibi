@@ -6,15 +6,13 @@ import bisect
 import itertools
 import numpy as np
 import random
-from typing import Callable, Tuple, Dict, Any, Set
-
-random.seed(23)  # TODO: Do this properly
-np.random.seed(23)
+from typing import Callable, Tuple, Any, Set
 
 
 class AnchorTabular(object):
 
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = None) -> None:
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = None,
+                 seed: int = None) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -26,7 +24,13 @@ class AnchorTabular(object):
             List with feature names
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature
+        seed
+            Used to set the random number generator for repeatability purposes
         """
+
+        random.seed(seed)
+        np.random.seed(seed)
+
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
         if np.argmax(predict_fn(np.zeros([1, len(feature_names)])).shape) == 0:
@@ -70,19 +74,9 @@ class AnchorTabular(object):
         self.d_train_data = self.disc.discretize(self.train_data)
         self.feature_values.update(self.disc.feature_intervals)
 
-        # calculate min, max and std for numerical features in training data
-        self.min = {}  # type: Dict[int, float]
-        self.max = {}  # type: Dict[int, float]
-        self.std = {}  # type: Dict[int, float]
-
-        min = np.min(train_data[:, self.numerical_features], axis=0)
-        max = np.max(train_data[:, self.numerical_features], axis=0)
-        std = np.std(train_data[:, self.numerical_features], axis=0)
-
-        for idx in range(len(min)):
-            self.min[self.numerical_features[idx]] = min[idx]
-            self.max[self.numerical_features[idx]] = max[idx]
-            self.std[self.numerical_features[idx]] = std[idx]
+        self.min, self.max = np.full(train_data.shape[1], np.nan), np.full(train_data.shape[1], np.nan)
+        self.min[self.numerical_features] = np.min(train_data[:, self.numerical_features], axis=0)
+        self.max[self.numerical_features] = np.max(train_data[:, self.numerical_features], axis=0)
 
         # key (int): feat. col ID for numerical feat., value (dict) with key(int) bin idx , value: list where each elem
         # is a row idx in the training data where a data record with feature in that bin can be found
@@ -103,7 +97,7 @@ class AnchorTabular(object):
             - ord_lookup: maps discretized numerical variables to the bins they can be sampled from given X
             - enc2feat_idx: maps the encoded IDs to the original feature IDs
 
-        Note: Each continuous variable has n_bins - 1 corresponding entries in ord_lookup
+        Note: Each continuous variable has n_bins - 1 corresponding entries in ord_lookup.
 
         Parameters
         ---------
@@ -168,8 +162,6 @@ class AnchorTabular(object):
         Sample data from training set but keep features which are anchor in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.s
 
-        # TODO: Improve documentation as the current version is misleading (e.g., we don't sample from the 'same' bin)
-
         Parameters
         ----------
         anchor:
@@ -227,7 +219,7 @@ class AnchorTabular(object):
             if ord_feat_ids[i] not in allowed_bins:
                 allowed_bins[ord_feat_ids[i]] = ord_lookup[ord_enc_ids[i]]
             else:
-                allowed_bins[ord_feat_ids[i]] = allowed_bins[ord_feat_ids[i]].intersect(ord_lookup[ord_enc_ids[i]])
+                allowed_bins[ord_feat_ids[i]] = allowed_bins[ord_feat_ids[i]].intersection(ord_lookup[ord_enc_ids[i]])
 
         # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
         # data coming from the same bin (or range of bins)
@@ -237,8 +229,7 @@ class AnchorTabular(object):
                 rand_sampled_feats.append(feature)
 
         if rand_sampled_feats:  # draw U.A.R. from the feature range if no training data falls in those bins
-            min_vals = [self.min[feature] for feature in rand_sampled_feats]
-            max_vals = [self.max[feature] for feature in rand_sampled_feats]
+            min_vals, max_vals = self.min[rand_sampled_feats], self.max[rand_sampled_feats]
             samples[:, rand_sampled_feats] = np.random.uniform(low=min_vals,
                                                                high=max_vals,
                                                                size=(num_samples, len(rand_sampled_feats))).squeeze()
@@ -260,20 +251,19 @@ class AnchorTabular(object):
         num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
-            col_idx = ord_feat_ids_uniq[0] if len(ord_feat_ids_uniq) == 1 else ord_feat_ids_uniq
-            samples[:, col_idx] = train[samples_idxs, col_idx]
-            d_samples[:, col_idx] = d_train[samples_idxs, col_idx]
+            samples[:, ord_feat_ids_uniq] = train[np.ix_(samples_idxs, ord_feat_ids_uniq)]
+            d_samples[:, ord_feat_ids_uniq] = d_train[np.ix_(samples_idxs, ord_feat_ids_uniq)]
             return samples, d_samples
 
         # find maximal length sub-anchor that allows one to draw num_samples
         sub_anchor_max_len_pos = len(n_partial_anchors) - num_samples_pos
-        # draw n_samples containing the maximal length sub-anchor
-        sample_idxs = random.sample(set.intersection(*partial_anchor_rows[:sub_anchor_max_len_pos]), num_samples)
-        anchored_feats = ord_feat_ids_uniq[:sub_anchor_max_len_pos]
-        feats_to_replace = ord_feat_ids_uniq[sub_anchor_max_len_pos:]
-        samples[:, anchored_feats] = train[sample_idxs, anchored_feats]
+        if sub_anchor_max_len_pos > 0:
+            sample_idxs = random.sample(set.intersection(*partial_anchor_rows[:sub_anchor_max_len_pos]), num_samples)
+            anchored_feats = ord_feat_ids_uniq[:sub_anchor_max_len_pos]
+            samples[:, anchored_feats] = train[np.ix_(sample_idxs, anchored_feats)]
         # the remainder variables get replaced with random draws from the feature distributions
-        to_replace = [random.choices(allowed_rows[feature], k=num_samples) for feature in feats_to_replace]
+        feats_to_replace = ord_feat_ids_uniq[sub_anchor_max_len_pos:]
+        to_replace = [random.choices(list(allowed_rows[feature]), k=num_samples) for feature in feats_to_replace]
         samples[:, feats_to_replace] = np.array(to_replace).transpose()
 
         # TODO: Review this and ensure it is correct. Ensure discretisation works as intended
@@ -366,24 +356,22 @@ class AnchorTabular(object):
         self.build_sampling_lookups(X)
 
         # get anchors and add metadata
-        exp = AnchorBaseBeam.anchor_beam(self.sampler, delta=delta, epsilon=tau,
-                                         batch_size=batch_size, desired_confidence=threshold,
-                                         max_anchor_size=max_anchor_size, **kwargs)  # type: Any
-        self.add_names_to_exp(exp)
+        anchor = AnchorBaseBeam.anchor_beam(self.sampler, delta=delta, epsilon=tau,
+                                            batch_size=batch_size, desired_confidence=threshold,
+                                            max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+        self.add_names_to_exp(anchor)
         if true_label is None:
-            exp['prediction'] = self.instance_label
+            anchor['prediction'] = self.instance_label
         else:
-            exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
-        exp['instance'] = X
-        exp = AnchorExplanation('tabular', exp)
+            anchor['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
+        anchor['instance'] = X
+        exp = AnchorExplanation('tabular', anchor)
 
-        # output explanation dictionary
-        explanation = {}
-        explanation['names'] = exp.names()
-        explanation['precision'] = exp.precision()
-        explanation['coverage'] = exp.coverage()
-        explanation['raw'] = exp.exp_map
-        return explanation
+        return {'names': exp.names(),
+                'precision': exp.precision(),
+                'coverage': exp.coverage(),
+                'raw': exp.exp_map,
+                }
 
     def add_names_to_exp(self, explanation: dict) -> None:
         """

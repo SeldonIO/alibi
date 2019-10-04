@@ -81,10 +81,11 @@ class AnchorTabular(object):
         # key (int): feat. col ID for numerical feat., value (dict) with key(int) bin idx , value: list where each elem
         # is a row idx in the training data where a data record with feature in that bin can be found
         self.ord2idx = {feat_col_id: {} for feat_col_id in self.numerical_features}
-        ord_feats = self.d_train_data[:, self.numerical_features]  # nb: ordinal features are just discretised cont. feats.
+        ord_feats = self.d_train_data[:, self.numerical_features]  # ordinal features are just discretised cont. feats.
         for i in range(ord_feats.shape[1]):
-            for bin_id in range(len(self.disc.feature_intervals[self.numerical_features[i]])):
-                self.ord2idx[self.numerical_features[i]][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
+            feat_id = self.numerical_features[i]
+            for bin_id in range(len(self.disc.feature_intervals[feat_id])):
+                self.ord2idx[feat_id][bin_id] = set((ord_feats[:, i] == bin_id).nonzero()[0].tolist())
 
     def build_sampling_lookups(self, X: np.ndarray) -> None:
         """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
@@ -223,10 +224,10 @@ class AnchorTabular(object):
 
         # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
         # data coming from the same bin (or range of bins)
-        for feature in allowed_bins:  # TODO: This should scale since we don't query the whole DB every time!
-            allowed_rows[feature] = set(itertools.chain(*[ord2idx[feature][bin_idx] for bin_idx in allowed_bins[feature]]))
-            if not allowed_rows[feature]:  # no instances in training data are in the specified bins ...
-                rand_sampled_feats.append(feature)
+        for feat in allowed_bins:  # TODO: This should scale since we don't query the whole DB every time!
+            allowed_rows[feat] = set(itertools.chain(*[ord2idx[feat][bin_idx] for bin_idx in allowed_bins[feat]]))
+            if not allowed_rows[feat]:  # no instances in training data are in the specified bins ...
+                rand_sampled_feats.append(feat)
 
         if rand_sampled_feats:  # draw U.A.R. from the feature range if no training data falls in those bins
             min_vals, max_vals = self.min[rand_sampled_feats], self.max[rand_sampled_feats]
@@ -384,7 +385,7 @@ class AnchorTabular(object):
         """
         anchor_idxs = explanation['feature']
         explanation['names'] = []
-        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]  # TODO: this contains duplicates, beware
+        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]
         ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
         for idx in set(anchor_idxs) - self.cat_lookup.keys():
             if 0 in self.ord_lookup[idx]:  # tells if the feature falls in a higher or lower bin
@@ -401,7 +402,7 @@ class AnchorTabular(object):
                 v = int(self.cat_lookup[idx])
                 fname = '%s = ' % self.feature_names[feat_id]
                 if feat_id in self.feature_values:
-                    v = int(v)                    # TODO: Discuss, what's the point of this all: f is always in feature values due to update?
+                    v = int(v)
                     if ('<' in self.feature_values[feat_id][v]
                             or '>' in self.feature_values[feat_id][v]):
                         fname = ''

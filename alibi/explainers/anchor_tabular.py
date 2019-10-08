@@ -256,6 +256,23 @@ class AnchorTabular(object):
             d_samples[:, ord_feat_ids_uniq] = d_train[np.ix_(samples_idxs, ord_feat_ids_uniq)]
             return samples, d_samples
 
+        start, n_anchor_feats = 0, len(partial_anchor_rows)
+        for idx, (n_samp, feat) in enumerate(zip(n_partial_anchors, ord_feat_ids_uniq)):
+            if n_samp == 0:
+                continue
+            num_samples -= n_samp
+            if num_samples > 0:
+                samp_idxs = list(partial_anchor_rows[n_anchor_feats - idx - 1])
+                samples[start: start + n_samp, :] = train[samp_idxs, :]
+                start += start + n_samp
+                feats_to_replace = []
+
+            samples[start: start + n_samp, :] = random.sample(partial_anchor_rows[n_anchor_feats - idx - 1], n_samp)
+            # TODO: Replace the rest of the columns
+
+
+
+
         # find maximal length sub-anchor that allows one to draw num_samples
         sub_anchor_max_len_pos = len(n_partial_anchors) - num_samples_pos
         if sub_anchor_max_len_pos > 0:
@@ -388,7 +405,7 @@ class AnchorTabular(object):
         explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]
         ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
         for idx in set(anchor_idxs) - self.cat_lookup.keys():
-            if 0 in self.ord_lookup[idx]:  # tells if the feature falls in a higher or lower bin
+            if 0 in self.ord_lookup[idx]:  # tells if the feature in X falls in a higher or lower bin
                 ordinal_ranges[self.enc2feat_idx[idx]][1] = min(ordinal_ranges[self.enc2feat_idx[idx]][1],
                                                                 max(list(self.ord_lookup[idx])))
             else:

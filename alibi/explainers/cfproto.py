@@ -1307,4 +1307,8 @@ class CounterFactualProto:
         explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
         explanation['cf']['proba'] = Y_pert
         explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
+
+        explanation['meta'] = {}
+        explanation['meta']['name'] = self.__class__.__name__
+
         return explanation

@@ -256,37 +256,25 @@ class AnchorTabular(object):
             d_samples[:, ord_feat_ids_uniq] = d_train[np.ix_(samples_idxs, ord_feat_ids_uniq)]
             return samples, d_samples
 
+        # search partial anchors in the training set and replace the remainder of the features
         start, n_anchor_feats = 0, len(partial_anchor_rows)
-        for idx, (n_samp, feat) in enumerate(zip(n_partial_anchors, ord_feat_ids_uniq)):
-            if n_samp == 0:
-                continue
-            num_samples -= n_samp
-            if num_samples > 0:
+        ord_feat_ids_uniq = list(reversed(ord_feat_ids_uniq))
+        start_idx = np.nonzero(n_partial_anchors)[0][0]  # skip anchors with no samples in the database
+        end_idx = np.searchsorted(np.cumsum(n_partial_anchors), num_samples)
+        for idx, n_samp in enumerate(n_partial_anchors[start_idx:end_idx + 1], start=start_idx):
+            if num_samples >= n_samp:
                 samp_idxs = list(partial_anchor_rows[n_anchor_feats - idx - 1])
-                samples[start: start + n_samp, :] = train[samp_idxs, :]
-                start += start + n_samp
-                feats_to_replace = []
+                num_samples -= n_samp
+            else:
+                samp_idxs = random.choices(list(partial_anchor_rows[n_anchor_feats - idx - 1]), k=num_samples)
+                n_samp = num_samples
+                
+            samples[start:start + n_samp, :] = train[samp_idxs, :]
+            feats_to_replace = ord_feat_ids_uniq[:idx]
+            to_replace = [random.choices(list(allowed_rows[feat]), k=n_samp) for feat in feats_to_replace]
+            samples[start: start + n_samp, feats_to_replace] = np.array(to_replace).transpose()
+            start += n_samp
 
-            samples[start: start + n_samp, :] = random.sample(partial_anchor_rows[n_anchor_feats - idx - 1], n_samp)
-            # TODO: Replace the rest of the columns
-
-
-
-
-        # find maximal length sub-anchor that allows one to draw num_samples
-        sub_anchor_max_len_pos = len(n_partial_anchors) - num_samples_pos
-        if sub_anchor_max_len_pos > 0:
-            sample_idxs = random.sample(set.intersection(*partial_anchor_rows[:sub_anchor_max_len_pos]), num_samples)
-            anchored_feats = ord_feat_ids_uniq[:sub_anchor_max_len_pos]
-            samples[:, anchored_feats] = train[np.ix_(sample_idxs, anchored_feats)]
-        # the remainder variables get replaced with random draws from the feature distributions
-        feats_to_replace = ord_feat_ids_uniq[sub_anchor_max_len_pos:]
-        to_replace = [random.choices(list(allowed_rows[feature]), k=num_samples) for feature in feats_to_replace]
-        samples[:, feats_to_replace] = np.array(to_replace).transpose()
-
-        # TODO: Review this and ensure it is correct. Ensure discretisation works as intended
-        # TODO: Understand what is serialised during parallelisation and see if using self.disc.discretize increases
-        #  the overhead
         return samples, self.disc.discretize(samples)
 
     def sampler(self, anchor: list, num_samples: int, compute_labels: bool = True) \

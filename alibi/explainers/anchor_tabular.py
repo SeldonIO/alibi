@@ -85,6 +85,7 @@ class AnchorTabular(object):
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
                 val2idx[feat][value] = set((self.d_train_data[:, feat] == value).nonzero()[0].tolist())
+        self.val2idx = val2idx
 
     def build_sampling_lookups(self, X: np.ndarray) -> None:
         """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
@@ -197,21 +198,23 @@ class AnchorTabular(object):
         init_sample_idx = np.random.choice(range(train.shape[0]), num_samples, replace=True)
         samples = train[init_sample_idx]
         d_samples = d_train[init_sample_idx]
+        if not anchor:
+            return samples, d_samples
+
         allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
         allowed_rows = {}  # index of database rows (values) for each feature in anchor (key: feat id)
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
-
+        cat_feat_ids = []
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in ord_lookup.keys()]
 
         if cat_enc_ids:
             cat_feat_vals = [cat_lookup[idx] for idx in cat_enc_ids]
             cat_feat_ids = [enc2feat_idx[idx] for idx in cat_enc_ids]
-            allowed_rows = {f_id: val2idx[f_id][f_val] for f_id, f_val in zip(cat_feat_vals, cat_feat_ids)}
+            allowed_rows = {f_id: val2idx[f_id][f_val] for f_id, f_val in zip(cat_feat_ids, cat_feat_vals)}
             for feat_id, enc_id, val in zip(cat_feat_ids, cat_enc_ids, cat_feat_vals):
                 if not allowed_rows[feat_id]:
                     rand_sampled_feats.append((feat_id, 'c', val))
-                    cat_enc_ids.remove(feat_id)
                     cat_feat_ids.remove(feat_id)
 
         ord_feat_ids = [enc2feat_idx[idx] for idx in ord_enc_ids]
@@ -230,22 +233,24 @@ class AnchorTabular(object):
             if not allowed_rows[feat_id]:  # no instances in training data are in the specified bins ...
                 rand_sampled_feats.append((feat_id, 'o', None))
 
-        ord_feat_ids = [feat for feat in ord_feat_ids if feat not in rand_sampled_feats]
-        uniq_feat_ids = cat_enc_ids + list(OrderedDict.fromkeys(ord_feat_ids))
+        uniq_feat_ids = list(OrderedDict.fromkeys([enc2feat_idx[enc_idx] for enc_idx in anchor]))
+        uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in rand_sampled_feats]]
         # random.shuffle(uniq_feat_ids) # TODO: Discuss this - we would get different partial anchors samples (more div)
         # for each partial anchor count number of samples available and find their indices
         partial_anchor_rows = [allowed_rows[uniq_feat_ids[0]]]
         n_partial_anchors = [len(partial_anchor_rows[-1])]
+
         for feature in uniq_feat_ids[1:]:
             partial_anchor_rows.append(partial_anchor_rows[-1].intersection(allowed_rows[feature]))
             n_partial_anchors.append(len(partial_anchor_rows[-1]))
 
         n_partial_anchors = list(reversed(n_partial_anchors))
-        print("sample_from_train:n_partial_anchors", n_partial_anchors)
+
         # search num_samples in the list containing the number of training records containing each sub-anchor
         num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
+            # TODO: Discuss this - could replace the entire row?
             samples[:, uniq_feat_ids] = train[np.ix_(samples_idxs, uniq_feat_ids)]
             d_samples[:, uniq_feat_ids] = d_train[np.ix_(samples_idxs, uniq_feat_ids)]
             return samples, d_samples
@@ -265,8 +270,8 @@ class AnchorTabular(object):
                 else:
                     samp_idxs = random.choices(list(partial_anchor_rows[n_anchor_feats - idx - 1]), k=num_samples)
                 n_samp = num_samples
-                
-            samples[start:start + n_samp, :] = train[samp_idxs, :]
+            # TODO: Discuss this - could replace the entire row?
+            samples[start:start + n_samp, uniq_feat_ids[idx:]] = train[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
             feats_to_replace = uniq_feat_ids[:idx]
             to_replace = [random.choices(list(allowed_rows[feat]), k=n_samp) for feat in feats_to_replace]
             samples[start: start + n_samp, feats_to_replace] = np.array(to_replace).transpose()
@@ -313,7 +318,7 @@ class AnchorTabular(object):
             Create labels using model predictions if compute_labels equals True
         """
 
-        raw_data, d_raw_data = self.sample_from_train(anchor, self.ord2idx, self.ord_lookup, self.cat_lookup,
+        raw_data, d_raw_data = self.sample_from_train(anchor, self.val2idx, self.ord_lookup, self.cat_lookup,
                                                       self.enc2feat_idx, num_samples)
 
         # use the sampled, discretized raw data to construct a data matrix with the categorical ...

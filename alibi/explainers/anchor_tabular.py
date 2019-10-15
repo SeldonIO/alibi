@@ -370,6 +370,7 @@ class AnchorTabular(object):
             Dictionary containing the anchor explaining the instance with additional metadata
         """
 
+
         # if no true label available; true label = predicted label
         true_label = desired_label
         if true_label is None:
@@ -379,9 +380,11 @@ class AnchorTabular(object):
         self.build_sampling_lookups(X)
 
         # get anchors and add metadata
-        anchor = AnchorBaseBeam.anchor_beam(self.sampler, delta=delta, epsilon=tau,
-                                            batch_size=batch_size, desired_confidence=threshold,
-                                            max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+        mab = AnchorBaseBeam()
+        anchor = mab.anchor_beam(self.sampler, delta=delta, epsilon=tau,
+                                 batch_size=batch_size, desired_confidence=threshold,
+                                 max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+
         self.add_names_to_exp(anchor)
         if true_label is None:
             anchor['prediction'] = self.instance_label

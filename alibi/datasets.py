@@ -19,6 +19,13 @@ __all__ = ['fetch_adult',
            'fetch_imagenet',
            'fetch_movie_sentiment']
 
+ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
+              'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
+              'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
+
+MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
+                       'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
+
 
 # deprecated functions
 def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
@@ -66,6 +73,8 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
         without content which is undesirable. Having a min std cutoff resolves this.
     seed
         Random seed
+    return_X_y
+        If true, return features X and labels y as numpy arrays, if False return a Bunch object
 
     Returns
     -------
@@ -133,9 +142,16 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, list]]:
+def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bunch, Tuple[list, list]]:
     """
     The movie review dataset, equally split between negative and positive reviews.
+
+    Parameters
+    ----------
+    return_X_y
+        If true, return features X and labels y as Python lists, if False return a Bunch object
+    url_id
+        Index specifying which URL to use for downloading
 
     Returns
     -------
@@ -144,7 +160,7 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     (data, target)
         Tuple if ``return_X_y`` is true
     """
-    url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
+    url = MOVIESENTIMENT_URLS[url_id]
     try:
         resp = requests.get(url, timeout=2)
         resp.raise_for_status()
@@ -172,8 +188,8 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[Bunch, Tuple[np.ndarray,
-                                                                                            np.ndarray]]:
+def fetch_adult(features_drop: list = None, return_X_y: bool = False, url_id: int = 0) -> \
+        Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
     """
     Downloads and pre-processes 'adult' dataset.
     More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
@@ -182,6 +198,10 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
     ----------
     features_drop
         List of features to be dropped from dataset, by default drops ["fnlwgt", "Education-Num"]
+    return_X_y
+        If true, return features X and labels y as numpy arrays, if False return a Bunch object
+    url_id
+        Index specifying which URL to use for downloading
 
     Returns
     -------
@@ -195,7 +215,7 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
         features_drop = ["fnlwgt", "Education-Num"]
 
     # download data
-    dataset_url = 'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data'
+    dataset_url = ADULT_URLS[url_id]
     raw_features = ['Age', 'Workclass', 'fnlwgt', 'Education', 'Education-Num', 'Marital Status',
                     'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss',
                     'Hours per week', 'Country', 'Target']

@@ -1,5 +1,12 @@
 # Change Log
 
+## [v0.3.2](https://github.com/SeldonIO/alibi/tree/v0.3.2) (2019-10-17)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.1...v0.3.2)
+### Added
+- All explanations return a metadata field `meta` with a `name` subfield which is currently the name of the class
+### Changed
+- Provide URL options for fetching some datasets, by default now fetches from a public Seldon bucket
+
 ## [v0.3.1](https://github.com/SeldonIO/alibi/tree/v0.3.1) (2019-10-01)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.0...v0.3.1)
 ### Fixed

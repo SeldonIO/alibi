@@ -230,7 +230,7 @@ class AnchorBaseBeam(object):
             # update upper bound for lowest precision anchor candidates
             ub[not_J] = AnchorBaseBeam.dup_bernoulli(means[not_J], beta / n_samples[not_J])
             # update lower bound for highest precision anchor candidates
-            lb[J] = AnchorBaseBeam.dup_bernoulli(means[J], beta / n_samples[J])
+            lb[J] = AnchorBaseBeam.dlow_bernoulli(means[J], beta / n_samples[J])
 
             # for the low precision anchor candidates, compute the upper precision bound and keep the index ...
             # ... of the anchor candidate with the highest upper precision value -> ut
@@ -258,13 +258,7 @@ class AnchorBaseBeam(object):
         for f in np.where(n_samples == 0)[0]:
             # set min samples for each anchor candidate to 1
             samples = sample_fcn([f], 1)  # add labels.sum() for the anchor candidate
-            print("positives:before", positives)
-            print("n_samples:before", n_samples)
             positives[f], n_samples[f] = self.update_state(samples, anchors[f])
-            print("positives:after", positives)
-            print("n_samples:after", n_samples)
-
-        # TODO: missing a state update here - double check?
 
         if n_features == top_n:  # return all options b/c of beam search width
             return np.arange(n_features)
@@ -278,10 +272,10 @@ class AnchorBaseBeam(object):
         B = ub[critical_a_idx.ut] - lb[critical_a_idx.lt]
         verbose_count = 0
         while B > epsilon:
-            print("Updating bounds")
+            # print("Updating bounds")
             verbose_count += 1
             if verbose and verbose_count % verbose_every == 0:
-                lt, ut = critical_a_idx
+                ut, lt = critical_a_idx
                 print('Best: %d (mean:%.10f, n: %d, lb:%.4f)' %
                       (lt, means[lt], n_samples[lt], lb[lt]), end=' ')
                 print('Worst: %d (mean:%.4f, n: %d, ub:%.4f)' %
@@ -610,13 +604,13 @@ class AnchorBaseBeam(object):
             main_pool, lucb_pool = Pool(kwargs['ncpu']), Pool(2)
         else:
             main_pool, lucb_pool = None, None
-        print("yo")
+        # print("yo")
         # find best anchor using beam search until max anchor size
         while current_size <= max_anchor_size:
 
             # create new candidate anchors by adding features to current best anchors
             anchors = AnchorBaseBeam.propose_anchors(best_of_size[current_size - 1], self.state)
-            print("Proposed anchors", anchors)
+            # print("Proposed anchors", anchors)
             # goal is to max coverage given precision constraint P(prec(A) > tau) > 1 - delta (eq.4)
             # so keep tuples with higher coverage than current best coverage
             anchors = [anchor for anchor in anchors if self.state['t_coverage'][anchor] > best_coverage]
@@ -629,7 +623,7 @@ class AnchorBaseBeam(object):
             initial_stats = AnchorBaseBeam.get_initial_statistics(anchors, self.state)
 
             # apply KL-LUCB and return anchor options (nb of options = beam width)in the form of indices
-            print("current_size", current_size)
+            # print("current_size", current_size)
             candidate_anchors = self.lucb(anchors,
                                           sample_fn,
                                           initial_stats,
@@ -654,11 +648,8 @@ class AnchorBaseBeam(object):
                 means[idx] = self.state['t_positives'][t] / self.state['t_nsamples'][t]
                 kl_constraints[idx] = beta / self.state['t_nsamples'][t]
                 coverages[idx] = self.state['t_coverage'][t]
-            print("means_orig:", means)
             lbs = AnchorBaseBeam.dlow_bernoulli(means, kl_constraints)
-            print("means_dlow", means)
             ubs = AnchorBaseBeam.dup_bernoulli(means, kl_constraints)
-            print("means_dup", means)
             if verbose:
                 print('Best of size ', current_size, ':')
                 for i, mean, lb, ub in zip(candidate_anchors, means, lbs, ubs):
@@ -691,14 +682,6 @@ class AnchorBaseBeam(object):
                                                                       kl_constraints[continue_sampling])
                 continue_sampling = AnchorBaseBeam.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
                 remaining_anchors_idx = candidate_anchors[continue_sampling]
-                print("Updated stats")
-
-                if verbose:
-                    for i, mean, lb, ub in zip(remaining_anchors_idx, means, lbs, ubs):
-                        t = anchors[i]
-                        coverage = self.state['coverage'][t]
-                        print('%s mean = %.2f lb = %.2f ub = %.2f coverage: %.2f n: %d' %
-                              (t, mean, lb, ub, coverage, self.state['t_nsamples'][t]))
 
             if verbose:
                 for i, mean, lb, ub, coverage in zip(candidate_anchors, means, lbs, ubs, coverages):
@@ -707,10 +690,9 @@ class AnchorBaseBeam(object):
                           (t, mean, lb, ub, coverage, self.state['t_nsamples'][t]))
 
             # find anchors who meet the precision setting and have better coverage than the best anchors so far
-            valid_anchors = (means >= desired_confidence) & (lb > desired_confidence - epsilon_stop)
-            print("valid anchors", valid_anchors)
+            valid_anchors = (means >= desired_confidence) & (lbs > desired_confidence - epsilon_stop)
+            # print("valid anchors", valid_anchors)
             better_anchors = (valid_anchors & (coverages > best_coverage)).nonzero()[0]
-            print("better  anchors", better_anchors)
 
             if verbose:
                 for idx, coverage in zip(candidate_anchors[valid_anchors], coverages[valid_anchors]):

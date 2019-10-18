@@ -204,7 +204,6 @@ class AnchorTabular(object):
         allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
         allowed_rows = {}  # index of database rows (values) for each feature in anchor (key: feat id)
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
-        cat_feat_ids = []
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in ord_lookup.keys()]
 
@@ -369,7 +368,6 @@ class AnchorTabular(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
-
 
         # if no true label available; true label = predicted label
         true_label = desired_label

@@ -1,12 +1,10 @@
-
 from multiprocessing import Pool
 import numpy as np
 import copy
 import collections
 import logging
 from collections import namedtuple
-from operator import truediv
-from typing import Callable, NamedTuple, Tuple, Set, Dict, Sequence
+from typing import Callable, NamedTuple, Tuple, Set, Dict
 from functools import partial
 
 logger = logging.getLogger(__name__)
@@ -39,6 +37,7 @@ class AnchorBaseBeam(object):
         """
 
         # TODO: Add short comments regarding what data is stored here...
+        # TODO: prealloc size should be init here from a config - control mem footprint
         self.state = {'t_idx': collections.defaultdict(lambda: set()),
                       't_nsamples': collections.defaultdict(lambda: 0.),
                       't_positives': collections.defaultdict(lambda: 0.),
@@ -75,9 +74,9 @@ class AnchorBaseBeam(object):
         """
 
         # TODO: Review casting to float?
-        p = np.clip(p, 0.0000001, 0.9999999999999999).astype(float)
-        q = np.clip(q, 0.0000001, 0.9999999999999999).astype(float)
-        return p * np.log(p / q) + (1. - p) * np.log((1. - p) / (1. - q))
+        m = np.clip(p, 0.0000001, 0.9999999999999999).astype(float)
+        n = np.clip(q, 0.0000001, 0.9999999999999999).astype(float)
+        return m * np.log(m / n) + (1. - m) * np.log((1. - m) / (1. - n))
 
     @staticmethod
     def dup_bernoulli(p: np.ndarray, level: np.ndarray, n_iter: int = 17) -> np.ndarray:
@@ -162,6 +161,60 @@ class AnchorBaseBeam(object):
         temp = np.log(k * n_features * (t ** alpha) / delta)
         return temp + np.log(temp)
 
+    @staticmethod
+    def select_critical_arms(means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray, delta: float,
+                             top_n: int, t: int) -> NamedTuple:
+        """
+        # TODO: Update docs
+        Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
+        the lower bound for anchors with high empirical precision.
+
+        Parameters
+        ----------
+        means
+            Empirical mean anchor precisions
+        ub
+            Upper bound on anchor precisions
+        lb
+            Lower bound on anchor precisions
+        n_samples
+            The number of samples drawn for each candidate anchor
+        delta
+            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - delta
+        top_n
+            Number of arms to be selected
+        t
+            Iteration number
+
+        Returns
+        -------
+        Upper and lower precision bound indices.
+        """
+
+        crit_arms = namedtuple('crit_arms', 'ut lt')
+
+        sorted_means = np.argsort(means)  # ascending sort of anchor candidates by precision
+        beta = AnchorBaseBeam.compute_beta(len(means), t, delta)
+
+        # J = the beam width top anchor candidates with highest precision
+        # not_J = the rest
+        J = sorted_means[-top_n:]
+        not_J = sorted_means[:-top_n]
+
+        # update upper bound for lowest precision anchor candidates
+        ub[not_J] = AnchorBaseBeam.dup_bernoulli(means[not_J], beta / n_samples[not_J])
+        # update lower bound for highest precision anchor candidates
+        lb[J] = AnchorBaseBeam.dlow_bernoulli(means[J], beta / n_samples[J])
+
+        # for the low precision anchor candidates, compute the upper precision bound and keep the index ...
+        # ... of the anchor candidate with the highest upper precision value -> ut
+        # for the high precision anchor candidates, compute the lower precision bound and keep the index ...
+        # ... of the anchor candidate with the lowest lower precision value -> lt
+        ut = not_J[np.argmax(ub[not_J])]
+        lt = J[np.argmin(lb[J])]
+
+        return crit_arms._make((ut, lt))
+
     def lucb(self, anchors: list, sample_fcn: Callable, initial_stats: dict, epsilon: float, delta: float, batch_size: int, top_n: int,
              verbose: bool = False, verbose_every: int = 1, pool=None) -> np.ndarray:
         """
@@ -191,56 +244,6 @@ class AnchorBaseBeam(object):
         Indices of best anchor options. Number of indices equals min of beam width or nb of candidate anchors.
         """
 
-        def update_bounds(means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray, delta: float,
-                          t: int) -> NamedTuple:
-            """
-            Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
-            the lower bound for anchors with high empirical precision.
-
-            Parameters
-            ----------
-            means
-                Empirical mean anchor precisions
-            ub
-                Upper bound on anchor precisions
-            lb
-                Lower bound on anchor precisions
-            n_samples
-                The number of samples drawn for each candidate anchor
-            delta
-                Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - delta
-            t
-                Iteration number
-
-            Returns
-            -------
-            Upper and lower precision bound indices.
-            """
-
-            critical_anchors = namedtuple('critical_anchors', 'ut lt')
-
-            sorted_means = np.argsort(means)  # ascending sort of anchor candidates by precision
-            beta = AnchorBaseBeam.compute_beta(len(means), t, delta)
-
-            # J = the beam width top anchor candidates with highest precision
-            # not_J = the rest
-            J = sorted_means[-top_n:]
-            not_J = sorted_means[:-top_n]
-
-            # update upper bound for lowest precision anchor candidates
-            ub[not_J] = AnchorBaseBeam.dup_bernoulli(means[not_J], beta / n_samples[not_J])
-            # update lower bound for highest precision anchor candidates
-            lb[J] = AnchorBaseBeam.dlow_bernoulli(means[J], beta / n_samples[J])
-
-            # for the low precision anchor candidates, compute the upper precision bound and keep the index ...
-            # ... of the anchor candidate with the highest upper precision value -> ut
-            # for the high precision anchor candidates, compute the lower precision bound and keep the index ...
-            # ... of the anchor candidate with the lowest lower precision value -> lt
-            ut = not_J[np.argmax(ub[not_J])]
-            lt = J[np.argmin(lb[J])]
-
-            return critical_anchors._make((ut, lt))
-
         # n_features equals to the nb of candidate anchors
         n_features = len(anchors)
 
@@ -268,28 +271,23 @@ class AnchorBaseBeam(object):
         # ... precision anchors is smaller than eps
         means = positives / n_samples  # fraction sample predictions equal to desired label
         t = 1
-        critical_a_idx = update_bounds(means, ub, lb, n_samples, delta, t)  # indices of critical arms returned
-        B = ub[critical_a_idx.ut] - lb[critical_a_idx.lt]
+        crit_a_idx = self.select_critical_arms(means, ub, lb, n_samples, delta, top_n, t)
+        B = ub[crit_a_idx.ut] - lb[crit_a_idx.lt]
         verbose_count = 0
+
         while B > epsilon:
-            # print("Updating bounds")
+
             verbose_count += 1
             if verbose and verbose_count % verbose_every == 0:
-                ut, lt = critical_a_idx
+                ut, lt = crit_a_idx
                 print('Best: %d (mean:%.10f, n: %d, lb:%.4f)' %
                       (lt, means[lt], n_samples[lt], lb[lt]), end=' ')
                 print('Worst: %d (mean:%.4f, n: %d, ub:%.4f)' %
                       (ut, means[ut], n_samples[ut], ub[ut]), end=' ')
                 print('B = %.2f' % B)
 
-            # TODO: turning num_samples to a list to be able to make further improvements, due to which one would sample
-            #  different batch sizes for different anchors
-            # TODO: If batch sizes become unequal, then it might be worth to reorder the request so that the smallest
-            #  batch is done first and returned, and the programm execution can continue and do other stuff while the
-            #  other batch is processed
-
             # draw samples for each critical anchor, update anchors' mean, upper and lower bound precision estimate
-            selected_anchors = [anchors[idx] for idx in critical_a_idx]
+            selected_anchors = [anchors[idx] for idx in crit_a_idx]
             if pool:
                 samples = list(pool.imap(partial(sample_fcn, num_samples=batch_size), selected_anchors))
             else:
@@ -298,14 +296,14 @@ class AnchorBaseBeam(object):
                     samples.append(sample_fcn(anchor, num_samples=batch_size))
             sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
             pos, total = zip(*sample_stats)
-            positives[list(critical_a_idx)] += list(pos)
-            n_samples[list(critical_a_idx)] += list(total)
-            means[list(critical_a_idx)] = list(map(truediv, pos, total))
+            idx = list(crit_a_idx)
+            positives[idx] += list(pos)
+            n_samples[idx] += list(total)
+            means = positives / n_samples
             t += 1
-            critical_a_idx = update_bounds(means, ub, lb, n_samples, delta, t)
-            B = ub[critical_a_idx.ut] - lb[critical_a_idx.lt]
+            crit_a_idx = self.select_critical_arms(means, ub, lb, n_samples, delta, top_n, t)
+            B = ub[crit_a_idx.ut] - lb[crit_a_idx.lt]
         sorted_means = np.argsort(means)
-
         return sorted_means[-top_n:]
 
     @staticmethod
@@ -572,14 +570,13 @@ class AnchorBaseBeam(object):
             lb = AnchorBaseBeam.dlow_bernoulli(mean, np.array([beta / data.shape[0]]))
 
         # Update object state
-        prealloc_size = batch_size * 10000
-        dtype = data_type if data_type is not None else raw_data.dtype
-        self.state['data'] = np.vstack((data, np.zeros((prealloc_size, data.shape[1]), data.dtype)))
-        self.state['raw_data'] = np.vstack((raw_data, np.zeros((prealloc_size, raw_data.shape[1]), dtype=dtype)))
+        size_ = batch_size * 10000
+        self.state['prealloc_size'] = size_  # TODO: Should not hardcode this, pass via config in init
+        self.data_type = data_type if data_type is not None else raw_data.dtype
+        self.state['data'] = np.vstack((data, np.zeros((size_, data.shape[1]), data.dtype)))
+        self.state['raw_data'] = np.vstack((raw_data, np.zeros((size_, raw_data.shape[1]), dtype=self.data_type)))
         self.state['current_idx'], self.state['n_features'] = data.shape
-        self.state['labels'] = np.hstack((labels, np.zeros(prealloc_size, labels.dtype)))
-        self.state['prealloc_size'] = prealloc_size
-        self.data_type = dtype
+        self.state['labels'] = np.hstack((labels, np.zeros(size_, labels.dtype)))
 
         # if prec_lb(A) > tau for A=[] then the empty anchor already satisfies the constraints ...
         # ... and an empty anchor is returned
@@ -604,7 +601,7 @@ class AnchorBaseBeam(object):
             main_pool, lucb_pool = Pool(kwargs['ncpu']), Pool(2)
         else:
             main_pool, lucb_pool = None, None
-        # print("yo")
+
         # find best anchor using beam search until max anchor size
         while current_size <= max_anchor_size:
 
@@ -638,8 +635,8 @@ class AnchorBaseBeam(object):
             # store best anchors for the given anchor size (nb of features in the anchor)
             best_of_size[current_size] = [anchors[index] for index in candidate_anchors]
             # for each candidate anchor:
-            # update precision, lower and upper bounds until precision constraints are met
-            # update best anchor if coverage is larger than current best coverage
+            #   update precision, lower and upper bounds until precision constraints are met
+            #   update best anchor if coverage is larger than current best coverage
             stop_this = False
             sz = candidate_anchors.shape
             kl_constraints, means, coverages = np.zeros(sz), np.zeros(sz), np.zeros(sz)
@@ -668,7 +665,7 @@ class AnchorBaseBeam(object):
                         samples.append(sample_fn(anchor, num_samples=batch_size))
                 # TODO: Can we do better than to wait and update the state sequentially if sampling in parallel?
                 anchors_means, anchors_kl_constr = [], []
-                assert len(selected_anchors) == len(samples)
+                # TODO: If we call get_initial_stats, we could use the same pattern as in lucb and ditch the for loop
                 for s, anchor in zip(samples, selected_anchors):
                     self.update_state(s, anchor)
                     anchors_means.append(self.state['t_positives'][anchor] / self.state['t_nsamples'][anchor])
@@ -691,9 +688,7 @@ class AnchorBaseBeam(object):
 
             # find anchors who meet the precision setting and have better coverage than the best anchors so far
             valid_anchors = (means >= desired_confidence) & (lbs > desired_confidence - epsilon_stop)
-            # print("valid anchors", valid_anchors)
             better_anchors = (valid_anchors & (coverages > best_coverage)).nonzero()[0]
-
             if verbose:
                 for idx, coverage in zip(candidate_anchors[valid_anchors], coverages[valid_anchors]):
                     t = anchors[idx]

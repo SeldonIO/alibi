@@ -154,7 +154,8 @@ class ExplainerExperiment(object):
         self.clf_config = classifier
 
         self._this_module = sys.modules[__name__]
-        self._default_data_store = {'t_elapsed': [],
+        self._default_data_store = {'commit_hash': self.experiment_config['commit_hash'],
+                                    't_elapsed': [],
                                     'clf_config': {},
                                     'exp_config': {},
                                     'expln_config': {},
@@ -260,10 +261,16 @@ if __name__ == '__main__':
                         default="configs/config.yaml",
                         help="Configuration file for the experiment",
                         )
+    parser.add_argument("--hash",
+                        type=str,
+                        help="If passed, the commit hash is stored with the experimental data "
+                             "to allow reproducing experiment results")
     args = parser.parse_args()
 
     with open(args.config) as fp:
         configuration = yaml.load(fp, Loader=yaml.FullLoader)
+
+    configuration['experiment']['commit_hash'] = args.hash
 
     if configuration['explainer']['type'] not in SUPPORTED_EXPLAINERS:
         raise NotImplementedError("Experiments are supported only for tabular data!")

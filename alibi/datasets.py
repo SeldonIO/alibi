@@ -187,7 +187,8 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
         features_drop = ["fnlwgt", "Education-Num"]
 
     # download data
-    dataset_url = 'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data'
+    # dataset_url = 'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data'
+    dataset_url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data'
     raw_features = ['Age', 'Workclass', 'fnlwgt', 'Education', 'Education-Num', 'Marital Status',
                     'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss',
                     'Hours per week', 'Country', 'Target']

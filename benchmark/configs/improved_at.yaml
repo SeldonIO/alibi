@@ -20,7 +20,7 @@ experiment:
   n_runs: 100
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: ImprovedATest2Example2.pkl
+  ckpt: ImprovedATest3Example2.pkl
   verbose: false
   data:
     preprocess: true

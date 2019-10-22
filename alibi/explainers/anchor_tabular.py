@@ -7,7 +7,7 @@ from typing import Callable, Tuple, Dict, Any, Set
 
 class AnchorTabular(object):
 
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}, seed=None) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -20,6 +20,9 @@ class AnchorTabular(object):
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature
         """
+
+        np.random.seed(seed)
+
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
         if np.argmax(predict_fn(np.zeros([1, len(feature_names)])).shape) == 0:

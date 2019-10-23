@@ -1,9 +1,15 @@
 import argparse
+import cProfile
 import os
 import pickle
 import sys
-import numpy as np
 import yaml
+
+import numpy as np
+
+from operator import methodcaller
+from timeit import default_timer as timer
+from typing import Any, Sequence
 
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.compose import ColumnTransformer
@@ -11,10 +17,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
-
-from operator import methodcaller
-from timeit import default_timer as timer
-from typing import Any, Sequence
 
 from alibi.explainers import AnchorTabular
 import alibi.datasets as datasets
@@ -235,11 +237,11 @@ class ExplainerExperiment(object):
         self._data_store['t_elapsed'].append(t_elapsed)
 
 
-def run_experiment(configuration):
+def run_experiment(config):
 
-    n_runs = int(configuration['experiment']['n_runs'])
+    n_runs = int(config['experiment']['n_runs'])
 
-    with ExplainerExperiment(**configuration) as exp:
+    with ExplainerExperiment(**config) as exp:
         for _ in range(n_runs):
             with Timer() as time:
                 explanation = get_explanation(exp.explainer,
@@ -248,9 +250,27 @@ def run_experiment(configuration):
                                               exp.experiment_config,
                                               )
             exp.update(explanation, time.t_elapsed)
-            if configuration['experiment']['verbose']:
+            if config['experiment']['verbose']:
                 display_explanation(explanation)
     return
+
+
+def profile(config):
+
+    prof_dir = config['experiment']['profile_dir']
+    if not os.path.exists(prof_dir):
+        os.makedirs(prof_dir)
+    else:
+        print("WARNING: Profiler output directory already exits!"
+              "Files may be overwritten!!!")
+    prof_fullpath = os.path.join(prof_dir, config['experiment']['profile_out'])
+
+    with ExplainerExperiment(**config) as exp:
+        cProfile.runctx('get_explanation(exp.explainer, exp.explainer_config, exp.splits, exp.experiment_config)',
+                        locals(),
+                        globals(),
+                        filename=prof_fullpath,
+                        )
 
 
 if __name__ == '__main__':
@@ -279,4 +299,7 @@ if __name__ == '__main__':
     if configuration['classifier']['name'] not in SUPPORTED_CLASSIFIERS:
         raise NotImplementedError("Only random forest classifiers are supported!")
 
-    run_experiment(configuration)
+    if configuration['experiment']['profile']:
+        profile(configuration)
+    else:
+        run_experiment(configuration)

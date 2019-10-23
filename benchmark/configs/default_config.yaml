@@ -18,9 +18,9 @@ explainer:
 # Experiment settings
 experiment:
   n_runs: 100
-  instance_idx: 6
+  instance_idx: 0
   ckpt_dir: /home/alex/git/work_experiments/PerformanceTest
-  ckpt: master_original.pkl
+  ckpt: master_original_idx_0.pkl
   verbose: false
   data:
     preprocess: true

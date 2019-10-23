@@ -41,6 +41,6 @@ experiment:
     mapping:
       feat_ids : [raw, feature]
       feat_names: [raw, names]
-  profile: true
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
   profile_out: master_orig.cprof

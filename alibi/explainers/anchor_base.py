@@ -285,23 +285,43 @@ class AnchorBaseBeam(object):
 
             # draw samples for each critical anchor, update anchors' mean, upper and lower bound precision estimate
             selected_anchors = [anchors[idx] for idx in crit_a_idx]
-            if pool:
-                samples = list(pool.imap(partial(sample_fcn, num_samples=batch_size), selected_anchors))
-            else:
-                samples = []
-                for anchor in selected_anchors:
-                    samples.append(sample_fcn(anchor, num_samples=batch_size))
-            sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
-            pos, total = zip(*sample_stats)
+            pos, total = self.draw_samples(sample_fcn, selected_anchors, batch_size, pool)
             idx = list(crit_a_idx)
-            positives[idx] += list(pos)
-            n_samples[idx] += list(total)
+            positives[idx] += pos
+            n_samples[idx] += total
             means = positives / n_samples
             t += 1
             crit_a_idx = self.select_critical_arms(means, ub, lb, n_samples, delta, top_n, t)
             B = ub[crit_a_idx.ut] - lb[crit_a_idx.lt]
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
+
+    def draw_samples(self, sample_fcn: Callable, selected_anchors: list, batch_size: int, pool: Pool) -> zip:
+        """
+        Parameters
+        ----------
+        sample_fcn:
+            sampling function
+        selected_anchors:
+            anchors on which samples are conditioned
+        batch_size:
+            number of samples to be drawn for each anchor
+        pool:
+            a multiprocessing.Pool object, which executes sampling in different processes
+        
+        Returns:
+        -------
+            a zip object containing a tuple of positive samples (for which prediction matches desired label)
+                and a tuple of total number of samples drawn
+        """
+        if pool:
+            samples = list(pool.imap(partial(sample_fcn, num_samples=batch_size), selected_anchors))
+        else:
+            samples = []
+            for anchor in selected_anchors:
+                samples.append(sample_fcn(anchor, num_samples=batch_size))
+        sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
+        return zip(*sample_stats)
 
     @staticmethod
     def propose_anchors(previous_best: list, state: dict) -> list:
@@ -659,14 +679,7 @@ class AnchorBaseBeam(object):
             stop_this = False
             while remaining_anchors_idx.size > 0:
                 selected_anchors = [anchors[idx] for idx in remaining_anchors_idx]
-                if main_pool:
-                    samples = list(main_pool.imap(partial(sample_fn, num_samples=batch_size), selected_anchors))
-                else:
-                    samples = []
-                    for anchor in selected_anchors:
-                        samples.append(sample_fn(anchor, num_samples=batch_size))
-                sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
-                pos, total = zip(*sample_stats)
+                pos, total = self.draw_samples(sample_fn, selected_anchors, batch_size, main_pool)
                 positives[continue_sampling] += pos
                 n_samples[continue_sampling] += total
                 means[continue_sampling] = positives[continue_sampling]/n_samples[continue_sampling]

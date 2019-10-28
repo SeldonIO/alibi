@@ -20,7 +20,7 @@ experiment:
   n_runs: 10
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/BaseEnhancements
-  ckpt: ImproveAnchorTabularSampling.pkl
+  ckpt: ImproveAnchorTabularSamplingExample2Final.pkl
   verbose: false
   data:
     preprocess: true

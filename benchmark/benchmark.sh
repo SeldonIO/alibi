@@ -14,9 +14,11 @@ for ARGUMENT in "$@"; do
   esac
 done
 
-# Set experiment to default value if not passed
+# Set experiment to default value if not passed and get current branch name
 if [ -z ${EXPERIMENT_1+x} ]; then EXPERIMENT_1="default.yaml"; fi
 if [ -z ${EXPERIMENT_2+x} ]; then EXPERIMENT_2="default.yaml"; fi
+if [ "$VERSION_1" = "this" ]; then VERSION_1=$(git rev-parse --abbrev-ref HEAD); fi
+if [ "$VERSION_2" = "this" ]; then VERSION_2=$(git rev-parse --abbrev-ref HEAD); fi
 
 echo "VERSION_1: $VERSION_1"
 echo "EXPERIMENT_1: $EXPERIMENT_1"

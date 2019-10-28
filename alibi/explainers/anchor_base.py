@@ -308,7 +308,7 @@ class AnchorBaseBeam(object):
             number of samples to be drawn for each anchor
         pool:
             a multiprocessing.Pool object, which executes sampling in different processes
-        
+
         Returns:
         -------
             a zip object containing a tuple of positive samples (for which prediction matches desired label)

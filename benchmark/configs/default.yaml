@@ -1,0 +1,46 @@
+dataset: adult
+
+# Example of configuring a random forest classifier
+classifier:
+  name: rf
+  n_estimators: 50
+  seed: 0
+
+# Example of configuring a AnchorTabular explainer
+explainer:
+  type: tabular
+  threshold: 0.95
+  disc_perc: !!python/tuple [25, 50, 75]
+  parallel: false
+  verbose: false
+  seed: 0
+
+# Experiment settings
+experiment:
+  n_runs: 10
+  instance_idx: 6
+  ckpt_dir: /home/alex/git/work_experiments/BaseEnhancements
+  ckpt: ImproveAnchorTabularSampling.pkl
+  verbose: false
+  data:
+    preprocess: true
+    split_opts:
+      seed: 0
+      max_records: 30000
+  save:
+    # elapsed time included by default
+    fields: [feat_ids, feat_names, precision, coverage]
+    # By default, it is assumed that the experiment object has
+    # amongst its keys the values specified in fields. If this is
+    # not the case, then mapping[fields[idx]] contains a list with
+    # the keys that should be accessed in the experiment object to
+    # retrieve the data. In this example, the output dictionary will be:
+    # {'feat_ids': [[explanation['raw']['features'], ...],
+    # 'feat_names':[[explanation['raw']['names'], ....]}
+    # The lengths of the the keys are = n_runs
+    mapping:
+      feat_ids : [raw, feature]
+      feat_names: [raw, names]
+  profile: false
+  profile_dir: /home/alex/git/work_experiments/ProfileData
+  profile_out: benchmark_stats.cprof

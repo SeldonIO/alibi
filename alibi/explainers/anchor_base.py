@@ -1,9 +1,8 @@
 from multiprocessing import Pool
 import numpy as np
 import copy
-import collections
 import logging
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from typing import Callable, NamedTuple, Tuple, Set, Dict
 from functools import partial
 
@@ -38,19 +37,19 @@ class AnchorBaseBeam(object):
 
         # TODO: Add short comments regarding what data is stored here...
         # TODO: prealloc size should be init here from a config - control mem footprint
-        self.state = {'t_idx': collections.defaultdict(lambda: set()),
-                      't_nsamples': collections.defaultdict(lambda: 0.),
-                      't_positives': collections.defaultdict(lambda: 0.),
+        self.state = {'t_idx': defaultdict(set),
+                      't_nsamples': defaultdict(lambda: 0.),
+                      't_positives': defaultdict(lambda: 0.),
                       'data': None,
                       'prealloc_size': None,
                       'raw_data': None,
                       'labels': None,
                       'current_idx': None,
                       'n_features': None,
-                      't_coverage_idx': collections.defaultdict(lambda: set()),
-                      't_coverage': collections.defaultdict(lambda: 0.),
+                      't_coverage_idx': defaultdict(set),
+                      't_coverage': defaultdict(lambda: 0.),
                       'coverage_data': None,
-                      't_order': collections.defaultdict(lambda: list())
+                      't_order': defaultdict(list)
                       }
 
         self.data_type = None  # data type for sampled data
@@ -215,8 +214,8 @@ class AnchorBaseBeam(object):
 
         return crit_arms._make((ut, lt))
 
-    def lucb(self, anchors: list, sample_fcn: Callable, initial_stats: dict, epsilon: float, delta: float, batch_size: int, top_n: int,
-             verbose: bool = False, verbose_every: int = 1, pool=None) -> np.ndarray:
+    def lucb(self, anchors: list, sample_fcn: Callable, init_stats: dict, epsilon: float, delta: float, batch_size: int,
+             top_n: int, verbose: bool = False, verbose_every: int = 1, pool=None) -> np.ndarray:
         """
         Parameters
         ----------
@@ -224,7 +223,7 @@ class AnchorBaseBeam(object):
             A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013)
         sample_fcn
             A function that returns a sample from the dataset for the specified set of anchors
-        initial_stats
+        init_stats
             Dictionary with lists containing nb of samples used and where sample predictions equal the desired label
         epsilon
             Precision bound tolerance for convergence
@@ -247,16 +246,14 @@ class AnchorBaseBeam(object):
         # n_features equals to the nb of candidate anchors
         n_features = len(anchors)
 
-        # initiate arrays for number of samples, positives (sample prediction equals desired label), ...
+        # initiate arrays for number of samples, positives (# samples where prediction equals desired label), ...
         # ... upper and lower precision bounds for each anchor candidate
-        n_samples = np.array(initial_stats['n_samples'])
-        positives = np.array(initial_stats['positives'])
-        ub = np.zeros(n_samples.shape)
-        lb = np.zeros(n_samples.shape)
+        n_samples, positives = init_stats['n_samples'], init_stats['positives']
+        ub, lb = np.zeros(n_samples.shape), np.zeros(n_samples.shape)
 
         # TODO: It is probably a good idea to sample a larger number of examples here? More accurate precision estimates
         # TODO: Experiment with batching these calls/increasing number of samples after initial benchmark
-        # should technically mean that the algo stops quicker? Discuss.*
+        #  should technically mean that the algo stops quicker? Discuss.*
 
         for f in np.where(n_samples == 0)[0]:
             # set min samples for each anchor candidate to 1
@@ -409,7 +406,7 @@ class AnchorBaseBeam(object):
         return labels.sum(), raw_data.shape[0]
 
     @staticmethod
-    def get_initial_statistics(anchors: list, state: dict) -> dict:
+    def get_init_stats(anchors: list, state: dict, coverages=False) -> dict:
         """
         Parameters
         ----------
@@ -417,18 +414,22 @@ class AnchorBaseBeam(object):
             Candidate anchors
         state
             Dictionary with the relevant metrics like coverage and samples for candidate anchors
+        coverages
+            If True, the statistics returned contain the coverage of the specified anchors
 
         Returns
         -------
         Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
         """
-        stats = {
-            'n_samples': [],
-            'positives': []
-        }  # type: Dict[str, list]
-        for anchor in anchors:
-            stats['n_samples'].append(state['t_nsamples'][anchor])
-            stats['positives'].append(state['t_positives'][anchor])
+        def array_factory(size: tuple):
+            return lambda: np.zeros(size)
+
+        stats = defaultdict(array_factory((len(anchors),)))  # type: Dict[str, np.ndarray]
+        for i, anchor in enumerate(anchors):
+            stats['n_samples'][i] = state['t_nsamples'][anchor]
+            stats['positives'][i] = state['t_positives'][anchor]
+            if coverages:
+                stats['coverages'][i] = state['t_coverage'][anchor]
         return stats
 
     @staticmethod
@@ -617,13 +618,13 @@ class AnchorBaseBeam(object):
                 break
 
             # for each anchor, get initial nb of samples used and prec(A)
-            initial_stats = AnchorBaseBeam.get_initial_statistics(anchors, self.state)
+            stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
 
             # apply KL-LUCB and return anchor options (nb of options = beam width)in the form of indices
             # print("current_size", current_size)
             candidate_anchors = self.lucb(anchors,
                                           sample_fn,
-                                          initial_stats,
+                                          stats,
                                           epsilon,
                                           delta,
                                           batch_size,
@@ -637,16 +638,17 @@ class AnchorBaseBeam(object):
             # for each candidate anchor:
             #   update precision, lower and upper bounds until precision constraints are met
             #   update best anchor if coverage is larger than current best coverage
-            stop_this = False
-            sz = candidate_anchors.shape
-            kl_constraints, means, coverages = np.zeros(sz), np.zeros(sz), np.zeros(sz)
+            stats = AnchorBaseBeam.get_init_stats(best_of_size[current_size],
+                                                  self.state,
+                                                  coverages=True,
+                                                  )
+            positives, n_samples = stats['positives'], stats['n_samples']
             beta = np.log(1. / (delta / (1 + (beam_size - 1) * self.state['n_features'])))
-            for idx, t in enumerate(best_of_size[current_size]):
-                means[idx] = self.state['t_positives'][t] / self.state['t_nsamples'][t]
-                kl_constraints[idx] = beta / self.state['t_nsamples'][t]
-                coverages[idx] = self.state['t_coverage'][t]
+            kl_constraints = beta / n_samples
+            means = stats['positives'] / stats['n_samples']
             lbs = AnchorBaseBeam.dlow_bernoulli(means, kl_constraints)
             ubs = AnchorBaseBeam.dup_bernoulli(means, kl_constraints)
+
             if verbose:
                 print('Best of size ', current_size, ':')
                 for i, mean, lb, ub in zip(candidate_anchors, means, lbs, ubs):
@@ -654,7 +656,7 @@ class AnchorBaseBeam(object):
 
             continue_sampling = AnchorBaseBeam.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
             remaining_anchors_idx = candidate_anchors[continue_sampling]
-
+            stop_this = False
             while remaining_anchors_idx.size > 0:
                 selected_anchors = [anchors[idx] for idx in remaining_anchors_idx]
                 if main_pool:
@@ -663,16 +665,12 @@ class AnchorBaseBeam(object):
                     samples = []
                     for anchor in selected_anchors:
                         samples.append(sample_fn(anchor, num_samples=batch_size))
-                # TODO: Can we do better than to wait and update the state sequentially if sampling in parallel?
-                anchors_means, anchors_kl_constr = [], []
-                # TODO: If we call get_initial_stats, we could use the same pattern as in lucb and ditch the for loop
-                for s, anchor in zip(samples, selected_anchors):
-                    self.update_state(s, anchor)
-                    anchors_means.append(self.state['t_positives'][anchor] / self.state['t_nsamples'][anchor])
-                    anchors_kl_constr.append(beta / self.state['t_nsamples'][anchor])
-                means[continue_sampling] = anchors_means
-                kl_constraints[continue_sampling] = anchors_kl_constr
-
+                sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
+                pos, total = zip(*sample_stats)
+                positives[continue_sampling] += pos
+                n_samples[continue_sampling] += total
+                means[continue_sampling] = positives[continue_sampling]/n_samples[continue_sampling]
+                kl_constraints[continue_sampling] = beta / n_samples[continue_sampling]
                 lbs[continue_sampling] = AnchorBaseBeam.dlow_bernoulli(means[continue_sampling],
                                                                        kl_constraints[continue_sampling])
                 ubs[continue_sampling] = AnchorBaseBeam.dup_bernoulli(means[continue_sampling],
@@ -680,19 +678,22 @@ class AnchorBaseBeam(object):
                 continue_sampling = AnchorBaseBeam.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
                 remaining_anchors_idx = candidate_anchors[continue_sampling]
 
+            # find anchors who meet the precision setting and have better coverage than the best anchors so far
+            coverages = stats['coverages']
+            valid_anchors = (means >= desired_confidence) & (lbs > desired_confidence - epsilon_stop)
+            better_anchors = (valid_anchors & (coverages > best_coverage)).nonzero()[0]
+
             if verbose:
-                for i, mean, lb, ub, coverage in zip(candidate_anchors, means, lbs, ubs, coverages):
+                for i, valid, mean, lb, ub, coverage in \
+                        zip(candidate_anchors, valid_anchors,  means, lbs, ubs, coverages):
                     t = anchors[i]
                     print('%s mean = %.2f lb = %.2f ub = %.2f coverage: %.2f n: %d' %
                           (t, mean, lb, ub, coverage, self.state['t_nsamples'][t]))
-
-            # find anchors who meet the precision setting and have better coverage than the best anchors so far
-            valid_anchors = (means >= desired_confidence) & (lbs > desired_confidence - epsilon_stop)
-            better_anchors = (valid_anchors & (coverages > best_coverage)).nonzero()[0]
-            if verbose:
-                for idx, coverage in zip(candidate_anchors[valid_anchors], coverages[valid_anchors]):
-                    t = anchors[idx]
-                    print('Found eligible anchor ', t, 'Coverage:', coverage, 'Is best?', coverage > best_coverage)
+                    if valid:
+                        print('Found eligible anchor ', t,
+                              'Coverage:', coverage,
+                              'Is best?', coverage > best_coverage,
+                              )
 
             if better_anchors.size > 0:
                 best_anchor_idx = better_anchors[np.argmax(coverages[better_anchors])]
@@ -712,8 +713,8 @@ class AnchorBaseBeam(object):
             anchors = []
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])
-            initial_stats = AnchorBaseBeam.get_initial_statistics(anchors, self.state)
-            candidate_anchors = self.lucb(anchors, sample_fn, initial_stats, epsilon, delta, batch_size, 1,
+            stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
+            candidate_anchors = self.lucb(anchors, sample_fn, stats, epsilon, delta, batch_size, 1,
                                           verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 

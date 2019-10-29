@@ -1,8 +1,30 @@
 # Change Log
 
-## Unreleased
+## [v0.3.2](https://github.com/SeldonIO/alibi/tree/v0.3.2) (2019-10-17)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.1...v0.3.2)
+### Added
+- All explanations return a metadata field `meta` with a `name` subfield which is currently the name of the class
+### Changed
+- Provide URL options for fetching some datasets, by default now fetches from a public Seldon bucket
+
+## [v0.3.1](https://github.com/SeldonIO/alibi/tree/v0.3.1) (2019-10-01)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.0...v0.3.1)
+### Fixed
+- Pin `tensorflow` dependency to versions 1.x as the new 2.0 release introduces breaking changes
+
+## [v0.3.0](https://github.com/SeldonIO/alibi/tree/v0.3.0) (2019-09-25)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.3...v0.3.0)
+### Added
+- **New feature** `LinearityMeasure` class and `linearity_measure` function for measuring the linearity of a classifier/regressor
+- **New feature** `CounterFactualProto` now supports categorical variables for tabular data
+### Changed
+- **Breaking change** Remove need for the user to manage TensorFlow sessions for the explanation methods that use TF internally (`CEM`, `CounterFactual`, `CounterFactualProto`). The session is now inferred or created depending on what is passed to `predict`. For finer control the `sess` parameter can still be passed in directly
+- **Breaking change**  Expose low-level arguments to `AnchorText` to the user for finer control of the explanation algorithm, also rename some arguments for consistency
+- Various improvements to existing notebook examples
 ### Fixed
 - `CounterFactualProto` and `CEM` bug when the class is initialized a second time it wouldn't run as the TF graph would become disconnected
+- Provide more useful error messages if external data APIs are down
+- Skip tests using external data APIs if they are down
 
 ## [v0.2.3](https://github.com/SeldonIO/alibi/tree/v0.2.3) (2019-07-29)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.2.2...v0.2.3)

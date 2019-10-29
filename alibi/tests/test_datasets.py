@@ -1,4 +1,5 @@
 import pytest
+from requests import RequestException
 from alibi.datasets import fetch_adult, fetch_imagenet, fetch_movie_sentiment
 
 # TODO use mocking instead of relying on external services
@@ -10,7 +11,10 @@ ADULT_CLASSES = 2
 
 @pytest.mark.parametrize('return_X_y', [True, False])
 def test_adult(return_X_y):
-    data = fetch_adult(return_X_y=return_X_y)
+    try:
+        data = fetch_adult(return_X_y=return_X_y)
+    except RequestException:
+        pytest.skip('Adult dataset URL down')
     if return_X_y:
         assert len(data) == 2
         X, y = data
@@ -29,7 +33,10 @@ def test_adult(return_X_y):
 @pytest.mark.parametrize('category', ['Persian cat', 'volcano', 'strawberry'])
 @pytest.mark.parametrize('return_X_y', [True, False])
 def test_imagenet(nb_images, category, return_X_y):
-    data = fetch_imagenet(category=category, nb_images=nb_images, target_size=(299, 299), return_X_y=return_X_y)
+    try:
+        data = fetch_imagenet(category=category, nb_images=nb_images, target_size=(299, 299), return_X_y=return_X_y)
+    except RequestException:
+        pytest.skip('Imagenet API down')
 
     if return_X_y:
         X, y = data
@@ -49,7 +56,10 @@ MOVIE_CLASSES = 2
 
 @pytest.mark.parametrize('return_X_y', [True, False])
 def test_movie_sentiment(return_X_y):
-    data = fetch_movie_sentiment(return_X_y=return_X_y)
+    try:
+        data = fetch_movie_sentiment(return_X_y=return_X_y)
+    except RequestException:
+        pytest.skip('Movie sentiment dataset URL down')
     if return_X_y:
         assert len(data) == 2
         X, y = data

@@ -332,6 +332,9 @@ class CounterFactual:
         self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}
 
+        self.return_dict['meta'] = {}
+        self.return_dict['meta']['name'] = self.__class__.__name__
+
         return return_dict
 
     def _prob_condition(self, X_current):

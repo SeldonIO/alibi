@@ -230,7 +230,8 @@ class AnchorTabular(object):
         # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
         # data coming from the same bin (or range of bins)
         for feat_id in allowed_bins:  # NB: should scale since we don't query the whole DB every time!
-            allowed_rows[feat_id] = set(itertools.chain(*[val2idx[feat_id][bin_id] for bin_id in allowed_bins[feat_id]]))
+            allowed_rows[feat_id] = set(itertools.chain(*[val2idx[feat_id][bin_id]
+                                                          for bin_id in allowed_bins[feat_id]]))
             if not allowed_rows[feat_id]:  # no instances in training data are in the specified bins ...
                 rand_sampled_feats.append((feat_id, 'o', None))
 

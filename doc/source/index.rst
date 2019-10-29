@@ -37,6 +37,8 @@
    examples/cf_mnist.ipynb
    examples/cfproto_mnist.ipynb
    examples/cfproto_housing.ipynb
+   examples/cfproto_cat_adult_ohe.ipynb
+   examples/cfproto_cat_adult_ord.ipynb
    examples/linearity_measure_iris
    examples/linearity_measure_fashion_mnist
    examples/trustscore_iris

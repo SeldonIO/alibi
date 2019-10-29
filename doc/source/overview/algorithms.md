@@ -14,7 +14,7 @@ algorithms:
 |[Anchors](../methods/Anchors.ipynb)|✔|✘|✔|✔|✔|✔|For Tabular|
 |[CEM](../methods/CEM.ipynb)|✔|✘|✘|✔|✘|✔|Optional|
 |[Counterfactual Instances](../methods/CF.ipynb)|✔|✘|✘|✔|✘|✔|No|
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|✔|✘|✘|✔|✘|✔|Optional|
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|✔|✘|✔|✔|✘|✔|Optional|
 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -32,7 +32,7 @@ instance that would result in a different prediction). [Documentation](../method
 
 **Counterfactual instances**: generate counterfactual examples using a simple loss function. [Documentation](../methods/CF.ipynb), [image classification](../examples/cf_mnist.ipynb).
 
-**Prototype Counterfactuals**: generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [image classification](../examples/cfproto_mnist.ipynb).
+**Prototype Counterfactuals**: generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb), [image classification](../examples/cfproto_mnist.ipynb).
 
 
 ## Model Confidence

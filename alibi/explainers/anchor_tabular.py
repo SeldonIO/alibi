@@ -393,6 +393,7 @@ class AnchorTabular(object):
                 'precision': exp.precision(),
                 'coverage': exp.coverage(),
                 'raw': exp.exp_map,
+                'meta': {'name': self.__class__.__name__}
                 }
 
     def add_names_to_exp(self, explanation: dict) -> None:

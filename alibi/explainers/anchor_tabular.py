@@ -6,7 +6,7 @@ import bisect
 import itertools
 import numpy as np
 import random
-from typing import Callable, Tuple, Any, Set
+from typing import Callable, Dict, DefaultDict, Tuple, Any, Set
 
 
 class AnchorTabular(object):
@@ -50,12 +50,12 @@ class AnchorTabular(object):
         if categorical_names:
             self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
         else:
-            self.feature_names = {}
+            self.feature_values = {}
 
-        self.val2idx = {}
-        self.cat_lookup = {}
-        self.ord_lookup = {}
-        self.enc2feat_idx = {}
+        self.val2idx = {}       # type: Dict[int, DefaultDict[Any, Any]]
+        self.cat_lookup = {}    # type: Dict[int, int]
+        self.ord_lookup = {}    # type: Dict[int, set]
+        self.enc2feat_idx = {}  # type: Dict[int, int]
 
     def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75)) -> None:
         """
@@ -160,7 +160,7 @@ class AnchorTabular(object):
                 cat_enc_idx += 1
 
     def sample_from_train(self, anchor: list, val2idx: dict, ord_lookup: dict, cat_lookup: dict, enc2feat_idx: dict,
-                          num_samples: int) -> (np.ndarray, np.ndarray):
+                          num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Sample data from training set but keep features which are anchor in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.s
@@ -203,8 +203,10 @@ class AnchorTabular(object):
         if not anchor:
             return samples, d_samples
 
-        allowed_bins = {}  # bins one can sample from for each numerical feature (key: feat id)
-        allowed_rows = {}  # index of database rows (values) for each feature in anchor (key: feat id)
+        # bins one can sample from for each numerical feature (key: feat id)
+        allowed_bins = {}  # type: Dict[int, Set[int]]
+        # index of database rows (values) for each feature in anchor (key: feat id)
+        allowed_rows = {}  # type: Dict[int, Set[int]]
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in ord_lookup.keys()]
@@ -283,9 +285,9 @@ class AnchorTabular(object):
                     print(fmt.format(feat, val, val))
                     samples[:, feat] = val
                 else:
-                    fmt = "WARNING: For features {}, no training data record had discretized values in bins {}." \
+                    fmt = "WARNING: For feature {}, no training data record had discretized values in bins {}." \
                           " Sampling uniformly at random from the feature range!"
-                    print(fmt.format(rand_sampled_feats, [allowed_bins[f] for f in rand_sampled_feats]))
+                    print(fmt.format(feat, allowed_bins[feat]))
                     min_vals, max_vals = self.min[feat], self.max[feat]
                     samples[:, feat] = np.random.uniform(low=min_vals,
                                                          high=max_vals,

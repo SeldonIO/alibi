@@ -51,7 +51,7 @@ class AnchorTabular(object):
             self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
         else:
             self.feature_names = {}
-            
+
         self.val2idx = {}
         self.cat_lookup = {}
         self.ord_lookup = {}
@@ -83,7 +83,7 @@ class AnchorTabular(object):
         self.max[self.numerical_features] = np.max(train_data[:, self.numerical_features], axis=0)
 
         # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
-        # variable. Each value in this dict is a set is a set of training data rows where that value is found
+        # variable. Each value in this dict is a set of training data rows where that value is found
         val2idx = {col_id: defaultdict(lambda: None) for col_id in self.numerical_features + self.categorical_features}
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
@@ -108,7 +108,6 @@ class AnchorTabular(object):
         X
             instance to be explained
 
-            # TODO: Write test to verify cat and ord keys union results in keys of enc2feat_idx
         """
 
         X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
@@ -194,7 +193,7 @@ class AnchorTabular(object):
             Like samples, but continuous data is converted to oridinal discrete data (binned)
         """
 
-        train = self.train_data     # TODO: Only works for data that fits in memory.
+        train = self.train_data
         d_train = self.d_train_data
 
         # Initialise samples randomly
@@ -238,7 +237,6 @@ class AnchorTabular(object):
 
         uniq_feat_ids = list(OrderedDict.fromkeys([enc2feat_idx[enc_idx] for enc_idx in anchor]))
         uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in rand_sampled_feats]]
-        # random.shuffle(uniq_feat_ids) # TODO: Discuss this - we would get different partial anchors samples (more div)
         # for each partial anchor count number of samples available and find their indices
         partial_anchor_rows = [allowed_rows[uniq_feat_ids[0]]]
         n_partial_anchors = [len(partial_anchor_rows[-1])]
@@ -253,7 +251,6 @@ class AnchorTabular(object):
         num_samples_pos = bisect.bisect_left(n_partial_anchors, num_samples)
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor
             samples_idxs = random.sample(partial_anchor_rows[-1], num_samples)
-            # TODO: Discuss this - could replace the entire row?
             samples[:, uniq_feat_ids] = train[np.ix_(samples_idxs, uniq_feat_ids)]
             d_samples[:, uniq_feat_ids] = d_train[np.ix_(samples_idxs, uniq_feat_ids)]
             return samples, d_samples
@@ -273,7 +270,6 @@ class AnchorTabular(object):
                 else:
                     samp_idxs = random.choices(list(partial_anchor_rows[n_anchor_feats - idx - 1]), k=num_samples)
                 n_samp = num_samples
-            # TODO: Discuss this - could replace the entire row?
             samples[start:start + n_samp, uniq_feat_ids[idx:]] = train[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
             feats_to_replace = uniq_feat_ids[:idx]
             to_replace = [random.choices(list(allowed_rows[feat]), k=n_samp) for feat in feats_to_replace]

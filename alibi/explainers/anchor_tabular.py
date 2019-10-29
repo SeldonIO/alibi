@@ -47,8 +47,11 @@ class AnchorTabular(object):
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
-        self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
-
+        if categorical_names:
+            self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
+        else:
+            self.feature_names = {}
+            
         self.val2idx = {}
         self.cat_lookup = {}
         self.ord_lookup = {}

@@ -2,9 +2,8 @@ from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.discretizer import Discretizer
 from collections import OrderedDict, defaultdict
-import itertools
+from itertools import accumulate
 import numpy as np
-import random
 from typing import Callable, Dict, DefaultDict, Tuple, Any, Set
 
 
@@ -27,7 +26,6 @@ class AnchorTabular(object):
             Used to set the random number generator for repeatability purposes
         """
 
-        random.seed(seed)
         np.random.seed(seed)
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
@@ -236,17 +234,11 @@ class AnchorTabular(object):
                 rand_sampled_feats.append((feat_id, 'o', None))
         uniq_feat_ids = list(OrderedDict.fromkeys([enc2feat_idx[enc_idx] for enc_idx in anchor]))
         uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in rand_sampled_feats]]
+
         # for each partial anchor count number of samples available and find their indices
-        partial_anchor_rows = [allowed_rows[uniq_feat_ids[0]]]
-        n_partial_anchors = np.zeros((len(uniq_feat_ids,)), dtype=int)
-        n_partial_anchors[0] = partial_anchor_rows[-1].shape[0]
-
-        for idx, feature in enumerate(uniq_feat_ids[1:], start=1):
-            partial_anchor_rows.append(np.intersect1d(partial_anchor_rows[-1], allowed_rows[feature]))
-            n_partial_anchors[idx] = partial_anchor_rows[-1].shape[0]
-
-        n_partial_anchors = np.flip(n_partial_anchors)
-
+        partial_anchor_rows = list(accumulate([allowed_rows[feat] for feat in uniq_feat_ids],
+                                              np.intersect1d))
+        n_partial_anchors = np.array([len(n_records) for n_records in reversed(partial_anchor_rows)])
         # search num_samples in the list containing the number of training records containing each sub-anchor
         num_samples_pos = np.searchsorted(n_partial_anchors, num_samples)
         if num_samples_pos == 0:  # training set has more than num_samples records containing the anchor

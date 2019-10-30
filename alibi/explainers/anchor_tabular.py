@@ -270,11 +270,15 @@ class AnchorTabular(object):
                 if num_samples <= len(list(partial_anchor_rows[n_anchor_feats - idx - 1])):
                     samp_idxs = random.sample(partial_anchor_rows[n_anchor_feats - idx - 1], k=num_samples)
                 else:
-                    samp_idxs = random.choices(list(partial_anchor_rows[n_anchor_feats - idx - 1]), k=num_samples)
+                    # samp_idxs = random.choices(list(partial_anchor_rows[n_anchor_feats - idx - 1]), k=num_samples)
+                    samp_idxs = np.random.choice(list(partial_anchor_rows[n_anchor_feats - idx - 1]),
+                                                 num_samples,
+                                                 replace=True,
+                                                 )
                 n_samp = num_samples
             samples[start:start + n_samp, uniq_feat_ids[idx:]] = train[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
             feats_to_replace = uniq_feat_ids[:idx]
-            to_replace = [random.choices(list(allowed_rows[feat]), k=n_samp) for feat in feats_to_replace]
+            to_replace = [np.random.choice(list(allowed_rows[feat]), n_samp, replace=True) for feat in feats_to_replace]
             samples[start: start + n_samp, feats_to_replace] = np.array(to_replace).transpose()
             start += n_samp
 

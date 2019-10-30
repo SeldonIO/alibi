@@ -19,8 +19,8 @@ explainer:
 experiment:
   n_runs: 100
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: BenchmarkTestHashPassingExample2.pkl
+  ckpt_dir: /home/alex/git/work_experiments/ChoicesRegressionTest
+  ckpt: FullNumpyImpl_4.pkl
   verbose: false
   data:
     preprocess: true
@@ -41,6 +41,6 @@ experiment:
     mapping:
       feat_ids : [raw, feature]
       feat_names: [raw, names]
-  profile: true
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
   profile_out: benchmark_stats.cprof

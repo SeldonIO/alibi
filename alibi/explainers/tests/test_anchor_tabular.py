@@ -41,7 +41,10 @@ def test_iris(predict_type, threshold):
     assert not explainer.categorical_features
 
     # test sampling function
-    explainer.instance_label = predict_fn(X_test[0, :].reshape(1, -1))[0]
+    if predict_type == 'proba':
+        explainer.instance_label = np.argmax(predict_fn(X_test[0, :].reshape(1, -1)), axis=1)
+    else:
+        explainer.instance_label = predict_fn(X_test[0, :].reshape(1, -1))[0]
     explainer.build_sampling_lookups(X_test[0, :])
     anchor = list(explainer.enc2feat_idx.keys())
     nb_samples = 5

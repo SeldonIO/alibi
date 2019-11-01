@@ -156,26 +156,27 @@ class AnchorTabular(object):
                 self.enc2feat_idx[cat_enc_idx] = cat_feat_idx
                 cat_enc_idx += 1
 
-    def sample_from_train(self, anchor: list, val2idx: dict, ord_lookup: dict, cat_lookup: dict, enc2feat_idx: dict,
-                          num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
+    def sample_from_train(self, anchor: list, val2idx: dict, ord_lookup: dict, cat_lookup: dict,
+                          enc2feat_idx: dict, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Sample data from training set but keep features which are anchor in the proposed anchor the same
-        as the feature value or bin (for ordinal features) as the instance to be explained.s
+        Sample data from training set but keep features in the anchor list the same
+        as the feature value or bin (for ordinal features) as the instance to be explained.
 
         Parameters
         ----------
         anchor:
             Each int is an encoded feature id
         val2idx
-            Mapping with keys feature column id (int). The values are dict with key (int) representing a bin number
-            (discretized variables) or value (categorical variables) (0-indexed) and values a list of ints representing
-            the row numbers in the training set where a record has the value indicated by the key.
+            Mapping with keys feature column id (int). The values are dict with key (int) representing
+            a bin number (discretized variables) or value (categorical variables) (0-indexed) and
+            values a list of ints representing the row numbers in the training set where a record
+            has the value indicated by the key.
         ord_lookup:
-            Mapping of feature encoded ids to the bins from which data should be sampled (see build_sampling_lookups
-            for details)
+            Mapping of feature encoded ids to the bins from which data should be sampled (see
+            build_sampling_lookups for details)
         cat_lookup
-            Mapping of feature encoded ids to the values the corresponding feature in the instance to be explained takes
-            (see build_sampling_lookups for details)
+            Mapping of feature encoded ids to the values the corresponding feature in the instance
+             to be explained takes (see build_sampling_lookups for details)
         enc2feat_idx
             Mapping between encoded feature IDs and feature IDs in the dataset
         num_samples

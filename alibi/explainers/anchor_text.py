@@ -271,6 +271,10 @@ class AnchorText(object):
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
+
+        explanation['meta'] = {}
+        explanation['meta']['name'] = self.__class__.__name__
+
         return explanation
 
     def perturb_sentence(self, text: str, present: list, n: int, sample_proba: float = 0.5,

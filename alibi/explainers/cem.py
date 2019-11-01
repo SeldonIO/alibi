@@ -693,4 +693,8 @@ class CEM:
             Y_pert = self.predict(best_attack)
         explanation[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
         explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
+
+        explanation['meta'] = {}
+        explanation['meta']['name'] = self.__class__.__name__
+
         return explanation

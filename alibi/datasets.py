@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import PIL
-from io import BytesIO
+from io import BytesIO, StringIO
 import numpy as np
 import pandas as pd
 import pickle
@@ -18,6 +18,13 @@ logger = logging.getLogger(__name__)
 __all__ = ['fetch_adult',
            'fetch_imagenet',
            'fetch_movie_sentiment']
+
+ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
+              'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
+              'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
+
+MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
+                       'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
 
 
 # deprecated functions
@@ -66,6 +73,8 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
         without content which is undesirable. Having a min std cutoff resolves this.
     seed
         Random seed
+    return_X_y
+        If true, return features X and labels y as numpy arrays, if False return a Bunch object
 
     Returns
     -------
@@ -80,7 +89,12 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
                'centipede': 'n01784675',
                'jellyfish': 'n01910747'}
     url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + mapping[category]
-    page = requests.get(url)
+    try:
+        page = requests.get(url)
+        page.raise_for_status()
+    except RequestException:
+        logger.exception('Imagenet API down')
+        raise
     soup = BeautifulSoup(page.content, 'html.parser')
     img_urls = str(soup).split('\r\n')  # list of url's
     random.seed(seed)
@@ -115,6 +129,7 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
         label_dict = pickle.load(BytesIO(resp.content))
     except RequestException:
         logger.exception("Could not download labels, URL may be out of service")
+        raise
 
     inv_label = {v: k for k, v in label_dict.items()}
     label_idx = inv_label[category]
@@ -127,9 +142,16 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, list]]:
+def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bunch, Tuple[list, list]]:
     """
     The movie review dataset, equally split between negative and positive reviews.
+
+    Parameters
+    ----------
+    return_X_y
+        If true, return features X and labels y as Python lists, if False return a Bunch object
+    url_id
+        Index specifying which URL to use for downloading
 
     Returns
     -------
@@ -138,11 +160,13 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     (data, target)
         Tuple if ``return_X_y`` is true
     """
-    url = 'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz'
+    url = MOVIESENTIMENT_URLS[url_id]
     try:
         resp = requests.get(url, timeout=2)
+        resp.raise_for_status()
     except RequestException:
         logger.exception("Could not connect, URL may be out of service")
+        raise
 
     tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
     data = []
@@ -164,8 +188,8 @@ def fetch_movie_sentiment(return_X_y: bool = False) -> Union[Bunch, Tuple[list, 
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[Bunch, Tuple[np.ndarray,
-                                                                                            np.ndarray]]:
+def fetch_adult(features_drop: list = None, return_X_y: bool = False, url_id: int = 0) -> \
+        Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
     """
     Downloads and pre-processes 'adult' dataset.
     More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
@@ -174,6 +198,10 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
     ----------
     features_drop
         List of features to be dropped from dataset, by default drops ["fnlwgt", "Education-Num"]
+    return_X_y
+        If true, return features X and labels y as numpy arrays, if False return a Bunch object
+    url_id
+        Index specifying which URL to use for downloading
 
     Returns
     -------
@@ -187,11 +215,18 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
         features_drop = ["fnlwgt", "Education-Num"]
 
     # download data
-    dataset_url = 'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data'
+    dataset_url = ADULT_URLS[url_id]
     raw_features = ['Age', 'Workclass', 'fnlwgt', 'Education', 'Education-Num', 'Marital Status',
                     'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain', 'Capital Loss',
                     'Hours per week', 'Country', 'Target']
-    raw_data = pd.read_csv(dataset_url, names=raw_features, delimiter=', ', engine='python').fillna('?')
+    try:
+        resp = requests.get(dataset_url)
+        resp.raise_for_status()
+    except RequestException:
+        logger.exception("Could not connect, URL may be out of service")
+        raise
+
+    raw_data = pd.read_csv(StringIO(resp.text), names=raw_features, delimiter=', ', engine='python').fillna('?')
 
     # get labels, features and drop unnecessary features
     labels = (raw_data['Target'] == '>50K').astype(int).values

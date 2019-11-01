@@ -1,6 +1,6 @@
 # flake8: noqa E731
 
-from alibi.explainers import AnchorTabular
+from alibi.explainers import AnchorTabular, AnchorBaseBeam, AnchorExplanation
 import numpy as np
 import pytest
 from sklearn.datasets import load_iris
@@ -35,29 +35,33 @@ def test_iris(predict_type, threshold):
     assert explainer.predict_fn(X_test[0].reshape(1, -1)).shape == (1,)
 
     # test explainer fit: shape and binning of ordinal features
-    explainer.fit(X_train, disc_perc=[25, 50, 75])
+    explainer.fit(X_train, disc_perc=(25, 50, 75))
     assert explainer.train_data.shape == explainer.d_train_data.shape == (145, 4)
     assert (np.unique(explainer.d_train_data) == np.array([0., 1., 2., 3.])).all()
-    assert explainer.categorical_features == explainer.ordinal_features
+    assert not explainer.categorical_features
 
     # test sampling function
-    sample_fn, mapping = explainer.get_sample_fn(X_test[0], desired_label=None)
+    explainer.instance_label = predict_fn(X_test[0, :].reshape(1, -1))[0]
+    explainer.build_sampling_lookups(X_test[0, :])
+    anchor = list(explainer.enc2feat_idx.keys())
     nb_samples = 5
-    raw_data, data, labels = sample_fn(mapping, nb_samples)
-    assert len(mapping) == data.shape[1]
+    raw_data, data, labels = explainer.sampler(anchor, nb_samples)
+    assert len(explainer.enc2feat_idx) == data.shape[1]
 
     # test mapping dictionary used for sampling
-    dsc = explainer.disc.discretize(raw_data)[0, :]
-    for f, d in enumerate(dsc):
-        m = 0
-        while mapping[m][0] < f:
-            m += 1
-        if m + d >= len(mapping):
-            assert mapping[len(mapping) - 1][1] == 'geq'
-            break
-        assert mapping[m + d][1] == 'leq'
+    assert (set(explainer.ord_lookup.keys() | set(explainer.cat_lookup.keys()))) == set(explainer.enc2feat_idx.keys())
 
     # test explanation
-    explanation = explainer.explain(X_test[0], threshold=threshold)
-    assert explanation['precision'] >= threshold
-    assert explanation['coverage'] >= 0.05
+    explain_defaults = {'delta': 0.1,
+                        'epsilon': 0.15,
+                        'batch_size': 100,
+                        'desired_confidence': threshold,
+                        'max_anchor_size': None,
+                        }
+    anchor = AnchorBaseBeam.anchor_beam(explainer.sampler,
+                                        **explain_defaults,
+                                        )
+    explainer.add_names_to_exp(anchor)
+    exp = AnchorExplanation('tabular', anchor)
+    assert exp.precision() >= threshold
+    assert exp.coverage() >= 0.05

@@ -265,8 +265,8 @@ class AnchorTabular(object):
                                                  replace=True,
                                                  )
                 n_samp = num_samples
+            samples[start:start + n_samp, uniq_feat_ids[idx:]] = train[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
             if idx > 0:
-                samples[start:start + n_samp, uniq_feat_ids[idx:]] = train[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
                 feats_to_replace = uniq_feat_ids[:idx]
                 to_replace = [np.random.choice(allowed_rows[feat], n_samp, replace=True) for feat in feats_to_replace]
                 samples[start: start + n_samp, feats_to_replace] = np.array(to_replace).transpose()
@@ -285,7 +285,7 @@ class AnchorTabular(object):
                     min_vals, max_vals = self.min[feat], self.max[feat]
                     samples[:, feat] = np.random.uniform(low=min_vals,
                                                          high=max_vals,
-                                                         size=(num_samples, ))
+                                                         size=(num_samples,))
 
         return samples, self.disc.discretize(samples)
 

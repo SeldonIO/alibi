@@ -683,9 +683,10 @@ class CounterFactualProto:
             # bin numerical features to compute the pairwise distance matrices
             cat_keys = list(self.cat_vars_ord.keys())
             n_ord = train_data_ord.shape[1]
+            numerical_feats = [feat for feat in range(n_ord) if feat not in cat_keys]
             if d_type in ['abdm', 'abdm-mvdm'] and len(cat_keys) != n_ord:
                 fnames = [str(_) for _ in range(n_ord)]
-                disc = Discretizer(train_data_ord, cat_keys, fnames, percentiles=disc_perc)
+                disc = Discretizer(train_data_ord, numerical_feats, fnames, percentiles=disc_perc)
                 train_data_bin = disc.discretize(train_data_ord)
                 cat_vars_bin = {k: len(disc.feature_intervals[k]) for k in range(n_ord) if k not in cat_keys}
             else:

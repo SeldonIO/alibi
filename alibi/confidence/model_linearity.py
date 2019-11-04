@@ -31,11 +31,7 @@ def _linear_superposition(alphas, vecs, shape):
 
 
 def _calculate_global_linearity(
-    predict_fn: Callable,
-    input_shape: Tuple,
-    X_samples: np.ndarray,
-    model_type: str,
-    alphas: np.ndarray,
+    predict_fn: Callable, input_shape: Tuple, X_samples: np.ndarray, model_type: str, alphas: np.ndarray
 ) -> np.ndarray:
     """Calculates the norm of the difference between the output of a linear superposition of vectors and the
     linear superposition of the outputs for each individual vector.
@@ -59,30 +55,22 @@ def _calculate_global_linearity(
 
     """
     ss = X_samples.shape[:2]  # X_samples shape=(nb_instances, nb_samples, nb_features)
-    X_samples = X_samples.reshape(
-        (X_samples.shape[0] * X_samples.shape[1],) + input_shape
-    )
+    X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
 
     t_0 = time()
     if model_type == "classifier":
         outs = np.log(predict_fn(X_samples) + 1e-10)
         outs_shape = outs.shape[1:]
-        outs = outs.reshape(
-            ss + outs_shape
-        )  # shape=(nb_instances, nb_samples, nb_classes)
+        outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_classes)
     elif model_type == "regressor":
         outs = predict_fn(X_samples)
         outs_shape = outs.shape[1:]
         if len(outs.shape) == 1:
             outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
         else:  # if regression on multiple targets
-            outs = outs.reshape(
-                ss + outs_shape
-            )  # shape=(nb_instances, nb_samples, nb_targets)
+            outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
-        raise ValueError(
-            "Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'"
-        )
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     t_f = time() - t_0
     logger.debug("predict time {}".format(t_f))
 
@@ -105,9 +93,7 @@ def _calculate_global_linearity(
         else:
             out_sum = out_sum.reshape((ss[0],) + out_sum_shape)
     else:
-        raise ValueError(
-            "Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'"
-        )
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
@@ -118,12 +104,7 @@ def _calculate_global_linearity(
 
 
 def _calculate_pairwise_linearity(
-    predict_fn: Callable,
-    x: np.ndarray,
-    input_shape: Tuple,
-    X_samples: np.ndarray,
-    model_type: str,
-    alphas: np.ndarray,
+    predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray, model_type: str, alphas: np.ndarray
 ) -> np.ndarray:
     """Calculates the norm of the difference between the output of a linear superposition of a test vector x and
     vectors in X_samples and the linear superposition of the outputs, averaged over all the vectors in X_samples.
@@ -149,18 +130,14 @@ def _calculate_pairwise_linearity(
 
     """
     ss = X_samples.shape[:2]  # X_samples shape=(nb_instances, nb_samples, nb_features)
-    X_samples = X_samples.reshape(
-        (X_samples.shape[0] * X_samples.shape[1],) + input_shape
-    )
+    X_samples = X_samples.reshape((X_samples.shape[0] * X_samples.shape[1],) + input_shape)
 
     t_0 = time()
     if model_type == "classifier":
         outs = np.log(predict_fn(X_samples) + 1e-10)
         outs_shape = outs.shape[1:]
         x_out = np.log(predict_fn(x) + 1e-10)  # shape=(nb_instances, nb_classes)
-        outs = outs.reshape(
-            ss + outs_shape
-        )  # shape=(nb_instances, nb_samples, nb_classes)
+        outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_classes)
     elif model_type == "regressor":
         outs = predict_fn(X_samples)
         outs_shape = outs.shape[1:]
@@ -169,62 +146,41 @@ def _calculate_pairwise_linearity(
             outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
             x_out = x_out.reshape(x_out.shape + (1,))  # shape=(nb_instances, 1)
         else:  # if regression on multiple targets
-            outs = outs.reshape(
-                ss + outs_shape
-            )  # shape=(nb_instances, nb_samples, nb_targets)
+            outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
     else:
-        raise ValueError(
-            "Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'"
-        )
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     t_f = time() - t_0
     logger.debug("predict time", t_f)
 
-    x_out_stack = np.repeat(
-        x_out.reshape((x_out.shape[0], 1) + (x_out.shape[1:])), outs.shape[1], axis=1
-    )
+    x_out_stack = np.repeat(x_out.reshape((x_out.shape[0], 1) + (x_out.shape[1:])), outs.shape[1], axis=1)
 
     # linear superposition of the outputs
-    sum_out = np.matmul(
-        np.array([x_out_stack, outs]).T, alphas
-    ).T  # shape=(nb_instances,nb_samples,nb_targets)
+    sum_out = np.matmul(np.array([x_out_stack, outs]).T, alphas).T  # shape=(nb_instances,nb_samples,nb_targets)
 
     X_samples = X_samples.reshape(ss + input_shape)
-    x_stack = np.repeat(
-        x.reshape((x.shape[0], 1) + (x.shape[1:])), X_samples.shape[1], axis=1
-    )
+    x_stack = np.repeat(x.reshape((x.shape[0], 1) + (x.shape[1:])), X_samples.shape[1], axis=1)
 
     # linear superposition of the inputs
-    summ = np.matmul(
-        np.array([x_stack, X_samples]).T, alphas
-    ).T  # shape=(nb_instances,nb_samples,input_shape)
+    summ = np.matmul(np.array([x_stack, X_samples]).T, alphas).T  # shape=(nb_instances,nb_samples,input_shape)
     if model_type == "classifier":
         # output of the linear superposition of inputs
-        out_sum = np.log(
-            predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
-            + 1e-10
-        )
+        out_sum = np.log(predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])) + 1e-10)
         out_sum_shape = out_sum.shape[1:]
         out_sum = out_sum.reshape(ss + out_sum_shape)
     elif model_type == "regressor":
-        out_sum = predict_fn(
-            summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:])
-        )
+        out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
         out_sum_shape = out_sum.shape[1:]
         if len(out_sum.shape) == 1:
             out_sum = out_sum.reshape(ss + (1,))
         else:
             out_sum = out_sum.reshape(ss + out_sum_shape)
     else:
-        raise ValueError(
-            "Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'"
-        )
+        raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
     diff = out_sum - sum_out
-    linearity_score = norm(diff.reshape(diff.shape[0], diff.shape[1], -1), axis=2).mean(
-        axis=1
-    )
+    linearity_score = norm(diff.reshape(diff.shape[0], diff.shape[1], -1), axis=2).mean(axis=1)
 
     return linearity_score
 
@@ -254,9 +210,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
         X_stack = np.stack([x[i] for _ in range(X_train.shape[0])], axis=0)
         X_stack = X_stack.reshape(X_stack.shape[0], -1)
 
-        nbrs = NearestNeighbors(n_neighbors=nb_samples, algorithm="ball_tree").fit(
-            X_train
-        )
+        nbrs = NearestNeighbors(n_neighbors=nb_samples, algorithm="ball_tree").fit(X_train)
         distances, indices = nbrs.kneighbors(X_stack)
         distances, indices = distances[0], indices[0]
 
@@ -269,11 +223,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
 
 
 def _sample_grid(
-    x: np.ndarray,
-    feature_range: np.ndarray = None,
-    epsilon: float = 0.04,
-    nb_samples: int = 10,
-    res: int = 100,
+    x: np.ndarray, feature_range: np.ndarray = None, epsilon: float = 0.04, nb_samples: int = 10, res: int = 100
 ) -> np.ndarray:
     """Samples data points uniformly from an interval centered at x and with size epsilon * Delta,
     with delta = f_max - f_min the features ranges.
@@ -302,18 +252,14 @@ def _sample_grid(
     if size <= 2:
         size = 2
 
-    deltas = np.abs(feature_range[:, 1] - feature_range[:, 0]) / float(
-        res
-    )  # shape=(nb_features)
+    deltas = np.abs(feature_range[:, 1] - feature_range[:, 0]) / float(res)  # shape=(nb_features)
 
     rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
     rnd = np.random.randint(size, size=(nb_instances, nb_samples, dim)) + 1
     rnd = rnd_sign * rnd  # shape=(nb_instances, nb_samples, nb_features)
 
     vprime = rnd * deltas
-    X_sampled = (
-        x.reshape(x.shape[0], 1, x.shape[1]) + vprime
-    )  # shape=(nb_instances, nb_samples, nb_features)
+    X_sampled = x.reshape(x.shape[0], 1, x.shape[1]) + vprime  # shape=(nb_instances, nb_samples, nb_features)
 
     return X_sampled
 
@@ -369,18 +315,10 @@ def _linearity_measure(
         assert X_train is not None, "The 'knn' method requires X_train != None"
         X_sampled = _sample_knn(x, X_train, nb_samples=nb_samples)
     elif method == "grid":
-        assert (
-            feature_range is not None
-        ), "The 'grid' method requires feature_range != None."
+        assert feature_range is not None, "The 'grid' method requires feature_range != None."
         if isinstance(feature_range, list):
             feature_range = np.asarray(feature_range)
-        X_sampled = _sample_grid(
-            x,
-            feature_range=feature_range,
-            epsilon=epsilon,
-            nb_samples=nb_samples,
-            res=res,
-        )
+        X_sampled = _sample_grid(x, feature_range=feature_range, epsilon=epsilon, nb_samples=nb_samples, res=res)
     else:
         raise ValueError('Method not understood. Supported methods: "knn", "grid"')
     logger.debug(x.shape)
@@ -389,19 +327,13 @@ def _linearity_measure(
     if agg == "pairwise":
         if alphas is None:
             alphas = np.array([0.5, 0.5])
-        score = _calculate_pairwise_linearity(
-            predict_fn, x, input_shape, X_sampled, model_type, alphas
-        )
+        score = _calculate_pairwise_linearity(predict_fn, x, input_shape, X_sampled, model_type, alphas)
     elif agg == "global":
         if alphas is None:
             alphas = np.array([1 / float(nb_samples) for _ in range(nb_samples)])
-        score = _calculate_global_linearity(
-            predict_fn, input_shape, X_sampled, model_type, alphas
-        )
+        score = _calculate_global_linearity(predict_fn, input_shape, X_sampled, model_type, alphas)
     else:
-        raise ValueError(
-            'Aggregation argument supported values: "global" or "pairwise "'
-        )
+        raise ValueError('Aggregation argument supported values: "global" or "pairwise "')
 
     return score
 
@@ -518,9 +450,7 @@ class LinearityMeasure(object):
             )
         elif self.method == "grid":
             if not self.is_fit:
-                self.feature_range = [
-                    [0, 1] for _ in x.shape[1]
-                ]  # hardcoded (e.g. from 0 to 1)
+                self.feature_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
 
             lin = _linearity_measure(
                 predict_fn,

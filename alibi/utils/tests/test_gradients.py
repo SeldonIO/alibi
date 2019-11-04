@@ -9,9 +9,7 @@ from alibi.utils.gradients import num_grad_batch
 @pytest.fixture
 def logistic_iris():
     X, y = load_iris(return_X_y=True)
-    lr = LogisticRegression(
-        solver="lbfgs", multi_class="multinomial", max_iter=200
-    ).fit(X, y)
+    lr = LogisticRegression(solver="lbfgs", multi_class="multinomial", max_iter=200).fit(X, y)
     return X, y, lr
 
 
@@ -21,9 +19,7 @@ def test_get_batch_num_gradients_cityblock(shape, batch_size):
     u = np.random.rand(batch_size, *shape)
     v = np.random.rand(1, *shape)
 
-    grad_true = np.sign(u - v).reshape(
-        batch_size, 1, *shape
-    )  # expand dims to incorporate 1-d scalar response
+    grad_true = np.sign(u - v).reshape(batch_size, 1, *shape)  # expand dims to incorporate 1-d scalar response
     grad_approx = num_grad_batch(cityblock_batch, u, args=tuple([v]))
 
     assert grad_approx.shape == grad_true.shape

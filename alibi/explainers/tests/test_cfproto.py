@@ -24,9 +24,7 @@ def tf_keras_iris_model(request):
     x = k.layers.Dense(10, activation="relu")(x_in)
     x_out = k.layers.Dense(3, activation="softmax")(x)
     model = k.models.Model(inputs=x_in, outputs=x_out)
-    model.compile(
-        loss="sparse_categorical_crossentropy", optimizer="sgd", metrics=["accuracy"]
-    )
+    model.compile(loss="sparse_categorical_crossentropy", optimizer="sgd", metrics=["accuracy"])
     return model
 
 
@@ -101,10 +99,7 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
         max_iterations=1000,
         c_init=request.param[1],
         c_steps=request.param[2],
-        feature_range=(
-            X_train.min(axis=0).reshape(shape),
-            X_train.max(axis=0).reshape(shape),
-        ),
+        feature_range=(X_train.min(axis=0).reshape(shape), X_train.max(axis=0).reshape(shape)),
     )
     yield X_train, model, cf_explainer
 
@@ -123,11 +118,7 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
     ],
     indirect=["tf_keras_iris_explainer"],
 )
-@pytest.mark.parametrize(
-    "tf_keras_iris_model,tf_keras_iris_ae",
-    [("tf", "tf"), ("keras", "keras")],
-    indirect=True,
-)
+@pytest.mark.parametrize("tf_keras_iris_model,tf_keras_iris_ae", [("tf", "tf"), ("keras", "keras")], indirect=True)
 def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     X_train, model, cf = tf_keras_iris_explainer
 
@@ -143,18 +134,12 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
         n_by_class = 0
         for c in range(cf.classes):
             n_by_class += cf.X_by_class[c].shape[0]
-        assert (
-            n_by_class == X_train.shape[0]
-        )  # all training instances are stored in the trees
-        assert (
-            cf.kdtrees[pred_class].query(x, k=1)[0] == 0.0
-        )  # nearest distance to own class equals 0
+        assert n_by_class == X_train.shape[0]  # all training instances are stored in the trees
+        assert cf.kdtrees[pred_class].query(x, k=1)[0] == 0.0  # nearest distance to own class equals 0
         assert cf.score(x, not_pred_class, pred_class) == 0.0  # test score fn
     else:  # encoder
         assert len(list(cf.class_proto.keys())) == cf.classes
-        assert [True for _ in range(cf.classes)] == [
-            v.shape == (1, 2) for _, v in cf.class_proto.items()
-        ]
+        assert [True for _ in range(cf.classes)] == [v.shape == (1, 2) for _, v in cf.class_proto.items()]
         n_by_class = 0
         for c in range(cf.classes):
             n_by_class += cf.class_enc[c].shape[0]
@@ -163,14 +148,8 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     # test explanation
     explanation = cf.explain(x, k=k)
     assert cf.id_proto != pred_class
-    assert (
-        np.argmax(model.predict(explanation["cf"]["X"])) == explanation["cf"]["class"]
-    )
-    assert (
-        explanation["cf"]["grads_num"].shape
-        == explanation["cf"]["grads_graph"].shape
-        == x.shape
-    )
+    assert np.argmax(model.predict(explanation["cf"]["X"])) == explanation["cf"]["class"]
+    assert explanation["cf"]["grads_num"].shape == explanation["cf"]["grads_graph"].shape == x.shape
 
     # test gradient shapes
     y = np.zeros((1, cf.classes))
@@ -194,9 +173,7 @@ def tf_keras_adult_model(request):
     x = k.layers.Dense(60, activation="relu")(x)
     x_out = k.layers.Dense(2, activation="softmax")(x)
     model = k.models.Model(inputs=x_in, outputs=x_out)
-    model.compile(
-        loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
-    )
+    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
     return model
 
 
@@ -268,11 +245,7 @@ def tf_keras_adult_explainer(request, tf_keras_adult):
 
 @pytest.mark.parametrize(
     "tf_keras_adult_explainer,use_kdtree,k,d_type",
-    [
-        ((False, 1.0, 3), False, None, "mvdm"),
-        ((True, 1.0, 3), True, 2, "mvdm"),
-        ((True, 1.0, 3), True, 2, "abdm"),
-    ],
+    [((False, 1.0, 3), False, None, "mvdm"), ((True, 1.0, 3), True, 2, "mvdm"), ((True, 1.0, 3), True, 2, "abdm")],
     indirect=["tf_keras_adult_explainer"],
 )
 @pytest.mark.parametrize("tf_keras_adult_model", ["tf", "keras"], indirect=True)
@@ -298,23 +271,15 @@ def test_tf_keras_adult_explainer(tf_keras_adult_explainer, use_kdtree, k, d_typ
         n_by_class = 0
         for c in range(cf.classes):
             n_by_class += cf.X_by_class[c].shape[0]
-        assert (
-            n_by_class == X_train.shape[0]
-        )  # all training instances are stored in the trees
+        assert n_by_class == X_train.shape[0]  # all training instances are stored in the trees
 
     # test explanation
     explanation = cf.explain(x, k=k)
     if use_kdtree:
         assert cf.id_proto != pred_class
-    assert (
-        np.argmax(model.predict(explanation["cf"]["X"])) == explanation["cf"]["class"]
-    )
+    assert np.argmax(model.predict(explanation["cf"]["X"])) == explanation["cf"]["class"]
     num_shape = (1, 12)
-    assert (
-        explanation["cf"]["grads_num"].shape
-        == explanation["cf"]["grads_graph"].shape
-        == num_shape
-    )
+    assert explanation["cf"]["grads_num"].shape == explanation["cf"]["grads_graph"].shape == num_shape
 
     # test gradient shapes
     y = np.zeros((1, cf.classes))

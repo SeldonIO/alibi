@@ -11,12 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class Neighbors(object):
-    def __init__(
-        self,
-        nlp_obj: "spacy.language.Language",
-        n_similar: int = 500,
-        w_prob: float = -15.0,
-    ) -> None:
+    def __init__(self, nlp_obj: "spacy.language.Language", n_similar: int = 500, w_prob: float = -15.0) -> None:
         """
         Initialize class identifying neighbouring words from the embedding for a given word.
 
@@ -31,9 +26,7 @@ class Neighbors(object):
         """
         self.nlp = nlp_obj
         self.w_prob = w_prob
-        self.to_check = [
-            w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector
-        ]  # list with spaCy lexemes
+        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]  # list with spaCy lexemes
         # in vocabulary
         self.n = {}  # type: Dict[str, list]
         self.n_similar = n_similar
@@ -56,20 +49,15 @@ class Neighbors(object):
                 self.n[word] = []  # word not in vocabulary, so no info on neighbors
             else:
                 word_vocab = self.nlp.vocab[word]
-                queries = [
-                    w for w in self.to_check if w.is_lower == word_vocab.is_lower
-                ]
+                queries = [w for w in self.to_check if w.is_lower == word_vocab.is_lower]
                 if word_vocab.prob < self.w_prob:
                     queries += [word_vocab]
                 # sort queries by similarity in descending order
-                by_similarity = sorted(
-                    queries, key=lambda w: word_vocab.similarity(w), reverse=True
-                )
+                by_similarity = sorted(queries, key=lambda w: word_vocab.similarity(w), reverse=True)
                 # store list of tuples containing the similar word and the word similarity ...
                 # ... for nb of most similar words
                 self.n[word] = [
-                    (self.nlp(w.orth_)[0], word_vocab.similarity(w))
-                    for w in by_similarity[: self.n_similar]
+                    (self.nlp(w.orth_)[0], word_vocab.similarity(w)) for w in by_similarity[: self.n_similar]
                 ]
         return self.n[word]
 
@@ -175,16 +163,10 @@ class AnchorText(object):
 
                 data = np.ones((num_samples, len(words)))
                 raw = np.zeros((num_samples, len(words)), "|S80")
-                raw[
-                    :
-                ] = (
-                    words
-                )  # fill each row of the raw data matrix with the text instance to be explained
+                raw[:] = words  # fill each row of the raw data matrix with the text instance to be explained
 
                 for i, t in enumerate(words):
-                    if (
-                        i in present
-                    ):  # if the index corresponds to the index of a word in the anchor
+                    if i in present:  # if the index corresponds to the index of a word in the anchor
                         continue
 
                     # sample the words in the text outside of the anchor that are replaced with UNKs
@@ -272,8 +254,7 @@ class AnchorText(object):
         """
         if use_unk and use_similarity_proba:
             logger.warning(
-                '"use_unk" and "use_similarity_proba" args should not both be True. '
-                'Defaults to "use_unk" behaviour.'
+                '"use_unk" and "use_similarity_proba" args should not both be True. ' 'Defaults to "use_unk" behaviour.'
             )
 
         # get the words and positions of words in the text instance and sample function
@@ -387,9 +368,7 @@ class AnchorText(object):
 
         raw = np.zeros((n, len(tokens)), "|S80")
         data = np.ones((n, len(tokens)))
-        raw[:] = [
-            x.text for x in tokens
-        ]  # fill each row of the raw data matrix with the text to be explained
+        raw[:] = [x.text for x in tokens]  # fill each row of the raw data matrix with the text to be explained
 
         for i, t in enumerate(tokens):  # apply sampling to each token
 
@@ -407,14 +386,10 @@ class AnchorText(object):
                 # get list of tuples for neighbors with same POS tag
                 # tuple = (similar word, similarity score)
                 r_neighbors = [
-                    (x[0].text.encode("utf-8"), x[1])
-                    for x in self.neighbors.neighbors(t.text)
-                    if x[0].tag_ == t.tag_
+                    (x[0].text.encode("utf-8"), x[1]) for x in self.neighbors.neighbors(t.text) if x[0].tag_ == t.tag_
                 ][:top_n]
 
-                if (
-                    not r_neighbors
-                ):  # if no neighbors found with same tag, move on to next token
+                if not r_neighbors:  # if no neighbors found with same tag, move on to next token
                     continue
 
                 t_neighbors = [x[0] for x in r_neighbors]  # words of neighbors
@@ -429,12 +404,8 @@ class AnchorText(object):
                 else:
                     idx = None
 
-                if (
-                    use_similarity_proba
-                ):  # use similarity scores to sample changed tokens
-                    weights = np.array(
-                        [x[1] for x in r_neighbors]
-                    )  # similarity scores of neighbors
+                if use_similarity_proba:  # use similarity scores to sample changed tokens
+                    weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
                     if idx is not None:
                         weights[idx] = 0
                     weights = weights ** (1.0 / temperature)  # weighting by temperature
@@ -447,9 +418,7 @@ class AnchorText(object):
                     else:
                         weights /= len(r_neighbors)
 
-                raw[changed, i] = np.random.choice(
-                    t_neighbors, n_changed, p=weights, replace=True
-                )
+                raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights, replace=True)
                 data[changed, i] = 0
 
         # convert numpy array into list

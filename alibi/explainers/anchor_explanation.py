@@ -95,10 +95,7 @@ class AnchorExplanation:
             return coverage[-1]
 
     def examples(
-        self,
-        only_different_prediction: bool = False,
-        only_same_prediction: bool = False,
-        partial_index: int = None,
+        self, only_different_prediction: bool = False, only_same_prediction: bool = False, partial_index: int = None
     ) -> np.ndarray:
         """
         Parameters
@@ -115,9 +112,7 @@ class AnchorExplanation:
         Examples covered by anchor
         """
         if only_different_prediction and only_same_prediction:
-            print(
-                "Error: you cannot have only_different_prediction and only_same_prediction at the same time"
-            )
+            print("Error: you cannot have only_different_prediction and only_same_prediction at the same time")
             return []
         key = "covered"
         if only_different_prediction:

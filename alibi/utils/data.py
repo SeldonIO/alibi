@@ -26,9 +26,7 @@ class Bunch(dict):
             raise AttributeError(key)
 
 
-def gen_category_map(
-    data: Union[pd.DataFrame, np.ndarray], categorical_columns: list = None
-) -> Dict[int, list]:
+def gen_category_map(data: Union[pd.DataFrame, np.ndarray], categorical_columns: list = None) -> Dict[int, list]:
     """
 
     Parameters
@@ -53,17 +51,13 @@ def gen_category_map(
     if isinstance(data, np.ndarray):
         # if numpy array, we need categorical_columns, otherwise impossible to infer
         if categorical_columns is None:
-            raise ValueError(
-                "If passing a numpy array, `categorical_columns` is required"
-            )
+            raise ValueError("If passing a numpy array, `categorical_columns` is required")
         data = pd.DataFrame(data)
 
     # infer categorical columns
     if categorical_columns is None:
         try:
-            categorical_columns = [
-                i for i in range(n_features) if data.iloc[:, i].dtype == "O"
-            ]  # NB: 'O'
+            categorical_columns = [i for i in range(n_features) if data.iloc[:, i].dtype == "O"]  # NB: 'O'
         except AttributeError:
             raise
 

@@ -74,9 +74,7 @@ def mvdm(X: np.ndarray, y: np.ndarray, cat_vars: dict, alpha: int = 1) -> np.nda
         for i in range(n_cat):
             j = 0
             while j < i:  # symmetrical matrix
-                d_pair_col[i, j] = np.sum(
-                    np.abs(p_cond_col[i, :] - p_cond_col[j, :]) ** alpha
-                )
+                d_pair_col[i, j] = np.sum(np.abs(p_cond_col[i, :] - p_cond_col[j, :]) ** alpha)
                 j += 1
         d_pair_col += d_pair_col.T
         d_pair[col] = d_pair_col
@@ -122,9 +120,7 @@ def abdm(X: np.ndarray, cat_vars: dict, cat_vars_bin: dict = dict()):
     X_cat_eq = {}  # type: Dict
     for col, n_cat in cat_vars.items():
         X_cat_eq[col] = []
-        for i in range(
-            n_cat
-        ):  # for each category in categorical variable, store instances of each category
+        for i in range(n_cat):  # for each category in categorical variable, store instances of each category
             idx = np.where(X[:, col] == i)[0]
             X_cat_eq[col].append(X[idx, :])
 
@@ -147,13 +143,9 @@ def abdm(X: np.ndarray, cat_vars: dict, cat_vars_bin: dict = dict()):
             while j < i:
                 d_ij_tmp = 0
                 for p in p_cond:  # loop over other categorical variables
-                    for t in range(
-                        p.shape[0]
-                    ):  # loop over categories of each categorical variable
+                    for t in range(p.shape[0]):  # loop over categories of each categorical variable
                         a, b = p[t, i], p[t, j]
-                        d_ij_t = a * np.log((a + eps) / (b + eps)) + b * np.log(
-                            (b + eps) / (a + eps)
-                        )  # KL divergence
+                        d_ij_t = a * np.log((a + eps) / (b + eps)) + b * np.log((b + eps) / (a + eps))  # KL divergence
                         d_ij_tmp += d_ij_t
                 d_pair_col[i, j] = d_ij_tmp
                 j += 1
@@ -242,9 +234,7 @@ def multidim_scaling(
             except TypeError:
                 raise TypeError("Feature-wise min and max ranges need to be specified.")
             d_scaled = (v - d_min) / (d_max - d_min) * (rng[1] - rng[0]) + rng[0]
-            if (
-                center
-            ):  # center the numerical feature values between the min and max feature range
+            if center:  # center the numerical feature values between the min and max feature range
                 d_scaled -= 0.5 * (d_scaled.max() + d_scaled.min())
         if update_feature_range:
             new_feature_range[0][0, k] = d_scaled.min()

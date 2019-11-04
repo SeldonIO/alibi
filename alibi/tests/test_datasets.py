@@ -34,12 +34,7 @@ def test_adult(return_X_y):
 @pytest.mark.parametrize("return_X_y", [True, False])
 def test_imagenet(nb_images, category, return_X_y):
     try:
-        data = fetch_imagenet(
-            category=category,
-            nb_images=nb_images,
-            target_size=(299, 299),
-            return_X_y=return_X_y,
-        )
+        data = fetch_imagenet(category=category, nb_images=nb_images, target_size=(299, 299), return_X_y=return_X_y)
     except RequestException:
         pytest.skip("Imagenet API down")
 

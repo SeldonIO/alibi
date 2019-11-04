@@ -98,9 +98,7 @@ class CEM:
 
         if is_model:  # Keras or TF model
             self.model = True
-            classes = self.sess.run(
-                self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))
-            ).shape[1]
+            classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape), dtype=tf.float32))).shape[1]
         else:
             self.model = False
             classes = self.predict(np.zeros(shape)).shape[1]
@@ -130,63 +128,33 @@ class CEM:
 
         # define tf variables for original and perturbed instances, and target labels
         self.orig = tf.Variable(np.zeros(shape), dtype=tf.float32, name="orig")
-        self.adv = tf.Variable(
-            np.zeros(shape), dtype=tf.float32, name="adv"
-        )  # delta(k)
-        self.adv_s = tf.Variable(
-            np.zeros(shape), dtype=tf.float32, name="adv_s"
-        )  # y(k)
-        self.target = tf.Variable(
-            np.zeros((self.batch_size, classes)), dtype=tf.float32, name="target"
-        )
+        self.adv = tf.Variable(np.zeros(shape), dtype=tf.float32, name="adv")  # delta(k)
+        self.adv_s = tf.Variable(np.zeros(shape), dtype=tf.float32, name="adv_s")  # y(k)
+        self.target = tf.Variable(np.zeros((self.batch_size, classes)), dtype=tf.float32, name="target")
 
         # define tf variable for constant used in FISTA optimization
-        self.const = tf.Variable(
-            np.zeros(self.batch_size), dtype=tf.float32, name="const"
-        )
+        self.const = tf.Variable(np.zeros(self.batch_size), dtype=tf.float32, name="const")
         self.global_step = tf.Variable(0.0, trainable=False, name="global_step")
 
         # define placeholders that will be assigned to relevant variables
         self.assign_orig = tf.placeholder(tf.float32, shape, name="assign_orig")
         self.assign_adv = tf.placeholder(tf.float32, shape, name="assign_adv")
         self.assign_adv_s = tf.placeholder(tf.float32, shape, name="assign_adv_s")
-        self.assign_target = tf.placeholder(
-            tf.float32, (self.batch_size, classes), name="assign_target"
-        )
-        self.assign_const = tf.placeholder(
-            tf.float32, [self.batch_size], name="assign_const"
-        )
+        self.assign_target = tf.placeholder(tf.float32, (self.batch_size, classes), name="assign_target")
+        self.assign_const = tf.placeholder(tf.float32, [self.batch_size], name="assign_const")
         self.assign_no_info = tf.placeholder(tf.float32, shape, name="assign_no_info")
 
         # define conditions and values for element-wise shrinkage thresholding (eq.7)
         with tf.name_scope("shrinkage_thresholding") as scope:
             cond = [
-                tf.cast(
-                    tf.greater(tf.subtract(self.adv_s, self.orig), self.beta),
-                    tf.float32,
-                ),
-                tf.cast(
-                    tf.less_equal(
-                        tf.abs(tf.subtract(self.adv_s, self.orig)), self.beta
-                    ),
-                    tf.float32,
-                ),
-                tf.cast(
-                    tf.less(tf.subtract(self.adv_s, self.orig), tf.negative(self.beta)),
-                    tf.float32,
-                ),
+                tf.cast(tf.greater(tf.subtract(self.adv_s, self.orig), self.beta), tf.float32),
+                tf.cast(tf.less_equal(tf.abs(tf.subtract(self.adv_s, self.orig)), self.beta), tf.float32),
+                tf.cast(tf.less(tf.subtract(self.adv_s, self.orig), tf.negative(self.beta)), tf.float32),
             ]
-            upper = tf.minimum(
-                tf.subtract(self.adv_s, self.beta),
-                tf.cast(feature_range[1], tf.float32),
-            )
-            lower = tf.maximum(
-                tf.add(self.adv_s, self.beta), tf.cast(feature_range[0], tf.float32)
-            )
+            upper = tf.minimum(tf.subtract(self.adv_s, self.beta), tf.cast(feature_range[1], tf.float32))
+            lower = tf.maximum(tf.add(self.adv_s, self.beta), tf.cast(feature_range[0], tf.float32))
             self.assign_adv = (
-                tf.multiply(cond[0], upper)
-                + tf.multiply(cond[1], self.orig)
-                + tf.multiply(cond[2], lower)
+                tf.multiply(cond[0], upper) + tf.multiply(cond[1], self.orig) + tf.multiply(cond[2], lower)
             )
 
         # perturbation update for delta and vector projection on correct set depending on PP or PN (eq.5)
@@ -195,36 +163,26 @@ class CEM:
             proj_d = [
                 tf.cast(
                     tf.greater(
-                        tf.abs(tf.subtract(self.assign_adv, self.no_info)),
-                        tf.abs(tf.subtract(self.orig, self.no_info)),
+                        tf.abs(tf.subtract(self.assign_adv, self.no_info)), tf.abs(tf.subtract(self.orig, self.no_info))
                     ),
                     tf.float32,
                 ),
                 tf.cast(
                     tf.less_equal(
-                        tf.abs(tf.subtract(self.assign_adv, self.no_info)),
-                        tf.abs(tf.subtract(self.orig, self.no_info)),
+                        tf.abs(tf.subtract(self.assign_adv, self.no_info)), tf.abs(tf.subtract(self.orig, self.no_info))
                     ),
                     tf.float32,
                 ),
             ]
             if self.mode == "PP":
-                self.assign_adv = tf.multiply(proj_d[1], self.assign_adv) + tf.multiply(
-                    proj_d[0], self.orig
-                )
+                self.assign_adv = tf.multiply(proj_d[1], self.assign_adv) + tf.multiply(proj_d[0], self.orig)
             elif self.mode == "PN":
-                self.assign_adv = tf.multiply(proj_d[0], self.assign_adv) + tf.multiply(
-                    proj_d[1], self.orig
-                )
+                self.assign_adv = tf.multiply(proj_d[0], self.assign_adv) + tf.multiply(proj_d[1], self.orig)
 
         # perturbation update and vector projection on correct set for y: y(k+1) = assign_adv_s (eq.6)
         with tf.name_scope("perturbation_y") as scope:
-            self.zt = tf.divide(
-                self.global_step, self.global_step + tf.cast(3, tf.float32)
-            )  # k/(k+3) in (eq.6)
-            self.assign_adv_s = self.assign_adv + tf.multiply(
-                self.zt, self.assign_adv - self.adv
-            )
+            self.zt = tf.divide(self.global_step, self.global_step + tf.cast(3, tf.float32))  # k/(k+3) in (eq.6)
+            self.assign_adv_s = self.assign_adv + tf.multiply(self.zt, self.assign_adv - self.adv)
             proj_d_s = [
                 tf.cast(
                     tf.greater(
@@ -242,13 +200,9 @@ class CEM:
                 ),
             ]
             if self.mode == "PP":
-                self.assign_adv_s = tf.multiply(
-                    proj_d_s[1], self.assign_adv_s
-                ) + tf.multiply(proj_d_s[0], self.orig)
+                self.assign_adv_s = tf.multiply(proj_d_s[1], self.assign_adv_s) + tf.multiply(proj_d_s[0], self.orig)
             elif self.mode == "PN":
-                self.assign_adv_s = tf.multiply(
-                    proj_d_s[0], self.assign_adv_s
-                ) + tf.multiply(proj_d_s[1], self.orig)
+                self.assign_adv_s = tf.multiply(proj_d_s[0], self.assign_adv_s) + tf.multiply(proj_d_s[1], self.orig)
 
         # delta(k) <- delta(k+1);  y(k) <- y(k+1)
         with tf.name_scope("update_adv") as scope:
@@ -279,19 +233,11 @@ class CEM:
         with tf.name_scope("loss_ae") as scope:
             # gamma * AE loss
             if self.mode == "PP" and callable(self.ae):
-                self.loss_ae = self.gamma * tf.square(
-                    tf.norm(self.ae(self.delta) - self.delta)
-                )
-                self.loss_ae_s = self.gamma * tf.square(
-                    tf.norm(self.ae(self.delta_s) - self.delta_s)
-                )
+                self.loss_ae = self.gamma * tf.square(tf.norm(self.ae(self.delta) - self.delta))
+                self.loss_ae_s = self.gamma * tf.square(tf.norm(self.ae(self.delta_s) - self.delta_s))
             elif self.mode == "PN" and callable(self.ae):
-                self.loss_ae = self.gamma * tf.square(
-                    tf.norm(self.ae(self.adv) - self.adv)
-                )
-                self.loss_ae_s = self.gamma * tf.square(
-                    tf.norm(self.ae(self.adv_s) - self.adv_s)
-                )
+                self.loss_ae = self.gamma * tf.square(tf.norm(self.ae(self.adv) - self.adv))
+                self.loss_ae_s = self.gamma * tf.square(tf.norm(self.ae(self.adv_s) - self.adv_s))
             else:  # no auto-encoder available
                 self.loss_ae = tf.constant(0.0)
                 self.loss_ae_s = tf.constant(0.0)
@@ -313,28 +259,16 @@ class CEM:
                 target_proba_s = tf.reduce_sum(self.target * self.pred_proba_s, 1)
 
                 # max probability of non target label prediction
-                self.nontarget_proba_max = tf.reduce_max(
-                    (1 - self.target) * self.pred_proba - (self.target * 10000), 1
-                )
-                nontarget_proba_max_s = tf.reduce_max(
-                    (1 - self.target) * self.pred_proba_s - (self.target * 10000), 1
-                )
+                self.nontarget_proba_max = tf.reduce_max((1 - self.target) * self.pred_proba - (self.target * 10000), 1)
+                nontarget_proba_max_s = tf.reduce_max((1 - self.target) * self.pred_proba_s - (self.target * 10000), 1)
 
                 # loss term f(x,d) for PP (eq.4) and PN (eq.2)
                 if self.mode == "PP":
-                    loss_attack = tf.maximum(
-                        0.0, self.nontarget_proba_max - self.target_proba + self.kappa
-                    )
-                    loss_attack_s = tf.maximum(
-                        0.0, nontarget_proba_max_s - target_proba_s + self.kappa
-                    )
+                    loss_attack = tf.maximum(0.0, self.nontarget_proba_max - self.target_proba + self.kappa)
+                    loss_attack_s = tf.maximum(0.0, nontarget_proba_max_s - target_proba_s + self.kappa)
                 elif self.mode == "PN":
-                    loss_attack = tf.maximum(
-                        0.0, -self.nontarget_proba_max + self.target_proba + self.kappa
-                    )
-                    loss_attack_s = tf.maximum(
-                        0.0, -nontarget_proba_max_s + target_proba_s + self.kappa
-                    )
+                    loss_attack = tf.maximum(0.0, -self.nontarget_proba_max + self.target_proba + self.kappa)
+                    loss_attack_s = tf.maximum(0.0, -nontarget_proba_max_s + target_proba_s + self.kappa)
 
                 # c * f(x,d)
                 self.loss_attack = tf.reduce_sum(self.const * loss_attack)
@@ -348,12 +282,7 @@ class CEM:
                 self.loss_opt = self.loss_l2_s + self.loss_ae_s
 
             # add L1 term to overall loss; this is not the loss that will be directly optimized
-            self.loss_total = (
-                self.loss_attack
-                + self.loss_l2
-                + self.loss_ae
-                + tf.multiply(self.beta, self.loss_l1)
-            )
+            self.loss_total = self.loss_attack + self.loss_l2 + self.loss_ae + tf.multiply(self.beta, self.loss_l1)
 
         with tf.name_scope("training") as scope:
             self.learning_rate = tf.train.polynomial_decay(
@@ -363,22 +292,12 @@ class CEM:
             start_vars = set(x.name for x in tf.global_variables())
 
             # first compute, then apply grads
-            self.compute_grads = optimizer.compute_gradients(
-                self.loss_opt, var_list=[self.adv_s]
-            )
+            self.compute_grads = optimizer.compute_gradients(self.loss_opt, var_list=[self.adv_s])
             self.grad_ph = tf.placeholder(tf.float32, name="grad_adv_s")
-            var = [
-                tvar
-                for tvar in tf.trainable_variables()
-                if tvar.name.startswith("adv_s")
-            ][
-                -1
-            ]  # get the last in
+            var = [tvar for tvar in tf.trainable_variables() if tvar.name.startswith("adv_s")][-1]  # get the last in
             # case explainer is re-initialized and a new graph is created
             grad_and_var = [(self.grad_ph, var)]
-            self.apply_grads = optimizer.apply_gradients(
-                grad_and_var, global_step=self.global_step
-            )
+            self.apply_grads = optimizer.apply_gradients(grad_and_var, global_step=self.global_step)
             end_vars = tf.global_variables()
             new_vars = [x for x in end_vars if x.name not in start_vars]
 
@@ -391,9 +310,7 @@ class CEM:
         self.setup.append(self.adv_s.assign(self.assign_adv_s))
         self.setup.append(self.no_info.assign(self.assign_no_info))
 
-        self.init = tf.variables_initializer(
-            var_list=[self.global_step] + [self.adv_s] + [self.adv] + new_vars
-        )
+        self.init = tf.variables_initializer(var_list=[self.global_step] + [self.adv_s] + [self.adv] + new_vars)
 
         if self.write_dir is not None:
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
@@ -412,9 +329,7 @@ class CEM:
         """
         # TODO: find equal distance area in distribution to different classes as "no info" area
         if self.no_info_val is not None:
-            logger.warning(
-                '"no_info_type" variable already defined. Previous values will be overwritten.'
-            )
+            logger.warning('"no_info_type" variable already defined. Previous values will be overwritten.')
 
         # reshape train data
         train_flat = train_data.reshape((train_data.shape[0], -1))
@@ -481,9 +396,7 @@ class CEM:
         pert = np.tile(np.eye(dim) * eps, (shape[0], 1))  # (N*F)xF
         if proba:
             eps_n = eps / (dim - 1)
-            pert += np.tile(
-                (np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1)
-            )  # (N*F)xF
+            pert += np.tile((np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1))  # (N*F)xF
         X_rep = np.repeat(X, dim, axis=0)  # (N*F)xF
         X_pert_pos, X_pert_neg = X_rep + pert, X_rep - pert
         shape = (dim * shape[0],) + shape[1:]
@@ -510,9 +423,7 @@ class CEM:
         # N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
         # dL/dP -> BxP
         preds = self.predict(X)  # NxP
-        preds_pert_pos, preds_pert_neg = self.perturb(
-            preds, self.eps[0], proba=True
-        )  # (N*P)xP
+        preds_pert_pos, preds_pert_neg = self.perturb(preds, self.eps[0], proba=True)  # (N*P)xP
 
         def f(preds_pert):
             return np.sum(Y * preds_pert, axis=1)
@@ -531,18 +442,12 @@ class CEM:
         dl_dp = np.reshape(dl_dp, (X.shape[0], -1)) / (2 * self.eps[0])  # NxP
 
         # dP/dx -> PxF
-        X_pert_pos, X_pert_neg = self.perturb(
-            X, self.eps[1], proba=False
-        )  # (N*F)x(shape of X[0])
+        X_pert_pos, X_pert_neg = self.perturb(X, self.eps[1], proba=False)  # (N*F)x(shape of X[0])
         X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)
         preds_concat = self.predict(X_pert)
         n_pert = X_pert_pos.shape[0]
         dp_dx = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P
-        dp_dx = np.reshape(
-            np.reshape(dp_dx, (X.shape[0], -1)),
-            (X.shape[0], preds.shape[1], -1),
-            order="F",
-        ) / (
+        dp_dx = np.reshape(np.reshape(dp_dx, (X.shape[0], -1)), (X.shape[0], preds.shape[1], -1), order="F") / (
             2 * self.eps[1]
         )  # NxPxF
 
@@ -552,9 +457,7 @@ class CEM:
         if len(idx_nograd) > 0:
             grads[idx_nograd] = np.zeros(grads.shape[1:])
         grads = np.mean(grads, axis=0)  # B*F
-        grads = np.reshape(
-            grads, (self.batch_size,) + self.shape[1:]
-        )  # B*(shape of X[0])
+        grads = np.reshape(grads, (self.batch_size,) + self.shape[1:])  # B*(shape of X[0])
         return grads
 
     def attack(
@@ -584,9 +487,7 @@ class CEM:
 
         # check if no info value has been set either through init or fit
         if self.no_info_val is None:
-            logger.exception(
-                'No value specified for "no_info_val" through init or fit method.'
-            )
+            logger.exception('No value specified for "no_info_val" through init or fit method.')
             raise ValueError
 
         def compare(x: Union[float, int, np.ndarray], y: int) -> bool:
@@ -668,9 +569,7 @@ class CEM:
                     X_der_batch.append(X_der)
                     X_der_batch_s.append(X_der_s)
 
-                    if (
-                        i % self.update_num_grad == 0 and i > 0
-                    ):  # compute numerical gradients
+                    if i % self.update_num_grad == 0 and i > 0:  # compute numerical gradients
                         c = self.const.eval(session=self.sess)
                         X_der_batch = np.concatenate(X_der_batch)
                         X_der_batch_s = np.concatenate(X_der_batch_s)
@@ -691,22 +590,14 @@ class CEM:
                 self.sess.run(self.apply_grads, feed_dict={self.grad_ph: grads})
 
                 # update adv and adv_s with perturbed instances
-                self.sess.run(
-                    [self.adv_updater, self.adv_updater_s, self.delta, self.delta_s]
-                )
+                self.sess.run([self.adv_updater, self.adv_updater_s, self.delta, self.delta_s])
 
                 # compute overall and attack loss, L1+L2 loss, prediction probabilities
                 # on perturbed instances and new adv
                 # L1+L2 and prediction probabilities used to see if adv is better than the current best adv under FISTA
                 if self.model:
                     loss_tot, loss_attack, loss_l1_l2, pred_proba, adv = self.sess.run(
-                        [
-                            self.loss_total,
-                            self.loss_attack,
-                            self.l1_l2,
-                            self.pred_proba,
-                            self.adv,
-                        ]
+                        [self.loss_total, self.loss_attack, self.l1_l2, self.pred_proba, self.adv]
                     )
                 else:
                     # get updated perturbed instances
@@ -724,32 +615,16 @@ class CEM:
                     )
 
                 if verbose and i % (self.max_iterations // 10) == 0:
-                    loss_l2, loss_l1, loss_ae = self.sess.run(
-                        [self.loss_l2, self.loss_l1, self.loss_ae]
-                    )
+                    loss_l2, loss_l1, loss_ae = self.sess.run([self.loss_l2, self.loss_l1, self.loss_ae])
                     target_proba = np.sum(pred_proba * Y)
                     nontarget_proba_max = np.max((1 - Y) * pred_proba)
                     print("\nIteration: {}; Const: {}".format(i, const[0]))
+                    print("Loss total: {:.3f}, loss attack: {:.3f}".format(loss_tot, loss_attack))
+                    print("L2: {:.3f}, L1: {:.3f}, loss AE: {:.3f}".format(loss_l2, loss_l1, loss_ae))
                     print(
-                        "Loss total: {:.3f}, loss attack: {:.3f}".format(
-                            loss_tot, loss_attack
-                        )
+                        "Target proba: {:.2f}, max non target proba: {:.2f}".format(target_proba, nontarget_proba_max)
                     )
-                    print(
-                        "L2: {:.3f}, L1: {:.3f}, loss AE: {:.3f}".format(
-                            loss_l2, loss_l1, loss_ae
-                        )
-                    )
-                    print(
-                        "Target proba: {:.2f}, max non target proba: {:.2f}".format(
-                            target_proba, nontarget_proba_max
-                        )
-                    )
-                    print(
-                        "Gradient graph min/max: {:.3f}/{:.3f}".format(
-                            grads_graph.min(), grads_graph.max()
-                        )
-                    )
+                    print("Gradient graph min/max: {:.3f}/{:.3f}".format(grads_graph.min(), grads_graph.max()))
                     print(
                         "Gradient graph mean/abs mean: {:.3f}/{:.3f}".format(
                             np.mean(grads_graph), np.mean(np.abs(grads_graph))
@@ -757,9 +632,7 @@ class CEM:
                     )
                     if not self.model:
                         print(
-                            "Gradient numerical attack min/max: {:.3f}/{:.3f}".format(
-                                grads_num.min(), grads_num.max()
-                            )
+                            "Gradient numerical attack min/max: {:.3f}/{:.3f}".format(grads_num.min(), grads_num.max())
                         )
                         print(
                             "Gradient numerical mean/abs mean: {:.3f}/{:.3f}".format(
@@ -771,20 +644,14 @@ class CEM:
                 # update best perturbation (distance) and class probabilities
                 # if beta * L1 + L2 < current best and predicted label is the same as the initial label (for PP) or
                 # different from the initial label (for PN); update best current step or global perturbations
-                for batch_idx, (dist, proba, adv_idx) in enumerate(
-                    zip(loss_l1_l2, pred_proba, adv)
-                ):
+                for batch_idx, (dist, proba, adv_idx) in enumerate(zip(loss_l1_l2, pred_proba, adv)):
                     # current step
-                    if dist < current_best_dist[batch_idx] and compare(
-                        proba, np.argmax(Y[batch_idx])
-                    ):
+                    if dist < current_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):
                         current_best_dist[batch_idx] = dist
                         current_best_proba[batch_idx] = np.argmax(proba)
 
                     # global
-                    if dist < overall_best_dist[batch_idx] and compare(
-                        proba, np.argmax(Y[batch_idx])
-                    ):
+                    if dist < overall_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):
                         if verbose:
                             print("\nNew best {} found!".format(self.mode))
                         overall_best_dist[batch_idx] = dist
@@ -802,19 +669,13 @@ class CEM:
                     # of the loss by reducing 'c'; aiming to find a perturbation closer to the original instance
                     const_ub[batch_idx] = min(const_ub[batch_idx], const[batch_idx])
                     if const_ub[batch_idx] < 1e9:
-                        const[batch_idx] = (
-                            const_lb[batch_idx] + const_ub[batch_idx]
-                        ) / 2
+                        const[batch_idx] = (const_lb[batch_idx] + const_ub[batch_idx]) / 2
                 else:
                     # no valid current solution; put more weight on the first loss term to try and meet the
                     # prediction constraint before finetuning the solution with the regularization terms
-                    const_lb[batch_idx] = max(
-                        const_lb[batch_idx], const[batch_idx]
-                    )  # update lower bound to constant
+                    const_lb[batch_idx] = max(const_lb[batch_idx], const[batch_idx])  # update lower bound to constant
                     if const_ub[batch_idx] < 1e9:
-                        const[batch_idx] = (
-                            const_lb[batch_idx] + const_ub[batch_idx]
-                        ) / 2
+                        const[batch_idx] = (const_lb[batch_idx] + const_ub[batch_idx]) / 2
                     else:
                         const[batch_idx] *= 10
 
@@ -828,9 +689,7 @@ class CEM:
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
-    def explain(
-        self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False
-    ) -> dict:
+    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> dict:
         """
         Explain instance and return PP or PN with metadata.
 
@@ -850,16 +709,13 @@ class CEM:
         """
         if X.shape[0] != 1:
             logger.warning(
-                "Currently only single instance explanations supported (first dim = 1), "
-                "but first dim = %s",
+                "Currently only single instance explanations supported (first dim = 1), " "but first dim = %s",
                 X.shape[0],
             )
 
         if Y is None:
             if self.model:
-                Y = self.sess.run(
-                    self.predict(tf.convert_to_tensor(X, dtype=tf.float32))
-                )
+                Y = self.sess.run(self.predict(tf.convert_to_tensor(X, dtype=tf.float32)))
             else:
                 Y = self.predict(X)
             Y_ohe = np.zeros(Y.shape)
@@ -881,9 +737,7 @@ class CEM:
 
         explanation[self.mode] = best_attack
         if self.model:
-            Y_pert = self.sess.run(
-                self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32))
-            )
+            Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
         else:
             Y_pert = self.predict(best_attack)
         explanation[self.mode + "_pred"] = np.argmax(Y_pert, axis=1)[0]

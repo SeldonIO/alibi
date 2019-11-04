@@ -2,9 +2,7 @@ import numpy as np
 from typing import Tuple, List
 
 
-def ohe_to_ord_shape(
-    shape: tuple, cat_vars: dict = None, is_ohe: bool = False
-) -> tuple:
+def ohe_to_ord_shape(shape: tuple, cat_vars: dict = None, is_ohe: bool = False) -> tuple:
     """
     Infer shape of instance if the categorical variables have ordinal instead of on-hot encoding.
 

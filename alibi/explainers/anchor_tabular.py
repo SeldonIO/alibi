@@ -6,9 +6,7 @@ from typing import Callable, Tuple, Dict, Any, Set
 
 
 class AnchorTabular(object):
-    def __init__(
-        self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}
-    ) -> None:
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -30,14 +28,10 @@ class AnchorTabular(object):
 
         # define column indices of categorical and ordinal features
         self.categorical_features = sorted(categorical_names.keys())
-        self.ordinal_features = [
-            x for x in range(len(feature_names)) if x not in self.categorical_features
-        ]
+        self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.feature_names = feature_names
-        self.categorical_names = (
-            categorical_names.copy()
-        )  # dict with {col: categorical feature options}
+        self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
     def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
         """
@@ -53,12 +47,7 @@ class AnchorTabular(object):
         self.train_data = train_data
 
         # discretization of ordinal features
-        self.disc = Discretizer(
-            self.train_data,
-            self.categorical_features,
-            self.feature_names,
-            percentiles=disc_perc,
-        )
+        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
 
         # add discretized ordinal features to categorical features
@@ -77,12 +66,7 @@ class AnchorTabular(object):
             self.std[f] = np.std(train_data[:, f])
 
     def sample_from_train(
-        self,
-        conditions_eq: dict,
-        conditions_neq: dict,
-        conditions_geq: dict,
-        conditions_leq: dict,
-        num_samples: int,
+        self, conditions_eq: dict, conditions_neq: dict, conditions_geq: dict, conditions_leq: dict, num_samples: int
     ) -> np.ndarray:
         """
         Sample data from training set but keep features which are present in the proposed anchor the same
@@ -155,9 +139,7 @@ class AnchorTabular(object):
             if f in conditions_geq:
                 continue
 
-            idx = (
-                d_sample[:, f] > conditions_leq[f]
-            )  # idx where feature value is in a higher bin than the observation
+            idx = d_sample[:, f] > conditions_leq[f]  # idx where feature value is in a higher bin than the observation
 
             if idx.sum() == 0:
                 continue  # if all values in sampled data have same bin as instance to be explained
@@ -176,9 +158,7 @@ class AnchorTabular(object):
 
         return sample
 
-    def get_sample_fn(
-        self, X: np.ndarray, desired_label: int = None
-    ) -> Tuple[Callable, dict]:
+    def get_sample_fn(self, X: np.ndarray, desired_label: int = None) -> Tuple[Callable, dict]:
         """
         Create sampling function and mapping dictionary between categorized data and the feature types and values.
 
@@ -208,13 +188,9 @@ class AnchorTabular(object):
         X = self.disc.discretize(X.reshape(1, -1))[0]
         for f in self.categorical_features:
             if f in self.ordinal_features:
-                for v in range(
-                    len(self.categorical_names[f])
-                ):  # loop over nb of bins for the ordinal features
+                for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
                     idx = len(mapping)
-                    if (
-                        X[f] <= v and v != len(self.categorical_names[f]) - 1
-                    ):  # feature value <= bin value
+                    if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
                         mapping[idx] = (f, "leq", v)  # store bin value
                     elif X[f] > v:  # feature value > bin value
                         mapping[idx] = (f, "geq", v)  # store bin value
@@ -258,22 +234,16 @@ class AnchorTabular(object):
                 if op == "leq":  # ordinal feature
                     if f not in conditions_leq:
                         conditions_leq[f] = v
-                    conditions_leq[f] = min(
-                        conditions_leq[f], v
-                    )  # store smallest bin > feature value
+                    conditions_leq[f] = min(conditions_leq[f], v)  # store smallest bin > feature value
                 if op == "geq":  # ordinal feature
                     if f not in conditions_geq:
                         conditions_geq[f] = v
-                    conditions_geq[f] = max(
-                        conditions_geq[f], v
-                    )  # store largest bin < feature value
+                    conditions_geq[f] = max(conditions_geq[f], v)  # store largest bin < feature value
 
             # sample data from training set
             # feature values are from same discretized bin or category as the explained instance ...
             # ... if defined in conditions dicts
-            raw_data = self.sample_from_train(
-                conditions_eq, {}, conditions_geq, conditions_leq, num_samples
-            )
+            raw_data = self.sample_from_train(conditions_eq, {}, conditions_geq, conditions_leq, num_samples)
 
             # discretize sampled data
             d_raw_data = self.disc.discretize(raw_data)
@@ -399,10 +369,7 @@ class AnchorTabular(object):
                 fname = "%s = " % self.feature_names[f]
                 if f in self.categorical_names:
                     v = int(v)
-                    if (
-                        "<" in self.categorical_names[f][v]
-                        or ">" in self.categorical_names[f][v]
-                    ):
+                    if "<" in self.categorical_names[f][v] or ">" in self.categorical_names[f][v]:
                         fname = ""
                     fname = "%s%s" % (fname, self.categorical_names[f][v])
                 else:

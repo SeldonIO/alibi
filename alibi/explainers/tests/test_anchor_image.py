@@ -24,9 +24,7 @@ def test_anchor_image():
         x = Flatten()(x)
         x_out = Dense(10, activation="softmax")(x)
         cnn = Model(inputs=x_in, outputs=x_out)
-        cnn.compile(
-            loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
-        )
+        cnn.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
         return cnn
 
     cnn = model()
@@ -38,10 +36,7 @@ def test_anchor_image():
     segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
     image_shape = (28, 28, 1)
     explainer = AnchorImage(
-        predict_fn,
-        image_shape,
-        segmentation_fn=segmentation_fn,
-        segmentation_kwargs=segmentation_kwargs,
+        predict_fn, image_shape, segmentation_fn=segmentation_fn, segmentation_kwargs=segmentation_kwargs
     )
     assert explainer.predict_fn(np.zeros((1,) + image_shape)).shape == (1,)
 

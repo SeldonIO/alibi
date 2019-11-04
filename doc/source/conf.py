@@ -146,9 +146,7 @@ html_theme_options = {"logo_only": True}
 html_static_path = ["_static"]
 
 # override default theme width
-html_context = {
-    "css_files": ["_static/theme_overrides.css"]  # override wide tables in RTD theme
-}
+html_context = {"css_files": ["_static/theme_overrides.css"]}  # override wide tables in RTD theme
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -186,15 +184,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
-latex_documents = [
-    (
-        master_doc,
-        "alibi.tex",
-        "alibi Documentation",
-        "Seldon Technologies Ltd",
-        "manual",
-    )
-]
+latex_documents = [(master_doc, "alibi.tex", "alibi Documentation", "Seldon Technologies Ltd", "manual")]
 
 # -- Options for manual page output ------------------------------------------
 
@@ -208,15 +198,7 @@ man_pages = [(master_doc, "alibi", "alibi Documentation", [author], 1)]
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (
-        master_doc,
-        "alibi",
-        "alibi Documentation",
-        author,
-        "alibi",
-        "One line description of project.",
-        "Miscellaneous",
-    )
+    (master_doc, "alibi", "alibi Documentation", author, "alibi", "One line description of project.", "Miscellaneous")
 ]
 
 # -- Options for Epub output -------------------------------------------------
@@ -262,14 +244,10 @@ nbsphinx_link_target_root = repo
 import subprocess
 
 try:
-    git_rev = subprocess.check_output(
-        ["git", "describe", "--exact-match", "HEAD"], universal_newlines=True
-    )
+    git_rev = subprocess.check_output(["git", "describe", "--exact-match", "HEAD"], universal_newlines=True)
 except subprocess.CalledProcessError:
     try:
-        git_rev = subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], universal_newlines=True
-        )
+        git_rev = subprocess.check_output(["git", "rev-parse", "HEAD"], universal_newlines=True)
     except subprocess.CalledProcessError:
         git_rev = ""
 if git_rev:

@@ -45,12 +45,7 @@ def imagenet(
         stacklevel=2,
     )
     return fetch_imagenet(
-        category=category,
-        nb_images=nb_images,
-        target_size=target_size,
-        min_std=min_std,
-        seed=seed,
-        return_X_y=True,
+        category=category, nb_images=nb_images, target_size=target_size, min_std=min_std, seed=seed, return_X_y=True
     )
 
 
@@ -71,9 +66,7 @@ def adult(features_drop=None):
     import warnings
 
     warnings.warn(
-        "`adult` is deprecated and will be removed soon, use `fetch_adult` instead",
-        DeprecationWarning,
-        stacklevel=2,
+        "`adult` is deprecated and will be removed soon, use `fetch_adult` instead", DeprecationWarning, stacklevel=2
     )
     bunch = fetch_adult(features_drop)
     return bunch.data, bunch.target, bunch.feature_names, bunch.category_map
@@ -120,10 +113,7 @@ def fetch_imagenet(
         "centipede": "n01784675",
         "jellyfish": "n01910747",
     }
-    url = (
-        "http://www.image-net.org/api/text/imagenet.synset.geturls?wnid="
-        + mapping[category]
-    )
+    url = "http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=" + mapping[category]
     try:
         page = requests.get(url)
         page.raise_for_status()
@@ -179,9 +169,7 @@ def fetch_imagenet(
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_movie_sentiment(
-    return_X_y: bool = False, url_id: int = 0
-) -> Union[Bunch, Tuple[list, list]]:
+def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bunch, Tuple[list, list]]:
     """
     The movie review dataset, equally split between negative and positive reviews.
 
@@ -280,9 +268,7 @@ def fetch_adult(
         logger.exception("Could not connect, URL may be out of service")
         raise
 
-    raw_data = pd.read_csv(
-        StringIO(resp.text), names=raw_features, delimiter=", ", engine="python"
-    ).fillna("?")
+    raw_data = pd.read_csv(StringIO(resp.text), names=raw_features, delimiter=", ", engine="python").fillna("?")
 
     # get labels, features and drop unnecessary features
     labels = (raw_data["Target"] == ">50K").astype(int).values
@@ -404,10 +390,4 @@ def fetch_adult(
     if return_X_y:
         return data, labels
 
-    return Bunch(
-        data=data,
-        target=labels,
-        feature_names=features,
-        target_names=target_names,
-        category_map=category_map,
-    )
+    return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)

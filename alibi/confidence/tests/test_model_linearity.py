@@ -4,11 +4,7 @@ from sklearn.datasets import load_iris, load_boston
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
 from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
-from alibi.confidence.model_linearity import (
-    _linear_superposition,
-    _sample_grid,
-    _sample_knn,
-)
+from alibi.confidence.model_linearity import _linear_superposition, _sample_grid, _sample_knn
 from functools import reduce
 
 
@@ -81,14 +77,7 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
         return lg.predict_proba(x)
 
     lin = linearity_measure(
-        predict_fn,
-        x,
-        method=method,
-        epsilon=epsilon,
-        X_train=X_train,
-        res=res,
-        model_type="classifier",
-        agg=agg,
+        predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res, model_type="classifier", agg=agg
     )
     assert lin.shape[0] == nb_instances, "Checking shapes"
     assert (lin >= 0).all(), "Linearity measure must be >= 0"
@@ -104,9 +93,7 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
         model_type="classifier",
         agg=agg,
     )
-    assert (
-        lin_2.shape[0] == nb_instances
-    ), "Nb of linearity values returned different from number of instances"
+    assert lin_2.shape[0] == nb_instances, "Nb of linearity values returned different from number of instances"
     assert (lin_2 >= 0).all(), "Linearity measure must be >= 0"
 
 
@@ -133,28 +120,14 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
         return lg.predict(x)
 
     lin = linearity_measure(
-        predict_fn,
-        x,
-        method=method,
-        epsilon=epsilon,
-        X_train=X_train,
-        res=res,
-        model_type="regressor",
-        agg=agg,
+        predict_fn, x, method=method, epsilon=epsilon, X_train=X_train, res=res, model_type="regressor", agg=agg
     )
     assert lin.shape[0] == nb_instances, "Checking shapes"
     assert (lin >= 0).all(), "Linearity measure must be >= 0"
     assert np.allclose(lin, np.zeros(lin.shape))
 
     lin_svr = linearity_measure(
-        predict_fn_svr,
-        x,
-        method=method,
-        epsilon=epsilon,
-        X_train=X_train,
-        res=res,
-        model_type="regressor",
-        agg=agg,
+        predict_fn_svr, x, method=method, epsilon=epsilon, X_train=X_train, res=res, model_type="regressor", agg=agg
     )
     assert lin_svr.shape[0] == nb_instances, "Checking shapes"
     assert (lin_svr >= 0).all(), "Linearity measure must be >= 0"
@@ -195,9 +168,7 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
     def predict_fn_multi(x):
         return lg_multi.predict(x)
 
-    lm_multi = LinearityMeasure(
-        method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg
-    )
+    lm_multi = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg)
     lm_multi.fit(X_train)
     lin_multi = lm_multi.score(predict_fn_multi, x)
     assert lin_multi.shape[0] == nb_instances, "Checking shapes"
@@ -223,9 +194,7 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
     def predict_fn(x):
         return lg.predict_proba(x)
 
-    lm = LinearityMeasure(
-        method=method, epsilon=epsilon, res=res, model_type="classifier", agg=agg
-    )
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type="classifier", agg=agg)
     lm.fit(X_train)
     lin = lm.score(predict_fn, x)
     assert lin.shape[0] == nb_instances, "Checking shapes"
@@ -256,18 +225,14 @@ def test_LinearityMeasure_reg(method, epsilon, res, nb_instances, agg):
     def predict_fn_multi(x):
         return lg_multi.predict(x)
 
-    lm = LinearityMeasure(
-        method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg
-    )
+    lm = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg)
     lm.fit(X_train)
     lin = lm.score(predict_fn, x)
     assert lin.shape[0] == nb_instances, "Checking shapes"
     assert (lin >= 0).all(), "Linearity measure must be >= 0"
     assert np.allclose(lin, np.zeros(lin.shape))
 
-    lm_multi = LinearityMeasure(
-        method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg
-    )
+    lm_multi = LinearityMeasure(method=method, epsilon=epsilon, res=res, model_type="regressor", agg=agg)
     lm_multi.fit(X_train)
     lin_multi = lm_multi.score(predict_fn_multi, x)
     assert lin_multi.shape[0] == nb_instances, "Checking shapes"

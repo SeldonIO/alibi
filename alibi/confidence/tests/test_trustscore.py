@@ -45,14 +45,11 @@ def test_trustscore(filter_type):
 
     assert len(ts.kdtrees) == 3
 
-    # check distances for the first class to itself and the first nearest neighbor in the KDTrees
+    # check distances for the first class to itself and the first nearest neighbor
+    # in the KDTrees
     if filter_type is None:
-        assert (ts.kdtrees[0].query(X_train, k=2)[0][:50, 0] != 0).astype(
-            int
-        ).sum() == 0
-        assert (ts.kdtrees[0].query(X_train, k=2)[0][:50, 1] == 0).astype(
-            int
-        ).sum() == 0
+        assert (ts.kdtrees[0].query(X_train, k=2)[0][:50, 0] != 0).astype(int).sum() == 0
+        assert (ts.kdtrees[0].query(X_train, k=2)[0][:50, 1] == 0).astype(int).sum() == 0
 
     # test one-hot encoding of Y vs. class labels
     ts = TrustScore()

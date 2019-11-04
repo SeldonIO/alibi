@@ -25,9 +25,7 @@ class Discretizer(object):
         percentiles
             Percentiles used for discretization
         """
-        self.to_discretize = [
-            x for x in range(data.shape[1]) if x not in categorical_features
-        ]
+        self.to_discretize = [x for x in range(data.shape[1]) if x not in categorical_features]
         self.percentiles = percentiles
 
         bins = self.bins(data)
@@ -44,9 +42,7 @@ class Discretizer(object):
             # create names for bins of discretized features
             self.names[feature] = ["%s <= %.2f" % (name, qts[0])]
             for i in range(n_bins - 1):
-                self.names[feature].append(
-                    "%.2f < %s <= %.2f" % (qts[i], name, qts[i + 1])
-                )
+                self.names[feature].append("%.2f < %s <= %.2f" % (qts[i], name, qts[i + 1]))
             self.names[feature].append("%s > %.2f" % (name, qts[n_bins - 1]))
             self.lambdas[feature] = lambda x, qts=qts: np.searchsorted(qts, x)
 
@@ -83,7 +79,5 @@ class Discretizer(object):
             if len(data.shape) == 1:
                 data_disc[feature] = int(self.lambdas[feature](data_disc[feature]))
             else:
-                data_disc[:, feature] = self.lambdas[feature](
-                    data_disc[:, feature]
-                ).astype(int)
+                data_disc[:, feature] = self.lambdas[feature](data_disc[:, feature]).astype(int)
         return data_disc

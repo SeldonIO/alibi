@@ -30,30 +30,13 @@ def test_cem():
 
     # test explainer initialization
     shape = (1, 4)
-    feature_range = (
-        X.min(axis=0).reshape(shape) - 0.1,
-        X.max(axis=0).reshape(shape) + 0.1,
-    )
-    cem = CEM(
-        predict_fn,
-        "PN",
-        shape,
-        feature_range=feature_range,
-        max_iterations=10,
-        no_info_val=-1.0,
-    )
+    feature_range = (X.min(axis=0).reshape(shape) - 0.1, X.max(axis=0).reshape(shape) + 0.1)
+    cem = CEM(predict_fn, "PN", shape, feature_range=feature_range, max_iterations=10, no_info_val=-1.0)
     explanation = cem.explain(X_expl, verbose=False)
 
     assert not cem.model
     if cem.best_attack:
-        assert set(explanation.keys()) >= {
-            "X",
-            "X_pred",
-            "PN",
-            "PN_pred",
-            "grads_graph",
-            "grads_num",
-        }
+        assert set(explanation.keys()) >= {"X", "X_pred", "PN", "PN_pred", "grads_graph", "grads_num"}
         assert (explanation["X"] != explanation["PN"]).astype(int).sum() > 0
         assert explanation["X_pred"] != explanation["PN_pred"]
         assert explanation["grads_graph"].shape == explanation["grads_num"].shape

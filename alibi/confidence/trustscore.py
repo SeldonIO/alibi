@@ -29,13 +29,16 @@ class TrustScore(object):
         filter_type
             Filter method; either 'distance_knn' or 'probability_knn'
         leaf_size
-            Number of points at which to switch to brute-force. Affects speed and memory required to build trees.
-            Memory to store the tree scales with n_samples / leaf_size.
+            Number of points at which to switch to brute-force. Affects speed and memory
+            required to build trees. Memory to store the tree scales with
+            n_samples / leaf_size.
         metric
-            Distance metric used for the tree. See sklearn's DistanceMetric class for a list of available metrics.
+            Distance metric used for the tree. See sklearn's DistanceMetric class
+            for a list of available metrics.
         dist_filter_type
-            Use either the distance to the k-nearest point (dist_filter_type = 'point') or
-            the average distance from the first to the k-nearest point in the data (dist_filter_type = 'mean').
+            Use either the distance to the k-nearest point (dist_filter_type = 'point')
+            or the average distance from the first to the k-nearest point in the data
+            (dist_filter_type = 'mean').
         """
         self.k_filter = k_filter
         self.alpha = alpha
@@ -47,8 +50,8 @@ class TrustScore(object):
 
     def filter_by_distance_knn(self, X: np.ndarray) -> np.ndarray:
         """
-        Filter out instances with low kNN density. Calculate distance to k-nearest point in the data for each
-        instance and remove instances above a cutoff distance.
+        Filter out instances with low kNN density. Calculate distance to k-nearest point
+        in the data for each instance and remove instances above a cutoff distance.
 
         Parameters
         ----------
@@ -60,24 +63,19 @@ class TrustScore(object):
         Filtered data.
         """
         kdtree = KDTree(X, leaf_size=self.leaf_size, metric=self.metric)
-        knn_r = kdtree.query(X, k=self.k_filter + 1)[
-            0
-        ]  # distances from 0 to k-nearest points
+        knn_r = kdtree.query(X, k=self.k_filter + 1)[0]  # distances from 0 to k-nearest points
         if self.dist_filter_type == "point":
             knn_r = knn_r[:, -1]
         elif self.dist_filter_type == "mean":
-            knn_r = np.mean(
-                knn_r[:, 1:], axis=1
-            )  # exclude distance of instance to itself
+            knn_r = np.mean(knn_r[:, 1:], axis=1)  # exclude distance of instance to itself
         cutoff_r = np.percentile(knn_r, (1 - self.alpha) * 100)  # cutoff distance
         X_keep = X[np.where(knn_r <= cutoff_r)[0], :]  # define instances to keep
         return X_keep
 
-    def filter_by_probability_knn(
-        self, X: np.ndarray, Y: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    def filter_by_probability_knn(self, X: np.ndarray, Y: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Filter out instances with high label disagreement amongst its k nearest neighbors.
+        Filter out instances with high label disagreement amongst its k nearest
+        neighbors.
 
         Parameters
         ----------
@@ -92,22 +90,18 @@ class TrustScore(object):
         """
         if self.k_filter == 1:
             logger.warning(
-                "Number of nearest neighbors used for probability density filtering should "
-                "be >1, otherwise the prediction probabilities are either 0 or 1 making "
-                "probability filtering useless."
+                "Number of nearest neighbors used for probability density filtering "
+                "should be >1, otherwise the prediction probabilities are either 0 or 1 "
+                "making probability filtering useless."
             )
         # fit kNN classifier and make predictions on X
-        clf = KNeighborsClassifier(
-            n_neighbors=self.k_filter, leaf_size=self.leaf_size, metric=self.metric
-        )
+        clf = KNeighborsClassifier(n_neighbors=self.k_filter, leaf_size=self.leaf_size, metric=self.metric)
         clf.fit(X, Y)
         preds_proba = clf.predict_proba(X)
         # define cutoff and instances to keep
         preds_max = np.max(preds_proba, axis=1)
         cutoff_proba = np.percentile(preds_max, self.alpha * 100)  # cutoff probability
-        keep_id = np.where(preds_max >= cutoff_proba)[
-            0
-        ]  # define id's of instances to keep
+        keep_id = np.where(preds_max >= cutoff_proba)[0]  # define id's of instances to keep
         X_keep, Y_keep = X[keep_id, :], Y[keep_id]
         return X_keep, Y_keep
 
@@ -122,7 +116,8 @@ class TrustScore(object):
         Y
             Target labels, either one-hot encoded or the actual class label.
         classes
-            Number of prediction classes, needs to be provided if Y equals the predicted class.
+            Number of prediction classes, needs to be provided if Y equals
+            the predicted class.
         """
         self.classes = classes if classes is not None else Y.shape[1]
         self.kdtrees = [None] * self.classes  # type: Any
@@ -156,14 +151,9 @@ class TrustScore(object):
             if no_x_fit and len(X[np.where(Y == c)[0]]) == 0:
                 logger.warning("No instances available for class %s", c)
             elif no_x_fit:
-                logger.warning(
-                    "Filtered all the instances for class %s. Lower alpha or check data.",
-                    c,
-                )
+                logger.warning("Filtered all the instances for class %s. Lower alpha or check data.", c)
 
-            self.kdtrees[c] = KDTree(
-                X_fit, leaf_size=self.leaf_size, metric=self.metric
-            )  # build KDTree for class c
+            self.kdtrees[c] = KDTree(X_fit, leaf_size=self.leaf_size, metric=self.metric)  # build KDTree for class c
             self.X_kdtree[c] = X_fit
 
     def score(
@@ -201,27 +191,19 @@ class TrustScore(object):
             )
             X = X.reshape(X.shape[0], -1)
 
-        d = np.tile(
-            None, (X.shape[0], self.classes)
-        )  # init distance matrix: [nb instances, nb classes]
+        d = np.tile(None, (X.shape[0], self.classes))  # init distance matrix: [nb instances, nb classes]
 
         for c in range(self.classes):
-            d_tmp = self.kdtrees[c].query(X, k=k)[
-                0
-            ]  # get k nearest neighbors for each class
+            d_tmp = self.kdtrees[c].query(X, k=k)[0]  # get k nearest neighbors for each class
             if dist_type == "point":
                 d[:, c] = d_tmp[:, -1]
             elif dist_type == "mean":
                 d[:, c] = np.mean(d_tmp, axis=1)
 
-        sorted_d = np.sort(
-            d, axis=1
-        )  # sort distance each instance in batch over classes
+        sorted_d = np.sort(d, axis=1)  # sort distance each instance in batch over classes
         # get distance to predicted and closest other class and calculate trust score
         d_to_pred = d[range(d.shape[0]), Y]
-        d_to_closest_not_pred = np.where(
-            sorted_d[:, 0] != d_to_pred, sorted_d[:, 0], sorted_d[:, 1]
-        )
+        d_to_closest_not_pred = np.where(sorted_d[:, 0] != d_to_pred, sorted_d[:, 0], sorted_d[:, 1])
         trust_score = d_to_closest_not_pred / (d_to_pred + self.eps)
         # closest not predicted class
         class_closest_not_pred = np.where(d == d_to_closest_not_pred.reshape(-1, 1))[1]

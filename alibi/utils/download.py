@@ -3,7 +3,7 @@ from spacy.util import get_package_path
 from spacy.cli import download, link
 
 
-def spacy_model(model: str = 'en_core_web_md') -> None:
+def spacy_model(model: str = "en_core_web_md") -> None:
     """
     Download spaCy model.
 

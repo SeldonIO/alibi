@@ -9,9 +9,11 @@ from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
 
-__all__ = ["AnchorTabular",
-           "AnchorText",
-           "AnchorImage",
-           "CEM",
-           "CounterFactual",
-           "CounterFactualProto"]
+__all__ = [
+    "AnchorTabular",
+    "AnchorText",
+    "AnchorImage",
+    "CEM",
+    "CounterFactual",
+    "CounterFactualProto",
+]

@@ -2,9 +2,9 @@ from typing import Union, Tuple, Callable
 import numpy as np
 
 
-def perturb(X: np.ndarray,
-            eps: Union[float, np.ndarray] = 1e-08,
-            proba: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+def perturb(
+    X: np.ndarray, eps: Union[float, np.ndarray] = 1e-08, proba: bool = False
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Apply perturbation to instance or prediction probabilities. Used for numerical calculation of gradients.
 
@@ -28,7 +28,9 @@ def perturb(X: np.ndarray,
     pert = np.tile(np.eye(dim) * eps, (shape[0], 1))  # (N*F)xF
     if proba:
         eps_n = eps / (dim - 1)
-        pert += np.tile((np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1))  # (N*F)xF
+        pert += np.tile(
+            (np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1)
+        )  # (N*F)xF
     X_rep = np.repeat(X, dim, axis=0)  # (N*F)xF
     X_pert_pos, X_pert_neg = X_rep + pert, X_rep - pert
     shape = (dim * shape[0],) + shape[1:]
@@ -37,10 +39,12 @@ def perturb(X: np.ndarray,
     return X_pert_pos, X_pert_neg
 
 
-def num_grad_batch(func: Callable,
-                   X: np.ndarray,
-                   args: Tuple = (),
-                   eps: Union[float, np.ndarray] = 1e-08) -> np.ndarray:
+def num_grad_batch(
+    func: Callable,
+    X: np.ndarray,
+    args: Tuple = (),
+    eps: Union[float, np.ndarray] = 1e-08,
+) -> np.ndarray:
     """
     Calculate the numerical gradients of a vector-valued function (typically a prediction function in classification)
     with respect to a batch of arrays X.
@@ -71,8 +75,11 @@ def num_grad_batch(func: Callable,
     n_pert = X_pert_pos.shape[0]
 
     grad_numerator = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P
-    grad_numerator = np.reshape(np.reshape(grad_numerator, (batch_size, -1)),
-                                (batch_size, preds.shape[1], -1), order='F')  # NxPxF
+    grad_numerator = np.reshape(
+        np.reshape(grad_numerator, (batch_size, -1)),
+        (batch_size, preds.shape[1], -1),
+        order="F",
+    )  # NxPxF
 
     grad = grad_numerator / (2 * eps)  # NxPxF
     grad = grad.reshape(preds.shape + data_shape)  # BxPx(shape of X[0])

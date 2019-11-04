@@ -6,13 +6,12 @@ shape_ohe = X_ohe.shape
 cat_vars_ohe = {0: 2, 3: 2}
 is_ohe = True
 
-X_ord = np.array([[1., 0.1, 0., 0.2]]).astype(np.float32)
+X_ord = np.array([[1.0, 0.1, 0.0, 0.2]]).astype(np.float32)
 shape_ord = X_ord.shape
 cat_vars_ord = {0: 2, 2: 2}
 
-dist = {0: np.array([.3, .4]),
-        2: np.array([.5, .6, .7])}
-X_num = np.array([[.4, .1, .5, .2]]).astype(np.float32)
+dist = {0: np.array([0.3, 0.4]), 2: np.array([0.5, 0.6, 0.7])}
+X_num = np.array([[0.4, 0.1, 0.5, 0.2]]).astype(np.float32)
 
 
 def test_mapping_fn():

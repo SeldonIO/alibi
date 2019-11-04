@@ -3,9 +3,13 @@ from typing import Dict, Callable, List
 
 
 class Discretizer(object):
-
-    def __init__(self, data: np.ndarray, categorical_features: List[int], feature_names: List[str],
-                 percentiles: List[int] = [25, 50, 75]) -> None:
+    def __init__(
+        self,
+        data: np.ndarray,
+        categorical_features: List[int],
+        feature_names: List[str],
+        percentiles: List[int] = [25, 50, 75],
+    ) -> None:
         """
         Initialize the discretizer.
 
@@ -21,7 +25,9 @@ class Discretizer(object):
         percentiles
             Percentiles used for discretization
         """
-        self.to_discretize = ([x for x in range(data.shape[1]) if x not in categorical_features])
+        self.to_discretize = [
+            x for x in range(data.shape[1]) if x not in categorical_features
+        ]
         self.percentiles = percentiles
 
         bins = self.bins(data)
@@ -36,11 +42,13 @@ class Discretizer(object):
             name = feature_names[feature]
 
             # create names for bins of discretized features
-            self.names[feature] = ['%s <= %.2f' % (name, qts[0])]
+            self.names[feature] = ["%s <= %.2f" % (name, qts[0])]
             for i in range(n_bins - 1):
-                self.names[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
-            self.names[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
-            self.lambdas[feature] = lambda x, qts = qts: np.searchsorted(qts, x)
+                self.names[feature].append(
+                    "%.2f < %s <= %.2f" % (qts[i], name, qts[i + 1])
+                )
+            self.names[feature].append("%s > %.2f" % (name, qts[n_bins - 1]))
+            self.lambdas[feature] = lambda x, qts=qts: np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:
         """
@@ -75,5 +83,7 @@ class Discretizer(object):
             if len(data.shape) == 1:
                 data_disc[feature] = int(self.lambdas[feature](data_disc[feature]))
             else:
-                data_disc[:, feature] = self.lambdas[feature](data_disc[:, feature]).astype(int)
+                data_disc[:, feature] = self.lambdas[feature](
+                    data_disc[:, feature]
+                ).astype(int)
         return data_disc

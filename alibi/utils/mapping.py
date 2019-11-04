@@ -2,7 +2,9 @@ import numpy as np
 from typing import Tuple, List
 
 
-def ohe_to_ord_shape(shape: tuple, cat_vars: dict = None, is_ohe: bool = False) -> tuple:
+def ohe_to_ord_shape(
+    shape: tuple, cat_vars: dict = None, is_ohe: bool = False
+) -> tuple:
     """
     Infer shape of instance if the categorical variables have ordinal instead of on-hot encoding.
 
@@ -108,7 +110,7 @@ def ord_to_ohe(X_ord: np.ndarray, cat_vars_ord: dict) -> Tuple[np.ndarray, dict]
         if c in ord_vars_keys:
             v = cat_vars_ord[c]
             X_ohe_c = np.zeros((n, v), dtype=np.float32)
-            X_ohe_c[np.arange(n), X_ord[:, c].astype(int)] = 1.
+            X_ohe_c[np.arange(n), X_ord[:, c].astype(int)] = 1.0
             cat_vars_ohe[k] = v
             k += v
             X_list.append(X_ohe_c)
@@ -144,7 +146,7 @@ def ohe_to_ord(X_ohe: np.ndarray, cat_vars_ohe: dict) -> Tuple[np.ndarray, dict]
     while c < cols:
         if c in ohe_vars_keys:
             v = cat_vars_ohe[c]
-            X_ohe_c = X_ohe[:, c:c + v]
+            X_ohe_c = X_ohe[:, c : c + v]
             assert int(np.sum(X_ohe_c, axis=1).sum()) == n
             X_ord_c = np.argmax(X_ohe_c, axis=1)
             cat_vars_ord[len(X_list)] = v

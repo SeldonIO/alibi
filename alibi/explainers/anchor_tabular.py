@@ -6,8 +6,9 @@ from typing import Callable, Tuple, Dict, Any, Set
 
 
 class AnchorTabular(object):
-
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
+    def __init__(
+        self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}
+    ) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -29,10 +30,14 @@ class AnchorTabular(object):
 
         # define column indices of categorical and ordinal features
         self.categorical_features = sorted(categorical_names.keys())
-        self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
+        self.ordinal_features = [
+            x for x in range(len(feature_names)) if x not in self.categorical_features
+        ]
 
         self.feature_names = feature_names
-        self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
+        self.categorical_names = (
+            categorical_names.copy()
+        )  # dict with {col: categorical feature options}
 
     def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
         """
@@ -48,7 +53,12 @@ class AnchorTabular(object):
         self.train_data = train_data
 
         # discretization of ordinal features
-        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
+        self.disc = Discretizer(
+            self.train_data,
+            self.categorical_features,
+            self.feature_names,
+            percentiles=disc_perc,
+        )
         self.d_train_data = self.disc.discretize(self.train_data)
 
         # add discretized ordinal features to categorical features
@@ -66,8 +76,14 @@ class AnchorTabular(object):
             self.max[f] = np.max(train_data[:, f])
             self.std[f] = np.std(train_data[:, f])
 
-    def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
-                          conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
+    def sample_from_train(
+        self,
+        conditions_eq: dict,
+        conditions_neq: dict,
+        conditions_geq: dict,
+        conditions_leq: dict,
+        num_samples: int,
+    ) -> np.ndarray:
         """
         Sample data from training set but keep features which are present in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.
@@ -139,7 +155,9 @@ class AnchorTabular(object):
             if f in conditions_geq:
                 continue
 
-            idx = d_sample[:, f] > conditions_leq[f]  # idx where feature value is in a higher bin than the observation
+            idx = (
+                d_sample[:, f] > conditions_leq[f]
+            )  # idx where feature value is in a higher bin than the observation
 
             if idx.sum() == 0:
                 continue  # if all values in sampled data have same bin as instance to be explained
@@ -158,7 +176,9 @@ class AnchorTabular(object):
 
         return sample
 
-    def get_sample_fn(self, X: np.ndarray, desired_label: int = None) -> Tuple[Callable, dict]:
+    def get_sample_fn(
+        self, X: np.ndarray, desired_label: int = None
+    ) -> Tuple[Callable, dict]:
         """
         Create sampling function and mapping dictionary between categorized data and the feature types and values.
 
@@ -188,18 +208,23 @@ class AnchorTabular(object):
         X = self.disc.discretize(X.reshape(1, -1))[0]
         for f in self.categorical_features:
             if f in self.ordinal_features:
-                for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
+                for v in range(
+                    len(self.categorical_names[f])
+                ):  # loop over nb of bins for the ordinal features
                     idx = len(mapping)
-                    if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
-                        mapping[idx] = (f, 'leq', v)  # store bin value
+                    if (
+                        X[f] <= v and v != len(self.categorical_names[f]) - 1
+                    ):  # feature value <= bin value
+                        mapping[idx] = (f, "leq", v)  # store bin value
                     elif X[f] > v:  # feature value > bin value
-                        mapping[idx] = (f, 'geq', v)  # store bin value
+                        mapping[idx] = (f, "geq", v)  # store bin value
             else:
                 idx = len(mapping)
-                mapping[idx] = (f, 'eq', X[f])  # store feature value
+                mapping[idx] = (f, "eq", X[f])  # store feature value
 
-        def sample_fn(present: list, num_samples: int, compute_labels: bool = True) \
-                -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def sample_fn(
+            present: list, num_samples: int, compute_labels: bool = True
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
             Create sampling function from training data.
 
@@ -228,21 +253,27 @@ class AnchorTabular(object):
             conditions_geq = {}  # type: Dict[int, float]
             for x in present:
                 f, op, v = mapping[x]  # (feature, 'eq'/'leq'/'geq', feature value)
-                if op == 'eq':  # categorical feature
+                if op == "eq":  # categorical feature
                     conditions_eq[f] = v
-                if op == 'leq':  # ordinal feature
+                if op == "leq":  # ordinal feature
                     if f not in conditions_leq:
                         conditions_leq[f] = v
-                    conditions_leq[f] = min(conditions_leq[f], v)  # store smallest bin > feature value
-                if op == 'geq':  # ordinal feature
+                    conditions_leq[f] = min(
+                        conditions_leq[f], v
+                    )  # store smallest bin > feature value
+                if op == "geq":  # ordinal feature
                     if f not in conditions_geq:
                         conditions_geq[f] = v
-                    conditions_geq[f] = max(conditions_geq[f], v)  # store largest bin < feature value
+                    conditions_geq[f] = max(
+                        conditions_geq[f], v
+                    )  # store largest bin < feature value
 
             # sample data from training set
             # feature values are from same discretized bin or category as the explained instance ...
             # ... if defined in conditions dicts
-            raw_data = self.sample_from_train(conditions_eq, {}, conditions_geq, conditions_leq, num_samples)
+            raw_data = self.sample_from_train(
+                conditions_eq, {}, conditions_geq, conditions_leq, num_samples
+            )
 
             # discretize sampled data
             d_raw_data = self.disc.discretize(raw_data)
@@ -252,11 +283,11 @@ class AnchorTabular(object):
             data = np.zeros((num_samples, len(mapping)), int)
             for i in mapping:
                 f, op, v = mapping[i]
-                if op == 'eq':
+                if op == "eq":
                     data[:, i] = (d_raw_data[:, f] == X[f]).astype(int)
-                if op == 'leq':
+                if op == "leq":
                     data[:, i] = (d_raw_data[:, f] <= v).astype(int)
-                if op == 'geq':
+                if op == "geq":
                     data[:, i] = (d_raw_data[:, f] > v).astype(int)
 
             # create labels using model predictions as true labels
@@ -267,9 +298,17 @@ class AnchorTabular(object):
 
         return sample_fn, mapping
 
-    def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: Any) -> dict:
+    def explain(
+        self,
+        X: np.ndarray,
+        threshold: float = 0.95,
+        delta: float = 0.1,
+        tau: float = 0.15,
+        batch_size: int = 100,
+        max_anchor_size: int = None,
+        desired_label: int = None,
+        **kwargs: Any
+    ) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -300,23 +339,29 @@ class AnchorTabular(object):
         sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
 
         # get anchors and add metadata
-        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta, epsilon=tau,
-                                         batch_size=batch_size, desired_confidence=threshold,
-                                         max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+        exp = AnchorBaseBeam.anchor_beam(
+            sample_fn,
+            delta=delta,
+            epsilon=tau,
+            batch_size=batch_size,
+            desired_confidence=threshold,
+            max_anchor_size=max_anchor_size,
+            **kwargs
+        )  # type: Any
         self.add_names_to_exp(exp, mapping)
-        exp['instance'] = X
-        exp['prediction'] = self.predict_fn(X.reshape(1, -1))[0]
-        exp = AnchorExplanation('tabular', exp)
+        exp["instance"] = X
+        exp["prediction"] = self.predict_fn(X.reshape(1, -1))[0]
+        exp = AnchorExplanation("tabular", exp)
 
         # output explanation dictionary
         explanation = {}
-        explanation['names'] = exp.names()
-        explanation['precision'] = exp.precision()
-        explanation['coverage'] = exp.coverage()
-        explanation['raw'] = exp.exp_map
+        explanation["names"] = exp.names()
+        explanation["precision"] = exp.precision()
+        explanation["coverage"] = exp.coverage()
+        explanation["raw"] = exp.exp_map
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        explanation["meta"] = {}
+        explanation["meta"]["name"] = self.__class__.__name__
 
         return explanation
 
@@ -332,61 +377,62 @@ class AnchorTabular(object):
             Dict: key = feature column or bin for ordinal features in categorized data; value = tuple containing
                   (feature column, flag for categorical/ordinal feature, feature value or bin value)
         """
-        idxs = hoeffding_exp['feature']
-        hoeffding_exp['names'] = []
-        hoeffding_exp['feature'] = [mapping[idx][0] for idx in idxs]
+        idxs = hoeffding_exp["feature"]
+        hoeffding_exp["names"] = []
+        hoeffding_exp["feature"] = [mapping[idx][0] for idx in idxs]
 
         ordinal_ranges = {}  # type: Dict[int, list]
         for idx in idxs:
             f, op, v = mapping[idx]
-            if op == 'geq' or op == 'leq':
+            if op == "geq" or op == "leq":
                 if f not in ordinal_ranges:
-                    ordinal_ranges[f] = [float('-inf'), float('inf')]
-            if op == 'geq':
+                    ordinal_ranges[f] = [float("-inf"), float("inf")]
+            if op == "geq":
                 ordinal_ranges[f][0] = max(ordinal_ranges[f][0], v)
-            if op == 'leq':
+            if op == "leq":
                 ordinal_ranges[f][1] = min(ordinal_ranges[f][1], v)
 
         handled = set()  # type: Set[int]
         for idx in idxs:
             f, op, v = mapping[idx]
-            if op == 'eq':
-                fname = '%s = ' % self.feature_names[f]
+            if op == "eq":
+                fname = "%s = " % self.feature_names[f]
                 if f in self.categorical_names:
                     v = int(v)
-                    if ('<' in self.categorical_names[f][v]
-                            or '>' in self.categorical_names[f][v]):
-                        fname = ''
-                    fname = '%s%s' % (fname, self.categorical_names[f][v])
+                    if (
+                        "<" in self.categorical_names[f][v]
+                        or ">" in self.categorical_names[f][v]
+                    ):
+                        fname = ""
+                    fname = "%s%s" % (fname, self.categorical_names[f][v])
                 else:
-                    fname = '%s%.2f' % (fname, v)
+                    fname = "%s%.2f" % (fname, v)
             else:
                 if f in handled:
                     continue
                 geq, leq = ordinal_ranges[f]
-                fname = ''
-                geq_val = ''
-                leq_val = ''
-                if geq > float('-inf'):
+                fname = ""
+                geq_val = ""
+                leq_val = ""
+                if geq > float("-inf"):
                     if geq == len(self.categorical_names[f]) - 1:
                         geq = geq - 1
                     name = self.categorical_names[f][geq + 1]
-                    if '<' in name:
+                    if "<" in name:
                         geq_val = name.split()[0]
-                    elif '>' in name:
+                    elif ">" in name:
                         geq_val = name.split()[-1]
-                if leq < float('inf'):
+                if leq < float("inf"):
                     name = self.categorical_names[f][leq]
                     if leq == 0:
                         leq_val = name.split()[-1]
-                    elif '<' in name:
+                    elif "<" in name:
                         leq_val = name.split()[-1]
                 if leq_val and geq_val:
-                    fname = '%s < %s <= %s' % (geq_val, self.feature_names[f],
-                                               leq_val)
+                    fname = "%s < %s <= %s" % (geq_val, self.feature_names[f], leq_val)
                 elif leq_val:
-                    fname = '%s <= %s' % (self.feature_names[f], leq_val)
+                    fname = "%s <= %s" % (self.feature_names[f], leq_val)
                 elif geq_val:
-                    fname = '%s > %s' % (self.feature_names[f], geq_val)
+                    fname = "%s > %s" % (self.feature_names[f], geq_val)
                 handled.add(f)
-            hoeffding_exp['names'].append(fname)
+            hoeffding_exp["names"].append(fname)

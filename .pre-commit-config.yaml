@@ -7,3 +7,7 @@ repos:
     rev: v0.740
     hooks:
       - id: mypy
+  - repo: https://github.com/psf/black
+    rev: 19.3b0
+    hooks:
+      - id: black

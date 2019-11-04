@@ -8,13 +8,18 @@ import copy
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SLIC_SEGMENTATION_KWARGS = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+DEFAULT_SLIC_SEGMENTATION_KWARGS = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
 
 
 class AnchorImage(object):
-
-    def __init__(self, predict_fn: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None, images_background: np.ndarray = None) -> None:
+    def __init__(
+        self,
+        predict_fn: Callable,
+        image_shape: tuple,
+        segmentation_fn: Any = "slic",
+        segmentation_kwargs: dict = None,
+        images_background: np.ndarray = None,
+    ) -> None:
         """
         Initialize anchor image explainer.
 
@@ -33,13 +38,15 @@ class AnchorImage(object):
         images_background
             Images to overlay superpixels on.
         """
-        if segmentation_fn == 'slic' and segmentation_kwargs is None:
+        if segmentation_fn == "slic" and segmentation_kwargs is None:
             segmentation_kwargs = DEFAULT_SLIC_SEGMENTATION_KWARGS
 
         elif callable(segmentation_fn) and segmentation_kwargs is not None:
-            logger.warning('Specified both a segmentation function to create superpixels and keyword '
-                           'arguments for built segmentation functions. By default '
-                           'the specified segmentation function will be used.')
+            logger.warning(
+                "Specified both a segmentation function to create superpixels and keyword "
+                "arguments for built segmentation functions. By default "
+                "the specified segmentation function will be used."
+            )
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
@@ -49,18 +56,26 @@ class AnchorImage(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         # segmentation function is either a user-defined function or one of the values in
-        fn_options = {'felzenszwalb': felzenszwalb, 'slic': slic, 'quickshift': quickshift}
+        fn_options = {
+            "felzenszwalb": felzenszwalb,
+            "slic": slic,
+            "quickshift": quickshift,
+        }
         if callable(segmentation_fn):
             self.custom_segmentation = True
             self.segmentation_fn = segmentation_fn
         else:
             self.custom_segmentation = False
-            self.segmentation_fn = lambda x: fn_options[segmentation_fn](x, **segmentation_kwargs)
+            self.segmentation_fn = lambda x: fn_options[segmentation_fn](
+                x, **segmentation_kwargs
+            )
 
         self.images_background = images_background
         self.image_shape = image_shape
 
-    def get_sample_fn(self, image: np.ndarray, p_sample: float = 0.5) -> Tuple[np.ndarray, Callable]:
+    def get_sample_fn(
+        self, image: np.ndarray, p_sample: float = 0.5
+    ) -> Tuple[np.ndarray, Callable]:
         """
         Create sampling function and superpixel mask.
 
@@ -94,8 +109,9 @@ class AnchorImage(object):
         # true label is prediction on original image
         true_label = self.predict_fn(np.reshape(image, (1,) + self.image_shape))[0]
 
-        def sample_fn_image(present: list, num_samples: int,
-                            compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def sample_fn_image(
+            present: list, num_samples: int, compute_labels: bool = True
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
             Create sampling function by masking certain superpixels from the original image and replacing them
             with the pixel values from superimposed images.
@@ -121,18 +137,25 @@ class AnchorImage(object):
             """
             if not compute_labels:
                 # for each sample, randomly sample whether a superpixel is represented by its average value or not
-                data = np.random.randint(0, 2, num_samples * n_features).reshape((num_samples, n_features))
-                data[:, present] = 1  # superpixels in candidate anchor need to be present
+                data = np.random.randint(0, 2, num_samples * n_features).reshape(
+                    (num_samples, n_features)
+                )
+                data[
+                    :, present
+                ] = 1  # superpixels in candidate anchor need to be present
                 return np.array([]), data, np.array([])
 
             # for each sample, randomly sample whether a superpixel is represented by its
             # average value or not according to p_sample
-            data = np.random.choice([0, 1], num_samples * n_features,
-                                    p=[p_sample, 1 - p_sample]).reshape((num_samples, n_features))
+            data = np.random.choice(
+                [0, 1], num_samples * n_features, p=[p_sample, 1 - p_sample]
+            ).reshape((num_samples, n_features))
             data[:, present] = 1  # superpixels in candidate anchor need to be present
 
             # for each sample, need to sample one of the background images
-            chosen = np.random.choice(range(len(self.images_background)), data.shape[0], replace=True)
+            chosen = np.random.choice(
+                range(len(self.images_background)), data.shape[0], replace=True
+            )
 
             # create masked images
             imgs = []
@@ -154,7 +177,9 @@ class AnchorImage(object):
             labels = np.array((preds == true_label).astype(int))
 
             # concat data and indices of chosen background images for each sample
-            raw_data = np.hstack((data, chosen.reshape(-1, 1)))  # nb of samples * (nb of superpixels + 1)
+            raw_data = np.hstack(
+                (data, chosen.reshape(-1, 1))
+            )  # nb of samples * (nb of superpixels + 1)
             return raw_data, data, labels
 
         if type(self.images_background) == np.ndarray:
@@ -164,10 +189,13 @@ class AnchorImage(object):
         # superpixel for each channel
         fudged_image = image.copy()
         for x in np.unique(segments):
-            fudged_image[segments == x] = [np.mean(image[segments == x][:, i]) for i in range(image.shape[-1])]
+            fudged_image[segments == x] = [
+                np.mean(image[segments == x][:, i]) for i in range(image.shape[-1])
+            ]
 
-        def sample_fn_fudged(present: list, num_samples: int,
-                             compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        def sample_fn_fudged(
+            present: list, num_samples: int, compute_labels: bool = True
+        ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
             """
             Create sampling function by masking certain superpixels from the original image and replacing them
             with that superpixel's average value.
@@ -193,21 +221,28 @@ class AnchorImage(object):
             """
             if not compute_labels:
                 # for each sample, randomly sample whether a superpixel is represented by its average value or not
-                data = np.random.randint(0, 2, num_samples * n_features).reshape((num_samples, n_features))
-                data[:, present] = 1  # superpixels in candidate anchor need to be present
+                data = np.random.randint(0, 2, num_samples * n_features).reshape(
+                    (num_samples, n_features)
+                )
+                data[
+                    :, present
+                ] = 1  # superpixels in candidate anchor need to be present
                 return np.array([]), data, np.array([])
 
             # for each sample, randomly sample whether a superpixel is represented by its
             # average value or not according to p_sample
-            data = np.random.choice([0, 1], num_samples * n_features,
-                                    p=[p_sample, 1 - p_sample]).reshape((num_samples, n_features))
+            data = np.random.choice(
+                [0, 1], num_samples * n_features, p=[p_sample, 1 - p_sample]
+            ).reshape((num_samples, n_features))
             data[:, present] = 1  # superpixels in candidate anchor need to be present
 
             # create perturbed (fudged) image for each sample using image masks
             imgs = []
             for row in data:
                 temp = copy.deepcopy(image)
-                zeros = np.where(row == 0)[0]  # superpixels to be averaged for the sample
+                zeros = np.where(row == 0)[
+                    0
+                ]  # superpixels to be averaged for the sample
                 # create mask for each pixel in the superpixels that are averaged
                 mask = np.zeros(segments.shape).astype(bool)
                 for z in zeros:
@@ -226,8 +261,16 @@ class AnchorImage(object):
 
         return segments, sample_fn_fudged
 
-    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5, **kwargs: Any):
+    def explain(
+        self,
+        image: np.ndarray,
+        threshold: float = 0.95,
+        delta: float = 0.1,
+        tau: float = 0.15,
+        batch_size: int = 100,
+        p_sample: float = 0.5,
+        **kwargs: Any
+    ):
         """
         Explain instance and return anchor with metadata.
 
@@ -252,42 +295,65 @@ class AnchorImage(object):
             Dictionary containing the anchor explaining the instance with additional metadata
         """
         # build sampling function and segments
-        segments, sample_fn = self.get_sample_fn(np.reshape(image, self.image_shape), p_sample=p_sample)
+        segments, sample_fn = self.get_sample_fn(
+            np.reshape(image, self.image_shape), p_sample=p_sample
+        )
 
         # get anchors and add metadata
-        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
-                                         epsilon=tau, batch_size=batch_size,
-                                         desired_confidence=threshold, **kwargs)  # type: Any
-        exp['instance'] = image
-        exp['prediction'] = self.predict_fn(np.reshape(image, (1,) + self.image_shape))[0]
+        exp = AnchorBaseBeam.anchor_beam(
+            sample_fn,
+            delta=delta,
+            epsilon=tau,
+            batch_size=batch_size,
+            desired_confidence=threshold,
+            **kwargs
+        )  # type: Any
+        exp["instance"] = image
+        exp["prediction"] = self.predict_fn(np.reshape(image, (1,) + self.image_shape))[
+            0
+        ]
 
         # overlay image with anchor mask and do same for the examples
-        anchor = AnchorImage.overlay_mask(image, segments, exp['feature'])
-        cover_options = ['covered', 'covered_true', 'covered_false', 'uncovered_true', 'uncovered_false']
-        for ex in exp['examples']:
+        anchor = AnchorImage.overlay_mask(image, segments, exp["feature"])
+        cover_options = [
+            "covered",
+            "covered_true",
+            "covered_false",
+            "uncovered_true",
+            "uncovered_false",
+        ]
+        for ex in exp["examples"]:
             for opt in cover_options:
-                tmp = [AnchorImage.overlay_mask(image, segments, list(np.where(ex[opt][i] == 1)[0]))
-                       for i in range(ex[opt].shape[0])]
+                tmp = [
+                    AnchorImage.overlay_mask(
+                        image, segments, list(np.where(ex[opt][i] == 1)[0])
+                    )
+                    for i in range(ex[opt].shape[0])
+                ]
                 ex[opt] = tmp
 
-        exp = AnchorExplanation('image', exp)
+        exp = AnchorExplanation("image", exp)
 
         # output explanation dictionary
         explanation = {}
-        explanation['anchor'] = anchor
-        explanation['segments'] = segments
-        explanation['precision'] = exp.precision()
-        explanation['coverage'] = exp.coverage()
-        explanation['raw'] = exp.exp_map
+        explanation["anchor"] = anchor
+        explanation["segments"] = segments
+        explanation["precision"] = exp.precision()
+        explanation["coverage"] = exp.coverage()
+        explanation["raw"] = exp.exp_map
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        explanation["meta"] = {}
+        explanation["meta"]["name"] = self.__class__.__name__
 
         return explanation
 
     @staticmethod
-    def overlay_mask(image: np.ndarray, segments: np.ndarray, mask_features: list,
-                     scale: tuple = (0, 255)) -> np.ndarray:
+    def overlay_mask(
+        image: np.ndarray,
+        segments: np.ndarray,
+        mask_features: list,
+        scale: tuple = (0, 255),
+    ) -> np.ndarray:
         """
         Overlay image with mask described by the mask features.
 
@@ -310,6 +376,8 @@ class AnchorImage(object):
         for f in mask_features:
             mask[segments == f] = 1
         img_max, img_min = image.max(), image.min()
-        image = ((image - img_min) / (img_max - img_min)) * (scale[1] - scale[0]) + scale[0]
+        image = ((image - img_min) / (img_max - img_min)) * (
+            scale[1] - scale[0]
+        ) + scale[0]
         masked_image = (image * np.expand_dims(mask, 2)).astype(int)
         return masked_image

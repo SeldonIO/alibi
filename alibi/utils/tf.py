@@ -7,8 +7,9 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 
-def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model']) -> \
-        Tuple[bool, bool, tf.compat.v1.Session]:
+def _check_keras_or_tf(
+    predict_fn: Union[Callable, tf.keras.Model, "keras.Model"]
+) -> Tuple[bool, bool, tf.compat.v1.Session]:
     """
     Test if the prediction function is a tf.keras or keras model and return the associated TF session.
 
@@ -28,8 +29,9 @@ def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'
     try:
         # workaround to suppress keras backend message, see https://github.com/keras-team/keras/issues/1406
         stderr = sys.stderr
-        sys.stderr = open(os.devnull, 'w')
+        sys.stderr = open(os.devnull, "w")
         import keras  # noqa
+
         sys.stderr = stderr
 
         ksess = keras.backend.get_session()

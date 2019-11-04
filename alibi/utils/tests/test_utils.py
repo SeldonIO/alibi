@@ -43,14 +43,14 @@ def test_keras_bb_check_keras_or_tf():
 
 
 def test_tf_check_keras_or_tf_no_keras_import():
-    with mock.patch.dict('sys.modules', {'keras': None}):
+    with mock.patch.dict("sys.modules", {"keras": None}):
         is_model, is_keras, sess = _check_keras_or_tf(tf_model)
         assert is_model
         assert not is_keras
 
 
 def test_blackbox_check_keras_or_tf_no_keras_import():
-    with mock.patch.dict('sys.modules', {'keras': None}):
+    with mock.patch.dict("sys.modules", {"keras": None}):
         is_model, is_keras, sess = _check_keras_or_tf(blackbox_model)
         assert not is_model
         assert not is_keras

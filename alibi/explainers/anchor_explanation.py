@@ -2,7 +2,6 @@ import numpy as np
 
 
 class AnchorExplanation:
-
     def __init__(self, exp_type: str, exp_map: dict) -> None:
         """
         Class used to unpack the anchors and metadata from the explainer dictionary.
@@ -30,9 +29,9 @@ class AnchorExplanation:
         names
             Names with the anchor conditions
         """
-        names = self.exp_map['names']
+        names = self.exp_map["names"]
         if partial_index is not None:
-            names = names[:partial_index + 1]
+            names = names[: partial_index + 1]
         return names
 
     def features(self, partial_index: int = None) -> list:
@@ -48,9 +47,9 @@ class AnchorExplanation:
         features
             Features used in the anchor conditions.
         """
-        features = self.exp_map['feature']
+        features = self.exp_map["feature"]
         if partial_index is not None:
-            features = features[:partial_index + 1]
+            features = features[: partial_index + 1]
         return features
 
     def precision(self, partial_index: int = None) -> float:
@@ -66,9 +65,9 @@ class AnchorExplanation:
         precision
             Anchor precision
         """
-        precision = self.exp_map['precision']
+        precision = self.exp_map["precision"]
         if len(precision) == 0:
-            return self.exp_map['all_precision']
+            return self.exp_map["all_precision"]
         if partial_index is not None:
             return precision[partial_index]
         else:
@@ -87,7 +86,7 @@ class AnchorExplanation:
         coverage
             Anchor coverage
         """
-        coverage = self.exp_map['coverage']
+        coverage = self.exp_map["coverage"]
         if len(coverage) == 0:
             return 1
         if partial_index is not None:
@@ -95,8 +94,12 @@ class AnchorExplanation:
         else:
             return coverage[-1]
 
-    def examples(self, only_different_prediction: bool = False,
-                 only_same_prediction: bool = False, partial_index: int = None) -> np.ndarray:
+    def examples(
+        self,
+        only_different_prediction: bool = False,
+        only_same_prediction: bool = False,
+        partial_index: int = None,
+    ) -> np.ndarray:
         """
         Parameters
         ----------
@@ -112,15 +115,17 @@ class AnchorExplanation:
         Examples covered by anchor
         """
         if only_different_prediction and only_same_prediction:
-            print('Error: you cannot have only_different_prediction and only_same_prediction at the same time')
+            print(
+                "Error: you cannot have only_different_prediction and only_same_prediction at the same time"
+            )
             return []
-        key = 'covered'
+        key = "covered"
         if only_different_prediction:
-            key = 'covered_false'
+            key = "covered_false"
         if only_same_prediction:
-            key = 'covered_true'
-        size = len(self.exp_map['examples'])
+            key = "covered_true"
+        size = len(self.exp_map["examples"])
         idx = partial_index if partial_index is not None else size - 1
         if idx < 0 or idx > size:
             return []
-        return self.exp_map['examples'][idx][key]
+        return self.exp_map["examples"][idx][key]

@@ -1,4 +1,9 @@
 repos:
+  - repo: https://github.com/psf/black
+    rev: 19.3b0
+    hooks:
+      - id: black
+        args: ['--line-length=120']
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v2.4.0
     hooks:
@@ -7,8 +12,3 @@ repos:
     rev: v0.740
     hooks:
       - id: mypy
-  - repo: https://github.com/psf/black
-    rev: 19.3b0
-    hooks:
-      - id: black
-        args: ['--line-length=120']

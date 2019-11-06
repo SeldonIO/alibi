@@ -329,7 +329,7 @@ class AnchorBaseBeam(object):
             -------
             Sum of where sampled data equals desired label of observation to be explained.
             """
-            raw_data, data, labels = sample_fn(list(t), n)
+            raw_data, data, labels = sample_fn(list(state['t_order'][t]), n)
             current_idx = state['current_idx']
             idxs = range(current_idx, current_idx + n)
             state['t_idx'][t].update(idxs)

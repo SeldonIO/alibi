@@ -1,11 +1,11 @@
 import numpy as np
-from typing import Dict, Callable, Tuple, List
+from typing import Dict, Callable, List, Union, Sequence
 
 
 class Discretizer(object):
 
     def __init__(self, data: np.ndarray, numerical_features: List[int], feature_names: List[str],
-                 percentiles: Tuple[int] = (25, 50, 75)) -> None:
+                 percentiles: Sequence[Union[int, float]] = (25, 50, 75)) -> None:
         """
         Initialize the discretizer.
 
@@ -30,6 +30,7 @@ class Discretizer(object):
         self.feature_intervals = {}  # type: Dict[int, list]
         self.lambdas = {}  # type: Dict[int, Callable]
         for feature, qts in zip(self.to_discretize, bins):
+
             # get nb of borders (nb of bins - 1) and the feature name
             n_bins = qts.shape[0]
             name = feature_names[feature]

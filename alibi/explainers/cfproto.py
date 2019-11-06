@@ -4,9 +4,13 @@ import logging
 import numpy as np
 import sys
 import tensorflow as tf
-from typing import Callable, Tuple, Union, TYPE_CHECKING
-from ..confidence import TrustScore
-from alibi.utils.tf import _check_keras_or_tf
+from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
+from alibi.confidence import TrustScore
+from alibi.utils.discretizer import Discretizer
+from alibi.utils.distance import abdm, mvdm, multidim_scaling
+from alibi.utils.gradients import perturb
+from alibi.utils.mapping import ohe_to_ord_shape, ord_to_num, num_to_ord, ohe_to_ord, ord_to_ohe
+from alibi.utils.tf import _check_keras_or_tf, argmax_grad, argmin_grad, one_hot_grad, round_grad
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras
@@ -26,6 +30,8 @@ class CounterFactualProto:
                  ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
                  enc_model: Union[tf.keras.Model, 'keras.Model'] = None,
                  theta: float = 0.,
+                 cat_vars: dict = None,
+                 ohe: bool = False,
                  use_kdtree: bool = False,
                  learning_rate_init: float = 1e-2,
                  max_iterations: int = 1000,
@@ -60,6 +66,12 @@ class CounterFactualProto:
             Optional encoder model used to guide instance perturbations towards a class prototype
         theta
             Constant for the prototype search loss term
+        cat_vars
+            Dict with as keys the categorical columns and as values
+            the number of categories per categorical variable.
+        ohe
+            Whether the categorical variables are one-hot encoded (OHE) or not. If not OHE, they are
+            assumed to have ordinal encodings.
         use_kdtree
             Whether to use k-d trees for the prototype loss term if no encoder is available
         learning_rate_init
@@ -101,8 +113,7 @@ class CounterFactualProto:
 
         if is_model:  # Keras or TF model
             self.model = True
-            self.classes = self.sess.run(self.predict(tf.convert_to_tensor(np.zeros(shape),
-                                                                           dtype=tf.float32))).shape[1]
+            self.classes = self.predict.predict(np.zeros(shape)).shape[1]  # type: ignore
         else:  # black-box model
             self.model = False
             self.classes = self.predict(np.zeros(shape)).shape[1]
@@ -125,6 +136,11 @@ class CounterFactualProto:
         else:
             self.enc_or_kdtree = False
 
+        if cat_vars:
+            self.is_cat = True
+        else:
+            self.is_cat = False
+
         self.shape = shape
         self.kappa = kappa
         self.beta = beta
@@ -132,15 +148,309 @@ class CounterFactualProto:
         self.theta = theta
         self.ae = ae_model
         self.enc = enc_model
+        self.cat_vars = cat_vars
+        self.ohe = ohe
         self.use_kdtree = use_kdtree
         self.batch_size = shape[0]
         self.max_iterations = max_iterations
         self.c_init = c_init
         self.c_steps = c_steps
+        self.feature_range = feature_range
         self.update_num_grad = update_num_grad
         self.eps = eps
         self.clip = clip
         self.write_dir = write_dir
+
+        # compute dimensionality after conversion from OHE to ordinal encoding
+        shape = ohe_to_ord_shape(shape, cat_vars=cat_vars, is_ohe=self.ohe)
+
+        if self.is_cat:
+
+            # define ragged tensor for mapping from categorical to numerical values
+            self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in self.cat_vars.items()])
+
+            # define placeholder for mapping which can be fed after the fit step
+            max_key = max(cat_vars, key=cat_vars.get)
+            self.max_cat = cat_vars[max_key]
+            cat_keys = list(cat_vars.keys())
+            n_cat = len(cat_keys)
+            self.assign_map = tf.placeholder(tf.float32, (n_cat, self.max_cat), name='assign_map')
+            self.map_var = tf.Variable(np.zeros((n_cat, self.max_cat)), dtype=tf.float32, name='map_var')
+
+            # update ragged mapping tensor
+            lengths = [v for k, v in cat_vars.items()]
+            map_cat_to_num_val = tf.RaggedTensor.from_tensor(self.map_var, lengths=list(lengths))
+            self.map_cat_to_num = tf.ragged.map_flat_values(tf.add, self.map_cat_to_num, map_cat_to_num_val)
+
+            # store categorical columns assuming ordinal encoding
+            # used for the mapping between numerical values and categories
+            if self.ohe:
+                cat_vars_ord = {}
+                c, k = 0, 0
+                while c < self.shape[-1]:
+                    if c in cat_keys:
+                        v = cat_vars[c]
+                        cat_vars_ord[k] = v
+                        k += 1
+                        c += v
+                        continue
+                    k += 1
+                    c += 1
+                cat_keys_ord = list(cat_vars_ord.keys())
+                cat_cols_ord = tf.constant(cat_keys_ord, name='cat_keys_ord')
+            else:
+                cat_cols_ord = tf.constant(cat_keys, name='cat_keys_ord')
+
+            # mapping from numerical values to categories and vice versa
+            # supports mapping to and from both ordinal encoding and OHE
+            def is_eq(col, cat_cols):
+                """
+                Check if a column represents a categorical variable.
+
+                Parameters
+                ----------
+                col
+                    Column index to check.
+                cat_cols
+                    Indices of categorical variables.
+
+                Returns
+                -------
+                Boolean whether the column is a categorical variable.
+                """
+                eq = tf.math.equal(col, cat_cols)
+                eq_any = tf.reduce_any(eq)
+                return tf.equal(eq_any, tf.constant(True))
+
+            def cond_loop(icol, iohe, icat, adv_to_map, adv_map, map_cols):
+                """
+                Condition for while loop, only iterate over columns of instance.
+
+                Parameters
+                ----------
+                icol
+                    Iteration over columns of instance.
+                adv_to_map
+                    Instance that needs to be mapped from categories to numerical values or vice versa.
+                map_cols
+                    Number of columns in instance to be mapped.
+
+                Returns
+                -------
+                Boolean whether condition is met.
+                """
+                return tf.less(icol, tf.minimum(map_cols, tf.shape(adv_to_map)[1]))
+
+            def body_ord_to_num(icol, iohe, icat, adv_to_map, adv_map, map_cols):
+                """
+                Body executed in while loop when mapping ordinal categories to numerical values.
+
+                Parameters
+                ----------
+                icol
+                    Iteration over columns of instance.
+                icat
+                    Iteration over categorical variables.
+                adv_to_map
+                    Instance that needs to be mapped from categories to numerical values or vice versa.
+                adv_map
+                    Mapped instance from categories to numerical values.
+                """
+                # check if icol is a categorical variable
+                eq_any_true = is_eq(icol, cat_cols_ord)
+
+                # map category to its numerical value
+                def true_fn():
+                    try:
+                        return self.map_cat_to_num[icat][adv_to_map[0, icol]]
+                    except:  # the value of adv_to_map[0, icol] is a float
+                        # TODO: add error type
+                        idx = round_grad(adv_to_map[0, icol])
+                        return self.map_cat_to_num[icat][idx]
+
+                def false_fn():
+                    return adv_to_map[0, icol]
+
+                # write column to array
+                adv_map_col = tf.cond(eq_any_true, true_fn, false_fn)
+                adv_map = adv_map.write(icol, adv_map_col)
+
+                # increment
+                icol = tf.add(icol, 1)
+                icat = tf.cond(eq_any_true, lambda: tf.add(icat, 1), lambda: icat)  # if categorical variable
+
+                return [icol, iohe, icat, adv_to_map, adv_map, map_cols]
+
+            def body_num_to_ord(icol, iohe, icat, adv_to_map, adv_map, map_cols):
+                """
+                Body executed in while loop when mapping numerical values to ordinal categories.
+
+                Parameters
+                ----------
+                icol
+                    Iteration over columns of instance.
+                icat
+                    Iteration over categorical variables.
+                adv_to_map
+                    Instance that needs to be mapped from categories to numerical values or vice versa.
+                adv_map
+                    Mapped instance from numerical values to categories.
+                """
+                # check if icol is a categorical variable
+                eq_any_true = is_eq(icol, cat_cols_ord)
+
+                # map numerical value to category
+                def true_fn():
+                    return argmin_grad(adv_to_map[0, icol], self.map_cat_to_num[icat])
+
+                def false_fn():
+                    return adv_to_map[0, icol]
+
+                # write column to array
+                adv_map_col = tf.cond(eq_any_true, true_fn, false_fn)
+                adv_map = adv_map.write(icol, adv_map_col)
+
+                # increment
+                icol = tf.add(icol, 1)
+                icat = tf.cond(eq_any_true, lambda: tf.add(icat, 1), lambda: icat)  # if categorical variable
+
+                return [icol, iohe, icat, adv_to_map, adv_map, map_cols]
+
+            def body_ohe_to_num(icol, iohe, icat, adv_to_map, adv_map, map_cols):
+                """
+                Body executed in while loop when mapping OHE categories to numerical values.
+
+                Parameters
+                ----------
+                icol
+                    Iteration over columns of instance.
+                iohe
+                    Iteration over OHE columns of instance.
+                icat
+                    Iteration over categorical variables.
+                adv_to_map
+                    Instance that needs to be mapped from categories to numerical values or vice versa.
+                adv_map
+                    Mapped instance from categories to numerical values.
+                """
+                # check if icol is a categorical variable
+                eq_any_true = is_eq(icol, cat_cols_ord)
+
+                # nb of categories
+                v = tf.cond(eq_any_true,
+                            lambda: tf.shape(self.map_cat_to_num[icat])[0],
+                            lambda: tf.constant(1))
+
+                # map category to its numerical value
+                def true_fn():
+                    adv_ord = argmax_grad(adv_to_map[0, iohe:iohe + v])  # map to ord
+                    return self.map_cat_to_num[icat][adv_ord]  # map to num
+
+                def false_fn():
+                    return adv_to_map[0, iohe]
+
+                # write column to array
+                adv_map_col = tf.cond(eq_any_true, true_fn, false_fn)
+                adv_map = adv_map.write(icol, adv_map_col)
+
+                # increment
+                icol = tf.add(icol, 1)
+                iohe = tf.add(iohe, v)
+                icat = tf.cond(eq_any_true, lambda: tf.add(icat, 1), lambda: icat)  # if categorical variable
+
+                return [icol, iohe, icat, adv_to_map, adv_map, map_cols]
+
+            def body_num_to_ohe(icol, iohe, icat, adv_to_map, adv_map, map_cols):
+                """
+                Body executed in while loop when mapping numerical values to OHE categories.
+
+                Parameters
+                ----------
+                icol
+                    Iteration over columns of instance.
+                iohe
+                    Iteration over OHE columns of instance.
+                icat
+                    Iteration over categorical variables.
+                adv_to_map
+                    Instance that needs to be mapped from categories to numerical values or vice versa.
+                adv_map
+                    Mapped instance from numerical values to categories.
+                """
+                # check if icol is a categorical variable
+                eq_any_true = is_eq(icol, cat_cols_ord)
+
+                def true_fn():
+                    cat_ord = argmin_grad(adv_to_map[0, icol], self.map_cat_to_num[icat])  # map to ord
+                    cat_ohe = one_hot_grad(cat_ord, self.map_cat_to_num[icat])  # map to OHE
+                    return cat_ohe
+
+                def false_fn():
+                    return tf.reshape(adv_to_map[0, icol], (1,))
+
+                # get OHE mapped columns
+                adv_map_col = tf.cond(eq_any_true, true_fn, false_fn)
+
+                def while_ohe(i_ohe, i_ohe_cat, adv_ohe):
+                    return tf.less(i_ohe_cat, tf.shape(adv_map_col)[0])
+
+                def body_ohe(i_ohe, i_ohe_cat, adv_ohe):
+                    i_write = tf.add(i_ohe_cat, i_ohe)
+                    adv_ohe = adv_ohe.write(i_write, adv_map_col[i_ohe_cat])
+                    i_ohe_cat = tf.add(i_ohe_cat, 1)
+                    return [i_ohe, i_ohe_cat, adv_ohe]
+
+                # write OHE columns to array
+                iohe, iohecat, adv_map = tf.while_loop(while_ohe, body_ohe, [iohe, tf.constant(0), adv_map])
+
+                # increment
+                icol = tf.add(icol, 1)
+                iohe = tf.add(iohe, iohecat)
+                icat = tf.cond(eq_any_true, lambda: tf.add(icat, 1), lambda: icat)  # if categorical variable
+
+                return [icol, iohe, icat, adv_to_map, adv_map, map_cols]
+
+            def apply_map(adv_to_map, to_num):
+                """
+                Apply mapping from numerical to ordinal or OHE categorical variables
+                or vice versa for an instance.
+
+                Parameters
+                ----------
+                adv_to_map
+                    Instance to map.
+                to_num
+                    Map from categorical to numerical values if True, vice versa if False.
+
+                Returns
+                -------
+                Mapped instance.
+                """
+                icol = tf.constant(0)
+                iohe = tf.constant(0)
+                icat = tf.constant(0)
+
+                if self.ohe:
+                    body_to_num, body_to_cat = body_ohe_to_num, body_num_to_ohe
+                else:
+                    body_to_num, body_to_cat = body_ord_to_num, body_num_to_ord
+
+                if self.ohe and not to_num:
+                    shape_adv_map = self.shape
+                else:
+                    shape_adv_map = shape
+
+                adv_map = tf.TensorArray(dtype=tf.float32, size=shape_adv_map[1])
+                loop_vars = (icol, iohe, icat, adv_to_map, adv_map, shape_adv_map[1])
+
+                if to_num:  # map from categorical to numerical values
+                    _, _, _, _, adv_map, _ = tf.while_loop(cond_loop, body_to_num, loop_vars,
+                                                           parallel_iterations=1, back_prop=True)
+                else:  # map from numerical to categorical values
+                    _, _, _, _, adv_map, _ = tf.while_loop(cond_loop, body_to_cat, loop_vars,
+                                                           parallel_iterations=1, back_prop=True)
+                adv_map_stack = tf.reshape(adv_map.stack(), shape_adv_map)
+                return adv_map_stack
 
         # define tf variables for original and perturbed instances, and target labels
         self.orig = tf.Variable(np.zeros(shape), dtype=tf.float32, name='orig')
@@ -150,7 +460,7 @@ class CounterFactualProto:
 
         # variable for target class proto
         if self.enc_model:
-            self.shape_enc = self.enc.predict(np.zeros(shape)).shape
+            self.shape_enc = self.enc.predict(np.zeros(self.shape)).shape
         else:
             self.shape_enc = shape
 
@@ -212,11 +522,25 @@ class CounterFactualProto:
             self.loss_l2 = tf.reduce_sum(self.l2)
             self.loss_l2_s = tf.reduce_sum(self.l2_s)
 
+        if self.is_cat:  # map adv and adv_s to categories
+            self.adv_cat = apply_map(self.adv, to_num=False)
+            self.adv_cat_s = apply_map(self.adv_s, to_num=False)
+        else:
+            self.adv_cat = self.adv
+            self.adv_cat_s = self.adv_s
+
         with tf.name_scope('loss_ae') as scope:
             # gamma * AE loss
             if self.ae_model:
-                self.loss_ae = self.gamma * tf.square(tf.norm(self.ae(self.adv) - self.adv))
-                self.loss_ae_s = self.gamma * tf.square(tf.norm(self.ae(self.adv_s) - self.adv_s))
+                # run autoencoder
+                self.adv_ae = self.ae(self.adv_cat)
+                self.adv_ae_s = self.ae(self.adv_cat_s)
+                if self.is_cat:  # map output autoencoder back to numerical values
+                    self.adv_ae = apply_map(self.adv_ae, to_num=True)
+                    self.adv_ae_s = apply_map(self.adv_ae_s, to_num=True)
+                # compute loss
+                self.loss_ae = self.gamma * tf.square(tf.norm(self.adv_ae - self.adv))
+                self.loss_ae_s = self.gamma * tf.square(tf.norm(self.adv_ae_s - self.adv_s))
             else:  # no auto-encoder available
                 self.loss_ae = tf.constant(0.)
                 self.loss_ae_s = tf.constant(0.)
@@ -226,15 +550,15 @@ class CounterFactualProto:
                 self.loss_attack = tf.placeholder(tf.float32)
             elif self.c_init == 0. and self.c_steps == 1:  # prediction loss term not used
                 # make predictions on perturbed instance
-                self.pred_proba = self.predict(self.adv)
-                self.pred_proba_s = self.predict(self.adv_s)
+                self.pred_proba = self.predict(self.adv_cat)
+                self.pred_proba_s = self.predict(self.adv_cat_s)
 
                 self.loss_attack = tf.constant(0.)
                 self.loss_attack_s = tf.constant(0.)
             else:
                 # make predictions on perturbed instance
-                self.pred_proba = self.predict(self.adv)
-                self.pred_proba_s = self.predict(self.adv_s)
+                self.pred_proba = self.predict(self.adv_cat)
+                self.pred_proba_s = self.predict(self.adv_cat_s)
 
                 # probability of target label prediction
                 self.target_proba = tf.reduce_sum(self.target * self.pred_proba, 1)
@@ -254,8 +578,8 @@ class CounterFactualProto:
 
         with tf.name_scope('loss_prototype') as scope:
             if self.enc_model:
-                self.loss_proto = self.theta * tf.square(tf.norm(self.enc(self.adv) - self.target_proto))
-                self.loss_proto_s = self.theta * tf.square(tf.norm(self.enc(self.adv_s) - self.target_proto))
+                self.loss_proto = self.theta * tf.square(tf.norm(self.enc(self.adv_cat) - self.target_proto))
+                self.loss_proto_s = self.theta * tf.square(tf.norm(self.enc(self.adv_cat_s) - self.target_proto))
             elif self.use_kdtree:
                 self.loss_proto = self.theta * tf.square(tf.norm(self.adv - self.target_proto))
                 self.loss_proto_s = self.theta * tf.square(tf.norm(self.adv_s - self.target_proto))
@@ -298,6 +622,8 @@ class CounterFactualProto:
         self.setup.append(self.adv.assign(self.assign_adv))
         self.setup.append(self.adv_s.assign(self.assign_adv_s))
         self.setup.append(self.target_proto.assign(self.assign_target_proto))
+        if self.is_cat:
+            self.setup.append(self.map_var.assign(self.assign_map))
 
         self.init = tf.variables_initializer(var_list=[self.global_step] + [self.adv_s] + [self.adv] + new_vars)
 
@@ -307,7 +633,9 @@ class CounterFactualProto:
         else:
             self.writer = None
 
-    def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None) -> None:
+    def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
+            w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
+            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> None:
         """
         Get prototypes for each class using the encoder or k-d trees.
         The prototypes are used for the encoder loss term or to calculate the optional trust scores.
@@ -315,14 +643,111 @@ class CounterFactualProto:
         Parameters
         ----------
         train_data
-            Representative sample from the training data
+            Representative sample from the training data.
         trustscore_kwargs
-            Optional arguments to initialize the trust scores method
+            Optional arguments to initialize the trust scores method.
+        d_type
+            Pairwise distance metric used for categorical variables. Currently, 'abdm', 'mvdm' and 'abdm-mvdm'
+            are supported. 'abdm' infers context from the other variables while 'mvdm' uses the model predictions.
+            'abdm-mvdm' is a weighted combination of the two metrics.
+        w
+            Weight on 'abdm' (between 0. and 1.) distance if d_type equals 'abdm-mvdm'.
+        disc_perc
+            List with percentiles used in binning of numerical features used for the 'abdm'
+            and 'abdm-mvdm' pairwise distance measures.
+        standardize_cat_vars
+            Standardize numerical values of categorical variables if True.
+        smooth
+            Smoothing exponent between 0 and 1 for the distances. Lower values of l will smooth the difference in
+            distance metric between different features.
+        center
+            Whether to center the scaled distance measures. If False, the min distance for each feature
+            except for the feature with the highest raw max distance will be the lower bound of the
+            feature range, but the upper bound will be below the max feature range.
+        update_feature_range
+            Update feature range with scaled values.
         """
         if self.model:
             preds = np.argmax(self.predict.predict(train_data), axis=1)  # type: ignore
         else:
             preds = np.argmax(self.predict(train_data), axis=1)
+
+        self.cat_vars_ord = None
+        if self.is_cat:  # compute distance metrics for categorical variables
+
+            if self.ohe:  # convert OHE to ordinal encoding
+                train_data_ord, self.cat_vars_ord = ohe_to_ord(train_data, self.cat_vars)
+            else:
+                train_data_ord, self.cat_vars_ord = train_data, self.cat_vars
+
+            # bin numerical features to compute the pairwise distance matrices
+            cat_keys = list(self.cat_vars_ord.keys())
+            n_ord = train_data_ord.shape[1]
+            numerical_feats = [feat for feat in range(n_ord) if feat not in cat_keys]
+            if d_type in ['abdm', 'abdm-mvdm'] and len(cat_keys) != n_ord:
+                fnames = [str(_) for _ in range(n_ord)]
+                disc = Discretizer(train_data_ord, numerical_feats, fnames, percentiles=disc_perc)
+                train_data_bin = disc.discretize(train_data_ord)
+                cat_vars_bin = {k: len(disc.feature_intervals[k]) for k in range(n_ord) if k not in cat_keys}
+            else:
+                train_data_bin = train_data_ord
+                cat_vars_bin = {}
+
+            if d_type not in ['abdm', 'mvdm', 'abdm-mvdm']:
+                raise ValueError('d_type needs to be "abdm", "mvdm" or "abdm-mvdm". '
+                                 '{} is not supported.'.format(d_type))
+
+            # pairwise distances for categorical variables
+            if d_type == 'abdm':
+                d_pair = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
+            elif d_type == 'mvdm':
+                d_pair = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
+
+            # combined distance measure
+            if d_type == 'abdm-mvdm':
+                # pairwise distances
+                d_abdm = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
+                d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
+
+                # multidim scaled distances
+                d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
+                                                 feature_range=self.feature_range,
+                                                 standardize_cat_vars=standardize_cat_vars,
+                                                 smooth=smooth, center=center,
+                                                 update_feature_range=False)
+
+                d_abs_mvdm, _ = multidim_scaling(d_mvdm, n_components=2, use_metric=True,
+                                                 feature_range=self.feature_range,
+                                                 standardize_cat_vars=standardize_cat_vars,
+                                                 smooth=smooth, center=center,
+                                                 update_feature_range=False)
+
+                # combine abdm and mvdm
+                self.d_abs = {}  # type: Dict
+                new_feature_range = tuple([f.copy() for f in self.feature_range])
+                for k, v in d_abs_abdm.items():
+                    self.d_abs[k] = v * w + d_abs_mvdm[k] * (1 - w)
+                    if center:  # center the numerical feature values
+                        self.d_abs[k] -= .5 * (self.d_abs[k].max() + self.d_abs[k].min())
+                    if update_feature_range:
+                        new_feature_range[0][0, k] = self.d_abs[k].min()
+                        new_feature_range[1][0, k] = self.d_abs[k].max()
+                if update_feature_range:  # assign updated feature range
+                    self.feature_range = new_feature_range
+            else:  # apply multidimensional scaling for the abdm or mvdm distances
+                self.d_abs, self.feature_range = multidim_scaling(d_pair, n_components=2, use_metric=True,
+                                                                  feature_range=self.feature_range,
+                                                                  standardize_cat_vars=standardize_cat_vars,
+                                                                  smooth=smooth, center=center,
+                                                                  update_feature_range=update_feature_range)
+
+            # create array used for ragged tensor placeholder
+            self.d_abs_ragged = []  # type: List
+            for _, v in self.d_abs.items():
+                n_pad = self.max_cat - len(v)
+                v_pad = np.pad(v, (0, n_pad), 'constant')
+                self.d_abs_ragged.append(v_pad)
+            self.d_abs_ragged = np.array(self.d_abs_ragged)
 
         if self.enc_model:
             enc_data = self.enc.predict(train_data)
@@ -332,12 +757,14 @@ class CounterFactualProto:
                 idx = np.where(preds == i)[0]
                 self.class_proto[i] = np.expand_dims(np.mean(enc_data[idx], axis=0), axis=0)
                 self.class_enc[i] = enc_data[idx]
-        else:
+        elif self.use_kdtree:
             logger.warning('No encoder specified. Using k-d trees to represent class prototypes.')
             if trustscore_kwargs is not None:
                 ts = TrustScore(**trustscore_kwargs)
             else:
                 ts = TrustScore()
+            if self.is_cat:  # map categorical to numerical data
+                train_data = ord_to_num(train_data_ord, self.d_abs)
             ts.fit(train_data, preds, classes=self.classes)
             self.kdtrees = ts.kdtrees
             self.X_by_class = ts.X_kdtree
@@ -367,40 +794,8 @@ class CounterFactualProto:
         loss_attack = np.sum(self.const.eval(session=self.sess) * loss)
         return loss_attack
 
-    def perturb(self, X: np.ndarray, eps: Union[float, np.ndarray], proba: bool = False) \
-            -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Apply perturbation to instance or prediction probabilities. Used for numerical calculation of gradients.
-
-        Parameters
-        ----------
-        X
-            Array to be perturbed
-        eps
-            Size of perturbation
-        proba
-            If True, the net effect of the perturbation needs to be 0 to keep the sum of the probabilities equal to 1
-
-        Returns
-        -------
-        Instances where a positive and negative perturbation is applied.
-        """
-        # N = batch size; F = nb of features in X
-        shape = X.shape
-        X = np.reshape(X, (shape[0], -1))  # NxF
-        dim = X.shape[1]  # F
-        pert = np.tile(np.eye(dim) * eps, (shape[0], 1))  # (N*F)xF
-        if proba:
-            eps_n = eps / (dim - 1)
-            pert += np.tile((np.eye(dim) - np.ones((dim, dim))) * eps_n, (shape[0], 1))  # (N*F)xF
-        X_rep = np.repeat(X, dim, axis=0)  # (N*F)xF
-        X_pert_pos, X_pert_neg = X_rep + pert, X_rep - pert
-        shape = (dim * shape[0],) + shape[1:]
-        X_pert_pos = np.reshape(X_pert_pos, shape)  # (N*F)x(shape of X[0])
-        X_pert_neg = np.reshape(X_pert_neg, shape)  # (N*F)x(shape of X[0])
-        return X_pert_pos, X_pert_neg
-
-    def get_gradients(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
+    def get_gradients(self, X: np.ndarray, Y: np.ndarray, grads_shape: tuple,
+                      cat_vars_ord: dict = None) -> np.ndarray:
         """
         Compute numerical gradients of the attack loss term:
         dL/dx = (dL/dP)*(dP/dx) with L = loss_attack_s; P = predict; x = adv_s
@@ -411,15 +806,28 @@ class CounterFactualProto:
             Instance around which gradient is evaluated
         Y
             One-hot representation of instance labels
+        grads_shape
+            Shape of gradients.
+        cat_vars_ord
+            Dict with as keys the categorical columns and as values
+            the number of categories per categorical variable.
 
         Returns
         -------
         Array with gradients.
         """
+        # map back to categories to make predictions
+        if self.is_cat:
+            X_pred = num_to_ord(X, self.d_abs)
+            if self.ohe:
+                X_pred = ord_to_ohe(X_pred, cat_vars_ord)[0]
+        else:
+            X_pred = X
+
         # N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
         # dL/dP -> BxP
-        preds = self.predict(X)  # NxP
-        preds_pert_pos, preds_pert_neg = self.perturb(preds, self.eps[0], proba=True)  # (N*P)xP
+        preds = self.predict(X_pred)  # NxP
+        preds_pert_pos, preds_pert_neg = perturb(preds, self.eps[0], proba=True)  # (N*P)xP
 
         def f(preds_pert):
             return np.sum(Y * preds_pert, axis=1)
@@ -430,7 +838,7 @@ class CounterFactualProto:
         # find instances where the gradient is 0
         idx_nograd = np.where(f(preds) - g(preds) <= - self.kappa)[0]
         if len(idx_nograd) == X.shape[0]:
-            return np.zeros(self.shape)
+            return np.zeros(X.shape)
 
         dl_df = f(preds_pert_pos) - f(preds_pert_neg)  # N*P
         dl_dg = g(preds_pert_pos) - g(preds_pert_neg)  # N*P
@@ -438,8 +846,12 @@ class CounterFactualProto:
         dl_dp = np.reshape(dl_dp, (X.shape[0], -1)) / (2 * self.eps[0])  # NxP
 
         # dP/dx -> PxF
-        X_pert_pos, X_pert_neg = self.perturb(X, self.eps[1], proba=False)  # (N*F)x(shape of X[0])
+        X_pert_pos, X_pert_neg = perturb(X, self.eps[1], proba=False)  # (N*F)x(shape of X[0])
         X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)
+        if self.is_cat:
+            X_pert = num_to_ord(X_pert, self.d_abs)
+        if self.ohe:
+            X_pert = ord_to_ohe(X_pert, cat_vars_ord)[0]
         preds_concat = self.predict(X_pert)
         n_pert = X_pert_pos.shape[0]
         dp_dx = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P
@@ -452,7 +864,7 @@ class CounterFactualProto:
         if len(idx_nograd) > 0:
             grads[idx_nograd] = np.zeros(grads.shape[1:])
         grads = np.mean(grads, axis=0)  # B*F
-        grads = np.reshape(grads, (self.batch_size,) + self.shape[1:])  # B*(shape of X[0])
+        grads = np.reshape(grads, (self.batch_size,) + grads_shape)  # B*(shape of X[0])
         return grads
 
     def score(self, X: np.ndarray, adv_class: int, orig_class: int, eps: float = 1e-10) -> float:
@@ -474,6 +886,10 @@ class CounterFactualProto:
         the prototype of the predicted class for the perturbed instance.
         """
         if self.enc_model:
+            if self.is_cat:
+                X = num_to_ord(X, self.d_abs)
+            if self.ohe:
+                X = ord_to_ohe(X, self.cat_vars_ord)
             X_enc = self.enc.predict(X)
             adv_proto = self.class_proto[adv_class]
             orig_proto = self.class_proto[orig_class]
@@ -550,12 +966,20 @@ class CounterFactualProto:
             return x != y
 
         # define target classes for prototype if not specified yet
-        if target_class is None and self.enc_or_kdtree:
+        if target_class is None:
             target_class = list(range(self.classes))
             target_class.remove(np.argmax(Y, axis=1))
             if verbose:
                 print('Predicted class: {}'.format(np.argmax(Y, axis=1)))
                 print('Target classes: {}'.format(target_class))
+
+        if self.is_cat and self.ohe:  # map categorical to numerical data
+            X_ord = ohe_to_ord(X, self.cat_vars)[0]
+            X_num = ord_to_num(X_ord, self.d_abs)
+        elif self.is_cat:
+            X_num = ord_to_num(X, self.d_abs)
+        else:
+            X_num = X
 
         # find closest prototype in the target class list
         dist_proto = {}
@@ -567,7 +991,6 @@ class CounterFactualProto:
             for c, v in class_dict.items():
                 if c not in target_class:
                     continue
-
                 if k is None:
                     dist_proto[c] = np.linalg.norm(X_enc - v)
                 elif k is not None:
@@ -586,7 +1009,7 @@ class CounterFactualProto:
             for c in range(self.classes):
                 if c not in target_class:
                     continue
-                dist_c, idx_c = self.kdtrees[c].query(X, k=k)
+                dist_c, idx_c = self.kdtrees[c].query(X_num, k=k)
                 dist_proto[c] = dist_c[0][-1]
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
@@ -597,6 +1020,9 @@ class CounterFactualProto:
                 print('Prototype class: {}'.format(self.id_proto))
         else:  # no prototype loss term used
             proto_val = np.zeros(self.shape_enc)
+
+        # set shape for perturbed instance and gradients
+        pert_shape = ohe_to_ord_shape(self.shape, cat_vars=self.cat_vars, is_ohe=self.ohe)
 
         # set the lower and upper bounds for the constant 'c' to scale the attack loss term
         # these bounds are updated for each c_step iteration
@@ -623,20 +1049,23 @@ class CounterFactualProto:
             current_best_proba = [-1] * self.batch_size
 
             # assign variables for the current iteration
-            self.sess.run(self.setup, {self.assign_orig: X,
-                                       self.assign_target: Y,
-                                       self.assign_const: const,
-                                       self.assign_adv: X,
-                                       self.assign_adv_s: X,
-                                       self.assign_target_proto: proto_val})
+            feed_dict = {self.assign_orig: X_num,
+                         self.assign_target: Y,
+                         self.assign_const: const,
+                         self.assign_adv: X_num,
+                         self.assign_adv_s: X_num,
+                         self.assign_target_proto: proto_val}
+            if self.is_cat:
+                feed_dict[self.assign_map] = self.d_abs_ragged
+            self.sess.run(self.setup, feed_dict=feed_dict)
 
             X_der_batch, X_der_batch_s = [], []
 
             for i in range(self.max_iterations):
 
                 # numerical gradients
-                grads_num = np.zeros(self.shape)
-                grads_num_s = np.zeros(self.shape)
+                grads_num = np.zeros(pert_shape)
+                grads_num_s = np.zeros(pert_shape)
 
                 # check if numerical gradient computation is needed
                 if not self.model and (self.c_init != 0. or self.c_steps > 1):
@@ -649,8 +1078,10 @@ class CounterFactualProto:
                         c = self.const.eval(session=self.sess)
                         X_der_batch = np.concatenate(X_der_batch)
                         X_der_batch_s = np.concatenate(X_der_batch_s)
-                        grads_num = self.get_gradients(X_der_batch, Y) * c
-                        grads_num_s = self.get_gradients(X_der_batch_s, Y) * c
+                        grads_num = self.get_gradients(X_der_batch, Y, cat_vars_ord=self.cat_vars_ord,
+                                                       grads_shape=pert_shape[1:]) * c
+                        grads_num_s = self.get_gradients(X_der_batch_s, Y, cat_vars_ord=self.cat_vars_ord,
+                                                         grads_shape=pert_shape[1:]) * c
                         # clip gradients
                         grads_num = np.clip(grads_num, self.clip[0], self.clip[1])
                         grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])
@@ -676,6 +1107,10 @@ class CounterFactualProto:
                         self.sess.run([self.loss_total, self.loss_attack, self.l1_l2, self.pred_proba, self.adv])
                 else:
                     X_der = self.adv.eval(session=self.sess)  # get updated perturbed instances
+                    if self.is_cat:  # map back to categories to make predictions
+                        X_der = num_to_ord(X_der, self.d_abs)
+                    if self.ohe:
+                        X_der = ord_to_ohe(X_der, self.cat_vars_ord)[0]
                     pred_proba = self.predict(X_der)
 
                     # compute attack, total and L1+L2 losses as well as new perturbed instance
@@ -733,10 +1168,17 @@ class CounterFactualProto:
                 for batch_idx, (dist, proba, adv_idx) in enumerate(zip(loss_l1_l2, pred_proba, adv)):
                     Y_class = np.argmax(Y[batch_idx])
                     adv_class = np.argmax(proba)
+                    adv_idx = np.expand_dims(adv_idx, axis=0)
+
+                    if self.is_cat:  # map back to categories
+                        adv_idx = num_to_ord(adv_idx, self.d_abs)
+
+                    if self.ohe:  # map back from ordinal to OHE
+                        adv_idx = ord_to_ohe(adv_idx, self.cat_vars_ord)[0]
 
                     # calculate trust score
                     if threshold > 0.:
-                        score = self.score(np.expand_dims(adv_idx, axis=0), adv_class, Y_class)
+                        score = self.score(adv_idx, np.argmax(pred_proba), Y_class)
                         above_threshold = score > threshold
                     else:
                         above_threshold = True
@@ -831,7 +1273,7 @@ class CounterFactualProto:
 
         if Y is None:
             if self.model:
-                Y_proba = self.sess.run(self.predict(tf.convert_to_tensor(X, dtype=tf.float32)))
+                Y_proba = self.predict.predict(X)  # type: ignore
             else:
                 Y_proba = self.predict(X)
             Y_ohe = np.zeros(Y_proba.shape)
@@ -860,10 +1302,14 @@ class CounterFactualProto:
         explanation['cf'] = {}
         explanation['cf']['X'] = best_attack
         if self.model:
-            Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
+            Y_pert = self.predict.predict(best_attack)  # type: ignore
         else:
             Y_pert = self.predict(best_attack)
         explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
         explanation['cf']['proba'] = Y_pert
         explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
+
+        explanation['meta'] = {}
+        explanation['meta']['name'] = self.__class__.__name__
+
         return explanation

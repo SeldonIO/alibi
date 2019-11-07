@@ -30,7 +30,7 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
 
-    def __init__(self) -> None:
+    def __init__(self, parallel=False, **kwargs) -> None:
         """
         Initialize the anchor beam search class.
         """
@@ -53,6 +53,11 @@ class AnchorBaseBeam(object):
                       }  # type: dict
 
         self.data_type = None  # data type for sampled data
+
+        if parallel:
+            self.pool = Pool(kwargs['ncpu'])
+        else:
+            self.pool = None
 
     @staticmethod
     def kl_bernoulli(p: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -211,7 +216,7 @@ class AnchorBaseBeam(object):
         return crit_arms._make((ut, lt))
 
     def lucb(self, anchors: list, sample_fcn: Callable, init_stats: dict, epsilon: float, delta: float, batch_size: int,
-             top_n: int, verbose: bool = False, verbose_every: int = 1, pool=None) -> np.ndarray:
+             top_n: int, verbose: bool = False, verbose_every: int = 1) -> np.ndarray:
         """
         Parameters
         ----------
@@ -282,7 +287,7 @@ class AnchorBaseBeam(object):
             # draw samples for each critical anchor, update anchors' mean, upper and lower
             # bound precision estimate
             selected_anchors = [anchors[idx] for idx in crit_a_idx]
-            pos, total = self.draw_samples(sample_fcn, selected_anchors, batch_size, pool)
+            pos, total = self.draw_samples(sample_fcn, selected_anchors, batch_size)
             idx = list(crit_a_idx)
             positives[idx] += pos
             n_samples[idx] += total
@@ -293,7 +298,7 @@ class AnchorBaseBeam(object):
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
 
-    def draw_samples(self, sample_fcn: Callable, selected_anchors: list, batch_size: int, pool: Any):
+    def draw_samples(self, sample_fcn: Callable, selected_anchors: list, batch_size: int):
         """
         Parameters
         ----------
@@ -303,9 +308,6 @@ class AnchorBaseBeam(object):
             anchors on which samples are conditioned
         batch_size:
             number of samples to be drawn for each anchor
-        pool:
-            a multiprocessing.Pool object, which executes sampling of each selected
-            anchor in different processes
 
         Returns:
         -------
@@ -313,9 +315,10 @@ class AnchorBaseBeam(object):
             a zip object containing a tuple of positive samples (for which prediction matches desired label)
                 and a tuple of total number of samples drawn
         """
+
         orderded_anchors = [self.state['t_order'][anchor] for anchor in selected_anchors]
-        if pool:
-            samples = list(pool.imap(partial(sample_fcn, num_samples=batch_size), orderded_anchors))
+        if self.pool:
+            samples = list(self.pool.imap(partial(sample_fcn, num_samples=batch_size), orderded_anchors))
         else:
             samples = []
             # NB: This code assumes ordered output from parallel processing ... not ideal
@@ -534,7 +537,6 @@ class AnchorBaseBeam(object):
                     data_type: str = None, **kwargs) -> dict:
 
         """
-        # TODO: The parallel settings should be configurable from outside (e.g., so yml for the explainer?)
         Parameters
         ----------
         sample_fn
@@ -623,11 +625,6 @@ class AnchorBaseBeam(object):
         if max_anchor_size is None:
             max_anchor_size = self.state['n_features']
 
-        if kwargs['parallel']:
-            main_pool, lucb_pool = Pool(kwargs['ncpu']), Pool(2)
-        else:
-            main_pool, lucb_pool = None, None
-
         # find best anchor using beam search until max anchor size
         while current_size <= max_anchor_size:
 
@@ -656,7 +653,6 @@ class AnchorBaseBeam(object):
                                           min(beam_size, len(anchors)),
                                           verbose=verbose,
                                           verbose_every=verbose_every,
-                                          pool=lucb_pool,
                                           )
             # store best anchors for the given anchor size (nb of features in the anchor)
             best_of_size[current_size] = [anchors[index] for index in candidate_anchors]
@@ -682,7 +678,7 @@ class AnchorBaseBeam(object):
             continue_sampling = AnchorBaseBeam.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
             while continue_sampling.any() > 0:
                 selected_anchors = [anchors[idx] for idx in candidate_anchors[continue_sampling]]
-                pos, total = self.draw_samples(sample_fn, selected_anchors, batch_size, main_pool)
+                pos, total = self.draw_samples(sample_fn, selected_anchors, batch_size)
                 positives[continue_sampling] += pos
                 n_samples[continue_sampling] += total
                 means[continue_sampling] = positives[continue_sampling]/n_samples[continue_sampling]
@@ -731,11 +727,9 @@ class AnchorBaseBeam(object):
                                           verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 
-        if kwargs['parallel']:
-            main_pool.close()
-            main_pool.join()
-            lucb_pool.close()
-            lucb_pool.join()
+        if self.pool:
+            self.pool.close()
+            self.pool.join()
 
         # return explanation dictionary
         return AnchorBaseBeam.get_anchor_from_tuple(best_anchor, self.state)

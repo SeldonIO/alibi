@@ -342,7 +342,7 @@ class AnchorTabular(object):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: Any) -> dict:
+                desired_label: int = None, parallel: bool = False, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -362,6 +362,8 @@ class AnchorTabular(object):
             Maximum number of features in anchor
         desired_label
             Label to use as true label for the instance to be explained
+        parallel:
+            if true, the prediction calls from the multi-armed bandit are executed in parallel
 
         Returns
         -------
@@ -379,7 +381,7 @@ class AnchorTabular(object):
 
         # get anchors and add metadata
 
-        mab = AnchorBaseBeam()
+        mab = AnchorBaseBeam(parallel=parallel, **kwargs)
         anchor = mab.anchor_beam(self.sampler, delta=delta, epsilon=tau,
                                  batch_size=batch_size, desired_confidence=threshold,
                                  max_anchor_size=max_anchor_size, **kwargs)  # type: Any

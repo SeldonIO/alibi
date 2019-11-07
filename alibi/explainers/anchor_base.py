@@ -2,8 +2,8 @@ from multiprocessing import Pool
 import numpy as np
 import copy
 import logging
-from collections import defaultdict, namedtuple
-from typing import Any, Callable, Tuple, Set, Dict
+from collections import defaultdict, namedtuple, OrderedDict
+from typing import Callable, Tuple, Set, Dict
 from functools import partial
 
 logger = logging.getLogger(__name__)
@@ -56,8 +56,9 @@ class AnchorBaseBeam(object):
 
         if parallel:
             self.pool = Pool(kwargs['ncpu'])
+            self.draw_samples = self._parallel_sampler
         else:
-            self.pool = None
+            self.draw_samples = self._sequential_sampler
 
     @staticmethod
     def kl_bernoulli(p: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -247,27 +248,26 @@ class AnchorBaseBeam(object):
         # n_features equals to the nb of candidate anchors
         n_features = len(anchors)
 
-        # initiate arrays for number of samples, positives (# samples where prediction equals desired label), ...
-        # ... upper and lower precision bounds for each anchor candidate
+        # arrays for total number of samples & positives (# samples where prediction equals desired label)
         n_samples, positives = init_stats['n_samples'], init_stats['positives']
-        ub, lb = np.zeros(n_samples.shape), np.zeros(n_samples.shape)
-
-        # TODO: It is probably a good idea to sample a larger number of examples here? More accurate precision estimates
-        # TODO: Experiment with batching these calls/increasing number of samples after initial benchmark
-        #  should technically mean that the algo stops quicker? Discuss.*
-
+        anchors_to_sample, anchors_idx = [], []
         for f in np.where(n_samples == 0)[0]:
-            # set min samples for each anchor candidate to 1
-            samples = sample_fcn(list(anchors[f]), 1)  # add labels.sum() for the anchor candidate
-            positives[f], n_samples[f] = self.update_state(samples, anchors[f])
+            anchors_to_sample.append(anchors[f])
+            anchors_idx.append(f)
+
+        if anchors_idx:
+            pos, total = self.draw_samples(sample_fcn, anchors_to_sample, 1)
+            positives[anchors_idx] += pos
+            n_samples[anchors_idx] += total
 
         if n_features == top_n:  # return all options b/c of beam search width
             return np.arange(n_features)
 
-        # keep updating the upper and lower precision bounds until the difference between the best upper ...
+        # update the upper and lower precision bounds until the difference between the best upper ...
         # ... precision bound of the low precision anchors and the worst lower precision bound of the high ...
         # ... precision anchors is smaller than eps
         means = positives / n_samples  # fraction sample predictions equal to desired label
+        ub, lb = np.zeros(n_samples.shape), np.zeros(n_samples.shape)
         t = 1
         crit_a_idx = self.select_critical_arms(means, ub, lb, n_samples, delta, top_n, t)
         B = ub[crit_a_idx.ut] - lb[crit_a_idx.lt]
@@ -298,34 +298,64 @@ class AnchorBaseBeam(object):
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
 
-    def draw_samples(self, sample_fcn: Callable, selected_anchors: list, batch_size: int):
+    def _get_order_map(self, anchors) -> Dict[Tuple, Tuple[Tuple, int]]:
         """
         Parameters
         ----------
-        sample_fcn:
-            sampling function
-        selected_anchors:
-            anchors on which samples are conditioned
-        batch_size:
-            number of samples to be drawn for each anchor
+            anchors:
+        anchors sorted in ascending order of feature ID
 
-        Returns:
+        Returns
         -------
-            # TODO: rewrite doc
-            a zip object containing a tuple of positive samples (for which prediction matches desired label)
-                and a tuple of total number of samples drawn
+            an ordered dictionary mapping anchor in construction order to a tuple
+            containing  the anchor sorted in ascending feature ID order and its index
+            in the anchors sequence
+        """
+        order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
+        return OrderedDict(order_map)
+
+    def _parallel_sampler(self, sample_fcn: Callable, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Parameters
+        ----------
+            see self._sequential_sampler
+
+        Returns
+        -------
+            same outputs as _sequential_sampler but of different types
         """
 
-        orderded_anchors = [self.state['t_order'][anchor] for anchor in selected_anchors]
-        if self.pool:
-            samples = list(self.pool.imap(partial(sample_fcn, num_samples=batch_size), orderded_anchors))
-        else:
-            samples = []
-            # NB: This code assumes ordered output from parallel processing ... not ideal
-            for anchor in orderded_anchors:
-                samples.append(sample_fcn(anchor, num_samples=batch_size))
-        sample_stats = [self.update_state(s, anchor) for (s, anchor) in zip(samples, selected_anchors)]
-        pos, total = zip(*sample_stats)
+        pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
+        order_map = self._get_order_map(anchors)
+        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size), order_map.keys())
+        for samples in samples_iter:
+            positives, n_samples, anchor = self.update_state(samples, order_map)
+            idx = order_map[anchor][1]  # return statistics in the same order as the requests
+            pos[idx], total[idx] = positives, n_samples
+
+        return pos, total
+
+    def _sequential_sampler(self, sample_fcn: Callable, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
+        """
+        Parameters
+        ----------
+            sample_fcn
+                sampling function
+            anchors
+                anchors on which samples are conditioned
+            batch_size
+                number of samples to be drawn for each anchor
+
+        Returns
+        -------
+            a tuple of positive samples (for which prediction matches desired label)
+            and a tuple of total number of samples drawn
+        """
+
+        order_map = self._get_order_map(anchors)
+        samples_iter = [sample_fcn(anchor, num_samples=batch_size) for anchor in order_map.keys()]
+        sample_stats = [self.update_state(samples, order_map) for samples in samples_iter]
+        pos, total = list(zip(*sample_stats))[:-1]
 
         return pos, total
 
@@ -355,7 +385,7 @@ class AnchorBaseBeam(object):
         if len(previous_best) == 0:
             tuples = [(x,) for x in all_features]
             for x in tuples:
-                pres = data[:, x[0]].nonzero()[0] # Select samples whose feat value is = to the anchor value
+                pres = data[:, x[0]].nonzero()[0]  # Select samples whose feat value is = to the anchor value
                 state['t_idx'][x] = set(pres)
                 state['t_nsamples'][x] = float(len(pres))
                 state['t_positives'][x] = float(labels[pres].sum())
@@ -387,7 +417,7 @@ class AnchorBaseBeam(object):
                     state['t_positives'][new_t] = np.sum(state['labels'][idx_list])
         return list(new_tuples)
 
-    def update_state(self, samples: tuple, anchor: tuple) -> Tuple[int, int]:
+    def update_state(self, samples: tuple, order_map: dict) -> Tuple[int, int, Tuple[int, ...]]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
@@ -395,23 +425,24 @@ class AnchorBaseBeam(object):
         ----------
 
         samples
-            a tuple containing raw_data, discretized data, and an array indicating whether the prediction on the sample
-                matches the label of the instance to be explained
-
-        anchor
-            a tuple containing the feature indices of the anchor
+            a tuple containing raw_data, discretized data, and an array indicating whether
+            the prediction on the sample matches the label of the instance to be explained
+        order_map
+            a mapping from ordered to unordered anchors. The latter type is used to track
+            state to avoid exploring solution permutations
 
         Returns
         -------
             a tuple containing the number of instances equals desired label of observation to be explained
-                and the total number of instances sampled
+                the total number of instances sampled, and the anchor that was sampled
 
         """
 
         # data is a binary matrix where 1 indicates that a feature has the same value as the feature
         # in the anchor
-        raw_data, data, labels, coverage = samples
+        raw_data, data, labels, coverage, c_anchor = samples  # c_ = anchor in construction order
         n_samples = raw_data.shape[0]
+        anchor = order_map[c_anchor]  # anchor is sorted in ascending order in propose_anchors
 
         current_idx = self.state['current_idx']
         idxs = range(current_idx, current_idx + n_samples)
@@ -431,7 +462,7 @@ class AnchorBaseBeam(object):
                                                                                  dtype=self.data_type)))
             self.state['labels'] = np.hstack((self.state['labels'], np.zeros(prealloc_size, labels.dtype)))
 
-        return labels.sum(), raw_data.shape[0]
+        return labels.sum(), raw_data.shape[0], c_anchor
 
     @staticmethod
     def get_init_stats(anchors: list, state: dict, coverages=False) -> dict:
@@ -642,8 +673,7 @@ class AnchorBaseBeam(object):
             # for each anchor, get initial nb of samples used and prec(A)
             stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
 
-            # apply KL-LUCB and return anchor options (nb of options = beam width)in the form of indices
-            # print("current_size", current_size)
+            # apply KL-LUCB and return anchor options (nb of options = beam width) in the form of indices
             candidate_anchors = self.lucb(anchors,
                                           sample_fn,
                                           stats,

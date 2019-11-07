@@ -378,10 +378,12 @@ class AnchorTabular(object):
         self.build_sampling_lookups(X)
 
         # get anchors and add metadata
+
         mab = AnchorBaseBeam()
         anchor = mab.anchor_beam(self.sampler, delta=delta, epsilon=tau,
                                  batch_size=batch_size, desired_confidence=threshold,
                                  max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+
         self.add_names_to_exp(anchor)
         if true_label is None:
             anchor['prediction'] = self.instance_label

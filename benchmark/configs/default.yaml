@@ -17,10 +17,10 @@ explainer:
 
 # Experiment settings
 experiment:
-  n_runs: 10
+  n_runs: 100
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/BaseEnhancements
-  ckpt: ParallelAnchorTabularExample2Final.pkl
+  ckpt_dir: /home/alex/git/work_experiments/ParallelRegressionTest
+  ckpt: Example2.pkl
   verbose: false
   data:
     preprocess: true

@@ -18,9 +18,9 @@ explainer:
 # Experiment settings
 experiment:
   n_runs: 100
-  instance_idx: 0
+  instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/ParallelRegressionTest
-  ckpt: PExample1.pkl
+  ckpt: PExample2_4.pkl
   verbose: false
   data:
     preprocess: true

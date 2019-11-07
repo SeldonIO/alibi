@@ -202,7 +202,7 @@ class ExplainerExperiment(object):
         if not os.path.exists(self.experiment_config['ckpt_dir']):
             os.makedirs(self.experiment_config['ckpt_dir'])
         else:
-            print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging 
+            print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging
                   "files may be overwritten!")
 
         fullpath = os.path.join(self.experiment_config['ckpt_dir'],

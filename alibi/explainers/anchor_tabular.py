@@ -157,7 +157,7 @@ class AnchorTabular(object):
                 self.enc2feat_idx[cat_enc_idx] = cat_feat_idx
                 cat_enc_idx += 1
 
-    def sample_from_train(self, anchor: list, val2idx: dict, ord_lookup: dict, cat_lookup: dict,
+    def sample_from_train(self, anchor: tuple, val2idx: dict, ord_lookup: dict, cat_lookup: dict,
                           enc2feat_idx: dict, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
         Sample data from training set but keep features in the anchor list the same
@@ -293,8 +293,8 @@ class AnchorTabular(object):
 
         return samples, self.disc.discretize(samples), coverage
 
-    def sampler(self, anchor: list, num_samples: int, compute_labels: bool = True) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray, float]:
+    def sampler(self, anchor: tuple, num_samples: int, compute_labels: bool = True) \
+            -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, Tuple[int, ...]]:
         """
         Create sampling function from training data.
 
@@ -315,6 +315,8 @@ class AnchorTabular(object):
             Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
         labels
             Create labels using model predictions if compute_labels equals True
+        anchor
+            The anchor sampled, used to speed up parallelisation
         """
 
         raw_data, d_raw_data, coverage = self.sample_from_train(anchor, self.val2idx, self.ord_lookup, self.cat_lookup,
@@ -338,7 +340,7 @@ class AnchorTabular(object):
         if compute_labels:
             labels = (self.predict_fn(raw_data) == self.instance_label).astype(int)
 
-        return raw_data, data, labels, coverage
+        return raw_data, data, labels, coverage, anchor
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,

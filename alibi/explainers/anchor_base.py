@@ -58,6 +58,7 @@ class AnchorBaseBeam(object):
             self.pool = Pool(kwargs['ncpu'])
             self.draw_samples = self._parallel_sampler
         else:
+            self.pool = None
             self.draw_samples = self._sequential_sampler
 
     @staticmethod
@@ -298,22 +299,6 @@ class AnchorBaseBeam(object):
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
 
-    def _get_order_map(self, anchors) -> Dict[Tuple, Tuple[Tuple, int]]:
-        """
-        Parameters
-        ----------
-            anchors:
-        anchors sorted in ascending order of feature ID
-
-        Returns
-        -------
-            an ordered dictionary mapping anchor in construction order to a tuple
-            containing  the anchor sorted in ascending feature ID order and its index
-            in the anchors sequence
-        """
-        order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
-        return OrderedDict(order_map)
-
     def _parallel_sampler(self, sample_fcn: Callable, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Parameters
@@ -326,11 +311,12 @@ class AnchorBaseBeam(object):
         """
 
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
-        order_map = self._get_order_map(anchors)
-        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size), order_map.keys())
+        order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
+        order_dict = OrderedDict(order_map)
+        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size), order_dict.keys())
         for samples in samples_iter:
-            positives, n_samples, anchor = self.update_state(samples, order_map)
-            idx = order_map[anchor][1]  # return statistics in the same order as the requests
+            positives, n_samples, anchor = self.update_state(samples)
+            idx = order_dict[anchor][1]  # return statistics in the same order as the requests
             pos[idx], total[idx] = positives, n_samples
 
         return pos, total
@@ -352,9 +338,8 @@ class AnchorBaseBeam(object):
             and a tuple of total number of samples drawn
         """
 
-        order_map = self._get_order_map(anchors)
-        samples_iter = [sample_fcn(anchor, num_samples=batch_size) for anchor in order_map.keys()]
-        sample_stats = [self.update_state(samples, order_map) for samples in samples_iter]
+        samples_iter = [sample_fcn(tuple(self.state['t_order'][anchor]), num_samples=batch_size) for anchor in anchors]
+        sample_stats = [self.update_state(samples) for samples in samples_iter]
         pos, total = list(zip(*sample_stats))[:-1]
 
         return pos, total
@@ -417,7 +402,7 @@ class AnchorBaseBeam(object):
                     state['t_positives'][new_t] = np.sum(state['labels'][idx_list])
         return list(new_tuples)
 
-    def update_state(self, samples: tuple, order_map: dict) -> Tuple[int, int, Tuple[int, ...]]:
+    def update_state(self, samples: tuple) -> Tuple[int, int, Tuple[int, ...]]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
@@ -427,9 +412,6 @@ class AnchorBaseBeam(object):
         samples
             a tuple containing raw_data, discretized data, and an array indicating whether
             the prediction on the sample matches the label of the instance to be explained
-        order_map
-            a mapping from ordered to unordered anchors. The latter type is used to track
-            state to avoid exploring solution permutations
 
         Returns
         -------
@@ -442,7 +424,7 @@ class AnchorBaseBeam(object):
         # in the anchor
         raw_data, data, labels, coverage, c_anchor = samples  # c_ = anchor in construction order
         n_samples = raw_data.shape[0]
-        anchor = order_map[c_anchor]  # anchor is sorted in ascending order in propose_anchors
+        anchor = tuple(sorted(c_anchor))  # same order as in propose_anchors
 
         current_idx = self.state['current_idx']
         idxs = range(current_idx, current_idx + n_samples)
@@ -605,11 +587,11 @@ class AnchorBaseBeam(object):
         """
 
         # random (b/c first argument is empty) sample nb of coverage_samples from training data
-        _, coverage_data, _, _ = sample_fn([], coverage_samples, compute_labels=False)
+        _, coverage_data, _, _, _ = sample_fn((), coverage_samples, compute_labels=False)
         self.state['coverage_data'] = coverage_data
 
         # sample by default 1 or min_samples_start more random value(s)
-        raw_data, data, labels, _ = sample_fn([], max(1, min_samples_start))
+        raw_data, data, labels, _, _ = sample_fn((), max(1, min_samples_start))
 
         # mean = fraction of labels sampled data that equals the label of the instance to be explained ...
         # ... and is equivalent to prec(A) in paper (eq.2)
@@ -621,7 +603,7 @@ class AnchorBaseBeam(object):
         # while prec(A) > tau (precision constraint) for A=[] and prec_lb(A) < tau - eps ...
         # ... (lower precision bound below tau with margin eps), keep sampling data until lb is high enough
         while mean > desired_confidence and lb < desired_confidence - epsilon:
-            nraw_data, ndata, nlabels, _ = sample_fn([], batch_size)
+            nraw_data, ndata, nlabels, _, _ = sample_fn((), batch_size)
             data = np.vstack((data, ndata))
             raw_data = np.vstack((raw_data, nraw_data))
             labels = np.hstack((labels, nlabels))

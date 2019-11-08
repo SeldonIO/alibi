@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Dict, Callable, List, Union, Sequence
-
+from functools import partial
 
 class Discretizer(object):
 
@@ -40,7 +40,11 @@ class Discretizer(object):
             for i in range(n_bins - 1):
                 self.feature_intervals[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
             self.feature_intervals[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
-            self.lambdas[feature] = lambda x, qts = qts: np.searchsorted(qts, x)
+            self.lambdas[feature] = partial(self.quantiles, qts=qts)
+
+    @staticmethod
+    def quantiles(x, qts):
+        return np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:
         """

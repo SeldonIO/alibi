@@ -3,7 +3,7 @@ import numpy as np
 import copy
 import logging
 from collections import defaultdict, namedtuple, OrderedDict
-from typing import Callable, Tuple, Set, Dict
+from typing import Callable, Tuple, Set, Dict, List
 from functools import partial
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
 
-    def __init__(self, parallel=False, **kwargs) -> None:
+    def __init__(self, sampler: Callable, prec_estimator: Callable, parallel=False, **kwargs) -> None:
         """
         Initialize the anchor beam search class.
         """
@@ -53,7 +53,8 @@ class AnchorBaseBeam(object):
                       }  # type: dict
 
         self.data_type = None  # data type for sampled data
-
+        self.sample_fcn = sampler
+        self.prec_estimator = prec_estimator
         if parallel:
             self.pool = Pool(kwargs['ncpu'])
             self.chunksize = kwargs['chunksize']
@@ -218,15 +219,14 @@ class AnchorBaseBeam(object):
 
         return crit_arms._make((ut, lt))
 
-    def lucb(self, anchors: list, sample_fcn: Callable, init_stats: dict, epsilon: float, delta: float, batch_size: int,
+    def lucb(self, anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int,
              top_n: int, verbose: bool = False, verbose_every: int = 1) -> np.ndarray:
         """
         Parameters
         ----------
         anchors:
             A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013)
-        sample_fcn
-            A function that returns a sample from the dataset for the specified set of anchors
+
         init_stats
             Dictionary with lists containing nb of samples used and where sample predictions equal the desired label
         epsilon
@@ -258,7 +258,7 @@ class AnchorBaseBeam(object):
             anchors_idx.append(f)
 
         if anchors_idx:
-            pos, total = self.draw_samples(sample_fcn, anchors_to_sample, 1)
+            pos, total = self.draw_samples(anchors_to_sample, 1)
             positives[anchors_idx] += pos
             n_samples[anchors_idx] += total
 
@@ -289,7 +289,7 @@ class AnchorBaseBeam(object):
             # draw samples for each critical anchor, update anchors' mean, upper and lower
             # bound precision estimate
             selected_anchors = [anchors[idx] for idx in crit_a_idx]
-            pos, total = self.draw_samples(sample_fcn, selected_anchors, batch_size)
+            pos, total = self.draw_samples(selected_anchors, batch_size)
             idx = list(crit_a_idx)
             positives[idx] += pos
             n_samples[idx] += total
@@ -300,7 +300,7 @@ class AnchorBaseBeam(object):
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
 
-    def _parallel_sampler(self, sample_fcn: Callable, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
+    def _parallel_sampler(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
         """
         Parameters
         ----------
@@ -314,23 +314,23 @@ class AnchorBaseBeam(object):
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
         order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
         order_dict = OrderedDict(order_map)
-        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size),
+        samples_iter = self.pool.imap_unordered(partial(self.sample_fcn, num_samples=batch_size),
                                                 order_dict.keys(),
                                                 chunksize=self.chunksize,
                                                 )
         for samples in samples_iter:
-            positives, n_samples, anchor = self.update_state(samples)
+            raw_data, *additionals = samples
+            labels = self.prec_estimator(raw_data)
+            positives, n_samples, anchor = self.update_state(raw_data, labels, additionals)
             idx = order_dict[anchor][1]  # return statistics in the same order as the requests
             pos[idx], total[idx] = positives, n_samples
 
         return pos, total
 
-    def _sequential_sampler(self, sample_fcn: Callable, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
+    def _sequential_sampler(self, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
         """
         Parameters
         ----------
-            sample_fcn
-                sampling function
             anchors
                 anchors on which samples are conditioned
             batch_size
@@ -341,10 +341,14 @@ class AnchorBaseBeam(object):
             a tuple of positive samples (for which prediction matches desired label)
             and a tuple of total number of samples drawn
         """
-
-        samples_iter = [sample_fcn(tuple(self.state['t_order'][anchor]), num_samples=batch_size) for anchor in anchors]
-        sample_stats = [self.update_state(samples) for samples in samples_iter]
-        pos, total = list(zip(*sample_stats))[:-1]
+        sample_stats, pos, total = [], (), ()  # type: List, Tuple, Tuple
+        samples_iter = [self.sample_fcn(tuple(self.state['t_order'][anchor]), num_samples=batch_size)
+                        for anchor in anchors]
+        for samples in samples_iter:
+            raw_data, *additionals = samples
+            labels = self.prec_estimator(raw_data)
+            sample_stats.append(self.update_state(raw_data, labels, additionals))
+            pos, total = list(zip(*sample_stats))[:-1]
 
         return pos, total
 
@@ -406,16 +410,20 @@ class AnchorBaseBeam(object):
                     state['t_positives'][new_t] = np.sum(state['labels'][idx_list])
         return list(new_tuples)
 
-    def update_state(self, samples: tuple) -> Tuple[int, int, Tuple[int, ...]]:
+    def update_state(self, raw_data, labels: np.ndarray, samples: tuple) -> Tuple[int, int, Tuple[int, ...]]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
         Parameters
         ----------
 
+        raw_data
+            the samples
         samples
-            a tuple containing raw_data, discretized data, and an array indicating whether
-            the prediction on the sample matches the label of the instance to be explained
+            a tuple containing discretized data, coverage and the anchor sampled
+        labels
+            an array indicating whether the prediction on the sample matches the label
+            of the instance to be explained
 
         Returns
         -------
@@ -426,7 +434,7 @@ class AnchorBaseBeam(object):
 
         # data is a binary matrix where 1 indicates that a feature has the same value as the feature
         # in the anchor
-        raw_data, data, labels, coverage, c_anchor = samples  # c_ = anchor in construction order
+        data, coverage, c_anchor = samples  # c_ = anchor in construction order
         n_samples = raw_data.shape[0]
         anchor = tuple(sorted(c_anchor))  # same order as in propose_anchors
 
@@ -547,7 +555,7 @@ class AnchorBaseBeam(object):
         return ((means >= desired_confidence) & (lbs < desired_confidence - epsilon_stop)) | \
                ((means < desired_confidence) & (ubs >= desired_confidence + epsilon_stop))
 
-    def anchor_beam(self, sample_fn: Callable, delta: float = 0.05, epsilon: float = 0.1, batch_size: int = 10,
+    def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, batch_size: int = 10,
                     desired_confidence: float = 1., beam_size: int = 1, verbose: bool = False,
                     epsilon_stop: float = 0.05, min_samples_start: int = 0, max_anchor_size: int = None,
                     verbose_every: int = 1, stop_on_first: bool = False, coverage_samples: int = 10000,
@@ -556,8 +564,6 @@ class AnchorBaseBeam(object):
         """
         Parameters
         ----------
-        sample_fn
-            Function used to sample from training set which returns (raw) data and labels
         delta
             Used to compute beta
         epsilon
@@ -591,12 +597,12 @@ class AnchorBaseBeam(object):
         """
 
         # random (b/c first argument is empty) sample nb of coverage_samples from training data
-        _, coverage_data, _, _, _ = sample_fn((), coverage_samples, compute_labels=False)
+        _, coverage_data, _, _ = self.sample_fcn((), coverage_samples)
         self.state['coverage_data'] = coverage_data
 
         # sample by default 1 or min_samples_start more random value(s)
-        raw_data, data, labels, _, _ = sample_fn((), max(1, min_samples_start))
-
+        raw_data, data, _, _ = self.sample_fcn((), max(1, min_samples_start))
+        labels = self.prec_estimator(raw_data)
         # mean = fraction of labels sampled data that equals the label of the instance to be explained ...
         # ... and is equivalent to prec(A) in paper (eq.2)
         # get lower precision bound lb
@@ -607,7 +613,8 @@ class AnchorBaseBeam(object):
         # while prec(A) > tau (precision constraint) for A=[] and prec_lb(A) < tau - eps ...
         # ... (lower precision bound below tau with margin eps), keep sampling data until lb is high enough
         while mean > desired_confidence and lb < desired_confidence - epsilon:
-            nraw_data, ndata, nlabels, _, _ = sample_fn((), batch_size)
+            nraw_data, ndata, _, _ = self.sample_fcn((), batch_size)
+            nlabels = self.prec_estimator(nraw_data)
             data = np.vstack((data, ndata))
             raw_data = np.vstack((raw_data, nraw_data))
             labels = np.hstack((labels, nlabels))
@@ -661,7 +668,6 @@ class AnchorBaseBeam(object):
 
             # apply KL-LUCB and return anchor options (nb of options = beam width) in the form of indices
             candidate_anchors = self.lucb(anchors,
-                                          sample_fn,
                                           stats,
                                           epsilon,
                                           delta,
@@ -694,7 +700,7 @@ class AnchorBaseBeam(object):
             continue_sampling = AnchorBaseBeam.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
             while continue_sampling.any() > 0:
                 selected_anchors = [anchors[idx] for idx in candidate_anchors[continue_sampling]]
-                pos, total = self.draw_samples(sample_fn, selected_anchors, batch_size)
+                pos, total = self.draw_samples(selected_anchors, batch_size)
                 positives[continue_sampling] += pos
                 n_samples[continue_sampling] += total
                 means[continue_sampling] = positives[continue_sampling]/n_samples[continue_sampling]
@@ -739,7 +745,12 @@ class AnchorBaseBeam(object):
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])
             stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
-            candidate_anchors = self.lucb(anchors, sample_fn, stats, epsilon, delta, batch_size, 1,
+            candidate_anchors = self.lucb(anchors,
+                                          stats,
+                                          epsilon,
+                                          delta,
+                                          batch_size,
+                                          1,
                                           verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 

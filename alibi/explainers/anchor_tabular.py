@@ -84,7 +84,7 @@ class AnchorTabular(object):
 
         # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
         # variable. Each value in this dict is a set of training data rows where that value is found
-        val2idx = {col_id: defaultdict(None) for col_id in self.numerical_features + self.categorical_features}
+        val2idx = {col_id: defaultdict(None) for col_id in self.numerical_features + self.categorical_features}  # type: Any
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
                 val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
@@ -296,8 +296,7 @@ class AnchorTabular(object):
 
         return samples, self.disc.discretize(samples), coverage
 
-    def sampler(self, anchor: tuple, num_samples: int, compute_labels: bool = True) \
-            -> Tuple[np.ndarray, np.ndarray, np.ndarray, float, Tuple[int, ...]]:
+    def sampler(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
         """
         Create sampling function from training data.
 
@@ -307,8 +306,6 @@ class AnchorTabular(object):
             Ints representing encoded feature ids
         num_samples
             Number of samples used when sampling from training set
-        compute_labels
-            Boolean whether to use labels coming from model predictions as 'true' labels
 
         Returns
         -------
@@ -338,12 +335,10 @@ class AnchorTabular(object):
                 idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
 
-        # create labels using model predictions as true labels
-        labels = np.array([])
-        if compute_labels:
-            labels = (self.predictor(raw_data) == self.instance_label).astype(int)
+        return raw_data, data, coverage, anchor
 
-        return raw_data, data, labels, coverage, anchor
+    def compute_prec(self, samples):
+        return (self.predictor(samples) == self.instance_label).astype(int)
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
@@ -386,10 +381,16 @@ class AnchorTabular(object):
 
         # get anchors and add metadata
 
-        mab = AnchorBaseBeam(parallel=parallel, **kwargs)
-        anchor = mab.anchor_beam(self.sampler, delta=delta, epsilon=tau,
-                                 batch_size=batch_size, desired_confidence=threshold,
-                                 max_anchor_size=max_anchor_size, **kwargs)  # type: Any
+        mab = AnchorBaseBeam(sampler=self.sampler,
+                             prec_estimator=self.compute_prec,
+                             parallel=parallel,
+                             **kwargs)
+        anchor = mab.anchor_beam(delta=delta,
+                                 epsilon=tau,
+                                 batch_size=batch_size,
+                                 desired_confidence=threshold,
+                                 max_anchor_size=max_anchor_size,
+                                 **kwargs)  # type: Any
 
         self.add_names_to_exp(anchor)
         if true_label is None:

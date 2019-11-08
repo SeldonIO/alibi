@@ -12,6 +12,8 @@ expln-config:
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
   parallel: false
+  chunksize: 1
+  ncpus: 2
   verbose: false
   seed: 0
 

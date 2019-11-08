@@ -11,16 +11,18 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  parallel: false
+  parallel: true
+  chunksize: 4
+  ncpu: 4
   verbose: false
   seed: 0
 
 # Experiment settings
 experiment:
-  n_runs: 100
+  n_runs: 25
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: BenchmarkTestHashPassingExample2.pkl
+  ckpt_dir: /home/alex/git/work_experiments/ParallelTest
+  ckpt: rf_parallel_ncpu_2_chunksize_1.pkl
   verbose: false
   data:
     preprocess: true
@@ -41,6 +43,6 @@ experiment:
     mapping:
       feat_ids : [raw, feature]
       feat_names: [raw, names]
-  profile: true
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
   profile_out: benchmark_stats.cprof

@@ -40,6 +40,17 @@ class Timer:
         self.t_elapsed = timer() - self.start
 
 
+class Predictor(object):
+
+    def __init__(self, clf, preprocessor=None):
+        self.predict_fcn = clf.predict
+        self.preprocessor = preprocessor
+
+    def __call__(self, x):
+        if self.preprocessor:
+            return self.predict_fcn(self.preprocessor.transform(x))
+
+
 def load_dataset(*, dataset='adult'):
 
     method = 'fetch_{}'.format(dataset)
@@ -105,20 +116,23 @@ def fit_rf(splits, config, preprocessor=None):
 
     np.random.seed(config['seed'])
     clf = RandomForestClassifier(n_estimators=config['n_estimators'])
-    clf.fit(preprocessor.transform(splits['X_train']), splits['Y_train'])
+    if preprocessor:
+        clf.fit(preprocessor.transform(splits['X_train']), splits['Y_train'])
+    else:
+        clf.fit(splits['X_train'], splits['Y_train'])
 
     display_performance(splits, predict_fcn(clf, preprocessor=preprocessor))
 
-    return predict_fcn(clf, preprocessor=preprocessor)
+    return Predictor(clf, preprocessor=preprocessor)
 
 
-def get_tabular_explainer(predict_fn, dataset, split, config):
+def get_tabular_explainer(predictor, dataset, split, config):
 
     feature_names = dataset.feature_names
     category_map = dataset.category_map
     X_train = split['X_train']
 
-    explainer = AnchorTabular(predict_fn, feature_names, categorical_names=category_map, seed=config['seed'])
+    explainer = AnchorTabular(predictor, feature_names, categorical_names=category_map, seed=config['seed'])
     explainer.fit(X_train, disc_perc=config['disc_perc'])
 
     return explainer
@@ -137,8 +151,6 @@ def get_explanation(explainer, expln_config, splits, exp_config):
                              threshold=expln_config['threshold'],
                              verbose=expln_config['verbose'],
                              parallel=expln_config['parallel'],
-                             ncpu=expln_config['ncpu'],
-                             chunksize=1,
                              )
 
 
@@ -189,11 +201,11 @@ class ExplainerExperiment(object):
 
         # fit classifier
         clf_fcn = 'fit_{}'.format(self.clf_config['name'])
-        predict_fn = getattr(self._this_module, clf_fcn)(splits, self.clf_config, preprocessor=preprocessor)
+        predictor = getattr(self._this_module, clf_fcn)(splits, self.clf_config, preprocessor=preprocessor)
         explainer_fcn = 'get_{}_explainer'.format(self.explainer_config['type'])
 
         # create and fit explainer instance
-        explainer = getattr(self._this_module, explainer_fcn)(predict_fn, dataset, splits, self.explainer_config)
+        explainer = getattr(self._this_module, explainer_fcn)(predictor, dataset, splits, self.explainer_config)
         self.explainer = explainer
 
         return self
@@ -204,7 +216,7 @@ class ExplainerExperiment(object):
         if not os.path.exists(self.experiment_config['ckpt_dir']):
             os.makedirs(self.experiment_config['ckpt_dir'])
         else:
-            print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging
+            print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging 
                   "files may be overwritten!")
 
         fullpath = os.path.join(self.experiment_config['ckpt_dir'],

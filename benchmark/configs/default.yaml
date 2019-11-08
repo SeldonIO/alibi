@@ -22,7 +22,7 @@ experiment:
   n_runs: 25
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/ParallelTest
-  ckpt: rf_parallel_ncpu_2_chunksize_1.pkl
+  ckpt: rf_parallel_ncpu_4_chunksize_4_gl.pkl
   verbose: false
   data:
     preprocess: true

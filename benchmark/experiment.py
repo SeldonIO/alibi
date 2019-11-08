@@ -12,6 +12,7 @@ from timeit import default_timer as timer
 from typing import Any, Sequence
 
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.impute import SimpleImputer
@@ -23,7 +24,7 @@ import alibi.datasets as datasets
 
 SUPPORTED_EXPLAINERS = ['tabular']
 SUPPORTED_DATASETS = ['adult', 'imagenet', 'movie_sentiment']
-SUPPORTED_CLASSIFIERS = ['rf']
+SUPPORTED_CLASSIFIERS = ['rf', 'dt']
 
 # TODO: Typing and documentation
 
@@ -126,6 +127,23 @@ def fit_rf(splits, config, preprocessor=None):
     return Predictor(clf, preprocessor=preprocessor)
 
 
+def fit_dt(splits, config, preprocessor=None):
+
+    np.random.seed(config['seed'])
+    clf = DecisionTreeClassifier(criterion=config['criterion'],
+                                 max_depth=config['max_depth'],
+                                 )
+    if preprocessor:
+        if preprocessor:
+            clf.fit(preprocessor.transform(splits['X_train']), splits['Y_train'])
+        else:
+            clf.fit(splits['X_train'], splits['Y_train'])
+
+        display_performance(splits, predict_fcn(clf, preprocessor=preprocessor))
+
+        return Predictor(clf, preprocessor=preprocessor)
+
+
 def get_tabular_explainer(predictor, dataset, split, config):
 
     feature_names = dataset.feature_names
@@ -151,6 +169,8 @@ def get_explanation(explainer, expln_config, splits, exp_config):
                              threshold=expln_config['threshold'],
                              verbose=expln_config['verbose'],
                              parallel=expln_config['parallel'],
+                             ncpu=expln_config['ncpu'],
+                             chunksize=expln_config['chunksize'],
                              )
 
 
@@ -212,7 +232,7 @@ class ExplainerExperiment(object):
 
     def __exit__(self, *args):
         self._save_exp_metadata()
-
+        # TODO: When in profile mode this should not be happening
         if not os.path.exists(self.experiment_config['ckpt_dir']):
             os.makedirs(self.experiment_config['ckpt_dir'])
         else:

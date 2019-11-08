@@ -32,7 +32,7 @@ def test_iris(predict_type, threshold):
 
     # test explainer initialization
     explainer = AnchorTabular(predict_fn, feature_names)
-    assert explainer.predict_fn(X_test[0].reshape(1, -1)).shape == (1,)
+    assert explainer.predictor(X_test[0].reshape(1, -1)).shape == (1,)
 
     # test explainer fit: shape and binning of ordinal features
     explainer.fit(X_train, disc_perc=[25, 50, 75])

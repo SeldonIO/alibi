@@ -11,7 +11,9 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  parallel: false
+  parallel: true
+  chunksize: 1
+  ncpu: 2
   verbose: false
   seed: 0
 
@@ -19,8 +21,8 @@ explainer:
 experiment:
   n_runs: 100
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/ParallelRegressionTest
-  ckpt: PExample2_4.pkl
+  ckpt_dir: /home/alex/git/work_experiments/ParallelTest
+  ckpt: dummy.pkl
   verbose: false
   data:
     preprocess: true

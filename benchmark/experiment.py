@@ -137,6 +137,8 @@ def get_explanation(explainer, expln_config, splits, exp_config):
                              threshold=expln_config['threshold'],
                              verbose=expln_config['verbose'],
                              parallel=expln_config['parallel'],
+                             ncpu=expln_config['ncpu'],
+                             chunksize=1,
                              )
 
 

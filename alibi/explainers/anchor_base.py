@@ -56,6 +56,7 @@ class AnchorBaseBeam(object):
 
         if parallel:
             self.pool = Pool(kwargs['ncpu'])
+            self.chunksize = kwargs['chunksize']
             self.draw_samples = self._parallel_sampler
         else:
             self.pool = None
@@ -313,7 +314,10 @@ class AnchorBaseBeam(object):
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
         order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
         order_dict = OrderedDict(order_map)
-        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size), order_dict.keys())
+        samples_iter = self.pool.imap_unordered(partial(sample_fcn, num_samples=batch_size),
+                                                order_dict.keys(),
+                                                chunksize=self.chunksize,
+                                                )
         for samples in samples_iter:
             positives, n_samples, anchor = self.update_state(samples)
             idx = order_dict[anchor][1]  # return statistics in the same order as the requests

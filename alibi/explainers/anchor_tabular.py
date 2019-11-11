@@ -333,7 +333,6 @@ class AnchorTabular(Explainer, FitMixin):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
-
         # get params for storage in meta
         params = locals()
         remove = ['X', 'self']

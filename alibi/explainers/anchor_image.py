@@ -1,5 +1,7 @@
+import attr
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import Explainer, Explanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple
@@ -10,8 +12,23 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_SLIC_SEGMENTATION_KWARGS = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
 
+DEFAULT_META_ANCHOR = {"type": "blackbox",
+                       "explanations": ["local"],
+                       "params": {}}
 
-class AnchorImage(object):
+DEFAULT_DATA_ANCHOR = {"anchor": [],
+                       "precision": None,
+                       "coverage": None,
+                       "raw": None}  # type: dict
+
+
+@attr.s
+class AnchorImageExplanation(Explanation):
+    meta: dict = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))
+    data: dict = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))
+
+
+class AnchorImage(Explainer):
 
     def __init__(self, predict_fn: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None, images_background: np.ndarray = None) -> None:
@@ -33,6 +50,7 @@ class AnchorImage(object):
         images_background
             Images to overlay superpixels on.
         """
+        super().__init__()
         if segmentation_fn == 'slic' and segmentation_kwargs is None:
             segmentation_kwargs = DEFAULT_SLIC_SEGMENTATION_KWARGS
 
@@ -59,6 +77,9 @@ class AnchorImage(object):
 
         self.images_background = images_background
         self.image_shape = image_shape
+
+        # set metadata
+        self.meta.update(DEFAULT_META_ANCHOR)
 
     def get_sample_fn(self, image: np.ndarray, p_sample: float = 0.5) -> Tuple[np.ndarray, Callable]:
         """
@@ -226,8 +247,9 @@ class AnchorImage(object):
 
         return segments, sample_fn_fudged
 
-    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5, **kwargs: Any):
+    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
+                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5,
+                **kwargs: Any) -> "AnchorImageExplanation":
         """
         Explain instance and return anchor with metadata.
 
@@ -251,6 +273,12 @@ class AnchorImage(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['image', 'self']
+        for key in remove:
+            params.pop(key)
+
         # build sampling function and segments
         segments, sample_fn = self.get_sample_fn(np.reshape(image, self.image_shape), p_sample=p_sample)
 
@@ -280,10 +308,12 @@ class AnchorImage(object):
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = AnchorImageExplanation(meta=copy.deepcopy(self.meta), data=explanation)
 
-        return explanation
+        # params passed to explain
+        newexp.meta['params'].update(params)
+        return newexp
 
     @staticmethod
     def overlay_mask(image: np.ndarray, segments: np.ndarray, mask_features: list,

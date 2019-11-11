@@ -49,6 +49,6 @@ def test_anchor_image():
     # test explanation
     threshold = .95
     explanation = explainer.explain(image, threshold=threshold)
-    assert explanation['anchor'].shape == image_shape
-    assert explanation['precision'] >= threshold
-    assert len(np.unique(explanation['segments'])) == len(np.unique(segments))
+    assert explanation.anchor.shape == image_shape
+    assert explanation.precision >= threshold
+    assert len(np.unique(explanation.segments)) == len(np.unique(segments))

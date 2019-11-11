@@ -7,3 +7,4 @@ requests>=2.21.0
 Pillow>=6.0.0
 beautifulsoup4>=4.7.1
 tensorflow>=1.15.0,<2.0
+attrs>=19.1.0

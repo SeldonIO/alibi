@@ -1,0 +1,106 @@
+import attr
+
+import numpy as np
+import pytest
+from alibi.explainers.base import Explainer, Explanation, FitMixin
+
+valid_meta = {"type": "blackbox", "explanations": ['local'], "params": {}}  # type: dict
+valid_data = {"anchor": [], "precision": [], "coverage": []}  # type: dict
+
+invalid_meta = []  # type: list
+invalid_data = {}  # type: dict
+
+
+class IncompleteExplainer(Explainer):
+    pass
+
+
+class SimpleExplainer(Explainer):
+    def explain(self, X: np.ndarray):
+        pass
+
+
+class SimpleExplainerWithInit(Explainer):
+
+    def __init__(self):
+        super().__init__()
+        self.meta['params']['a'] = 1
+
+    def explain(self, X: np.ndarray):
+        pass
+
+
+class IncompleteFitExplainer(FitMixin, Explainer):
+    def explain(self, X: np.ndarray):
+        pass
+
+
+class SimpleFitExplainer(FitMixin, Explainer):
+    def fit(self, X: np.ndarray):
+        pass
+
+    def explain(self, X: np.ndarray):
+        pass
+
+
+@attr.s
+class CompleteExplanation(Explanation):
+    meta: dict = attr.ib()
+    data: dict = attr.ib()
+
+
+def test_incomplete_explainer():
+    with pytest.raises(TypeError):
+        _ = IncompleteExplainer()
+
+
+def test_explainer():
+    try:
+        exp = SimpleExplainer()
+        assert exp.meta["name"] == exp.__class__.__name__
+        assert hasattr(exp, "explain")
+    except Exception:
+        pytest.fail("Unknown exception")
+
+
+def test_explainer_with_init():
+    try:
+        exp = SimpleExplainerWithInit()
+        assert exp.meta['name'] == exp.__class__.__name__
+        assert exp.meta['params'] == {'a': 1}
+
+    except Exception:
+        pytest.fail("Unknown exception")
+
+
+def test_explainer_valid_meta():
+    try:
+        exp = SimpleExplainer()
+        assert hasattr(exp, "explain")
+    except Exception:
+        pytest.fail("Unknown exception")
+
+
+def test_incomplete_fitexplainer():
+    with pytest.raises(TypeError):
+        _ = IncompleteFitExplainer()
+
+
+def test_fitexplainer():
+    try:
+        exp = SimpleFitExplainer()
+        assert hasattr(exp, "fit")
+        assert hasattr(exp, "explain")
+    except Exception:
+        pytest.fail("Unknown exception")
+
+
+def test_complete_explanation():
+    try:
+        exp = CompleteExplanation(meta=valid_meta, data=valid_data)
+        assert exp.meta == valid_meta
+        assert exp.data == valid_data
+        assert isinstance(exp, CompleteExplanation)
+
+    except Exception:
+        pytest.fail("Unknown exception")

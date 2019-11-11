@@ -1,5 +1,8 @@
+import attr
+import copy
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import Explainer, Explanation
 import logging
 import numpy as np
 from typing import Any, Callable, Tuple, Dict, TYPE_CHECKING
@@ -8,6 +11,21 @@ if TYPE_CHECKING:
     import spacy
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_META_ANCHOR = {"type": "blackbox",
+                       "explanations": ["local"],
+                       "params": {}}
+
+DEFAULT_DATA_ANCHOR = {"anchor": [],
+                       "precision": None,
+                       "coverage": None,
+                       "raw": None}  # type: dict
+
+
+@attr.s
+class AnchorTextExplanation(Explanation):
+    meta: dict = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))
+    data: dict = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))
 
 
 class Neighbors(object):
@@ -62,7 +80,7 @@ class Neighbors(object):
         return self.n[word]
 
 
-class AnchorText(object):
+class AnchorText(Explainer):
 
     def __init__(self, nlp: 'spacy.language.Language', predict_fn: Callable) -> None:
         """
@@ -75,6 +93,7 @@ class AnchorText(object):
         predict_fn
             Model prediction function
         """
+        super().__init__()
         self.nlp = nlp
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
@@ -85,6 +104,9 @@ class AnchorText(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         self.neighbors = Neighbors(self.nlp)
+
+        # set metadata
+        self.meta.update(DEFAULT_META_ANCHOR)
 
     def get_sample_fn(self, text: str, desired_label: int = None, use_similarity_proba: bool = False,
                       use_unk: bool = True, sample_proba: float = 0.5, top_n: int = 100,
@@ -186,10 +208,10 @@ class AnchorText(object):
 
         return words, positions, sample_fn
 
-    def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
+    def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
                 use_similarity_proba: bool = False, use_unk: bool = True,
-                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> dict:
+                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> "AnchorTextExplanation":
         """
         Explain instance and return anchor with metadata.
 
@@ -227,6 +249,12 @@ class AnchorText(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['text', 'self']
+        for key in remove:
+            params.pop(key)
+
         if use_unk and use_similarity_proba:
             logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
                            'Defaults to "use_unk" behaviour.')
@@ -267,15 +295,17 @@ class AnchorText(object):
 
         # output explanation dictionary
         explanation = {}
-        explanation['names'] = exp.names()
+        explanation['anchor'] = exp.names()
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = AnchorTextExplanation(meta=copy.deepcopy(self.meta), data=explanation)
 
-        return explanation
+        # params passed to explain
+        newexp.meta['params'].update(params)
+        return newexp
 
     def perturb_sentence(self, text: str, present: list, n: int, sample_proba: float = 0.5,
                          top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
@@ -360,7 +390,7 @@ class AnchorText(object):
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
-                    weights = np.ones((len(r_neighbors), ))
+                    weights = np.ones((len(r_neighbors),))
                     if idx is not None:
                         weights /= (len(r_neighbors) - 1)
                         weights[idx] = 0

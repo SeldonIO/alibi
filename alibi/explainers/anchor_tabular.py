@@ -1,13 +1,31 @@
+import attr
+import copy
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+from .base import Explainer, Explanation, FitMixin
 from alibi.utils.discretizer import Discretizer
 import numpy as np
-from typing import Callable, Tuple, Dict, Any, Set
+from typing import Callable, Tuple, Dict, Any, Set, Sequence
+
+DEFAULT_META_ANCHOR = {"type": "blackbox",
+                       "explanations": ["local"],
+                       "params": {}}
+
+DEFAULT_DATA_ANCHOR = {"anchor": [],
+                       "precision": None,
+                       "coverage": None,
+                       "raw": None}  # type: dict
 
 
-class AnchorTabular(object):
+@attr.s
+class AnchorTabularExplanation(Explanation):
+    meta: dict = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))
+    data: dict = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))
 
-    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = {}) -> None:
+
+class AnchorTabular(Explainer, FitMixin):
+
+    def __init__(self, predict_fn: Callable, feature_names: list, categorical_names: dict = None) -> None:
         """
         Initialize the anchor tabular explainer.
 
@@ -20,6 +38,7 @@ class AnchorTabular(object):
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature
         """
+        super().__init__()
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
         if np.argmax(predict_fn(np.zeros([1, len(feature_names)])).shape) == 0:
@@ -28,13 +47,19 @@ class AnchorTabular(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         # define column indices of categorical and ordinal features
+        if categorical_names is None:
+            categorical_names = {}
         self.categorical_features = sorted(categorical_names.keys())
-        self.ordinal_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
+        self.ordinal_features = [x for x in range(len(feature_names)) if
+                                 x not in self.categorical_features]
 
         self.feature_names = feature_names
         self.categorical_names = categorical_names.copy()  # dict with {col: categorical feature options}
 
-    def fit(self, train_data: np.ndarray, disc_perc: list = [25, 50, 75]) -> None:
+        # set metadata
+        self.meta.update(DEFAULT_META_ANCHOR)
+
+    def fit(self, train_data: np.ndarray, disc_perc: Sequence = (25, 50, 75)) -> "AnchorTabular":
         """
         Fit discretizer to train data to bin ordinal features and compute statistics for ordinal features.
 
@@ -48,7 +73,8 @@ class AnchorTabular(object):
         self.train_data = train_data
 
         # discretization of ordinal features
-        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names, percentiles=disc_perc)
+        self.disc = Discretizer(self.train_data, self.categorical_features, self.feature_names,
+                                percentiles=disc_perc)
         self.d_train_data = self.disc.discretize(self.train_data)
 
         # add discretized ordinal features to categorical features
@@ -66,8 +92,14 @@ class AnchorTabular(object):
             self.max[f] = np.max(train_data[:, f])
             self.std[f] = np.std(train_data[:, f])
 
+        # update metadata
+        self.meta['params'].update(disc_perc=disc_perc)
+
+        return self
+
     def sample_from_train(self, conditions_eq: dict, conditions_neq: dict,
-                          conditions_geq: dict, conditions_leq: dict, num_samples: int) -> np.ndarray:
+                          conditions_geq: dict, conditions_leq: dict,
+                          num_samples: int) -> np.ndarray:
         """
         Sample data from training set but keep features which are present in the proposed anchor the same
         as the feature value or bin (for ordinal features) as the instance to be explained.
@@ -139,7 +171,8 @@ class AnchorTabular(object):
             if f in conditions_geq:
                 continue
 
-            idx = d_sample[:, f] > conditions_leq[f]  # idx where feature value is in a higher bin than the observation
+            idx = d_sample[:, f] > conditions_leq[
+                f]  # idx where feature value is in a higher bin than the observation
 
             if idx.sum() == 0:
                 continue  # if all values in sampled data have same bin as instance to be explained
@@ -188,9 +221,11 @@ class AnchorTabular(object):
         X = self.disc.discretize(X.reshape(1, -1))[0]
         for f in self.categorical_features:
             if f in self.ordinal_features:
-                for v in range(len(self.categorical_names[f])):  # loop over nb of bins for the ordinal features
+                for v in range(len(self.categorical_names[
+                                       f])):  # loop over nb of bins for the ordinal features
                     idx = len(mapping)
-                    if X[f] <= v and v != len(self.categorical_names[f]) - 1:  # feature value <= bin value
+                    if X[f] <= v and v != len(
+                            self.categorical_names[f]) - 1:  # feature value <= bin value
                         mapping[idx] = (f, 'leq', v)  # store bin value
                     elif X[f] > v:  # feature value > bin value
                         mapping[idx] = (f, 'geq', v)  # store bin value
@@ -233,16 +268,19 @@ class AnchorTabular(object):
                 if op == 'leq':  # ordinal feature
                     if f not in conditions_leq:
                         conditions_leq[f] = v
-                    conditions_leq[f] = min(conditions_leq[f], v)  # store smallest bin > feature value
+                    conditions_leq[f] = min(conditions_leq[f],
+                                            v)  # store smallest bin > feature value
                 if op == 'geq':  # ordinal feature
                     if f not in conditions_geq:
                         conditions_geq[f] = v
-                    conditions_geq[f] = max(conditions_geq[f], v)  # store largest bin < feature value
+                    conditions_geq[f] = max(conditions_geq[f],
+                                            v)  # store largest bin < feature value
 
             # sample data from training set
             # feature values are from same discretized bin or category as the explained instance ...
             # ... if defined in conditions dicts
-            raw_data = self.sample_from_train(conditions_eq, {}, conditions_geq, conditions_leq, num_samples)
+            raw_data = self.sample_from_train(conditions_eq, {}, conditions_geq, conditions_leq,
+                                              num_samples)
 
             # discretize sampled data
             d_raw_data = self.disc.discretize(raw_data)
@@ -269,7 +307,7 @@ class AnchorTabular(object):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: Any) -> dict:
+                desired_label: int = None, **kwargs: Any) -> "AnchorTabularExplanation":
         """
         Explain instance and return anchor with metadata.
 
@@ -295,6 +333,13 @@ class AnchorTabular(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+
+        # get params for storage in meta
+        params = locals()
+        remove = ['X', 'self']
+        for key in remove:
+            params.pop(key)
+
         # build sampling function and ...
         # ... mapping = (feature column, flag for categorical/ordinal feature, feature value or bin value)
         sample_fn, mapping = self.get_sample_fn(X, desired_label=desired_label)
@@ -310,15 +355,17 @@ class AnchorTabular(object):
 
         # output explanation dictionary
         explanation = {}
-        explanation['names'] = exp.names()
+        explanation['anchor'] = exp.names()
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = AnchorTabularExplanation(meta=copy.deepcopy(self.meta), data=explanation)
 
-        return explanation
+        # params passed to explain
+        newexp.meta['params'].update(params)
+        return newexp
 
     def add_names_to_exp(self, hoeffding_exp: dict, mapping: dict) -> None:
         """

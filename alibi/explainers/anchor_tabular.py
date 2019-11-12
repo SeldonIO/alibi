@@ -8,89 +8,77 @@ import numpy as np
 from typing import Callable, Dict, DefaultDict, Tuple, Any, Set
 
 
-class AnchorTabular(object):
+class TabularSampler(object):
 
-    def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
-                 seed: int = None) -> None:
-        """
-        Initialize the anchor tabular explainer.
+    def __init__(self, train_data, d_train_data, numerical_features, disc_perc, categorical_features, feature_names,
+                 feature_values):
 
-        Parameters
-        ----------
-        predictor
-            Model prediction function
-        feature_names
-            List with feature names
-        categorical_names
-            Dictionary where keys are feature columns and values are the categories for the feature
-        seed
-            Used to set the random number generator for repeatability purposes
-        """
+        self.train_data = train_data
+        self.n_records = train_data.shape[0]
+        self.d_train_data = d_train_data
+        self.disc = Discretizer(train_data, numerical_features, feature_names, percentiles=disc_perc)
 
-        np.random.seed(seed)
+        self.min, self.max = np.full(train_data.shape[1], np.nan), np.full(train_data.shape[1], np.nan)
+        self.min[numerical_features] = np.min(train_data[:, numerical_features], axis=0)
+        self.max[numerical_features] = np.max(train_data[:, numerical_features], axis=0)
 
-        # check if predictor returns predicted class or prediction probabilities for each class
-        # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros([1, len(feature_names)])).shape) == 0:
-            self.predictor = predictor
-        else:
-            transformer = ArgmaxTransformer(predictor)
-            self.predictor = transformer
+        # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
+        # variable. Each value in this dict is a set of training data rows where that value is found
+        val2idx = {col_id: defaultdict(None) for col_id in numerical_features + categorical_features}  # type: Any
+        for feat in val2idx:
+            for value in range(len(feature_values[feat])):
+                val2idx[feat][value] = (d_train_data[:, feat] == value).nonzero()[0]
 
-        # define column indices of categorical and numerical (aka continuous) features
-        if categorical_names:
-            self.categorical_features = sorted(categorical_names.keys())
-        else:
-            self.categorical_features = []
-
-        self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
-
-        self.feature_names = feature_names
-        if categorical_names:
-            self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
-        else:
-            self.feature_values = {}
-
-        self.val2idx = {}       # type: Dict[int, DefaultDict[Any, Any]]
+        self.val2idx = val2idx       # type: Dict[int, DefaultDict[Any, Any]]
         self.cat_lookup = {}    # type: Dict[int, int]
         self.ord_lookup = {}    # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75)) -> None:
-        """
-        Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for numerical
-        features. Create a mapping between the bin numbers of each discretised numerical feature and the row id in the
-        training set where it occurs
+        self.numerical_features = numerical_features
+        self.categorical_features = categorical_features
+        self.feature_values = feature_values
 
+    def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
+        """
+        Create sampling function from training data.
 
         Parameters
         ----------
-        train_data
-            Representative sample from the training data
-        disc_perc
-            List with percentiles (int) used for discretization
+        anchor
+            Ints representing encoded feature ids
+        num_samples
+            Number of samples used when sampling from training set
+
+        Returns
+        -------
+        raw_data
+            Sampled data from training set
+        data
+            Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
+        labels
+            Create labels using model predictions if compute_labels equals True
+        anchor
+            The anchor sampled, used to speed up parallelisation
         """
-        self.train_data = train_data
-        self.n_records = train_data.shape[0]
 
-        # discretization of ordinal features
-        self.disc = Discretizer(self.train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
-        self.d_train_data = self.disc.discretize(self.train_data)
-        self.feature_values.update(self.disc.feature_intervals)
+        raw_data, d_raw_data, coverage = self.sample_from_train(anchor, num_samples)
 
-        self.min, self.max = np.full(train_data.shape[1], np.nan), np.full(train_data.shape[1], np.nan)
-        self.min[self.numerical_features] = np.min(train_data[:, self.numerical_features], axis=0)
-        self.max[self.numerical_features] = np.max(train_data[:, self.numerical_features], axis=0)
+        # use the sampled, discretized raw data to construct a data matrix with the categorical ...
+        # ... and binned ordinal data (1 if in bin, 0 otherwise)
+        data = np.zeros((num_samples, len(self.enc2feat_idx)), int)
+        for i in self.enc2feat_idx:
+            if i in self.cat_lookup:
+                data[:, i] = (d_raw_data[:, self.enc2feat_idx[i]] == self.cat_lookup[i])
+            else:
+                d_records_sampled = d_raw_data[:, self.enc2feat_idx[i]]
+                lower_bin, upper_bin = min(list(self.ord_lookup[i])), max(list(self.ord_lookup[i]))
 
-        # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
-        # variable. Each value in this dict is a set of training data rows where that value is found
-        val2idx = {col_id: defaultdict(None) for col_id in self.numerical_features + self.categorical_features}  # type: Any
-        for feat in val2idx:
-            for value in range(len(self.feature_values[feat])):
-                val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
-        self.val2idx = val2idx
+                idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
+                data[idxs, i] = 1
 
-    def build_sampling_lookups(self, X: np.ndarray) -> None:
+        return raw_data, data, coverage, anchor
+
+    def build_lookups(self, X: np.ndarray) -> Tuple[Dict, Dict, Dict]:
         """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
          categorical variable a unique index. For a dataset containg, e.g., a numerical variable with 5 bins and
          3 categorical variables, indices 0 - 4 represent bins of the numerical variable whereas indices 5, 6, 7
@@ -114,8 +102,8 @@ class AnchorTabular(object):
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features]*2))
-            return
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))
+            return self.cat_lookup, self.ord_lookup, self.enc2feat_idx
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
         if first_numerical_idx > 0:  # First column(s) might contain categorical data
@@ -159,6 +147,8 @@ class AnchorTabular(object):
                 self.enc2feat_idx[cat_enc_idx] = cat_feat_idx
                 cat_enc_idx += 1
 
+        return self.cat_lookup, self.ord_lookup, self.enc2feat_idx
+
     def sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
         Sample data from training set but keep features in the anchor list the same
@@ -168,6 +158,8 @@ class AnchorTabular(object):
         ----------
         anchor:
             Each int is an encoded feature id
+        num_samples
+            Number of samples
 
         Returns
         -------
@@ -190,7 +182,7 @@ class AnchorTabular(object):
         # bins one can sample from for each numerical feature (key: feat id)
         allowed_bins = {}  # type: Dict[int, Set[int]]
         # index of database rows (values) for each feature in anchor (key: feat id)
-        allowed_rows = {}  # type: Dict[int, np.ndarray[int]]
+        allowed_rows = {}  # type: Dict[int, Any[int]]
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
@@ -277,48 +269,101 @@ class AnchorTabular(object):
 
         return samples, self.disc.discretize(samples), coverage
 
-    def sampler(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
+
+class AnchorTabular(object):
+
+    def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
+                 seed: int = None, parallel: bool = False) -> None:
         """
-        Create sampling function from training data.
+        Initialize the anchor tabular explainer.
 
         Parameters
         ----------
-        anchor
-            Ints representing encoded feature ids
-        num_samples
-            Number of samples used when sampling from training set
-
-        Returns
-        -------
-        raw_data
-            Sampled data from training set
-        data
-            Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
-        labels
-            Create labels using model predictions if compute_labels equals True
-        anchor
-            The anchor sampled, used to speed up parallelisation
+        predictor
+            Model prediction function
+        feature_names
+            List with feature names
+        categorical_names
+            Dictionary where keys are feature columns and values are the categories for the feature
+        seed
+            Used to set the random number generator for repeatability purposes
+        parallel
+            Sets up parallel sampling process
         """
 
-        raw_data, d_raw_data, coverage = self.sample_from_train(anchor, num_samples)
+        np.random.seed(seed)
 
-        # use the sampled, discretized raw data to construct a data matrix with the categorical ...
-        # ... and binned ordinal data (1 if in bin, 0 otherwise)
-        data = np.zeros((num_samples, len(self.enc2feat_idx)), int)
-        for i in self.enc2feat_idx:
-            if i in self.cat_lookup:
-                data[:, i] = (d_raw_data[:, self.enc2feat_idx[i]] == self.cat_lookup[i])
-            else:
-                d_records_sampled = d_raw_data[:, self.enc2feat_idx[i]]
-                lower_bin, upper_bin = min(list(self.ord_lookup[i])), max(list(self.ord_lookup[i]))
+        # check if predictor returns predicted class or prediction probabilities for each class
+        # if needed adjust predictor so it returns the predicted class
+        if np.argmax(predictor(np.zeros([1, len(feature_names)])).shape) == 0:
+            self.predictor = predictor
+        else:
+            transformer = ArgmaxTransformer(predictor)
+            self.predictor = transformer
 
-                idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
-                data[idxs, i] = 1
+        # define column indices of categorical and numerical (aka continuous) features
+        if categorical_names:
+            self.categorical_features = sorted(categorical_names.keys())
+        else:
+            self.categorical_features = []
 
-        return raw_data, data, coverage, anchor
+        self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
+
+        self.feature_names = feature_names
+        if categorical_names:
+            self.feature_values = categorical_names.copy()  # dict with {col: categorical feature values}
+        else:
+            self.feature_values = {}
+
+        self.parallel = parallel
+
+    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75)) -> None:
+        """
+        Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for numerical
+        features. Create a mapping between the bin numbers of each discretised numerical feature and the row id in the
+        training set where it occurs
+
+
+        Parameters
+        ----------
+        train_data
+            Representative sample from the training data
+        disc_perc
+            List with percentiles (int) used for discretization
+        parallel
+            If True, then parallel processes of sampling workers are instantiated
+        """
+
+        # discretization of ordinal features
+        disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
+        d_train_data = disc.discretize(train_data)
+        self.feature_values.update(disc.feature_intervals)
+
+        if self.parallel:
+            pass
+        else:
+            self.samplers = TabularSampler(train_data,
+                                           d_train_data,
+                                           self.numerical_features,
+                                           disc_perc,
+                                           self.categorical_features,
+                                           self.feature_names,
+                                           self.feature_values,
+                                           )
 
     def compute_prec(self, samples):
         return (self.predictor(samples) == self.instance_label).astype(int)
+
+    def _build_sampling_lookups(self, X):
+
+        if self.parallel:
+            pass
+        else:
+            cat_lookup, ord_lookup, enc2feat_idx = self.samplers.build_lookups(X)
+
+        self.cat_lookup = cat_lookup
+        self.ord_lookup = ord_lookup
+        self.enc2feat_idx = enc2feat_idx
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
@@ -357,11 +402,10 @@ class AnchorTabular(object):
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
 
         # build feature encoding and mappings from the instance values to database rows where similar records are found
-        self.build_sampling_lookups(X)
-
         # get anchors and add metadata
+        self._build_sampling_lookups(X)
 
-        mab = AnchorBaseBeam(sampler=self.sampler,
+        mab = AnchorBaseBeam(sampler=self.samplers,
                              prec_estimator=self.compute_prec,
                              parallel=parallel,
                              **kwargs)

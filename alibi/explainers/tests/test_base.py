@@ -45,8 +45,8 @@ class SimpleFitExplainer(FitMixin, Explainer):
 
 @attr.s
 class CompleteExplanation(Explanation):
-    meta: dict = attr.ib()
-    data: dict = attr.ib()
+    meta = attr.ib()  # type: dict
+    data = attr.ib()  # type: dict
 
 
 def test_incomplete_explainer():

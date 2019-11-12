@@ -19,8 +19,8 @@ DEFAULT_DATA_ANCHOR = {"anchor": [],
 
 @attr.s
 class AnchorTabularExplanation(Explanation):
-    meta: dict = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))
-    data: dict = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))
+    meta = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))  # type: dict
+    data = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))  # type: dict
 
 
 class AnchorTabular(Explainer, FitMixin):

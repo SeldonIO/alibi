@@ -3,10 +3,13 @@ import copy
 import json
 from collections import ChainMap
 from typing import Any
+import logging
 
 import attr
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 # default data and metadata
 DEFAULT_META = {
@@ -63,6 +66,29 @@ class Explanation(abc.ABC):
         String containing json representation of the explanation
         """
         return json.dumps(attr.asdict(self), cls=NumpyEncoder)
+
+    @classmethod
+    def from_json(cls, jsonrepr) -> "Explanation":
+        """
+        Create an instance of an Explanation class using a json representation of the Explanation.
+        NB: this is intended to be used with subclasses inheriting from Explanation.
+
+        Parameters
+        ----------
+        jsonrepr
+            json representation of an explanation
+
+        Returns
+        -------
+        An Explanation object
+        """
+        dictrepr = json.loads(jsonrepr)
+        try:
+            meta = dictrepr['meta']
+            data = dictrepr['data']
+        except KeyError:
+            logger.exception("Invalid explanation representation")
+        return cls(meta=meta, data=data)  # type: ignore
 
 
 class NumpyEncoder(json.JSONEncoder):

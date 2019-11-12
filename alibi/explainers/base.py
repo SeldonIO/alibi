@@ -28,7 +28,7 @@ class Explainer(abc.ABC):
     Base class for explainer algorithms
     """
 
-    meta: dict = attr.ib(default=copy.deepcopy(DEFAULT_META))
+    meta = attr.ib(default=copy.deepcopy(DEFAULT_META))  # type: dict
 
     def __attrs_post_init__(self):
         self.meta["name"] = self.__class__.__name__

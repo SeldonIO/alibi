@@ -11,7 +11,7 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  parallel: true
+  parallel: false
   chunksize: 4
   ncpu: 4
   verbose: false
@@ -19,10 +19,10 @@ explainer:
 
 # Experiment settings
 experiment:
-  n_runs: 25
+  n_runs: 100
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/ParallelTest
-  ckpt: rf_parallel_ncpu_4_chunksize_4_gl.pkl
+  ckpt_dir: /home/alex/git/work_experiments/RayParallelRegressionTest
+  ckpt: ray_dummy.pkl
   verbose: false
   data:
     preprocess: true

@@ -104,3 +104,10 @@ def test_complete_explanation():
 
     except Exception:
         pytest.fail("Unknown exception")
+
+
+def test_serialize_deserialize_complete_explanation():
+    exp = CompleteExplanation(meta=valid_meta, data=valid_data)
+    jrep = exp.to_json()
+    exp2 = CompleteExplanation.from_json(jrep)
+    assert exp == exp2

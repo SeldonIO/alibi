@@ -1,4 +1,3 @@
-import attr
 import copy
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
@@ -15,12 +14,6 @@ DEFAULT_DATA_ANCHOR = {"anchor": [],
                        "precision": None,
                        "coverage": None,
                        "raw": None}  # type: dict
-
-
-@attr.s
-class AnchorTabularExplanation(Explanation):
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))  # type: dict
-    data = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))  # type: dict
 
 
 class AnchorTabular(Explainer, FitMixin):
@@ -307,7 +300,7 @@ class AnchorTabular(Explainer, FitMixin):
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, **kwargs: Any) -> "AnchorTabularExplanation":
+                desired_label: int = None, **kwargs: Any) -> Explanation:
         """
         Explain instance and return anchor with metadata.
 
@@ -353,14 +346,14 @@ class AnchorTabular(Explainer, FitMixin):
         exp = AnchorExplanation('tabular', exp)
 
         # output explanation dictionary
-        explanation = {}
+        explanation = copy.deepcopy(DEFAULT_DATA_ANCHOR)
         explanation['anchor'] = exp.names()
         explanation['precision'] = exp.precision()
         explanation['coverage'] = exp.coverage()
         explanation['raw'] = exp.exp_map
 
         # create explanation object
-        newexp = AnchorTabularExplanation(meta=copy.deepcopy(self.meta), data=explanation)
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
 
         # params passed to explain
         newexp.meta['params'].update(params)

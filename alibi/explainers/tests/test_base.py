@@ -1,5 +1,3 @@
-import attr
-
 import numpy as np
 import pytest
 from alibi.explainers.base import Explainer, Explanation, FitMixin
@@ -41,12 +39,6 @@ class SimpleFitExplainer(FitMixin, Explainer):
 
     def explain(self, X: np.ndarray):
         pass
-
-
-@attr.s
-class CompleteExplanation(Explanation):
-    meta = attr.ib()  # type: dict
-    data = attr.ib()  # type: dict
 
 
 def test_incomplete_explainer():
@@ -95,19 +87,19 @@ def test_fitexplainer():
         pytest.fail("Unknown exception")
 
 
-def test_complete_explanation():
+def test_explanation():
     try:
-        exp = CompleteExplanation(meta=valid_meta, data=valid_data)
+        exp = Explanation(meta=valid_meta, data=valid_data)
         assert exp.meta == valid_meta
         assert exp.data == valid_data
-        assert isinstance(exp, CompleteExplanation)
+        assert isinstance(exp, Explanation)
 
     except Exception:
         pytest.fail("Unknown exception")
 
 
-def test_serialize_deserialize_complete_explanation():
-    exp = CompleteExplanation(meta=valid_meta, data=valid_data)
+def test_serialize_deserialize_explanation():
+    exp = Explanation(meta=valid_meta, data=valid_data)
     jrep = exp.to_json()
-    exp2 = CompleteExplanation.from_json(jrep)
+    exp2 = Explanation.from_json(jrep)
     assert exp == exp2

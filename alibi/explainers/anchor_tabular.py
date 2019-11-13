@@ -7,18 +7,28 @@ from itertools import accumulate
 import numpy as np
 from typing import Callable, Dict, DefaultDict, Tuple, Any, Set
 
+import ray
+
 
 class TabularSampler(object):
 
     def __init__(self, train_data, d_train_data, numerical_features, disc_perc, categorical_features, feature_names,
                  feature_values):
 
-        self.train_data = train_data
-        self.n_records = train_data.shape[0]
-        self.d_train_data = d_train_data
-        self.disc = Discretizer(train_data, numerical_features, feature_names, percentiles=disc_perc)
+        if isinstance(train_data, np.ndarray):
+            self.train_data = train_data
+        else:
+            self.train_data = ray.get(train_data)
 
-        self.min, self.max = np.full(train_data.shape[1], np.nan), np.full(train_data.shape[1], np.nan)
+        if isinstance(d_train_data, np.ndarray):
+            self.d_train_data = d_train_data
+        else:
+            self.d_train_data = ray.get(d_train_data)
+
+        self.n_records = train_data.shape[0]
+        self.disc = Discretizer(self.train_data, numerical_features, feature_names, percentiles=disc_perc)
+
+        self.min, self.max = np.full(self.train_data.shape[1], np.nan), np.full(self.train_data.shape[1], np.nan)
         self.min[numerical_features] = np.min(train_data[:, numerical_features], axis=0)
         self.max[numerical_features] = np.max(train_data[:, numerical_features], axis=0)
 
@@ -61,7 +71,7 @@ class TabularSampler(object):
             The anchor sampled, used to speed up parallelisation
         """
 
-        raw_data, d_raw_data, coverage = self.sample_from_train(anchor, num_samples)
+        raw_data, d_raw_data, coverage = self._sample_from_train(anchor, num_samples)
 
         # use the sampled, discretized raw data to construct a data matrix with the categorical ...
         # ... and binned ordinal data (1 if in bin, 0 otherwise)
@@ -149,7 +159,7 @@ class TabularSampler(object):
 
         return self.cat_lookup, self.ord_lookup, self.enc2feat_idx
 
-    def sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
+    def _sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
         Sample data from training set but keep features in the anchor list the same
         as the feature value or bin (for ordinal features) as the instance to be explained.
@@ -270,6 +280,23 @@ class TabularSampler(object):
         return samples, self.disc.discretize(samples), coverage
 
 
+@ray.remote
+class RemoteSampler(TabularSampler):
+
+    def __init__(self, *args):
+        super(self).__init__(*args)
+        # TODO: Find a way to avoid hardcoding the number of return values
+        self.__call__ = ray.method(self.__call__, num_return_vals=4)
+        self.build_lookups = ray.method(self.build_lookups, num_return_vals=3)
+
+    def __call__(self, anchor, num_samples):
+        return self.__call__(anchor, num_samples).remote()
+
+    def build_lookups(self, X):
+        cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.build_lookups.remote(X)
+        return cat_lookup_id, ord_lookup_id, enc2feat_idx_id
+
+
 class AnchorTabular(object):
 
     def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
@@ -287,8 +314,7 @@ class AnchorTabular(object):
             Dictionary where keys are feature columns and values are the categories for the feature
         seed
             Used to set the random number generator for repeatability purposes
-        parallel
-            Sets up parallel sampling process
+
         """
 
         np.random.seed(seed)
@@ -315,9 +341,12 @@ class AnchorTabular(object):
         else:
             self.feature_values = {}
 
+        self.samplers = []
         self.parallel = parallel
+        if parallel:
+            ray.init()
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75)) -> None:
+    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
         """
         Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for numerical
         features. Create a mapping between the bin numbers of each discretised numerical feature and the row id in the
@@ -330,8 +359,6 @@ class AnchorTabular(object):
             Representative sample from the training data
         disc_perc
             List with percentiles (int) used for discretization
-        parallel
-            If True, then parallel processes of sampling workers are instantiated
         """
 
         # discretization of ordinal features
@@ -340,34 +367,49 @@ class AnchorTabular(object):
         self.feature_values.update(disc.feature_intervals)
 
         if self.parallel:
-            pass
+            self.samplers = self._fit_parallel(train_data,
+                                               d_train_data,
+                                               self.numerical_features,
+                                               disc_perc,
+                                               self.categorical_features,
+                                               self.feature_names,
+                                               self.feature_values,
+                                               **kwargs
+                                               )
         else:
-            self.samplers = TabularSampler(train_data,
-                                           d_train_data,
-                                           self.numerical_features,
-                                           disc_perc,
-                                           self.categorical_features,
-                                           self.feature_names,
-                                           self.feature_values,
-                                           )
+            self.samplers = [TabularSampler(train_data,
+                                            d_train_data,
+                                            self.numerical_features,
+                                            disc_perc,
+                                            self.categorical_features,
+                                            self.feature_names,
+                                            self.feature_values,
+                                            ),
+                             ]
+
+    @staticmethod
+    def _fit_parallel(*args, **kwargs):
+        train_data, d_train_data, *others = args
+        train_data_id = ray.put(train_data)
+        d_train_data_id = ray.put(d_train_data)
+        n_args = (train_data_id, d_train_data_id, *others)
+        return [RemoteSampler.remote(*n_args) for _ in range(kwargs['ncpu'])]
 
     def compute_prec(self, samples):
         return (self.predictor(samples) == self.instance_label).astype(int)
 
     def _build_sampling_lookups(self, X):
 
-        if self.parallel:
-            pass
-        else:
-            cat_lookup, ord_lookup, enc2feat_idx = self.samplers.build_lookups(X)
+        lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
 
-        self.cat_lookup = cat_lookup
-        self.ord_lookup = ord_lookup
-        self.enc2feat_idx = enc2feat_idx
+        if self.parallel:
+            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = (ray.get(mapping_id) for mapping_id in lookups)
+        else:
+            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, max_anchor_size: int = None,
-                desired_label: int = None, parallel: bool = False, **kwargs: Any) -> dict:
+                desired_label: int = None, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -387,8 +429,6 @@ class AnchorTabular(object):
             Maximum number of features in anchor
         desired_label
             Label to use as true label for the instance to be explained
-        parallel:
-            if true, the prediction calls from the multi-armed bandit are executed in parallel
 
         Returns
         -------
@@ -405,9 +445,9 @@ class AnchorTabular(object):
         # get anchors and add metadata
         self._build_sampling_lookups(X)
 
-        mab = AnchorBaseBeam(sampler=self.samplers,
+        mab = AnchorBaseBeam(samplers=self.samplers,
                              prec_estimator=self.compute_prec,
-                             parallel=parallel,
+                             parallel=self.parallel,
                              **kwargs)
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,

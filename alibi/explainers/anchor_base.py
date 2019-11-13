@@ -1,8 +1,8 @@
-from multiprocessing import Pool
 import numpy as np
 import copy
 import logging
 from collections import defaultdict, namedtuple, OrderedDict
+from multiprocessing import Pool
 from typing import Callable, Tuple, Set, Dict, List
 from functools import partial
 
@@ -30,7 +30,7 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
 
-    def __init__(self, sampler: Callable, prec_estimator: Callable, parallel=False, **kwargs) -> None:
+    def __init__(self, samplers: List[Callable], prec_estimator: Callable, parallel=False, **kwargs) -> None:
         """
         Initialize the anchor beam search class.
         """
@@ -53,7 +53,7 @@ class AnchorBaseBeam(object):
                       }  # type: dict
 
         self.data_type = None  # data type for sampled data
-        self.sample_fcn = sampler
+        self.sample_fcn = samplers
         self.prec_estimator = prec_estimator
         if parallel:
             self.pool = Pool(kwargs['ncpu'])
@@ -61,6 +61,7 @@ class AnchorBaseBeam(object):
             self.draw_samples = self._parallel_sampler
         else:
             self.pool = None
+            self.sample_fcn = samplers[0]
             self.draw_samples = self._sequential_sampler
 
     @staticmethod
@@ -310,6 +311,8 @@ class AnchorBaseBeam(object):
         -------
             same outputs as _sequential_sampler but of different types
         """
+
+        raise NotImplementedError
 
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
         order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]

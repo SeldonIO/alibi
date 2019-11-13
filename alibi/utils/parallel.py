@@ -21,7 +21,7 @@ class ActorPool(object):
         self._next_return_index = 0
         self._pending_submits = []
 
-    def map(self, fn, values):
+    def map(self, fn, values, chunksize=None):
         """Apply the given function in parallel over the actors and values.
         This returns an ordered iterator that will return results of the map
         as they finish. Note that you must iterate over the iterator to force
@@ -39,6 +39,10 @@ class ActorPool(object):
             >>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
             [2, 4, 6, 8]
         """
+
+        if chunksize:
+            values = self._chunk(values, chunksize=chunksize)
+
         for v in values:
             self.submit(fn, v)
         while self.has_next():
@@ -178,36 +182,8 @@ class ActorPool(object):
         if self._pending_submits:
             self.submit(*self._pending_submits.pop(0))
 
-
-if __name__ == "__main__":
-
-    @ray.remote
-    class MyActor(object):
-        def __init__(self):
-            pass
-
-        def f(self, x):
-            return x + 1
-
-    ray.init()
-    actors = [MyActor.remote() for _ in range(4)]
-    pool = ActorPool(actors)
-
-    print("-- testing get_next --")
-    for i in range(5):
-        pool.submit(lambda a, v: a.f.remote(v), i)
-        print(pool.get_next())
-
-    print("-- testing get_next_unordered --")
-    for i in range(5):
-        pool.submit(lambda a, v: a.f.remote(v), i)
-    while pool.has_next():
-        print(pool.get_next_unordered())
-
-    print("-- testing map --")
-    for v in pool.map(lambda a, v: a.f.remote(v), range(5)):
-        print(v)
-
-    print("-- testing map unordered --")
-    for v in pool.map_unordered(lambda a, v: a.f.remote(v), range(5)):
-        print(v)
+    @staticmethod
+    def _chunk(values, chunksize):
+        """Yield successive chunks of len=chunksize from values."""
+        for i in range(0, len(values), chunksize):
+            yield values[i:i + chunksize]

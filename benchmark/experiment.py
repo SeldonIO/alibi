@@ -150,8 +150,16 @@ def get_tabular_explainer(predictor, dataset, split, config):
     category_map = dataset.category_map
     X_train = split['X_train']
 
-    explainer = AnchorTabular(predictor, feature_names, categorical_names=category_map, seed=config['seed'])
-    explainer.fit(X_train, disc_perc=config['disc_perc'])
+    explainer = AnchorTabular(predictor,
+                              feature_names,
+                              categorical_names=category_map,
+                              seed=config['seed'],
+                              parallel=config['parallel'],
+                              )
+    explainer.fit(X_train,
+                  disc_perc=config['disc_perc'],
+                  ncpu=config['ncpu'],
+                  )
 
     return explainer
 

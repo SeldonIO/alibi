@@ -5,7 +5,7 @@ from alibi.utils.discretizer import Discretizer
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
 import numpy as np
-from typing import Callable, Dict, Tuple, Any, Set
+from typing import Callable, Dict, Tuple, Any, Set, List
 
 import ray
 
@@ -59,14 +59,15 @@ class TabularSampler(object):
 
         return val2idx
 
-    def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
+    def __call__(self, anchor: Tuple[int, tuple], num_samples: int):# -> List[np.ndarray, np.ndarray, float, int]:
         """
         Create sampling function from training data.
 
         Parameters
         ----------
         anchor
-            Ints representing encoded feature ids
+            the integer represents the order of the anchor in a request array. The tuple
+            contains encoded feature indices
         num_samples
             Number of samples used when sampling from training set
 
@@ -82,7 +83,7 @@ class TabularSampler(object):
             The anchor sampled, used to speed up parallelisation
         """
 
-        raw_data, d_raw_data, coverage = self._sample_from_train(anchor, num_samples)
+        raw_data, d_raw_data, coverage = self._sample_from_train(anchor[1], num_samples)
 
         # use the sampled, discretized raw data to construct a data matrix with the categorical ...
         # ... and binned ordinal data (1 if in bin, 0 otherwise)
@@ -97,9 +98,9 @@ class TabularSampler(object):
                 idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
 
-        return raw_data, data, coverage, anchor
+        return [raw_data, data, coverage, anchor[0]]
 
-    def build_lookups(self, X: np.ndarray) -> Tuple[Dict, Dict, Dict]:
+    def build_lookups(self, X: np.ndarray): # -> List[Dict, Dict, Dict]:
         """ An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
          categorical variable a unique index. For a dataset containg, e.g., a numerical variable with 5 bins and
          3 categorical variables, indices 0 - 4 represent bins of the numerical variable whereas indices 5, 6, 7
@@ -117,6 +118,11 @@ class TabularSampler(object):
         X
             instance to be explained
 
+        Returns
+        -------
+             #TODO
+
+
         """
 
         X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
@@ -124,7 +130,7 @@ class TabularSampler(object):
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
             self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))
-            return self.cat_lookup, self.ord_lookup, self.enc2feat_idx
+            return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
         if first_numerical_idx > 0:  # First column(s) might contain categorical data
@@ -168,7 +174,7 @@ class TabularSampler(object):
                 self.enc2feat_idx[cat_enc_idx] = cat_feat_idx
                 cat_enc_idx += 1
 
-        return self.cat_lookup, self.ord_lookup, self.enc2feat_idx
+        return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
     def _sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
@@ -299,14 +305,12 @@ class RemoteSampler(object):
         # TODO: Find a way to avoid hardcoding the number of return values
         self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
-    @ray.method(num_return_vals=4)
     def __call__(self, anchor, num_samples):
         return self.sampler(anchor, num_samples)
 
-    @ray.method(num_return_vals=3)
     def build_lookups(self, X):
         cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.sampler.build_lookups(X)
-        return cat_lookup_id, ord_lookup_id, enc2feat_idx_id
+        return [cat_lookup_id, ord_lookup_id, enc2feat_idx_id]
 
 
 class AnchorTabular(object):
@@ -416,7 +420,7 @@ class AnchorTabular(object):
 
         if self.parallel:
             lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
-            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = (ray.get(mapping) for mapping in lookups)
+            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = ray.get(lookups)
         else:
             lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
             self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups

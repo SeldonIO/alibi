@@ -1,13 +1,13 @@
-import numbers
 import numpy as np
 import copy
 import logging
 from collections import defaultdict, namedtuple, OrderedDict
-from multiprocessing import Pool
-from typing import Callable, Tuple, Set, Dict, List, Union
+from alibi.utils.parallel import ActorPool
+from typing import Callable, Tuple, Set, Dict, List
 from functools import partial
 
 logger = logging.getLogger(__name__)
+import ray
 
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
@@ -51,18 +51,18 @@ class AnchorBaseBeam(object):
 
         self.parallel = kwargs['parallel']
         if self.parallel:
-            self.sample_fcn = samplers
-            self.pool = Pool(kwargs['ncpu'])
+            self.sample_fcn = lambda actor, anchor, n_samples: actor.__call__.remote(anchor, n_samples)
+            raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0], (0, ()), coverage_samples))
+            self.pool = ActorPool(samplers)
             self.chunksize = kwargs['chunksize']
             self.draw_samples = self._parallel_sampler
         else:
-            self.pool = None
             self.sample_fcn = samplers[0]
+            raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples)
             self.draw_samples = self._sequential_sampler
 
         self.batch_size = batch_size
         # Select coverage data uniformly at random
-        raw_coverage_data, coverage_data, _, _ = self.sample_fcn((), coverage_samples)
         prealloc_size = batch_size*data_store_size
         self.raw_data_type = data_type if data_type is not None else raw_coverage_data.dtype
 
@@ -331,18 +331,14 @@ class AnchorBaseBeam(object):
         """
 
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
-        order_map = [(tuple(self.state['t_order'][anchor]), (anchor, i)) for i, anchor in enumerate(anchors)]
-        order_dict = OrderedDict(order_map)
-        samples_iter = self.pool.imap_unordered(partial(self.sample_fcn, num_samples=batch_size),
-                                                order_dict.keys(),
-                                                chunksize=self.chunksize,
-                                                )
+        order_map = [(i, tuple(self.state['t_order'][anchor])) for i, anchor in enumerate(anchors)]
+        samples_iter = self.pool.map_unordered(partial(self.sample_fcn, n_samples=batch_size), order_map)
         for samples in samples_iter:
-            raw_data, *additionals = samples
+            raw_data, *additionals, anchor_idx = samples
             labels = self.prec_estimator(raw_data)
-            positives, n_samples, anchor = self.update_state(raw_data, labels, additionals)
-            idx = order_dict[anchor][1]  # return statistics in the same order as the requests
-            pos[idx], total[idx] = positives, n_samples
+            positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
+            # return statistics in the same order as the requests
+            pos[anchor_idx], total[anchor_idx] = positives, n_samples
 
         return pos, total
 
@@ -362,13 +358,13 @@ class AnchorBaseBeam(object):
         """
 
         sample_stats, pos, total = [], (), ()  # type: List, Tuple, Tuple
-        samples_iter = [self.sample_fcn(tuple(self.state['t_order'][anchor]), num_samples=batch_size)
-                        for anchor in anchors]
-        for samples in samples_iter:
-            raw_data, *additionals = samples
+        samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), n_samples=batch_size)
+                        for i, anchor in enumerate(anchors)]
+        for samples, anchor in zip(samples_iter, anchors):
+            raw_data, *additionals, _ = samples  # don't need the anchor index since order preserved
             labels = self.prec_estimator(raw_data)
-            sample_stats.append(self.update_state(raw_data, labels, additionals))
-            pos, total = list(zip(*sample_stats))[:-1]
+            sample_stats.append(self.update_state(raw_data, labels, additionals, anchor))
+            pos, total = list(zip(*sample_stats))
 
         return pos, total
 
@@ -430,7 +426,7 @@ class AnchorBaseBeam(object):
                     state['t_positives'][new_t] = np.sum(state['labels'][idx_list])
         return list(new_tuples)
 
-    def update_state(self, raw_data, labels: np.ndarray, samples: tuple) -> Tuple[int, int, Tuple[int, ...]]:
+    def update_state(self, raw_data, labels: np.ndarray, samples: tuple, anchor: tuple) -> Tuple[int, int]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
@@ -444,6 +440,8 @@ class AnchorBaseBeam(object):
         labels
             an array indicating whether the prediction on the sample matches the label
             of the instance to be explained
+        anchor
+            the anchor to be updated
 
         Returns
         -------
@@ -452,11 +450,9 @@ class AnchorBaseBeam(object):
 
         """
 
-        # data is a binary matrix where 1 indicates that a feature has the same value as the feature
-        # in the anchor
-        data, coverage, c_anchor = samples  # c_ = anchor in construction order
+        # data = binary matrix where 1 means a feature has the same value as the feature in the anchor
+        data, coverage = samples
         n_samples = raw_data.shape[0]
-        anchor = tuple(sorted(c_anchor))  # same order as in propose_anchors
 
         current_idx = self.state['current_idx']
         idxs = range(current_idx, current_idx + n_samples)
@@ -471,12 +467,14 @@ class AnchorBaseBeam(object):
 
         if self.state['current_idx'] >= self.state['data'].shape[0] - max(1000, n_samples):
             prealloc_size = self.state['prealloc_size']
-            self.state['data'] = np.vstack((self.state['data'], np.zeros((prealloc_size, data.shape[1]), data.dtype)))
-            self.state['raw_data'] = np.vstack((self.state['raw_data'], np.zeros((prealloc_size, raw_data.shape[1]),
-                                                                                 dtype=self.raw_data_type)))
-            self.state['labels'] = np.hstack((self.state['labels'], np.zeros(prealloc_size, labels.dtype)))
+            self.state['data'] = np.vstack((self.state['data'],
+                                            np.zeros((prealloc_size, data.shape[1]), data.dtype)))
+            self.state['raw_data'] = np.vstack((self.state['raw_data'],
+                                                np.zeros((prealloc_size, raw_data.shape[1]), dtype=self.raw_data_type)))
+            self.state['labels'] = np.hstack((self.state['labels'],
+                                              np.zeros(prealloc_size, labels.dtype)))
 
-        return labels.sum(), raw_data.shape[0], c_anchor
+        return labels.sum(), raw_data.shape[0]
 
     @staticmethod
     def get_init_stats(anchors: list, state: dict, coverages=False) -> dict:
@@ -752,10 +750,6 @@ class AnchorBaseBeam(object):
                                           1,  # beam size
                                           verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
-
-        if self.pool:
-            self.pool.close()
-            self.pool.join()
 
         return AnchorBaseBeam.get_anchor_from_tuple(best_anchor, self.state)
         # TODO: Discuss logging strategy

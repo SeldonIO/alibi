@@ -12,41 +12,52 @@ import ray
 
 class TabularSampler(object):
 
-    def __init__(self, train_data, d_train_data, numerical_features, disc_perc, categorical_features, feature_names,
-                 feature_values):
+    def __init__(self, disc_perc, numerical_features, categorical_features, feature_names, feature_values):
 
-        if isinstance(train_data, np.ndarray):
-            self.train_data = train_data
-        else:
-            self.train_data = ray.get(train_data)
+        self.numerical_features = numerical_features
+        self.disc_perc = disc_perc
+        self.feature_names = feature_names
+        self.categorical_features = categorical_features
+        self.feature_values = feature_values
 
-        if isinstance(d_train_data, np.ndarray):
-            self.d_train_data = d_train_data
-        else:
-            self.d_train_data = ray.get(d_train_data)
-
-        self.n_records = train_data.shape[0]
-        self.disc = Discretizer(self.train_data, numerical_features, feature_names, percentiles=disc_perc)
-
-        self.min, self.max = np.full(self.train_data.shape[1], np.nan), np.full(self.train_data.shape[1], np.nan)
-        self.min[numerical_features] = np.min(train_data[:, numerical_features], axis=0)
-        self.max[numerical_features] = np.max(train_data[:, numerical_features], axis=0)
-
-        # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
-        # variable. Each value in this dict is a set of training data rows where that value is found
-        val2idx = {col_id: defaultdict(None) for col_id in numerical_features + categorical_features}  # type: Any
-        for feat in val2idx:
-            for value in range(len(feature_values[feat])):
-                val2idx[feat][value] = (d_train_data[:, feat] == value).nonzero()[0]
-
-        self.val2idx = val2idx       # type: Dict[int, DefaultDict[Any, Any]]
+        self.val2idx = {}       # type: Any
         self.cat_lookup = {}    # type: Dict[int, int]
         self.ord_lookup = {}    # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
 
-        self.numerical_features = numerical_features
-        self.categorical_features = categorical_features
-        self.feature_values = feature_values
+    def _set_data(self, train_data, d_train_data):
+        self.train_data = train_data
+        self.d_train_data = d_train_data
+        self.n_records = train_data.shape[0]
+
+    def _set_discretizer(self, disc_perc):
+        self.disc = Discretizer(self.train_data,
+                                self.numerical_features,
+                                self.feature_names,
+                                percentiles=disc_perc,
+                                )
+
+    def _get_numerical_stats(self):
+        self.min, self.max = np.full(self.train_data.shape[1], np.nan), np.full(self.train_data.shape[1], np.nan)
+        self.min[self.numerical_features] = np.min(self.train_data[:, self.numerical_features], axis=0)
+        self.max[self.numerical_features] = np.max(self.train_data[:, self.numerical_features], axis=0)
+
+    def _build_data_index(self):
+        # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
+        # variable. Each value in this dict is a set of training data rows where that value is found
+        val2idx = {f_id: defaultdict(None) for f_id in self.numerical_features + self.categorical_features}
+        for feat in val2idx:
+            for value in range(len(self.feature_values[feat])):
+                val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
+
+        return val2idx
+
+    def deferred_init(self, train_data, d_train_data):
+        self._set_data(train_data, d_train_data)
+        self._set_discretizer(self.disc_perc)
+        self._get_numerical_stats()
+        self.val2idx = self._build_data_index()
+        return self
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
         """
@@ -281,19 +292,20 @@ class TabularSampler(object):
 
 
 @ray.remote
-class RemoteSampler(TabularSampler):
+class RemoteSampler(object):
 
     def __init__(self, *args):
-        super(self).__init__(*args)
+        self.train_id, self.d_train_id, self.sampler = args
         # TODO: Find a way to avoid hardcoding the number of return values
-        self.__call__ = ray.method(self.__call__, num_return_vals=4)
-        self.build_lookups = ray.method(self.build_lookups, num_return_vals=3)
+        self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
+    @ray.method(num_return_vals=4)
     def __call__(self, anchor, num_samples):
-        return self.__call__(anchor, num_samples).remote()
+        return self.sampler(anchor, num_samples)
 
+    @ray.method(num_return_vals=3)
     def build_lookups(self, X):
-        cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.build_lookups.remote(X)
+        cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.sampler.build_lookups(X)
         return cat_lookup_id, ord_lookup_id, enc2feat_idx_id
 
 
@@ -369,42 +381,44 @@ class AnchorTabular(object):
         if self.parallel:
             self.samplers = self._fit_parallel(train_data,
                                                d_train_data,
-                                               self.numerical_features,
                                                disc_perc,
+                                               self.numerical_features,
                                                self.categorical_features,
                                                self.feature_names,
                                                self.feature_values,
                                                **kwargs
                                                )
         else:
-            self.samplers = [TabularSampler(train_data,
-                                            d_train_data,
-                                            self.numerical_features,
-                                            disc_perc,
-                                            self.categorical_features,
-                                            self.feature_names,
-                                            self.feature_values,
-                                            ),
-                             ]
+            sampler = TabularSampler(disc_perc,
+                                     self.numerical_features,
+                                     self.categorical_features,
+                                     self.feature_names,
+                                     self.feature_values,
+                                     )
+            self.samplers = [sampler.deferred_init(train_data, d_train_data)]
 
     @staticmethod
     def _fit_parallel(*args, **kwargs):
-        train_data, d_train_data, *others = args
+        train_data, d_train_data, *feat_metadata = args
         train_data_id = ray.put(train_data)
         d_train_data_id = ray.put(d_train_data)
-        n_args = (train_data_id, d_train_data_id, *others)
-        return [RemoteSampler.remote(*n_args) for _ in range(kwargs['ncpu'])]
+        samplers = [TabularSampler(*feat_metadata) for _ in range(kwargs['ncpu'])]
+        rs = []
+        for sampler in samplers:
+            rs.append(RemoteSampler.remote(*(train_data_id, d_train_data_id, sampler)))
+
+        return rs
 
     def compute_prec(self, samples):
         return (self.predictor(samples) == self.instance_label).astype(int)
 
     def _build_sampling_lookups(self, X):
 
-        lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
-
         if self.parallel:
-            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = (ray.get(mapping_id) for mapping_id in lookups)
+            lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
+            self.cat_lookup, self.ord_lookup, self.enc2feat_idx = (ray.get(mapping) for mapping in lookups)
         else:
+            lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
             self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
@@ -447,14 +461,15 @@ class AnchorTabular(object):
 
         mab = AnchorBaseBeam(samplers=self.samplers,
                              prec_estimator=self.compute_prec,
-                             parallel=self.parallel,
+                             batch_size=batch_size,
+                             coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
+                             data_store_size=10000,
                              **kwargs)
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,
-                                 batch_size=batch_size,
                                  desired_confidence=threshold,
                                  max_anchor_size=max_anchor_size,
-                                 **kwargs)  # type: Any
+                                 )  # type: Any
 
         self.add_names_to_exp(anchor)
         if true_label is None:

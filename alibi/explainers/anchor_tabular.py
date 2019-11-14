@@ -5,7 +5,7 @@ from alibi.utils.discretizer import Discretizer
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
 import numpy as np
-from typing import Callable, Dict, DefaultDict, Tuple, Any, Set
+from typing import Callable, Dict, Tuple, Any, Set
 
 import ray
 
@@ -24,6 +24,13 @@ class TabularSampler(object):
         self.cat_lookup = {}    # type: Dict[int, int]
         self.ord_lookup = {}    # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
+
+    def deferred_init(self, train_data, d_train_data):
+        self._set_data(train_data, d_train_data)
+        self._set_discretizer(self.disc_perc)
+        self._get_numerical_stats()
+        self.val2idx = self._build_data_index()
+        return self
 
     def _set_data(self, train_data, d_train_data):
         self.train_data = train_data
@@ -51,13 +58,6 @@ class TabularSampler(object):
                 val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
 
         return val2idx
-
-    def deferred_init(self, train_data, d_train_data):
-        self._set_data(train_data, d_train_data)
-        self._set_discretizer(self.disc_perc)
-        self._get_numerical_stats()
-        self.val2idx = self._build_data_index()
-        return self
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float, Tuple[int, ...]]:
         """

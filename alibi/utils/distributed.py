@@ -1,6 +1,21 @@
 import ray
 
 
+def check_ray():
+    """
+    Checks if ray is installed
+
+    Returns:
+    -------
+        a bool indicating whether ray is installed or not
+    """
+    try:
+        import ray
+        return True
+    except ImportError:
+        return False
+
+
 class ActorPool(object):
     def __init__(self, actors):
         """Create an Actor pool from a list of existing actors.

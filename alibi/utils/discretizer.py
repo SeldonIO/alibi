@@ -8,7 +8,7 @@ class Discretizer(object):
     def __init__(self, data: np.ndarray, numerical_features: List[int], feature_names: List[str],
                  percentiles: Sequence[Union[int, float]] = (25, 50, 75)) -> None:
         """
-        Initialize the discretizer.
+        Initialize the discretizer
 
         Parameters
         ----------
@@ -41,10 +41,10 @@ class Discretizer(object):
             for i in range(n_bins - 1):
                 self.feature_intervals[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
             self.feature_intervals[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
-            self.lambdas[feature] = partial(self.percentiles, qts=qts)
+            self.lambdas[feature] = partial(self.get_percentiles, qts=qts)
 
     @staticmethod
-    def percentiles(x: np.ndarray, qts: np.ndarray) -> np.ndarray:
+    def get_percentiles(x: np.ndarray, qts: np.ndarray) -> np.ndarray:
         return np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:

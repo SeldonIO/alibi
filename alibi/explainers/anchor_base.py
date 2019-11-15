@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
     """ Samples random rows from a matrix
+
     Parameters
     ----------
     matrix
@@ -822,12 +823,13 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         -------
             see superclass implementation
         """
+
         import ray
         raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0],
                                                                          (0, ()),
                                                                          coverage_samples)
                                                          )
-        return coverage_data, raw_coverage_data
+        return raw_coverage_data, coverage_data
 
     def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
         """

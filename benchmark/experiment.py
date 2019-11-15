@@ -19,8 +19,10 @@ from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-from alibi.explainers import AnchorTabular
 import alibi.datasets as datasets
+from alibi.explainers import AnchorTabular, DistributedAnchorTabular
+from alibi.utils.distributed import check_ray
+from alibi.utils.wrappers import Predictor
 
 SUPPORTED_EXPLAINERS = ['tabular']
 SUPPORTED_DATASETS = ['adult', 'imagenet', 'movie_sentiment']
@@ -39,17 +41,6 @@ class Timer:
 
     def __exit__(self, *args):
         self.t_elapsed = timer() - self.start
-
-
-class Predictor(object):
-
-    def __init__(self, clf, preprocessor=None):
-        self.predict_fcn = clf.predict
-        self.preprocessor = preprocessor
-
-    def __call__(self, x):
-        if self.preprocessor:
-            return self.predict_fcn(self.preprocessor.transform(x))
 
 
 def load_dataset(*, dataset='adult'):
@@ -150,12 +141,18 @@ def get_tabular_explainer(predictor, dataset, split, config):
     category_map = dataset.category_map
     X_train = split['X_train']
 
-    explainer = AnchorTabular(predictor,
-                              feature_names,
-                              categorical_names=category_map,
-                              seed=config['seed'],
-                              parallel=config['parallel'],
-                              )
+    if check_ray():
+        explainer = DistributedAnchorTabular(predictor,
+                                             feature_names,
+                                             categorical_names=category_map,
+                                             seed=config['seed'],
+                                             )
+    else:
+        explainer = AnchorTabular(predictor,
+                                  feature_names,
+                                  categorical_names=category_map,
+                                  seed=config['seed'],
+                                  )
     explainer.fit(X_train,
                   disc_perc=config['disc_perc'],
                   ncpu=config['ncpu'],
@@ -339,7 +336,7 @@ if __name__ == '__main__':
     if configuration['dataset'] not in SUPPORTED_DATASETS:
         raise ValueError("Only datasets adult/imagenet/movie_sentiment are supported")
     if configuration['classifier']['name'] not in SUPPORTED_CLASSIFIERS:
-        raise NotImplementedError("Only random forest classifiers are supported!")
+        raise NotImplementedError("Only decision tree and random forest classifiers are supported!")
 
     if configuration['experiment']['profile']:
         profile(configuration)

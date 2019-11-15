@@ -18,6 +18,7 @@ def check_ray():
 
 class ActorPool(object):
     def __init__(self, actors):
+        # TODO: Add reference ...
         """Create an Actor pool from a list of existing actors.
         An actor pool is a utility class similar to multiprocessing.Pool that
         lets you schedule Ray tasks over a fixed pool of actors.
@@ -47,6 +48,8 @@ class ActorPool(object):
                 actor will be considered busy until the ObjectID completes.
             values (list): List of values that fn(actor, value) should be
                 applied to.
+            chunksize (int): splits the list of values to be submitted to the
+                parallel process into sublists of size chunksize or less
         Returns:
             Iterator over results from applying fn to the actors and values.
         Examples:
@@ -74,6 +77,8 @@ class ActorPool(object):
                 actor will be considered busy until the ObjectID completes.
             values (list): List of values that fn(actor, value) should be
                 applied to.
+            chunksize (int): splits the list of values to be submitted to the
+                parallel process into sublists of size chunksize or less
         Returns:
             Iterator over results from applying fn to the actors and values.
         Examples:
@@ -81,6 +86,10 @@ class ActorPool(object):
             >>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
             [6, 2, 4, 8]
         """
+
+        if chunksize:
+            values = self._chunk(values, chunksize=chunksize)
+
         for v in values:
             self.submit(fn, v)
         while self.has_next():

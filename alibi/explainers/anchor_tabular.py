@@ -465,14 +465,14 @@ class AnchorTabular(object):
 
         mab = AnchorBaseBeam(samplers=self.samplers,
                              prec_estimator=self.compute_prec,
-                             batch_size=batch_size,
-                             coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
-                             data_store_size=10000,
                              **kwargs)
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,
                                  desired_confidence=threshold,
                                  max_anchor_size=max_anchor_size,
+                                 batch_size=batch_size,
+                                 coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
+                                 data_store_size=10000,
                                  )  # type: Any
 
         self.add_names_to_exp(anchor)

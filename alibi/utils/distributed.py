@@ -48,7 +48,7 @@ class ActorPool(object):
         while self.has_next():
             yield self.get_next()
 
-    def map_unordered(self, fn, values):
+    def map_unordered(self, fn, values, chunksize=None):
         """Similar to map(), but returning an unordered iterator.
         This returns an unordered iterator that will return results of the map
         as they finish. This can be more efficient that map() if some results

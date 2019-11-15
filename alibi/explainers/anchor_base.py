@@ -1,13 +1,14 @@
 import numpy as np
 import copy
 import logging
-from collections import defaultdict, namedtuple, OrderedDict
-from alibi.utils.parallel import ActorPool
+from collections import defaultdict, namedtuple
 from typing import Callable, Tuple, Set, Dict, List
 from functools import partial
 
+from alibi.utils.distributed import ActorPool
+
+
 logger = logging.getLogger(__name__)
-import ray
 
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
@@ -31,58 +32,83 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
 
-    def __init__(self, samplers: List[Callable], prec_estimator: Callable, batch_size: int = 100,
-                 coverage_samples: int = 10000, data_store_size: int = 10000, data_type: str = None,
-                 **kwargs) -> None:
+    def __init__(self, samplers: List[Callable], prec_estimator: Callable, **kwargs) -> None:
         """
-        Initialize the anchor beam search class.
+        Parameters
+        ---------
+        samplers
+            a list containing objects that can be called with an (anchor, n_samples) tuple to sample
+        prec_estimator
+            an object that can be called to with a batch of samples to return predictions
+
+        """
+
+        self.prec_estimator = prec_estimator
+        self.sample_fcn = samplers[0]
+        self.samplers = None
+
+    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None)\
+            -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Draws samples uniformly at random from the training set.
 
         Parameters
         ---------
-        batch_size
-            Samples are drawn repeatedly to estimate precision mean, upper- and lower bounds
-        data_store_size
-            Number of batches to be sampled at once
         coverage_samples
-            Number of samples used to compute coverage
+            see anchor_beam
+        samplers
+            see __init__
+
+        Returns
+        -------
+        raw_coverage_data
+            samples as drawn from training set (format suitable for prediction)
+        coverage_data
+            binarised samples, where 1 indicates the feature has same value/is in same beam as
+            instance to be explained. Used to determine, e.g., which samples an anchor applies to
+        """
+        raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples)
+        return raw_coverage_data, coverage_data
+
+    def _init_state(self, batch_size: int, data_store_size: int, raw_coverage_data: np.ndarray,
+                    coverage_data: np.ndarray, data_type: str) -> None:
+        """
+        Initialises the object state, which is used to compute anchor precisions & precision bounds
+        and provide metadata for explanation objects.
+
+        Parameters
+        ----------
+        batch_size
+            see anchor_beam
+        coverage_data
+            see _get_coverage_samples
+        data_store_size
+            see anchor_beam
         data_type
-            Data type for raw data
+            see anchor_beam
+        raw_coverage_data
+            see _get_coverage_samples
         """
 
-        self.parallel = kwargs['parallel']
-        if self.parallel:
-            self.sample_fcn = lambda actor, anchor, n_samples: actor.__call__.remote(anchor, n_samples)
-            raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0], (0, ()), coverage_samples))
-            self.pool = ActorPool(samplers)
-            self.chunksize = kwargs['chunksize']
-            self.draw_samples = self._parallel_sampler
-        else:
-            self.sample_fcn = samplers[0]
-            raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples)
-            self.draw_samples = self._sequential_sampler
-
-        self.batch_size = batch_size
-        # Select coverage data uniformly at random
-        prealloc_size = batch_size*data_store_size
+        prealloc_size = batch_size * data_store_size
         self.raw_data_type = data_type if data_type is not None else raw_coverage_data.dtype
-
-        self.state = {'t_idx': defaultdict(set),
-                      't_nsamples': defaultdict(lambda: 0.),
-                      't_positives': defaultdict(lambda: 0.),
-                      'data': np.zeros((prealloc_size, coverage_data.shape[1]), coverage_data.dtype),
-                      'prealloc_size': prealloc_size,
+        # t_ indicates that the attribute is a dictionary with entries for each anchor
+        self.state = {'t_idx': defaultdict(set),               # row idx in sample cache where the anchors apply
+                      't_nsamples': defaultdict(lambda: 0.),   # total number of samples drawn for the anchors
+                      't_positives': defaultdict(lambda: 0.),  # nb of samples where anchor pred = pred on instance
+                      'prealloc_size': prealloc_size,          # samples caches size
+                      'data': np.zeros((prealloc_size, coverage_data.shape[1]), coverage_data.dtype),  # samples caches
                       'raw_data': np.zeros((prealloc_size, raw_coverage_data.shape[1]), self.raw_data_type),
-                      'labels': np.zeros(prealloc_size, ),
+                      'labels': np.zeros(prealloc_size, ),     # clf pred labels on raw_data
                       'current_idx': 0,
-                      'n_features': coverage_data.shape[1],
-                      't_coverage_idx': defaultdict(set),
-                      't_coverage': defaultdict(lambda: 0.),
-                      'coverage_data': coverage_data,
-                      't_order': defaultdict(list)
+                      'n_features': coverage_data.shape[1],    # data set dim after encoding
+                      't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
+                      't_coverage': defaultdict(lambda: 0.),   # anchors' coverage
+                      'coverage_data': coverage_data,          # coverage data
+                      't_order': defaultdict(list),            # anchors are sorted to avoid exploring permutations
+                                                               # this is the order in which anchors were found
                       }  # type: dict
-
         self.state['t_order'][()] = ()  # Trivial order for the empty anchor
-        self.prec_estimator = prec_estimator
 
     @staticmethod
     def kl_bernoulli(p: np.ndarray, q: np.ndarray) -> np.ndarray:
@@ -238,9 +264,10 @@ class AnchorBaseBeam(object):
 
         return crit_arms._make((ut, lt))
 
-    def lucb(self, anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int,
-             top_n: int, verbose: bool = False, verbose_every: int = 1) -> np.ndarray:
+    def kllucb(self, anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int,
+               top_n: int, verbose: bool = False, verbose_every: int = 1) -> np.ndarray:
         """
+        # TODO: Add docs.
         Parameters
         ----------
         anchors:
@@ -319,30 +346,7 @@ class AnchorBaseBeam(object):
         sorted_means = np.argsort(means)
         return sorted_means[-top_n:]
 
-    def _parallel_sampler(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Parameters
-        ----------
-            see self._sequential_sampler
-
-        Returns
-        -------
-            same outputs as _sequential_sampler but of different types
-        """
-
-        pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
-        order_map = [(i, tuple(self.state['t_order'][anchor])) for i, anchor in enumerate(anchors)]
-        samples_iter = self.pool.map_unordered(partial(self.sample_fcn, n_samples=batch_size), order_map)
-        for samples in samples_iter:
-            raw_data, *additionals, anchor_idx = samples
-            labels = self.prec_estimator(raw_data)
-            positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
-            # return statistics in the same order as the requests
-            pos[anchor_idx], total[anchor_idx] = positives, n_samples
-
-        return pos, total
-
-    def _sequential_sampler(self, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
+    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
         """
         Parameters
         ----------
@@ -358,7 +362,7 @@ class AnchorBaseBeam(object):
         """
 
         sample_stats, pos, total = [], (), ()  # type: List, Tuple, Tuple
-        samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), n_samples=batch_size)
+        samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), num_samples=batch_size)
                         for i, anchor in enumerate(anchors)]
         for samples, anchor in zip(samples_iter, anchors):
             raw_data, *additionals, _ = samples  # don't need the anchor index since order preserved
@@ -573,11 +577,20 @@ class AnchorBaseBeam(object):
                ((means < desired_confidence) & (ubs >= desired_confidence + epsilon_stop))
 
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
-                    beam_size: int = 1, verbose: bool = False, epsilon_stop: float = 0.05,
+                    beam_size: int = 10, verbose: bool = False, epsilon_stop: float = 0.05,
                     min_samples_start: int = 0, max_anchor_size: int = None, verbose_every: int = 1,
-                    stop_on_first: bool = False) -> dict:
+                    stop_on_first: bool = False,  batch_size: int = 100, coverage_samples: int = 10000,
+                    data_store_size: int = 10000, data_type: str = None) -> dict:
 
         """
+        Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
+        feature sets (anchors) that guarantee the prediction made by a classifier model. The search is greedy if
+        beam_size=1. Otherwise, at each of the max_anchor_size steps, beam_size solutions are explored. By construction,
+        solutions found have high precision (defined as the expected of number of times the classifier makes the same
+        prediction when queried with the feature subset combined with arbitrary samples drawn from a noise distribution)
+        The algorithm maximises the coverage of the solution found - the frequency of occurence of records containing
+        the feature subset in set of samples.
+
         Parameters
         ----------
         delta
@@ -585,7 +598,7 @@ class AnchorBaseBeam(object):
         epsilon
             Precision bound tolerance for convergence
         desired_confidence
-            Desired level of precision, tau in paper
+            Desired level of precision (tau in paper)
         beam_size
             Beam width
         verbose
@@ -600,27 +613,40 @@ class AnchorBaseBeam(object):
             Whether to print intermediate output every verbose_every steps
         stop_on_first
             Stop on first valid anchor found
-
+        data_type
+            user specified data type for raw data
+        coverage_samples
+            number of samples from which to build a coverage set
+        batch_size
+            number of samples used for an arm evaluation
+        data_store_size
+            initial size (in batches) of data/raw data samples cache
 
         Returns
         -------
         Explanation dictionary containing anchors with metadata like coverage and precision.
+
         """
 
-        batch_size = self.batch_size
+        # Select coverage set and initialise object state
+        raw_coverage_data, coverage_data = self._get_coverage_samples(coverage_samples,
+                                                                      samplers=self.samplers,
+                                                                      )
+        self._init_state(batch_size, data_store_size, raw_coverage_data, coverage_data, data_type)
 
         # sample by default 1 or min_samples_start more random value(s)
         n_init_samples = max(1, min_samples_start)
         (pos,), (total,) = self.draw_samples([()], n_init_samples)
-        # mean = fraction of labels sampled data that equals the label of the instance to be explained ...
-        # ... and is equivalent to prec(A) in paper (eq.2)
-        # get lower precision bound lb
+
+        # mean = fraction of labels sampled data that equals the label of the instance to be explained, ...
+        # ... equivalent to prec(A) in paper (eq.2)
         mean = np.array([pos / total])
         beta = np.log(1. / delta)
+        # lower bound on mean precision
         lb = AnchorBaseBeam.dlow_bernoulli(mean, np.array([beta / total]))
 
-        # while prec(A) > tau (precision constraint) for A=() and prec_lb(A) < tau - eps ...
-        # ... (lower precision bound below tau with margin eps), keep sampling data until lb is high enough
+        # if lower precision bound below tau with margin eps, keep sampling data until lb is high enough ...
+        # or mean falls below precision threshold
         while mean > desired_confidence and lb < desired_confidence - epsilon:
             (n_pos,), (n_total,) = self.draw_samples([()], batch_size)
             pos += n_pos
@@ -628,8 +654,7 @@ class AnchorBaseBeam(object):
             mean = np.array([pos / total])
             lb = AnchorBaseBeam.dlow_bernoulli(mean, np.array([beta / total]))
 
-        # if prec_lb(A) > tau for A=() then the empty anchor already satisfies the constraints ...
-        # ... and an empty anchor is returned
+        # if prec_lb(A) > tau for A=() then the empty anchor satisfies the constraints ...
         if lb > desired_confidence:
             return {'feature': [],
                     'mean': [],
@@ -664,15 +689,15 @@ class AnchorBaseBeam(object):
             stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
 
             # apply KL-LUCB and return anchor options (nb of options = beam width) in the form of indices
-            candidate_anchors = self.lucb(anchors,
-                                          stats,
-                                          epsilon,
-                                          delta,
-                                          batch_size,
-                                          min(beam_size, len(anchors)),
-                                          verbose=verbose,
-                                          verbose_every=verbose_every,
-                                          )
+            candidate_anchors = self.kllucb(anchors,
+                                            stats,
+                                            epsilon,
+                                            delta,
+                                            batch_size,
+                                            min(beam_size, len(anchors)),
+                                            verbose=verbose,
+                                            verbose_every=verbose_every,
+                                            )
             # store best anchors for the given anchor size (nb of features in the anchor)
             best_of_size[current_size] = [anchors[index] for index in candidate_anchors]
             # for each candidate anchor:
@@ -694,6 +719,7 @@ class AnchorBaseBeam(object):
                 for i, mean, lb, ub in zip(candidate_anchors, means, lbs, ubs):
                     print(i, mean, lb, ub)
 
+            # draw samples to ensure anchor meets precision criteria
             continue_sampling = self.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
             while continue_sampling.any():
                 selected_anchors = [anchors[idx] for idx in candidate_anchors[continue_sampling]]
@@ -742,14 +768,73 @@ class AnchorBaseBeam(object):
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])
             stats = AnchorBaseBeam.get_init_stats(anchors, self.state)
-            candidate_anchors = self.lucb(anchors,
-                                          stats,
-                                          epsilon,
-                                          delta,
-                                          batch_size,
-                                          1,  # beam size
-                                          verbose=verbose)
+            candidate_anchors = self.kllucb(anchors,
+                                            stats,
+                                            epsilon,
+                                            delta,
+                                            batch_size,
+                                            1,  # beam size
+                                            verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 
         return AnchorBaseBeam.get_anchor_from_tuple(best_anchor, self.state)
         # TODO: Discuss logging strategy
+
+
+class DistributedAnchorBaseBeam(AnchorBaseBeam):
+
+    def __init__(self, samplers: List[Callable], prec_estimator: Callable, **kwargs) -> None:
+
+        super(DistributedAnchorBaseBeam, self).__init__(samplers, prec_estimator)
+        self.chunksize = kwargs['chunksize']
+        self.sample_fcn = lambda actor, anchor, n_samples: actor.__call__.remote(anchor, n_samples)
+        self.pool = ActorPool(samplers)
+        self.samplers = samplers
+
+    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) \
+            -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Sends a request for a coverage set to process running sampling tasks.
+
+        Parameters
+        ----------
+            see superclass implementation
+
+        Returns
+        -------
+            see superclass implementation
+        """
+        import ray
+        raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0],
+                                                                         (0, ()),
+                                                                         coverage_samples)
+                                                         )
+        return coverage_data, raw_coverage_data
+
+    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Distributes sampling requests among processes running sampling tasks.
+
+        Parameters
+        ----------
+            see superclass  implementation
+
+        Returns
+        -------
+            same outputs as superclass but of different types
+        """
+
+        pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
+        order_map = [(i, tuple(self.state['t_order'][anchor])) for i, anchor in enumerate(anchors)]
+        samples_iter = self.pool.map_unordered(partial(self.sample_fcn, n_samples=batch_size),
+                                               order_map,
+                                               self.chunksize,
+                                               )
+        for samples in samples_iter:
+            raw_data, *additionals, anchor_idx = samples
+            labels = self.prec_estimator(raw_data)
+            positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
+            # return statistics in the same order as the requests
+            pos[anchor_idx], total[anchor_idx] = positives, n_samples
+
+        return pos, total

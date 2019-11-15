@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
@@ -16,8 +17,8 @@ from alibi.utils.discretizer import Discretizer
 class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X. """
-    def __init__(self, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int, ...],
-                 categorical_features: List[int, ...], feature_names: list, feature_values: dict) -> None:
+    def __init__(self, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
+                 categorical_features: List[int], feature_names: list, feature_values: dict) -> None:
         """
         Parameters
         ----------
@@ -272,7 +273,8 @@ class TabularSampler(object):
                     min_vals, max_vals = self.min[feat], self.max[feat]
                     samples[:, feat] = np.random.uniform(low=min_vals,
                                                          high=max_vals,
-                                                         size=(num_samples,))
+                                                         size=(num_samples,)
+                                                         )
 
         return samples, self.disc.discretize(samples), coverage
 
@@ -529,7 +531,8 @@ class AnchorTabular(object):
 
         mab = AnchorBaseBeam(samplers=self.samplers,
                              prec_estimator=self.compute_prec,
-                             **kwargs)
+                             **kwargs,
+                             )
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,
                                  desired_confidence=threshold,
@@ -659,6 +662,14 @@ class DistributedAnchorTabular(AnchorTabular):
             see superclass implementation
         """
 
+        try:
+            ncpu = kwargs['ncpu']
+        except KeyError:
+            logging.warning('DistributedAnchorTabular object has been initalised but kwargs did not contain '
+                            'expected argument, ncpu. Defaulting to ncpu=2!'
+                            )
+            ncpu = 2
+
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
@@ -670,7 +681,7 @@ class DistributedAnchorTabular(AnchorTabular):
                          )
         train_data_id = ray.put(train_data)
         d_train_data_id = ray.put(d_train_data)
-        samplers = [TabularSampler(*feat_metadata) for _ in range(kwargs['ncpu'])]
+        samplers = [TabularSampler(*feat_metadata) for _ in range(ncpu)]
         self.samplers = [RemoteSampler.remote(*(train_data_id, d_train_data_id, sampler)) for sampler in samplers]
 
     def _build_sampling_lookups(self, X):
@@ -703,7 +714,8 @@ class DistributedAnchorTabular(AnchorTabular):
 
         mab = DistributedAnchorBaseBeam(samplers=self.samplers,
                                         prec_estimator=self.compute_prec,
-                                        **kwargs)
+                                        **kwargs,
+                                        )
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,
                                  desired_confidence=threshold,

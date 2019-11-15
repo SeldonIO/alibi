@@ -1,9 +1,9 @@
-import numpy as np
 import copy
 import logging
+import numpy as np
 from collections import defaultdict, namedtuple
-from typing import Callable, Tuple, Set, Dict, List
 from functools import partial
+from typing import Callable, Tuple, Set, Dict, List
 
 from alibi.utils.distributed import ActorPool
 
@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
-    """
+    """ Samples random rows from a matrix
     Parameters
     ----------
     matrix
@@ -22,11 +22,13 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
     Returns
     -------
-    Sample of the input matrix.
+        Sample of the input matrix.
     """
+
     if matrix.shape[0] == 0:
         return matrix
     n_samples = min(matrix.shape[0], n_samples)
+
     return matrix[np.random.choice(matrix.shape[0], n_samples, replace=False)]
 
 
@@ -67,7 +69,9 @@ class AnchorBaseBeam(object):
             binarised samples, where 1 indicates the feature has same value/is in same beam as
             instance to be explained. Used to determine, e.g., which samples an anchor applies to
         """
+
         raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples)
+
         return raw_coverage_data, coverage_data
 
     def _init_state(self, batch_size: int, data_store_size: int, raw_coverage_data: np.ndarray,
@@ -130,6 +134,7 @@ class AnchorBaseBeam(object):
 
         m = np.clip(p, 0.0000001, 0.9999999999999999).astype(float)
         n = np.clip(q, 0.0000001, 0.9999999999999999).astype(float)
+
         return m * np.log(m / n) + (1. - m) * np.log((1. - m) / (1. - n))
 
     @staticmethod
@@ -153,12 +158,14 @@ class AnchorBaseBeam(object):
         # TODO: where does 17x sampling come from?
         lm = p.copy()
         um = np.minimum(np.minimum(p + np.sqrt(level / 2.), 1.0), 1.0)
+
         for j in range(1, n_iter):
             qm = (um + lm) / 2.
             kl_gt_idx = AnchorBaseBeam.kl_bernoulli(p, qm) > level
             kl_lt_idx = np.logical_not(kl_gt_idx)
             um[kl_gt_idx] = qm[kl_gt_idx]
             lm[kl_lt_idx] = qm[kl_lt_idx]
+
         return um
 
     @staticmethod
@@ -179,14 +186,17 @@ class AnchorBaseBeam(object):
         -------
         Updated lower precision boundl
         """
+
         um = p.copy()
         lm = np.clip(p - np.sqrt(level / 2.), 0.0, 1.0)  # lower bound
+
         for _ in range(1, n_iter):
             qm = (um + lm) / 2.
             kl_gt_idx = AnchorBaseBeam.kl_bernoulli(p, qm) > level  # KL-divergence > threshold level
             kl_lt_idx = np.logical_not(kl_gt_idx)
             lm[kl_gt_idx] = qm[kl_gt_idx]
             um[kl_lt_idx] = qm[kl_lt_idx]
+
         return lm
 
     @staticmethod
@@ -208,6 +218,7 @@ class AnchorBaseBeam(object):
         alpha = 1.1
         k = 405.5
         temp = np.log(k * n_features * (t ** alpha) / delta)
+
         return temp + np.log(temp)
 
     @staticmethod
@@ -344,6 +355,7 @@ class AnchorBaseBeam(object):
             crit_a_idx = self.select_critical_arms(means, ub, lb, n_samples, delta, top_n, t)
             B = ub[crit_a_idx.ut] - lb[crit_a_idx.lt]
         sorted_means = np.argsort(means)
+
         return sorted_means[-top_n:]
 
     def draw_samples(self, anchors: list, batch_size: int) -> Tuple[tuple, tuple]:
@@ -386,6 +398,7 @@ class AnchorBaseBeam(object):
         -------
         List with tuples of candidate anchors with additional metadata.
         """
+
         # compute some variables used later on
         normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
         all_features = range(state['n_features'])
@@ -428,6 +441,7 @@ class AnchorBaseBeam(object):
                     idx_list = list(state['t_idx'][new_t])
                     state['t_nsamples'][new_t] = float(len(idx_list))
                     state['t_positives'][new_t] = np.sum(state['labels'][idx_list])
+
         return list(new_tuples)
 
     def update_state(self, raw_data, labels: np.ndarray, samples: tuple, anchor: tuple) -> Tuple[int, int]:
@@ -496,6 +510,7 @@ class AnchorBaseBeam(object):
         -------
         Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
         """
+
         def array_factory(size: tuple):
             return lambda: np.zeros(size)
 
@@ -505,6 +520,7 @@ class AnchorBaseBeam(object):
             stats['positives'][i] = state['t_positives'][anchor]
             if coverages:
                 stats['coverages'][i] = state['t_coverage'][anchor]
+
         return stats
 
     @staticmethod
@@ -521,6 +537,7 @@ class AnchorBaseBeam(object):
         -------
         Anchor dictionary with anchor features and additional metadata.
         """
+
         # TODO: This is wrong, some of the intermediate anchors may not exist.
         anchor = {'feature': [], 'mean': [], 'precision': [], 'coverage': [], 'examples': [], 'all_precision': 0,
                   'num_preds': state['data'].shape[0]}  # type: dict
@@ -546,6 +563,7 @@ class AnchorBaseBeam(object):
                    'uncovered_false': np.array([]),
                    }
             anchor['examples'].append(exs)
+
         return anchor
 
     @staticmethod

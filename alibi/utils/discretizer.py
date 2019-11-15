@@ -2,6 +2,7 @@ import numpy as np
 from typing import Dict, Callable, List, Union, Sequence
 from functools import partial
 
+
 class Discretizer(object):
 
     def __init__(self, data: np.ndarray, numerical_features: List[int], feature_names: List[str],
@@ -28,7 +29,7 @@ class Discretizer(object):
         bins = [np.unique(x) for x in bins]
 
         self.feature_intervals = {}  # type: Dict[int, list]
-        self.lambdas = {}  # type: Dict[int, Callable]
+        self.lambdas = {}            # type: Dict[int, Callable] # TODO: Fix typing
         for feature, qts in zip(self.to_discretize, bins):
 
             # get nb of borders (nb of bins - 1) and the feature name
@@ -40,10 +41,10 @@ class Discretizer(object):
             for i in range(n_bins - 1):
                 self.feature_intervals[feature].append('%.2f < %s <= %.2f' % (qts[i], name, qts[i + 1]))
             self.feature_intervals[feature].append('%s > %.2f' % (name, qts[n_bins - 1]))
-            self.lambdas[feature] = partial(self.quantiles, qts=qts)
+            self.lambdas[feature] = partial(self.percentiles, qts=qts)
 
     @staticmethod
-    def quantiles(x, qts):
+    def percentiles(x: np.ndarray, qts: np.ndarray) -> np.ndarray:
         return np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:

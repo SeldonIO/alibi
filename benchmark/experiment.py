@@ -176,6 +176,8 @@ def get_explanation(explainer, expln_config, splits, exp_config):
                              parallel=expln_config['parallel'],
                              ncpu=expln_config['ncpu'],
                              chunksize=expln_config['chunksize'],
+                             beam_size=expln_config['beam_size'],
+                             min_samples_start=expln_config['min_samples_start'],
                              )
 
 
@@ -244,8 +246,17 @@ class ExplainerExperiment(object):
             print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging 
                   "files may be overwritten!")
 
+        exp_config = self.experiment_config
+
+        ckpt_fmt = '{}_beam_{}_idx_{}_ncpu_{}_chunk_{}'
+        ckpt_name = ckpt_fmt.format(exp_config['ckpt'],
+                                    self.explainer_config['beam_size'],
+                                    exp_config['instance_idx'],
+                                    self.explainer_config['ncpu'],
+                                    self.explainer_config['chunksize']
+                                    )
         fullpath = os.path.join(self.experiment_config['ckpt_dir'],
-                                self.experiment_config['ckpt'])
+                                ckpt_name)
         fullpath = fullpath if fullpath.split(".")[-1] == 'pkl' else fullpath + '.pkl'
 
         with open(fullpath, 'wb') as f:

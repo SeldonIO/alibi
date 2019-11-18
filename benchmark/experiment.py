@@ -142,11 +142,18 @@ def get_tabular_explainer(predictor, dataset, split, config):
     X_train = split['X_train']
 
     if check_ray():
-        explainer = DistributedAnchorTabular(predictor,
-                                             feature_names,
-                                             categorical_names=category_map,
-                                             seed=config['seed'],
-                                             )
+        if config['parallel']:
+            explainer = DistributedAnchorTabular(predictor,
+                                                 feature_names,
+                                                 categorical_names=category_map,
+                                                 seed=config['seed'],
+                                                 )
+        else:
+            explainer = AnchorTabular(predictor,
+                                      feature_names,
+                                      categorical_names=category_map,
+                                      seed=config['seed'],
+                                      )
     else:
         explainer = AnchorTabular(predictor,
                                   feature_names,

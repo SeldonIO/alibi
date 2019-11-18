@@ -360,15 +360,28 @@ class RemoteSampler(object):
         self.train_id, self.d_train_id, self.sampler = args
         self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
-    def __call__(self, anchor: Tuple[int, tuple], num_samples: int):
-        """ Wrapper around TabularSampler/__call__
-        anchor:
-            see TabularSampler.__call__
+    def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int):
+        """ Wrapper around TabularSampler.__call__. It allows sampling a batch of
+        anchors in the same process, which can improve performance.
+
+        Parameters
+        ----------
+        anchors_batch:
+            a list of anchor tuples. see TabularSampler.__call__ for details.
         num_samples:
             see TabularSampler.__call__
         """
 
-        return self.sampler(anchor, num_samples)
+        if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
+            return self.sampler(anchors_batch, num_samples)
+        elif len(anchors_batch) == 1:     # batch size = 1
+            return [self.sampler(*anchors_batch, num_samples)]
+        else:                             # batch size > 1
+            batch_result = []
+            for anchor in anchors_batch:
+                batch_result.append(self.sampler(anchor, num_samples))
+
+            return batch_result
 
     def build_lookups(self, X):
         """
@@ -493,7 +506,8 @@ class AnchorTabular(object):
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, max_anchor_size: int = None, desired_label: int = None, **kwargs: Any) -> dict:
+                batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,
+                desired_label: int = None, **kwargs: Any) -> dict:
         """
         Explain prediction made by classifier on instance X.
 
@@ -509,8 +523,12 @@ class AnchorTabular(object):
             Margin between lower confidence bound and minimum precision or upper bound
         batch_size
             Batch size used for sampling
+        beam_size
+            The number of anchors extended at each step of new anchors construction
         max_anchor_size
             Maximum number of features in anchor
+        min_samples_start
+            Min number of initial samples
         desired_label
             Label to use as true label for the instance to be explained
 
@@ -537,6 +555,8 @@ class AnchorTabular(object):
                                  epsilon=tau,
                                  desired_confidence=threshold,
                                  max_anchor_size=max_anchor_size,
+                                 min_samples_start=min_samples_start,
+                                 beam_size=beam_size,
                                  batch_size=batch_size,
                                  coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
                                  data_store_size=10000,
@@ -689,7 +709,8 @@ class DistributedAnchorTabular(AnchorTabular):
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = ray.get(lookups)
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, max_anchor_size: int = None, desired_label: int = None, **kwargs: Any) -> dict:
+                batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,
+                desired_label: int = None, **kwargs: Any) -> dict:
         """
         Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
@@ -719,7 +740,9 @@ class DistributedAnchorTabular(AnchorTabular):
         anchor = mab.anchor_beam(delta=delta,
                                  epsilon=tau,
                                  desired_confidence=threshold,
+                                 min_samples_start=min_samples_start,
                                  max_anchor_size=max_anchor_size,
+                                 beam_size=beam_size,
                                  batch_size=batch_size,
                                  coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
                                  data_store_size=10000,

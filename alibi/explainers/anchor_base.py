@@ -596,8 +596,8 @@ class AnchorBaseBeam(object):
                ((means < desired_confidence) & (ubs >= desired_confidence + epsilon_stop))
 
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
-                    beam_size: int = 10, verbose: bool = False, epsilon_stop: float = 0.05,
-                    min_samples_start: int = 0, max_anchor_size: int = None, verbose_every: int = 1,
+                    beam_size: int = 1, verbose: bool = False, epsilon_stop: float = 0.05,
+                    min_samples_start: int = 1, max_anchor_size: int = None, verbose_every: int = 1,
                     stop_on_first: bool = False,  batch_size: int = 100, coverage_samples: int = 10000,
                     data_store_size: int = 10000, data_type: str = None) -> dict:
 
@@ -654,8 +654,7 @@ class AnchorBaseBeam(object):
         self._init_state(batch_size, data_store_size, raw_coverage_data, coverage_data, data_type)
 
         # sample by default 1 or min_samples_start more random value(s)
-        n_init_samples = max(1, min_samples_start)
-        (pos,), (total,) = self.draw_samples([()], n_init_samples)
+        (pos,), (total,) = self.draw_samples([()], min_samples_start)
 
         # mean = fraction of labels sampled data that equals the label of the instance to be explained, ...
         # ... equivalent to prec(A) in paper (eq.2)
@@ -850,11 +849,12 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
                                                order_map,
                                                self.chunksize,
                                                )
-        for samples in samples_iter:
-            raw_data, *additionals, anchor_idx = samples
-            labels = self.prec_estimator(raw_data)
-            positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
-            # return statistics in the same order as the requests
-            pos[anchor_idx], total[anchor_idx] = positives, n_samples
+        for samples_batch in samples_iter:
+            for samples in samples_batch:
+                raw_data, *additionals, anchor_idx = samples
+                labels = self.prec_estimator(raw_data)
+                positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
+                # return statistics in the same order as the requests
+                pos[anchor_idx], total[anchor_idx] = positives, n_samples
 
         return pos, total

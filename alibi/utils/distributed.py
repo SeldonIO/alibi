@@ -37,7 +37,7 @@ class ActorPool(object):
         self._next_return_index = 0
         self._pending_submits = []
 
-    def map(self, fn, values, chunksize=None):
+    def map(self, fn, values, chunksize=1):
         """Apply the given function in parallel over the actors and values.
         This returns an ordered iterator that will return results of the map
         as they finish. Note that you must iterate over the iterator to force
@@ -66,7 +66,7 @@ class ActorPool(object):
         while self.has_next():
             yield self.get_next()
 
-    def map_unordered(self, fn, values, chunksize=None):
+    def map_unordered(self, fn, values, chunksize=1):
         """Similar to map(), but returning an unordered iterator.
         This returns an unordered iterator that will return results of the map
         as they finish. This can be more efficient that map() if some results
@@ -188,7 +188,6 @@ class ActorPool(object):
         """
         if not self.has_next():
             raise StopIteration("No more results to get")
-        # TODO(ekl) bulk wait for performance
         res, _ = ray.wait(
             list(self._future_to_actor), num_returns=1, timeout=timeout)
         if res:

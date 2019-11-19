@@ -18,8 +18,8 @@ class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X. """
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
-                 categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10) \
-            -> None:
+                 categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
+                 seed: int = None) -> None:
         """
         Parameters
         ----------
@@ -38,6 +38,8 @@ class TabularSampler(object):
         n_covered_ex
             for each anchor, a number of samples where the prediction agrees/disagrees
             with the prediction on instance to be explained are stored
+        seed
+            if set, fixes the random number sequence
         """
 
         self.instance_label = None
@@ -54,6 +56,8 @@ class TabularSampler(object):
         self.cat_lookup = {}    # type: Dict[int, int]
         self.ord_lookup = {}    # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
+
+        np.random.seed(seed)
 
     def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.array, Any]) -> Any:
         """
@@ -459,8 +463,6 @@ class AnchorTabular(object):
 
         """
 
-        np.random.seed(seed)
-
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
         if np.argmax(predictor(np.zeros([1, len(feature_names)])).shape) == 0:
@@ -484,6 +486,7 @@ class AnchorTabular(object):
             self.feature_values = {}
 
         self.samplers = []
+        self.seed = seed
 
     def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
         """
@@ -510,6 +513,7 @@ class AnchorTabular(object):
                                  self.categorical_features,
                                  self.feature_names,
                                  self.feature_values,
+                                 self.seed,
                                  )
         self.samplers = [sampler.deferred_init(train_data, d_train_data)]
 
@@ -723,6 +727,7 @@ class DistributedAnchorTabular(AnchorTabular):
                         self.categorical_features,
                         self.feature_names,
                         self.feature_values,
+                        self.seed
                         )
         train_data_id = ray.put(train_data)
         d_train_data_id = ray.put(d_train_data)

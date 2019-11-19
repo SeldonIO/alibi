@@ -24,7 +24,7 @@ experiment:
   n_runs: 25
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/SamplingModificationRegression
-  ckpt: seq_new_state_handling
+  ckpt: seq_new_state_handling_rep
   verbose: false
   data:
     preprocess: true

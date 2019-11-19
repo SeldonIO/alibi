@@ -11,11 +11,11 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  beam_size: 10
+  beam_size: 1
   min_samples_start: 100
-  parallel: true
-  chunksize: 4
-  ncpu: 2
+  parallel: false
+  chunksize: ~
+  ncpu: ~
   verbose: false
   seed: 0
 
@@ -23,8 +23,8 @@ explainer:
 experiment:
   n_runs: 25
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/RayPerformanceTest/sampling_clf
-  ckpt: ray_decoupled_clf
+  ckpt_dir: /home/alex/git/work_experiments/SamplingModificationRegression
+  ckpt: seq_new_state_handling
   verbose: false
   data:
     preprocess: true

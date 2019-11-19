@@ -40,15 +40,13 @@ class AnchorBaseBeam(object):
         Parameters
         ---------
         samplers
-            a list containing objects that can be called with an (anchor, n_samples) tuple to sample
-
+            objects that can be called with an (anchor, n_samples) tuple to draw samples
         """
 
         self.sample_fcn = samplers[0]
         self.samplers = None
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None)\
-            -> Tuple[np.ndarray, np.ndarray]:
+    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) -> np.ndarray:
         """
         Draws samples uniformly at random from the training set.
 
@@ -61,19 +59,16 @@ class AnchorBaseBeam(object):
 
         Returns
         -------
-        raw_coverage_data
-            samples as drawn from training set (format suitable for prediction)
         coverage_data
             binarised samples, where 1 indicates the feature has same value/is in same beam as
             instance to be explained. Used to determine, e.g., which samples an anchor applies to
         """
 
-        raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples, c_labels=False)
+        [coverage_data] = self.sample_fcn((0, ()), coverage_samples, c_labels=False)
 
-        return raw_coverage_data, coverage_data
+        return coverage_data
 
-    def _init_state(self, batch_size: int, data_store_size: int, raw_coverage_data: np.ndarray,
-                    coverage_data: np.ndarray, data_type: str) -> None:
+    def _init_state(self, batch_size: int, data_store_size: int, coverage_data: np.ndarray) -> None:
         """
         Initialises the object state, which is used to compute anchor precisions & precision bounds
         and provide metadata for explanation objects.
@@ -86,29 +81,25 @@ class AnchorBaseBeam(object):
             see _get_coverage_samples
         data_store_size
             see anchor_beam
-        data_type
-            see anchor_beam
-        raw_coverage_data
-            see _get_coverage_samples
         """
 
         prealloc_size = batch_size * data_store_size
-        self.raw_data_type = data_type if data_type is not None else raw_coverage_data.dtype
         # t_ indicates that the attribute is a dictionary with entries for each anchor
-        self.state = {'t_idx': defaultdict(set),               # row idx in sample cache where the anchors apply
+        self.state = {'t_coverage': defaultdict(lambda: 0.),   # anchors' coverage
+                      't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
+                      't_covered_true': defaultdict(None),     # samples with same pred as instance where t_ applies
+                      't_covered_false': defaultdict(None),    # samples with dif pred to instance where t_ applies
+                      't_idx': defaultdict(set),               # row idx in sample cache where the anchors apply
                       't_nsamples': defaultdict(lambda: 0.),   # total number of samples drawn for the anchors
+                      't_order': defaultdict(list),            # anchors are sorted to avoid exploring permutations
+                                                               # this is the order in which anchors were found
                       't_positives': defaultdict(lambda: 0.),  # nb of samples where anchor pred = pred on instance
                       'prealloc_size': prealloc_size,          # samples caches size
                       'data': np.zeros((prealloc_size, coverage_data.shape[1]), coverage_data.dtype),  # samples caches
-                      'raw_data': np.zeros((prealloc_size, raw_coverage_data.shape[1]), self.raw_data_type),
                       'labels': np.zeros(prealloc_size, ),     # clf pred labels on raw_data
                       'current_idx': 0,
                       'n_features': coverage_data.shape[1],    # data set dim after encoding
-                      't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
-                      't_coverage': defaultdict(lambda: 0.),   # anchors' coverage
                       'coverage_data': coverage_data,          # coverage data
-                      't_order': defaultdict(list),            # anchors are sorted to avoid exploring permutations
-                                                               # this is the order in which anchors were found
                       }  # type: dict
         self.state['t_order'][()] = ()  # Trivial order for the empty anchor
 
@@ -375,8 +366,8 @@ class AnchorBaseBeam(object):
         samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), num_samples=batch_size)
                         for i, anchor in enumerate(anchors)]
         for samples, anchor in zip(samples_iter, anchors):
-            raw_data, labels, *additionals, _ = samples  # don'features need the anchor index since order preserved
-            sample_stats.append(self.update_state(raw_data, labels, additionals, anchor))
+            covered_true, covered_false, labels, *additionals, _ = samples  # don'features need the anchor index since order preserved
+            sample_stats.append(self.update_state(covered_true, covered_false, labels, additionals, anchor))
             pos, total = list(zip(*sample_stats))
 
         return pos, total
@@ -441,15 +432,19 @@ class AnchorBaseBeam(object):
 
         return list(new_tuples)
 
-    def update_state(self, raw_data, labels: np.ndarray, samples: tuple, anchor: tuple) -> Tuple[int, int]:
+    def update_state(self, covered_true: np.ndarray, covered_false: np.ndarray, labels: np.ndarray,
+                     samples: tuple, anchor: tuple) -> Tuple[int, int]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
         Parameters
         ----------
 
-        raw_data
-            the raw samples
+        covered_true
+            examples where the anchor applies and the prediction is the same as on the instance to be explained
+        covered_false
+            examples where the anchor applies and the prediction is the different to the instance to be explained
+
         samples
             a tuple containing discretized data, coverage and the anchor sampled
         labels
@@ -467,7 +462,7 @@ class AnchorBaseBeam(object):
 
         # data = binary matrix where 1 means a feature has the same value as the feature in the anchor
         data, coverage = samples
-        n_samples = raw_data.shape[0]
+        n_samples = data.shape[0]
 
         current_idx = self.state['current_idx']
         idxs = range(current_idx, current_idx + n_samples)
@@ -475,8 +470,9 @@ class AnchorBaseBeam(object):
         self.state['t_nsamples'][anchor] += n_samples
         self.state['t_positives'][anchor] += labels.sum()
         self.state['t_coverage'][anchor] = coverage
+        self.state['t_covered_true'][anchor] = covered_true
+        self.state['t_covered_false'][anchor] = covered_false
         self.state['data'][idxs] = data
-        self.state['raw_data'][idxs] = raw_data
         self.state['labels'][idxs] = labels
         self.state['current_idx'] += n_samples
 
@@ -484,12 +480,10 @@ class AnchorBaseBeam(object):
             prealloc_size = self.state['prealloc_size']
             self.state['data'] = np.vstack((self.state['data'],
                                             np.zeros((prealloc_size, data.shape[1]), data.dtype)))
-            self.state['raw_data'] = np.vstack((self.state['raw_data'],
-                                                np.zeros((prealloc_size, raw_data.shape[1]), dtype=self.raw_data_type)))
             self.state['labels'] = np.hstack((self.state['labels'],
                                               np.zeros(prealloc_size, labels.dtype)))
 
-        return labels.sum(), raw_data.shape[0]
+        return labels.sum(), data.shape[0]
 
     @staticmethod
     def get_init_stats(anchors: list, state: dict, coverages=False) -> dict:
@@ -520,8 +514,7 @@ class AnchorBaseBeam(object):
 
         return stats
 
-    @staticmethod
-    def get_anchor_from_features(features: tuple, state: dict) -> dict:
+    def get_anchor_metadata(self, features: tuple, state: dict, batch_size: int = 100) -> dict:
         """
         Parameters
         ----------
@@ -529,6 +522,9 @@ class AnchorBaseBeam(object):
             sorted indices of features in anchor
         state
             Dictionary with the relevant metrics like coverage and samples for candidate anchors
+        batch_size
+            Number of samples among which positive and negative examples for partial anchors are
+            selected if partial anchors have not already been explicitly sampled
 
         Returns
         -------
@@ -540,6 +536,8 @@ class AnchorBaseBeam(object):
                   'num_preds': state['data'].shape[0]}  # type: dict
         normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
         current_t = tuple()  # type: tuple
+        # draw pos and negative example where partial anchor applies if not sampled during search
+        to_resample, to_resample_idx = [], []
         for f in state['t_order'][features]:
             current_t = normalize_tuple(current_t + (f,))
             mean = (state['t_positives'][current_t] / state['t_nsamples'][current_t])
@@ -549,18 +547,29 @@ class AnchorBaseBeam(object):
             anchor['coverage'].append(state['t_coverage'][current_t])
 
             # add examples where anchor does or does not hold
-            raw_idx = list(state['t_idx'][current_t])
-            raw_data = state['raw_data'][raw_idx]
-            covered_true = (state['raw_data'][raw_idx][state['labels'][raw_idx] == 1])
-            covered_false = (state['raw_data'][raw_idx][state['labels'][raw_idx] == 0])
-            exs = {'covered': matrix_subset(raw_data, 10),
-                   'covered_true': matrix_subset(covered_true, 10),
-                   'covered_false': matrix_subset(covered_false, 10),
-                   'uncovered_true': np.array([]),
-                   'uncovered_false': np.array([]),
-                   }
-            anchor['examples'].append(exs)
+            if current_t in state['t_covered_true']:
+                exs = {'covered_true': state['t_covered_true'][current_t],
+                       'covered_false': state['t_covered_false'][current_t],
+                       'uncovered_true': np.array([]),
+                       'uncovered_false': np.array([]),
+                       }
+                anchor['examples'].append(exs)
+            else:
+                to_resample.append(current_t)
+                to_resample_idx.append(len(anchor['examples']))
+                anchor['examples'].append('placeholder')
 
+        if to_resample:
+            _, _ = self.draw_samples(to_resample, batch_size)
+
+            while to_resample:
+                feats, example_idx = to_resample.pop(), to_resample_idx.pop()
+                anchor['examples'][example_idx] = {'covered_true': state['t_covered_true'][feats],
+                                                   'covered_false': state['t_covered_false'][feats],
+                                                   'uncovered_true': np.array([]),
+                                                   'uncovered_false': np.array([]),
+                                                   }
+        assert 'placeholder' not in anchor['examples']
         return anchor
 
     @staticmethod
@@ -595,7 +604,7 @@ class AnchorBaseBeam(object):
                     beam_size: int = 1, verbose: bool = False, epsilon_stop: float = 0.05,
                     min_samples_start: int = 1, max_anchor_size: int = None, verbose_every: int = 1,
                     stop_on_first: bool = False,  batch_size: int = 100, coverage_samples: int = 10000,
-                    data_store_size: int = 10000, data_type: str = None) -> dict:
+                    data_store_size: int = 10000) -> dict:
 
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
@@ -628,8 +637,6 @@ class AnchorBaseBeam(object):
             Whether to print intermediate output every verbose_every steps
         stop_on_first
             Stop on first valid anchor found
-        data_type
-            user specified data type for raw data
         coverage_samples
             number of samples from which to build a coverage set
         batch_size
@@ -644,10 +651,10 @@ class AnchorBaseBeam(object):
         """
 
         # Select coverage set and initialise object state
-        raw_coverage_data, coverage_data = self._get_coverage_samples(coverage_samples,
-                                                                      samplers=self.samplers,
-                                                                      )
-        self._init_state(batch_size, data_store_size, raw_coverage_data, coverage_data, data_type)
+        coverage_data = self._get_coverage_samples(coverage_samples,
+                                                   samplers=self.samplers,
+                                                   )
+        self._init_state(batch_size, data_store_size, coverage_data)
 
         # sample by default 1 or min_samples_start more random value(s)
         (pos,), (total,) = self.draw_samples([()], min_samples_start)
@@ -791,7 +798,7 @@ class AnchorBaseBeam(object):
                                             verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 
-        return AnchorBaseBeam.get_anchor_from_features(best_anchor, self.state)
+        return self.get_anchor_metadata(best_anchor, self.state, batch_size=batch_size)
         # TODO: Discuss logging strategy
 
 
@@ -807,8 +814,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) \
-            -> Tuple[np.ndarray, np.ndarray]:
+    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) -> np.ndarray:
         """
         Sends a request for a coverage set to process running sampling tasks.
 
@@ -822,12 +828,12 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         """
 
         import ray
-        raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0],
-                                                                         (0, ()),
-                                                                         coverage_samples,
-                                                                         c_labels=False)
-                                                         )
-        return raw_coverage_data, coverage_data
+        [coverage_data] = ray.get(self.sample_fcn(samplers[0],
+                                                  (0, ()),
+                                                  coverage_samples,
+                                                  c_labels=False)
+                                  )
+        return coverage_data
 
     def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -850,8 +856,13 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
                                                )
         for samples_batch in samples_iter:
             for samples in samples_batch:
-                raw_data, labels, *additionals, anchor_idx = samples
-                positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
+                covered_true, covered_false, labels, *additionals, anchor_idx = samples
+                positives, n_samples = self.update_state(covered_true,
+                                                         covered_false,
+                                                         labels,
+                                                         additionals,
+                                                         anchors[anchor_idx],
+                                                         )
                 # return statistics in the same order as the requests
                 pos[anchor_idx], total[anchor_idx] = positives, n_samples
 

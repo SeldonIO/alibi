@@ -18,7 +18,8 @@ class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X. """
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
-                 categorical_features: List[int], feature_names: list, feature_values: dict) -> None:
+                 categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10) \
+            -> None:
         """
         Parameters
         ----------
@@ -34,10 +35,14 @@ class TabularSampler(object):
             feature names
         feature_values
             key: categorical feature column ID, value: values for the feature
+        n_covered_ex
+            for each anchor, a number of samples where the prediction agrees/disagrees
+            with the prediction on instance to be explained are stored
         """
 
         self.instance_label = None
         self.predictor = predictor
+        self.n_covered_ex = n_covered_ex
 
         self.numerical_features = numerical_features
         self.disc_perc = disc_perc
@@ -159,14 +164,16 @@ class TabularSampler(object):
             else:
                 d_records_sampled = d_raw_data[:, self.enc2feat_idx[i]]
                 lower_bin, upper_bin = min(list(self.ord_lookup[i])), max(list(self.ord_lookup[i]))
-
                 idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
+
         if c_labels:
             labels = self.compute_prec(raw_data)
-            return [raw_data, labels, data, coverage, anchor[0]]
+            covered_true = raw_data[labels, :][:self.n_covered_ex]
+            covered_false = raw_data[np.logical_not(labels), :][:self.n_covered_ex]
+            return [covered_true, covered_false, labels.astype(int), data, coverage, anchor[0]]
         else:
-            return [raw_data, data, coverage, anchor[0]]
+            return [data]   # only binarised data is used for coverage computation
 
     def compute_prec(self, samples: np.ndarray) -> np.ndarray:
         """
@@ -184,7 +191,7 @@ class TabularSampler(object):
             an array of integers indicating whether the prediction was the same as the instance label
         """
 
-        return (self.predictor(samples) == self.instance_label).astype(int)
+        return self.predictor(samples) == self.instance_label
 
     def _sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """

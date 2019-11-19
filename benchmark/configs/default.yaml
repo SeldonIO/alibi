@@ -14,8 +14,8 @@ explainer:
   beam_size: 10
   min_samples_start: 100
   parallel: true
-  chunksize: 8
-  ncpu: 4
+  chunksize: 4
+  ncpu: 2
   verbose: false
   seed: 0
 
@@ -23,8 +23,8 @@ explainer:
 experiment:
   n_runs: 25
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/RayPerformanceTest
-  ckpt: ray_decoupled
+  ckpt_dir: /home/alex/git/work_experiments/RayPerformanceTest/sampling_clf
+  ckpt: ray_decoupled_clf
   verbose: false
   data:
     preprocess: true

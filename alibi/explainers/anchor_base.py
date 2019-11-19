@@ -35,18 +35,15 @@ def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
 
 class AnchorBaseBeam(object):
 
-    def __init__(self, samplers: List[Callable], prec_estimator: Callable, **kwargs) -> None:
+    def __init__(self, samplers: List[Callable], **kwargs) -> None:
         """
         Parameters
         ---------
         samplers
             a list containing objects that can be called with an (anchor, n_samples) tuple to sample
-        prec_estimator
-            an object that can be called to with a batch of samples to return predictions
 
         """
 
-        self.prec_estimator = prec_estimator
         self.sample_fcn = samplers[0]
         self.samplers = None
 
@@ -71,7 +68,7 @@ class AnchorBaseBeam(object):
             instance to be explained. Used to determine, e.g., which samples an anchor applies to
         """
 
-        raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples)
+        raw_coverage_data, coverage_data, _, _ = self.sample_fcn((0, ()), coverage_samples, c_labels=False)
 
         return raw_coverage_data, coverage_data
 
@@ -378,8 +375,7 @@ class AnchorBaseBeam(object):
         samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), num_samples=batch_size)
                         for i, anchor in enumerate(anchors)]
         for samples, anchor in zip(samples_iter, anchors):
-            raw_data, *additionals, _ = samples  # don't need the anchor index since order preserved
-            labels = self.prec_estimator(raw_data)
+            raw_data, labels, *additionals, _ = samples  # don'features need the anchor index since order preserved
             sample_stats.append(self.update_state(raw_data, labels, additionals, anchor))
             pos, total = list(zip(*sample_stats))
 
@@ -525,12 +521,12 @@ class AnchorBaseBeam(object):
         return stats
 
     @staticmethod
-    def get_anchor_from_tuple(t: tuple, state: dict) -> dict:
+    def get_anchor_from_features(features: tuple, state: dict) -> dict:
         """
         Parameters
         ----------
-        t
-            Anchor
+        features
+            sorted indices of features in anchor
         state
             Dictionary with the relevant metrics like coverage and samples for candidate anchors
 
@@ -544,7 +540,7 @@ class AnchorBaseBeam(object):
                   'num_preds': state['data'].shape[0]}  # type: dict
         normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
         current_t = tuple()  # type: tuple
-        for f in state['t_order'][t]:
+        for f in state['t_order'][features]:
             current_t = normalize_tuple(current_t + (f,))
             mean = (state['t_positives'][current_t] / state['t_nsamples'][current_t])
             anchor['feature'].append(f)
@@ -795,17 +791,19 @@ class AnchorBaseBeam(object):
                                             verbose=verbose)
             best_anchor = anchors[candidate_anchors[0]]
 
-        return AnchorBaseBeam.get_anchor_from_tuple(best_anchor, self.state)
+        return AnchorBaseBeam.get_anchor_from_features(best_anchor, self.state)
         # TODO: Discuss logging strategy
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
-    def __init__(self, samplers: List[Callable], prec_estimator: Callable, **kwargs) -> None:
+    def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
-        super(DistributedAnchorBaseBeam, self).__init__(samplers, prec_estimator)
+        super(DistributedAnchorBaseBeam, self).__init__(samplers)
         self.chunksize = kwargs['chunksize']
-        self.sample_fcn = lambda actor, anchor, n_samples: actor.__call__.remote(anchor, n_samples)
+        self.sample_fcn = lambda actor, anchor, n_samples, c_labels=True: actor.__call__.remote(anchor,
+                                                                                                n_samples,
+                                                                                                c_labels=c_labels)
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
@@ -826,7 +824,8 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         import ray
         raw_coverage_data, coverage_data, _, _ = ray.get(self.sample_fcn(samplers[0],
                                                                          (0, ()),
-                                                                         coverage_samples)
+                                                                         coverage_samples,
+                                                                         c_labels=False)
                                                          )
         return raw_coverage_data, coverage_data
 
@@ -851,8 +850,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
                                                )
         for samples_batch in samples_iter:
             for samples in samples_batch:
-                raw_data, *additionals, anchor_idx = samples
-                labels = self.prec_estimator(raw_data)
+                raw_data, labels, *additionals, anchor_idx = samples
                 positives, n_samples = self.update_state(raw_data, labels, additionals, anchors[anchor_idx])
                 # return statistics in the same order as the requests
                 pos[anchor_idx], total[anchor_idx] = positives, n_samples

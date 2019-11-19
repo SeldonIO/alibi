@@ -11,17 +11,19 @@ from .anchor_explanation import AnchorExplanation
 from alibi.utils.data import ArgmaxTransformer
 from alibi.utils.discretizer import Discretizer
 
-# TODO: Fix typing issues
+# TODO: Fix typing issues, add all output types
 
 
 class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X. """
-    def __init__(self, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
+    def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict) -> None:
         """
         Parameters
         ----------
+        predictor
+            an object exposing a .predict method, used to predict labels on the samples
         disc_perc
             percentiles used for numerical feat. discretisation
         numerical_features
@@ -33,6 +35,9 @@ class TabularSampler(object):
         feature_values
             key: categorical feature column ID, value: values for the feature
         """
+
+        self.instance_label = None
+        self.predictor = predictor
 
         self.numerical_features = numerical_features
         self.disc_perc = disc_perc
@@ -116,7 +121,7 @@ class TabularSampler(object):
 
         return val2idx
 
-    def __call__(self, anchor: Tuple[int, tuple], num_samples: int):# -> List[np.ndarray, np.ndarray, float, int]:
+    def __call__(self, anchor: Tuple[int, tuple], num_samples: int,  c_labels=True):# -> List[np.ndarray, np.ndarray, float, int]:
         """
         Draw samples from training data that contain the categorical features and discretized
         numerical features in anchor.
@@ -128,6 +133,8 @@ class TabularSampler(object):
             encoded feature indices
         num_samples
             Number of samples used when sampling from training set
+        c_labels
+            if False, labels are not returned by the sampling function
 
         Returns
         -------
@@ -155,8 +162,29 @@ class TabularSampler(object):
 
                 idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
+        if c_labels:
+            labels = self.compute_prec(raw_data)
+            return [raw_data, labels, data, coverage, anchor[0]]
+        else:
+            return [raw_data, data, coverage, anchor[0]]
 
-        return [raw_data, data, coverage, anchor[0]]
+    def compute_prec(self, samples: np.ndarray) -> np.ndarray:
+        """
+        Compute the agreement between a classifier prediction on an instance to be explained and the
+        prediction on a set of samples which have a subset of features fixed to a given value (aka
+        compute the precision of anchors)
+
+        Parameters
+        ----------
+        samples:
+            samples whose labels are to be compared with the instance label
+
+        Returns
+        -------
+            an array of integers indicating whether the prediction was the same as the instance label
+        """
+
+        return (self.predictor(samples) == self.instance_label).astype(int)
 
     def _sample_from_train(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
@@ -215,7 +243,7 @@ class TabularSampler(object):
 
         # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
         # data coming from the same bin (or range of bins)
-        for feat_id in allowed_bins:  # NB: should scale since we don't query the whole DB every time!
+        for feat_id in allowed_bins:  # NB: should scale since we don'features query the whole DB every time!
             allowed_rows[feat_id] = np.concatenate([self.val2idx[feat_id][bin_id] for bin_id in allowed_bins[feat_id]])
             if allowed_rows[feat_id].size == 0:  # no instances in training data are in the specified bins ...
                 rand_sampled_feats.append((feat_id, 'o', None))
@@ -360,9 +388,11 @@ class RemoteSampler(object):
         self.train_id, self.d_train_id, self.sampler = args
         self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
-    def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int):
-        """ Wrapper around TabularSampler.__call__. It allows sampling a batch of
-        anchors in the same process, which can improve performance.
+    def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
+                 c_labels: bool = True):  # TODO: output typing
+        """
+        Wrapper around TabularSampler.__call__. It allows sampling a batch of anchors in the same process,
+        which can improve performance.
 
         Parameters
         ----------
@@ -370,16 +400,18 @@ class RemoteSampler(object):
             a list of anchor tuples. see TabularSampler.__call__ for details.
         num_samples:
             see TabularSampler.__call__
+        c_labels
+            see TabularSampler.__call__
         """
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
-            return self.sampler(anchors_batch, num_samples)
+            return self.sampler(anchors_batch, num_samples, c_labels=c_labels)
         elif len(anchors_batch) == 1:     # batch size = 1
-            return [self.sampler(*anchors_batch, num_samples)]
+            return [self.sampler(*anchors_batch, num_samples, c_labels=c_labels)]
         else:                             # batch size > 1
             batch_result = []
             for anchor in anchors_batch:
-                batch_result.append(self.sampler(anchor, num_samples))
+                batch_result.append(self.sampler(anchor, num_samples, c_labels=c_labels))
 
             return batch_result
 
@@ -465,31 +497,14 @@ class AnchorTabular(object):
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
-        sampler = TabularSampler(disc_perc,
+        sampler = TabularSampler(self.predictor,
+                                 disc_perc,
                                  self.numerical_features,
                                  self.categorical_features,
                                  self.feature_names,
                                  self.feature_values,
                                  )
         self.samplers = [sampler.deferred_init(train_data, d_train_data)]
-
-    def compute_prec(self, samples: np.ndarray) -> np.ndarray:
-        """
-        Compute the agreement between a classifier prediction on an instance to be explained and the
-        prediction on a set of samples which have a subset of features fixed to a given value (aka
-        compute the precision of anchors)
-
-        Parameters
-        ----------
-        samples:
-            samples whose labels are to be compared with the instance label
-
-        Returns
-        -------
-            an array of integers indicating whether the prediction was the same as the instance label
-        """
-
-        return (self.predictor(samples) == self.instance_label).astype(int)
 
     def _build_sampling_lookups(self, X: np.ndarray) -> None:
         """
@@ -543,12 +558,14 @@ class AnchorTabular(object):
         if true_label is None:
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
 
+        for sampler in self.samplers:
+            sampler.instance_label = self.instance_label
+
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata
         self._build_sampling_lookups(X)
 
         mab = AnchorBaseBeam(samplers=self.samplers,
-                             prec_estimator=self.compute_prec,
                              **kwargs,
                              )
         anchor = mab.anchor_beam(delta=delta,
@@ -693,15 +710,16 @@ class DistributedAnchorTabular(AnchorTabular):
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
-        feat_metadata = (disc_perc,
-                         self.numerical_features,
-                         self.categorical_features,
-                         self.feature_names,
-                         self.feature_values,
-                         )
+        sampler_args = (self.predictor,
+                        disc_perc,
+                        self.numerical_features,
+                        self.categorical_features,
+                        self.feature_names,
+                        self.feature_values,
+                        )
         train_data_id = ray.put(train_data)
         d_train_data_id = ray.put(d_train_data)
-        samplers = [TabularSampler(*feat_metadata) for _ in range(ncpu)]
+        samplers = [TabularSampler(*sampler_args) for _ in range(ncpu)]
         self.samplers = [RemoteSampler.remote(*(train_data_id, d_train_data_id, sampler)) for sampler in samplers]
 
     def _build_sampling_lookups(self, X):
@@ -729,12 +747,14 @@ class DistributedAnchorTabular(AnchorTabular):
         if true_label is None:
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
 
+        for sampler in self.samplers:
+            sampler.instance_label = self.instance_label
+
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata
         self._build_sampling_lookups(X)
 
         mab = DistributedAnchorBaseBeam(samplers=self.samplers,
-                                        prec_estimator=self.compute_prec,
                                         **kwargs,
                                         )
         anchor = mab.anchor_beam(delta=delta,

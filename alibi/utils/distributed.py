@@ -1,6 +1,3 @@
-import ray
-
-
 def check_ray():
     """
     Checks if ray is installed
@@ -16,7 +13,15 @@ def check_ray():
         return False
 
 
+RAY_INSTALLED = check_ray()
+
+
 class ActorPool(object):
+
+    if RAY_INSTALLED:
+        import ray
+        ray = ray  # module as a static variable
+
     def __init__(self, actors):
         # TODO: Add reference ...
         """Create an Actor pool from a list of existing actors.
@@ -158,14 +163,14 @@ class ActorPool(object):
                              "get_next_unordered().")
         future = self._index_to_future[self._next_return_index]
         if timeout is not None:
-            res, _ = ray.wait([future], timeout=timeout)
+            res, _ = self.ray.wait([future], timeout=timeout)
             if not res:
                 raise TimeoutError("Timed out waiting for result")
         del self._index_to_future[self._next_return_index]
         self._next_return_index += 1
         i, a = self._future_to_actor.pop(future)
         self._return_actor(a)
-        return ray.get(future)
+        return self.ray.get(future)
 
     def get_next_unordered(self, timeout=None):
         """Returns any of the next pending results.
@@ -188,7 +193,7 @@ class ActorPool(object):
         """
         if not self.has_next():
             raise StopIteration("No more results to get")
-        res, _ = ray.wait(
+        res, _ = self.ray.wait(
             list(self._future_to_actor), num_returns=1, timeout=timeout)
         if res:
             [future] = res
@@ -198,7 +203,7 @@ class ActorPool(object):
         self._return_actor(a)
         del self._index_to_future[i]
         self._next_return_index = max(self._next_return_index, i + 1)
-        return ray.get(future)
+        return self.ray.get(future)
 
     def _return_actor(self, actor):
         self._idle_actors.append(actor)

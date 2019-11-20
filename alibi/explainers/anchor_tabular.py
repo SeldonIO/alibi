@@ -4,12 +4,11 @@ from collections import OrderedDict, defaultdict
 from itertools import accumulate
 from typing import Any, Callable, Dict, List, Set, Tuple, Union
 
-import ray
-
 from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.data import ArgmaxTransformer
 from alibi.utils.discretizer import Discretizer
+from alibi.utils.distributed import RAY_INSTALLED
 
 # TODO: Fix typing issues, add all output types
 
@@ -392,7 +391,6 @@ class TabularSampler(object):
         return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
 
-@ray.remote
 class RemoteSampler(object):
     """ A wrapper that facilitates the use of TabularSampler for distributed sampling."""
     def __init__(self, *args):
@@ -693,12 +691,15 @@ class AnchorTabular(object):
 
 class DistributedAnchorTabular(AnchorTabular):
 
+    if RAY_INSTALLED:
+        import ray
+        ray = ray  # set module as class variable to used only in this context
+
     def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
                  seed: int = None) -> None:
 
         super(DistributedAnchorTabular, self).__init__(predictor, feature_names, categorical_names, seed)
-        import ray
-        ray.init()
+        self.ray.init()
 
     def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
         """
@@ -729,14 +730,15 @@ class DistributedAnchorTabular(AnchorTabular):
                         self.feature_values,
                         self.seed
                         )
-        train_data_id = ray.put(train_data)
-        d_train_data_id = ray.put(d_train_data)
+        train_data_id = self.ray.put(train_data)
+        d_train_data_id = self.ray.put(d_train_data)
         samplers = [TabularSampler(*sampler_args) for _ in range(ncpu)]
-        self.samplers = [RemoteSampler.remote(*(train_data_id, d_train_data_id, sampler)) for sampler in samplers]
+        self.samplers = [self.ray.remote(RemoteSampler).remote(*(train_data_id, d_train_data_id, sampler))
+                         for sampler in samplers]
 
     def _build_sampling_lookups(self, X):
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
-        self.cat_lookup, self.ord_lookup, self.enc2feat_idx = ray.get(lookups)
+        self.cat_lookup, self.ord_lookup, self.enc2feat_idx = self.ray.get(lookups)
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
                 batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,

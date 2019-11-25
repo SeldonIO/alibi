@@ -116,75 +116,78 @@ class AnchorText(object):
             List with words in the text
         positions
             List with positions of the words in the text
-        sample_fn
+        sampler
             Function returning perturbed text instances, matrix with flags for perturbed words and labels
         """
         # if no true label available; true label = predicted label
-        true_label = desired_label
-        if true_label is None:
-            true_label = self.predict_fn([text])[0]
+        positions, words = self.get_words_and_pos(text)
+
+        return words, positions, sampler
+
+    def set_words_and_pos(self, text):
 
         processed = self.nlp(text)  # spaCy tokens for text
-        words = [x.text for x in processed]  # list with words in text
-        positions = [x.idx for x in processed]  # positions of words in text
+        self.words = [x.text for x in processed]  # list with words in text
+        self.positions = [x.idx for x in processed]  # positions of words in text
 
-        def sample_fn(present: list, num_samples: int, compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray,
-                                                                                             np.ndarray]:
-            """
-            Create sampling function using similar words in the embedding space.
 
-            Parameters
-            ----------
-            present
-                List with the word index in the text for the words in the proposed anchor
-            num_samples
-                Number of samples used when sampling from the corpus
-            compute_labels
-                Boolean whether to use labels coming from model predictions as 'true' labels
+    def sampler(self, present: tuple, num_samples: int, compute_labels: bool = True) -> Tuple[np.ndarray, np.ndarray,
+                                                                                       np.ndarray]:
+        """
+        Create sampling function using similar words in the embedding space.
 
-            Returns
-            -------
-            raw_data
-                num_samples of perturbed text instance
-            data
-                Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample
-            labels
-                Create labels using model predictions if compute_labels equals True
-            """
-            if use_unk:  # perturb examples by replacing words with UNKs
+        Parameters
+        ----------
+        present
+            List with the word index in the text for the words in the proposed anchor
+        num_samples
+            Number of samples used when sampling from the corpus
+        compute_labels
+            Boolean whether to use labels coming from model predictions as 'true' labels
 
-                data = np.ones((num_samples, len(words)))
-                raw = np.zeros((num_samples, len(words)), '|S80')
-                raw[:] = words  # fill each row of the raw data matrix with the text instance to be explained
+        Returns
+        -------
+        raw_data
+            num_samples of perturbed text instance
+        data
+            Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample
+        labels
+            Create labels using model predictions if compute_labels equals True
+        """
+        words = self.words
 
-                for i, t in enumerate(words):
-                    if i in present:  # if the index corresponds to the index of a word in the anchor
-                        continue
+        if self.use_unk:  # perturb examples by replacing words with UNKs
 
-                    # sample the words in the text outside of the anchor that are replaced with UNKs
-                    n_changed = np.random.binomial(num_samples, sample_proba)
-                    changed = np.random.choice(num_samples, n_changed, replace=False)
-                    raw[changed, i] = 'UNK'
-                    data[changed, i] = 0
+            data = np.ones((num_samples, len(words)))
+            raw = np.zeros((num_samples, len(words)), '|S80')
+            raw[:] = words  # fill each row of the raw data matrix with the text instance to be explained
 
-                # convert numpy array into list
-                raw_data = [' '.join([y.decode() for y in x]) for x in raw]
+            for i, t in enumerate(words):
+                if i in present:  # if the index corresponds to the index of a word in the anchor
+                    continue
 
-            else:  # replace words by similar words instead of UNKs
+                # sample the words in the text outside of the anchor that are replaced with UNKs
+                n_changed = np.random.binomial(num_samples, self.sample_proba)
+                changed = np.random.choice(num_samples, n_changed, replace=False)
+                raw[changed, i] = 'UNK'
+                data[changed, i] = 0
 
-                raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n,
-                                                       use_similarity_proba=use_similarity_proba,
-                                                       sample_proba=sample_proba, temperature=temperature,
-                                                       **kwargs)
+            # convert numpy array into list
+            raw_data = [' '.join([y.decode() for y in x]) for x in raw]
 
-            # create labels using model predictions as true labels
-            labels = np.array([])
-            if compute_labels:
-                labels = (self.predict_fn(raw_data) == true_label).astype(int)
-            raw_data = np.array(raw_data).reshape(-1, 1)
-            return raw_data, data, labels
+        else:  # replace words by similar words instead of UNKs
 
-        return words, positions, sample_fn
+            raw_data, data = self.perturb_sentence(text, present, num_samples, top_n=top_n,
+                                                   use_similarity_proba=use_similarity_proba,
+                                                   sample_proba=sample_proba, temperature=temperature,
+                                                   **kwargs)
+
+        # create labels using model predictions as true labels
+        labels = np.array([])
+        if compute_labels:
+            labels = (self.predict_fn(raw_data) == true_label).astype(int)
+        raw_data = np.array(raw_data).reshape(-1, 1)
+        return raw_data, data, labels
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
@@ -230,6 +233,15 @@ class AnchorText(object):
         if use_unk and use_similarity_proba:
             logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
                            'Defaults to "use_unk" behaviour.')
+
+        self.set_words_and_pos(desired_label, text)
+        self.use_unk = use_unk
+        self.use_similarity_proba = use_similarity_proba
+        self.sample_proba = sample_proba
+
+        true_label = desired_label
+        if true_label is None:
+            self.instance_label = self.predict_fn([text])[0]
 
         # get the words and positions of words in the text instance and sample function
         words, positions, sample_fn = self.get_sample_fn(text, desired_label=desired_label,

@@ -424,6 +424,16 @@ class RemoteSampler(object):
 
             return batch_result
 
+    def set_instance_label(self, label: int) -> None:
+        """
+        Sets the remote sampler instance label
+        Parameters
+        ----------
+        label:
+            label of the instance to be explained
+        """
+        self.sampler.set_instance_label(label)
+
     def build_lookups(self, X):
         """
         Wrapper around TabularSampler.build_lookups
@@ -529,6 +539,16 @@ class AnchorTabular(object):
         lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
+    def set_instance_label(self, label: int) -> None:
+        """
+        Sets the sampler label. Necessary for setting the remote sampling process state during explain call.
+        Parameters
+        ----------
+        label
+            label of the instance to be explained
+        """
+        self.instance_label = label
+
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
                 batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,
                 desired_label: int = None, **kwargs: Any) -> dict:
@@ -568,7 +588,7 @@ class AnchorTabular(object):
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
 
         for sampler in self.samplers:
-            sampler.instance_label = self.instance_label
+            sampler.set_instance_label(self.instance_label)
 
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata
@@ -761,7 +781,7 @@ class DistributedAnchorTabular(AnchorTabular):
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
 
         for sampler in self.samplers:
-            sampler.instance_label = self.instance_label
+            sampler.set_instance_label.remote(self.instance_label)
 
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata

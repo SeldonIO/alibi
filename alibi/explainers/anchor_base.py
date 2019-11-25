@@ -469,7 +469,8 @@ class AnchorBaseBeam(object):
         self.state['t_idx'][anchor].update(idxs)
         self.state['t_nsamples'][anchor] += n_samples
         self.state['t_positives'][anchor] += labels.sum()
-        self.state['t_coverage'][anchor] = coverage
+        if coverage > -1:
+            self.state['t_coverage'][anchor] = self.state['t_coverage'][anchor]
         self.state['t_covered_true'][anchor] = covered_true
         self.state['t_covered_false'][anchor] = covered_false
         self.state['data'][idxs] = data

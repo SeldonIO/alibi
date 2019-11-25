@@ -742,6 +742,8 @@ class DistributedAnchorTabular(AnchorTabular):
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
+
+        # TODO: FIX SEED HERE
         sampler_args = (self.predictor,
                         disc_perc,
                         self.numerical_features,

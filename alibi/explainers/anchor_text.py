@@ -1,4 +1,3 @@
-import attr
 import copy
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
@@ -20,12 +19,6 @@ DEFAULT_DATA_ANCHOR = {"anchor": [],
                        "precision": None,
                        "coverage": None,
                        "raw": None}  # type: dict
-
-
-@attr.s
-class AnchorTextExplanation(Explanation):
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))  # type: dict
-    data = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))  # type: dict
 
 
 class Neighbors(object):
@@ -211,7 +204,7 @@ class AnchorText(Explainer):
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
                 use_similarity_proba: bool = False, use_unk: bool = True,
-                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> "AnchorTextExplanation":
+                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> Explanation:
         """
         Explain instance and return anchor with metadata.
 
@@ -301,7 +294,7 @@ class AnchorText(Explainer):
         explanation['raw'] = exp.exp_map
 
         # create explanation object
-        newexp = AnchorTextExplanation(meta=copy.deepcopy(self.meta), data=explanation)
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
 
         # params passed to explain
         newexp.meta['params'].update(params)

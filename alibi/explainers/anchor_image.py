@@ -1,4 +1,3 @@
-import attr
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from .base import Explainer, Explanation
@@ -20,12 +19,6 @@ DEFAULT_DATA_ANCHOR = {"anchor": [],
                        "precision": None,
                        "coverage": None,
                        "raw": None}  # type: dict
-
-
-@attr.s
-class AnchorImageExplanation(Explanation):
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META_ANCHOR))  # type: dict
-    data = attr.ib(default=copy.deepcopy(DEFAULT_DATA_ANCHOR))  # type: dict
 
 
 class AnchorImage(Explainer):
@@ -80,6 +73,12 @@ class AnchorImage(Explainer):
 
         # set metadata
         self.meta.update(DEFAULT_META_ANCHOR)
+        self.meta['params'].update(custom_segmentation=self.custom_segmentation,
+                                   segmentation_kwargs=segmentation_kwargs)
+        if not self.custom_segmentation:
+            self.meta['params'].update(segmentation_fn=segmentation_fn)
+        else:
+            self.meta['params'].update(segmentation_fn='custom')
 
     def get_sample_fn(self, image: np.ndarray, p_sample: float = 0.5) -> Tuple[np.ndarray, Callable]:
         """
@@ -249,7 +248,7 @@ class AnchorImage(Explainer):
 
     def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,  # type: ignore
                 tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5,
-                **kwargs: Any) -> "AnchorImageExplanation":
+                **kwargs: Any) -> Explanation:
         """
         Explain instance and return anchor with metadata.
 
@@ -309,7 +308,7 @@ class AnchorImage(Explainer):
         explanation['raw'] = exp.exp_map
 
         # create explanation object
-        newexp = AnchorImageExplanation(meta=copy.deepcopy(self.meta), data=explanation)
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
 
         # params passed to explain
         newexp.meta['params'].update(params)

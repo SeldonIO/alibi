@@ -92,6 +92,17 @@ class Explanation:
             logger.exception("Invalid explanation representation")
         return cls(meta=meta, data=data)
 
+    def __getitem__(self, item):
+        """
+        This method is purely for deprecating previous behaviour of accessing explanation
+        data via items in the returned dictionary.
+        """
+        import warnings
+        warnings.warn("The Explanation object is not a dictionary anymore and accessing elements should How"
+                      "be done via attribute access. Accessing via item will stop working in a future version.",
+                      DeprecationWarning, stacklevel=2)
+        return getattr(self, item)
+
 
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):

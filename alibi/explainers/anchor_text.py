@@ -1,14 +1,22 @@
-from .anchor_base import AnchorBaseBeam
-from .anchor_explanation import AnchorExplanation
 import logging
 import numpy as np
 from typing import Any, Callable, List, Tuple, Dict, TYPE_CHECKING
+
+from .anchor_base import AnchorBaseBeam
+from .anchor_explanation import AnchorExplanation
+from alibi.utils.distributed import ActorPool
 
 if TYPE_CHECKING:
     import spacy
 
 logger = logging.getLogger(__name__)
 
+# TODO: Document + type AnchorText.synonyms
+# TODO: TYPE + DOCS for AnchorText.samplers :-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+# TODO: Discuss tag map
+# TODO: Discuss: use byte objects to store examples in the covered_true and covered_false
+# TODO: Explain what self.synonyms is
+# TODO: Change selected examples display in notebook to keep up with the change in the algo
 
 class Neighbors(object):
 
@@ -29,10 +37,9 @@ class Neighbors(object):
         self.w_prob = w_prob
         self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]  # list with spaCy lexemes
         # in vocabulary
-        self.n = {}  # type: Dict[str, list]
         self.n_similar = n_similar
 
-    def neighbors(self, word: str) -> list:
+    def neighbors(self, word: str, tag: str, top_n: int) -> dict:
         """
         Find similar words for a certain word in the vocabulary.
 
@@ -40,29 +47,43 @@ class Neighbors(object):
         ----------
         word
             Word for which we need to find similar words
-
+        tag
+            part of speech tag for the words
+        top_n
+            return only top_n neighbors
         Returns
         -------
         A list containing tuples with the similar words and similarity scores.
         """
-        if word not in self.n:
-            if word not in self.nlp.vocab:
-                self.n[word] = []  # word not in vocabulary, so no info on neighbors
-            else:
-                word_vocab = self.nlp.vocab[word]
-                queries = [w for w in self.to_check if w.is_lower == word_vocab.is_lower]
-                if word_vocab.prob < self.w_prob:
-                    queries += [word_vocab]
-                # sort queries by similarity in descending order
-                by_similarity = sorted(queries, key=lambda w: word_vocab.similarity(w), reverse=True)
-                # store list of tuples containing the similar word and the word similarity ...
-                # ... for nb of most similar words
-                self.n[word] = [(self.nlp(w.orth_)[0], word_vocab.similarity(w))
-                                for w in by_similarity[:self.n_similar]]
-        return self.n[word]
+
+        texts, similarities = [], []
+        i = 0
+        if word in self.nlp.vocab:
+            word_vocab = self.nlp.vocab[word]
+            queries = [w for w in self.to_check if w.is_lower == word_vocab.is_lower]
+            if word_vocab.prob < self.w_prob:
+                queries += [word_vocab]
+            # sort queries by similarity in descending order
+            by_similarity = sorted(queries, key=lambda w: word_vocab.similarity(w))[-self.n_similar:]
+            # store list of tuples containing the similar word and the word similarity ...
+            # ... for nb of most similar words
+            for lexeme in reversed(by_similarity):
+                if len(texts) == top_n:
+                    break
+                token = self.nlp(lexeme.orth_)[0]
+                if token.tag_ != tag:
+                    continue
+                texts.append(token.text)
+                similarities.append(word_vocab.similarity(lexeme))
+
+        return {'words': np.array(texts),
+                'similarities': np.array(similarities),
+                }
 
 
 class AnchorText(object):
+
+    UNK = 'UNK'
 
     def __init__(self, nlp: 'spacy.language.Language', predict_fn: Callable, seed: int = None) -> None:
         """
@@ -79,6 +100,7 @@ class AnchorText(object):
         np.random.seed(seed)
 
         self.nlp = nlp
+        self.tag_names, self.tag_idx = self._tag_map()
 
         # check if predict_fn returns predicted class or prediction probabilities for each class
         # if needed adjust predict_fn so it returns the predicted class
@@ -88,9 +110,18 @@ class AnchorText(object):
             self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
 
         self.neighbors = Neighbors(self.nlp)
-        self.tokens = [] # tokens of the instance to be explained
-        self.words = []  # words in the instance to be explained
-        self.positions = [] # positions of the words in the input sentence
+        self.tokens = []     # tokens of the instance to be explained
+        self.words = []      # words in the instance to be explained
+        self.synonyms = {}
+        self.positions = []  # positions of the words in the input sentence
+        self.perturbation = None  # the method used to generate samples
+
+    def _tag_map(self):
+        tags = self.nlp.vocab.morphology.tag_map.keys()
+        tag_names = dict(zip(range(len(tags)),tags))
+        tag_idx = dict(zip(tags, range(len(tags))))
+
+        return tag_names, tag_idx
 
     def get_sample_fn(self, text: str, desired_label: int = None, use_similarity_proba: bool = False,
                       use_unk: bool = True, sample_proba: float = 0.5, top_n: int = 100,
@@ -136,7 +167,6 @@ class AnchorText(object):
         self.tokens = processed
 
     def sampler(self, present: tuple, num_samples: int, c_labels: bool = True):
-        # TODO: TYPE + DOCS # -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Create sampling function using similar words in the embedding space.
 
@@ -163,16 +193,15 @@ class AnchorText(object):
         # create labels using model predictions as true labels
         if c_labels:
             labels = self.compute_prec(raw_data)
-            raw_data = np.array(raw_data, dtype=self.data_type).reshape(-1, 1)
-            covered_true = raw_data[labels, :][:self.n_covered_ex]
-            covered_false = raw_data[np.logical_not(labels), :][:self.n_covered_ex]
+            covered_true = raw_data[labels][:self.n_covered_ex]
+            covered_false = raw_data[np.logical_not(labels)][:self.n_covered_ex]
             # coverage set to -1.0
             return [covered_true, covered_false, labels.astype(int), data, -1.0, present[0]]
         else:
             return [data]
 
     def compute_prec(self, samples):  # TODO: TYPES + DOCS
-        return self.predict_fn(samples) == self.instance_label
+        return self.predict_fn(samples.tolist()) == self.instance_label
 
     def set_sampler_perturbation(self, use_unk, perturb_opts):
 
@@ -190,11 +219,11 @@ class AnchorText(object):
             self.find_similar_words()
             self.perturbation = self._similarity
 
-    def _unk(self, present: tuple, num_samples: int) -> Tuple[List[str], np.ndarray,]:
+    def _unk(self, present: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray,]:
 
         words = self.words
         data = np.ones((num_samples, len(words)))
-        raw = np.zeros((num_samples, len(words)), '|S80')
+        raw = np.zeros((num_samples, len(words)), '<U' + self.max_len)
         raw[:] = words  # fill each row of the raw data matrix with the text instance to be explained
 
         for i, t in enumerate(words):
@@ -204,13 +233,11 @@ class AnchorText(object):
             # sample the words in the text outside of the anchor that are replaced with UNKs
             n_changed = np.random.binomial(num_samples, self.sample_proba)
             changed = np.random.choice(num_samples, n_changed, replace=False)
-            raw[changed, i] = 'UNK'
+            raw[changed, i] = self.UNK
             data[changed, i] = 0
 
-        # convert numpy array into list
-        raw_data = [' '.join([y.decode() for y in x]) for x in raw]
-
-        return raw_data, data
+        raw = np.apply_along_axis(self._joiner, axis=1, arr=raw)
+        return raw, data
 
     def _similarity(self, present: tuple, num_samples: int):
         return self.perturb_sentence(present,
@@ -218,12 +245,16 @@ class AnchorText(object):
                                      **self.perturb_opts,
                                      )
 
+    @staticmethod
+    def _joiner(arr):
+        return ' '.join(arr)
+
     def perturb_sentence(self, present: tuple, n: int, sample_proba: float = 0.5,
                          top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
                          use_similarity_proba: bool = True, temperature: float = 1.,
-                         **kwargs) -> Tuple[list, np.ndarray]:
+                         **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -253,12 +284,12 @@ class AnchorText(object):
         Returns
         -------
         raw_data
-            List with num_samples of perturbed text instance
+            array of perturbed text instance
         data
             Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample
         """
 
-        raw = np.zeros((n, len(self.tokens)), '|S80')
+        raw = np.zeros((n, len(self.tokens)), '<U' + str(self.max_len))
         data = np.ones((n, len(self.tokens)))
         raw[:] = [x.text for x in self.tokens]  # fill each row of the raw data matrix with the text to be explained
 
@@ -271,63 +302,51 @@ class AnchorText(object):
             if (t.text not in forbidden_words and t.pos_ in pos and
                     t.lemma_ not in forbidden and t.tag_ not in forbidden_tags):
 
-                # get list of tuples for neighbors with same POS tag
-                # tuple = (similar word, similarity score)
-                r_neighbors = [(x[0].text.encode('utf-8'), x[1])
-                               for x in self.neighbors.neighbors(t.text) if x[0].tag_ == t.tag_][:top_n]
 
-                if not r_neighbors:  # if no neighbors found with same tag, move on to next token
+                # TODO: Refactor using dict
+                # TODO: Check what happens if there is no word with the same POS tag - does it work?
+                # TODO: Always use the same words for replacement? might as well return :top_n
+                t_neighbors = self.synonyms[t.text]['words']
+                if t_neighbors.size == 0:  # if no neighbors found with same tag, move on to next token
                     continue
-
-                t_neighbors = [x[0] for x in r_neighbors]  # words of neighbors
 
                 # idx for changed words with sample_proba
                 n_changed = np.random.binomial(n, sample_proba)
                 changed = np.random.choice(n, n_changed, replace=False)
 
                 # check if token present in the neighbors and set weight to 0
-                if t.text.encode('utf-8') in t_neighbors:
-                    idx = t_neighbors.index(t.text.encode('utf-8'))
-                else:
-                    idx = None
+                idx = np.where(t_neighbors == t.text)[0]
+                idx = idx if idx.size > 0 else np.array([])
 
                 if use_similarity_proba:  # use similarity scores to sample changed tokens
-                    weights = np.array([x[1] for x in r_neighbors])  # similarity scores of neighbors
-                    if idx is not None:
-                        weights[idx] = 0
+                    weights = self.synonyms[t.text]['similarities']
+                    weights[idx.tolist()] = 0
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
-                    weights = np.ones((len(r_neighbors), ))
-                    if idx is not None:
-                        weights /= (len(r_neighbors) - 1)
-                        weights[idx] = 0
-                    else:
-                        weights /= len(r_neighbors)
+                    weights = np.ones((t_neighbors.shape[0],))
+                    weights[idx.tolist()] = 0
+                    weights /= (t_neighbors.shape[0] - idx.shape[0])
 
                 raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights, replace=True)
                 data[changed, i] = 0
-
-        # convert numpy array into list
-        raw = [' '.join([y.decode() for y in x]) for x in raw]
+        raw = np.apply_along_axis(self._joiner, axis=1, arr=raw)
         return raw, data
 
     def find_similar_words(self):
-        for word in self.words:
-            self.neighbors.neighbors(word)
+        for word, token in zip(self.words, self.tokens):
+            self.synonyms[word] = self.neighbors.neighbors(word, token.tag_, self.perturb_opts['top_n'])
 
     def set_data_type(self, use_unk):
-        total_len = 0
-        for word in self.words:
-            if use_unk:
-                max_len = max(3, len(word))  # len('UNK') = 3
-            else:
-                similar_words = self.neighbors.n[word]
-                max_len = 0
-                for similar_word in similar_words:
-                    max_len = max(max_len, len(similar_word[0]))
-            total_len += max_len + 1
-        self.data_type = '<U' + str(int(total_len))
+        max_len = 0
+        if use_unk:
+            max_len = max(len(self.UNK), max(self.words, key=len))
+        else:
+            for word in self.words:
+                similar_words = self.synonyms[word]['words']
+                max_len = max(max_len, int(similar_words.dtype.itemsize /
+                                        np.dtype(similar_words.dtype.char+'1').itemsize))
+        self.max_len = max_len
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
@@ -371,7 +390,8 @@ class AnchorText(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
-
+        # TODO: Check that if explainer is called with new instances it does not try to find the same
+        # neighbours twice
         # set the instance label
         true_label = desired_label
         # store n_covered_ex positive/negative examples for each anchor
@@ -409,7 +429,6 @@ class AnchorText(object):
                                  data_store_size=10000,
                                  stop_on_first=True,
                                  **kwargs)  # type: Any
-
 
         return self.build_explanation(anchor, text, true_label)
 

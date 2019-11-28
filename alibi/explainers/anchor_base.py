@@ -569,7 +569,6 @@ class AnchorBaseBeam(object):
                                                    'uncovered_true': np.array([]),
                                                    'uncovered_false': np.array([]),
                                                    }
-        assert 'placeholder' not in anchor['examples']
         return anchor
 
     @staticmethod

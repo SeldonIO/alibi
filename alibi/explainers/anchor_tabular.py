@@ -109,6 +109,16 @@ class TabularSampler(object):
         self.min[self.numerical_features] = np.min(self.train_data[:, self.numerical_features], axis=0)
         self.max[self.numerical_features] = np.max(self.train_data[:, self.numerical_features], axis=0)
 
+    def set_instance_label(self, label: int) -> None:
+        """
+        Sets the sampler label. Necessary for setting the remote sampling process state during explain call.
+        Parameters
+        ----------
+        label
+            label of the instance to be explained
+        """
+        self.instance_label = label
+
     def _get_data_index(self) -> Dict[int, Dict[int, np.ndarray]]:
         """
         Create a mapping where key is feat. col ID. and value is a dict where each int represents a bin value

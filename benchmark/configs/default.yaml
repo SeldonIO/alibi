@@ -11,7 +11,7 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  beam_size: 1
+  beam_size: 10
   min_samples_start: 100
   parallel: false
   chunksize: ~
@@ -23,8 +23,8 @@ explainer:
 experiment:
   n_runs: 25
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/SamplingModificationRegression
-  ckpt: seq_new_state_handling_rep_2
+  ckpt_dir: /home/alex/git/work_experiments/RayPerformanceTest/sampling_clf_newstate
+  ckpt: seq
   verbose: false
   data:
     preprocess: true

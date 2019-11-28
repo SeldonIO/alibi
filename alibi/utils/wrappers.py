@@ -5,6 +5,7 @@ class Predictor(object):
         if not hasattr(clf, 'predict'):
             raise AttributeError('Classifier object is expected to have a predict method!')
 
+        self.clf = clf
         self.predict_fcn = clf.predict
         self.preprocessor = preprocessor
 

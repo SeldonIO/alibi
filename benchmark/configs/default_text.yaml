@@ -12,17 +12,16 @@ explainer:
   threshold: 0.95
   pert_model: en_core_web_md  # spaCy model used for sentence perturbation
   use_unk: false
-  use_similarity_proba: True
+  use_similarity_proba: true
   sample_proba: 0.5
   temperature: 0.2
   top_n: 20
-  parallel: false
   verbose: false
   seed: 0
 
 # Experiment settings
 experiment:
-  test_only: false # disables saving output (avoid overwriting data when testing stuff)
+  test_only: true  # disables saving output (avoid overwriting data when testing stuff)
   n_runs: 100
   instance_split: ~ # can be train/test/val or ~ (aka None - taken from data before splitting)
   instance_idx: 4

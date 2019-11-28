@@ -34,7 +34,7 @@ SUPPORTED_DATASETS = ['adult', 'imagenet', 'movie_sentiment']
 SUPPORTED_CLASSIFIERS = ['rf', 'lr']
 
 # TODO: Typing and documentation
-# TODO: Raise NotImplemented error if show_covered=True for Anchor Tabular
+# TODO: setup logging (repo wide, properly)
 # TODO: opts not used currently in preprocess_adult, pipelines hardcoded
 # TODO: in the future one should be able to pass their own classifier that's already fitted as opp to using fit_*
 
@@ -344,7 +344,7 @@ class ExplainerExperiment(object):
             if not os.path.exists(self.experiment_config['ckpt_dir']):
                 os.makedirs(self.experiment_config['ckpt_dir'])
             else:
-                print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging 
+                print("WARNING: Checkpoint directory already exists, "  
                       "files may be overwritten!")
 
             fullpath = os.path.join(self.experiment_config['ckpt_dir'],

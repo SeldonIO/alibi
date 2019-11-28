@@ -11,7 +11,11 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
+  beam_size: 1
+  min_samples_start: 100
   parallel: false
+  chunksize: ~
+  ncpu: ~
   verbose: false
   seed: 0
 

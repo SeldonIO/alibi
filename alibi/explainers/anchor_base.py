@@ -605,7 +605,7 @@ class AnchorBaseBeam(object):
                     beam_size: int = 1, verbose: bool = False, epsilon_stop: float = 0.05,
                     min_samples_start: int = 1, max_anchor_size: int = None, verbose_every: int = 1,
                     stop_on_first: bool = False,  batch_size: int = 100, coverage_samples: int = 10000,
-                    data_store_size: int = 10000) -> dict:
+                    data_store_size: int = 10000, **kwargs) -> dict:
 
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search

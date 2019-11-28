@@ -151,7 +151,7 @@ class TabularSampler(object):
         data
             Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
         labels
-            Create labels using model predictions if compute_labels equals True
+            Create labels using model predictions if c_labels equals True
         anchor
             The index of anchor sampled in request array (used to speed up parallelisation)
         """

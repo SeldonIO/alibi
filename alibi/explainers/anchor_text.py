@@ -135,7 +135,7 @@ class AnchorText(object):
         self.positions = [x.idx for x in processed]  # positions of words in text
         self.tokens = processed
 
-    def sampler(self, present: tuple, num_samples: int, compute_labels: bool = True):
+    def sampler(self, present: tuple, num_samples: int, c_labels: bool = True):
         # TODO: TYPE + DOCS # -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Create sampling function using similar words in the embedding space.
@@ -146,7 +146,7 @@ class AnchorText(object):
             List with the word index in the text for the words in the proposed anchor
         num_samples
             Number of samples used when sampling from the corpus
-        compute_labels
+        c_labels
             Boolean whether to use labels coming from model predictions as 'true' labels
 
         Returns
@@ -161,7 +161,7 @@ class AnchorText(object):
 
         raw_data, data = self.perturbation(present[1], num_samples)
         # create labels using model predictions as true labels
-        if compute_labels:
+        if c_labels:
             labels = self.compute_prec(raw_data)
             raw_data = np.array(raw_data, dtype=self.data_type).reshape(-1, 1)
             covered_true = raw_data[labels, :][:self.n_covered_ex]
@@ -172,7 +172,7 @@ class AnchorText(object):
             return [data]
 
     def compute_prec(self, samples):  # TODO: TYPES + DOCS
-        return (self.predict_fn(samples) == self.instance_label).astype(int)
+        return self.predict_fn(samples) == self.instance_label
 
     def set_sampler_perturbation(self, use_unk, perturb_opts):
 
@@ -211,14 +211,13 @@ class AnchorText(object):
 
         return raw_data, data
 
-
-    def _similarity(self, num_samples, present):
+    def _similarity(self, present: tuple, num_samples: int):
         return self.perturb_sentence(present,
                                      num_samples,
                                      **self.perturb_opts,
                                      )
 
-    def perturb_sentence(self, present: list, n: int, sample_proba: float = 0.5,
+    def perturb_sentence(self, present: tuple, n: int, sample_proba: float = 0.5,
                          top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
                          forbidden_words: set = set(['be']),
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
@@ -230,7 +229,7 @@ class AnchorText(object):
         Parameters
         ----------
         present
-            List with the word index in the text for the words in the proposed anchor
+            word index in the text for the words in the proposed anchor
         n
             Number of samples used when sampling from the corpus
         sample_proba
@@ -390,7 +389,7 @@ class AnchorText(object):
         }
         # pass additional arguments to self.perturb_samples
         perturb_opts.update(kwargs)
-        self.set_sampler_perturbation(text, use_unk, perturb_opts)
+        self.set_sampler_perturbation(use_unk, perturb_opts)
         self.set_data_type(use_unk)
 
         # get anchors and add metadata

@@ -117,7 +117,7 @@ class AnchorImage(object):
                 Nb of samples times nb of features matrix indicating whether a feature (= a superpixel) is
                 present in the sample or masked
             labels
-                Create labels using model predictions if compute_labels equals True
+                Create labels using model predictions if c_labels equals True
             """
             if not compute_labels:
                 # for each sample, randomly sample whether a superpixel is represented by its average value or not
@@ -189,7 +189,7 @@ class AnchorImage(object):
                 Nb of samples times nb of features matrix indicating whether a feature (= a superpixel) is
                 present in the sample or masked
             labels
-                Create labels using model predictions if compute_labels equals True
+                Create labels using model predictions if c_labels equals True
             """
             if not compute_labels:
                 # for each sample, randomly sample whether a superpixel is represented by its average value or not

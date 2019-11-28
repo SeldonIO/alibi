@@ -187,6 +187,7 @@ class AnchorText(object):
         if use_unk:
             self.perturbation = self._unk
         else:
+            self.find_similar_words()
             self.perturbation = self._similarity
 
     def _unk(self, present: tuple, num_samples: int) -> Tuple[List[str], np.ndarray,]:
@@ -311,20 +312,21 @@ class AnchorText(object):
         raw = [' '.join([y.decode() for y in x]) for x in raw]
         return raw, data
 
-    # TODO: sampling function should ensure covered_true and covered_false have this dtype
+    def find_similar_words(self):
+        for word in self.words:
+            self.neighbors.neighbors(word)
+
     def set_data_type(self, use_unk):
         total_len = 0
         for word in self.words:
             if use_unk:
                 max_len = max(3, len(word))  # len('UNK') = 3
             else:
-                self.neighbors.neighbors(word)
                 similar_words = self.neighbors.n[word]
                 max_len = 0
                 for similar_word in similar_words:
                     max_len = max(max_len, len(similar_word[0]))
             total_len += max_len + 1
-
         self.data_type = '<U' + str(int(total_len))
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,

@@ -715,6 +715,10 @@ class CEM(Explainer, FitMixin):
         if not self.best_attack:
             logger.warning('No {} found!'.format(self.mode))
 
+            # create explanation object
+            newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+            return newexp
+
         explanation[self.mode] = best_attack
         if self.model:
             Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))

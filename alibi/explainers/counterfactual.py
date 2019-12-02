@@ -1,8 +1,10 @@
+import copy
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
 import logging
 
+from .base import Explainer, Explanation
 from alibi.utils.gradients import num_grad_batch
 from alibi.utils.tf import _check_keras_or_tf
 
@@ -10,6 +12,16 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_META_CF = {"type": ["blackbox", "tensorflow", "keras"],
+                   "explanations": ["local"],
+                   "params": {}}
+
+DEFAULT_DATA_CF = {"cf": {},
+                   "all": [],
+                   "orig_class": None,
+                   "orig_proba": None,
+                   "success": None}  # type: dict
 
 
 def _define_func(predict_fn: Callable,
@@ -61,7 +73,7 @@ def _define_func(predict_fn: Callable,
     return func, target_class
 
 
-class CounterFactual:
+class CounterFactual(Explainer):
 
     def __init__(self,
                  predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -127,6 +139,14 @@ class CounterFactual:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+        # get params for storage in meta
+        params = locals()
+        remove = ['self', 'predict_fn', 'sess', '__class__']
+        for key in remove:
+            params.pop(key)
+        self.meta.update(DEFAULT_META_CF)
+        self.meta['params'].update(params)
 
         self.data_shape = shape
         self.batch_size = shape[0]
@@ -148,6 +168,7 @@ class CounterFactual:
 
         # check if the passed object is a model and get session
         is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
+        self.meta['params'].update(is_model=is_model, is_keras=is_keras)
 
         # if session provided, use it
         if isinstance(sess, tf.compat.v1.Session):
@@ -279,7 +300,7 @@ class CounterFactual:
 
     def fit(self,
             X: np.ndarray,
-            y: Optional[np.ndarray]) -> None:
+            y: Optional[np.ndarray]) -> "CounterFactual":
         """
         Fit method - currently unused as the counterfactual search is fully unsupervised.
 
@@ -287,8 +308,9 @@ class CounterFactual:
         # TODO feature ranges, epsilons and MADs
 
         self.fitted = True
+        return self
 
-    def explain(self, X: np.ndarray) -> dict:
+    def explain(self, X: np.ndarray) -> Explanation:
         """
         Explain an instance and return the counterfactual with metadata.
 
@@ -332,10 +354,10 @@ class CounterFactual:
         self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
                             'orig_proba': None}
 
-        self.return_dict['meta'] = {}
-        self.return_dict['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=return_dict)
 
-        return return_dict
+        return newexp
 
     def _prob_condition(self, X_current):
         return np.abs(self.predict_class_fn(X_current) - self.target_proba_arr) <= self.tol

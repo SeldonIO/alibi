@@ -3,29 +3,21 @@ Alibi aims to be the go-to library for ML model interpretability and monitoring.
 challenges for developing a high-quality, production-ready library that achieves this. In addition
 to having high quality reference implementations of the most promising algorithms, we need extensive
 documentation and case studies comparing the different interpretability methods and their respective
-pros and cons. A clean and a usable API is also a priority. Additionally we want to move beyond
-model explanation and provide tools to gauge ML model confidence, measure concept drift, detect
-outliers and algorithmic bias among other things.
+pros and cons. A clean and a usable API is also a priority.
 
-## Additional explanation methods
-* [Influence functions](https://arxiv.org/abs/1703.04730) [[WIP]](https://github.com/SeldonIO/alibi/pull/80)
-* Feature attribution methods (e.g. [SHAP](https://github.com/slundberg/shap))
-* Global methods (e.g. [ALE](https://christophm.github.io/interpretable-ml-book/ale.html#fn31))
+## Short term
+* Ongoing optimizations of existing algorithms (speed, parallelisation, explanation quality)
+* Finalize a unified API ([Github PR](https://github.com/SeldonIO/alibi/pull/166))
+* Initial visualizations and visualization backends ([Github issue](https://github.com/SeldonIO/alibi/issues/165))
 
-## Important enhancements to explanation methods
-* Robust handling of categorical variables
-  ([Github issue](https://github.com/SeldonIO/alibi/issues/33))
-* Document pitfalls of popular methods like LIME and PDP
-  ([Github issue](https://github.com/SeldonIO/alibi/issues/42))
-* Unified API ([Github issue](https://github.com/SeldonIO/alibi/issues/23))
-* Standardized return types for explanations
-* Explanations for regression models ([Github issue](https://github.com/SeldonIO/alibi/issues/19))
-* Explanations for sequential data
-* Develop methods for highly correlated features
+## Medium term
+* Migrate counterfactual methods to TensorFlow 2.0 ([Github issue](https://github.com/SeldonIO/alibi/issues/155))
+* Additional black-box explanation methods ([ALE](https://github.com/SeldonIO/alibi/pull/152))
+* Additional model confidence/calibration methods
+* Provide integration with 3rd party explanation libraries (e.g. [SHAP](https://github.com/slundberg/shap))
+* White-box explanation methods (e.g. Integrated Gradients)
+* Support both TensorFlow and PyTorch for white-box methods
 
-## Beyond explanations
-* Investigate alternatives to Trust Scores for gauging the confidence of black-box models
-* Concept drift - provide methods for monitoring and alerting to changes in the incoming data
-  distribution and the conditional distribution of the predictions
-* Bias detection methods
-* Outlier detection methods ([Github issue](https://github.com/SeldonIO/alibi/issues/13))
+## Long term
+* Explanations for regression models
+* Explanations for sequential and structured data

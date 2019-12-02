@@ -17,7 +17,7 @@ DEFAULT_META_CF = {"type": ["blackbox", "tensorflow", "keras"],
                    "explanations": ["local"],
                    "params": {}}
 
-DEFAULT_DATA_CF = {"cf": {},
+DEFAULT_DATA_CF = {"cf": None,
                    "all": [],
                    "orig_class": None,
                    "orig_proba": None,

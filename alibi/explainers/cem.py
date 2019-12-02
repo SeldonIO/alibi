@@ -1,5 +1,6 @@
 # flake8: noqa F841
-
+from .base import Explainer, Explanation, FitMixin
+import copy
 import logging
 import numpy as np
 import sys
@@ -12,8 +13,22 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_META_CEM = {"type": ["blackbox", "tensorflow", "keras"],
+                    "explanations": ["local"],
+                    "params": {}}
 
-class CEM:
+DEFAULT_DATA_CEM = {"PN": None,
+                    "PP": None,
+                    "PN_pred": None,
+                    "PP_pred": None,
+                    "grads_graph": None,
+                    "grads_num": None,
+                    "X": None,
+                    "X_pred": None
+                    }
+
+
+class CEM(Explainer, FitMixin):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -82,12 +97,22 @@ class CEM:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+        # get params for storage in meta
+        params = locals()
+        remove = ['self', 'predict', 'ae_model', 'sess', '__class__']
+        for key in remove:
+            params.pop(key)
+        self.meta.update(DEFAULT_META_CEM)
+        self.meta['params'].update(params)
         self.predict = predict
 
         # check whether the model and the auto-encoder are Keras or TF models and get session
         is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
         is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
         # TODO: check ae and model are compatible
+        self.meta['params'].update(is_model=is_model, is_model_keras=is_model_keras, is_ae=is_ae,
+                                   is_ae_keras=is_ae_keras)
 
         # if session provided, use it
         if isinstance(sess, tf.compat.v1.Session):
@@ -289,7 +314,7 @@ class CEM:
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
 
-    def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> None:
+    def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> "CEM":
         """
         Get 'no information' values from the training data.
 
@@ -312,6 +337,11 @@ class CEM:
             self.no_info_val = np.median(train_flat, axis=0).reshape(self.shape)
         elif no_info_type == 'mean':
             self.no_info_val = np.mean(train_flat, axis=0).reshape(self.shape)
+
+        # update metadata
+        self.meta.update(no_info_type=no_info_type)
+
+        return self
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
@@ -642,7 +672,7 @@ class CEM:
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
-    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> dict:
+    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> Explanation:
         """
         Explain instance and return PP or PN with metadata.
 
@@ -678,13 +708,12 @@ class CEM:
         best_attack, grads = self.attack(X, Y=Y, verbose=verbose)
 
         # output explanation dictionary
-        explanation = {}
+        explanation = copy.deepcopy(DEFAULT_DATA_CEM)
         explanation['X'] = X
         explanation['X_pred'] = np.argmax(Y, axis=1)[0]
 
         if not self.best_attack:
             logger.warning('No {} found!'.format(self.mode))
-            return explanation
 
         explanation[self.mode] = best_attack
         if self.model:
@@ -694,7 +723,7 @@ class CEM:
         explanation[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
         explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
 
-        return explanation
+        return newexp

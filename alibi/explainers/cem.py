@@ -339,7 +339,7 @@ class CEM(Explainer, FitMixin):
             self.no_info_val = np.mean(train_flat, axis=0).reshape(self.shape)
 
         # update metadata
-        self.meta.update(no_info_type=no_info_type)
+        self.meta['params'].update(no_info_type=no_info_type)
 
         return self
 

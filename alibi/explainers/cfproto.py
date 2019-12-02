@@ -700,6 +700,8 @@ class CounterFactualProto(Explainer, FitMixin):
         remove = ['self', 'train_data']
         for key in remove:
             params.pop(key)
+        # update metadata
+        self.meta['params'].update(params)
 
         if self.model:
             preds = np.argmax(self.predict.predict(train_data), axis=1)  # type: ignore

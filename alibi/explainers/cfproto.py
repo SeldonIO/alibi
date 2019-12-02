@@ -27,7 +27,8 @@ DEFAULT_META_CFP = {"type": ["blackbox", "tensorflow", "keras"],
 DEFAULT_DATA_CFP = {"cf": None,
                     "all": [],
                     "orig_class": None,
-                    "orig_proba": None
+                    "orig_proba": None,
+                    "id_proto": None
                     }  # type: dict
 
 
@@ -1330,6 +1331,9 @@ class CounterFactualProto(Explainer, FitMixin):
         best_attack, grads = self.attack(X, Y=Y, target_class=target_class, k=k, k_type=k_type,
                                          verbose=verbose, threshold=threshold,
                                          print_every=print_every, log_every=log_every)
+
+        if self.enc_or_kdtree:
+            explanation['id_proto'] = self.id_proto
 
         # add to explanation dict
         if not self.best_attack:

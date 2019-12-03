@@ -38,6 +38,7 @@ SUPPORTED_CLASSIFIERS = ['rf', 'lr']
 # TODO: opts not used currently in preprocess_adult, pipelines hardcoded
 # TODO: in the future one should be able to pass their own classifier that's already fitted as opp to using fit_*
 
+
 class Timer:
     def __init__(self):
         pass
@@ -261,9 +262,9 @@ def display_explanation(pred, alternative, explanation, show_covered=False):
 
     if show_covered:
         print('\nExamples where anchor applies and model predicts {}'.format(pred))
-        print('\n'.join([x[0] for x in explanation['raw']['examples'][-1]['covered_true']]))
+        print('\n'.join([x for x in explanation['raw']['examples'][-1]['covered_true']]))
         print('\nExamples where anchor applies and model predicts {}'.format(alternative))
-        print('\n'.join([x[0] for x in explanation['raw']['examples'][-1]['covered_false']]))
+        print('\n'.join([x for x in explanation['raw']['examples'][-1]['covered_false']]))
 
 
 class ExplainerExperiment(object):

@@ -35,10 +35,7 @@ def test_cem():
     explanation = cem.explain(X_expl, verbose=False)
 
     assert not cem.model
-    if cem.best_attack:
-        assert set(explanation.data.keys()) >= {'X', 'X_pred', 'PN', 'PN_pred', 'grads_graph', 'grads_num'}
-        assert (explanation['X'] != explanation['PN']).astype(int).sum() > 0
-        assert explanation['X_pred'] != explanation['PN_pred']
-        assert explanation['grads_graph'].shape == explanation['grads_num'].shape
-    else:
-        assert set(explanation.keys()) >= {'X', 'X_pred'}
+    assert set(explanation.data.keys()) >= {'X', 'X_pred', 'PN', 'PN_pred', 'grads_graph', 'grads_num'}
+    assert (explanation['X'] != explanation['PN']).astype(int).sum() > 0
+    assert explanation['X_pred'] != explanation['PN_pred']
+    assert explanation['grads_graph'].shape == explanation['grads_num'].shape

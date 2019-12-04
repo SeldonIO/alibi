@@ -1,10 +1,10 @@
 import copy
 import inspect
+import typing
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from .base import Explainer, Explanation, FitMixin
 from alibi.utils.discretizer import Discretizer
-# from alibi.visualize import _CURRENT_BACKEND
 import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set, Sequence
 
@@ -453,13 +453,75 @@ def _show_anchortabular(exp: Explanation, backend: str = None, **kwargs) -> None
     func(exp, **kwargs)
 
 
+@typing.no_type_check
 def _show_anchortabular_plaintext(exp: Explanation) -> None:
-    print("plaintext viz")
+    print('Prediction: %s' % exp.data['raw']['prediction'])
+    print('Anchor: %s' % (' AND '.join(exp.anchor)))
+    print('Precision: %.2f' % exp.precision)
+    print('Coverage: %.2f' % exp.coverage)
 
 
 def _show_anchortabular_altair(exp: Explanation) -> None:
-    print("altair viz")
+    raise NotImplementedError('altair visualization not implemented')
 
 
+@typing.no_type_check
 def _show_anchortabular_matplotlib(exp: Explanation) -> None:
-    print("matplotlib viz")
+    import matplotlib.pyplot as plt
+
+    # Basic precision/coverage plot
+    fig1, ax1 = plt.subplots()
+
+    # color for indicating if precision threshold reached
+    prec = exp.precision
+    cov = exp.coverage
+    threshold = exp.meta['params']['threshold']
+    prediction = exp.data['raw']['prediction']
+    anchor = ' AND '.join(exp.anchor)
+
+    if prec > threshold:
+        prec_color = 'green'
+    else:
+        prec_color = 'red'
+
+    prec_bar = ax1.barh(0.5, prec, height=0.2, color=prec_color)
+    # prec_tot = ax1.barh(0.5, 1, height=0.2, fill=False, edgecolor=prec_color)
+    # prec_threshold = ax1.plot([threshold, threshold], [0.4, 0.6], '--', c='k')
+
+    cov_color = 'C0'
+    cov_bar = ax1.barh(0, cov, height=0.2, color=cov_color)
+    # cov_tot = ax1.barh(0, 1, height=0.2, fill=False, edgecolor=cov_color)
+
+    ax1.set_xlim(-0.05, 1.05)
+
+    ax1.set_yticks([0, 0.5])
+    ax1.set_yticklabels(['Coverage', 'Precision'])
+
+    # text
+    rects = [prec_bar[0], cov_bar[0]]
+    labels = [np.round(prec, 2), np.round(cov, 2)]
+
+    for rect, label in zip(rects, labels):
+        width = rect.get_width()
+
+        # small bars
+        if width < 0.1:
+            xloc = width + 0.05
+            clr = 'black'
+            align = 'left'
+        else:
+            xloc = 0.9 * width
+            clr = 'white'
+            align = 'right'
+
+        # xloc = 0.95*width
+        yloc = rect.get_y() + rect.get_height() / 2
+        ax1.text(xloc, yloc, label,
+                 horizontalalignment=align,
+                 verticalalignment='center',
+                 color=clr,
+                 weight='bold')
+
+    ax1.set_title(f'Prediction: {prediction}\n Anchor: {anchor}')
+
+    plt.show()

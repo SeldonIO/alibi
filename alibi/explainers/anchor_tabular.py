@@ -1,8 +1,10 @@
 import copy
+import inspect
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from .base import Explainer, Explanation, FitMixin
 from alibi.utils.discretizer import Discretizer
+# from alibi.visualize import _CURRENT_BACKEND
 import numpy as np
 from typing import Callable, Tuple, Dict, Any, Set, Sequence
 
@@ -429,3 +431,35 @@ class AnchorTabular(Explainer, FitMixin):
                     fname = '%s > %s' % (self.feature_names[f], geq_val)
                 handled.add(f)
             hoeffding_exp['names'].append(fname)
+
+
+def _show_anchortabular(exp: Explanation, backend: str = None, **kwargs) -> None:
+    """
+    Function dispatching visualizations to specific backends.
+
+    Parameters
+    ----------
+    exp
+        Instance of an Explanation object
+    backend
+        String representing the chosen backend
+    kwargs
+        Additional keyword arguments passed to specific implementations
+    """
+    if backend is None:
+        from alibi.visualize import _CURRENT_BACKEND as backend  # type: ignore
+    func_name = inspect.currentframe().f_code.co_name + "_" + backend
+    func = globals()[func_name]
+    func(exp, **kwargs)
+
+
+def _show_anchortabular_plaintext(exp: Explanation) -> None:
+    print("plaintext viz")
+
+
+def _show_anchortabular_altair(exp: Explanation) -> None:
+    print("altair viz")
+
+
+def _show_anchortabular_matplotlib(exp: Explanation) -> None:
+    print("matplotlib viz")

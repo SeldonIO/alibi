@@ -1,10 +1,9 @@
 import abc
 import copy
 import json
+import logging
 from collections import ChainMap
 from typing import Any
-import logging
-
 import attr
 
 import numpy as np
@@ -68,6 +67,13 @@ class Explanation:
         String containing json representation of the explanation
         """
         return json.dumps(attr.asdict(self), cls=NumpyEncoder)
+
+    def show(self, **kwargs):
+        """
+        Convenience function binding the global `show` function to the explanation instance
+        """
+        from alibi.visualize import show
+        show(self, **kwargs)
 
     @classmethod
     def from_json(cls, jsonrepr) -> "Explanation":

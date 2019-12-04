@@ -2,7 +2,7 @@
 The 'alibi.explainers' module includes feature importance, counterfactual and anchor-based explainers.
 """
 
-from .anchor_tabular import AnchorTabular
+from .anchor_tabular import AnchorTabular, _show_anchortabular
 from .anchor_text import AnchorText
 from .anchor_image import AnchorImage
 from .cem import CEM
@@ -15,3 +15,13 @@ __all__ = ["AnchorTabular",
            "CEM",
            "CounterFactual",
            "CounterFactualProto"]
+
+_VIZFUNS = [_show_anchortabular,
+            None,
+            None,
+            None,
+            None,
+            None]
+
+# dictionary for dispatching visualizations
+DISPATCH_DICT = dict(zip(__all__, _VIZFUNS))

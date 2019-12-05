@@ -429,7 +429,7 @@ class AnchorText(object):
             for word in self.words:
                 similar_words = self.neighbours[word]['words']
                 max_len = max(max_len, int(similar_words.dtype.itemsize /
-                                        np.dtype(similar_words.dtype.char+'1').itemsize))
+                                           np.dtype(similar_words.dtype.char+'1').itemsize))
                 max_sent_len += max_len
         self.dtype = '<U' + str(max_sent_len)
 
@@ -484,7 +484,7 @@ class AnchorText(object):
         coverage_samples
             Number of samples used to estimate coverage from during anchor search.
         data_store_size
-            The anchor search pre-allocates data_store_size batches for storing the boolean arrays
+            The anchor search pre-allocates binary_cache_size batches for storing the boolean arrays
             returned during sampling.
         kwargs
             Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions

@@ -455,14 +455,74 @@ def _show_anchortabular(exp: Explanation, backend: str = None, **kwargs) -> None
 
 @typing.no_type_check
 def _show_anchortabular_plaintext(exp: Explanation) -> None:
-    print('Prediction: %s' % exp.data['raw']['prediction'])
     print('Anchor: %s' % (' AND '.join(exp.anchor)))
+    print('Prediction: %s' % exp.data['raw']['prediction'])
     print('Precision: %.2f' % exp.precision)
     print('Coverage: %.2f' % exp.coverage)
 
 
-def _show_anchortabular_altair(exp: Explanation) -> None:
-    raise NotImplementedError('altair visualization not implemented')
+@typing.no_type_check
+def _show_anchortabular_altair(exp: Explanation, return_json: bool = False) -> None:
+    import altair as alt
+    import pandas as pd
+    prec = exp.precision
+    cov = exp.coverage
+    threshold = exp.meta['params']['threshold']
+    anchor = ' AND '.join(exp.anchor)
+
+    df = pd.DataFrame({'name': ['precision', 'coverage'],
+                       'value': [prec, cov],
+                       'threshold': [threshold, None]}
+                      )
+    if prec > threshold:
+        prec_color = 'green'
+    else:
+        prec_color = 'red'
+
+    cov_color = 'steelblue'
+
+    # base chart
+    base = alt.Chart(df).encode(
+        alt.X('value:Q', axis=alt.Axis(title='')),
+        alt.Y('name', axis=alt.Axis(title=''), sort=['precision', 'coverage'])
+    )
+
+    # bar chart
+    bars = base.mark_bar(
+        size=30
+    ).encode(
+        color=alt.condition(
+            alt.datum.name == 'precision',
+            alt.value(prec_color),
+            alt.value(cov_color)
+        )
+    ).properties(
+        title='Anchor: ' + anchor,
+        height=100
+    )
+
+    # precision threshold
+    tick = base.mark_tick(
+        thickness=2,
+        size=30,
+        color='black',
+        strokeDash=[1, 0.5]
+    ).encode(
+        x='threshold:Q'
+    )
+
+    # bar labels
+    text = base.mark_text(align='left',
+                          baseline='middle',
+                          dx=3).encode(
+        text=alt.Text('value:Q', format=',.2f')
+    )
+
+    if return_json:
+        print("Returning chart...")
+        return bars + text
+
+    (bars + text + tick).configure_mark(tooltip=alt.TooltipContent('encoding')).display()  # automatic tooltips
 
 
 @typing.no_type_check
@@ -486,7 +546,7 @@ def _show_anchortabular_matplotlib(exp: Explanation) -> None:
 
     prec_bar = ax1.barh(0.5, prec, height=0.2, color=prec_color)
     # prec_tot = ax1.barh(0.5, 1, height=0.2, fill=False, edgecolor=prec_color)
-    # prec_threshold = ax1.plot([threshold, threshold], [0.4, 0.6], '--', c='k')
+    prec_threshold = ax1.plot([threshold, threshold], [0.4, 0.6], '--', c='k')  # noqa
 
     cov_color = 'C0'
     cov_bar = ax1.barh(0, cov, height=0.2, color=cov_color)
@@ -522,6 +582,6 @@ def _show_anchortabular_matplotlib(exp: Explanation) -> None:
                  color=clr,
                  weight='bold')
 
-    ax1.set_title(f'Prediction: {prediction}\n Anchor: {anchor}')
+    ax1.set_title(f'Anchor: {anchor}\n Prediction: {prediction}')
 
     plt.show()

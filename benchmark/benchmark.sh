@@ -1,5 +1,6 @@
 #!/bin/bash -e
 
+# TODO: Handle config files missing
 # Parse arguments
 for ARGUMENT in "$@"; do
   KEY=$(echo "$ARGUMENT" | cut -f1 -d=)
@@ -10,13 +11,31 @@ for ARGUMENT in "$@"; do
   VERSION_2) VERSION_2=${VALUE} ;;
   EXPERIMENT_1) EXPERIMENT_1=${VALUE} ;;
   EXPERIMENT_2) EXPERIMENT_2=${VALUE} ;;
+  TYPE) TYPE=${VALUE} ;;
   *) ;;
   esac
 done
 
+# Use to check if config exists
+CPATH=$(pwd)
+set_default_config() {
+  EXPERIMENT_1=$1
+  TYPE=$2
+
+  if [ -z ${EXPERIMENT_1} ]; then
+    if [ -z ${TYPE+x} ]; then
+      EXPERIMENT_1="default.yaml"
+      EXPERIMENT_2="default.yaml"
+    else
+      echo "EXPLAINER TYPE: $TYPE"
+      EXPERIMENT_1="default_$TYPE.yaml"
+      EXPERIMENT_2="default_$TYPE.yaml"
+    fi
+  fi
+}
+
 # Set experiment to default value if not passed and get current branch name
-if [ -z ${EXPERIMENT_1+x} ]; then EXPERIMENT_1="default.yaml"; fi
-if [ -z ${EXPERIMENT_2+x} ]; then EXPERIMENT_2="default.yaml"; fi
+set_default_config "$EXPERIMENT_1" "$TYPE"
 if [ "$VERSION_1" = "this" ]; then VERSION_1=$(git rev-parse --abbrev-ref HEAD); fi
 if [ "$VERSION_2" = "this" ]; then VERSION_2=$(git rev-parse --abbrev-ref HEAD); fi
 
@@ -24,6 +43,7 @@ echo "VERSION_1: $VERSION_1"
 echo "EXPERIMENT_1: $EXPERIMENT_1"
 echo "VERSION_2: $VERSION_2"
 echo "EXPERIMENT_2: $EXPERIMENT_2"
+
 
 checkout_error() {
   BRANCH=$1
@@ -47,6 +67,7 @@ git checkout "$VERSION_1" || {
 }
 
 HASH="$(git rev-parse HEAD)"
+EXPERIMENT_1_CFG="$CPATH/benchmark/configs/$EXPERIMENT_1"
 echo "Runnig expermient with configuration ${EXPERIMENT_1} on this branch ..."
 python benchmark/experiment.py --config "benchmark/configs/$EXPERIMENT_1" --hash "$HASH" ||
   {
@@ -61,6 +82,7 @@ git checkout "$VERSION_2" || {
 }
 
 HASH="$(git rev-parse HEAD)"
+EXPERIMENT_2_CFG="$CPATH/benchmark/configs/$EXPERIMENT_2"
 python benchmark/experiment.py --config "benchmark/configs/$EXPERIMENT_2" --hash "$HASH" ||
   {
     experiment_error "$VERSION_2" "$EXPERIMENT_2"

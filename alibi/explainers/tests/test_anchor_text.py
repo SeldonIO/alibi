@@ -32,7 +32,7 @@ def test_neighbors():
     assert sorted(similarity_score, reverse=True) == similarity_score
 
 
-@pytest.mark.parametrize("predict_type,present,use_similarity_proba,use_unk,threshold", [
+@pytest.mark.parametrize("predict_type,anchor,use_similarity_proba,use_unk,threshold", [
     ('class', [], False, True, 0.95),
     ('proba', [], False, True, 0.95),
     ('class', [], False, True, 0.9),
@@ -63,7 +63,7 @@ def test_anchor_text(predict_type, present, use_similarity_proba, use_unk, thres
 
     # test explainer initialization
     explainer = AnchorText(nlp, predict_fn)
-    assert explainer.predict_fn(['book']).shape == (1,)
+    assert explainer.predictor(['book']).shape == (1,)
 
     # test sampling function
     text = 'This is a good book .'

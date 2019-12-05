@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
-from typing import Any, Callable, Dict, List, Set, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union
 
 from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
@@ -10,13 +10,11 @@ from alibi.utils.data import ArgmaxTransformer
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distributed import RAY_INSTALLED
 
-# TODO: Fix typing issues, add all output types
-
 
 class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X. """
-    def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float]], numerical_features: List[int],
+    def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
                  seed: int = None) -> None:
         """
@@ -53,7 +51,7 @@ class TabularSampler(object):
         self.categorical_features = categorical_features
         self.feature_values = feature_values
 
-        self.val2idx = {}       # type: Any
+        self.val2idx = {}       # type: Dict[int, DefaultDict[Any, Any]]
         self.cat_lookup = {}    # type: Dict[int, int]
         self.ord_lookup = {}    # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
@@ -119,7 +117,7 @@ class TabularSampler(object):
         """
         self.instance_label = label
 
-    def _get_data_index(self) -> Dict[int, Dict[int, np.ndarray]]:
+    def _get_data_index(self) -> Dict[int, DefaultDict[int, np.ndarray]]:
         """
         Create a mapping where key is feat. col ID. and value is a dict where each int represents a bin value
         or value of categorical variable. Each value in this dict is an array of training data rows where that
@@ -132,14 +130,16 @@ class TabularSampler(object):
         """
         # key (int): feat. col ID. value is a dict where each int represents a bin value or value of categorical
         # variable. Each value in this dict is a set of training data rows where that value is found
-        val2idx = {f_id: defaultdict(None) for f_id in self.numerical_features + self.categorical_features}
+        all_features = self.numerical_features + self.categorical_features
+        val2idx = {f_id: defaultdict(None) for f_id in all_features}  # type: Dict[int, DefaultDict[Any, Any]]
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
                 val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
 
         return val2idx
 
-    def __call__(self, anchor: Tuple[int, tuple], num_samples: int,  c_labels=True):# -> List[np.ndarray, np.ndarray, float, int]:
+    def __call__(self, anchor: Tuple[int, tuple], num_samples: int,  c_labels=True) -> \
+            Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Draw samples from training data that contain the categorical features and discretized
         numerical features in anchor.
@@ -161,7 +161,7 @@ class TabularSampler(object):
         data
             Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
         labels
-            Create labels using model predictions if compute_labels equals True
+            Create labels using model predictions if c_labels equals True
         anchor
             The index of anchor sampled in request array (used to speed up parallelisation)
         """
@@ -236,9 +236,9 @@ class TabularSampler(object):
             return samples, d_samples, -1.0
 
         # bins one can sample from for each numerical feature (key: feat id)
-        allowed_bins = {}  # type: Dict[int, Set[int]]
+        allowed_bins: Dict[int, Set[int]] = {}
         # index of database rows (values) for each feature in anchor (key: feat id)
-        allowed_rows = {}  # type: Dict[int, Any[int]]
+        allowed_rows: Dict[int, Any[int]] = {}
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
@@ -326,7 +326,7 @@ class TabularSampler(object):
 
         return samples, self.disc.discretize(samples), coverage
 
-    def build_lookups(self, X: np.ndarray): # -> List[Dict, Dict, Dict]:
+    def build_lookups(self, X: np.ndarray) -> List[Dict]:
         """
         An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
         categorical variable a unique index. For a dataset containg, e.g., a numerical variable with 5 bins and
@@ -353,7 +353,7 @@ class TabularSampler(object):
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))   # type: ignore
             return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
@@ -408,7 +408,7 @@ class RemoteSampler(object):
         self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
     def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
-                 c_labels: bool = True):  # TODO: output typing
+                 c_labels: bool = True) -> List:
         """
         Wrapper around TabularSampler.__call__. It allows sampling a batch of anchors in the same process,
         which can improve performance.
@@ -416,11 +416,11 @@ class RemoteSampler(object):
         Parameters
         ----------
         anchors_batch:
-            a list of anchor tuples. see TabularSampler.__call__ for details.
+            A list of anchor tuples. see TabularSampler.__call__ for details.
         num_samples:
-            see TabularSampler.__call__
+            See TabularSampler.__call__.
         c_labels
-            see TabularSampler.__call__
+            See TabularSampler.__call__.
         """
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
@@ -436,11 +436,12 @@ class RemoteSampler(object):
 
     def set_instance_label(self, label: int) -> None:
         """
-        Sets the remote sampler instance label
+        Sets the remote sampler instance label.
+
         Parameters
         ----------
         label:
-            label of the instance to be explained
+            Label of the instance to be explained.
         """
         self.sampler.set_instance_label(label)
 
@@ -503,10 +504,10 @@ class AnchorTabular(object):
         else:
             self.feature_values = {}
 
-        self.samplers = []
+        self.samplers: list = []
         self.seed = seed
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
+    def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75), **kwargs) -> None:
         """
         Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for numerical
         features. Create a mapping between the bin numbers of each discretised numerical feature and the row id in the
@@ -560,8 +561,9 @@ class AnchorTabular(object):
         self.instance_label = label
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,
-                desired_label: int = None, **kwargs: Any) -> dict:
+                batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, max_anchor_size: int = None,
+                min_samples_start: int = 1, desired_label: int = None, binary_cache_size: int = 10000,
+                **kwargs: Any) -> dict:
         """
         Explain prediction made by classifier on instance X.
 
@@ -577,6 +579,8 @@ class AnchorTabular(object):
             Margin between lower confidence bound and minimum precision or upper bound
         batch_size
             Batch size used for sampling
+        coverage_samples
+            Number of samples used to estimate coverage from during anchor search.
         beam_size
             The number of anchors extended at each step of new anchors construction
         max_anchor_size
@@ -585,6 +589,9 @@ class AnchorTabular(object):
             Min number of initial samples
         desired_label
             Label to use as true label for the instance to be explained
+        binary_cache_size
+            The anchor search pre-allocates binary_cache_size batches for storing the binary arrays
+            returned during sampling.
 
         Returns
         -------
@@ -596,6 +603,8 @@ class AnchorTabular(object):
         true_label = desired_label
         if true_label is None:
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
+        else:
+            self.instance_label = desired_label
 
         for sampler in self.samplers:
             sampler.set_instance_label(self.instance_label)
@@ -614,37 +623,39 @@ class AnchorTabular(object):
                                  min_samples_start=min_samples_start,
                                  beam_size=beam_size,
                                  batch_size=batch_size,
-                                 coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
-                                 data_store_size=10000,
+                                 coverage_samples=coverage_samples,
+                                 data_store_size=binary_cache_size,
                                  )  # type: Any
 
-        return self.return_anchor(X, anchor, true_label)
+        return self.build_explanation(X, anchor, true_label)
 
-    def return_anchor(self, X: np.ndarray, anchor: dict, true_label: int) -> dict:
+    def build_explanation(self, X: np.ndarray, anchor: dict, true_label: int) -> dict:
         """
         Preprocess search output and return an explanation object containing metdata
 
         Parameters
         ----------
         X:
-            instance to be explained
+            Instance to be explained.
         anchor:
-            dictionary with explanation search output and metadata
+            Dictionary with explanation search output and metadata.
         true_label:
-            label of the instance to be explained (inferred if not given)
+            Label of the instance to be explained (inferred if not given).
 
         Return
         ------
-            a dictionary containing human readable explanation, metadata, and precision/coverage info
+             Dictionary containing human readable explanation, metadata, and precision/coverage info.
         """
 
         self.add_names_to_exp(anchor)
+
         if true_label is None:
             anchor['prediction'] = self.instance_label
         else:
             anchor['prediction'] = self.predictor(X.reshape(1, -1))[0]
         anchor['instance'] = X
         exp = AnchorExplanation('tabular', anchor)
+
         return {'names': exp.names(),
                 'precision': exp.precision(),
                 'coverage': exp.coverage(),
@@ -659,7 +670,7 @@ class AnchorTabular(object):
         Parameters
         ----------
         explanation
-            Dict with anchors and additional metadata
+            Dict with anchors and additional metadata.
         """
         anchor_idxs = explanation['feature']
         explanation['names'] = []
@@ -734,11 +745,11 @@ class DistributedAnchorTabular(AnchorTabular):
     def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
         """
         Creates a list of handles to parallel processes handles that are used for submitting sampling
-        tasks
+        tasks.
 
         Parameters
         ----------
-            see superclass implementation
+            See superclass implementation.
         """
 
         try:
@@ -752,6 +763,7 @@ class DistributedAnchorTabular(AnchorTabular):
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
+
         sampler_args = (self.predictor,
                         disc_perc,
                         self.numerical_features,
@@ -761,17 +773,18 @@ class DistributedAnchorTabular(AnchorTabular):
                         )
         train_data_id = self.ray.put(train_data)
         d_train_data_id = self.ray.put(d_train_data)
-        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]
+        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore
         self.samplers = [self.ray.remote(RemoteSampler).remote(*(train_data_id, d_train_data_id, sampler))
                          for sampler in samplers]
 
-    def _build_sampling_lookups(self, X):
+    def _build_sampling_lookups(self, X) -> None:
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = self.ray.get(lookups)
 
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, beam_size: int = 1, max_anchor_size: int = None, min_samples_start: int = 1,
-                desired_label: int = None, **kwargs: Any) -> dict:
+                batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, max_anchor_size: int = None,
+                min_samples_start: int = 1, desired_label: int = None, binary_cache_size: int = 10000,
+                **kwargs: Any) -> dict:
         """
         Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
@@ -789,6 +802,8 @@ class DistributedAnchorTabular(AnchorTabular):
         true_label = desired_label
         if true_label is None:
             self.instance_label = self.predictor(X.reshape(1, -1))[0]
+        else:
+            self.instance_label = desired_label
 
         for sampler in self.samplers:
             sampler.set_instance_label.remote(self.instance_label)
@@ -807,7 +822,7 @@ class DistributedAnchorTabular(AnchorTabular):
                                  max_anchor_size=max_anchor_size,
                                  beam_size=beam_size,
                                  batch_size=batch_size,
-                                 coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
-                                 data_store_size=10000,
+                                 coverage_samples=coverage_samples,
+                                 data_store_size=binary_cache_size,
                                  )  # type: Any
-        return self.return_anchor(X, anchor, true_label)
+        return self.build_explanation(X, anchor, true_label)

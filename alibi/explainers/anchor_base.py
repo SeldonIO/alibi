@@ -11,28 +11,6 @@ from alibi.utils.distributed import ActorPool
 logger = logging.getLogger(__name__)
 
 
-def matrix_subset(matrix: np.ndarray, n_samples: int) -> np.ndarray:
-    """ Samples random rows from a matrix
-
-    Parameters
-    ----------
-    matrix
-        Matrix to sample from
-    n_samples
-        Number of samples returned
-
-    Returns
-    -------
-        Sample of the input matrix.
-    """
-
-    if matrix.shape[0] == 0:
-        return matrix
-    n_samples = min(matrix.shape[0], n_samples)
-
-    return matrix[np.random.choice(matrix.shape[0], n_samples, replace=False)]
-
-
 class AnchorBaseBeam(object):
 
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
@@ -40,11 +18,11 @@ class AnchorBaseBeam(object):
         Parameters
         ---------
         samplers
-            objects that can be called with an (anchor, n_samples) tuple to draw samples
+            Objects that can be called with args (anchor, n_samples) tuple to draw samples.
         """
 
         self.sample_fcn = samplers[0]
-        self.samplers = None
+        self.samplers: List[Callable] = None
 
     def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) -> np.ndarray:
         """
@@ -53,9 +31,9 @@ class AnchorBaseBeam(object):
         Parameters
         ---------
         coverage_samples
-            see anchor_beam
+            See anchor_beam method.
         samplers
-            see __init__
+            See __init__ method.
 
         Returns
         -------
@@ -76,11 +54,11 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         batch_size
-            see anchor_beam
+            See anchor_beam method.
         coverage_data
-            see _get_coverage_samples
+            See _get_coverage_samples method.
         data_store_size
-            see anchor_beam
+            See anchor_beam method.
         """
 
         prealloc_size = batch_size * data_store_size
@@ -112,13 +90,13 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         p
-            Probability
+            Probability.
         q
-            Probability
+            Probability.
 
         Returns
         -------
-        KL-divergence
+            Array with the KL-divergence between p and q.
         """
 
         m = np.clip(p, 0.0000001, 0.9999999999999999).astype(float)
@@ -134,20 +112,22 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         p
-            Precision of candidate anchors
+            Precision of candidate anchors.
         level
-            beta / nb of samples for each anchor
+            beta / nb of samples for each anchor.
         n_iter
-            Number of iterations during lower bound update
+            Number of iterations during lower bound update.
 
         Returns
         -------
-        Updated upper precision bound
+            Updated upper precision bounds array.
         """
         # TODO: where does 17x sampling come from?
         lm = p.copy()
         um = np.minimum(np.minimum(p + np.sqrt(level / 2.), 1.0), 1.0)
 
+        # Perform bisection algorithm to find the largest qm s.t. kl
+        # divergence is > level
         for j in range(1, n_iter):
             qm = (um + lm) / 2.
             kl_gt_idx = AnchorBaseBeam.kl_bernoulli(p, qm) > level
@@ -165,23 +145,25 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         p
-            Precision of candidate anchors
+            Precision of candidate anchors.
         level
-            beta / nb of samples for each anchor
+            beta / nb of samples for each anchor.
         n_iter
-            Number of iterations during lower bound update
+            Number of iterations during lower bound update.
 
         Returns
         -------
-        Updated lower precision boundl
+            Updated lower precision bounds array.
         """
 
         um = p.copy()
         lm = np.clip(p - np.sqrt(level / 2.), 0.0, 1.0)  # lower bound
 
+        # Perform bisection algorithm to find the smallest qm s.t. kl
+        # divergence is > level
         for _ in range(1, n_iter):
             qm = (um + lm) / 2.
-            kl_gt_idx = AnchorBaseBeam.kl_bernoulli(p, qm) > level  # KL-divergence > threshold level
+            kl_gt_idx = AnchorBaseBeam.kl_bernoulli(p, qm) > level
             kl_lt_idx = np.logical_not(kl_gt_idx)
             lm[kl_gt_idx] = qm[kl_gt_idx]
             um[kl_lt_idx] = qm[kl_lt_idx]
@@ -194,14 +176,14 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         n_features
-            Number of candidate anchors
+            Number of candidate anchors.
         t
-            Iteration number
+            Iteration number.
         delta
 
         Returns
         -------
-        Level used to update upper and lower precision bounds.
+            Level used to update upper and lower precision bounds.
         """
         # TODO: where do magic numbers come from?
         alpha = 1.1
@@ -214,26 +196,25 @@ class AnchorBaseBeam(object):
     def select_critical_arms(means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray, delta: float,
                              top_n: int, t: int):  # type: ignore
         """
-        # TODO: Update docs
         Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
         the lower bound for anchors with high empirical precision.
 
         Parameters
         ----------
         means
-            Empirical mean anchor precisions
+            Empirical mean anchor precisions.
         ub
-            Upper bound on anchor precisions
+            Upper bound on anchor precisions.
         lb
-            Lower bound on anchor precisions
+            Lower bound on anchor precisions.
         n_samples
-            The number of samples drawn for each candidate anchor
+            The number of samples drawn for each candidate anchor.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - delta
+            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - delta.
         top_n
-            Number of arms to be selected
+            Number of arms to be selected.
         t
-            Iteration number
+            Iteration number.
 
         Returns
         -------
@@ -267,30 +248,30 @@ class AnchorBaseBeam(object):
     def kllucb(self, anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int,
                top_n: int, verbose: bool = False, verbose_every: int = 1) -> np.ndarray:
         """
-        # TODO: Add docs.
+        Implements the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013).
+
         Parameters
         ----------
         anchors:
-            A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013)
-
+            A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013).
         init_stats
-            Dictionary with lists containing nb of samples used and where sample predictions equal the desired label
+            Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
         epsilon
-            Precision bound tolerance for convergence
+            Precision bound tolerance for convergence.
         delta
-            Used to compute beta
+            Used to compute beta.
         batch_size
-            Number of samples
+            Number of samples.
         top_n
-            Min of beam width size or number of candidate anchors
+            Min of beam width size or number of candidate anchors.
         verbose
-            Whether to print intermediate output
+            Whether to print intermediate output.
         verbose_every
-            Whether to print intermediate output every verbose_every steps
+            Whether to print intermediate output every verbose_every steps.
 
         Returns
         -------
-        Indices of best anchor options. Number of indices equals min of beam width or nb of candidate anchors.
+            Indices of best anchor options. Number of indices equals min of beam width or nb of candidate anchors.
         """
 
         # n_features equals to the nb of candidate anchors
@@ -352,21 +333,21 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
             anchors
-                anchors on which samples are conditioned
+                Anchors on which samples are conditioned.
             batch_size
-                the number of samples drawn for each anchor
+                The number of samples drawn for each anchor.
 
         Returns
         -------
-            a tuple of positive samples (for which prediction matches desired label)
-            and a tuple of total number of samples drawn
+            A tuple of positive samples (for which prediction matches desired label)
+            and a tuple of total number of samples drawn.
         """
 
         sample_stats, pos, total = [], (), ()  # type: List, Tuple, Tuple
         samples_iter = [self.sample_fcn((i, tuple(self.state['t_order'][anchor])), num_samples=batch_size)
                         for i, anchor in enumerate(anchors)]
         for samples, anchor in zip(samples_iter, anchors):
-            covered_true, covered_false, labels, *additionals, _ = samples  # don'features need the anchor index since order preserved
+            covered_true, covered_false, labels, *additionals, _ = samples
             sample_stats.append(self.update_state(covered_true, covered_false, labels, additionals, anchor))
             pos, total = list(zip(*sample_stats))
 
@@ -378,13 +359,13 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         previous_best
-            List with tuples of anchor candidates
+            List with tuples of anchor candidates.
         state
-            Dictionary with the relevant metrics like coverage and samples for candidate anchors
+            Dictionary with the relevant metrics like coverage and samples for candidate anchors.
 
         Returns
         -------
-        List with tuples of candidate anchors with additional metadata.
+            List with tuples of candidate anchors with additional metadata.
         """
 
         # compute some variables used later on
@@ -441,23 +422,23 @@ class AnchorBaseBeam(object):
         ----------
 
         covered_true
-            examples where the anchor applies and the prediction is the same as on the instance to be explained
+            Examples where the anchor applies and the prediction is the same as on
+            the instance to be explained.
         covered_false
-            examples where the anchor applies and the prediction is the different to the instance to be explained
-
+            Examples where the anchor applies and the prediction is the different to
+            the instance to be explained.
         samples
-            a tuple containing discretized data, coverage and the anchor sampled
+            A tuple containing discretized data, coverage and the anchor sampled.
         labels
-            an array indicating whether the prediction on the sample matches the label
-            of the instance to be explained
+            An array indicating whether the prediction on the sample matches the label
+            of the instance to be explained.
         anchor
-            the anchor to be updated
+            The anchor to be updated.
 
         Returns
         -------
-            a tuple containing the number of instances equals desired label of observation to be explained
-                the total number of instances sampled, and the anchor that was sampled
-
+            A tuple containing the number of instances equals desired label of observation
+            to be explained the total number of instances sampled, and the anchor that was sampled
         """
 
         # data = binary matrix where 1 means a feature has the same value as the feature in the anchor
@@ -489,18 +470,22 @@ class AnchorBaseBeam(object):
     @staticmethod
     def get_init_stats(anchors: list, state: dict, coverages=False) -> dict:
         """
+        Finds the number of samples already drawn for each anchor in anchors, their
+        comparisons with the instance to be explained and, optionally, coverage.
+
         Parameters
         ----------
         anchors
-            Candidate anchors
+            Candidate anchors.
         state
-            Dictionary with the relevant metrics like coverage and samples for candidate anchors
+            Dictionary with the relevant metrics like coverage and samples for candidate anchors.
         coverages
-            If True, the statistics returned contain the coverage of the specified anchors
+            If True, the statistics returned contain the coverage of the specified anchors.
 
         Returns
         -------
-        Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
+            Dictionary with lists containing nb of samples used and where sample predictions equal
+            the desired label.
         """
 
         def array_factory(size: tuple):
@@ -517,22 +502,26 @@ class AnchorBaseBeam(object):
 
     def get_anchor_metadata(self, features: tuple, state: dict, batch_size: int = 100) -> dict:
         """
+        Given the features contained in an anchor, it retrieves metadata such as the precision and
+        coverage of the anchor and partial anchors and examples where the anchor/partial anchors
+        apply and yield the same prediction as on the instance to be explained (covered_true)
+        or a different prediction (covered_false).
+
         Parameters
         ----------
         features
-            sorted indices of features in anchor
+            Sorted indices of features in anchor.
         state
-            Dictionary with the relevant metrics like coverage and samples for candidate anchors
+            Dictionary with the relevant metrics like coverage and samples for candidate anchors.
         batch_size
             Number of samples among which positive and negative examples for partial anchors are
-            selected if partial anchors have not already been explicitly sampled
+            selected if partial anchors have not already been explicitly sampled.
 
         Returns
         -------
         Anchor dictionary with anchor features and additional metadata.
         """
 
-        # TODO: This is wrong, some of the intermediate anchors may not exist.
         anchor = {'feature': [], 'mean': [], 'precision': [], 'coverage': [], 'examples': [], 'all_precision': 0,
                   'num_preds': state['data'].shape[0]}  # type: dict
         normalize_tuple = lambda x: tuple(sorted(set(x)))  # noqa E731
@@ -560,6 +549,7 @@ class AnchorBaseBeam(object):
                 to_resample_idx.append(len(anchor['examples']))
                 anchor['examples'].append('placeholder')
 
+        # If partial anchors have not been sampled, resample to find examples
         if to_resample:
             _, _ = self.draw_samples(to_resample, batch_size)
 
@@ -570,7 +560,6 @@ class AnchorBaseBeam(object):
                                                    'uncovered_true': np.array([]),
                                                    'uncovered_false': np.array([]),
                                                    }
-        assert 'placeholder' not in anchor['examples']
         return anchor
 
     @staticmethod
@@ -578,24 +567,24 @@ class AnchorBaseBeam(object):
         """
         Given an array of mean anchor precisions and their upper and lower bounds, determines for which anchors
         more samples need to be drawn in order to estimate the anchors precision with desired_confidence and error
-        tolerance
+        tolerance.
 
         Parameters
         ----------
             means:
-                Mean precisions (each element represents a different anchor)
+                Mean precisions (each element represents a different anchor).
             ubs:
-                Precisions' upper bounds (each element represents a different anchor)
+                Precisions' upper bounds (each element represents a different anchor).
             lbs:
-                Precisions' lower bounds (each element represents a different anchor)
+                Precisions' lower bounds (each element represents a different anchor).
             desired_confidence:
-                Desired level of confidence for precision estimation
+                Desired level of confidence for precision estimation.
             epsilon_stop:
-                Tolerance around desired precision
+                Tolerance around desired precision.
 
         Returns
         -------
-            A boolean array indicating whether more samples are to be drawn for that particular anchor
+            Boolean array indicating whether more samples are to be drawn for that particular anchor.
         """
 
         return ((means >= desired_confidence) & (lbs < desired_confidence - epsilon_stop)) | \
@@ -619,36 +608,36 @@ class AnchorBaseBeam(object):
         Parameters
         ----------
         delta
-            Used to compute beta
+            Used to compute beta.
         epsilon
-            Precision bound tolerance for convergence
+            Precision bound tolerance for convergence.
         desired_confidence
-            Desired level of precision (tau in paper)
+            Desired level of precision (tau in paper).
         beam_size
-            Beam width
+            Beam width.
         verbose
-            Whether to print intermediate output
+            Whether to print intermediate output.
         epsilon_stop
-            Confidence bound margin around desired precision
+            Confidence bound margin around desired precision.
         min_samples_start
-            Min number of initial samples
+            Min number of initial samples.
         max_anchor_size
-            Max number of features in anchor
+            Max number of features in anchor.
         verbose_every
-            Whether to print intermediate output every verbose_every steps
+            Whether to print intermediate output every verbose_every steps.
         stop_on_first
-            Stop on first valid anchor found
+            Stop on first valid anchor found.
         coverage_samples
-            number of samples from which to build a coverage set
+            Number of samples from which to build a coverage set.
         batch_size
-            number of samples used for an arm evaluation
+            Number of samples used for an arm evaluation.
         data_store_size
-            initial size (in batches) of data/raw data samples cache
+            Initial size (in batches) of data/raw data samples cache.
 
         Returns
         -------
-        Explanation dictionary containing anchors with metadata like coverage and precision.
-
+            Explanation dictionary containing anchors with metadata like coverage and precision
+            and examples.
         """
 
         # Select coverage set and initialise object state
@@ -694,7 +683,7 @@ class AnchorBaseBeam(object):
         if max_anchor_size is None:
             max_anchor_size = self.state['n_features']
 
-        # find best anchor using beam search until max anchor size
+        # find best anchor using beam search
         while current_size <= max_anchor_size:
 
             # create new candidate anchors by adding features to current best anchors
@@ -756,7 +745,8 @@ class AnchorBaseBeam(object):
                                                             kl_constraints[continue_sampling])
                 continue_sampling = self.to_sample(means, ubs, lbs, desired_confidence, epsilon_stop)
 
-            # find anchors who meet the precision setting and have better coverage than the best anchors so far
+            # find anchors who meet the precision setting and have better coverage than the best anchors
+            # so far
             coverages = stats['coverages']
             valid_anchors = (means >= desired_confidence) & (lbs > desired_confidence - epsilon_stop)
             better_anchors = (valid_anchors & (coverages > best_coverage)).nonzero()[0]
@@ -821,11 +811,11 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Parameters
         ----------
-            see superclass implementation
+            See superclass implementation.
 
         Returns
         -------
-            see superclass implementation
+            See superclass implementation.
         """
 
         import ray
@@ -842,11 +832,11 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Parameters
         ----------
-            see superclass  implementation
+            See superclass  implementation.
 
         Returns
         -------
-            same outputs as superclass but of different types
+            Same outputs as superclass but of different types.
         """
 
         pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))

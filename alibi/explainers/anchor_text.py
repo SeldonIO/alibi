@@ -1,22 +1,20 @@
 import logging
 import numpy as np
-from typing import Any, Callable, List, Tuple, Dict, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+
+from alibi.utils.data import ArgmaxTransformer
 
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
-from alibi.utils.distributed import ActorPool
 
 if TYPE_CHECKING:
     import spacy
 
 logger = logging.getLogger(__name__)
 
-# TODO: Document + type AnchorText.crappy_neighbours
-# TODO: TYPE + DOCS for AnchorText.samplers :-> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-# TODO: Discuss tag map
-# TODO: Discuss: use byte objects to store examples in the covered_true and covered_false
-# TODO: Explain what self.crappy_neighbours is
 # TODO: Change selected examples display in notebook to keep up with the change in the algo
+#  (see experiment.py)
+
 
 class Neighbors(object):
 
@@ -29,14 +27,15 @@ class Neighbors(object):
         nlp_obj
             spaCy model
         n_similar
-            Number of similar words to return
+            Number of similar words to return.
         w_prob
-            Smoothed log probability estimate of token's type
+            Smoothed log probability estimate of token's type.
         """
+
         self.nlp = nlp_obj
         self.w_prob = w_prob
-        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]  # list with spaCy lexemes
-        # in vocabulary
+        # list with spaCy lexemes in vocabulary
+        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]
         self.n_similar = n_similar
 
     def neighbors(self, word: str, tag: str, top_n: int) -> dict:
@@ -46,29 +45,29 @@ class Neighbors(object):
         Parameters
         ----------
         word
-            Word for which we need to find similar words
+            Word for which we need to find similar words.
         tag
-            part of speech tag for the words
+            Part of speech tag for the words.
         top_n
-            return only top_n neighbors
+            Return only top_n neighbors.
+
         Returns
         -------
         A list containing tuples with the similar words and similarity scores.
         """
 
-        texts, similarities = [], []
-        i = 0
+        texts, similarities = [], []  # type: List, List
         if word in self.nlp.vocab:
             word_vocab = self.nlp.vocab[word]
             queries = [w for w in self.to_check if w.is_lower == word_vocab.is_lower]
             if word_vocab.prob < self.w_prob:
                 queries += [word_vocab]
-            # sort queries by similarity in descending order
             by_similarity = sorted(queries, key=lambda w: word_vocab.similarity(w), reverse=True)[:self.n_similar]
-            # store list of tuples containing the similar word and the word similarity ...
-            # ... for nb of most similar words
+
+            # Find similar words with the same part of speech
             for lexeme in by_similarity:
-                if len(texts) == top_n - 1: # because we don't add the word itself
+                # because we don't add the word itself anymore
+                if len(texts) == top_n - 1:
                     break
                 token = self.nlp(lexeme.orth_)[0]
                 if token.tag_ != tag or token.text == word:
@@ -76,131 +75,151 @@ class Neighbors(object):
                 texts.append(token.text)
                 similarities.append(word_vocab.similarity(lexeme))
 
-        return {'words': np.array(texts),
-                'similarities': np.array(similarities),
-                }
+        return {
+            'words': np.array(texts),
+            'similarities': np.array(similarities),
+        }
 
 
 class AnchorText(object):
 
     UNK = 'UNK'
 
-    def __init__(self, nlp: 'spacy.language.Language', predict_fn: Callable, seed: int = None) -> None:
+    def __init__(self, nlp: 'spacy.language.Language', predictor: Callable, seed: int = None) -> None:
         """
         Initialize anchor text explainer.
 
         Parameters
         ----------
         nlp
-            spaCy object
-        predict_fn
-            Model prediction function
+            spaCy object.
+        predictor
+            Model prediction function.
+        seed
+            If set, ensures identical random streams.
         """
 
         np.random.seed(seed)
 
         self.nlp = nlp
 
-        # check if predict_fn returns predicted class or prediction probabilities for each class
-        # if needed adjust predict_fn so it returns the predicted class
-        if np.argmax(predict_fn(['Hello world']).shape) == 0:
-            self.predict_fn = predict_fn
+        # check if predictor returns predicted class or prediction probabilities for each class
+        # if needed adjust predictor so it returns the predicted class
+        if np.argmax(predictor(['Hello world']).shape) == 0:
+            self.predictor = predictor
         else:
-            self.predict_fn = lambda x: np.argmax(predict_fn(x), axis=1)
+            self.predictor = ArgmaxTransformer(predictor)
 
         self.neighbors = Neighbors(self.nlp)
-        # self.neighbors = ray.remote(Neighbors(self.nlp))
-        self.tokens = []     # tokens of the instance to be explained
-        self.words = []      # words in the instance to be explained
-        self.crappy_neighbours = {}
-        self.positions = []  # positions of the words in the input sentence
-        self.perturbation = None  # the method used to generate samples
+        self.tokens, self.words, self.positions = [], [], []  # type: List, List, List
+        # dict containing an np.array of similar words with same part of speech and an np.array
+        # of similarities
+        self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        self.perturbation: Callable = None  # the method used to generate samples
 
-    def get_sample_fn(self, text: str, desired_label: int = None, use_similarity_proba: bool = False,
-                      use_unk: bool = True, sample_proba: float = 0.5, top_n: int = 100,
-                      temperature: float = 0.4, **kwargs) -> Tuple[list, list, Callable]:
+    def set_words_and_pos(self, text: str) -> None:
         """
-        Create sampling function as well as lists with the words and word positions in the text.
+        Process the sentence to be explained into spaCy token objects, a list of words and
+        a list of positions in input sentence.
 
         Parameters
         ----------
         text
-            Text instance to be explained
-        desired_label
-            Label to use as true label for the instance to be explained
-        use_similarity_proba
-            Bool whether to sample according to a similarity score with the corpus embeddings
-        use_unk
-            If True, perturbation distribution will replace words randomly with UNKs.
-            If False, words will be replaced by similar words using word embeddings.
-        sample_proba
-            Sample probability if use_similarity_proba is False
-        top_n
-            Sample using only top_n instances from similar words in the corpus
-        temperature
-            Sample weight hyperparameter if use_similarity_proba equals True
-
-        Returns
-        -------
-        words
-            List with words in the text
-        positions
-            List with positions of the words in the text
-        sampler
-            Function returning perturbed text instances, matrix with flags for perturbed words and labels
+            The instance to be explained.
         """
-        # if no true label available; true label = predicted label
-        pass
 
-    def set_words_and_pos(self, text):
-
-        processed = self.nlp(text)  # spaCy tokens for text
-        self.words = [x.text for x in processed]  # list with words in text
+        processed = self.nlp(text)                   # spaCy tokens for text
+        self.words = [x.text for x in processed]     # list with words in text
         self.positions = [x.idx for x in processed]  # positions of words in text
         self.tokens = processed
 
-    def sampler(self, present: tuple, num_samples: int, c_labels: bool = True):
+    def sampler(self, anchor: tuple, num_samples: int, c_labels: bool = True) -> list:
         """
-        Create sampling function using similar words in the embedding space.
+        Generate perturbed samples while maintaining features in positions specified in
+        anchor unchanged.
 
         Parameters
         ----------
-        present
-            List with the word index in the text for the words in the proposed anchor
+        anchor
+            Two-element tuple; first element is the position of the anchor in the input batch,
+            second the anchor itself. First argument used to support unordered parallel
+            functions.
         num_samples
-            Number of samples used when sampling from the corpus
+            Number of generated perturbed samples.
         c_labels
-            Boolean whether to use labels coming from model predictions as 'true' labels
+            If True, an array of comparisons between predictions on perturbed samples and
+            instance to be explained is returned.
 
         Returns
         -------
-        raw_data
-            num_samples of perturbed text instance
-        data
-            Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample
-        labels
-            Create labels using model predictions if compute_labels equals True
+            If c_labels=True, a list containing the following is returned:
+                - covered_true (np.ndarray): an array containing examples where the anchor
+                    applies and the model prediction is the same as the instance prediction
+                - covered_false (np.ndarray): an array containing examples where the anchor
+                     applies and the model prediction is NOT the same as the instance prediction
+                - labels (np.ndarray): an np.array with num_samples ints indicating whether
+                     the prediction on the perturbed sample matches (1) the label of the instance
+                     to be explained or not (0)
+                data (np.ndarray): Matrix with 1s and 0s indicating whether a word in the text has been
+                     perturbed for each sample
+                -1.0: indicates exact coverage is not computed for this algorithm
+                anchor[0]: position of anchor in the batch request
+            Otherwise, a list containing the data matrix only is returned.
         """
 
-        raw_data, data = self.perturbation(present[1], num_samples)
+        raw_data, data = self.perturbation(anchor[1], num_samples)
         # create labels using model predictions as true labels
         if c_labels:
             labels = self.compute_prec(raw_data)
             covered_true = raw_data[labels][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels)][:self.n_covered_ex]
-            # coverage set to -1.0
-            return [covered_true, covered_false, labels.astype(int), data, -1.0, present[0]]
+            # coverage set to -1.0 as we can't compute 'true'coverage for this model
+            return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]
         else:
             return [data]
 
-    def compute_prec(self, samples):  # TODO: TYPES + DOCS
-        return self.predict_fn(samples.tolist()) == self.instance_label
+    def compute_prec(self, samples: np.ndarray) -> np.ndarray:
+        """
+        Compute the agreement between a classifier prediction on an instance to be explained
+        and the prediction on a set of samples which have a subset of features fixed to a
+        given value (aka compute the precision of anchors).
 
-    def set_sampler_perturbation(self, use_unk, perturb_opts):
+        Parameters
+        ----------
+        samples
+            Samples whose labels are to be compared with the instance label.
+
+        Returns
+        -------
+            An array of integers indicating whether the prediction was the same as the instance label.
+        """
+
+        return self.predictor(samples.tolist()) == self.instance_label
+
+    def set_sampler_perturbation(self, use_unk: bool, perturb_opts: dict) -> None:
+        """
+        Initialises the explainer by setting the perturbation function and
+        parameters necessary to sample according to the perturbation method.
+
+        Parameters
+        ----------
+        use_unk
+            see explain method
+        perturb_opts:
+            A dict with keys:
+                'top_n': the max number of alternatives to sample from for replacement
+                'use_similarity_proba': if True the probability of selecting a replacement
+                    word is prop. to the similarity between the word and the word to be replaced
+                'sample_proba': given a feature and n sentences, this parameters is the mean of a
+                    Bernoulli distribution used to decide how many sentences will have that feature
+                    perturbed
+                'temperature': a tempature used to callibrate the softmax distribution over the
+                    sampling weights.
+        """
 
         if use_unk and perturb_opts['use_similarity_proba']:
-            logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
-                           'Defaults to "use_unk" behaviour.')
+            logger.warning('"use_unk" and "use_similarity_proba" args should not '
+                           'both be True. Defaulting to "use_unk" behaviour.')
 
         # Set object properties used by both samplers
         self.perturb_opts = perturb_opts
@@ -212,15 +231,35 @@ class AnchorText(object):
             self.find_similar_words()
             self.perturbation = self._similarity
 
-    def _unk(self, present: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray,]:
+    def _unk(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        The function returns  an np.array of num_samples where randomly chose features
+        except those in anchor are replaced by self.UNK token.
+
+        Parameters
+        ----------
+        anchor:
+            Indices represent the positions of the words to be kept unchanged.
+        num_samples:
+            Number of perturbed sentences to be returned.
+
+        Returns
+        -------
+        raw
+            Array containing num_samples elements. Each element is a perturbed sentence.
+        data
+            A (num_samples, m)-dimensional boolean array, where m is the number of tokens
+            in the instance to be explained.
+        """
 
         words = self.words
         data = np.ones((num_samples, len(words)))
         raw = np.zeros((num_samples, len(words)), self.dtype)
-        raw[:] = words  # fill each row of the raw data matrix with the text instance to be explained
+        # fill each row of the raw data matrix with the text instance to be explained
+        raw[:] = words
 
         for i, t in enumerate(words):
-            if i in present:  # if the index corresponds to the index of a word in the anchor
+            if i in anchor:  # if the index corresponds to the index of a word in the anchor
                 continue
 
             # sample the words in the text outside of the anchor that are replaced with UNKs
@@ -230,64 +269,96 @@ class AnchorText(object):
             data[changed, i] = 0
 
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype)
+
         return raw, data
 
-    def _similarity(self, present: tuple, num_samples: int):
-        return self.perturb_sentence(present,
+    def _similarity(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        The function returns  an np.array of num_samples where randomly chose features
+        except those in anchor are replaced by similar words with the same part of
+        speech of tag. See self.perturb_sentence for details of how the replacement works.
+
+        Parameters
+        ----------
+        anchor:
+            Indices represent the positions of the words to be kept unchanged.
+        num_samples:
+            Number of perturbed sentences to be returned.
+
+        Returns
+        -------
+            see _unk method
+        """
+        return self.perturb_sentence(anchor,
                                      num_samples,
                                      **self.perturb_opts,
                                      )
 
     @staticmethod
-    def _joiner(arr, dtype=None):
+    def _joiner(arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+        """
+        Function to concatenate an np.array of strings along a specified axis
+
+        Parameters
+        ----------
+        arr
+            1D numpy array of strings.
+        dtype
+           Array type, used to avoid truncation of strings when concatenating along axis.
+
+        Returns
+        -------
+            Array with one element, the concatenation of the strings in the input array.
+        """
+
         if not dtype:
-            return ' '.join(arr)
+            return np.array(' '.join(arr))
         else:
-             return np.array(' '.join(arr)).astype(dtype)
+            return np.array(' '.join(arr)).astype(dtype)
 
     def perturb_sentence(self, present: tuple, n: int, sample_proba: float = 0.5,
-                         top_n: int = 100, forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
-                         forbidden_words: set = set(['be']),
+                         forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
+                         forbidden_words: set = set(['be']), temperature: float = 1.,
                          pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_similarity_proba: bool = True, temperature: float = 1.,
-                         **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+                         use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
         Parameters
         ----------
         present
-            word index in the text for the words in the proposed anchor
+            Word index in the text for the words in the proposed anchor.
         n
-            Number of samples used when sampling from the corpus
+            Number of samples used when sampling from the corpus.
         sample_proba
-            Sample probability for a word if use_similarity_proba is False
-        top_n
-            Keep only top_n instances from similar words in the corpus
+            Sample probability for a word if use_similarity_proba is False.
         forbidden
-            Forbidden lemmas
+            Forbidden lemmas.
         forbidden_tags
-            Forbidden POS tags
+            Forbidden POS tags.
         forbidden_words
-            Forbidden words
+            Forbidden words.
         pos
-            POS that can be changed during perturbation
+            POS that can be changed during perturbation.
         use_similarity_proba
-            Bool whether to sample according to a similarity score with the corpus embeddings
+            Bool whether to sample according to a similarity score with the
+            corpus embeddings.
         temperature
-            Sample weight hyperparameter if use_similarity_proba equals True
+            Sample weight hyperparameter if use_similarity_proba equals True.
 
         Returns
         -------
         raw_data
-            array of perturbed text instance
+            Array of perturbed text instances.
         data
-            Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample
+            Matrix with 1s and 0s indicating whether a word in the text
+            has not been perturbed for each sample.
         """
 
         raw = np.zeros((n, len(self.tokens)), self.dtype)
         data = np.ones((n, len(self.tokens)))
-        raw[:] = [x.text for x in self.tokens]  # fill each row of the raw data matrix with the text to be explained
+        # fill each row of the raw data matrix with the text to be explained
+        raw[:] = [x.text for x in self.tokens]
 
         for i, t in enumerate(self.tokens):  # apply sampling to each token
 
@@ -298,16 +369,16 @@ class AnchorText(object):
             if (t.text not in forbidden_words and t.pos_ in pos and
                     t.lemma_ not in forbidden and t.tag_ not in forbidden_tags):
 
-                t_neighbors = self.crappy_neighbours[t.text]['words']
-                if t_neighbors.size == 0:  # if no neighbors found with same tag, move on to next token
+                t_neighbors = self.neighbours[t.text]['words']
+                # no neighbours with the same tag or word not in spaCy vocabulary
+                if t_neighbors.size == 0:
                     continue
 
-                # idx for changed words with sample_proba
                 n_changed = np.random.binomial(n, sample_proba)
                 changed = np.random.choice(n, n_changed, replace=False)
 
                 if use_similarity_proba:  # use similarity scores to sample changed tokens
-                    weights = self.crappy_neighbours[t.text]['similarities']
+                    weights = self.neighbours[t.text]['similarities']
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
@@ -320,85 +391,129 @@ class AnchorText(object):
 
         return raw, data
 
-    def find_similar_words(self):
-        for word, token in zip(self.words, self.tokens):
-            if word not in self.crappy_neighbours:
-                self.crappy_neighbours[word] = self.neighbors.neighbors(word, token.tag_, self.perturb_opts['top_n'])
+    def find_similar_words(self) -> None:
+        """
+        This function queries a spaCy nlp model to find n similar words with the same
+        part of speech for each word in the instance to be explained. For each word
+        the search procedure returns a dictionary containing an np.array of words ('words')
+        and an np.array of word similarities ('similarities').
+        """
 
-    def set_data_type(self, use_unk):
+        for word, token in zip(self.words, self.tokens):
+            if word not in self.neighbours:
+                self.neighbours[word] = self.neighbors.neighbors(word,
+                                                                 token.tag_,
+                                                                 self.perturb_opts['top_n'],
+                                                                 )
+
+    def set_data_type(self, use_unk: bool) -> None:
+        """
+        Working with numpy arrays of strings requires setting the data type to avoid
+        truncating examples. This function estimates the longest sentence expected
+        during the sampling process, which is used to set the number of characters
+        for the samples and examples arrays. This depends on the perturbation method
+        used for sampling.
+
+        Parameters
+        ----------
+        use_unk
+            see explain method
+        """
+
+        # Compute the maximum sentence length as a function of the perturbation method
         max_sent_len, max_len = 0, 0
         if use_unk:
             max_len = max(len(self.UNK), len(max(self.words, key=len)))
             max_sent_len = len(self.words)*max_len + 1
         else:
             for word in self.words:
-                similar_words = self.crappy_neighbours[word]['words']
+                similar_words = self.neighbours[word]['words']
                 max_len = max(max_len, int(similar_words.dtype.itemsize /
                                         np.dtype(similar_words.dtype.char+'1').itemsize))
                 max_sent_len += max_len
-
         self.dtype = '<U' + str(max_sent_len)
 
     def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, top_n: int = 100, desired_label: int = None,
-                max_anchor_size: int = None, min_samples_start: int = 1, beam_size: int = 1,
-                use_similarity_proba: bool = False, use_unk: bool = True, n_covered_ex: int = 10,
-                sample_proba: float = 0.5, temperature: float = 1., **kwargs: Any) -> dict:
+                tau: float = 0.15, batch_size: int = 100, top_n: int = 100,
+                desired_label: int = None, max_anchor_size: int = None, beam_size: int = 1,
+                stop_on_first: bool = True, min_samples_start: int = 1, n_covered_ex: int = 10,
+                use_similarity_proba: bool = False, use_unk: bool = True, temperature: float = 1.,
+                sample_proba: float = 0.5, coverage_samples: int = 10000,
+                data_store_size: int = 10000, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
         Parameters
         ----------
         text
-            Text instance to be explained
+            Text instance to be explained.
         threshold
-            Minimum precision threshold
+            Minimum precision threshold.
         delta
-            Used to compute beta
+            Used to compute beta.
         tau
-            Margin between lower confidence bound and minimum precision or upper bound
+            Margin between lower confidence bound and minimum precision or upper bound.
         batch_size
-            Batch size used for sampling
+            Batch size used for sampling.
         top_n
-            Number of similar words to sample for perturbations, only used if use_proba=True
+            Number of similar words to sample for perturbations, only used if use_proba=True.
         desired_label
-            Label to use as true label for the instance to be explained
+            Label to use as true label for the instance to be explained.
+        max_anchor_size
+            Maximum number of features to include in an anchor.
+        min_samples_start
+            Number of samples used for anchor search initialisation.
+        beam_size
+            Number of options kept after each stage of anchor building.
+        n_covered_ex
+            How many examples where anchors apply to store for each anchor sampled during search
+            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
         use_similarity_proba
-            Bool whether to sample according to a similarity score with the corpus embeddings.
-            use_unk needs to be False in order for use_similarity_proba equals True to be used.
+            Sample according to a similarity score with the corpus embeddings
+            use_unk needs to be False in order for this to be used.
         use_unk
             If True, perturbation distribution will replace words randomly with UNKs.
             If False, words will be replaced by similar words using word embeddings.
         sample_proba
-            Sample probability if use_similarity_proba is False
+            Sample probability if use_similarity_proba is False.
+        stop_on_first
+            If True, the beam search algorithm will return the first anchor that has satisfies the
+            probability constraint.
         temperature
-            Sample weight hyperparameter if use_similarity_proba equals True
+            Sample weight hyperparameter if use_similarity_proba equals True.
+        coverage_samples
+            Number of samples used to estimate coverage from during anchor search.
+        data_store_size
+            The anchor search pre-allocates data_store_size batches for storing the boolean arrays
+            returned during sampling.
         kwargs
             Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions
 
         Returns
         -------
         explanation
-            Dictionary containing the anchor explaining the instance with additional metadata
+            Dictionary containing the anchor explaining the instance with additional metadata.
         """
-        # set the instance label
-        true_label = desired_label
+
         # store n_covered_ex positive/negative examples for each anchor
         self.n_covered_ex = n_covered_ex
+        # set the instance label
+        true_label = desired_label
         if true_label is None:
-            self.instance_label = self.predict_fn([text])[0]
+            self.instance_label = self.predictor([text])[0]
+        else:
+            self.instance_label = desired_label
 
         # find words and their positions in the text instance
         self.set_words_and_pos(text)
 
-        # set the sampling function
+        # set the sampling function and type for samples' arrays
         perturb_opts = {
             'use_similarity_proba': use_similarity_proba,
             'sample_proba': sample_proba,
             'temperature': temperature,
             'top_n': top_n,
         }
-        # pass additional arguments to self.perturb_samples
         perturb_opts.update(kwargs)
         self.set_sampler_perturbation(use_unk, perturb_opts)
         self.set_data_type(use_unk)
@@ -414,23 +529,36 @@ class AnchorText(object):
                                  max_anchor_size=max_anchor_size,
                                  min_samples_start=min_samples_start,
                                  beam_size=beam_size,
-                                 coverage_samples=10000,  # TODO: DO NOT HARDCODE THESE
-                                 data_store_size=10000,
-                                 stop_on_first=True,
+                                 coverage_samples=coverage_samples,
+                                 data_store_size=data_store_size,
+                                 stop_on_first=stop_on_first,
                                  **kwargs)  # type: Any
+        anchor['names'] = [self.words[x] for x in anchor['feature']]
+        anchor['positions'] = [self.positions[x] for x in anchor['feature']]
 
         return self.build_explanation(anchor, text, true_label)
 
-    def build_explanation(self, anchor, text, true_label):
-        anchor['names'] = [self.words[x] for x in anchor['feature']]
-        anchor['positions'] = [self.positions[x] for x in anchor['feature']]
+    def build_explanation(self, anchor: dict, text: str, true_label: int = None) -> dict:
+        """ Uses the metadata returned by the anchor search algorithm together with
+        the instance to be explained to build an explanation object.
+
+        Parameters
+        ----------
+        anchor
+            Dictionary containing the search result and metadata
+        text
+            Instance to be explained
+        true_label
+            Label of the instance to be explained. Inferred if not received.
+        """
+
         anchor['instance'] = text
         if true_label is None:
-            anchor['prediction'] = self.predict_fn([text])[0]
+            anchor['prediction'] = self.predictor([text])[0]
         else:
             anchor['prediction'] = self.instance_label
         exp = AnchorExplanation('text', anchor)
-        # output explanation dictionary
+
         return {
             'names': exp.names(),
             'precision': exp.precision(),

@@ -50,6 +50,7 @@ class Timer:
     def __exit__(self, *args):
         self.t_elapsed = timer() - self.start
 
+
 def load_dataset(*, dataset='adult'):
 
     method = 'fetch_{}'.format(dataset)
@@ -75,7 +76,6 @@ def split_data(dataset, opts):
         return _train_test_val(dataset, seed, split_fractions)
 
 
-
 def _shuffle(dataset, n_train_records, seed):
 
     np.random.seed(seed)
@@ -92,6 +92,7 @@ def _shuffle(dataset, n_train_records, seed):
             'X_test': X_test,
             'Y_test': Y_test
             }
+
 
 def _train_test_val(dataset, seed, split_fractions, split_val=True):
 
@@ -159,9 +160,11 @@ def preprocess_movie_sentiment(dataset, splits, opts=None):
 
     return preprocessor
 
+
 def display_performance(splits, predictor):
     print('Train accuracy: ', accuracy_score(splits['Y_train'], predictor(splits['X_train'])))
     print('Test accuracy: ', accuracy_score(splits['Y_test'], predictor(splits['X_test'])))
+
 
 def predict_fcn(clf, preprocessor=None):
     if preprocessor:
@@ -240,16 +243,17 @@ def _display_prediction(predict_fn, instance_id, splits, dataset):
 
 def _tabular_prediction(predictor, instance, dataset):
     class_names = dataset.target_names
-    pred =  class_names[predictor(instance.reshape(1, -1))[0]]
-    alternative =  class_names[1 - predictor(instance.reshape(1, -1))[0]]
+    pred = class_names[predictor(instance.reshape(1, -1))[0]]
+    alternative = class_names[1 - predictor(instance.reshape(1, -1))[0]]
     print('Prediction: ', pred)
     print('Alternative', alternative)
     return pred, alternative
 
+
 def _text_prediction(predictor, instance, dataset):
     class_names = dataset.target_names
-    pred =  class_names[predictor([instance])[0]]
-    alternative  = class_names[1 - predictor([instance])[0]]
+    pred = class_names[predictor([instance])[0]]
+    alternative = class_names[1 - predictor([instance])[0]]
     print('Prediction: ', pred)
     print('Alternative', alternative)
     return pred, alternative
@@ -270,7 +274,6 @@ def display_explanation(pred, alternative, explanation, show_covered=False):
 class ExplainerExperiment(object):
 
     def __init__(self, *, dataset, explainer, classifier, experiment):
-
 
         self.dataset_name = dataset
         self.explainer_config = explainer
@@ -293,7 +296,6 @@ class ExplainerExperiment(object):
         self.explainer = None
         self.instance = None
         self.splits = None
-
 
     def __enter__(self):
 
@@ -345,9 +347,8 @@ class ExplainerExperiment(object):
             if not os.path.exists(self.experiment_config['ckpt_dir']):
                 os.makedirs(self.experiment_config['ckpt_dir'])
             else:
-                print("WARNING: Checkpoint directory already exists, "  
+                print("WARNING: Checkpoint directory already exists, "
                       "files may be overwritten!")
-
             fullpath = os.path.join(self.experiment_config['ckpt_dir'],
                                     self.experiment_config['ckpt'])
             fullpath = fullpath if fullpath.split(".")[-1] == 'pkl' else fullpath + '.pkl'
@@ -392,6 +393,7 @@ def display(config, explanation, exp):
                             show_covered=config['experiment']['show_covered'])
     return
 
+
 def check(config):
 
     if config['explainer']['type'] not in SUPPORTED_EXPLAINERS:
@@ -408,6 +410,7 @@ def check(config):
                                           "not implemented for AnchorTabular. Please implement"
                                           "or set show_covered=False in experiment confinguration"
                                           "to continue.")
+
 
 def run_experiment(config):
 
@@ -441,6 +444,7 @@ def profile(config):
         explanation = result[0]
 
     display(config, explanation, exp)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Anchor Explanations Experiments')

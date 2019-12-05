@@ -7,7 +7,7 @@ def check_ray():
         a bool indicating whether ray is installed or not
     """
     try:
-        import ray
+        import ray  # noqa F401
         return True
     except ImportError:
         return False

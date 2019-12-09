@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable
+from typing import Callable, Tuple
 
 
 def get_quantiles(values: np.ndarray, num_points: int = 11) -> np.ndarray:
@@ -23,7 +23,9 @@ def get_quantiles(values: np.ndarray, num_points: int = 11) -> np.ndarray:
     return quantiles
 
 
-def first_ale_num(predict: Callable, X: np.ndarray, feature: int, num_points: int = 11) -> np.ndarray:
+def first_ale_num(
+    predict: Callable, X: np.ndarray, feature: int, num_points: int = 11
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the first order ALE for a numerical feature.
 
@@ -40,10 +42,13 @@ def first_ale_num(predict: Callable, X: np.ndarray, feature: int, num_points: in
 
     Returns
     -------
-    ALE values for the feature
+    q
+        Array of quantiles of the input values
+    ale
+        ALE values for the feature
 
     """
-    # TODO the following onlt works for regression
+    # TODO the following only works for regression
     q = get_quantiles(X[:, feature], num_points=num_points)
     ale = np.zeros(len(q) - 1)
 
@@ -63,4 +68,42 @@ def first_ale_num(predict: Callable, X: np.ndarray, feature: int, num_points: in
     ale = ale.cumsum()
     ale -= ale.mean()
 
-    return ale
+    return q, ale
+
+
+def show_first_ale_num_altair(
+    X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature_name: str = None
+) -> None:
+    import altair as alt
+    import pandas as pd
+
+    if feature_name is None:
+        feature_name = "feature"
+    data = pd.DataFrame(
+        {
+            feature_name: (q[1:] + q[:-1])
+            / 2,  # interpolate between quantile midpoints
+            "ale": ale,
+        }
+    )
+
+    height = 250
+    tick_height = 20
+    tick_baseline = height - tick_height / 2
+
+    # ALE plot
+    base = (
+        alt.Chart(data, height=height)
+        .mark_line(point=True)
+        .encode(x=feature_name, y="ale", tooltip=["ale", feature_name])
+    )
+
+    # rug plot
+    pdX = pd.DataFrame(X)
+    x_ticks = (
+        alt.Chart(pdX)
+        .mark_tick(size=tick_height, y=tick_baseline)
+        .encode(alt.X("0:Q", title=feature_name), tooltip="0:Q")
+    )
+
+    (base + x_ticks).display()

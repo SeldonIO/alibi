@@ -26,7 +26,7 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
 
 
 def first_ale_num(
-        predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 10
+        predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 40
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the first order ALE for a numerical feature.
@@ -51,8 +51,9 @@ def first_ale_num(
 
     """
     # TODO the following only works for regression
+    # TODO handle case when num_intervals is too large for the dataset
     num_points = num_intervals + 1
-    q = get_quantiles(X[:, feature], num_points=num_points)
+    q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

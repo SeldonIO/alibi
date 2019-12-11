@@ -4,7 +4,7 @@ import pandas as pd
 from typing import Callable, Tuple
 
 
-def get_quantiles(values: np.ndarray, num_points: int = 11) -> np.ndarray:
+def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linear') -> np.ndarray:
     """
     Calculate quantiles of values in an array.
 
@@ -21,12 +21,12 @@ def get_quantiles(values: np.ndarray, num_points: int = 11) -> np.ndarray:
 
     """
     percentiles = np.linspace(0, 100, num=num_points)
-    quantiles = np.percentile(values, percentiles, axis=0)
+    quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)
     return quantiles
 
 
 def first_ale_num(
-        predict: Callable, X: np.ndarray, feature: int, num_points: int = 11
+        predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 10
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the first order ALE for a numerical feature.
@@ -39,8 +39,8 @@ def first_ale_num(
         Dataset to calculate the ALE on
     feature
         Index of the numerical feature for which to calculate ALE
-    num_points
-        Number of quantiles to calculate for the feature
+    num_intervals
+        Number of intervals to subdivide the feature into according to quantiles
 
     Returns
     -------
@@ -51,12 +51,13 @@ def first_ale_num(
 
     """
     # TODO the following only works for regression
+    num_points = num_intervals + 1
     q = get_quantiles(X[:, feature], num_points=num_points)
-    # ale = np.zeros(len(q) - 1)  # 1 less interval than quantiles
-    # subset_lengths = np.zeros(len(q) - 1)
 
+    # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")
     indices[indices == 0] = 1  # put the smallest data point in the first interval
+    interval_n = np.bincount(indices)  # number of points in each interval
 
     # predictions for the upper and lower ranges of intervals
     z_low = X.copy()
@@ -71,65 +72,37 @@ def first_ale_num(
 
     # make a dataframe for averaging over intervals
     df = pd.DataFrame({'interval': indices, 'p_delta': p_deltas})
-    avg_p_deltas = df.groupby('interval').mean()
+    avg_p_deltas = df.groupby('interval').mean().values.squeeze()
+
+    # alternative numpy implementation
+    # counts = np.bincount(indices, p_deltas)
+    # avg_p_deltas = counts[1:] / interval_n[1:]
 
     # accummulate over intervals
     accum_p_deltas = np.cumsum(avg_p_deltas)
-    # TODO: why pre-pend 0?
-    accum_p_deltas.loc[0] = 0
-    accum_p_deltas.index = accum_p_deltas.index + 1
-    accum_p_deltas.sort_index(inplace=True)
 
-    interval_n = np.bincount(indices)
+    # pre-pend 0 for the left-most point
+    accum_p_deltas = np.insert(accum_p_deltas, 0, 0)
 
     # mean effect
-    apd = accum_p_deltas.p_delta.values
-    ale0 = (((apd[:-1] + apd[1:]) / 2) * interval_n[1:]).sum() / interval_n.sum()
+    ale0 = (((accum_p_deltas[:-1] + accum_p_deltas[1:]) / 2) * interval_n[1:]).sum() / interval_n.sum()
 
     # center
-    ale = apd - ale0
+    ale = accum_p_deltas - ale0
 
-    # or i in range(1, num_points):
-    #   if i == num_points - 1:
-    #       subset = X[indices >= i]  # merge last point into the same quantile
-    #   else:
-    #       subset = X[indices == i]
-    #   # TODO this misses the data point equal to the upper quantile
-    #   # subset = X[(q[i] <= X[:, feature]) & (X[:, feature] < q[i + 1])]
-    #   subset_lengths[i - 1] = len(subset)
-
-    #   if len(subset) != 0:
-    #       # TODO: batching for large datasets
-    #       z_low = subset.copy()
-    #       z_high = subset.copy()
-    #       z_low[:, feature] = q[i - 1]
-    #       z_high[:, feature] = q[i]
-
-    #       ale[i - 1] += (predict(z_high) - predict(z_low)).sum() / len(subset)
-    # ale[i] += ((predict(z_high) - predict(z_low)) / (z_high[:, feature] - z_low[:, feature])).sum()
-
-    # ale = ale.cumsum()
-    # ale -= np.dot(ale, subset_lengths) / X.shape[0]
     return q, ale
 
 
-def show_first_ale_num_altair(
-        X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature_name: str = None, center: bool = True
-) -> None:
+def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature_name: str = None) -> None:
     import altair as alt
     import pandas as pd
 
     if feature_name is None:
         feature_name = "feature"
-    if center:
-        # features = (q[1:] + q[:-1]) / 2  # interpolate between quantile midpoints
-        features = q
-    else:
-        pass  # TODO: original definition is a step function, or is it? c.f. integral formulation Molnar
 
     data = pd.DataFrame(
         {
-            feature_name: features,
+            feature_name: q,
             "ale": ale,
         }
     )
@@ -163,4 +136,4 @@ if __name__ == '__main__':
     X, y = load_boston(return_X_y=True)
     lr = LinearRegression().fit(X, y)
 
-    q, ale = first_ale_num(lr.predict, X, 0, num_points=11)
+    q, ale = first_ale_num(lr.predict, X, 0, num_intervals=10)

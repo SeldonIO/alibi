@@ -72,21 +72,24 @@ def first_ale_num(
     p_deltas = p_high - p_low
 
     # make a dataframe for averaging over intervals
-    df = pd.DataFrame({'interval': indices, 'p_delta': p_deltas})
-    avg_p_deltas = df.groupby('interval').mean().values.squeeze()
+    concat = np.column_stack((p_deltas, indices))
+    df = pd.DataFrame(concat)
+    avg_p_deltas = df.groupby(df.shape[1] - 1).mean().values  # groupby indices
 
     # alternative numpy implementation
     # counts = np.bincount(indices, p_deltas)
     # avg_p_deltas = counts[1:] / interval_n[1:]
 
     # accummulate over intervals
-    accum_p_deltas = np.cumsum(avg_p_deltas)
+    accum_p_deltas = np.cumsum(avg_p_deltas, axis=0)
 
     # pre-pend 0 for the left-most point
-    accum_p_deltas = np.insert(accum_p_deltas, 0, 0)
+    zeros = np.zeros((1, accum_p_deltas.shape[1]))
+    accum_p_deltas = np.insert(accum_p_deltas, 0, zeros, axis=0)
 
     # mean effect
-    ale0 = (((accum_p_deltas[:-1] + accum_p_deltas[1:]) / 2) * interval_n[1:]).sum() / interval_n.sum()
+    ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * interval_n[1:, np.newaxis]) \
+               .sum(axis=0) / interval_n.sum()
 
     # center
     ale = accum_p_deltas - ale0
@@ -105,7 +108,7 @@ def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, fea
     data = pd.DataFrame(
         {
             feature_name: q,
-            "ale": ale,
+            "ale": ale[:, 0],  # TODO: handle multiclass
         }
     )
 

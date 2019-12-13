@@ -94,7 +94,8 @@ def first_ale_num(
     return q, ale
 
 
-def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature_name: str = None) -> None:
+def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature: int,
+                              feature_name: str = None) -> None:
     import altair as alt
     import pandas as pd
 
@@ -124,7 +125,7 @@ def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, fea
     x_ticks = (
         alt.Chart(pdX)
             .mark_tick(size=tick_height, y=tick_baseline)
-            .encode(alt.X("0:Q", title=feature_name), tooltip="0:Q")
+            .encode(alt.X("{}:Q".format(feature), title=feature_name), tooltip="{}:Q".format(feature))
     )
 
     (base + x_ticks).display()

@@ -25,7 +25,7 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     return quantiles
 
 
-def first_ale_num(
+def ale_num(
         predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 40
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -50,7 +50,6 @@ def first_ale_num(
         ALE values for the feature
 
     """
-    # TODO the following only works for regression
     # TODO handle case when num_intervals is too large for the dataset
     num_points = num_intervals + 1
     q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
@@ -97,6 +96,70 @@ def first_ale_num(
     return q, ale
 
 
+def ale_num_num(
+        predict: Callable, X: np.ndarray, features: Tuple[int, int], num_intervals: Tuple[int, int] = (40, 40)
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Calculate the second order ALE for two numerical features.
+
+    Parameters
+    ----------
+    predict
+    X
+    features
+    num_intervals
+
+    Returns
+    -------
+
+    """
+
+    q1 = np.unique(get_quantiles(X[:, features[0]], num_points=num_intervals[0] + 1))
+    q2 = np.unique(get_quantiles(X[:, features[1]], num_points=num_intervals[1] + 1))
+
+    # find which interval each observation falls into
+    indices1 = np.searchsorted(q1, X[:, features[0]], side="left")
+    indices1[indices1 == 0] = 1  # put the smallest data point in the first interval
+    indices2 = np.searchsorted(q2, X[:, features[1]], side="left")
+    indices2[indices2 == 0] = 1  # put the smallest data point in the first interval
+
+    # predictions for the cell corners
+    z_low1_low2, z_high1_low2, z_low1_high2, z_high1_high2 = X.copy(), X.copy(), X.copy(), X.copy()
+    z_low1_low2[:, features] = np.column_stack((q1[indices1 - 1], q2[indices2 - 1]))
+    z_high1_low2[:, features] = np.column_stack((q1[indices1], q2[indices2 - 1]))
+    z_low1_high2[:, features] = np.column_stack((q1[indices1 - 1], q2[indices2]))
+    z_high1_high2[:, features] = np.column_stack((q1[indices1], q2[indices2]))
+
+    p11 = predict(z_low1_low2)
+    p21 = predict(z_high1_low2)
+    p12 = predict(z_low1_high2)
+    p22 = predict(z_high1_high2)
+
+    # second order differences per cell
+    # (top right corner - top left corner) - (bottom right corner - bottom left corner)
+    p_deltas = (p22 - p21) - (p12 - p11)
+
+    # make a dataframe for averaging over intervals
+
+    concat = np.column_stack((p_deltas, indices1, indices2))
+    df = pd.DataFrame(concat)
+
+    # include all cells
+    interval_grid = pd.DataFrame(np.array(np.meshgrid(np.unique(indices1), np.unique(indices2))).reshape(2, -1).T,
+                                 columns=[1, 2])
+
+    # average over each cell
+    df = df.merge(interval_grid, on=[1, 2], how='outer')
+    avg_p_deltas = df.groupby([1, 2]).mean().reset_index()
+
+    # identify and fill empty cells with the closest neighbouring cell's value
+    # TODO
+
+    # accumulate from bottom left to top right
+
+    return (0, 0)
+
+
 def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature: int,
                               feature_name: str = None) -> None:
     import altair as alt
@@ -141,4 +204,4 @@ if __name__ == '__main__':
     X, y = load_boston(return_X_y=True)
     lr = LinearRegression().fit(X, y)
 
-    q, ale = first_ale_num(lr.predict, X, 0, num_intervals=10)
+    q, ale = ale_num(lr.predict, X, 0, num_intervals=10)

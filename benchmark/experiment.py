@@ -25,7 +25,8 @@ import spacy
 
 import alibi.datasets as datasets
 
-from alibi.explainers import AnchorTabular, AnchorText
+from alibi.explainers import AnchorTabular, AnchorText, DistributedAnchorTabular
+from alibi.utils.distributed import check_ray
 from alibi.utils.download import spacy_model
 from alibi.utils.wrappers import Predictor
 
@@ -214,7 +215,26 @@ def get_tabular_explainer(predictor, config, dataset=None, split=None):
     category_map = dataset.category_map
     X_train = split['X_train']
 
-    explainer = AnchorTabular(predictor, feature_names, categorical_names=category_map, seed=config['seed'])
+    if check_ray():
+        if config['parallel']:
+            explainer = DistributedAnchorTabular(predictor,
+                                                 feature_names,
+                                                 categorical_names=category_map,
+                                                 seed=config['seed'],
+                                                 )
+        else:
+            explainer = AnchorTabular(predictor,
+                                      feature_names,
+                                      categorical_names=category_map,
+                                      seed=config['seed'],
+                                      )
+    else:
+        explainer = AnchorTabular(predictor,
+                                  feature_names,
+                                  categorical_names=category_map,
+                                  seed=config['seed'],
+                                  )
+
     explainer.fit(X_train, disc_perc=config['disc_perc'])
 
     return explainer
@@ -349,8 +369,18 @@ class ExplainerExperiment(object):
             else:
                 print("WARNING: Checkpoint directory already exists, "
                       "files may be overwritten!")
+
+            exp_config = self.experiment_config
+
+            ckpt_fmt = '{}_beam_{}_idx_{}_ncpu_{}_chunk_{}'
+            ckpt_name = ckpt_fmt.format(exp_config['ckpt'],
+                                        self.explainer_config['beam_size'],
+                                        exp_config['instance_idx'],
+                                        self.explainer_config['ncpu'],
+                                        self.explainer_config['chunksize']
+                                        )
             fullpath = os.path.join(self.experiment_config['ckpt_dir'],
-                                    self.experiment_config['ckpt'])
+                                    ckpt_name)
             fullpath = fullpath if fullpath.split(".")[-1] == 'pkl' else fullpath + '.pkl'
 
             with open(fullpath, 'wb') as f:

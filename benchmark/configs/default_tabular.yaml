@@ -25,9 +25,9 @@ experiment:
   n_runs: 100
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: BenchmarkTestHashPassingExample2.pkl
-  verbose: true
+  ckpt_dir: /home/alex/git/work_experiments/sampling_clf_newstate
+  ckpt: seq
+  verbose: false
   show_covered: false  # true will raise NotImplemented Error
   data:
     preprocess: true
@@ -50,8 +50,8 @@ experiment:
     mapping:
       feat_ids : [raw, feature]
       feat_names: [raw, names]
-      covered_true: [raw, examples, covered_true]
-      covered_false: [raw, examples, covered_false]
-  profile: true
+      covered_true: [raw, examples]
+      covered_false: [raw, examples]
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
   profile_out: benchmark_stats.cprof

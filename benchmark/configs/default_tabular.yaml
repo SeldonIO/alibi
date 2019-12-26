@@ -11,11 +11,11 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  beam_size: 1
+  beam_size: 10
   min_samples_start: 100
-  parallel: false
-  chunksize: ~
-  ncpu: ~
+  parallel: true
+  chunksize: 1
+  ncpu: 4
   verbose: false
   seed: 0
 
@@ -26,7 +26,7 @@ experiment:
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/sampling_clf_newstate
-  ckpt: seq
+  ckpt: ray
   verbose: false
   show_covered: false  # true will raise NotImplemented Error
   data:

@@ -759,6 +759,7 @@ class DistributedAnchorTabular(AnchorTabular):
                             'expected argument, ncpu. Defaulting to ncpu=2!'
                             )
             ncpu = 2
+            assert False
 
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)

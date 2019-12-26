@@ -235,7 +235,9 @@ def get_tabular_explainer(predictor, config, dataset=None, split=None):
                                   seed=config['seed'],
                                   )
 
-    explainer.fit(X_train, disc_perc=config['disc_perc'])
+    explainer.fit(X_train,
+                  **config
+                  )
 
     return explainer
 

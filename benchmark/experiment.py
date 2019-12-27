@@ -35,9 +35,10 @@ SUPPORTED_DATASETS = ['adult', 'imagenet', 'movie_sentiment']
 SUPPORTED_CLASSIFIERS = ['rf', 'lr']
 
 # TODO: Typing and documentation
-# TODO: setup logging (repo wide, properly)
 # TODO: opts not used currently in preprocess_adult, pipelines hardcoded
-# TODO: in the future one should be able to pass their own classifier that's already fitted as opp to using fit_*
+# TODO: in the future one should be able to pass their own classifier object or object name and loading
+#  function as opp to using fit_*
+# TODO: make it more flexible for users to configure the name of their experiments from configuration file
 
 
 class Timer:

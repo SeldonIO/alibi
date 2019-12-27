@@ -4,15 +4,13 @@ import os
 import subprocess
 
 from copy import deepcopy
+from timeit import default_timer as timer
 
 import ruamel.yaml as yaml
 
 from nested_lookup import nested_update
 
 WDIR = os.getcwd()
-
-# TODO: TEST EVERYTHING ON SIMPLE EXAMPLE AND MAKE SURE IT WORKS
-# TODO: TIDY UP DEFAULT CONFIG AFTER TESTING AND COMMIT.
 
 
 def get_experiment_params(config):
@@ -62,16 +60,19 @@ def run_experiment(setting, hyperparameters, default_config, cleanup=False):
 
     # Run the experiment with the configuration created
     try:
-        subprocess.run(["python", "{}/experiment.py".format(WDIR), "--config", "{}".format(config_path)],
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE,
-                       check=True,
-                       )
+        proc = subprocess.run(
+            ["python", "{}/experiment.py".format(WDIR), "--config", "{}".format(config_path)],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            check=True,
+        )
+        print("Process output:")
+        print(proc.stdout.decode('utf-8'))
         print("Experiment complete!")
     except subprocess.CalledProcessError as e:
-        print("The command {} threw an error".format(e.cmd), sep=' ')
-        print("The stdout is: {}".format(e.stdout), sep=' ')
-        print("The stderr is: {}".format(e.stderr), sep=' ', end=' ')
+        print("The command {} threw an error".format(e.cmd))
+        print("The stdout is: {}".format(e.stdout.decode('utf-8')))
+        print("The stderr is: {}".format(e.stderr.decode('utf-8')))
         print("")
 
     # Remove temporary config file
@@ -82,9 +83,6 @@ def run_experiment(setting, hyperparameters, default_config, cleanup=False):
 def main(default_config, experiments_dict, cleanup=False):
 
     hyperparams = experiments_dict['vars'].keys()
-
-    print(hyperparams)
-    print(default_config)
     exp_settings = get_experiment_params(paramters_dict)
 
     for setting in exp_settings:
@@ -120,5 +118,7 @@ if __name__ == '__main__':
 
     with open(args.parameters) as fp:
         paramters_dict = yaml.load(fp, Loader=yaml.SafeLoader)
-
+    ts = timer()
     main(default_config, paramters_dict, cleanup=args.cleanup)
+    te = timer() - ts
+    print("Time elapsed for all experiments: {}".format(te))

@@ -1,1 +1,2 @@
-PyYAML
+ruamel.yaml<0.15
+nested-lookup

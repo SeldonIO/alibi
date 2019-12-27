@@ -3,7 +3,6 @@ import cProfile
 import os
 import pickle
 import sys
-import yaml
 
 import numpy as np
 
@@ -24,6 +23,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 import spacy
 
 import alibi.datasets as datasets
+import ruamel.yaml as yaml
 
 from alibi.explainers import AnchorTabular, AnchorText, DistributedAnchorTabular
 from alibi.utils.distributed import check_ray
@@ -494,7 +494,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with open(args.config) as fp:
-        configuration = yaml.load(fp, Loader=yaml.FullLoader)
+        configuration = yaml.load(fp)
 
     configuration['experiment']['commit_hash'] = args.hash
 

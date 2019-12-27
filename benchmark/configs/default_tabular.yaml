@@ -22,12 +22,12 @@ explainer:
 # Experiment settings
 experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
-  n_runs: 25
+  n_runs: 100
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
   instance_idx: 6
-  ckpt_dir: /home/alex/git/work_experiments/sampling_clf_newstate
-  ckpt: ray
-  verbose: false
+  ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
+  ckpt: test.pkl
+  verbose: true
   show_covered: false  # true will raise NotImplemented Error
   data:
     preprocess: true

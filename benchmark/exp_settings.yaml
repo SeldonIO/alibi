@@ -1,0 +1,7 @@
+# Specify the hyperparameters you wish to vary. The experiment
+# settings are referred from the cartesian product of the
+# variables specified within vars
+vars:
+    instance_idx: [6 , 0]
+    beam_size: [1]
+    parallel: [false]

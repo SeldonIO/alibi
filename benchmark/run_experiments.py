@@ -68,9 +68,11 @@ def run_experiment(setting, hyperparameters, default_config, cleanup=False):
         )
         print("Process output:")
         print(proc.stdout.decode('utf-8'))
+        print("Process error:")
+        print(proc.stderr.decode('utf-8'))
         print("Experiment complete!")
     except subprocess.CalledProcessError as e:
-        print("The command {} threw an error".format(e.cmd))
+        print("The command {} threw an error".format(e.cmd.decode('utf-8')))
         print("The stdout is: {}".format(e.stdout.decode('utf-8')))
         print("The stderr is: {}".format(e.stderr.decode('utf-8')))
         print("")
@@ -118,7 +120,8 @@ if __name__ == '__main__':
 
     with open(args.parameters) as fp:
         paramters_dict = yaml.load(fp, Loader=yaml.SafeLoader)
+
     ts = timer()
     main(default_config, paramters_dict, cleanup=args.cleanup)
     te = timer() - ts
-    print("Time elapsed for all experiments: {}".format(te))
+    print("Elapsed time for all experiments: {}".format(te))

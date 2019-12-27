@@ -22,7 +22,7 @@ explainer:
 # Experiment settings
 experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
-  n_runs: 100
+  n_runs: 25
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
   instance_idx: 6
   ckpt_dir: /home/alex/git/work_experiments/sampling_clf_newstate

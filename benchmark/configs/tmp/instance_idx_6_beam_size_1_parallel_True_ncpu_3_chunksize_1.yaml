@@ -1,0 +1,36 @@
+classifier: {n_estimators: 50, name: rf, seed: 0}
+dataset: adult
+experiment:
+  ckpt: ray
+  ckpt_dir: /home/alex/git/work_experiments/sampling_clf_newstate
+  data:
+    preprocess: true
+    preprocess_opts: null
+    split_opts: {method: shuffle, n_train_records: 30000, seed: 0}
+  instance_idx: 6
+  instance_split: test
+  n_runs: 5
+  profile: false
+  profile_dir: /home/alex/git/work_experiments/ProfileData
+  profile_out: benchmark_stats.cprof
+  save:
+    fields: [feat_ids, feat_names, precision, coverage, covered_true, covered_false]
+    mapping:
+      covered_false: [raw, examples]
+      covered_true: [raw, examples]
+      feat_ids: [raw, feature]
+      feat_names: [raw, names]
+  show_covered: false
+  test_only: true
+  verbose: false
+explainer:
+  beam_size: 1
+  chunksize: 1
+  disc_perc: !!python/tuple [25, 50, 75]
+  min_samples_start: 100
+  ncpu: 3
+  parallel: true
+  seed: 0
+  threshold: 0.95
+  type: tabular
+  verbose: false

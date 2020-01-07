@@ -1,5 +1,5 @@
 class Predictor(object):
-    """ Implements a simple wrapper around an sklearn model that can be pickled."""
+
     def __init__(self, clf, preprocessor=None):
 
         if not hasattr(clf, 'predict'):
@@ -12,3 +12,4 @@ class Predictor(object):
     def __call__(self, x):
         if self.preprocessor:
             return self.predict_fcn(self.preprocessor.transform(x))
+        return self.predict_fcn(x)

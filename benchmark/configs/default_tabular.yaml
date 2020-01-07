@@ -1,4 +1,15 @@
-dataset: adult
+data:
+  dataset: adult
+  load_opts:  # passed to fetch_* function which loads data, not used for this ex.
+    args: ~   # specify as a tuple or list of arguments
+    kwargs: ~
+  preprocess: true
+  preprocess_opts: ~
+  split: true
+  split_opts:
+    method: shuffle # see default_text.yaml for alternative
+    seed: 0
+    n_train_records: 30000
 
 # Example of configuring a random forest classifier
 classifier:
@@ -22,20 +33,14 @@ explainer:
 # Experiment settings
 experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
-  n_runs: 100
+  n_runs: 1
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
-  instance_idx: 6
+  instance_idx: 0
+  transform_instance: ~ # only used to apply a one-off transform to model input for image data
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: test.pkl
+  ckpt: dummy_anchor_tabular
   verbose: true
   show_covered: false  # true will raise NotImplemented Error
-  data:
-    preprocess: true
-    preprocess_opts: ~
-    split_opts:
-      method: shuffle # see default_text.yaml for alternative
-      seed: 0
-      n_train_records: 30000
   save:
     # elapsed time included by default
     fields: [feat_ids, feat_names, precision, coverage, covered_true, covered_false]
@@ -54,4 +59,4 @@ experiment:
       covered_false: [raw, examples]
   profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
-  profile_out: benchmark_stats.cprof
+  profile_out: default_anchor_tabular.cprof

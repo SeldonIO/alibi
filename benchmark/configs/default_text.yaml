@@ -1,4 +1,22 @@
-dataset: movie_sentiment
+# Example of a data processing pipeline
+data:
+    dataset: movie_sentiment
+    load_opts:  # passed to fetch_* function which loads data, not used for this ex.
+      args: ~   # specify as a tuple or list of arguments
+      kwargs: ~
+    preprocess: true
+    preprocess_opts: # only used for text data for now
+      min_df: 1
+    split: true
+    split_opts:
+      # train_test_val: uses sklearn.model.selection.train_test_split
+      # shuffle: shuffles all data and puts first n_train_records in X_train
+      method: train_test_val
+      test_size: 0.2 # fraction of data in test split
+      validation_set: true
+      val_size: 0.1  # fraction of train split put into validation
+      seed: 42       # same seed for split train/test and val from test
+      n_train_records: 30000
 
 # Example of configuring a random forest classifier
 classifier:
@@ -22,26 +40,14 @@ explainer:
 # Experiment settings
 experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
-  n_runs: 100
+  n_runs: 1
   instance_split: ~ # can be train/test/val or ~ (aka None - taken from data before splitting)
   instance_idx: 4
+  transform_instance: ~ # only used to apply a one-off transform to model input for image data
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: BenchmarkTestHashPassingExample2.pkl
+  ckpt: default_anchor_text.pkl
   verbose: true
   show_covered: true
-  data:
-    preprocess: true
-    preprocess_opts: # only used for text data for now
-      min_df: 1
-    split_opts:
-      # train_test_val: uses sklearn.model.selection.train_test_split
-      # shuffle: shuffles all data and puts first n_train_records in X_train
-      method: train_test_val
-      test_size: 0.2 # fraction of data in test split
-      validation_set: true
-      val_size: 0.1  # fraction of train split put into validation
-      seed: 42       # same seed for split train/test and val from test
-      n_train_records: 30000
   save:
     # elapsed time included by default
     fields: [feat_ids, feat_names, precision, coverage, covered_true, covered_false]
@@ -58,6 +64,6 @@ experiment:
       feat_names: [raw, names]
       covered_true: [raw, examples]
       covered_false: [raw, examples]
-  profile: true
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
   profile_out: benchmark_stats_text_use_unk_false_optimised.cprof

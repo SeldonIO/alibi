@@ -1,0 +1,74 @@
+# Example of a data processing pipeline
+data:
+  dataset: imagenet
+  load_opts:  # passed to fetch_* function which loads the data
+    args: ~   # specify as a tuple or list of arguments
+    kwargs:
+      category: Persian cat
+      nb_images: 10
+      target_size: !!python/tuple [299, 299]
+      seed: 2
+  preprocess: true
+  preprocess_opts: # only used for text data for now
+    custom: true     # specify the module where a function to be applied to the data is
+    module: tensorflow.keras.applications.inception_v3
+    preprocessor:
+      type: fcn
+      name: preprocess_input
+      args: ~ # no arguments are passed to the preprocessor
+      kwargs: ~
+  split: false # see other examples for an example where data splitting is configured
+  split_opts:
+    method: ~
+    seed: ~
+
+# Example of configuring a random forest classifier
+classifier:
+  loader_fcn: ~ # not used. In the future, it will load the parameters of a trained model
+  module: tensorflow.keras.applications.inception_v3
+  name: InceptionV3
+  weights: imagenet
+
+# Example of configuring a AnchorTabular explainer
+explainer:
+  type: image
+  segmentation_fn: slic
+  segmentation_kwargs:
+    n_segments: 15
+    compactness: 20
+    sigma: 0.5
+  shape_idx: 0  # X_train[idx] determines the image_size passed to the explainer
+  threshold: 0.95
+  p_sample: 0.5
+  tau: 0.25
+  parallel: false
+  verbose: false
+  seed: 0
+
+# Experiment settings
+experiment:
+  test_only: false # disables saving output (avoid overwriting data when testing stuff)
+  n_runs: 1
+  instance_split: ~ # can be ~/train/test
+  instance_idx: 0
+  transform_instance: true # a one-off transformation to image data. Transformation is specified in preprocess_opts
+  ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
+  ckpt: imagenet_anchor_image.pkl
+  verbose: true
+  show_covered: false
+  save:
+    # elapsed time included by default
+    fields: [anchor, segments, precision, prediction, coverage]
+    # By default, it is assumed that the experiment object has
+    # amongst its keys the values specified in fields. If this is
+    # not the case, then mapping[fields[idx]] contains a list with
+    # the keys that should be accessed in the experiment object to
+    # retrieve the data. In this example, the output dictionary will be:
+    # {'anchor': [[explanation['anchor'], ...],
+    #  'prediction':[[explanation['raw']['prediction'], ....]}
+    # The lengths of the the keys are = n_runs
+    mapping:
+      prediction: [raw, prediction]
+  profile: true
+  profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
+  profile_out: imagenet_anchor_image.cprof

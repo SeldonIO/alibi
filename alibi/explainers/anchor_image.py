@@ -14,7 +14,7 @@ DEFAULT_SLIC_SEGMENTATION_KWARGS = {'n_segments': 10, 'compactness': 10, 'sigma'
 class AnchorImage(object):
 
     def __init__(self, predict_fn: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None, images_background: np.ndarray = None) -> None:
+                 segmentation_kwargs: dict = None, images_background: np.ndarray = None, seed: int = None) -> None:
         """
         Initialize anchor image explainer.
 
@@ -32,7 +32,12 @@ class AnchorImage(object):
             Keyword arguments for the built in segmentation functions.
         images_background
             Images to overlay superpixels on.
+        seed
+            If set, ensures different runs with the same input will yield same explanation
         """
+
+        np.random.seed(seed)
+
         if segmentation_fn == 'slic' and segmentation_kwargs is None:
             segmentation_kwargs = DEFAULT_SLIC_SEGMENTATION_KWARGS
 
@@ -251,11 +256,15 @@ class AnchorImage(object):
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata
         """
+
+        print(image)
+        print(image.shape)
         # build sampling function and segments
         segments, sample_fn = self.get_sample_fn(np.reshape(image, self.image_shape), p_sample=p_sample)
 
         # get anchors and add metadata
-        exp = AnchorBaseBeam.anchor_beam(sample_fn, delta=delta,
+        mab = AnchorBaseBeam()
+        exp = mab.anchor_beam(sample_fn, delta=delta,
                                          epsilon=tau, batch_size=batch_size,
                                          desired_confidence=threshold, **kwargs)  # type: Any
         exp['instance'] = image

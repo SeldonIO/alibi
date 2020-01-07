@@ -13,9 +13,12 @@ from typing import Tuple, Union
 import logging
 from alibi.utils.data import Bunch
 
+import tensorflow.keras as keras
+
 logger = logging.getLogger(__name__)
 
 __all__ = ['fetch_adult',
+           'fetch_fashion_mnist',
            'fetch_imagenet',
            'fetch_movie_sentiment']
 
@@ -271,3 +274,12 @@ def fetch_adult(features_drop: list = None, return_X_y: bool = False) -> Union[B
         return data, labels
 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)
+
+
+def fetch_fashion_mnist():
+    target_names = {
+        0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
+        5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',
+    }
+
+    return Bunch(data=keras.datasets.fashion_mnist, target_names=target_names)

@@ -53,7 +53,7 @@ experiment:
   instance_idx: 0
   transform_instance: true # a one-off transformation to image data. Transformation is specified in preprocess_opts
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: imagenet_anchor_image.pkl
+  ckpt_prefix: imagenet_anchor_image
   verbose: true
   show_covered: false
   save:
@@ -69,6 +69,9 @@ experiment:
     # The lengths of the the keys are = n_runs
     mapping:
       prediction: [raw, prediction]
+  name:
+    beam_size: beam
+    segmentation_fn: seg
   profile: true
   profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
   profile_out: imagenet_anchor_image.cprof

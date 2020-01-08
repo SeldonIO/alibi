@@ -33,6 +33,7 @@ from alibi.utils.distributed import check_ray
 from alibi.utils.download import spacy_model
 from alibi.utils.wrappers import Predictor
 from benchmark.utils.data import FashionMnistProcessor, ImageNetPreprocessor
+from nested_lookup import nested_lookup
 
 SUPPORTED_EXPLAINERS = ['tabular', 'text', 'image']
 SUPPORTED_DATASETS = ['adult', 'imagenet', 'movie_sentiment', 'fashion_mnist', 'imagenet']
@@ -471,14 +472,15 @@ def display_explanation(pred, alternative, explanation, explainer_type, show_cov
 
 class ExplainerExperiment(object):
 
-    def __init__(self, *, data, explainer, classifier, experiment):
+    def __init__(self, *args, **kwargs):
 
-        self.dataset_name = data['dataset']
-        self.data_config = data
-        self.explainer_config = explainer
-        self.experiment_config = experiment
-        self.clf_config = classifier
+        self.dataset_name = kwargs['data']['dataset']
+        self.data_config = kwargs['data']
+        self.explainer_config = kwargs['explainer']
+        self.experiment_config = kwargs['experiment']
+        self.clf_config = kwargs['classifier']
 
+        self._all_configs = [kwargs[key] for key in kwargs.keys()]
         self._this_module = sys.modules[__name__]
         self._default_data_store = {
             'commit_hash': self.experiment_config['commit_hash'],
@@ -486,6 +488,7 @@ class ExplainerExperiment(object):
             'clf_config': {},
             'exp_config': {},
             'expln_config': {},
+            'data_config': {},
         }
         self._data_fields = self.experiment_config['save']['fields']
         self._data_mapping = self.experiment_config['save']['mapping']
@@ -494,7 +497,7 @@ class ExplainerExperiment(object):
         self._create_data_store()
 
         self.explainer = None
-        self.explainer_type = explainer['type']
+        self.explainer_type = kwargs['explainer']['type']
         self.instance = None
         self.splits = None
 
@@ -518,8 +521,8 @@ class ExplainerExperiment(object):
         # TODO: messy, tidy up by specifying the preprocess function in yaml directly
         if self.data_config['preprocess']:
             preproc_opts = self.data_config['preprocess_opts']
-            if preproc_opts:
-                if 'custom' in preproc_opts:
+            custom = 'custom' in preproc_opts if isinstance(preproc_opts, dict) else False
+            if custom:
                     obj = get_preprocessor(
                         preproc_opts['module'],
                         preproc_opts['preprocessor']['name'],
@@ -538,12 +541,12 @@ class ExplainerExperiment(object):
                         preproc = obj(*args, **kwargs)  # initialise preprocessor
                     else:
                         preproc = obj
-                else:
-                    preprocess_fcn = 'preprocess_{}'.format(self.dataset_name)
-                    preproc = getattr(self._this_module, preprocess_fcn)(
-                        dataset,
-                        self.splits,
-                        opts=self.data_config['preprocess_opts'],
+            else:
+                preprocess_fcn = 'preprocess_{}'.format(self.dataset_name)
+                preproc = getattr(self._this_module, preprocess_fcn)(
+                    dataset,
+                    self.splits,
+                    opts=self.data_config['preprocess_opts'],
                 )
         else:
             preproc = None
@@ -593,16 +596,12 @@ class ExplainerExperiment(object):
                       "files may be overwritten!")
 
             exp_config = self.experiment_config
-
-            ckpt_fmt = '{}_beam_{}_idx_{}_ncpu_{}_chunk_{}'
-            ckpt_name = ckpt_fmt.format(exp_config['ckpt'],
-                                        self.explainer_config['beam_size'],
-                                        exp_config['instance_idx'],
-                                        self.explainer_config['ncpu'],
-                                        self.explainer_config['chunksize']
-                                        )
-            fullpath = os.path.join(self.experiment_config['ckpt_dir'],
-                                    ckpt_name)
+            ckpt_name = self._get_ckpt_name(
+                exp_config['ckpt_prefix'],
+                exp_config['name'],
+                self._all_configs
+            )
+            fullpath = os.path.join(exp_config['ckpt_dir'], ckpt_name)
             fullpath = fullpath if fullpath.split(".")[-1] == 'pkl' else fullpath + '.pkl'
 
             with open(fullpath, 'wb') as f:
@@ -616,6 +615,24 @@ class ExplainerExperiment(object):
     def _create_data_store(self):
         self._data_store = {field: [] for field in self._data_fields}
         self._data_store.update(self._default_data_store)
+
+    @staticmethod
+    def _get_ckpt_name(prefix, name_mapping, all_configs):
+
+        placeholder = '{}'
+        ckpt_fmt = ''
+        values = [prefix]
+
+        for name, abbrev in name_mapping.items():
+            values.append(nested_lookup(name, all_configs)[0])
+            if abbrev:
+                name = abbrev
+            ckpt_fmt += name + '_' + placeholder + '_'
+
+        ckpt_fmt = ckpt_fmt.rstrip("_")
+        ckpt_fmt = placeholder + '_' + ckpt_fmt
+
+        return ckpt_fmt.format(*values)
 
     def _save_exp_metadata(self):
         self._data_store['data_config'] = self.data_config

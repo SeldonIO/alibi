@@ -22,11 +22,11 @@ explainer:
   type: tabular
   threshold: 0.95
   disc_perc: !!python/tuple [25, 50, 75]
-  beam_size: 10
+  beam_size: 1
   min_samples_start: 100
-  parallel: true
+  parallel: false
   chunksize: 1
-  ncpu: 4
+  ncpu: ~
   verbose: false
   seed: 0
 
@@ -35,10 +35,10 @@ experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
   n_runs: 1
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
-  instance_idx: 0
+  instance_idx: 7
   transform_instance: ~ # only used to apply a one-off transform to model input for image data
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: dummy_anchor_tabular
+  ckpt_prefix: default_anchor_tabular  # prefix of the experiment name
   verbose: true
   show_covered: false  # true will raise NotImplemented Error
   save:
@@ -57,6 +57,11 @@ experiment:
       feat_names: [raw, names]
       covered_true: [raw, examples]
       covered_false: [raw, examples]
+  name:   # if specified, values are used in output file names instead of full names
+    beam_size: beam
+    instance_idx: idx
+    ncpu: ncpu
+    chunksize: chunk
   profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData
   profile_out: default_anchor_tabular.cprof

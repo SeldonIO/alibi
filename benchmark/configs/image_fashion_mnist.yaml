@@ -52,7 +52,7 @@ experiment:
   instance_idx: 0
   transform_instance: true # a one-off transformation to image data. Transformation is specified in preprocess_opts
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: BenchmarkTestHashPassingExample2.pkl
+  ckpt_prefix: default_img_fashion_mnist
   verbose: true
   show_covered: false
   save:
@@ -68,6 +68,9 @@ experiment:
     # The lengths of the the keys are = n_runs
     mapping:
       prediction: [raw, prediction]
+  name:
+    beam_size: beam
+    p_sample: ~
   profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
   profile_out: anchor_image_fashion_mnist.cprof

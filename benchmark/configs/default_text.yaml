@@ -45,7 +45,7 @@ experiment:
   instance_idx: 4
   transform_instance: ~ # only used to apply a one-off transform to model input for image data
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
-  ckpt: default_anchor_text.pkl
+  ckpt_prefix: default_anchor_text
   verbose: true
   show_covered: true
   save:
@@ -64,6 +64,10 @@ experiment:
       feat_names: [raw, names]
       covered_true: [raw, examples]
       covered_false: [raw, examples]
+  name:
+    beam_size: beam
+    instance_idx: idx
+    use_unk: unk
   profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
   profile_out: benchmark_stats_text_use_unk_false_optimised.cprof

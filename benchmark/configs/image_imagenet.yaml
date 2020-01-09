@@ -72,6 +72,6 @@ experiment:
   name:
     beam_size: beam
     segmentation_fn: seg
-  profile: true
+  profile: false
   profile_dir: /home/alex/git/work_experiments/ProfileData/dummy
   profile_out: imagenet_anchor_image.cprof

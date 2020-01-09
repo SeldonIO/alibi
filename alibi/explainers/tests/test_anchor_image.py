@@ -36,7 +36,7 @@ def test_anchor_image():
     image_shape = (28, 28, 1)
     explainer = AnchorImage(predict_fn, image_shape, segmentation_fn=segmentation_fn,
                             segmentation_kwargs=segmentation_kwargs)
-    assert explainer.predict_fn(np.zeros((1,) + image_shape)).shape == (1,)
+    assert explainer.predictor(np.zeros((1,) + image_shape)).shape == (1,)
 
     # test sampling and segmentation functions
     image = x_train[0]

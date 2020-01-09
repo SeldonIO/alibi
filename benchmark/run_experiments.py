@@ -97,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument("--config",
                         nargs="?",
                         type=str,
-                        default="configs/config.yaml",
+                        default="configs/default_tabular.yaml",
                         help="Default experiment configuration file for the experiment. "
                              "This configuration is to be modified to launch experiments",
                         )

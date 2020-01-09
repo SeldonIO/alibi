@@ -732,7 +732,7 @@ if __name__ == '__main__':
     parser.add_argument("--config",
                         nargs="?",
                         type=str,
-                        default="configs/config.yaml",
+                        default="configs/default_tabular.yaml",
                         help="Configuration file for the experiment.",
                         )
     parser.add_argument("--hash",

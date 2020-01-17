@@ -1,6 +1,7 @@
 import numpy as np
-from typing import Dict, Callable, List, Union, Sequence
+
 from functools import partial
+from typing import Dict, Callable, List, Sequence, Union
 
 
 class Discretizer(object):
@@ -28,8 +29,8 @@ class Discretizer(object):
         bins = self.bins(data)
         bins = [np.unique(x) for x in bins]
 
-        self.feature_intervals = {}  # type: Dict[int, list]
-        self.lambdas = {}            # type: Dict[int, Callable] # TODO: Fix typing
+        self.feature_intervals: Dict[int, list] = {}
+        self.lambdas: Dict[int, Callable] = {}
         for feature, qts in zip(self.to_discretize, bins):
 
             # get nb of borders (nb of bins - 1) and the feature name
@@ -58,10 +59,12 @@ class Discretizer(object):
         -------
         List with bin values for each feature that is discretized.
         """
+
         bins = []
         for feature in self.to_discretize:
             qts = np.array(np.percentile(data[:, feature], self.percentiles))
             bins.append(qts)
+
         return bins
 
     def discretize(self, data: np.ndarray) -> np.ndarray:
@@ -75,10 +78,12 @@ class Discretizer(object):
         -------
         Discretized version of data with the same dimension.
         """
+
         data_disc = data.copy()
         for feature in self.lambdas:
             if len(data.shape) == 1:
                 data_disc[feature] = int(self.lambdas[feature](data_disc[feature]))
             else:
                 data_disc[:, feature] = self.lambdas[feature](data_disc[:, feature]).astype(int)
+
         return data_disc

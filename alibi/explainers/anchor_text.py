@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union
 
 from alibi.utils.wrappers import ArgmaxTransformer
 
@@ -111,16 +111,15 @@ class AnchorText(object):
             self.predictor = ArgmaxTransformer(predictor)
 
         self.neighbors = Neighbors(self.nlp)
-        self.tokens, self.words, self.positions = [], [], []  # type: List, List, List
-        # dict containing an np.array of similar words with same part of speech and an np.array
-        # of similarities
-        self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
+        # dict containing an np.array of similar words with same part of speech and an np.array of similarities
+        self.neighbours: Dict[str, Dict[str, np.ndarray]] = {}
         self.perturbation: Callable = None  # the method used to generate samples
 
     def set_words_and_pos(self, text: str) -> None:
         """
-        Process the sentence to be explained into spaCy token objects, a list of words and
-        a list of positions in input sentence.
+        Process the sentence to be explained into spaCy token objects, a list of words,
+        punctuation marks and a list of positions in input sentence.
 
         Parameters
         ----------
@@ -131,9 +130,11 @@ class AnchorText(object):
         processed = self.nlp(text)                   # spaCy tokens for text
         self.words = [x.text for x in processed]     # list with words in text
         self.positions = [x.idx for x in processed]  # positions of words in text
+        self.punctuation = [x for x in processed if x.is_punct]
         self.tokens = processed
 
-    def sampler(self, anchor: tuple, num_samples: int, c_labels: bool = True) -> list:
+    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, c_labels: bool = True) -> \
+            Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Generate perturbed samples while maintaining features in positions specified in
         anchor unchanged.
@@ -141,9 +142,8 @@ class AnchorText(object):
         Parameters
         ----------
         anchor
-            Two-element tuple; first element is the position of the anchor in the input batch,
-            second the anchor itself. First argument used to support unordered parallel
-            functions.
+            int: the position of the anchor in the input batch
+            tuple: the anchor itself, a list of words to be kept unchanged
         num_samples
             Number of generated perturbed samples.
         c_labels
@@ -153,17 +153,16 @@ class AnchorText(object):
         Returns
         -------
             If c_labels=True, a list containing the following is returned:
-             - covered_true (np.ndarray): an array containing perturbed examples where the anchor
-                     applies and the model prediction on perturbed is the same as the instance prediction
-                - covered_false (np.ndarray): an array containing examples where the anchor
-                     applies and the model prediction is NOT the same as the instance prediction
-                - labels (np.ndarray): an np.array with num_samples ints indicating whether
-                     the prediction on the perturbed sample matches (1) the label of the instance
-                     to be explained or not (0)
-                - data (np.ndarray): Matrix with 1s and 0s indicating whether a word in the text has been
+             - covered_true: perturbed examples where the anchor applies and the model prediction
+                    on perturbation is the same as the instance prediction
+             - covered_false: perturbed examples where the anchor applies and the model prediction
+                    is NOT the same as the instance prediction
+             - labels: num_samples ints indicating whether the prediction on the perturbed sample
+                    matches (1) the label of the instance to be explained or not (0)
+             - data: Matrix with 1s and 0s indicating whether a word in the text has been
                      perturbed for each sample
-                - 1.0: indicates exact coverage is not computed for this algorithm
-                - anchor[0]: position of anchor in the batch request
+             - 1.0: indicates exact coverage is not computed for this algorithm
+             - anchor[0]: position of anchor in the batch request
             Otherwise, a list containing the data matrix only is returned.
         """
 
@@ -218,8 +217,8 @@ class AnchorText(object):
         """
 
         if use_unk and perturb_opts['use_similarity_proba']:
-            logger.warning('"use_unk" and "use_similarity_proba" args should not '
-                           'both be True. Defaulting to "use_unk" behaviour.')
+            logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
+                           'Defaulting to "use_unk" behaviour.')
 
         # Set object properties used by both samplers
         self.perturb_opts = perturb_opts
@@ -426,7 +425,7 @@ class AnchorText(object):
         max_sent_len, max_len = 0, 0
         if use_unk:
             max_len = max(len(self.UNK), len(max(self.words, key=len)))
-            max_sent_len = len(self.words)*max_len + 1
+            max_sent_len = len(self.words)*max_len + len(self.UNK)*len(self.punctuation) + 1
         else:
             for word in self.words:
                 similar_words = self.neighbours[word]['words']

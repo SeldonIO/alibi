@@ -179,14 +179,17 @@ class TabularSampler(object):
 
         Returns
         -------
-        raw_data
-            Sampled data from training set
-        data
-            Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
-        labels
-            Create labels using model predictions if c_labels equals True
-        result
-            The index of result sampled in request array (used to speed up parallelisation)
+            If c_labels=True, a list containing the following is returned:
+             - covered_true: perturbed examples where the anchor applies and the model prediction
+                    on perturbation is the same as the instance prediction
+             - covered_false: perturbed examples where the anchor applies and the model prediction
+                    is NOT the same as the instance prediction
+             - labels: num_samples ints indicating whether the prediction on the perturbed sample
+                    matches (1) the label of the instance to be explained or not (0)
+             - data: Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
+             - coverage: the coverage of the anchor
+             - anchor[0]: position of anchor in the batch request
+            Otherwise, a list containing the data matrix only is returned.
         """
 
         raw_data, d_raw_data, coverage = self.perturbation(anchor[1], num_samples)

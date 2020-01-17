@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from functools import partial
-from typing import Any, Callable, Tuple
+from typing import Any, Callable, List, Tuple, Union
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from .anchor_base import AnchorBaseBeam
@@ -23,7 +23,8 @@ DEFAULT_SEGMENTATION_KWARGS = {
 class AnchorImage(object):
 
     def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None, images_background: np.ndarray = None, seed: int = None) -> None:
+                 segmentation_kwargs: dict = None, images_background: np.ndarray = None,
+                 seed: int = None) -> None:
         """
         Initialize anchor image explainer.
 
@@ -78,10 +79,11 @@ class AnchorImage(object):
 
         self.images_background = images_background
         self.image_shape = image_shape
-        self.segments: np.ndarray = None  # [H, W] int array; each int is a superpixel labels
-        self.segment_labels: list = None  # superpixel labels
-        self.image: np.ndarray = None     # instance to be explained
-        self.p_sample: float = 0.5        # a superpixel is perturbed with prob 1 - p_sample
+        self.segments: np.ndarray = None    # [H, W] int array; each int is a superpixel labels
+        self.segment_labels: list = None    # superpixel labels
+        self.image: np.ndarray = None       # instance to be explained
+        self.image_segm: np.ndarray = None  # image processed by segmentation preprocessor
+        self.p_sample: float = 0.5          # a superpixel is perturbed with prob 1 - p_sample
 
     def generate_superpixels(self, image: np.ndarray) -> np.ndarray:
         """
@@ -97,13 +99,33 @@ class AnchorImage(object):
             A [H, W] array of integers. Each integer is a segment (superpixel) label.
         """
 
+        image_segm = self._preprocess_img(image)
+
+        return self.segmentation_fn(image_segm)
+
+    def _preprocess_img(self, image: np.ndarray) -> np.ndarray:
+        """
+        Applies necessary transformations to the image prior to segmentation.
+
+        Parameters
+        ----------
+        image
+            A grayscale or RGB image.
+
+        Returns
+        -------
+            A preprocessed image.
+        """
+
         # Grayscale images are repeated across channels
         if not self.custom_segmentation and image.shape[-1] == 1:
             image_segm = np.repeat(image, 3, axis=2)
         else:
             image_segm = image.copy()
 
-        return self.segmentation_fn(image_segm)
+        self.image_segm = image_segm
+
+        return image_segm
 
     def _choose_superpixels(self, num_samples: int, p_sample: float = 0.5) -> np.ndarray:
         """
@@ -130,7 +152,8 @@ class AnchorImage(object):
 
         return data
 
-    def sampler(self, anchor: tuple, num_samples: int, c_labels: bool = True) -> list:
+    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, c_labels: bool = True) -> \
+            Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Sample images from a perturbation distribution by masking randomly chosen superpixels
         from the original image and replacing them with pixel values from superimposed images
@@ -140,7 +163,8 @@ class AnchorImage(object):
         Parameters
         ----------
         anchor
-            List with features (= superpixels) present in the proposed anchor
+            int: order of anchor in the batch
+            tuple: features (= superpixels) present in the proposed anchor
         num_samples
             Number of samples used
         c_labels
@@ -149,14 +173,13 @@ class AnchorImage(object):
         Returns
         -------
             If c_labels=True, a list containing the following is returned:
-                - covered_true (np.ndarray): an array containing perturbed examples where the anchor
-                    applies and the model prediction on perturbed is the same as the instance prediction
-                - covered_false (np.ndarray): an array containing examples where the anchor applies and
-                    the model prediction on pertrurbed sample is NOT the same as the instance prediction
-                - labels (np.ndarray): an np.array with num_samples ints indicating whether
-                    the prediction on the perturbed sample matches (1) the label of the instance to be
-                    explained or not (0)
-                - data (np.ndarray): Matrix with 1s and 0s indicating whether the values in a superpixel will
+                - covered_true: perturbed examples where the anchor applies and the model prediction
+                    on perturbed is the same as the instance prediction
+                - covered_false: perturbed examples where the anchor applies and the model prediction
+                    on pertrurbed sample is NOT the same as the instance prediction
+                - labels: num_samples ints indicating whether the prediction on the perturbed sample
+                    matches (1) the label of the instance to be explained or not (0)
+                - data: Matrix with 1s and 0s indicating whether the values in a superpixel will
                     remain unchanged (1) or will be perturbed (0), for each sample
                 - 1.0: indicates exact coverage is not computed for this algorithm
                 - anchor[0]: position of anchor in the batch request
@@ -221,8 +244,8 @@ class AnchorImage(object):
             segments_mask = np.hstack((segments_mask, backgrounds.reshape(-1, 1)))
         else:
             backgrounds = [None] * segments_mask.shape[0]
-            # create fudged image where the pixel value in each superpixel is set to the average over the
-            # superpixel for each channel
+            # create fudged image where the pixel value in each superpixel is set to the
+            # average over the superpixel for each channel
             fudged_image = image.copy()
             n_channels = image.shape[-1]
             for x in np.unique(segments):

@@ -28,14 +28,14 @@ explainer:
   chunksize: 1
   ncpu: ~
   verbose: false
-  seed: 0
+  seed: 3
 
 # Experiment settings
 experiment:
   test_only: false # disables saving output (avoid overwriting data when testing stuff)
-  n_runs: 1
+  n_runs: 100
   instance_split: test # can be train or ~ (aka None - taken from data before splitting)
-  instance_idx: 7
+  instance_idx: 0
   transform_instance: ~ # only used to apply a one-off transform to model input for image data
   ckpt_dir: /home/alex/git/work_experiments/BenchmarkTest
   ckpt_prefix: default_anchor_tabular  # prefix of the experiment name

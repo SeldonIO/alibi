@@ -22,7 +22,7 @@ class FashionMnistProcessor:
 
         self.add_singleton_channel = add_singleton_channel
 
-    def __call__(self, X, add_batch_dim=False,*args, **kwargs):
+    def __call__(self, X, add_batch_dim=False, *args, **kwargs):
         return self.transform_x(X, add_batch_dim=add_batch_dim)
 
     def transform_x(self, X, add_batch_dim=False):

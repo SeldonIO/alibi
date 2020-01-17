@@ -18,7 +18,7 @@ def logistic_iris():
 
 
 @pytest.fixture
-def iris_explainer(request, logistic_iris):
+def cf_iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lr.predict_proba
     cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
@@ -63,7 +63,7 @@ def keras_logistic_mnist(request):
 
 
 @pytest.fixture
-def keras_mnist_explainer(request, keras_logistic_mnist):
+def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     X, y, model = keras_logistic_mnist
     cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
@@ -96,9 +96,9 @@ def test_define_func(logistic_iris, target_class):
         assert func(x) == probas[:, ix2]
 
 
-@pytest.mark.parametrize('iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
-def test_cf_explainer_iris(iris_explainer):
-    X, y, lr, cf = iris_explainer
+@pytest.mark.parametrize('cf_iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
+def test_cf_explainer_iris(cf_iris_explainer):
+    X, y, lr, cf = cf_iris_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
     pred_class = probas.argmax()
@@ -130,11 +130,10 @@ def test_cf_explainer_iris(iris_explainer):
     if exp['success']:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
-
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
-@pytest.mark.parametrize('keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
-def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explainer):
-    X, y, model, cf = keras_mnist_explainer
+@pytest.mark.parametrize('keras_mnist_cf_explainer', ['other', 'same', 4, 9], indirect=True)
+def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_explainer):
+    X, y, model, cf = keras_mnist_cf_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
     pred_class = probas.argmax()

@@ -51,10 +51,11 @@ BUILTIN_SEGMENTATIONS = ['felzenszwalb', 'slic', 'quickshift']
 #   checked in a generic pre-process fcn. If that's not specified, then it should be deferred to a specific one
 #  (i.e. implement this in the context manager)
 # TODO: The preprocessors for all data should work by specifying the module, preprocessor and options for all
-#  data (so we should not have a preprocess_* or custom arguments, just define a function that takes the data as an arg, its args and
-#  and kwargs and that's it)
+#  data (so we should not have a preprocess_* or custom arguments, just define a function that takes the data as an arg,
+#  its args and and kwargs and that's it)
 # TODO: In the future the classifier/model should be specified via module + class name or fcn name. A separate
-#  fit option with args and kwargs to pass to the fit_* function. Raise value error if fit_* doesn't exist in utils.models
+#  fit option with args and kwargs to pass to the fit_* function. Raise value error if fit_*
+#  doesn't exist in utils.models
 
 
 class Timer:
@@ -404,9 +405,7 @@ def get_image_explainer(predictor, config, dataset=None, split=None):
 
 def get_explanation(explainer, instance, expln_config):
     # TODO: not nice to pass random crap as kwargs to the explain, separate that out in yaml
-    return explainer.explain(instance,
-                             **expln_config,
-                             )
+    return explainer.explain(instance, **expln_config)
 
 
 def _display_prediction(predict_fn, instance_id, splits, dataset):
@@ -523,24 +522,24 @@ class ExplainerExperiment(object):
             preproc_opts = self.data_config['preprocess_opts']
             custom = 'custom' in preproc_opts if isinstance(preproc_opts, dict) else False
             if custom:
-                    obj = get_preprocessor(
-                        preproc_opts['module'],
-                        preproc_opts['preprocessor']['name'],
-                    )
-                    # TODO: There has to be a better way to do this
-                    if not preproc_opts['preprocessor']['args']:
-                        args = ()
-                    else:
-                        args = preproc_opts['preprocessor']['args']
-                    if not preproc_opts['preprocessor']['kwargs']:
-                        kwargs = {}
-                    else:
-                        kwargs = preproc_opts['preprocessor']['kwargs']
+                obj = get_preprocessor(
+                    preproc_opts['module'],
+                    preproc_opts['preprocessor']['name'],
+                )
+                # TODO: There has to be a better way to do this
+                if not preproc_opts['preprocessor']['args']:
+                    args = ()
+                else:
+                    args = preproc_opts['preprocessor']['args']
+                if not preproc_opts['preprocessor']['kwargs']:
+                    kwargs = {}
+                else:
+                    kwargs = preproc_opts['preprocessor']['kwargs']
 
-                    if preproc_opts['preprocessor']['type'] == 'obj':
-                        preproc = obj(*args, **kwargs)  # initialise preprocessor
-                    else:
-                        preproc = obj
+                if preproc_opts['preprocessor']['type'] == 'obj':
+                    preproc = obj(*args, **kwargs)  # initialise preprocessor
+                else:
+                    preproc = obj
             else:
                 preprocess_fcn = 'preprocess_{}'.format(self.dataset_name)
                 preproc = getattr(self._this_module, preprocess_fcn)(
@@ -592,7 +591,7 @@ class ExplainerExperiment(object):
             if not os.path.exists(self.experiment_config['ckpt_dir']):
                 os.makedirs(self.experiment_config['ckpt_dir'])
             else:
-                print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging 
+                print("WARNING: Checkpoint directory already exists, "  # TODO: Setup logging
                       "files may be overwritten!")
 
             exp_config = self.experiment_config
@@ -698,7 +697,7 @@ def run_experiment(config):
     check(config)
 
     with ExplainerExperiment(**config) as exp:
-        for _ in range(n_runs):
+        for run in range(n_runs):
             with Timer() as time:
                 explanation = get_explanation(exp.explainer, exp.instance, exp.explainer_config)
             exp.update(explanation, time.t_elapsed)

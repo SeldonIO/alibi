@@ -76,12 +76,3 @@ def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
         category_map[col] = list(le.classes_)
 
     return category_map
-
-
-class ArgmaxTransformer(object):
-
-    def __init__(self, predictor):
-        self.predictor = predictor
-
-    def __call__(self, x):
-        return np.argmax(self.predictor(x), axis=1)

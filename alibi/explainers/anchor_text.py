@@ -2,7 +2,7 @@ import logging
 import numpy as np
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING
 
-from alibi.utils.data import ArgmaxTransformer
+from alibi.utils.wrappers import ArgmaxTransformer
 
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
@@ -153,24 +153,24 @@ class AnchorText(object):
         Returns
         -------
             If c_labels=True, a list containing the following is returned:
-                - covered_true (np.ndarray): an array containing examples where the anchor
-                    applies and the model prediction is the same as the instance prediction
+             - covered_true (np.ndarray): an array containing perturbed examples where the anchor
+                     applies and the model prediction on perturbed is the same as the instance prediction
                 - covered_false (np.ndarray): an array containing examples where the anchor
                      applies and the model prediction is NOT the same as the instance prediction
                 - labels (np.ndarray): an np.array with num_samples ints indicating whether
                      the prediction on the perturbed sample matches (1) the label of the instance
                      to be explained or not (0)
-                data (np.ndarray): Matrix with 1s and 0s indicating whether a word in the text has been
+                - data (np.ndarray): Matrix with 1s and 0s indicating whether a word in the text has been
                      perturbed for each sample
-                -1.0: indicates exact coverage is not computed for this algorithm
-                anchor[0]: position of anchor in the batch request
+                - 1.0: indicates exact coverage is not computed for this algorithm
+                - anchor[0]: position of anchor in the batch request
             Otherwise, a list containing the data matrix only is returned.
         """
 
         raw_data, data = self.perturbation(anchor[1], num_samples)
         # create labels using model predictions as true labels
         if c_labels:
-            labels = self.compute_prec(raw_data)
+            labels = self.compare_labels(raw_data)
             covered_true = raw_data[labels][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels)][:self.n_covered_ex]
             # coverage set to -1.0 as we can't compute 'true'coverage for this model
@@ -178,7 +178,7 @@ class AnchorText(object):
         else:
             return [data]
 
-    def compute_prec(self, samples: np.ndarray) -> np.ndarray:
+    def compare_labels(self, samples: np.ndarray) -> np.ndarray:
         """
         Compute the agreement between a classifier prediction on an instance to be explained
         and the prediction on a set of samples which have a subset of features fixed to a
@@ -191,7 +191,7 @@ class AnchorText(object):
 
         Returns
         -------
-            An array of integers indicating whether the prediction was the same as the instance label.
+            A boolean array indicating whether the prediction was the same as the instance label.
         """
 
         return self.predictor(samples.tolist()) == self.instance_label
@@ -259,7 +259,8 @@ class AnchorText(object):
         raw[:] = words
 
         for i, t in enumerate(words):
-            if i in anchor:  # if the index corresponds to the index of a word in the anchor
+
+            if i in anchor:
                 continue
 
             # sample the words in the text outside of the anchor that are replaced with UNKs
@@ -289,15 +290,16 @@ class AnchorText(object):
         -------
             see _unk method
         """
-        return self.perturb_sentence(anchor,
-                                     num_samples,
-                                     **self.perturb_opts,
-                                     )
+        return self.perturb_sentence(
+            anchor,
+            num_samples,
+            **self.perturb_opts,
+         )
 
     @staticmethod
     def _joiner(arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
         """
-        Function to concatenate an np.array of strings along a specified axis
+        Function to concatenate an np.array of strings along a specified axis.
 
         Parameters
         ----------
@@ -417,7 +419,7 @@ class AnchorText(object):
         Parameters
         ----------
         use_unk
-            see explain method
+            See explain method.
         """
 
         # Compute the maximum sentence length as a function of the perturbation method
@@ -433,13 +435,11 @@ class AnchorText(object):
                 max_sent_len += max_len
         self.dtype = '<U' + str(max_sent_len)
 
-    def explain(self, text: str, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, top_n: int = 100,
-                desired_label: int = None, max_anchor_size: int = None, beam_size: int = 1,
-                stop_on_first: bool = True, min_samples_start: int = 1, n_covered_ex: int = 10,
-                use_similarity_proba: bool = False, use_unk: bool = True, temperature: float = 1.,
-                sample_proba: float = 0.5, coverage_samples: int = 10000,
-                data_store_size: int = 10000, **kwargs: Any) -> dict:
+    def explain(self, text: str, use_unk: bool = True, use_similarity_proba: bool = False, sample_proba: float = 0.5,
+                top_n: int = 100, temperature: float = 1., threshold: float = 0.95, delta: float = 0.1,
+                tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
+                stop_on_first: bool = True, max_anchor_size: int = None, min_samples_start: int = 100,
+                n_covered_ex: int = 10, binary_cache_size: int = 10000, **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -447,6 +447,18 @@ class AnchorText(object):
         ----------
         text
             Text instance to be explained.
+        use_unk
+            If True, perturbation distribution will replace words randomly with UNKs.
+            If False, words will be replaced by similar words using word embeddings.
+        use_similarity_proba
+            Sample according to a similarity score with the corpus embeddings
+            use_unk needs to be False in order for this to be used.
+        sample_proba
+            Sample probability if use_similarity_proba is False.
+        top_n
+            Number of similar words to sample for perturbations, only used if use_proba=True.
+        temperature
+            Sample weight hyperparameter if use_similarity_proba equals True.
         threshold
             Minimum precision threshold.
         delta
@@ -455,39 +467,25 @@ class AnchorText(object):
             Margin between lower confidence bound and minimum precision or upper bound.
         batch_size
             Batch size used for sampling.
-        top_n
-            Number of similar words to sample for perturbations, only used if use_proba=True.
-        desired_label
-            Label to use as true label for the instance to be explained.
+        coverage_samples
+            Number of samples used to estimate coverage from during anchor search.
+        beam_size
+            Number of options kept after each stage of anchor building.
+        stop_on_first
+            If True, the beam search algorithm will return the first anchor that has satisfies the
+            probability constraint.
         max_anchor_size
             Maximum number of features to include in an anchor.
         min_samples_start
             Number of samples used for anchor search initialisation.
-        beam_size
-            Number of options kept after each stage of anchor building.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
-        use_similarity_proba
-            Sample according to a similarity score with the corpus embeddings
-            use_unk needs to be False in order for this to be used.
-        use_unk
-            If True, perturbation distribution will replace words randomly with UNKs.
-            If False, words will be replaced by similar words using word embeddings.
-        sample_proba
-            Sample probability if use_similarity_proba is False.
-        stop_on_first
-            If True, the beam search algorithm will return the first anchor that has satisfies the
-            probability constraint.
-        temperature
-            Sample weight hyperparameter if use_similarity_proba equals True.
-        coverage_samples
-            Number of samples used to estimate coverage from during anchor search.
-        data_store_size
+            (both examples where prediction on samples agrees/disagrees with predicted label are stored).
+        binary_cache_size
             The anchor search pre-allocates binary_cache_size batches for storing the boolean arrays
             returned during sampling.
         kwargs
-            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions
+            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
 
         Returns
         -------
@@ -497,13 +495,7 @@ class AnchorText(object):
 
         # store n_covered_ex positive/negative examples for each anchor
         self.n_covered_ex = n_covered_ex
-        # set the instance label
-        true_label = desired_label
-        if true_label is None:
-            self.instance_label = self.predictor([text])[0]
-        else:
-            self.instance_label = desired_label
-
+        self.instance_label = self.predictor([text])[0]
         # find words and their positions in the text instance
         self.set_words_and_pos(text)
 
@@ -519,49 +511,48 @@ class AnchorText(object):
         self.set_data_type(use_unk)
 
         # get anchors and add metadata
-        mab = AnchorBaseBeam(samplers=[self.sampler],
-                             **kwargs,
-                             )
-        anchor = mab.anchor_beam(delta=delta,
-                                 epsilon=tau,
-                                 batch_size=batch_size,
-                                 desired_confidence=threshold,
-                                 max_anchor_size=max_anchor_size,
-                                 min_samples_start=min_samples_start,
-                                 beam_size=beam_size,
-                                 coverage_samples=coverage_samples,
-                                 data_store_size=data_store_size,
-                                 stop_on_first=stop_on_first,
-                                 **kwargs)  # type: Any
-        anchor['names'] = [self.words[x] for x in anchor['feature']]
-        anchor['positions'] = [self.positions[x] for x in anchor['feature']]
+        mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
+        result: Any = mab.anchor_beam(
+            delta=delta,
+            epsilon=tau,
+            batch_size=batch_size,
+            desired_confidence=threshold,
+            max_anchor_size=max_anchor_size,
+            min_samples_start=min_samples_start,
+            beam_size=beam_size,
+            coverage_samples=coverage_samples,
+            sample_cache_size=binary_cache_size,
+            stop_on_first=stop_on_first,
+            **kwargs,
+        )
+        result['names'] = [self.words[x] for x in result['feature']]
+        result['positions'] = [self.positions[x] for x in result['feature']]
+        self.mab = mab
 
-        return self.build_explanation(anchor, text, true_label)
+        return self.build_explanation(text, result, self.instance_label)
 
-    def build_explanation(self, anchor: dict, text: str, true_label: int = None) -> dict:
+    def build_explanation(self, text: str, result: dict, predicted_label: int) -> dict:
         """ Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
 
         Parameters
         ----------
-        anchor
-            Dictionary containing the search result and metadata
         text
-            Instance to be explained
-        true_label
+            Instance to be explained.
+        result
+            Dictionary containing the search result and metadata.
+        predicted_label
             Label of the instance to be explained. Inferred if not received.
         """
 
-        anchor['instance'] = text
-        if true_label is None:
-            anchor['prediction'] = self.predictor([text])[0]
-        else:
-            anchor['prediction'] = self.instance_label
-        exp = AnchorExplanation('text', anchor)
+        result['instance'] = text
+        result['prediction'] = predicted_label
+        exp = AnchorExplanation('text', result)
 
         return {
             'names': exp.names(),
             'precision': exp.precision(),
             'coverage': exp.coverage(),
-            'raw': exp.exp_map
+            'raw': exp.exp_map,
+            'meta': {'name': self.__class__.__name__}
         }

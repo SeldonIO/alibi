@@ -6,7 +6,7 @@ import numpy as np
 from functools import partial
 from typing import Any, Callable, Tuple
 
-from alibi.utils.data import ArgmaxTransformer
+from alibi.utils.wrappers import ArgmaxTransformer
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from skimage.segmentation import felzenszwalb, slic, quickshift
@@ -25,7 +25,7 @@ class AnchorImage(object):
     def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None, images_background: np.ndarray = None, seed: int = None) -> None:
         """
-        Initialize result image explainer.
+        Initialize anchor image explainer.
 
         Parameters
         ----------
@@ -49,16 +49,15 @@ class AnchorImage(object):
 
         if isinstance(segmentation_fn, str) and not segmentation_kwargs:
             try:
-                segmentation_kwargs = DEFAULT_SEGMENTATION_KWARGS[segmentation_fn]
+                segmentation_kwargs = DEFAULT_SEGMENTATION_KWARGS[segmentation_fn]  # type: ignore
             except KeyError:
                 logger.warning('DEFAULT_SEGMENTATION_KWARGS did not contain any entry'
                                'for segmentation method {}. No kwargs will be passed to'
                                'the segmentation function!'.format(segmentation_fn))
                 segmentation_kwargs = {}
-
         elif callable(segmentation_fn) and segmentation_kwargs:
-            logger.warning('Specified both a segmentation function to create superpixels and keyword '
-                           'arguments for built segmentation functions. By default '
+            logger.warning('Specified both a segmentation function to create superpixels and '
+                           'keyword arguments for built segmentation functions. By default '
                            'the specified segmentation function will be used.')
 
         # check if predictor returns predicted class or prediction probabilities for each class
@@ -141,7 +140,7 @@ class AnchorImage(object):
         Parameters
         ----------
         anchor
-            List with segment_labels (= superpixels) present in the proposed result
+            List with features (= superpixels) present in the proposed anchor
         num_samples
             Number of samples used
         c_labels
@@ -150,9 +149,9 @@ class AnchorImage(object):
         Returns
         -------
             If c_labels=True, a list containing the following is returned:
-                - covered_true (np.ndarray): an array containing perturbed examples where the result
+                - covered_true (np.ndarray): an array containing perturbed examples where the anchor
                     applies and the model prediction on perturbed is the same as the instance prediction
-                - covered_false (np.ndarray): an array containing examples where the result applies and
+                - covered_false (np.ndarray): an array containing examples where the anchor applies and
                     the model prediction on pertrurbed sample is NOT the same as the instance prediction
                 - labels (np.ndarray): an np.array with num_samples ints indicating whether
                     the prediction on the perturbed sample matches (1) the label of the instance to be
@@ -160,7 +159,7 @@ class AnchorImage(object):
                 - data (np.ndarray): Matrix with 1s and 0s indicating whether the values in a superpixel will
                     remain unchanged (1) or will be perturbed (0), for each sample
                 - 1.0: indicates exact coverage is not computed for this algorithm
-                - result[0]: position of result in the batch request
+                - anchor[0]: position of anchor in the batch request
             Otherwise, a list containing the data matrix only is returned.
         """
 
@@ -177,7 +176,7 @@ class AnchorImage(object):
 
         else:
             data = self._choose_superpixels(num_samples)
-            data[:, anchor[1]] = 1  # superpixels in candidate result are not perturbed
+            data[:, anchor[1]] = 1  # superpixels in candidate anchor are not perturbed
 
             return [data]
 
@@ -215,11 +214,11 @@ class AnchorImage(object):
         # for each sample, need to sample one of the background images if provided
         if self.images_background:
             backgrounds = np.random.choice(
-                range(len(self.images_background)), 
-                segments_mask.shape[0], 
+                range(len(self.images_background)),
+                segments_mask.shape[0],
                 replace=True,
             )
-            segments_mask = np.hstack((segments_mask, backgrounds.reshape(-1, 1)))  
+            segments_mask = np.hstack((segments_mask, backgrounds.reshape(-1, 1)))
         else:
             backgrounds = [None] * segments_mask.shape[0]
             # create fudged image where the pixel value in each superpixel is set to the average over the
@@ -264,17 +263,20 @@ class AnchorImage(object):
 
         return self.predictor(samples) == self.instance_label
 
-    def explain(self, image: np.ndarray, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, p_sample: float = 0.5,
-                n_covered_ex: int = 10, **kwargs: Any) -> dict:
+    def explain(self, image: np.ndarray, p_sample: float = 0.5, threshold: float = 0.95, delta: float = 0.1,
+                tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
+                stop_on_first: bool = False, max_anchor_size: int = None, min_samples_start: int = 100,
+                n_covered_ex: int = 10, binary_cache_size: int = 10000, **kwargs: Any) -> dict:
 
         """
-        Explain instance and return result with metadata.
+        Explain instance and return anchor with metadata.
 
         Parameters
         ----------
         image
             Image to be explained.
+        p_sample
+            Probability for a pixel to be represented by the average value of its superpixel.
         threshold
             Minimum precision threshold.
         delta
@@ -283,19 +285,29 @@ class AnchorImage(object):
             Margin between lower confidence bound and minimum precision of upper bound.
         batch_size
             Batch size used for sampling.
-        p_sample
-            Probability for a pixel to be represented by the average value of its superpixel.
+        coverage_samples
+            Number of samples used to estimate coverage from during result search.
+        beam_size
+            The number of anchors extended at each step of new anchors construction.
+        stop_on_first
+            If True, the beam search algorithm will return the first anchor that has satisfies the
+            probability constraint.
+        max_anchor_size
+            Maximum number of features in result.
+        min_samples_start
+            Min number of initial samples.
         n_covered_ex
-            How many examples where anchors apply to store for each result sampled during search
+            How many examples where anchors apply to store for each anchor sampled during search
             (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+        binary_cache_size
+            The result search pre-allocates binary_cache_size batches for storing the binary arrays
+            returned during sampling.
 
         Returns
         -------
         explanation
-            Dictionary containing the result explaining the instance with additional metadata.
+            Dictionary containing the anchor explaining the instance with additional metadata.
         """
-
-        # TODO: Decide if additional arguments should be specified here (e.g., beam, max_anchor_size, top_n etc)
 
         self.image = image
         self.n_covered_ex = n_covered_ex
@@ -305,41 +317,48 @@ class AnchorImage(object):
         self.instance_label = self.predictor(image[np.newaxis, ...])[0]
 
         # get anchors and add metadata
-        self.mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
-        result: Any = self.mab.anchor_beam(
+        mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
+        result: Any = mab.anchor_beam(
+            desired_confidence=threshold,
             delta=delta,
             epsilon=tau,
             batch_size=batch_size,
-            desired_confidence=threshold,
+            coverage_samples=coverage_samples,
+            beam_size=beam_size,
+            stop_on_first=stop_on_first,
+            max_anchor_size=max_anchor_size,
+            min_samples_start=min_samples_start,
+            sample_cache_size=binary_cache_size,
             **kwargs,
         )
+        self.mab = mab
 
         return self.build_explanation(image, result, self.instance_label)
 
-    def build_explanation(self, image: np.ndarray, exp: dict, true_label: int) -> dict:
+    def build_explanation(self, image: np.ndarray, result: dict, predicted_label: int) -> dict:
         """
-        Uses the metadata returned by the result search algorithm together with
+        Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
 
         Parameters
         ----------
         image
             Instance to be explained.
-        exp
-            Dictionary containing the search result and metadata.
-        true_label
+        result
+            Dictionary containing the search anchor and metadata.
+        predicted_label
             Label of the instance to be explained.
         """
 
-        exp['instance'] = image
-        exp['prediction'] = true_label
+        result['instance'] = image
+        result['prediction'] = predicted_label
 
-        # overlay image with result mask
-        anchor = self.overlay_mask(image, self.segments, exp['feature'])
-        exp = AnchorExplanation('image', exp)
+        # overlay image with anchor mask
+        anchor = self.overlay_mask(image, self.segments, result['feature'])
+        exp = AnchorExplanation('image', result)
 
         return {
-            'result': anchor,
+            'anchor': anchor,
             'segments': self.segments,
             'precision': exp.precision(),
             'coverage': exp.coverage(),
@@ -374,7 +393,7 @@ class AnchorImage(object):
     def overlay_mask(self, image: np.ndarray, segments: np.ndarray, mask_features: list,
                      scale: tuple = (0, 255)) -> np.ndarray:
         """
-        Overlay image with mask described by the mask segment_labels.
+        Overlay image with mask described by the mask features.
 
         Parameters
         ----------

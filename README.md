@@ -4,21 +4,22 @@
 
 [![Build Status](https://travis-ci.com/SeldonIO/alibi.svg?branch=master)](https://travis-ci.com/SeldonIO/alibi)
 [![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)](https://docs.seldon.io/projects/alibi/en/latest/?badge=latest)
+[![codecov](https://codecov.io/gh/SeldonIO/alibi/branch/master/graph/badge.svg)](https://codecov.io/gh/SeldonIO/alibi)
 ![Python version](https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg)
 [![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
 ![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)
 [![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](http://seldondev.slack.com/messages/alibi)
 ---
-[Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation. The initial focus on the library is on black-box, instance based model explanations.
-
+[Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation.
+The initial focus on the library is on black-box, instance based model explanations.
 *  [Documentation](https://docs.seldon.io/projects/alibi)
 
+If you're interested in outlier detection, concept drift or adversarial instance detection, check out our sister project [alibi-detect](https://github.com/SeldonIO/alibi-detect).
+
 ## Goals
-* Provide high quality reference implementations of black-box ML model explanation algorithms
+* Provide high quality reference implementations of black-box ML model explanation and interpretation algorithms
 * Define a consistent API for interpretable ML methods
 * Support multiple use cases (e.g. tabular, text and image data classification, regression)
-* Implement the latest model explanation, concept drift, algorithmic bias detection and other ML
-  model monitoring and interpretation methods
 
 ## Installation
 Alibi can be installed from [PyPI](https://pypi.org/project/alibi):
@@ -46,7 +47,21 @@ install the following:
 ```
 
 ## Supported algorithms
-### Black-box model explanaton
+### Model explanations
+These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
+predictions. Given a single instance and a model prediction they aim to answer the question "Why did
+my model make this prediction?" The following algorithms all work with **black-box** models meaning that the
+only requirement is to have acces to a prediction function (which could be an API endpoint for a model in production).
+
+The following table summarizes the capabilities of the current algorithms:
+
+|Explainer|Model types|Classification|Categorical data|Tabular|Text|Images|Need training set|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
+|[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|black-box|✔|✔|✔|✔|✔|For Tabular|
+|[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
+|[Counterfactual Instances](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
+|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
+
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)
    - Examples:
@@ -76,6 +91,18 @@ install the following:
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ord.html)
 
 ### Model confidence metrics
+These algorihtms provide **instance-specific** scores measuring the model confidence for making a
+particular prediction.
+
+|Algorithm|Model types|Classification|Regression|Categorical data|Tabular|Text|Images|Need training set|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[Trust Scores](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)|black-box|✔|✘|✘|✔|✔(1)|✔(2)|Yes|
+|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_iris.html)|black-box|✔|✔|✘|✔|✘|✔|Optional|
+
+(1) Depending on model
+
+(2) May require dimensionality reduction
+
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)
   - Examples:

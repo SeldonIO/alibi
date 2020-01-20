@@ -4,17 +4,19 @@ This page provides a high-level overview of the algorithms and their features cu
 in Alibi.
 
 ## Model Explanations
-These algorithms provide instance-specific (sometimes also called "local") explanations of ML model
+These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
 predictions. Given a single instance and a model prediction they aim to answer the question "Why did
-my model make this prediction?" The following table summarizes the capabilities of the current
-algorithms:
+my model make this prediction?" The following algorithms all work with **black-box** models meaning that the
+only requirement is to have acces to a prediction function (which could be an API endpoint for a model in production).
 
-|Explainer|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
-|---|---|---|---|---|
-|[Anchors](../methods/Anchors.ipynb)|✔|✘|✔|✔|✔|✔|For Tabular|
-|[CEM](../methods/CEM.ipynb)|✔|✘|✘|✔|✘|✔|Optional|
-|[Counterfactual Instances](../methods/CF.ipynb)|✔|✘|✘|✔|✘|✔|No|
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|✔|✘|✔|✔|✘|✔|Optional|
+The following table summarizes the capabilities of the current algorithms:
+
+|Explainer|Model types|Classification|Categorical data|Tabular|Text|Images|Need training set|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
+|[Anchors](../methods/Anchors.ipynb)|black-box|✔|✔|✔|✔|✔|For Tabular|
+|[CEM](../methods/CEM.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
+|[Counterfactual Instances](../methods/CF.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -36,13 +38,13 @@ instance that would result in a different prediction). [Documentation](../method
 
 
 ## Model Confidence
-These algorihtms provide instance-specific scores measuring the model confidence for making a
+These algorihtms provide **instance-specific** scores measuring the model confidence for making a
 particular prediction.
 
-|Algorithm|Classification|Regression|Categorical features|Tabular|Text|Images|Needs training set|
-|---|---|---|---|---|
-|[Trust Scores](../methods/TrustScores.ipynb)|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
-|[Linearity Measure](../examples/linearity_measure_iris.ipynb)|✔|✔|✘|✔|✘|✔|Optional|
+|Algorithm|Model types|Classification|Regression|Categorical data|Tabular|Text|Images|Need training set|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[Trust Scores](../methods/TrustScores.ipynb)|black-box|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
+|[Linearity Measure](../examples/linearity_measure_iris.ipynb)|black-box|✔|✔|✘|✔|✘|✔|Optional|
 
 **Trust scores**: produce a "trust score" of a classifier's prediction. The trust score is the ratio
 between the distance to the nearest class different from the predicted class and the distance to the

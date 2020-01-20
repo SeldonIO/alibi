@@ -1,9 +1,0 @@
-# Specify the hyperparameters you wish to vary. The experiment
-# settings are inferred from the cartesian product of the
-# variables specified within vars
-vars:
-    instance_idx: [0, 6, 12, 24, 48, 86, 172, 344, 688, 1376]
-    beam_size: [1, 10]
-    parallel: [true]
-    ncpu: [2, 3, 4]
-    chunksize: [1, 2, 4, 8]

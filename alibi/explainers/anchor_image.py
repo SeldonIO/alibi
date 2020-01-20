@@ -79,11 +79,14 @@ class AnchorImage(object):
 
         self.images_background = images_background
         self.image_shape = image_shape
-        self.segments: np.ndarray = None    # [H, W] int array; each int is a superpixel labels
-        self.segment_labels: list = None    # superpixel labels
-        self.image: np.ndarray = None       # instance to be explained
-        self.image_segm: np.ndarray = None  # image processed by segmentation preprocessor
-        self.p_sample: float = 0.5          # a superpixel is perturbed with prob 1 - p_sample
+        # [H, W] int array; each int is a superpixel labels
+        self.segments = None  # type: np.ndarray
+        self.segment_labels = None  # type: list
+        self.image = None  # type: np.ndarray
+        # image processed by segmentation preprocessor
+        self.image_segm = None  # type: np.ndarray
+        # a superpixel is perturbed with prob 1 - p_sample
+        self.p_sample = 0.5  # type: float
 
     def generate_superpixels(self, image: np.ndarray) -> np.ndarray:
         """
@@ -341,7 +344,7 @@ class AnchorImage(object):
 
         # get anchors and add metadata
         mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
-        result: Any = mab.anchor_beam(
+        result = mab.anchor_beam(
             desired_confidence=threshold,
             delta=delta,
             epsilon=tau,
@@ -353,7 +356,7 @@ class AnchorImage(object):
             min_samples_start=min_samples_start,
             sample_cache_size=binary_cache_size,
             **kwargs,
-        )
+        )  # type: Any
         self.mab = mab
 
         return self.build_explanation(image, result, self.instance_label)

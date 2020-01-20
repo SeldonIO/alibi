@@ -110,8 +110,9 @@ class AnchorText(object):
         self.neighbors = Neighbors(self.nlp)
         self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
-        self.neighbours: Dict[str, Dict[str, np.ndarray]] = {}
-        self.perturbation: Callable = None  # the method used to generate samples
+        self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        # the method used to generate samples
+        self.perturbation = None  # type: Callable
 
     def set_words_and_pos(self, text: str) -> None:
         """
@@ -508,7 +509,7 @@ class AnchorText(object):
 
         # get anchors and add metadata
         mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
-        result: Any = mab.anchor_beam(
+        result = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
             batch_size=batch_size,
@@ -520,7 +521,7 @@ class AnchorText(object):
             sample_cache_size=binary_cache_size,
             stop_on_first=stop_on_first,
             **kwargs,
-        )
+        )  # type: Any
         result['names'] = [self.words[x] for x in result['feature']]
         result['positions'] = [self.positions[x] for x in result['feature']]
         self.mab = mab

@@ -41,7 +41,7 @@ class TabularSampler(object):
 
         np.random.seed(seed)
 
-        self.instance_label: int = None
+        self.instance_label = None  # type: int
         self.predictor = predictor
         self.n_covered_ex = n_covered_ex
 
@@ -51,10 +51,10 @@ class TabularSampler(object):
         self.categorical_features = categorical_features
         self.feature_values = feature_values
 
-        self.val2idx: Dict[int, DefaultDict[int, Any]] = {}
-        self.cat_lookup:  Dict[int, int] = {}
-        self.ord_lookup: Dict[int, set] = {}
-        self.enc2feat_idx: Dict[int, int] = {}
+        self.val2idx = {}  # type: Dict[int, DefaultDict[int, Any]]
+        self.cat_lookup = {}  # type: Dict[int, int]
+        self.ord_lookup = {}  # type: Dict[int, set]
+        self.enc2feat_idx = {}  # type: Dict[int, int]
 
     def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.array, Any]) -> Any:
         """
@@ -154,7 +154,7 @@ class TabularSampler(object):
         # key: feat. col ID. value is a dict where each key represents a bin value or value of categorical
         # variable. Each value in this dict is an array containing idxs of training data rows where that value is found
         all_features = self.numerical_features + self.categorical_features
-        val2idx: Dict[int, DefaultDict[int, np.ndarray]] = {f_id: defaultdict(None) for f_id in all_features}
+        val2idx = {f_id: defaultdict(None) for f_id in all_features}  # type: Dict[int, DefaultDict[int, np.ndarray]]
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
                 val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
@@ -261,9 +261,9 @@ class TabularSampler(object):
             return samples, d_samples, -1.0
 
         # bins one can sample from for each numerical feature (key: feat id)
-        allowed_bins: Dict[int, Set[int]] = {}
+        allowed_bins = {}  # type: Dict[int, Set[int]]
         # index of database rows (values) for each feature in result (key: feat id)
-        allowed_rows: Dict[int, Any[int]] = {}
+        allowed_rows = {}  # type: Dict[int, Any[int]]
         rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
@@ -561,7 +561,7 @@ class AnchorTabular(object):
 
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
-        self.samplers: list = []
+        self.samplers = []  # type: list
         self.seed = seed
         self.instance_label = None
 
@@ -664,7 +664,7 @@ class AnchorTabular(object):
 
         # get anchors
         mab = AnchorBaseBeam(samplers=self.samplers, **kwargs)
-        result: Any = mab.anchor_beam(
+        result = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
             desired_confidence=threshold,
@@ -674,7 +674,7 @@ class AnchorTabular(object):
             batch_size=batch_size,
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
-        )
+        )  # type: Any
         self.mab = mab
 
         return self.build_explanation(X, result, self.instance_label)
@@ -735,7 +735,7 @@ class AnchorTabular(object):
                     ordinal_ranges[feat_id][0], min(list(self.ord_lookup[idx])) - 1
                 )
 
-        handled: Set[int] = set()
+        handled = set()  # type: Set[int]
         for idx in anchor_idxs:
             feat_id = self.enc2feat_idx[idx]
             if idx in self.cat_lookup:
@@ -876,7 +876,7 @@ class DistributedAnchorTabular(AnchorTabular):
         self._build_sampling_lookups(X)
 
         mab = DistributedAnchorBaseBeam(samplers=self.samplers, **kwargs)
-        result: Any = mab.anchor_beam(
+        result = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
             desired_confidence=threshold,
@@ -886,7 +886,7 @@ class DistributedAnchorTabular(AnchorTabular):
             batch_size=batch_size,
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
-        )
+        )  # type: Any
         self.mab = mab
 
         return self.build_explanation(X, result, self.instance_label)

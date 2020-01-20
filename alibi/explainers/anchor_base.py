@@ -25,7 +25,7 @@ class AnchorBaseBeam(object):
         """
 
         self.sample_fcn = samplers[0]
-        self.samplers: List[Callable] = None
+        self.samplers = None  # type: List[Callable]
 
     def _init_state(self, batch_size: int, sample_cache_size: int, coverage_data: np.ndarray) -> None:
         """
@@ -44,7 +44,7 @@ class AnchorBaseBeam(object):
 
         prealloc_size = batch_size * sample_cache_size
         # t_ indicates that the attribute is a dictionary with entries for each result
-        self.state: dict = {
+        self.state = {
             't_coverage': defaultdict(lambda: 0.),   # anchors' coverage
             't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
             't_covered_true': defaultdict(None),     # samples with same pred as instance where t_ applies
@@ -60,7 +60,7 @@ class AnchorBaseBeam(object):
             'current_idx': 0,
             'n_features': coverage_data.shape[1],    # data set dim after encoding
             'coverage_data': coverage_data,          # coverage data
-        }
+        }  # type: dict
         self.state['t_order'][()] = ()  # Trivial order for the empty result
 
     @staticmethod
@@ -392,7 +392,7 @@ class AnchorBaseBeam(object):
             return tuples
 
         # create new anchors: add a feature to every result in current best
-        new_tuples: Set[tuple] = set()
+        new_tuples = set()  # type: Set[tuple]
         for f in all_features:
             for t in previous_best:
                 new_t = self._sort(t + (f,), allow_duplicates=False)
@@ -494,7 +494,7 @@ class AnchorBaseBeam(object):
             return lambda: np.zeros(size)
 
         state = self.state
-        stats: Dict[str, np.ndarray] = defaultdict(array_factory((len(anchors),)))
+        stats = defaultdict(array_factory((len(anchors),)))  # type: Dict[str, np.ndarray]
         for i, anchor in enumerate(anchors):
             stats['n_samples'][i] = state['t_nsamples'][anchor]
             stats['positives'][i] = state['t_positives'][anchor]
@@ -524,9 +524,9 @@ class AnchorBaseBeam(object):
         """
 
         state = self.state
-        anchor: dict = {'feature': [], 'mean': [], 'precision': [], 'coverage': [], 'examples': [],
-                        'all_precision': 0, 'num_preds': state['data'].shape[0]}
-        current_t: tuple = tuple()
+        anchor = {'feature': [], 'mean': [], 'precision': [], 'coverage': [], 'examples': [],
+                  'all_precision': 0, 'num_preds': state['data'].shape[0]}  # type: dict
+        current_t = tuple()  # type: tuple
         # draw pos and negative example where partial result applies if not sampled during search
         to_resample, to_resample_idx = [], []
         for f in state['t_order'][features]:
@@ -690,7 +690,7 @@ class AnchorBaseBeam(object):
             }
 
         current_size, best_coverage = 1, -1
-        best_of_size: Dict[int, list] = {0: []}
+        best_of_size = {0: []}  # type: Dict[int, list]
         best_anchor = ()
 
         if max_anchor_size is None:

@@ -107,5 +107,3 @@ venv.bak/
 .mypy_cache/
 
 
-# PyCharm
-.idea

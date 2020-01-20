@@ -807,8 +807,6 @@ class AnchorBaseBeam(object):
             )
             best_anchor = anchors[candidate_anchors[0]]
 
-        print("The best anchor is:", best_anchor)
-
         return self.get_anchor_metadata(best_anchor, batch_size=batch_size)
 
 

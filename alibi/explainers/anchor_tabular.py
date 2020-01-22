@@ -257,65 +257,119 @@ class TabularSampler(object):
         init_sample_idx = np.random.choice(range(self.train_data.shape[0]), num_samples, replace=True)
         samples = self.train_data[init_sample_idx]
         d_samples = self.d_train_data[init_sample_idx]
+
         if not anchor:
             return samples, d_samples, -1.0
 
-        # bins one can sample from for each numerical feature (key: feat id)
-        allowed_bins = {}  # type: Dict[int, Set[int]]
-        # index of database rows (values) for each feature in result (key: feat id)
-        allowed_rows = {}  # type: Dict[int, Any[int]]
-        rand_sampled_feats = []  # feats for which there are not training records in the desired bin/with that value
-        cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
-        ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
+        # find the training set row indices where each feature in the anchor has same value as instance
+        # for discretized continuous features in the anchor, find which bins it should be sampled from
+        # find any features what have values/are in bins that don't exist in the training set
+        allowed_bins, allowed_rows, unk_feat_vals = self.get_features_index(anchor)
 
-        if cat_enc_ids:
-            cat_feat_vals = [self.cat_lookup[idx] for idx in cat_enc_ids]
-            cat_feat_ids = [self.enc2feat_idx[idx] for idx in cat_enc_ids]
-            allowed_rows = {f_id: self.val2idx[f_id][f_val] for f_id, f_val in zip(cat_feat_ids, cat_feat_vals)}
-            for feat_id, enc_id, val in zip(cat_feat_ids, cat_enc_ids, cat_feat_vals):
-                if allowed_rows[feat_id].size == 0:
-                    rand_sampled_feats.append((feat_id, 'c', val))
-                    cat_feat_ids.remove(feat_id)
-
-        ord_feat_ids = [self.enc2feat_idx[idx] for idx in ord_enc_ids]
-        # determine bins from which ordinal data should be drawn
-        for feat_id, enc_id in zip(ord_feat_ids, ord_enc_ids):
-            # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
-            if feat_id not in allowed_bins:
-                allowed_bins[feat_id] = self.ord_lookup[enc_id]
-            else:
-                allowed_bins[feat_id] = allowed_bins[feat_id].intersection(self.ord_lookup[enc_id])
-
-        # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
-        # data coming from the same bin (or range of bins)
-        for feat_id in allowed_bins:  # NB: should scale since we don't query the whole DB every time!
-            allowed_rows[feat_id] = np.concatenate([self.val2idx[feat_id][bin_id] for bin_id in allowed_bins[feat_id]])
-            if allowed_rows[feat_id].size == 0:  # no instances in training data are in the specified bins ...
-                rand_sampled_feats.append((feat_id, 'o', None))
+        #  count number of samples available and find the indices for each partial anchor & the full anchor
         uniq_feat_ids = list(OrderedDict.fromkeys([self.enc2feat_idx[enc_idx] for enc_idx in anchor]))
-        uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in rand_sampled_feats]]
-
-        # for each partial result count number of samples available and find their indices
+        uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in unk_feat_vals]]
         partial_anchor_rows = list(accumulate(
             [allowed_rows[feat] for feat in uniq_feat_ids],
             np.intersect1d),
         )
-        n_partial_anchors = np.array([len(n_records) for n_records in reversed(partial_anchor_rows)])
-        coverage = n_partial_anchors[-1]/self.n_records
-        # search num_samples in the list containing the number of training records containing each sub-result
-        num_samples_pos = np.searchsorted(n_partial_anchors, num_samples)
-        if num_samples_pos == 0:  # training set has more than num_samples records containing the result
+        nb_partial_anchors = np.array([len(n_records) for n_records in reversed(partial_anchor_rows)])
+        coverage = nb_partial_anchors[-1] / self.n_records
+
+        # if there are enough train records containing the anchor, replace the original records and return...
+        num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)
+        if num_samples_pos == 0:
             samples_idxs = np.random.choice(partial_anchor_rows[-1], num_samples)
             samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]
             d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]
+
             return samples, d_samples, coverage
 
-        # search partial anchors in the training set and replace the remainder of the features
+        # ... otherwise, replace the record with partial anchors first and then sample the remainder of the feats
+        # from  the same bin or set them to the same value as in the instance to be explained
+        # NB: this function modifies samples since it gets a reference to this array so it doesn't return
+        self.replace_features(
+            samples,
+            allowed_rows,
+            uniq_feat_ids,
+            partial_anchor_rows,
+            nb_partial_anchors,
+            num_samples,
+        )
+
+        if unk_feat_vals:
+            self.handle_unk_features(allowed_bins, num_samples, samples, unk_feat_vals)
+
+        return samples, self.disc.discretize(samples), coverage
+
+    def handle_unk_features(self, allowed_bins: Dict[int, Set[int]], num_samples: int, samples: np.ndarray,
+                            unk_feature_values: List[Tuple[int, str, Union[Any, int]]]) -> None:
+        """
+        Replaces unknown feature values with defaults. For categorical variables, the replacement value is
+        the same as the value of the unknown feature. For continuous variables, a value is sampled uniformly
+        at random from the feature range.
+
+        Parameters
+        ----------
+        allowed_bins:
+            See get_feature_index method.
+        num_samples:
+            Number of replacement values.
+        samples:
+            Contains the samples whose values are to be replaced.
+        unk_feature_values:
+            List of tuples where: [0] is original feature id, [1] feature type, [2] if var is categorical,
+            replacement value, otherwise None
+        :return:
+        """
+        for feat, var_type, val in unk_feature_values:
+            if var_type == 'c':
+                fmt = "WARNING: No data records have {} feature with value {}. Setting all samples' values to {}!"
+                print(fmt.format(feat, val, val))
+                samples[:, feat] = val
+            else:
+                fmt = "WARNING: For feature {}, no training data record had discretized values in bins {}." \
+                      " Sampling uniformly at random from the feature range!"
+                print(fmt.format(feat, allowed_bins[feat]))
+                min_vals, max_vals = self.min[feat], self.max[feat]
+                samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
+
+    def replace_features(self, samples: np.ndarray, allowed_rows:  Dict[int, Any], uniq_feat_ids: List[int],
+                         partial_anchor_rows: List[np.ndarray], nb_partial_anchors: np.ndarray,
+                         num_samples: int) -> None:
+        """
+        The method creates perturbed samples by first replacing all partial anchors with partial anchors drawn
+        from the training set. Then remainder of the features are then replaced with random values drawn from
+        the same bin for discretized continuous features and same value for categorical features.
+
+        Parameters
+        ----------
+        samples
+            Randomly drawn samples, where the anchor does not apply.
+        allowed_rows
+            Maps feature ids to the rows indices in training set where the feature has same value as instance (cat.)
+            or is in the same bin.
+        uniq_feat_ids
+            Multiple encoded features in the anchor can map to the same original feature id. Unique features in the
+            anchor. This is the list of unique original features id in the anchor.
+        partial_anchor_rows
+            The rows in the training set where each partial anchor applies. Last entry is an array of row indices where
+            the entire anchor applies.
+        nb_partial_anchors
+            The number of training records which contain each partial anchor.
+        num_samples:
+            Number of perturbed samples to be returned.
+        """
+
+        requested_samples = num_samples
         start, n_anchor_feats = 0, len(partial_anchor_rows)
         uniq_feat_ids = list(reversed(uniq_feat_ids))
-        start_idx = np.nonzero(n_partial_anchors)[0][0]  # skip anchors with no samples in the database
-        end_idx = np.searchsorted(np.cumsum(n_partial_anchors), num_samples)
-        for idx, n_samp in enumerate(n_partial_anchors[start_idx:end_idx + 1], start=start_idx):
+        start_idx = np.nonzero(nb_partial_anchors)[0][0]  # skip anchors with no samples in the database
+        end_idx = np.searchsorted(np.cumsum(nb_partial_anchors), num_samples)
+
+        # replace partial anchors with partial anchors drawn from the training dataset
+        # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp
@@ -330,26 +384,97 @@ class TabularSampler(object):
                     )
                 n_samp = num_samples
             samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
+
+            # deal with partial anchors; idx = 0 means that we actually sample the entire anchor
             if idx > 0:
+
+                # choose replacement values at random from training set
                 feats_to_replace = uniq_feat_ids[:idx]
-                to_replace = [np.random.choice(allowed_rows[feat], n_samp, replace=True) for feat in feats_to_replace]
-                samples[start: start + n_samp, feats_to_replace] = np.array(to_replace).transpose()
+                samp_idxs = np.zeros((len(feats_to_replace), n_samp)).astype(int)  # =: P x Q
+                for i, feat_idx in enumerate(feats_to_replace):
+                    samp_idxs[i, :] = np.random.choice(allowed_rows[feat_idx], n_samp, replace=True)
+
+                # N x F ->  P X Q x F -> P X Q
+                # First slice takes the data rows indicated in rows of samp_idxs; each row corresponds to a diff. feat
+                # Second slice takes the column indicate in feats_to_replace from each of P Q x F sub-tensors
+                to_replace_vals = self.train_data[samp_idxs][np.arange(len(feats_to_replace)), :, feats_to_replace]
+                samples[start: start + n_samp, feats_to_replace] = to_replace_vals.transpose()
             start += n_samp
 
-        if rand_sampled_feats:
-            for feat, var_type, val in rand_sampled_feats:
-                if var_type == 'c':
-                    fmt = "WARNING: No data records have {} feature with value {}. Setting all samples' values to {}!"
-                    print(fmt.format(feat, val, val))
-                    samples[:, feat] = val
-                else:
-                    fmt = "WARNING: For feature {}, no training data record had discretized values in bins {}." \
-                          " Sampling uniformly at random from the feature range!"
-                    print(fmt.format(feat, allowed_bins[feat]))
-                    min_vals, max_vals = self.min[feat], self.max[feat]
-                    samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
+        # possible that the dataset doesn't contain enough partial examples. Eg, in anchor is (10,) and have
+        # 50 examples in training set but require batch size of 100, all features have to be replaced  one by one in
+        # last 50 samples
+        max_samples_available = nb_partial_anchors.sum()
+        if max_samples_available <= requested_samples:
+            n_samp = samples.shape[0] - start
 
-        return samples, self.disc.discretize(samples), coverage
+            samp_idxs = np.zeros((len(uniq_feat_ids), n_samp)).astype(int)
+            for i, feat_idx in enumerate(uniq_feat_ids):
+                samp_idxs[i, :] = np.random.choice(allowed_rows[feat_idx], n_samp, replace=True)
+
+            to_replace_vals = self.train_data[samp_idxs][np.arange(len(uniq_feat_ids)), :, uniq_feat_ids]
+            samples[start:, uniq_feat_ids] = to_replace_vals.transpose()
+
+    def get_features_index(self, anchor: tuple) -> \
+            Tuple[Dict[int, Set[int]], Dict[int, Any], List[Tuple[int, str, Union[Any, int]]]]:
+        """
+        Given an anchor, this function finds the row indices in the training set where the feature has
+        the same value as the feature in the instance to be explained (for ordinal variables, the row
+        indices are those of rows which contain records with feature values in the same bin). The algorithm
+        uses both the feature *encoded* ids in anchor and the feature ids in the input data set. The two
+        are mapped by self.enc2feat_idx.
+
+        Parameters
+        ----------
+        anchor
+            The anchor for which the training set row indices are to be retrieved. The ints represent
+            encoded feature ids.
+
+        Returns
+        -------
+        allowed_bins
+            Maps original feature ids to the bins that the feature should be sampled from given the input anchor.
+        allowed_rows
+            Maps original feature ids to the training set rows where these features have the same value as the anchor.
+        unk_feat_values
+            When a categorical variable with the specified value/discretized variable in the specified bin is not found
+            in the training set, a tuple is added to unk_feat_values to indicate the original feature id, its type
+            ('c'=categorical, o='discretized continuous') and the value/bin it should be sampled from.
+        """
+
+        # bins one can sample from for each numerical feature (key: feat id)
+        allowed_bins = {}  # type: Dict[int, Set[int]]
+        # index of database rows (values) for each feature in result (key: feat id)
+        allowed_rows = {}  # type: Dict[int, Any[int]]
+        unk_feat_values = []  # feats for which there are not training records in the desired bin/with that value
+        cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
+        ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
+        if cat_enc_ids:
+            cat_feat_vals = [self.cat_lookup[idx] for idx in cat_enc_ids]
+            cat_feat_ids = [self.enc2feat_idx[idx] for idx in cat_enc_ids]
+            allowed_rows = {f_id: self.val2idx[f_id][f_val] for f_id, f_val in zip(cat_feat_ids, cat_feat_vals)}
+            for feat_id, enc_id, val in zip(cat_feat_ids, cat_enc_ids, cat_feat_vals):
+                if allowed_rows[feat_id].size == 0:
+                    unk_feat_values.append((feat_id, 'c', val))
+                    cat_feat_ids.remove(feat_id)
+        ord_feat_ids = [self.enc2feat_idx[idx] for idx in ord_enc_ids]
+
+        # determine bins from which ordinal data should be drawn
+        for feat_id, enc_id in zip(ord_feat_ids, ord_enc_ids):
+            # if encoded indices ref to the same feat, intersect the allowed bins to determine which bins to sample from
+            if feat_id not in allowed_bins:
+                allowed_bins[feat_id] = self.ord_lookup[enc_id]
+            else:
+                allowed_bins[feat_id] = allowed_bins[feat_id].intersection(self.ord_lookup[enc_id])
+
+        # dict where keys are feature col. ids and values are lists containing row indices in train data which contain
+        # data coming from the same bin (or range of bins)
+        for feat_id in allowed_bins:  # NB: should scale since we don't query the whole DB every time!
+            allowed_rows[feat_id] = np.concatenate([self.val2idx[feat_id][bin_id] for bin_id in allowed_bins[feat_id]])
+            if allowed_rows[feat_id].size == 0:  # no instances in training data are in the specified bins ...
+                unk_feat_values.append((feat_id, 'o', None))
+
+        return allowed_bins, allowed_rows, unk_feat_values
 
     def build_lookups(self, X: np.ndarray) -> List[Dict]:
         """
@@ -579,11 +704,11 @@ class AnchorTabular(object):
             List with percentiles (int) used for discretization.
         """
 
-        # discretization of ordinal features
+        # discretization of continuous features
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
-        # update the discretised feature dictionary with
         self.feature_values.update(disc.feature_intervals)
+
         sampler = TabularSampler(
             self.predictor,
             disc_perc,
@@ -612,7 +737,7 @@ class AnchorTabular(object):
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
                 batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False,
                 max_anchor_size: int = None, min_samples_start: int = 100, n_covered_ex: int = 10,
-                binary_cache_size: int = 10000, **kwargs: Any) -> dict:
+                binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1, **kwargs: Any) -> dict:
         """
         Explain prediction made by classifier on instance X.
 
@@ -645,7 +770,10 @@ class AnchorTabular(object):
         binary_cache_size
             The result search pre-allocates binary_cache_size batches for storing the binary arrays
             returned during sampling.
-
+        verbose
+            Display updates during the anchor search iterations
+        verbose_every
+            Frequncy of displayed iterations during anchor search process
 
         Returns
         -------
@@ -674,6 +802,8 @@ class AnchorTabular(object):
             batch_size=batch_size,
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
+            verbose=verbose,
+            verbose_every=verbose_every,
         )  # type: Any
         self.mab = mab
 
@@ -813,6 +943,7 @@ class DistributedAnchorTabular(AnchorTabular):
 
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
+
         self.feature_values.update(disc.feature_intervals)
 
         sampler_args = (

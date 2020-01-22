@@ -503,7 +503,7 @@ class AnchorBaseBeam(object):
 
         return stats
 
-    def get_anchor_metadata(self, features: tuple, batch_size: int = 100) -> dict:
+    def get_anchor_metadata(self, features: tuple, success, batch_size: int = 100) -> dict:
         """
         Given the features contained in a result, it retrieves metadata such as the precision and
         coverage of the result and partial anchors and examples where the result/partial anchors
@@ -514,6 +514,8 @@ class AnchorBaseBeam(object):
         ----------
         features
             Sorted indices of features in result.
+        success
+            Indicates whether an anchor satisfying precision threshold was met or not.
         batch_size
             Number of samples among which positive and negative examples for partial anchors are
             selected if partial anchors have not already been explicitly sampled.
@@ -521,11 +523,12 @@ class AnchorBaseBeam(object):
         Returns
         -------
             Anchor dictionary with result features and additional metadata.
+            :param success:
         """
 
         state = self.state
         anchor = {'feature': [], 'mean': [], 'precision': [], 'coverage': [], 'examples': [],
-                  'all_precision': 0, 'num_preds': state['data'].shape[0]}  # type: dict
+                  'all_precision': 0, 'num_preds': state['data'].shape[0], 'success': success}  # type: dict
         current_t = tuple()  # type: tuple
         # draw pos and negative example where partial result applies if not sampled during search
         to_resample, to_resample_idx = [], []
@@ -687,6 +690,7 @@ class AnchorBaseBeam(object):
                 'coverage': [],
                 'examples': [],
                 'all_precision': mean,
+                'success': True,
             }
 
         current_size, best_coverage = 1, -1
@@ -789,7 +793,8 @@ class AnchorBaseBeam(object):
             current_size += 1
 
         # if no result is found, choose highest precision of best result candidate from every round
-        if best_anchor == ():
+        if not best_anchor:
+            success = False  # indicates the method has not found an anchor
             logger.warning('Could not find an result satisfying the {} precision constraint. Now returning '
                            'the best non-eligible result.'.format(desired_confidence))
             anchors = []
@@ -806,8 +811,10 @@ class AnchorBaseBeam(object):
                 verbose=verbose,
             )
             best_anchor = anchors[candidate_anchors[0]]
+        else:
+            success = True
 
-        return self.get_anchor_metadata(best_anchor, batch_size=batch_size)
+        return self.get_anchor_metadata(best_anchor, success, batch_size=batch_size)
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):

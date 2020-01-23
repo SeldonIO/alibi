@@ -605,10 +605,10 @@ class AnchorBaseBeam(object):
                ((means < desired_confidence) & (ubs >= desired_confidence + epsilon_stop))
 
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
-                    beam_size: int = 1, verbose: bool = False, epsilon_stop: float = 0.05,
-                    min_samples_start: int = 100, max_anchor_size: int = None, verbose_every: int = 1,
-                    stop_on_first: bool = False, batch_size: int = 100, coverage_samples: int = 10000,
-                    sample_cache_size: int = 10000, **kwargs) -> dict:
+                    beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100,
+                    max_anchor_size: int = None, stop_on_first: bool = False, batch_size: int = 100,
+                    coverage_samples: int = 10000, sample_cache_size: int = 10000,  verbose: bool = False,
+                    verbose_every: int = 1,  **kwargs) -> dict:
 
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
@@ -616,7 +616,7 @@ class AnchorBaseBeam(object):
         beam_size=1. Otherwise, at each of the max_anchor_size steps, beam_size solutions are explored. By construction,
         solutions found have high precision (defined as the expected of number of times the classifier makes the same
         prediction when queried with the feature subset combined with arbitrary samples drawn from a noise distribution)
-        The algorithm maximises the coverage of the solution found - the frequency of occurence of records containing
+        The algorithm maximises the coverage of the solution found - the frequency of occurrence of records containing
         the feature subset in set of samples.
 
         Parameters
@@ -629,16 +629,12 @@ class AnchorBaseBeam(object):
             Desired level of precision (tau in paper).
         beam_size
             Beam width.
-        verbose
-            Whether to print intermediate output.
         epsilon_stop
             Confidence bound margin around desired precision.
         min_samples_start
             Min number of initial samples.
         max_anchor_size
             Max number of features in result.
-        verbose_every
-            Whether to print intermediate output every verbose_every steps.
         stop_on_first
             Stop on first valid result found.
         coverage_samples
@@ -647,6 +643,10 @@ class AnchorBaseBeam(object):
             Number of samples used for an arm evaluation.
         sample_cache_size
             Initial size (in batches) of data/raw data samples cache.
+        verbose
+            Whether to print intermediate LUCB & anchor selection output.
+        verbose_every
+            Print intermediate output every verbose_every steps.
 
         Returns
         -------

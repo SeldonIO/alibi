@@ -263,7 +263,7 @@ class AnchorText(object):
             # sample the words in the text outside of the anchor that are replaced with UNKs
             n_changed = np.random.binomial(num_samples, self.sample_proba)
             changed = np.random.choice(num_samples, n_changed, replace=False)
-            raw[changed, i] = self.UNK
+            raw[changed, i] = AnchorText.UNK
             data[changed, i] = 0
 
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype)
@@ -436,7 +436,8 @@ class AnchorText(object):
                 top_n: int = 100, temperature: float = 1., threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
                 stop_on_first: bool = True, max_anchor_size: int = None, min_samples_start: int = 100,
-                n_covered_ex: int = 10, binary_cache_size: int = 10000, **kwargs: Any) -> dict:
+                n_covered_ex: int = 10, binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1,
+                **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
 
@@ -483,6 +484,10 @@ class AnchorText(object):
             returned during sampling.
         kwargs
             Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
+        verbose
+            Display updates during the anchor search iterations.
+        verbose_every
+            Frequency of displayed iterations during anchor search process.
 
         Returns
         -------
@@ -520,6 +525,8 @@ class AnchorText(object):
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
             stop_on_first=stop_on_first,
+            verbose=verbose,
+            verbose_every=verbose_every,
             **kwargs,
         )  # type: Any
         result['names'] = [self.words[x] for x in result['feature']]

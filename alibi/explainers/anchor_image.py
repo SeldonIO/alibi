@@ -292,7 +292,8 @@ class AnchorImage(object):
     def explain(self, image: np.ndarray, p_sample: float = 0.5, threshold: float = 0.95, delta: float = 0.1,
                 tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
                 stop_on_first: bool = False, max_anchor_size: int = None, min_samples_start: int = 100,
-                n_covered_ex: int = 10, binary_cache_size: int = 10000, **kwargs: Any) -> dict:
+                n_covered_ex: int = 10, binary_cache_size: int = 10000, verbose: bool = True,
+                verbose_every: int = 1, **kwargs: Any) -> dict:
 
         """
         Explain instance and return anchor with metadata.
@@ -328,6 +329,10 @@ class AnchorImage(object):
         binary_cache_size
             The result search pre-allocates binary_cache_size batches for storing the binary arrays
             returned during sampling.
+        verbose
+            Display updates during the anchor search iterations.
+        verbose_every
+            Frequency of displayed iterations during anchor search process.
 
         Returns
         -------
@@ -355,6 +360,8 @@ class AnchorImage(object):
             max_anchor_size=max_anchor_size,
             min_samples_start=min_samples_start,
             sample_cache_size=binary_cache_size,
+            verbose=verbose,
+            verbose_every=verbose_every,
             **kwargs,
         )  # type: Any
         self.mab = mab

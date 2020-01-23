@@ -14,6 +14,7 @@ from alibi.utils.distributed import RAY_INSTALLED
 class TabularSampler(object):
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X."""
+
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
                  seed: int = None) -> None:
@@ -161,7 +162,7 @@ class TabularSampler(object):
 
         return val2idx
 
-    def __call__(self, anchor: Tuple[int, tuple], num_samples: int,  c_labels=True) -> \
+    def __call__(self, anchor: Tuple[int, tuple], num_samples: int, c_labels=True) -> \
             Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Obtain perturbed records by drawing samples from training data that contain the categorical labels and
@@ -212,7 +213,7 @@ class TabularSampler(object):
             covered_false = raw_data[np.logical_not(labels), :][:self.n_covered_ex]
             return [covered_true, covered_false, labels.astype(int), data, coverage, anchor[0]]
         else:
-            return [data]   # only binarised data is used for coverage computation
+            return [data]  # only binarised data is used for coverage computation
 
     def compare_labels(self, samples: np.ndarray) -> np.ndarray:
         """
@@ -334,7 +335,7 @@ class TabularSampler(object):
                 min_vals, max_vals = self.min[feat], self.max[feat]
                 samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
 
-    def replace_features(self, samples: np.ndarray, allowed_rows:  Dict[int, Any], uniq_feat_ids: List[int],
+    def replace_features(self, samples: np.ndarray, allowed_rows: Dict[int, Any], uniq_feat_ids: List[int],
                          partial_anchor_rows: List[np.ndarray], nb_partial_anchors: np.ndarray,
                          num_samples: int) -> None:
         """
@@ -503,7 +504,7 @@ class TabularSampler(object):
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))   # type: ignore
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore
             return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
@@ -579,9 +580,9 @@ class RemoteSampler(object):
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
             return self.sampler(anchors_batch, num_samples, c_labels=c_labels)
-        elif len(anchors_batch) == 1:     # batch size = 1
+        elif len(anchors_batch) == 1:  # batch size = 1
             return [self.sampler(*anchors_batch, num_samples, c_labels=c_labels)]
-        else:                             # batch size > 1
+        else:  # batch size > 1
             batch_result = []
             for anchor in anchors_batch:
                 batch_result.append(self.sampler(anchor, num_samples, c_labels=c_labels))
@@ -771,9 +772,9 @@ class AnchorTabular(object):
             The result search pre-allocates binary_cache_size batches for storing the binary arrays
             returned during sampling.
         verbose
-            Display updates during the anchor search iterations
+            Display updates during the anchor search iterations.
         verbose_every
-            Frequncy of displayed iterations during anchor search process
+            Frequency of displayed iterations during anchor search process.
 
         Returns
         -------
@@ -796,9 +797,9 @@ class AnchorTabular(object):
             delta=delta,
             epsilon=tau,
             desired_confidence=threshold,
-            max_anchor_size=max_anchor_size,
-            min_samples_start=min_samples_start,
             beam_size=beam_size,
+            min_samples_start=min_samples_start,
+            max_anchor_size=max_anchor_size,
             batch_size=batch_size,
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
@@ -912,7 +913,6 @@ class AnchorTabular(object):
 
 
 class DistributedAnchorTabular(AnchorTabular):
-
     if RAY_INSTALLED:
         import ray
         ray = ray  # set module as class variable to used only in this context
@@ -982,7 +982,7 @@ class DistributedAnchorTabular(AnchorTabular):
     def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
                 batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False,
                 max_anchor_size: int = None, min_samples_start: int = 1, n_covered_ex: int = 10,
-                binary_cache_size: int = 10000, **kwargs: Any) -> dict:
+                binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1, **kwargs: Any) -> dict:
         """
         Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
@@ -1011,12 +1011,14 @@ class DistributedAnchorTabular(AnchorTabular):
             delta=delta,
             epsilon=tau,
             desired_confidence=threshold,
+            beam_size=beam_size,
             min_samples_start=min_samples_start,
             max_anchor_size=max_anchor_size,
-            beam_size=beam_size,
             batch_size=batch_size,
             coverage_samples=coverage_samples,
             sample_cache_size=binary_cache_size,
+            verbose=verbose,
+            verbose_every=verbose_every,
         )  # type: Any
         self.mab = mab
 

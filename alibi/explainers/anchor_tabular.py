@@ -335,7 +335,7 @@ class TabularSampler(object):
                 min_vals, max_vals = self.min[feat], self.max[feat]
                 samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
 
-    def replace_features(self, samples: np.ndarray, allowed_rows: Dict[int, Any], uniq_feat_ids: List[int],
+    def replace_features(self, samples: np.ndarray, allowed_rows:  Dict[int, Any], uniq_feat_ids: List[int],
                          partial_anchor_rows: List[np.ndarray], nb_partial_anchors: np.ndarray,
                          num_samples: int) -> None:
         """
@@ -775,6 +775,7 @@ class AnchorTabular(object):
             Display updates during the anchor search iterations.
         verbose_every
             Frequency of displayed iterations during anchor search process.
+
 
         Returns
         -------

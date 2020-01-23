@@ -1,4 +1,5 @@
 # flake8: noqa E731
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -10,18 +11,49 @@ from alibi.explainers.tests.utils import predict_fcn
 
 
 # TODO: Test DistributedAnchorBaseBeam separately
-
+@pytest.mark.parametrize('n_explainer_runs', (100,))
 @pytest.mark.parametrize('at_iris_explainer', ('proba', 'class'), indirect=True)
 @pytest.mark.parametrize('at_defaults', (0.9, 0.95), indirect=True)
-def test_iris(get_iris_dataset, iris_rf_classifier, at_defaults, at_iris_explainer):
+def test_iris_explainer(n_explainer_runs, get_iris_dataset, iris_rf_classifier, at_defaults, at_iris_explainer):
 
-    # inputs
-    nb_samples = 15  # nb samples to draw when testing sampling
 
     # fixture returns a fitted AnchorTabular explainer
     X_test, explainer, predict_fn, predict_type = at_iris_explainer
 
-    # test fitting
+    if predict_type == 'proba':
+        instance_label = np.argmax(predict_fn(X_test[0, :].reshape(1, -1)), axis=1)
+    else:
+        instance_label = predict_fn(X_test[0, :].reshape(1, -1))[0]
+
+    explainer.instance_label = instance_label
+
+    explain_defaults = at_defaults
+    threshold = explain_defaults['desired_confidence']
+    n_covered_ex = explain_defaults['n_covered_ex']
+
+    for _ in range(n_explainer_runs):
+        explanation = explainer.explain(X_test[0], threshold=threshold, **explain_defaults)
+        assert explainer.instance_label == instance_label
+        assert explanation['precision'] >= threshold
+        assert explanation['coverage'] >= 0.05
+
+    sampler = explainer.samplers[0]
+    assert sampler.instance_label == instance_label
+    assert sampler.n_covered_ex == n_covered_ex
+
+
+@pytest.mark.parametrize('anchor', ((2, ), (10, ),  (11, ), (7, 10, 11), (3, 11)))
+@pytest.mark.parametrize('at_iris_explainer', ('proba', 'class'), indirect=True)
+def test_iris_sampler(anchor, at_iris_explainer, get_iris_dataset):
+
+    # inputs
+    nb_samples = 100  # nb samples to draw when testing sampling
+    # used for detailed sampler testing ...
+
+    # fixture returns a fitted AnchorTabular explainer
+    X_test, explainer, predict_fn, predict_type = at_iris_explainer
+
+    # test sampler setup is correct
     assert len(explainer.samplers) == 1
     sampler = explainer.samplers[0]
     assert explainer.predictor(X_test[0].reshape(1, -1)).shape == (1,)
@@ -37,7 +69,10 @@ def test_iris(get_iris_dataset, iris_rf_classifier, at_defaults, at_iris_explain
 
     explainer.instance_label = instance_label
 
-    # test sampling function
+    # test sampling function end2end
+    train_data = sampler.train_data
+    train_data_mean = np.mean(train_data, axis=0)
+    train_data_3std = 3*np.std(train_data, axis=0)
     sampler.build_lookups(X_test[0, :])
     anchor = tuple(sampler.enc2feat_idx.keys())
     n_covered_ex = sampler.n_covered_ex
@@ -54,17 +89,32 @@ def test_iris(get_iris_dataset, iris_rf_classifier, at_defaults, at_iris_explain
     enc_feats = sampler.enc2feat_idx.keys()
     assert (set(ord_feats | set(cat_feats))) == set(enc_feats)
 
-    explain_defaults = at_defaults
-    threshold = explain_defaults['desired_confidence']
-    n_covered_ex = explain_defaults['n_covered_ex']
-    explanation = explainer.explain(X_test[0], threshold=threshold, **explain_defaults)
-    assert explainer.instance_label == instance_label
-    assert sampler.instance_label == instance_label
-    assert sampler.n_covered_ex == n_covered_ex
-    assert explanation['precision'] >= threshold
-    assert explanation['coverage'] >= 0.05
+    # now test perturbation method ...
+
+    # Find out which bins can be sampled for categorical vars and check the data is sampled correctly
+    allowed_bins, allowed_rows, unk_feat_vals = sampler.get_features_index(anchor)
+    raw_data, disc_data, coverage = sampler.perturbation(anchor, nb_samples)
+    assert not unk_feat_vals
+    assert coverage != -1
+    assert raw_data.shape[0] == disc_data.shape[0] == nb_samples
+
+    uniq_feat_ids = list(OrderedDict.fromkeys([sampler.enc2feat_idx[enc_idx] for enc_idx in anchor]))
+    uniq_feat_ids = [feat for feat in uniq_feat_ids if feat not in [f for f, _, _ in unk_feat_vals]]
+    expected_bins = [allowed_bins[feat_id] for feat_id in uniq_feat_ids]
+
+    for bins, feat_id in zip(expected_bins, uniq_feat_ids):
+        sampled_bins_uniq = set(np.unique(disc_data[:, feat_id]))
+        # check that we have replaced features properly with values from the same bin
+        assert bins - sampled_bins_uniq == set()
+        assert sampled_bins_uniq - bins == set()
+        raw_data_mean = np.mean(raw_data, axis=0)
+        # check features sampled are in the correct range
+        assert (train_data_mean + train_data_3std - raw_data_mean > 0).all()
+        assert (train_data_mean - train_data_3std - raw_data_mean < 0).all()
 
 
+
+@pytest.mark.skip(reason='speed')
 @pytest.mark.parametrize('predict_type', ('proba', 'class'))
 @pytest.mark.parametrize('ncpu', (2, 3))
 def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, iris_rf_classifier):
@@ -72,7 +122,7 @@ def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, iris_r
     ray_installed = True
     try:
         import ray
-    except AttributeError:
+    except ImportError:
         ray_installed = False
         assert True
 

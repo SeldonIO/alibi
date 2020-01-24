@@ -4,10 +4,9 @@ import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from alibi.explainers import AnchorTabular
-from alibi.explainers.tests.utils import predict_fcn
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
 from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from keras.models import Model
-from sklearn.datasets import load_iris
 from sklearn.ensemble import RandomForestClassifier
 
 # A file containing fixtures that can be used across tests
@@ -15,33 +14,69 @@ from sklearn.ensemble import RandomForestClassifier
 
 @pytest.fixture(scope='module')
 def get_iris_dataset():
-    """ Loads the iris dataset."""
+    """
+    This fixture can be passed to a classifier fixture to return
+    a trained classifier on the Iris dataset.
+    """
 
-    dataset = load_iris()
-    feature_names = dataset.feature_names
-    # define train and test set
-    idx = 145
-    X_train, Y_train = dataset.data[:idx, :], dataset.target[:idx]
-    X_test, Y_test = dataset.data[idx + 1:, :], dataset.target[idx + 1:]  # noqa F841
+    return iris_dataset()
 
-    return X_test, X_train, Y_train, feature_names
+
+@pytest.fixture(scope='module')
+def get_adult_dataset():
+    """
+    This fixture can be passed to a classifier fixture to return
+    a trained classifier on the Adult dataset.
+    """
+
+    return adult_dataset()
+
+
+@pytest.fixture(scope='module')
+def rf_classifier(request):
+    """
+    Trains a random forest classifier.
+    """
+
+    is_preprocessor = False
+    preprocessor = None
+    # this fixture should be parametrised with a fixture that
+    # returns a dataset dictionary with specified attributes
+    # see test_anchor_tabular for a usage example
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    clf = RandomForestClassifier(n_estimators=50)
+
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
+
+    return clf, preprocessor
 
 
 @pytest.fixture(scope='module')
 def iris_rf_classifier(get_iris_dataset):
-    """Fits random forrest classifier on Iris dataset."""
+    """
+    Fits random forrest classifier on Iris dataset.
+    """
 
-    X_test, X_train, Y_train, feature_names = get_iris_dataset
+    dataset = get_iris_dataset
     np.random.seed(0)
     clf = RandomForestClassifier(n_estimators=50)
-    clf.fit(X_train, Y_train)
+    clf.fit(dataset['X_train'], dataset['y_train'])
 
     return clf
 
 
 @pytest.fixture(scope='module')
 def at_defaults(request):
-    """Default config for explainers."""
+    """
+    Default config for explainers.
+    """
 
     desired_confidence = request.param
 
@@ -57,27 +92,52 @@ def at_defaults(request):
     }
 
 
-@pytest.fixture(scope='module')
-def at_iris_explainer(get_iris_dataset, iris_rf_classifier, request):
-    """Instantiates and fits an AnchorTabular explainer for the Iris dataset."""
+@pytest.fixture(scope='module', params=['proba', 'class'])
+def at_iris_explainer(get_iris_dataset, rf_classifier, request):
+    """
+    Instantiates and fits an AnchorTabular explainer for the Iris dataset.
+    """
 
     predict_type = request.param
-    X_test, X_train, _, feature_names = get_iris_dataset
-    # fit random forest to training data
-    clf = iris_rf_classifier
-    predict_fn = predict_fcn(predict_type, clf)
-    # test explainer initialization
-    explainer = AnchorTabular(predict_fn, feature_names)
-    # test explainer fit: shape and binning of ordinal features
-    explainer.fit(X_train, disc_perc=(25, 50, 75))
+    data = get_iris_dataset
+    clf, _ = rf_classifier  # preprocessor not necessary
 
-    return X_test, explainer, predict_fn, predict_type
+    # instantiate and fit explainer
+    pred_fn = predict_fcn(predict_type, clf)
+    explainer = AnchorTabular(pred_fn, data['metadata']['feature_names'])
+    explainer.fit(data['X_train'], disc_perc=(25, 50, 75))
+
+    return data['X_test'], explainer, pred_fn, predict_type
+
+
+@pytest.fixture(scope='module', params=['proba', 'class'])
+def at_adult_explainer(get_adult_dataset, rf_classifier, request):
+    """
+    Instantiates and fits an AnchorTabular explainer for the Adult dataset.
+    """
+
+    # fit random forest classifier
+    predict_type = request.param
+    data = get_adult_dataset
+    clf, preprocessor = rf_classifier
+
+    # instantiate and fit explainer
+    pred_fn = predict_fcn(predict_type, clf, preprocessor)
+    explainer = AnchorTabular(
+        pred_fn,
+        data['metadata']['feature_names'],
+        categorical_names=data['metadata']['category_map']
+    )
+    explainer.fit(data['X_train'], disc_perc=(25, 50, 75))
+
+    return data['X_test'], explainer, pred_fn, predict_type
 
 
 @pytest.fixture(scope='module')
 def conv_net(request):
 
-    x_train, y_train = request.param
+    data = request.param
+    x_train, y_train = data['X_train'], data['y_train']
 
     def model():
 
@@ -99,20 +159,48 @@ def conv_net(request):
 
 
 @pytest.fixture(scope='module')
-def movie_sentiment_lr_classifier(request):
-    """Trains a logistic regression model."""
+def lr_classifier(request):
+    """
+    Trains a random forest classifier.
+    """
 
-    is_vectorizer = False
-    if len(request.param) == 3:
-        is_vectorizer = True
-        train, train_labels, vectorizer = request.param
-    else:
-        train, train_labels = request.param
+    is_preprocessor = False
+    preprocessor = False
+    # see test_anchor_text for an example on how this
+    # fixture can be parametrized
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
 
     clf = LogisticRegression()
-    if is_vectorizer:
-        clf.fit(vectorizer.transform(train), train_labels)
-    else:
-        clf.fit(train, train_labels)
 
-    return clf
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
+
+    return clf, preprocessor
+
+
+# hooks to skip test configurations that don't make sense
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
+    )
+
+
+def pytest_collection_modifyitems(config, items):
+    removed = []
+    kept = []
+    for item in items:
+        m = item.get_closest_marker('uncollect_if')
+        if m:
+            func = m.kwargs['func']
+            if func(**item.callspec.params):
+                removed.append(item)
+                continue
+        kept.append(item)
+    if removed:
+        config.hook.pytest_deselected(items=removed)
+        items[:] = kept

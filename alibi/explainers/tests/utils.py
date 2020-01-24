@@ -82,7 +82,9 @@ def fashion_mnist_dataset():
 
 
 def iris_dataset():
-    """ Loads the iris dataset."""
+    """
+    Loads the Iris dataset.
+    """
 
     dataset = load_iris()
     feature_names = dataset.feature_names

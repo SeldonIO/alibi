@@ -7,10 +7,9 @@ import numpy as np
 
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
-from alibi.explainers.tests.utils import get_movie_sentiment_dataset
+from alibi.explainers.tests.utils import get_dataset
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.download import spacy_model
-from collections import Counter
 
 # load spaCy model
 model = 'en_core_web_md'
@@ -28,19 +27,16 @@ def find_punctuation(text: str) -> int:
 
     return len(tokens & punctuation)
 
-# load data
-train, train_labels, vectorizer = get_movie_sentiment_dataset()
 
-@pytest.mark.parametrize('movie_sentiment_lr_classifier', ((train, train_labels, vectorizer),), indirect=True)
+@pytest.mark.parametrize('lr_classifier', ((get_dataset('movie_sentiment')),), indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
     ('class', (), False, True, 0.95),
     ('class', (), False, True, 0.9),
     ('class', (), True, False, 0.95),
-    ('class', (3,), True, False, 0.95)
+    ('class', (3,), True, False, 0.95),
 ])
-def test_anchor_text(movie_sentiment_lr_classifier, predict_type, anchor, use_similarity_proba, use_unk,
-                     threshold):
+def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, use_unk, threshold):
 
     # test parameters
     text = 'This is a good book .'
@@ -50,10 +46,10 @@ def test_anchor_text(movie_sentiment_lr_classifier, predict_type, anchor, use_si
     top_n = 500
     temperature = 1.
     n_covered_ex = 5  # number of examples where the anchor applies to be returned
-    print("Fitting classifier")
+
     # fit and initialise predictor
-    clf = movie_sentiment_lr_classifier
-    predictor = predict_fcn(predict_type, clf, preproc=vectorizer)
+    clf, preprocessor = lr_classifier
+    predictor = predict_fcn(predict_type, clf, preproc=preprocessor)
 
     # test explainer initialization
     explainer = AnchorText(nlp, predictor)
@@ -109,7 +105,6 @@ def test_anchor_text(movie_sentiment_lr_classifier, predict_type, anchor, use_si
         example_dict = explanation['raw']['examples'][i]
         for k in keys:
             for example in example_dict[k]:
-                print(example)
                 # check that we have perturbed the sentences
                 if use_unk:
                     assert 'UNK' in example or example == text
@@ -132,6 +127,4 @@ def test_neighbors():
     assert len(n['words']) == len(n['similarities'])
     # similarity score list needs to be descending
     similarity_score = n['similarities']
-    print(similarity_score[::-1].sort())
-    print(similarity_score)
     assert (np.sort(similarity_score[::-1]) - similarity_score).sum() == 0.0

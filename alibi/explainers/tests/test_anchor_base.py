@@ -5,9 +5,13 @@ import numpy as np
 from copy import deepcopy
 
 
-@pytest.mark.parametrize('at_iris_explainer', ('proba', 'class'), indirect=True)
+@pytest.mark.parametrize('rf_classifier',
+                         [pytest.lazy_fixture('get_iris_dataset')],
+                         indirect=True,
+                         ids='clf=rf_{}'.format,
+                         )
 @pytest.mark.parametrize('at_defaults', (0.9, 0.95), indirect=True)
-def test_anchor_base_beam(get_iris_dataset, iris_rf_classifier, at_defaults, at_iris_explainer):
+def test_anchor_base_beam(rf_classifier, at_defaults, at_iris_explainer):
 
     # inputs
     n_anchors_to_sample = 6

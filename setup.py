@@ -41,7 +41,8 @@ setup(name='alibi',
       ],
       tests_require=[
           'pytest',
-          'pytest-cov'
+          'pytest-cov',
+          'pytest-lazy-fixture',
       ],
       extras_require=extras_require,
       test_suite='tests',

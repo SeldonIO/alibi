@@ -6,11 +6,12 @@ def check_ray():
     -------
         a bool indicating whether ray is installed or not
     """
-    try:
-        import ray  # noqa F401
+
+    import importlib
+    spec = importlib.util.find_spec('ray')
+    if spec:
         return True
-    except ImportError:
-        return False
+    return False
 
 
 RAY_INSTALLED = check_ray()

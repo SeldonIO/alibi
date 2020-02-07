@@ -24,8 +24,9 @@ class ActorPool(object):
         ray = ray  # module as a static variable
 
     def __init__(self, actors):
-        # TODO: Add reference ...
-        """Create an Actor pool from a list of existing actors.
+        """
+        Taken fom the ray repository: https://github.com/ray-project/ray
+        Create an Actor pool from a list of existing actors.
         An actor pool is a utility class similar to multiprocessing.Pool that
         lets you schedule Ray tasks over a fixed pool of actors.
         Arguments:

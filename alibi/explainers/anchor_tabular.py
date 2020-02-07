@@ -321,8 +321,8 @@ class TabularSampler(object):
         unk_feature_values:
             List of tuples where: [0] is original feature id, [1] feature type, [2] if var is categorical,
             replacement value, otherwise None
-        :return:
         """
+
         for feat, var_type, val in unk_feature_values:
             if var_type == 'c':
                 fmt = "WARNING: No data records have {} feature with value {}. Setting all samples' values to {}!"

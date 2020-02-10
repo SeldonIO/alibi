@@ -48,6 +48,7 @@ def rf_classifier(request):
         is_preprocessor = True
         preprocessor = data['preprocessor']
 
+    np.random.seed(0)
     clf = RandomForestClassifier(n_estimators=50)
 
     if is_preprocessor:

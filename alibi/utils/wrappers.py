@@ -1,5 +1,7 @@
 import numpy as np
 
+from functools import singledispatch, update_wrapper
+
 
 class Predictor:
 
@@ -32,3 +34,27 @@ class ArgmaxTransformer:
     def __call__(self, x):
         pred = np.atleast_2d(self.predictor(x))
         return np.argmax(pred, axis=1)
+
+
+def methdispatch(func):
+    """
+    A decorator that is used to support singledispatch style functionality
+    for instance methods. By default, singledispatch selects a function to
+    call from registered based on the type of args[0]:
+
+        def wrapper(*args, **kw):
+            return dispatch(args[0].__class__)(*args, **kw)
+
+    This uses singledispatch to do achieve this but instead uses args[1]
+    since args[0] will always be self.
+    """
+
+    dispatcher = singledispatch(func)
+
+    def wrapper(*args, **kw):
+        return dispatcher.dispatch(args[1].__class__)(*args, **kw)
+
+    wrapper.register = dispatcher.register
+    update_wrapper(wrapper, dispatcher)
+    
+    return wrapper

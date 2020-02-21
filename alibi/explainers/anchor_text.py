@@ -50,8 +50,13 @@ class Neighbors(object):
 
         Returns
         -------
-        A list containing tuples with the similar words and similarity scores.
+        A dict with two fields. The 'words' field contains a numpy array
+        of the top_n most similar words, whereas the fields similarity is
+        a numpy array with corresponding word similarities.
         """
+
+        # the word itself is excluded so we add one to return the expected number of words
+        top_n += 1
 
         texts, similarities = [], []  # type: List, List
         if word in self.nlp.vocab:
@@ -78,7 +83,7 @@ class Neighbors(object):
         }
 
 
-class AnchorText(object):
+class AnchorText:
 
     UNK = 'UNK'
 
@@ -91,7 +96,7 @@ class AnchorText(object):
         nlp
             spaCy object.
         predictor
-            Model prediction function.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         seed
             If set, ensures identical random streams.
         """
@@ -131,7 +136,7 @@ class AnchorText(object):
         self.punctuation = [x for x in processed if x.is_punct]
         self.tokens = processed
 
-    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, c_labels: bool = True) -> \
+    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True) -> \
             Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Generate perturbed samples while maintaining features in positions specified in
@@ -144,13 +149,13 @@ class AnchorText(object):
             tuple: the anchor itself, a list of words to be kept unchanged
         num_samples
             Number of generated perturbed samples.
-        c_labels
+        compute_labels
             If True, an array of comparisons between predictions on perturbed samples and
             instance to be explained is returned.
 
         Returns
         -------
-            If c_labels=True, a list containing the following is returned:
+            If compute_labels=True, a list containing the following is returned:
              - covered_true: perturbed examples where the anchor applies and the model prediction
                     on perturbation is the same as the instance prediction
              - covered_false: perturbed examples where the anchor applies and the model prediction
@@ -166,7 +171,7 @@ class AnchorText(object):
 
         raw_data, data = self.perturbation(anchor[1], num_samples)
         # create labels using model predictions as true labels
-        if c_labels:
+        if compute_labels:
             labels = self.compare_labels(raw_data)
             covered_true = raw_data[labels][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels)][:self.n_covered_ex]
@@ -316,9 +321,9 @@ class AnchorText(object):
             return np.array(' '.join(arr)).astype(dtype)
 
     def perturb_sentence(self, present: tuple, n: int, sample_proba: float = 0.5,
-                         forbidden: set = set(), forbidden_tags: set = set(['PRP$']),
-                         forbidden_words: set = set(['be']), temperature: float = 1.,
-                         pos: set = set(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
+                         forbidden: set = frozenset(), forbidden_tags: set = frozenset(['PRP$']),
+                         forbidden_words: set = frozenset(['be']), temperature: float = 1.,
+                         pos: set = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
                          use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
@@ -432,11 +437,27 @@ class AnchorText(object):
                 max_sent_len += max_len
         self.dtype = '<U' + str(max_sent_len)
 
-    def explain(self, text: str, use_unk: bool = True, use_similarity_proba: bool = False, sample_proba: float = 0.5,
-                top_n: int = 100, temperature: float = 1., threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
-                stop_on_first: bool = True, max_anchor_size: int = None, min_samples_start: int = 100,
-                n_covered_ex: int = 10, binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1,
+    def explain(self,
+                text: str,
+                use_unk: bool = True,
+                use_similarity_proba: bool = False,
+                sample_proba: float = 0.5,
+                top_n: int = 100,
+                temperature: float = 1.,
+                threshold: float = 0.95,
+                delta: float = 0.1,
+                tau: float = 0.15,
+                batch_size: int = 100,
+                coverage_samples: int = 10000,
+                beam_size: int = 1,
+                stop_on_first: bool = True,
+                max_anchor_size: int = None,
+                min_samples_start: int = 100,
+                n_covered_ex: int = 10,
+                binary_cache_size: int = 10000,
+                cache_margin: int = 1000,
+                verbose: bool = False,
+                verbose_every: int = 1,
                 **kwargs: Any) -> dict:
         """
         Explain instance and return anchor with metadata.
@@ -482,6 +503,9 @@ class AnchorText(object):
         binary_cache_size
             The anchor search pre-allocates binary_cache_size batches for storing the boolean arrays
             returned during sampling.
+        cache_margin
+            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            of the same size is pre-allocated to continue buffering samples.
         kwargs
             Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
         verbose
@@ -513,7 +537,11 @@ class AnchorText(object):
         self.set_data_type(use_unk)
 
         # get anchors and add metadata
-        mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
+        mab = AnchorBaseBeam(
+            samplers=[self.sampler],
+            sample_cache_size=binary_cache_size,
+            cache_margin=cache_margin,
+            **kwargs)
         result = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
@@ -523,7 +551,6 @@ class AnchorText(object):
             min_samples_start=min_samples_start,
             beam_size=beam_size,
             coverage_samples=coverage_samples,
-            sample_cache_size=binary_cache_size,
             stop_on_first=stop_on_first,
             verbose=verbose,
             verbose_every=verbose_every,

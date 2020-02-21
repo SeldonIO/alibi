@@ -20,7 +20,7 @@ DEFAULT_SEGMENTATION_KWARGS = {
 }
 
 
-class AnchorImage(object):
+class AnchorImage:
 
     def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None, images_background: np.ndarray = None,
@@ -31,7 +31,7 @@ class AnchorImage(object):
         Parameters
         ----------
         predictor
-            Model prediction function.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         image_shape
             Shape of the image to be explained.
         segmentation_fn
@@ -52,14 +52,18 @@ class AnchorImage(object):
             try:
                 segmentation_kwargs = DEFAULT_SEGMENTATION_KWARGS[segmentation_fn]  # type: ignore
             except KeyError:
-                logger.warning('DEFAULT_SEGMENTATION_KWARGS did not contain any entry'
-                               'for segmentation method {}. No kwargs will be passed to'
-                               'the segmentation function!'.format(segmentation_fn))
+                logger.warning(
+                    'DEFAULT_SEGMENTATION_KWARGS did not contain any entry'
+                    'for segmentation method {}. No kwargs will be passed to'
+                    'the segmentation function!'.format(segmentation_fn)
+                )
                 segmentation_kwargs = {}
         elif callable(segmentation_fn) and segmentation_kwargs:
-            logger.warning('Specified both a segmentation function to create superpixels and '
-                           'keyword arguments for built segmentation functions. By default '
-                           'the specified segmentation function will be used.')
+            logger.warning(
+                'Specified both a segmentation function to create superpixels and '
+                'keyword arguments for built segmentation functions. By default '
+                'the specified segmentation function will be used.'
+            )
 
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
@@ -83,8 +87,6 @@ class AnchorImage(object):
         self.segments = None  # type: np.ndarray
         self.segment_labels = None  # type: list
         self.image = None  # type: np.ndarray
-        # image processed by segmentation preprocessor
-        self.image_segm = None  # type: np.ndarray
         # a superpixel is perturbed with prob 1 - p_sample
         self.p_sample = 0.5  # type: float
 
@@ -126,8 +128,6 @@ class AnchorImage(object):
         else:
             image_segm = image.copy()
 
-        self.image_segm = image_segm
-
         return image_segm
 
     def _choose_superpixels(self, num_samples: int, p_sample: float = 0.5) -> np.ndarray:
@@ -155,7 +155,7 @@ class AnchorImage(object):
 
         return data
 
-    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, c_labels: bool = True) -> \
+    def sampler(self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True) -> \
             Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Sample images from a perturbation distribution by masking randomly chosen superpixels
@@ -170,12 +170,13 @@ class AnchorImage(object):
             tuple: features (= superpixels) present in the proposed anchor
         num_samples
             Number of samples used
-        c_labels
-            Whether to use labels coming from model predictions as 'true' labels
+        compute_labels
+            If True, an array of comparisons between predictions on perturbed samples and
+            instance to be explained is returned.
 
         Returns
         -------
-            If c_labels=True, a list containing the following is returned:
+            If compute_labels=True, a list containing the following is returned:
                 - covered_true: perturbed examples where the anchor applies and the model prediction
                     on perturbed is the same as the instance prediction
                 - covered_false: perturbed examples where the anchor applies and the model prediction
@@ -189,7 +190,7 @@ class AnchorImage(object):
             Otherwise, a list containing the data matrix only is returned.
         """
 
-        if c_labels:
+        if compute_labels:
             raw_data, data = self.perturbation(anchor[1], num_samples)
             labels = self.compare_labels(raw_data)
             covered_true = raw_data[labels][:self.n_covered_ex]
@@ -289,11 +290,24 @@ class AnchorImage(object):
 
         return self.predictor(samples) == self.instance_label
 
-    def explain(self, image: np.ndarray, p_sample: float = 0.5, threshold: float = 0.95, delta: float = 0.1,
-                tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1,
-                stop_on_first: bool = False, max_anchor_size: int = None, min_samples_start: int = 100,
-                n_covered_ex: int = 10, binary_cache_size: int = 10000, verbose: bool = True,
-                verbose_every: int = 1, **kwargs: Any) -> dict:
+    def explain(self,
+                image: np.ndarray,
+                p_sample: float = 0.5,
+                threshold: float = 0.95,
+                delta: float = 0.1,
+                tau: float = 0.15,
+                batch_size: int = 100,
+                coverage_samples: int = 10000,
+                beam_size: int = 1,
+                stop_on_first: bool = False,
+                max_anchor_size: int = None,
+                min_samples_start: int = 100,
+                n_covered_ex: int = 10,
+                binary_cache_size: int = 10000,
+                cache_margin: int = 1000,
+                verbose: bool = True,
+                verbose_every: int = 1,
+                **kwargs: Any) -> dict:
 
         """
         Explain instance and return anchor with metadata.
@@ -329,6 +343,9 @@ class AnchorImage(object):
         binary_cache_size
             The result search pre-allocates binary_cache_size batches for storing the binary arrays
             returned during sampling.
+        cache_margin
+            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
         verbose_every
@@ -348,7 +365,11 @@ class AnchorImage(object):
         self.instance_label = self.predictor(image[np.newaxis, ...])[0]
 
         # get anchors and add metadata
-        mab = AnchorBaseBeam(samplers=[self.sampler], **kwargs)
+        mab = AnchorBaseBeam(
+            samplers=[self.sampler],
+            sample_cache_size=binary_cache_size,
+            cache_margin=cache_margin,
+            **kwargs)
         result = mab.anchor_beam(
             desired_confidence=threshold,
             delta=delta,
@@ -359,7 +380,6 @@ class AnchorImage(object):
             stop_on_first=stop_on_first,
             max_anchor_size=max_anchor_size,
             min_samples_start=min_samples_start,
-            sample_cache_size=binary_cache_size,
             verbose=verbose,
             verbose_every=verbose_every,
             **kwargs,

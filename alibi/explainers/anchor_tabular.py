@@ -11,7 +11,7 @@ from alibi.utils.discretizer import Discretizer
 from alibi.utils.distributed import RAY_INSTALLED
 
 
-class TabularSampler(object):
+class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
     values specified in an instance to be expalined, X."""
 
@@ -22,7 +22,7 @@ class TabularSampler(object):
         Parameters
         ----------
         predictor
-            An object exposing a .predict method, used to predict labels on the samples.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         disc_perc
             Percentiles used for numerical feat. discretisation.
         numerical_features
@@ -152,8 +152,6 @@ class TabularSampler(object):
             Mapping as described above.
         """
 
-        # key: feat. col ID. value is a dict where each key represents a bin value or value of categorical
-        # variable. Each value in this dict is an array containing idxs of training data rows where that value is found
         all_features = self.numerical_features + self.categorical_features
         val2idx = {f_id: defaultdict(None) for f_id in all_features}  # type: Dict[int, DefaultDict[int, np.ndarray]]
         for feat in val2idx:
@@ -162,7 +160,7 @@ class TabularSampler(object):
 
         return val2idx
 
-    def __call__(self, anchor: Tuple[int, tuple], num_samples: int, c_labels=True) -> \
+    def __call__(self, anchor: Tuple[int, tuple], num_samples: int, compute_labels=True) -> \
             Union[List[Union[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float, int]], List[np.ndarray]]:
         """
         Obtain perturbed records by drawing samples from training data that contain the categorical labels and
@@ -171,16 +169,17 @@ class TabularSampler(object):
         Parameters
         ----------
         anchor
-            the integer represents the order of the result in a request array. The tuple contains
-            encoded feature indices
+            The integer represents the order of the result in a request array. The tuple contains
+            encoded feature indices.
         num_samples
-            Number of samples used when sampling from training set
-        c_labels
-            if False, labels are not returned by the sampling function
+            Number of samples used when sampling from training set.
+        compute_labels
+            If True, an array of comparisons between predictions on perturbed samples and instance to be
+            explained is returned.
 
         Returns
         -------
-            If c_labels=True, a list containing the following is returned:
+            If compute_labels=True, a list containing the following is returned:
              - covered_true: perturbed examples where the anchor applies and the model prediction
                     on perturbation is the same as the instance prediction
              - covered_false: perturbed examples where the anchor applies and the model prediction
@@ -207,7 +206,7 @@ class TabularSampler(object):
                 idxs = np.where((lower_bin <= d_records_sampled) & (d_records_sampled <= upper_bin))
                 data[idxs, i] = 1
 
-        if c_labels:
+        if compute_labels:
             labels = self.compare_labels(raw_data)
             covered_true = raw_data[labels, :][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels), :][:self.n_covered_ex]
@@ -484,6 +483,8 @@ class TabularSampler(object):
         3 categorical variables, indices 0 - 4 represent bins of the numerical variable whereas indices 5, 6, 7
         represent the encoded indices of the categorical variables (but see note for caviats). The encoding is
         necessary so that the different ranges of the numerical variable can be sampled during result construction.
+        Note that the encoded indices represent the predicates used during the anchor construction process (i.e., and
+        anchor is a collection of encoded indices.
 
         Note: Each continuous variable has n_bins - 1 corresponding entries in ord_lookup.
 
@@ -552,7 +553,7 @@ class TabularSampler(object):
         return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
 
-class RemoteSampler(object):
+class RemoteSampler:
     """ A wrapper that facilitates the use of TabularSampler for distributed sampling."""
     if RAY_INSTALLED:
         import ray
@@ -563,7 +564,7 @@ class RemoteSampler(object):
         self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
 
     def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
-                 c_labels: bool = True) -> List:
+                 compute_labels: bool = True) -> List:
         """
         Wrapper around TabularSampler.__call__. It allows sampling a batch of anchors in the same process,
         which can improve performance.
@@ -574,18 +575,18 @@ class RemoteSampler(object):
             A list of result tuples. see TabularSampler.__call__ for details.
         num_samples:
             See TabularSampler.__call__.
-        c_labels
+        compute_labels
             See TabularSampler.__call__.
         """
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
-            return self.sampler(anchors_batch, num_samples, c_labels=c_labels)
+            return self.sampler(anchors_batch, num_samples, compute_labels=compute_labels)
         elif len(anchors_batch) == 1:  # batch size = 1
-            return [self.sampler(*anchors_batch, num_samples, c_labels=c_labels)]
+            return [self.sampler(*anchors_batch, num_samples, compute_labels=compute_labels)]
         else:  # batch size > 1
             batch_result = []
             for anchor in anchors_batch:
-                batch_result.append(self.sampler(anchor, num_samples, c_labels=c_labels))
+                batch_result.append(self.sampler(anchor, num_samples, compute_labels=compute_labels))
 
             return batch_result
 
@@ -650,7 +651,7 @@ class RemoteSampler(object):
         return [cat_lookup_id, ord_lookup_id, enc2feat_idx_id]
 
 
-class AnchorTabular(object):
+class AnchorTabular:
 
     def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
                  seed: int = None) -> None:
@@ -658,7 +659,7 @@ class AnchorTabular(object):
         Parameters
         ----------
         predictor
-            Model prediction function.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         feature_names
             List with feature names.
         categorical_names
@@ -735,10 +736,23 @@ class AnchorTabular(object):
         lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
-    def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False,
-                max_anchor_size: int = None, min_samples_start: int = 100, n_covered_ex: int = 10,
-                binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1, **kwargs: Any) -> dict:
+    def explain(self,
+                X: np.ndarray,
+                threshold: float = 0.95,
+                delta: float = 0.1,
+                tau: float = 0.15,
+                batch_size: int = 100,
+                coverage_samples: int = 10000,
+                beam_size: int = 1,
+                stop_on_first: bool = False,
+                max_anchor_size: int = None,
+                min_samples_start: int = 100,
+                n_covered_ex: int = 10,
+                binary_cache_size: int = 10000,
+                cache_margin: int = 1000,
+                verbose: bool = False,
+                verbose_every: int = 1,
+                **kwargs: Any) -> dict:
         """
         Explain prediction made by classifier on instance X.
 
@@ -771,6 +785,9 @@ class AnchorTabular(object):
         binary_cache_size
             The result search pre-allocates binary_cache_size batches for storing the binary arrays
             returned during sampling.
+        cache_margin
+            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
         verbose_every
@@ -793,17 +810,19 @@ class AnchorTabular(object):
         self._build_sampling_lookups(X)
 
         # get anchors
-        mab = AnchorBaseBeam(samplers=self.samplers, **kwargs)
+        mab = AnchorBaseBeam(
+            samplers=self.samplers,
+            sample_cache_size=binary_cache_size,
+            cache_margin=cache_margin,
+            **kwargs)
         result = mab.anchor_beam(
-            delta=delta,
-            epsilon=tau,
+            delta=delta, epsilon=tau,
             desired_confidence=threshold,
             beam_size=beam_size,
             min_samples_start=min_samples_start,
             max_anchor_size=max_anchor_size,
             batch_size=batch_size,
             coverage_samples=coverage_samples,
-            sample_cache_size=binary_cache_size,
             verbose=verbose,
             verbose_every=verbose_every,
         )  # type: Any
@@ -921,7 +940,7 @@ class DistributedAnchorTabular(AnchorTabular):
     def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
                  seed: int = None) -> None:
 
-        super(DistributedAnchorTabular, self).__init__(predictor, feature_names, categorical_names, seed)
+        super().__init__(predictor, feature_names, categorical_names, seed)
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 
@@ -980,10 +999,23 @@ class DistributedAnchorTabular(AnchorTabular):
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = DistributedAnchorTabular.ray.get(lookups)
 
-    def explain(self, X: np.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15,
-                batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False,
-                max_anchor_size: int = None, min_samples_start: int = 1, n_covered_ex: int = 10,
-                binary_cache_size: int = 10000, verbose: bool = False, verbose_every: int = 1, **kwargs: Any) -> dict:
+    def explain(self,
+                X: np.ndarray,
+                threshold: float = 0.95,
+                delta: float = 0.1,
+                tau: float = 0.15,
+                batch_size: int = 100,
+                coverage_samples: int = 10000,
+                beam_size: int = 1,
+                stop_on_first: bool = False,
+                max_anchor_size: int = None,
+                min_samples_start: int = 1,
+                n_covered_ex: int = 10,
+                binary_cache_size: int = 10000,
+                cache_margin: int = 1000,
+                verbose: bool = False,
+                verbose_every: int = 1,
+                **kwargs: Any) -> dict:
         """
         Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
@@ -1006,18 +1038,20 @@ class DistributedAnchorTabular(AnchorTabular):
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata
         self._build_sampling_lookups(X)
-
-        mab = DistributedAnchorBaseBeam(samplers=self.samplers, **kwargs)
+        mab = DistributedAnchorBaseBeam(
+            samplers=self.samplers,
+            sample_cache_size=binary_cache_size,
+            cache_margin=cache_margin,
+            **kwargs,
+        )
         result = mab.anchor_beam(
-            delta=delta,
-            epsilon=tau,
+            delta=delta, epsilon=tau,
             desired_confidence=threshold,
             beam_size=beam_size,
             min_samples_start=min_samples_start,
             max_anchor_size=max_anchor_size,
             batch_size=batch_size,
             coverage_samples=coverage_samples,
-            sample_cache_size=binary_cache_size,
             verbose=verbose,
             verbose_every=verbose_every,
         )  # type: Any

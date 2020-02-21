@@ -60,20 +60,6 @@ def rf_classifier(request):
 
 
 @pytest.fixture(scope='module')
-def iris_rf_classifier(get_iris_dataset):
-    """
-    Fits random forrest classifier on Iris dataset.
-    """
-
-    dataset = get_iris_dataset
-    np.random.seed(0)
-    clf = RandomForestClassifier(n_estimators=50)
-    clf.fit(dataset['X_train'], dataset['y_train'])
-
-    return clf
-
-
-@pytest.fixture(scope='module')
 def at_defaults(request):
     """
     Default config for explainers.

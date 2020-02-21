@@ -1,6 +1,6 @@
 # flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
-import keras
+import tensorflow.keras as keras
 
 import numpy as np
 
@@ -115,7 +115,6 @@ def movie_sentiment_dataset():
     labels = movies.target
     train, test, train_labels, test_labels = train_test_split(data, labels, test_size=.2, random_state=0)
     train_labels = np.array(train_labels)
-    # apply CountVectorizer
     vectorizer = CountVectorizer(min_df=1)
     vectorizer.fit(train)
 

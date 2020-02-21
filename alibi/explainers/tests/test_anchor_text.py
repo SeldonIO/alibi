@@ -27,7 +27,6 @@ def find_punctuation(text: str) -> int:
 
     return len(tokens & punctuation)
 
-
 @pytest.mark.parametrize('lr_classifier', ((get_dataset('movie_sentiment')),), indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
@@ -116,7 +115,7 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
 def test_neighbors():
 
     # test inputs
-    w_prob = -20.
+    w_prob = -15.
     tag = 'NN'
     top_n = 10
 
@@ -124,6 +123,7 @@ def test_neighbors():
     n = neighbor.neighbors('book', tag, top_n)
     # The word itself is excluded from the array with similar words
     assert 'book' not in n['words']
+    assert len(n['words']) == top_n
     assert len(n['words']) == len(n['similarities'])
     # similarity score list needs to be descending
     similarity_score = n['similarities']

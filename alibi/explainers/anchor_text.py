@@ -321,9 +321,9 @@ class AnchorText:
             return np.array(' '.join(arr)).astype(dtype)
 
     def perturb_sentence(self, present: tuple, n: int, sample_proba: float = 0.5,
-                         forbidden: set = frozenset(), forbidden_tags: set = frozenset(['PRP$']),
-                         forbidden_words: set = frozenset(['be']), temperature: float = 1.,
-                         pos: set = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
+                         forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset(['PRP$']),
+                         forbidden_words: frozenset = frozenset(['be']), temperature: float = 1.,
+                         pos: frozenset = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
                          use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.

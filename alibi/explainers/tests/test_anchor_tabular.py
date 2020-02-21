@@ -9,6 +9,7 @@ from copy import deepcopy
 
 from alibi.explainers import DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
+from alibi.utils.distributed import RAY_INSTALLED
 
 
 # TODO: Test DistributedAnchorBaseBeam separately
@@ -71,18 +72,17 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer):
     assert sampler.instance_label == instance_label
     assert sampler.n_covered_ex == n_covered_ex
 
-@pytest.mark.parametrize('ncpu', (2, 3))
-@pytest.mark.parametrize('predict_type', ('proba', 'class'))
-def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, iris_rf_classifier):
 
-    ray_installed = True
-    try:
-        import ray
-    except ImportError:
-        ray_installed = False
-        assert True
+@pytest.mark.parametrize('ncpu', (2, 3), ids='ncpu={}'.format)
+@pytest.mark.parametrize('predict_type', ('proba', 'class'), ids='predict_type={}'.format)
+@pytest.mark.parametrize('rf_classifier',
+                         [pytest.lazy_fixture('get_iris_dataset')],
+                         indirect=True,
+                         ids='clf=rf_{}'.format,
+                         )
+def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, rf_classifier):
 
-    if ray_installed:
+    if RAY_INSTALLED:
         import ray
 
         # inputs
@@ -93,7 +93,7 @@ def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, iris_r
 
         # prepare the classifier and explainer
         X_test, X_train, Y_train, feature_names = get_iris_dataset
-        clf = iris_rf_classifier
+        clf, preprocessor = rf_classifier
         predictor = predict_fcn(predict_type, clf)
         explainer = DistributedAnchorTabular(predictor, feature_names)
         explainer.fit(X_train, ncpu=ncpu)
@@ -141,7 +141,6 @@ def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, iris_r
         for p, t, anchor in zip(pos, total, to_sample):
             assert distrib_anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
             assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
-
 
 @pytest.mark.parametrize('rf_classifier',
                          [pytest.lazy_fixture('get_iris_dataset')],
@@ -214,7 +213,6 @@ def test_iris_sampler(rf_classifier, at_iris_explainer, anchor):
         # check features sampled are in the correct range
         assert (train_data_mean + train_data_3std - raw_data_mean > 0).all()
         assert (train_data_mean - train_data_3std - raw_data_mean < 0).all()
-
 
 @pytest.mark.parametrize('anchor', ((2, ), (10, ),  (11, ), (7, 10, 11), (3, 11)), ids='anchor={}'.format)
 @pytest.mark.parametrize('rf_classifier',

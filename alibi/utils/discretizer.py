@@ -1,5 +1,6 @@
 import numpy as np
 
+from alibi.tests.utils import issorted
 from functools import partial
 from typing import Dict, Callable, List, Sequence, Union
 
@@ -46,6 +47,27 @@ class Discretizer(object):
 
     @staticmethod
     def get_percentiles(x: np.ndarray, qts: np.ndarray) -> np.ndarray:
+        """
+        Discretizes the the data in `x` using the quantiles in `qts`.
+        This is achieved by searching for the index of each value in x
+        into `qts`, which is assumed to be a 1-D sorted array.
+
+        Parameters
+        ----------
+        x
+            A tensor of data to be discretized
+        qts:
+            A percentiles array. This should be a 1-D array sorted in
+            ascending order.
+        Returns
+        -------
+            A discretized data tensor.
+        """
+
+        if len(qts.shape) != 1:
+            raise ValueError("Expected 1D quantiles array!")
+        if not issorted(qts):
+            raise ValueError("Quantiles array should be sorted!")
         return np.searchsorted(qts, x)
 
     def bins(self, data: np.ndarray) -> List[np.ndarray]:
@@ -53,7 +75,7 @@ class Discretizer(object):
         Parameters
         ----------
         data
-            Data to discretize
+            Data to discretize.
 
         Returns
         -------

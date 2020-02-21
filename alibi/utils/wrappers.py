@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class Predictor(object):
+class Predictor:
 
     def __init__(self, clf, preprocessor=None):
 
@@ -18,11 +18,14 @@ class Predictor(object):
         return self.predict_fcn(x)
 
 
-class ArgmaxTransformer(object):
+class ArgmaxTransformer:
     """
     A transformer for converting classification output probability
-    tensors to class labels. If the predictor ret
+    tensors to class labels. It assumes the predictor is a callable
+    that can be called with a N-tensor of data points `x` and produces
+    an N-tensor of outputs.
     """
+
     def __init__(self, predictor):
         self.predictor = predictor
 

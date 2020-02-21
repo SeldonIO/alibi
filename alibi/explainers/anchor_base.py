@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 # TODO: Discuss logging strategy
 
-class AnchorBaseBeam(object):
+class AnchorBaseBeam:
 
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
         """
@@ -26,8 +26,13 @@ class AnchorBaseBeam(object):
 
         self.sample_fcn = samplers[0]
         self.samplers = None  # type: List[Callable]
+        # Initial size (in batches) of data/raw data samples cache.
+        self.sample_cache_size = kwargs.get('sample_cache_size', 10000)
+        # when only the max of self.margin or batch size remain emptpy, the cache is
+        # extended to accommodate an additional sample_cache_size batches.
+        self.margin = kwargs.get('cache_margin', 1000)
 
-    def _init_state(self, batch_size: int, sample_cache_size: int, coverage_data: np.ndarray) -> None:
+    def _init_state(self, batch_size: int, coverage_data: np.ndarray) -> None:
         """
         Initialises the object state, which is used to compute result precisions & precision bounds
         and provide metadata for explanation objects.
@@ -42,8 +47,8 @@ class AnchorBaseBeam(object):
             See anchor_beam method.
         """
 
-        prealloc_size = batch_size * sample_cache_size
-        # t_ indicates that the attribute is a dictionary with entries for each result
+        prealloc_size = batch_size * self.sample_cache_size
+        # t_ indicates that the attribute is a dictionary with entries for each anchor
         self.state = {
             't_coverage': defaultdict(lambda: 0.),   # anchors' coverage
             't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
@@ -221,7 +226,7 @@ class AnchorBaseBeam(object):
         Upper and lower precision bound indices.
         """
 
-        crit_arms = namedtuple('crit_arms', 'ut lt')
+        crit_arms = namedtuple('crit_arms', ['ut', 'lt'])
 
         sorted_means = np.argsort(means)  # ascending sort of result candidates by precision
         beta = self.compute_beta(len(means), t, delta)
@@ -461,7 +466,7 @@ class AnchorBaseBeam(object):
         self.state['labels'][idxs] = labels
         self.state['current_idx'] += n_samples
 
-        if self.state['current_idx'] >= self.state['data'].shape[0] - max(1000, n_samples):
+        if self.state['current_idx'] >= self.state['data'].shape[0] - max(self.margin, n_samples):
             prealloc_size = self.state['prealloc_size']
             self.state['data'] = np.vstack(
                 (self.state['data'], np.zeros((prealloc_size, data.shape[1]), data.dtype))
@@ -607,8 +612,8 @@ class AnchorBaseBeam(object):
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
                     beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100,
                     max_anchor_size: int = None, stop_on_first: bool = False, batch_size: int = 100,
-                    coverage_samples: int = 10000, sample_cache_size: int = 10000,  verbose: bool = False,
-                    verbose_every: int = 1,  **kwargs) -> dict:
+                    coverage_samples: int = 10000,  verbose: bool = False, verbose_every: int = 1,
+                    **kwargs) -> dict:
 
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
@@ -641,8 +646,6 @@ class AnchorBaseBeam(object):
             Number of samples from which to build a coverage set.
         batch_size
             Number of samples used for an arm evaluation.
-        sample_cache_size
-            Initial size (in batches) of data/raw data samples cache.
         verbose
             Whether to print intermediate LUCB & anchor selection output.
         verbose_every
@@ -659,7 +662,7 @@ class AnchorBaseBeam(object):
             coverage_samples,
             samplers=self.samplers,
         )
-        self._init_state(batch_size, sample_cache_size, coverage_data)
+        self._init_state(batch_size, coverage_data)
 
         # sample by default 1 or min_samples_start more random value(s)
         (pos,), (total,) = self.draw_samples([()], min_samples_start)
@@ -825,14 +828,14 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
-        super(DistributedAnchorBaseBeam, self).__init__(samplers)
+        super().__init__(samplers)
         if 'chunksize' in kwargs:
             self.chunksize = kwargs['chunksize']
         else:
             self.chunksize = 1
         self.sample_fcn = lambda actor, anchor, n_samples, c_labels=True: actor.__call__.remote(anchor,
                                                                                                 n_samples,
-                                                                                                c_labels=c_labels)
+                                                                                                compute_labels=c_labels)
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 

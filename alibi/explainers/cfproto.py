@@ -1,10 +1,13 @@
 # flake8: noqa F841
 
+import copy
 import logging
 import numpy as np
 import sys
 import tensorflow as tf
 from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
+
+from .base import Explainer, Explanation, FitMixin
 from alibi.confidence import TrustScore
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
@@ -17,8 +20,19 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_META_CFP = {"type": ["blackbox", "tensorflow", "keras"],
+                    "explanations": ["local"],
+                    "params": {}}
 
-class CounterFactualProto:
+DEFAULT_DATA_CFP = {"cf": None,
+                    "all": [],
+                    "orig_class": None,
+                    "orig_proba": None,
+                    "id_proto": None
+                    }  # type: dict
+
+
+class CounterFactualProto(Explainer, FitMixin):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -97,12 +111,24 @@ class CounterFactualProto:
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        super().__init__()
+        params = locals()
+        remove = ['self', 'predict', 'ae_model', 'enc_model', 'sess', '__class__']
+        for key in remove:
+            params.pop(key)
+        self.meta.update(DEFAULT_META_CFP)
+        self.meta['params'].update(params)
+
         self.predict = predict
 
         # check whether the model, encoder and auto-encoder are Keras or TF models and get session
         is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
         is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
         is_enc, is_enc_keras, enc_sess = _check_keras_or_tf(enc_model)
+        self.meta['params'].update(is_model=is_model, is_model_keras=is_model_keras)
+        self.meta['params'].update(is_ae=is_ae, is_ae_keras=is_ae_keras)
+        self.meta['params'].update(is_enc=is_enc, is_enc_keras=is_enc_keras)
+
         # TODO: check ae, enc and model are all compatible
 
         # if session provided, use it
@@ -135,11 +161,13 @@ class CounterFactualProto:
             self.enc_or_kdtree = True
         else:
             self.enc_or_kdtree = False
+        self.meta['params'].update(enc_or_kdtree=self.enc_or_kdtree)
 
         if cat_vars:
             self.is_cat = True
         else:
             self.is_cat = False
+        self.meta['params'].update(is_cat=self.is_cat)
 
         self.shape = shape
         self.kappa = kappa
@@ -635,7 +663,7 @@ class CounterFactualProto:
 
     def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
             w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
-            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> None:
+            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> "CounterFactualProto":
         """
         Get prototypes for each class using the encoder or k-d trees.
         The prototypes are used for the encoder loss term or to calculate the optional trust scores.
@@ -667,6 +695,14 @@ class CounterFactualProto:
         update_feature_range
             Update feature range with scaled values.
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['self', 'train_data']
+        for key in remove:
+            params.pop(key)
+        # update metadata
+        self.meta['params'].update(params)
+
         if self.model:
             preds = np.argmax(self.predict.predict(train_data), axis=1)  # type: ignore
         else:
@@ -768,6 +804,8 @@ class CounterFactualProto:
             ts.fit(train_data, preds, classes=self.classes)
             self.kdtrees = ts.kdtrees
             self.X_by_class = ts.X_kdtree
+
+        return self
 
     def loss_fn(self, pred_proba: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
@@ -1227,7 +1265,7 @@ class CounterFactualProto:
 
     def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, k: int = None,
                 k_type: str = 'mean', threshold: float = 0., verbose: bool = False,
-                print_every: int = 100, log_every: int = 100) -> dict:
+                print_every: int = 100, log_every: int = 100) -> Explanation:
         """
         Explain instance and return counterfactual with metadata.
 
@@ -1264,12 +1302,18 @@ class CounterFactualProto:
         explanation
             Dictionary containing the counterfactual with additional metadata
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['self', 'X', 'Y']
+        for key in remove:
+            params.pop(key)
+
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '
                            'but first dim = %s', X.shape[0])
 
         # output explanation dictionary
-        explanation = {}
+        explanation = copy.deepcopy(DEFAULT_DATA_CFP)
 
         if Y is None:
             if self.model:
@@ -1291,12 +1335,16 @@ class CounterFactualProto:
                                          verbose=verbose, threshold=threshold,
                                          print_every=print_every, log_every=log_every)
 
+        if self.enc_or_kdtree:
+            explanation['id_proto'] = self.id_proto
+
         # add to explanation dict
         if not self.best_attack:
             logger.warning('No counterfactual found!')
-            explanation['cf'] = None
-            explanation['all'] = []
-            return explanation
+
+            # create explanation object
+            newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+            return newexp
 
         explanation['all'] = self.cf_global
         explanation['cf'] = {}
@@ -1309,7 +1357,7 @@ class CounterFactualProto:
         explanation['cf']['proba'] = Y_pert
         explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
 
-        explanation['meta'] = {}
-        explanation['meta']['name'] = self.__class__.__name__
+        # create explanation object
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
 
-        return explanation
+        return newexp

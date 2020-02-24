@@ -327,7 +327,7 @@ class AnchorImage(Explainer):
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,
                 cache_margin: int = 1000,
-                verbose: bool = True,
+                verbose: bool = False,
                 verbose_every: int = 1,
                 **kwargs: Any) -> Explanation:
 

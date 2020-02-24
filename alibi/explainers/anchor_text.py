@@ -1,9 +1,11 @@
+import copy
 import logging
 import numpy as np
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union
 
 from alibi.utils.wrappers import ArgmaxTransformer
 
+from .base import Explainer, Explanation
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 
@@ -11,6 +13,15 @@ if TYPE_CHECKING:
     import spacy
 
 logger = logging.getLogger(__name__)
+
+DEFAULT_META_ANCHOR = {"type": ["blackbox"],
+                       "explanations": ["local"],
+                       "params": {}}
+
+DEFAULT_DATA_ANCHOR = {"anchor": [],
+                       "precision": None,
+                       "coverage": None,
+                       "raw": None}  # type: dict
 
 
 class Neighbors(object):
@@ -83,8 +94,7 @@ class Neighbors(object):
         }
 
 
-class AnchorText:
-
+class AnchorText(Explainer):
     UNK = 'UNK'
 
     def __init__(self, nlp: 'spacy.language.Language', predictor: Callable, seed: int = None) -> None:
@@ -100,7 +110,7 @@ class AnchorText:
         seed
             If set, ensures identical random streams.
         """
-
+        super().__init__()
         np.random.seed(seed)
 
         self.nlp = nlp
@@ -119,6 +129,8 @@ class AnchorText:
         # the method used to generate samples
         self.perturbation = None  # type: Callable
 
+        self.meta.update(DEFAULT_META_ANCHOR)
+
     def set_words_and_pos(self, text: str) -> None:
         """
         Process the sentence to be explained into spaCy token objects, a list of words,
@@ -130,8 +142,8 @@ class AnchorText:
             The instance to be explained.
         """
 
-        processed = self.nlp(text)                   # spaCy tokens for text
-        self.words = [x.text for x in processed]     # list with words in text
+        processed = self.nlp(text)  # spaCy tokens for text
+        self.words = [x.text for x in processed]  # list with words in text
         self.positions = [x.idx for x in processed]  # positions of words in text
         self.punctuation = [x for x in processed if x.is_punct]
         self.tokens = processed
@@ -296,7 +308,7 @@ class AnchorText:
             anchor,
             num_samples,
             **self.perturb_opts,
-         )
+        )
 
     @staticmethod
     def _joiner(arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
@@ -428,16 +440,16 @@ class AnchorText:
         max_sent_len, max_len = 0, 0
         if use_unk:
             max_len = max(len(self.UNK), len(max(self.words, key=len)))
-            max_sent_len = len(self.words)*max_len + len(self.UNK)*len(self.punctuation) + 1
+            max_sent_len = len(self.words) * max_len + len(self.UNK) * len(self.punctuation) + 1
         else:
             for word in self.words:
                 similar_words = self.neighbours[word]['words']
                 max_len = max(max_len, int(similar_words.dtype.itemsize /
-                                           np.dtype(similar_words.dtype.char+'1').itemsize))
+                                           np.dtype(similar_words.dtype.char + '1').itemsize))
                 max_sent_len += max_len
         self.dtype = '<U' + str(max_sent_len)
 
-    def explain(self,
+    def explain(self,  # type: ignore
                 text: str,
                 use_unk: bool = True,
                 use_similarity_proba: bool = False,
@@ -458,7 +470,7 @@ class AnchorText:
                 cache_margin: int = 1000,
                 verbose: bool = False,
                 verbose_every: int = 1,
-                **kwargs: Any) -> dict:
+                **kwargs: Any) -> Explanation:
         """
         Explain instance and return anchor with metadata.
 
@@ -518,6 +530,11 @@ class AnchorText:
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata.
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['text', 'self']
+        for key in remove:
+            params.pop(key)
 
         # store n_covered_ex positive/negative examples for each anchor
         self.n_covered_ex = n_covered_ex
@@ -560,9 +577,9 @@ class AnchorText:
         result['positions'] = [self.positions[x] for x in result['feature']]
         self.mab = mab
 
-        return self.build_explanation(text, result, self.instance_label)
+        return self.build_explanation(text, result, self.instance_label, params)
 
-    def build_explanation(self, text: str, result: dict, predicted_label: int) -> dict:
+    def build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
         """ Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
 
@@ -574,16 +591,24 @@ class AnchorText:
             Dictionary containing the search result and metadata.
         predicted_label
             Label of the instance to be explained. Inferred if not received.
+        params
+            Parameters passed to `explain`
         """
 
         result['instance'] = text
         result['prediction'] = predicted_label
         exp = AnchorExplanation('text', result)
 
-        return {
-            'names': exp.names(),
-            'precision': exp.precision(),
-            'coverage': exp.coverage(),
-            'raw': exp.exp_map,
-            'meta': {'name': self.__class__.__name__}
-        }
+        # output explanation dictionary
+        explanation = {}  # type: dict
+        explanation['anchor'] = exp.names()
+        explanation['precision'] = exp.precision()
+        explanation['coverage'] = exp.coverage()
+        explanation['raw'] = exp.exp_map
+
+        # create explanation object
+        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+
+        # params passed to explain
+        newexp.meta['params'].update(params)
+        return newexp

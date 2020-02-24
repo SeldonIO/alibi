@@ -95,13 +95,13 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
         threshold=threshold,
         use_proba=use_similarity_proba,
     )
-    assert explanation['precision'] >= threshold
-    assert explanation['raw']['prediction'] == label
+    assert explanation.precision >= threshold
+    assert explanation.raw['prediction'] == label
 
     # check if sampled sentences are not cut short
     keys = ['covered_true', 'covered_false']
-    for i in range(len(explanation['raw']['feature'])):
-        example_dict = explanation['raw']['examples'][i]
+    for i in range(len(explanation.raw['feature'])):
+        example_dict = explanation.raw['examples'][i]
         for k in keys:
             for example in example_dict[k]:
                 # check that we have perturbed the sentences

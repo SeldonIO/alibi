@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # default data and metadata
 DEFAULT_META = {
     "name": None,
-    "type": None,
+    "type": [],
     "explanations": [],
     "params": {},
 }  # type: dict

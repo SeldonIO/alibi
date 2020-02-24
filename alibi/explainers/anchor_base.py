@@ -194,7 +194,7 @@ class AnchorBaseBeam:
             instance to be explained. Used to determine, e.g., which samples an result applies to.
         """
 
-        [coverage_data] = self.sample_fcn((0, ()), coverage_samples, c_labels=False)
+        [coverage_data] = self.sample_fcn((0, ()), coverage_samples, compute_labels=False)
 
         return coverage_data
 
@@ -833,9 +833,10 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
             self.chunksize = kwargs['chunksize']
         else:
             self.chunksize = 1
-        self.sample_fcn = lambda actor, anchor, n_samples, c_labels=True: actor.__call__.remote(anchor,
-                                                                                                n_samples,
-                                                                                                compute_labels=c_labels)
+        self.sample_fcn = lambda actor, anchor, n_samples, compute_labels=True:\
+            actor.__call__.remote(anchor,
+                                  n_samples,
+                                  compute_labels=compute_labels)
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
@@ -853,7 +854,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         """
 
         [coverage_data] = DistributedAnchorBaseBeam.ray.get(
-            self.sample_fcn(samplers[0], (0, ()), coverage_samples, c_labels=False)
+            self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
             )
 
         return coverage_data

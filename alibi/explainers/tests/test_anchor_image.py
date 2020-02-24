@@ -49,14 +49,14 @@ def test_anchor_image(conv_net):
     explainer.p_sample = p_sample
     segments = explainer.generate_superpixels(image)
     explainer.segments = segments
+    image_preproc = explainer._preprocess_img(image)
     explainer.segment_labels = list(np.unique(segments))
     superpixels_mask = explainer._choose_superpixels(num_samples=num_samples)
 
     # grayscale image should be replicated across channel dim before segmentation
-    img_segm = explainer.image_segm
-    assert img_segm.shape[-1] == 3
-    for channel in range(img_segm.shape[-1]):
-        assert (image.squeeze() - img_segm[..., channel] <= eps).all() == True
+    assert image_preproc.shape[-1] == 3
+    for channel in range(image_preproc.shape[-1]):
+        assert (image.squeeze() - image_preproc[..., channel] <= eps).all() == True
     # check superpixels mask
     assert superpixels_mask.shape[0] == num_samples
     assert superpixels_mask.shape[1] == len(list(np.unique(segments)))

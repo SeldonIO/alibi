@@ -65,8 +65,8 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer):
     for _ in range(n_explainer_runs):
         explanation = explainer.explain(X_test[0], threshold=threshold, **explain_defaults)
         assert explainer.instance_label == instance_label
-        assert explanation['precision'] >= threshold
-        assert explanation['coverage'] >= 0.05
+        assert explanation.precision >= threshold
+        assert explanation.coverage >= 0.05
 
     sampler = explainer.samplers[0]
     assert sampler.instance_label == instance_label
@@ -92,7 +92,8 @@ def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, rf_cla
         batch_size = 1000  # number of samples to draw during sampling
 
         # prepare the classifier and explainer
-        X_test, X_train, Y_train, feature_names = get_iris_dataset
+        data = get_iris_dataset
+        X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
         clf, preprocessor = rf_classifier
         predictor = predict_fcn(predict_type, clf)
         explainer = DistributedAnchorTabular(predictor, feature_names)
@@ -120,8 +121,8 @@ def test_distributed_anchor_tabular(ncpu, predict_type, get_iris_dataset, rf_cla
 
         # check explanation
         assert explainer.instance_label == instance_label
-        assert explanation['precision'] >= threshold
-        assert explanation['coverage'] >= 0.05
+        assert explanation.precision >= threshold
+        assert explanation.coverage >= 0.05
 
         distrib_anchor_beam = explainer.mab
         assert len(distrib_anchor_beam.samplers) == ncpu

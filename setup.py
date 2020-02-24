@@ -16,7 +16,7 @@ extras_require = {
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
-      version=__version__,  # type: ignore # noqa F821
+      version=__version__,
       description='Algorithms for monitoring and explaining machine learning models',
       long_description=readme(),
       long_description_content_type='text/markdown',
@@ -41,7 +41,9 @@ setup(name='alibi',
       ],
       tests_require=[
           'pytest',
-          'pytest-cov'
+          'pytest-cov',
+          'pytest-xdist',
+          'pytest-lazy-fixture',
       ],
       extras_require=extras_require,
       test_suite='tests',

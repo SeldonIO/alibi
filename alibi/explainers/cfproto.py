@@ -4,7 +4,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow as tf
-from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING
+from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
 from alibi.confidence import TrustScore
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
@@ -634,7 +634,7 @@ class CounterFactualProto:
             self.writer = None
 
     def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
-            w: float = None, disc_perc: list = [25, 50, 75], standardize_cat_vars: bool = False,
+            w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
             smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> None:
         """
         Get prototypes for each class using the encoder or k-d trees.
@@ -683,11 +683,12 @@ class CounterFactualProto:
             # bin numerical features to compute the pairwise distance matrices
             cat_keys = list(self.cat_vars_ord.keys())
             n_ord = train_data_ord.shape[1]
+            numerical_feats = [feat for feat in range(n_ord) if feat not in cat_keys]
             if d_type in ['abdm', 'abdm-mvdm'] and len(cat_keys) != n_ord:
                 fnames = [str(_) for _ in range(n_ord)]
-                disc = Discretizer(train_data_ord, cat_keys, fnames, percentiles=disc_perc)
+                disc = Discretizer(train_data_ord, numerical_feats, fnames, percentiles=disc_perc)
                 train_data_bin = disc.discretize(train_data_ord)
-                cat_vars_bin = {k: len(disc.names[k]) for k in range(n_ord) if k not in cat_keys}
+                cat_vars_bin = {k: len(disc.feature_intervals[k]) for k in range(n_ord) if k not in cat_keys}
             else:
                 train_data_bin = train_data_ord
                 cat_vars_bin = {}

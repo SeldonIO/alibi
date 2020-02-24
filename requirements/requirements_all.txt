@@ -11,8 +11,9 @@ seaborn>=0.9.0
 Keras>=2.2.4
 pytest>=4.4.0
 pytest-cov>=2.6.1
-sphinx>=2.1.2
+pytest-lazy-fixture
 pytest-xdist>=1.28.0
+sphinx>=2.1.2
 flake8>=3.7.7
 mypy>=0.670
 sphinx-autodoc-typehints>=1.6.0,<1.10

@@ -1,9 +1,10 @@
 # flake8: noqa E731
-import tensorflow as tf
 import keras
-import mock
+
+import tensorflow as tf
 
 from alibi.utils.tf import _check_keras_or_tf
+from unittest import mock
 
 blackbox_model = lambda x: x
 keras_model = keras.Model()

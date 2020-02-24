@@ -44,23 +44,24 @@ class FitMixin(abc.ABC):
         pass
 
 
-class Explanation(abc.ABC):
+@attr.s
+class Explanation:
     """
-    Base class for explanations returned by explainers.
+    Explanation class returned by explainers.
     """
+    meta = attr.ib()  # type: dict
+    data = attr.ib()  # type: dict
 
     def __attrs_post_init__(self):
         """
-        Add a name attribute and expose keys stored in self.meta and self.data as attributes of the class.
+        Epose keys stored in self.meta and self.data as attributes of the class.
         """
-        self.meta["name"] = self.__class__.__name__
         for key, value in ChainMap(self.meta, self.data).items():
             setattr(self, key, value)
 
     def to_json(self) -> str:
         """
         Serialize the explanation data and metadata into a json format.
-
         Returns
         -------
         String containing json representation of the explanation
@@ -72,12 +73,10 @@ class Explanation(abc.ABC):
         """
         Create an instance of an Explanation class using a json representation of the Explanation.
         NB: this is intended to be used with subclasses inheriting from Explanation.
-
         Parameters
         ----------
         jsonrepr
             json representation of an explanation
-
         Returns
         -------
         An Explanation object
@@ -88,7 +87,7 @@ class Explanation(abc.ABC):
             data = dictrepr['data']
         except KeyError:
             logger.exception("Invalid explanation representation")
-        return cls(meta=meta, data=data)  # type: ignore
+        return cls(meta=meta, data=data)
 
     def __getitem__(self, item):
         """

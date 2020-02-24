@@ -72,14 +72,14 @@ def test_anchor_image(conv_net):
     threshold = .95
     explanation = explainer.explain(image, threshold=threshold)
 
-    if explanation['raw']['feature']:
-        assert explanation['raw']['examples'][-1]['covered_true'].shape[0] <= explainer.n_covered_ex
-        assert explanation['raw']['examples'][-1]['covered_false'].shape[0] <= explainer.n_covered_ex
+    if explanation.raw['feature']:
+        assert explanation.raw['examples'][-1]['covered_true'].shape[0] <= explainer.n_covered_ex
+        assert explanation.raw['examples'][-1]['covered_false'].shape[0] <= explainer.n_covered_ex
     else:
-        assert not explanation['raw']['examples']
-    assert explanation['anchor'].shape == image_shape
-    assert explanation['precision'] >= threshold
-    assert len(np.unique(explanation['segments'])) == len(np.unique(segments))
+        assert not explanation.raw['examples']
+    assert explanation.anchor.shape == image_shape
+    assert explanation.precision >= threshold
+    assert len(np.unique(explanation.segments)) == len(np.unique(segments))
 
     # test scaling
     fake_img = np.random.random(size=image_shape) + scaling_offset

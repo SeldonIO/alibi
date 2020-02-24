@@ -107,7 +107,7 @@ def test_cf_explainer_iris(cf_iris_explainer):
 
     # test explanation
     exp = cf.explain(x)
-    x_cf = exp['cf']['X']
+    x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
@@ -127,7 +127,7 @@ def test_cf_explainer_iris(cf_iris_explainer):
     elif isinstance(target_class, int):
         assert pred_class_cf == target_class
 
-    if exp['success']:
+    if exp.success:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
@@ -142,7 +142,7 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_exp
 
     # test explanation
     exp = cf.explain(x)
-    x_cf = exp['cf']['X']
+    x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
@@ -162,5 +162,5 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_exp
     elif isinstance(target_class, int):
         assert pred_class_cf == target_class
 
-    if exp['success']:
+    if exp.success:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol

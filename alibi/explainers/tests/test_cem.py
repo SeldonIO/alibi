@@ -36,6 +36,6 @@ def test_cem():
 
     assert not cem.model
     assert set(explanation.data.keys()) >= {'X', 'X_pred', 'PN', 'PN_pred', 'grads_graph', 'grads_num'}
-    assert (explanation['X'] != explanation['PN']).astype(int).sum() > 0
-    assert explanation['X_pred'] != explanation['PN_pred']
-    assert explanation['grads_graph'].shape == explanation['grads_num'].shape
+    assert (explanation.X != explanation.PN).astype(int).sum() > 0
+    assert explanation.X_pred != explanation.PN_pred
+    assert explanation.grads_graph.shape == explanation.grads_num.shape

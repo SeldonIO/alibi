@@ -3,7 +3,7 @@ import pytest
 
 import numpy as np
 from alibi.explainers import AnchorImage
-from alibi.explainers.tests.utils import fashion_mnist_dataset, get_dataset
+from alibi.explainers.tests.utils import fashion_mnist_dataset
 
 
 # Data preparation
@@ -12,7 +12,7 @@ x_train = data['X_train']
 y_train = data['y_train']
 
 
-@pytest.mark.parametrize('conv_net', (get_dataset('fashion_mnist'),), indirect=True)
+@pytest.mark.parametrize('conv_net', (data,), indirect=True)
 def test_anchor_image(conv_net):
 
     segmentation_fn = 'slic'

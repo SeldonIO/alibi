@@ -125,11 +125,3 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, (np.ndarray,)):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
-
-
-class BaseExplainer:
-    pass
-
-
-class BaseExplanation:
-    pass

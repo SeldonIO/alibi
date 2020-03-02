@@ -56,5 +56,5 @@ def methdispatch(func):
 
     wrapper.register = dispatcher.register
     update_wrapper(wrapper, dispatcher)
-    
+
     return wrapper

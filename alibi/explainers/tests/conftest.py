@@ -1,15 +1,22 @@
 import pytest
+import logging
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from alibi.explainers import AnchorTabular
+from alibi.explainers.kernel_shap import KernelShap
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
 from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
 
+from alibi.tests.utils import MockPredictor
+
 # A file containing fixtures that can be used across tests
+
+# Fixtures that return datasets can be combined with classifier
+# fixtures to generate models for testing
 
 
 @pytest.fixture(scope='module')
@@ -31,6 +38,15 @@ def get_adult_dataset():
 
     return adult_dataset()
 
+
+# The classifier fixtures accept a dictionary that
+# contains data and a preprocessor and return a fitted model
+# See the *_dataset functions in alibi.tests.utils for
+# examples with the expected data type
+
+# TODO: The classifier training code is identical so should be
+#  ble to parametrize with module name and param dict to have only 1
+#  such fixture
 
 @pytest.fixture(scope='module')
 def rf_classifier(request):
@@ -57,6 +73,47 @@ def rf_classifier(request):
         clf.fit(data['X_train'], data['y_train'])
 
     return clf, preprocessor
+
+
+@pytest.fixture(scope='module')
+def lr_classifier(request):
+    """
+    Trains a logistic regression classifier.
+    """
+
+    is_preprocessor = False
+    preprocessor = False
+    # see test_anchor_text for an example on how this
+    # fixture can be parametrized
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    clf = LogisticRegression()
+
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
+
+    return clf, preprocessor
+
+
+@pytest.fixture(scope='module')
+def iris_rf_classifier(get_iris_dataset):
+    """
+    Fits random forrest classifier on Iris dataset.
+    """
+
+    dataset = get_iris_dataset
+    np.random.seed(0)
+    clf = RandomForestClassifier(n_estimators=50)
+    clf.fit(dataset['X_train'], dataset['y_train'])
+
+    return clf
+
+# Following fixtures are related to Anchor explainers testing
 
 
 @pytest.fixture(scope='module')
@@ -120,6 +177,18 @@ def at_adult_explainer(get_adult_dataset, rf_classifier, request):
     return data['X_test'], explainer, pred_fn, predict_type
 
 
+@pytest.fixture
+def mock_ks_explainer(request):
+    """
+    Instantiates a KernelShap explainer with a mock predictor.
+    """
+    pred_out_dim, link = request.param
+    predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
+    explainer = KernelShap(predictor=predictor)
+
+    return explainer
+
+
 @pytest.fixture(scope='module')
 def conv_net(request):
 
@@ -145,29 +214,30 @@ def conv_net(request):
     return cnn
 
 
-@pytest.fixture(scope='module')
-def lr_classifier(request):
+# High level fixtures that help us check if the code logs any warnings/correct
+
+@pytest.fixture
+def no_warnings(caplog):
     """
-    Trains a random forest classifier.
+    This fixture should be passed to any test function in order to check if any warnings are raised.
     """
 
-    is_preprocessor = False
-    preprocessor = False
-    # see test_anchor_text for an example on how this
-    # fixture can be parametrized
-    data = request.param
-    if data['preprocessor']:
-        is_preprocessor = True
-        preprocessor = data['preprocessor']
+    caplog.set_level(logging.WARNING)
+    yield
+    warnings = [record for record in caplog.get_records('call') if record.levelno == logging.WARNING]
+    assert not warnings
 
-    clf = LogisticRegression()
 
-    if is_preprocessor:
-        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
-    else:
-        clf.fit(data['X_train'], data['y_train'])
+@pytest.fixture
+def no_errors(caplog):
+    """
+    This fixture should be passed to any test function in order to check if any correct are raised.
+    """
 
-    return clf, preprocessor
+    caplog.set_level(logging.ERROR)
+    yield
+    errors = [record for record in caplog.get_records('call') if record.levelno == logging.WARNING]
+    assert not errors
 
 
 # hooks to skip test configurations that don't make sense

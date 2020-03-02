@@ -7,6 +7,7 @@ from itertools import product
 from alibi.tests.utils import MockPredictor
 from alibi.utils.wrappers import ArgmaxTransformer
 
+
 #####################################################################
 X = np.random.randint(0, 10, size=5)  # Fake classifier input
 out_dim = [1, 5]  # number of classes
@@ -16,9 +17,16 @@ predictor_settings = list(product(out_dim, out_type, sz))
 #####################################################################
 
 
-# parametrize a classifier with different output dimensions and output types,
-# defined in the test setup above.
-@pytest.fixture(params=predictor_settings, ids='predictor_settings={}'.format)
+def id_func(param):
+    """
+    Shows the names of the parameters in test names
+    """
+    return repr(param)
+
+
+# parametrize classifier with different output dimensions and output types,
+# defined in test setup
+@pytest.fixture(params=predictor_settings, ids=id_func)
 def patch_transformer(monkeypatch, request):
     out_dim, out_type, sz = request.param
     transformer = ArgmaxTransformer(None)

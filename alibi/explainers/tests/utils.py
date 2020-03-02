@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
-
+# from alibi.tests
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
 
@@ -99,7 +99,7 @@ def iris_dataset():
         'y_train': Y_train,
         'y_test': Y_test,
         'preprocessor': None,
-        'metadata':{
+        'metadata': {
             'feature_names': feature_names
         }
     }
@@ -164,3 +164,18 @@ def predict_fcn(predict_type, clf, preproc=None):
             predict_fn = lambda x: clf.predict(x)
 
     return predict_fn
+
+
+def get_random_matrix(*, n_rows=500, n_cols=100):
+    """
+    Generates a random matrix with uniformly distributed
+    numbers between 0 and 1 for testing puposes.
+    """
+    if n_rows == 0:
+        sz = (n_cols, )
+    elif n_cols == 0:
+        sz = (n_rows, )
+    else:
+        sz = (n_rows, n_cols)
+
+    return np.random.random(size=sz)

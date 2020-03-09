@@ -242,8 +242,9 @@ def assert_groups(background_data, group_names, groups):
 
 class KMeansMock:
 
-    def __init__(self):
-        pass
+    def __init__(self, seed=None):
+
+        np.random.seed(seed)
 
     @staticmethod
     def _mock_kmeans(data, n_clusters):
@@ -808,19 +809,19 @@ summarise_result = [True, False]
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
-def test_explain(caplog, monkeypatch, mock_ks_explainer, use_groups, summarise_result, data_type):
-
-    caplog.set_level(logging.WARNING)
-
+def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, data_type):
+    """
+    Integration tests, runs .explain method to check output dimensions are as expected.
+    """
     # create fake data and records to explain
-    n_cols, n_rows, n_instances = 15, 20, 2
-    background_data = get_data(data_type, n_rows=n_rows, n_cols=n_cols)
-    instances = get_data(data_type, n_rows=n_instances, n_cols=n_cols)
+    n_feats, n_samples, n_instances = 15, 20, 2
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats)
+    instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats)
 
     # create groups
     if use_groups:
         group_names, groups, _ = setup_groups_and_weights(
-            (n_cols, n_rows),
+            (n_feats, n_samples),
             b_group_names=True,
             b_groups=True,
             b_weights=False,
@@ -845,7 +846,7 @@ def test_explain(caplog, monkeypatch, mock_ks_explainer, use_groups, summarise_r
                 grp = itertools.chain(groups[-2:])
                 groups = groups[:-2]
                 groups.append(grp)
-                cat_vars_start_idx.append(n_cols - 2)
+                cat_vars_start_idx.append(n_feats - 2)
                 cat_vars_enc_dim.append(2)
         else:
             cat_vars_start_idx, cat_vars_enc_dim = [0], [2]
@@ -885,9 +886,9 @@ def test_explain(caplog, monkeypatch, mock_ks_explainer, use_groups, summarise_r
     else:
         if summarise_result:
             assert explainer.summarise_result
-            assert n_cols - sum(cat_vars_enc_dim) + len(cat_vars_start_idx) in shap_dims
+            assert n_feats - sum(cat_vars_enc_dim) + len(cat_vars_start_idx) in shap_dims
         else:
-            assert n_cols in shap_dims
+            assert n_feats in shap_dims
 
 
 n_classes = [(5, 'identity'), ]

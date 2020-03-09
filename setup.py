@@ -38,6 +38,7 @@ setup(name='alibi',
           'spacy',
           'scikit-image',
           'tensorflow<2.0',
+          'shap',
       ],
       tests_require=[
           'pytest',

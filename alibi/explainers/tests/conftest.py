@@ -1,11 +1,13 @@
 import pytest
 import logging
 
+
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
 from alibi.explainers import AnchorTabular
 from alibi.explainers.kernel_shap import KernelShap
+
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
 from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from keras.models import Model

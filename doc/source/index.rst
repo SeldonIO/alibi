@@ -21,6 +21,7 @@
    methods/CEM.ipynb
    methods/CF.ipynb
    methods/CFProto.ipynb
+   methods/LinearityMeasure.ipynb
    methods/TrustScores.ipynb
 
 .. toctree::

@@ -12,7 +12,7 @@
 ---
 [Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation.
 The initial focus on the library is on black-box, instance based model explanations.
-*  [Documentation](https://docs.seldon.io/projects/alibi)
+*  [Documentation](https://docs.seldon.io/projects/alibi/en/latest/)
 
 If you're interested in outlier detection, concept drift or adversarial instance detection, check out our sister project [alibi-detect](https://github.com/SeldonIO/alibi-detect).
 
@@ -131,3 +131,17 @@ Prediction: 4             |  Pertinent Negative: 9               | Pertinent Pos
 
 ![trust_mnist](doc/source/_static/trustscores.png)
 
+## Citations
+If you use alibi in your research, please consider citing it.
+
+BibTeX entry:
+
+```
+@software{alibi,
+  title = {Alibi: Algorithms for monitoring and explaining machine learning models},
+  author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru},
+  url = {https://github.com/SeldonIO/alibi},
+  version = {0.3.2},
+  date = {2020-02-17},
+}
+```

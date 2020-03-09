@@ -38,6 +38,7 @@ class MockPredictor:
         self.out_type = out_type
         self.sz = sz
         self.key = key
+
         if out_type not in OUT_TYPES:
             raise ValueError("Unknown output type. Accepted values are {}".format(OUT_TYPES))
 
@@ -68,6 +69,7 @@ class MockPredictor:
         """
 
         # set distribution parameters
+
         alpha = kwargs.get('alpha', np.ones(self.out_dim))
 
         if isinstance(alpha, np.ndarray):

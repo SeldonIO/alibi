@@ -14,7 +14,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
-# from alibi.tests
+
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
 
@@ -179,3 +179,4 @@ def get_random_matrix(*, n_rows=500, n_cols=100):
         sz = (n_rows, n_cols)
 
     return np.random.random(size=sz)
+

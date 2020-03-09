@@ -17,16 +17,9 @@ predictor_settings = list(product(out_dim, out_type, sz))
 #####################################################################
 
 
-def id_func(param):
-    """
-    Shows the names of the parameters in test names
-    """
-    return repr(param)
-
-
-# parametrize classifier with different output dimensions and output types,
-# defined in test setup
-@pytest.fixture(params=predictor_settings, ids=id_func)
+# parametrize a classifier with different output dimensions and output types,
+# defined in the test setup above.
+@pytest.fixture(params=predictor_settings, ids='predictor_settings={}'.format)
 def patch_transformer(monkeypatch, request):
     out_dim, out_type, sz = request.param
     transformer = ArgmaxTransformer(None)

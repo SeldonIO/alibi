@@ -15,8 +15,6 @@ class MockPredictor:
     """
     def __init__(self, out_dim: int,
                  out_type: str = 'proba',
-                 sz: Union[Tuple, int] = None,
-                 key: tuple = None,
                  seed: int = None,
                  ) -> None:
         """
@@ -26,18 +24,12 @@ class MockPredictor:
                 The number of output classes.
             out_type
                 Indicates if probabilities or class predictions are generated.
-            sz
-                If out_type is proba, tensor of size [sz, out_dim] is returned if
-                    sz is int, and of size [*sz, out_dim] otherwise.
-                If out_type is class, then a tensor of size sz is returned.
         """
 
         np.random.seed(seed)
 
         self.out_dim = out_dim
         self.out_type = out_type
-        self.sz = sz
-        self.key = key
         if out_type not in OUT_TYPES:
             raise ValueError("Unknown output type. Accepted values are {}".format(OUT_TYPES))
 
@@ -47,7 +39,7 @@ class MockPredictor:
         if hasattr(args[0], 'shape'):
             sz = args[0].shape[:-1]
         else:
-            sz = self.sz
+            raise ValueError("Classifier expects the input to have attribute .shape!")
 
         if self.out_type == 'proba':
             return self._generate_probas(sz, *args, **kwargs)

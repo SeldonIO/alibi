@@ -25,7 +25,7 @@ almost always result in the same model prediction. [Documentation](../methods/An
 [image classification](../examples/anchor_image_imagenet.nblink).
 
 **Contrastive explanation method (CEM)**: produce a pertinent positive (PP) and a pertinent negative
-(PN) instance. The PP instance finds the features that should me minimally and sufficiently present
+(PN) instance. The PP instance finds the features that should be minimally and sufficiently present
 to predict the same class as the original prediction (a PP acts as the "most compact" representation
 of the instance to keep the same prediction). The PN instance identifies the features that should be
 minimally and necessarily absent to maintain the original prediction (a PN acts as the closest

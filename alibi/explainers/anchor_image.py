@@ -104,9 +104,9 @@ class AnchorImage:
             A [H, W] array of integers. Each integer is a segment (superpixel) label.
         """
 
-        image_segm = self._preprocess_img(image)
+        image_preproc = self._preprocess_img(image)
 
-        return self.segmentation_fn(image_segm)
+        return self.segmentation_fn(image_preproc)
 
     def _preprocess_img(self, image: np.ndarray) -> np.ndarray:
         """
@@ -124,11 +124,11 @@ class AnchorImage:
 
         # Grayscale images are repeated across channels
         if not self.custom_segmentation and image.shape[-1] == 1:
-            image_segm = np.repeat(image, 3, axis=2)
+            image_preproc = np.repeat(image, 3, axis=2)
         else:
-            image_segm = image.copy()
+            image_preproc = image.copy()
 
-        return image_segm
+        return image_preproc
 
     def _choose_superpixels(self, num_samples: int, p_sample: float = 0.5) -> np.ndarray:
         """
@@ -150,7 +150,7 @@ class AnchorImage:
         """
 
         n_features = len(self.segment_labels)
-        data = np.random.choice([0, 1], num_samples * n_features, p=[p_sample, 1-p_sample])
+        data = np.random.choice([0, 1], num_samples * n_features, p=[p_sample, 1 - p_sample])
         data = data.reshape((num_samples, n_features))
 
         return data

@@ -24,8 +24,9 @@ def cf_iris_explainer(request, logistic_iris):
     cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-
-    return X, y, lr, cf_explainer
+    yield X, y, lr, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.fixture
@@ -59,7 +60,9 @@ def keras_logistic_mnist(request):
 
     model.fit(X, y, epochs=5)
 
-    return X, y, model
+    yield X, y, model
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.fixture
@@ -68,7 +71,9 @@ def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-    return X, y, model, cf_explainer
+    yield X, y, model, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -129,6 +134,7 @@ def test_cf_explainer_iris(cf_iris_explainer):
 
     if exp['success']:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
+
 
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
 @pytest.mark.parametrize('keras_mnist_cf_explainer', ['other', 'same', 4, 9], indirect=True)

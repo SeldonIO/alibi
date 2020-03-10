@@ -5,7 +5,7 @@ import shap
 import numpy as np
 import pandas as pd
 
-from alibi.explainers.base import Explanation, Explainer
+from alibi.explainers.base import Explanation, Explainer, FitMixin
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
 from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple
@@ -47,7 +47,7 @@ DEFAULT_DATA_SHAP = {
 BACKGROUND_WARNING_THRESHOLD = 300
 
 
-class KernelShap(Explainer):
+class KernelShap(Explainer, FitMixin):
 
     def __init__(self,
                  predictor: Callable,
@@ -441,14 +441,14 @@ class KernelShap(Explainer):
                     self.meta['params'].update([(key, data_dict[key])])
         self.meta.update(data_dict)
 
-    def fit(self,
+    def fit(self,  # type: ignore
             background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
             group_names: Union[Tuple, List, None] = None,
             groups: Optional[List[Union[Tuple[int], List[int]]]] = None,
             weights: Union[Union[List[float], Tuple[float]], np.ndarray, None] = None,
-            **kwargs):
+            **kwargs) -> "KernelShap":
         """
         This takes a background dataset (usually a subsample of the training set) as an input along with several
         user specified options and initialises a KernelShap explainer. The runtime of the algorithm depends on the
@@ -539,6 +539,8 @@ class KernelShap(Explainer):
             'transpose': self.transposed,
         }
         self._update_metadata(params, params=True)
+
+        return self
 
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],

@@ -1,12 +1,12 @@
 import copy
 import logging
-import scipy.sparse
 import shap
 
 import numpy as np
 import pandas as pd
 
 from alibi.explainers.base import Explanation, Explainer
+from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
 from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple
 from alibi.utils.wrappers import methdispatch
@@ -108,7 +108,7 @@ class KernelShap(Explainer):
         self.meta.update(DEFAULT_META_SHAP)
 
     def _check_inputs(self,
-                      background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, scipy.sparse.spmatrix],
+                      background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                       group_names: Union[Tuple, List, None],
                       groups: Optional[List[Union[Tuple[int], List[int]]]],
                       weights: Union[Union[List[float], Tuple[float]], np.ndarray, None],
@@ -247,9 +247,9 @@ class KernelShap(Explainer):
                     self.ignore_weights = True
 
     def _summarise_background(self,
-                              background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, scipy.sparse.spmatrix],
+                              background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                               n_background_samples: int,
-                              ) -> Union[shap.common.Data, pd.DataFrame, np.ndarray, scipy.sparse.spmatrix]:
+                              ) -> Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost. If the
         background data is a shap.common.Data object, no summarisation is performed.
@@ -280,7 +280,7 @@ class KernelShap(Explainer):
 
         self.summarise_background = True
 
-        if isinstance(background_data, scipy.sparse.spmatrix):
+        if isinstance(background_data, sparse.spmatrix):
             return shap.sample(background_data, nsamples=n_background_samples)
         elif self.use_groups or self.categorical_names:
             return shap.sample(background_data, nsamples=n_background_samples)
@@ -294,7 +294,7 @@ class KernelShap(Explainer):
 
     @methdispatch
     def _get_data(self,
-                  background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, scipy.sparse.spmatrix],
+                  background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                   group_names: Sequence,
                   groups: List[Sequence[int]],
                   weights: Sequence[Union[float, int]],
@@ -346,8 +346,8 @@ class KernelShap(Explainer):
         else:
             return background_data
 
-    @_get_data.register(scipy.sparse.spmatrix)  # type: ignore
-    def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, scipy.sparse.spmatrix]:
+    @_get_data.register(sparse.spmatrix)  # type: ignore
+    def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, sparse.spmatrix]:
         """
         Initialises background data if user passes a sparse matrix as input. If the
         user specifies feature grouping, then the sparse array is converted to a dense
@@ -445,7 +445,7 @@ class KernelShap(Explainer):
         self.meta.update(data_dict)
 
     def fit(self,
-            background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, scipy.sparse.spmatrix],
+            background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
             group_names: Union[Tuple, List, None] = None,
@@ -545,7 +545,7 @@ class KernelShap(Explainer):
         self._update_metadata(params, params=True)
 
     def explain(self,
-                X: Union[np.ndarray, pd.DataFrame, scipy.sparse.spmatrix],
+                X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
                 cat_vars_start_idx: List[int] = None,
                 cat_vars_enc_dim: List[int] = None,
@@ -589,7 +589,7 @@ class KernelShap(Explainer):
             )
 
         # convert data to dense format if sparse
-        if self.use_groups and isinstance(X, scipy.sparse.spmatrix):
+        if self.use_groups and isinstance(X, sparse.spmatrix):
             X = X.toarray()
 
         shap_values = self._explainer.shap_values(X, **kwargs)
@@ -623,7 +623,7 @@ class KernelShap(Explainer):
         return self.build_explanation(X, shap_values, self.expected_value)
 
     def build_explanation(self,
-                          X: Union[np.ndarray, pd.DataFrame, scipy.sparse.spmatrix],
+                          X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                           shap_values: List[np.ndarray],
                           expected_value: List) -> Explanation:
         """

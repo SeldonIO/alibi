@@ -53,8 +53,7 @@ class KernelShap(Explainer):
                  predictor: Callable,
                  link: str = 'identity',
                  feature_names: Union[List, Tuple, None] = None,
-                 categorical_names: Optional[Dict] = None,
-                 ):
+                 categorical_names: Optional[Dict] = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
         by allowing the user to specify variable groups in order to deal with one-hot encoded categorical
@@ -111,8 +110,7 @@ class KernelShap(Explainer):
                       background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                       group_names: Union[Tuple, List, None],
                       groups: Optional[List[Union[Tuple[int], List[int]]]],
-                      weights: Union[Union[List[float], Tuple[float]], np.ndarray, None],
-                      ) -> None:
+                      weights: Union[Union[List[float], Tuple[float]], np.ndarray, None]) -> None:
         """
         If user specifies parameter grouping, then we check input is correct or inform
         them if the settings they put might not behave as expected.
@@ -248,8 +246,8 @@ class KernelShap(Explainer):
 
     def _summarise_background(self,
                               background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
-                              n_background_samples: int,
-                              ) -> Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
+                              n_background_samples: int) -> \
+            Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost. If the
         background data is a shap.common.Data object, no summarisation is performed.
@@ -298,8 +296,7 @@ class KernelShap(Explainer):
                   group_names: Sequence,
                   groups: List[Sequence[int]],
                   weights: Sequence[Union[float, int]],
-                  **kwargs,
-                  ):
+                  **kwargs):
         """
         Parameters
         ----------
@@ -451,8 +448,7 @@ class KernelShap(Explainer):
             group_names: Union[Tuple, List, None] = None,
             groups: Optional[List[Union[Tuple[int], List[int]]]] = None,
             weights: Union[Union[List[float], Tuple[float]], np.ndarray, None] = None,
-            **kwargs,
-            ):
+            **kwargs):
         """
         This takes a background dataset (usually a subsample of the training set) as an input along with several
         user specified options and initialises a KernelShap explainer. The runtime of the algorithm depends on the

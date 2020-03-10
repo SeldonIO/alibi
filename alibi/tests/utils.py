@@ -1,7 +1,6 @@
 import numpy as np
 
 from contextlib import contextmanager
-from typing import Tuple, Union
 
 
 OUT_TYPES = ['proba', 'class']

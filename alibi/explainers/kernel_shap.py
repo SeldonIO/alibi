@@ -298,8 +298,7 @@ class KernelShap(Explainer):
                   group_names: Sequence,
                   groups: List[Sequence[int]],
                   weights: Sequence[Union[float, int]],
-                  **kwargs,
-                  ):
+                  **kwargs):
         """
         Parameters
         ----------

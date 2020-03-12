@@ -6,6 +6,7 @@ from typing import Any
 import logging
 
 import attr
+from prettyprinter import pretty_repr
 
 import numpy as np
 
@@ -28,7 +29,7 @@ class Explainer(abc.ABC):
     Base class for explainer algorithms
     """
 
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META))  # type: dict
+    meta = attr.ib(default=copy.deepcopy(DEFAULT_META), repr=pretty_repr)  # type: dict
 
     def __attrs_post_init__(self):
         self.meta["name"] = self.__class__.__name__
@@ -49,8 +50,8 @@ class Explanation:
     """
     Explanation class returned by explainers.
     """
-    meta = attr.ib()  # type: dict
-    data = attr.ib()  # type: dict
+    meta = attr.ib(repr=pretty_repr)  # type: dict
+    data = attr.ib(repr=pretty_repr)  # type: dict
 
     def __attrs_post_init__(self):
         """

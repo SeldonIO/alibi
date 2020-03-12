@@ -95,9 +95,9 @@ class Explanation:
         data via items in the returned dictionary.
         """
         import warnings
-        warnings.warn("The Explanation object is not a dictionary anymore and accessing elements should "
-                      "be done via attribute access. Accessing via item will stop working in a future version.",
-                      DeprecationWarning, stacklevel=2)
+        msg = "The Explanation object is not a dictionary anymore and accessing elements should " \
+              "be done via attribute access. Accessing via item will stop working in a future version."
+        warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return getattr(self, item)
 
 

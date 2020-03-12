@@ -600,11 +600,12 @@ class AnchorText(Explainer):
         exp = AnchorExplanation('text', result)
 
         # output explanation dictionary
-        explanation = {}  # type: dict
-        explanation['anchor'] = exp.names()
-        explanation['precision'] = exp.precision()
-        explanation['coverage'] = exp.coverage()
-        explanation['raw'] = exp.exp_map
+        explanation = {
+            'anchor': exp.names(),
+            'precision': exp.precision(),
+            'coverage': exp.coverage(),
+            'raw': exp.exp_map,
+        }
 
         # create explanation object
         newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)

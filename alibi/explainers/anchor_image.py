@@ -440,12 +440,13 @@ class AnchorImage(Explainer):
         exp = AnchorExplanation('image', result)
 
         # output explanation dictionary
-        explanation = {}
-        explanation['anchor'] = anchor
-        explanation['segments'] = self.segments
-        explanation['precision'] = exp.precision()
-        explanation['coverage'] = exp.coverage()
-        explanation['raw'] = exp.exp_map
+        explanation = {
+            'anchor': anchor,
+            'segments': self.segments,
+            'precision': exp.precision(),
+            'coverage': exp.coverage(),
+            'raw': exp.exp_map,
+        }
 
         # create explanation object
         newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)

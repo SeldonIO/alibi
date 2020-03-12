@@ -1,4 +1,4 @@
-numpy>=1.14.5
+numpy>=1.17.4
 pandas>=0.23.4
 scikit-learn>=0.20.2
 spacy>=2.0.18
@@ -6,12 +6,12 @@ scikit-image>=0.14.2
 requests>=2.21.0
 Pillow>=6.0.0
 beautifulsoup4>=4.7.1
-tensorflow>=1.13.1,<2.0
+tensorflow>=1.15.0,<2.0
 seaborn>=0.9.0
 Keras>=2.2.4
-pytest>=4.4.0
+pytest>=5.3.5
 pytest-cov>=2.6.1
-pytest-lazy-fixture
+pytest-lazy-fixture>=0.6.3
 pytest-xdist>=1.28.0
 sphinx>=2.1.2
 flake8>=3.7.7

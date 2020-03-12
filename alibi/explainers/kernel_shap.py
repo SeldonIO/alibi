@@ -25,7 +25,6 @@ SHAP_PARAMS = [
 ]
 
 DEFAULT_META_SHAP = {
-    "name": None,
     "type": "blackbox",
     "explanations": ["local", "global"],
     "params": {}

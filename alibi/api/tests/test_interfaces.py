@@ -47,30 +47,20 @@ def test_incomplete_explainer():
 
 
 def test_explainer():
-    try:
-        exp = SimpleExplainer()
-        assert exp.meta["name"] == exp.__class__.__name__
-        assert hasattr(exp, "explain")
-    except Exception:
-        pytest.fail("Unknown exception")
+    exp = SimpleExplainer()
+    assert exp.meta["name"] == exp.__class__.__name__
+    assert hasattr(exp, "explain")
 
 
 def test_explainer_with_init():
-    try:
-        exp = SimpleExplainerWithInit()
-        assert exp.meta['name'] == exp.__class__.__name__
-        assert exp.meta['params'] == {'a': 1}
-
-    except Exception:
-        pytest.fail("Unknown exception")
+    exp = SimpleExplainerWithInit()
+    assert exp.meta['name'] == exp.__class__.__name__
+    assert exp.meta['params'] == {'a': 1}
 
 
 def test_explainer_valid_meta():
-    try:
-        exp = SimpleExplainer()
-        assert hasattr(exp, "explain")
-    except Exception:
-        pytest.fail("Unknown exception")
+    exp = SimpleExplainer()
+    assert hasattr(exp, "explain")
 
 
 def test_incomplete_fitexplainer():
@@ -79,29 +69,21 @@ def test_incomplete_fitexplainer():
 
 
 def test_fitexplainer():
-    try:
-        exp = SimpleFitExplainer()
-        assert hasattr(exp, "fit")
-        assert hasattr(exp, "explain")
-    except Exception:
-        pytest.fail("Unknown exception")
+    exp = SimpleFitExplainer()
+    assert hasattr(exp, "fit")
+    assert hasattr(exp, "explain")
 
 
 def test_explanation():
-    try:
-        exp = Explanation(meta=valid_meta, data=valid_data)
-        assert exp.meta == valid_meta
-        assert exp.data == valid_data
-        assert isinstance(exp, Explanation)
+    exp = Explanation(meta=valid_meta, data=valid_data)
+    assert exp.meta == valid_meta
+    assert exp.data == valid_data
+    assert isinstance(exp, Explanation)
 
-        # test that a warning is raised if accessing attributes as dict keys
-        with pytest.warns(None) as record:
-            _ = exp['anchor']
-
-        assert len(record) == 1
-
-    except Exception:
-        pytest.fail("Unknown exception")
+    # test that a warning is raised if accessing attributes as dict keys
+    with pytest.warns(None) as record:
+        _ = exp['anchor']
+    assert len(record) == 1
 
 
 def test_serialize_deserialize_explanation():

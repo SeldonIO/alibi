@@ -8,4 +8,4 @@ Pillow>=6.0.0
 beautifulsoup4>=4.7.1
 tensorflow>=1.13.1,<2.0
 shap
-
+scipy

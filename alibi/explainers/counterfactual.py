@@ -4,7 +4,8 @@ from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
 import logging
 
-from .base import Explainer, Explanation
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.utils.gradients import num_grad_batch
 from alibi.utils.tf import _check_keras_or_tf
 
@@ -12,16 +13,6 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_META_CF = {"type": ["blackbox", "tensorflow", "keras"],
-                   "explanations": ["local"],
-                   "params": {}}
-
-DEFAULT_DATA_CF = {"cf": None,
-                   "all": [],
-                   "orig_class": None,
-                   "orig_proba": None,
-                   "success": None}  # type: dict
 
 
 def _define_func(predict_fn: Callable,
@@ -284,8 +275,8 @@ class CounterFactual(Explainer):
 
         # return templates
         self.instance_dict = dict.fromkeys(['X', 'distance', 'lambda', 'index', 'class', 'proba', 'loss'])
-        self.return_dict = {'cf': None, 'all': {i: [] for i in range(self.max_lam_steps)}, 'orig_class': None,
-                            'orig_proba': None}  # type: dict
+        self.return_dict = copy.deepcopy(DEFAULT_DATA_CF)
+        self.return_dict['all'] = {i: [] for i in range(self.max_lam_steps)}
 
     def _initialize(self, X: np.ndarray) -> np.ndarray:
         # TODO initialization strategies ("same", "random", "from_train")
@@ -355,9 +346,9 @@ class CounterFactual(Explainer):
                             'orig_proba': None}
 
         # create explanation object
-        newexp = Explanation(meta=copy.deepcopy(self.meta), data=return_dict)
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=return_dict)
 
-        return newexp
+        return explanation
 
     def _prob_condition(self, X_current):
         return np.abs(self.predict_class_fn(X_current) - self.target_proba_arr) <= self.tol

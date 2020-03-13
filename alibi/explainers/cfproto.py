@@ -7,7 +7,8 @@ import sys
 import tensorflow as tf
 from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
 
-from .base import Explainer, Explanation, FitMixin
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.confidence import TrustScore
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
@@ -19,17 +20,6 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_META_CFP = {"type": ["blackbox", "tensorflow", "keras"],
-                    "explanations": ["local"],
-                    "params": {}}
-
-DEFAULT_DATA_CFP = {"cf": None,
-                    "all": [],
-                    "orig_class": None,
-                    "orig_proba": None,
-                    "id_proto": None
-                    }  # type: dict
 
 
 class CounterFactualProto(Explainer, FitMixin):
@@ -1313,7 +1303,7 @@ class CounterFactualProto(Explainer, FitMixin):
                            'but first dim = %s', X.shape[0])
 
         # output explanation dictionary
-        explanation = copy.deepcopy(DEFAULT_DATA_CFP)
+        data = copy.deepcopy(DEFAULT_DATA_CFP)
 
         if Y is None:
             if self.model:
@@ -1324,10 +1314,10 @@ class CounterFactualProto(Explainer, FitMixin):
             Y_class = np.argmax(Y_proba, axis=1)
             Y_ohe[np.arange(Y_proba.shape[0]), Y_class] = 1
             Y = Y_ohe.copy()
-            explanation['orig_proba'] = Y_proba
+            data['orig_proba'] = Y_proba
         else:  # provided one-hot-encoding of prediction on X
-            explanation['orig_proba'] = None
-        explanation['orig_class'] = np.argmax(Y, axis=1)[0]
+            data['orig_proba'] = None
+        data['orig_class'] = np.argmax(Y, axis=1)[0]
 
         # find best counterfactual
         self.best_attack = False
@@ -1336,28 +1326,28 @@ class CounterFactualProto(Explainer, FitMixin):
                                          print_every=print_every, log_every=log_every)
 
         if self.enc_or_kdtree:
-            explanation['id_proto'] = self.id_proto
+            data['id_proto'] = self.id_proto
 
         # add to explanation dict
         if not self.best_attack:
             logger.warning('No counterfactual found!')
 
             # create explanation object
-            newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
-            return newexp
+            explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
+            return explanation
 
-        explanation['all'] = self.cf_global
-        explanation['cf'] = {}
-        explanation['cf']['X'] = best_attack
+        data['all'] = self.cf_global
+        data['cf'] = {}
+        data['cf']['X'] = best_attack
         if self.model:
             Y_pert = self.predict.predict(best_attack)  # type: ignore
         else:
             Y_pert = self.predict(best_attack)
-        explanation['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
-        explanation['cf']['proba'] = Y_pert
-        explanation['cf']['grads_graph'], explanation['cf']['grads_num'] = grads[0], grads[1]
+        data['cf']['class'] = np.argmax(Y_pert, axis=1)[0]
+        data['cf']['proba'] = Y_pert
+        data['cf']['grads_graph'], data['cf']['grads_num'] = grads[0], grads[1]
 
         # create explanation object
-        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-        return newexp
+        return explanation

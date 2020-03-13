@@ -7,7 +7,8 @@ from functools import partial
 from typing import Any, Callable, List, Tuple, Union
 
 from alibi.utils.wrappers import ArgmaxTransformer
-from .base import Explainer, Explanation
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from skimage.segmentation import felzenszwalb, slic, quickshift
@@ -19,15 +20,6 @@ DEFAULT_SEGMENTATION_KWARGS = {
     'quickshift': {},
     'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
 }
-
-DEFAULT_META_ANCHOR = {"type": ["blackbox"],
-                       "explanations": ["local"],
-                       "params": {}}
-
-DEFAULT_DATA_ANCHOR = {"anchor": [],
-                       "precision": None,
-                       "coverage": None,
-                       "raw": None}  # type: dict
 
 
 class AnchorImage(Explainer):
@@ -440,20 +432,19 @@ class AnchorImage(Explainer):
         exp = AnchorExplanation('image', result)
 
         # output explanation dictionary
-        explanation = {
-            'anchor': anchor,
-            'segments': self.segments,
-            'precision': exp.precision(),
-            'coverage': exp.coverage(),
-            'raw': exp.exp_map,
-        }
+        data = copy.deepcopy(DEFAULT_DATA_ANCHOR_IMG)
+        data.update(anchor=anchor,
+                    segments=self.segments,
+                    precision=exp.precision(),
+                    coverage=exp.coverage(),
+                    raw=exp.exp_map)
 
         # create explanation object
-        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
         # params passed to explain
-        newexp.meta['params'].update(params)
-        return newexp
+        explanation.meta['params'].update(params)
+        return explanation
 
     @staticmethod
     def _scale(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:

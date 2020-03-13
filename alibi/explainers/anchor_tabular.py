@@ -5,21 +5,13 @@ from collections import OrderedDict, defaultdict
 from itertools import accumulate
 from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union
 
-from .base import Explainer, Explanation, FitMixin
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distributed import RAY_INSTALLED
-
-DEFAULT_META_ANCHOR = {"type": ["blackbox"],
-                       "explanations": ["local"],
-                       "params": {}}
-
-DEFAULT_DATA_ANCHOR = {"anchor": [],
-                       "precision": None,
-                       "coverage": None,
-                       "raw": None}  # type: dict
 
 
 class TabularSampler:
@@ -883,19 +875,18 @@ class AnchorTabular(Explainer, FitMixin):
         exp = AnchorExplanation('tabular', result)
 
         # output explanation dictionary
-        explanation = {
-            'anchor': exp.names(),
-            'precision': exp.precision(),
-            'coverage': exp.coverage(),
-            'raw': exp.exp_map,
-        }
+        data = copy.deepcopy(DEFAULT_DATA_ANCHOR)
+        data.update(anchor=exp.names(),
+                    precision=exp.precision(),
+                    coverage=exp.coverage(),
+                    raw=exp.exp_map)
 
         # create explanation object
-        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
         # params passed to explain
-        newexp.meta['params'].update(params)
-        return newexp
+        explanation.meta['params'].update(params)
+        return explanation
 
     def add_names_to_exp(self, explanation: dict) -> None:
         """

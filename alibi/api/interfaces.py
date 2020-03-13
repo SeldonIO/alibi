@@ -12,15 +12,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# default data and metadata
+# default metadata
 DEFAULT_META = {
     "name": None,
     "type": [],
     "explanations": [],
     "params": {},
 }  # type: dict
-
-DEFAULT_DATA = {}  # type: dict
 
 
 @attr.s
@@ -32,7 +30,12 @@ class Explainer(abc.ABC):
     meta = attr.ib(default=copy.deepcopy(DEFAULT_META), repr=pretty_repr)  # type: dict
 
     def __attrs_post_init__(self):
+        # add a name to the metadata dictionary
         self.meta["name"] = self.__class__.__name__
+
+        # expose keys stored in self.meta as attributes of the class.
+        for key, value in self.meta.items():
+            setattr(self, key, value)
 
     @abc.abstractmethod
     def explain(self, X: Any) -> "Explanation":
@@ -55,7 +58,7 @@ class Explanation:
 
     def __attrs_post_init__(self):
         """
-        Epose keys stored in self.meta and self.data as attributes of the class.
+        Expose keys stored in self.meta and self.data as attributes of the class.
         """
         for key, value in ChainMap(self.meta, self.data).items():
             setattr(self, key, value)

@@ -1,5 +1,6 @@
 # flake8: noqa F841
-from .base import Explainer, Explanation, FitMixin
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 import copy
 import logging
 import numpy as np
@@ -12,20 +13,6 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_META_CEM = {"type": ["blackbox", "tensorflow", "keras"],
-                    "explanations": ["local"],
-                    "params": {}}
-
-DEFAULT_DATA_CEM = {"PN": None,
-                    "PP": None,
-                    "PN_pred": None,
-                    "PP_pred": None,
-                    "grads_graph": None,
-                    "grads_num": None,
-                    "X": None,
-                    "X_pred": None
-                    }
 
 
 class CEM(Explainer, FitMixin):
@@ -708,26 +695,26 @@ class CEM(Explainer, FitMixin):
         best_attack, grads = self.attack(X, Y=Y, verbose=verbose)
 
         # output explanation dictionary
-        explanation = copy.deepcopy(DEFAULT_DATA_CEM)
-        explanation['X'] = X
-        explanation['X_pred'] = np.argmax(Y, axis=1)[0]
+        data = copy.deepcopy(DEFAULT_DATA_CEM)
+        data['X'] = X
+        data['X_pred'] = np.argmax(Y, axis=1)[0]
 
         if not self.best_attack:
             logger.warning('No {} found!'.format(self.mode))
 
             # create explanation object
-            newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
-            return newexp
+            explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
+            return explanation
 
-        explanation[self.mode] = best_attack
+        data[self.mode] = best_attack
         if self.model:
             Y_pert = self.sess.run(self.predict(tf.convert_to_tensor(best_attack, dtype=tf.float32)))
         else:
             Y_pert = self.predict(best_attack)
-        explanation[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
-        explanation['grads_graph'], explanation['grads_num'] = grads[0], grads[1]
+        data[self.mode + '_pred'] = np.argmax(Y_pert, axis=1)[0]
+        data['grads_graph'], data['grads_num'] = grads[0], grads[1]
 
         # create explanation object
-        newexp = Explanation(meta=copy.deepcopy(self.meta), data=explanation)
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-        return newexp
+        return explanation

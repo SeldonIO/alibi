@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from alibi.explainers.base import Explainer, Explanation, FitMixin
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
 
 valid_meta = {"type": "blackbox", "explanations": ['local'], "params": {}}  # type: dict
 valid_data = {"anchor": [], "precision": [], "coverage": []}  # type: dict

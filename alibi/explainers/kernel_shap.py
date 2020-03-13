@@ -113,10 +113,6 @@ class KernelShap(Explainer, FitMixin):
         """
         If user specifies parameter grouping, then we check input is correct or inform
         them if the settings they put might not behave as expected.
-
-        Parameters
-        ---------
-            See constructor.
         """
 
         if isinstance(background_data, shap.common.Data):
@@ -251,13 +247,9 @@ class KernelShap(Explainer, FitMixin):
         Summarises the background data to n_background_samples in order to reduce the computational cost. If the
         background data is a shap.common.Data object, no summarisation is performed.
 
-        Parameters
-        ----------
-            See constructor.
-
         Returns
         -------
-            If the user has specified grouping, then the input object is subsampled and and object of the same
+            If the user has specified grouping, then the input object is subsampled and an object of the same
             type is returned. Otherwise, a shap.common.Data object containing the result of a kmeans algorithm
             is wrapped in a shap.common.DenseData object and returned. The samples are weighted according to the
             frequency of the occurence of the clusters in the original data.
@@ -277,9 +269,8 @@ class KernelShap(Explainer, FitMixin):
 
         self.summarise_background = True
 
-        if isinstance(background_data, sparse.spmatrix):
-            return shap.sample(background_data, nsamples=n_background_samples)
-        elif self.use_groups or self.categorical_names:
+        # if the input is sparse, we assume there are categorical variables and use random sampling, not kmeans
+        if self.use_groups or self.categorical_names or isinstance(background_data, sparse.spmatrix):
             return shap.sample(background_data, nsamples=n_background_samples)
         else:
             logging.info(
@@ -297,9 +288,8 @@ class KernelShap(Explainer, FitMixin):
                   weights: Sequence[Union[float, int]],
                   **kwargs):
         """
-        Parameters
-        ----------
-            See constructor.
+        Groups the data if grouping options are specified, returning a shap.common.Data object in this
+        case. Otherwise, the original data is returned and handled internally by the shap library.
         """
 
         raise TypeError("Type {} is not supported for background data!".format(type(background_data)))
@@ -441,7 +431,7 @@ class KernelShap(Explainer, FitMixin):
         self.meta.update(data_dict)
 
     def fit(self,  # type: ignore
-            background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
+            background_data: Union[np.ndarray,  sparse.spmatrix, pd.DataFrame, shap.common.Data],
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
             group_names: Union[Tuple, List, None] = None,
@@ -473,12 +463,12 @@ class KernelShap(Explainer, FitMixin):
             samples is selected.
         n_background_samples
             The number of samples to keep in the background dataset if summarise_background=True.
+        groups:
+            A list containing sublists specifying the indices of features belonging to the same group.
         group_names:
             If specified, this array is used to treat groups of features as one during feature perturbation.
             This feature can be useful, for example, to treat encoded categorical variables as one and can
             result in computational savings (this may require adjusting the nsamples parameter).
-        groups:
-            A list containing sublists specifying the indices of features belonging to the same group.
         weights:
             A sequence or array of weights. This is used only if grouping is specified and assigns a weight
             to each point in the dataset.
@@ -571,7 +561,6 @@ class KernelShap(Explainer, FitMixin):
                 *nsamples: controls the number of predictor calls and therefore runtime.
                 *l1_reg: controls the explanation sparsity.
             For more details, please see https://shap.readthedocs.io/en/latest/.
-            Keyword arguments specifying display options:
 
         Returns
         -------

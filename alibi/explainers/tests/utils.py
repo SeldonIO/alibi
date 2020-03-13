@@ -14,7 +14,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
-# from alibi.tests
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
 

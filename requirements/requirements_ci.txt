@@ -1,8 +1,8 @@
-pytest>=4.4.0
+pytest>=5.3.5
 pytest-cov>=2.6.1
 sphinx>=2.1.2
 pytest-xdist>=1.28.0
-pytest-lazy-fixture
+pytest-lazy-fixture>=0.6.3
 flake8>=3.7.7
 mypy>=0.670
 sphinx-autodoc-typehints>=1.6.0,<1.10

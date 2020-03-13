@@ -20,7 +20,7 @@ from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
 from shap.common import DenseData
 
-SUPPORTED_BACKROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
+SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 
 # Functions for data generation
 
@@ -114,10 +114,10 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None):
     of testing grouping functionality of the wrapper.
     """
 
-    if kind not in SUPPORTED_BACKROUND_DATA_TYPES:
+    if kind not in SUPPORTED_BACKGROUND_DATA_TYPES:
         msg = "Selected data type, {}, is not an allowed type. " \
                "Allowed types are {}"
-        raise ValueError(msg.format(kind, SUPPORTED_BACKROUND_DATA_TYPES))
+        raise ValueError(msg.format(kind, SUPPORTED_BACKGROUND_DATA_TYPES))
 
     X = get_random_matrix(n_rows=n_rows, n_cols=n_cols)
 
@@ -244,11 +244,11 @@ class KMeansMock:
 
     def __init__(self, seed=None):
 
+        self.seed = seed
         np.random.seed(seed)
 
-    @staticmethod
-    def _mock_kmeans(data, n_clusters):
-        return sklearn.utils.resample(data, n_samples=n_clusters)
+    def _mock_kmeans(self, data, n_clusters):
+        return sklearn.utils.resample(data, n_samples=n_clusters, random_state=self.seed)
 
     def __call__(self, background_data, n_background_samples):
 
@@ -327,7 +327,7 @@ group_settings = [
     (True, True, True),
 ]
 input_settings = [{'correct': True, 'error_type': None}]
-data_type = copy(SUPPORTED_BACKROUND_DATA_TYPES)
+data_type = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 data_type.append('int')
 n_classes = [(5, 'identity'), ]
 
@@ -335,7 +335,7 @@ n_classes = [(5, 'identity'), ]
 # @pytest.mark.skip
 @pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
-@pytest.mark.parametrize('data_type', SUPPORTED_BACKROUND_DATA_TYPES, ids='data_type={}'.format)
+@pytest.mark.parametrize('data_type', SUPPORTED_BACKGROUND_DATA_TYPES, ids='data_type={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings, input_settings):
@@ -419,7 +419,7 @@ group_settings = [
     (False, True, True),
     (True, True, True),
 ]
-data_types = copy(SUPPORTED_BACKROUND_DATA_TYPES)
+data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 input_settings = [
     {'correct': False, 'error_type': 'groups_type'},
     {'correct': False, 'error_type': 'name_dim_mismatch'},
@@ -576,7 +576,7 @@ def test__check_inputs(caplog,
                 assert not explainer.ignore_weights
 
 
-data_types = copy(SUPPORTED_BACKROUND_DATA_TYPES)
+data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 n_classes = [(5, 'identity'), ]  # second element refers to the predictor link function
 data_dimension = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), ]
 use_groups = [True, False]
@@ -625,7 +625,7 @@ def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_t
                 assert summary_data.data.shape == (n_bckg_samples, n_features)
 
 
-data_types = copy(SUPPORTED_BACKROUND_DATA_TYPES)
+data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 data_types.remove('series')  # internal error from shap due to dimension of output being 0
 group_settings = [
     (False, False, False),
@@ -682,7 +682,7 @@ def test_fit(caplog,
              input_settings):
     """
     This is an integration test where we check that the _check_inputs, _get_data and _summarise_background
-    methods work well together as well as
+    methods work well together.
     """
 
     caplog.set_level(logging.INFO)
@@ -796,7 +796,7 @@ def test_fit(caplog,
                         assert 'feature' in background_data.group_names[0]
 
 
-data_types = copy(SUPPORTED_BACKROUND_DATA_TYPES)
+data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 data_types.remove('data')
 data_types.remove('series')
 n_classes = [(5, 'identity'), ]

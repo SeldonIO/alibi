@@ -182,6 +182,8 @@ def mock_ks_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """
+
+    np.random.seed(0)
     pred_out_dim, link = request.param
     predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
     explainer = KernelShap(predictor=predictor)
@@ -231,12 +233,12 @@ def no_warnings(caplog):
 @pytest.fixture
 def no_errors(caplog):
     """
-    This fixture should be passed to any test function in order to check if any correct are raised.
+    This fixture should be passed to any test function in order to check if any errors are raised.
     """
 
     caplog.set_level(logging.ERROR)
     yield
-    errors = [record for record in caplog.get_records('call') if record.levelno == logging.WARNING]
+    errors = [record for record in caplog.get_records('call') if record.levelno == logging.ERROR]
     assert not errors
 
 

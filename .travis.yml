@@ -10,6 +10,8 @@ before_install:
 install:
   - pip install -r requirements/requirements_all.txt
   - python -m spacy download en_core_web_md
+  - pip install -e .
+  - pip freeze
 script:
   - flake8 alibi
   - mypy alibi

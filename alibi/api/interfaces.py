@@ -66,6 +66,7 @@ class Explanation:
     def to_json(self) -> str:
         """
         Serialize the explanation data and metadata into a json format.
+
         Returns
         -------
         String containing json representation of the explanation
@@ -76,14 +77,15 @@ class Explanation:
     def from_json(cls, jsonrepr) -> "Explanation":
         """
         Create an instance of an Explanation class using a json representation of the Explanation.
-        NB: this is intended to be used with subclasses inheriting from Explanation.
+
         Parameters
         ----------
         jsonrepr
             json representation of an explanation
+
         Returns
         -------
-        An Explanation object
+            An Explanation object
         """
         dictrepr = json.loads(jsonrepr)
         try:

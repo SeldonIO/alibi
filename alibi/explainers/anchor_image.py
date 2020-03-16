@@ -47,7 +47,7 @@ class AnchorImage(Explainer):
         seed
             If set, ensures different runs with the same input will yield same explanation.
         """
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)
 
         if isinstance(segmentation_fn, str) and not segmentation_kwargs:
@@ -92,8 +92,7 @@ class AnchorImage(Explainer):
         # a superpixel is perturbed with prob 1 - p_sample
         self.p_sample = 0.5  # type: float
 
-        # set metadata
-        self.meta.update(DEFAULT_META_ANCHOR)
+        # update metadata
         self.meta['params'].update(custom_segmentation=self.custom_segmentation,
                                    segmentation_kwargs=segmentation_kwargs,
                                    p_sample=self.p_sample,

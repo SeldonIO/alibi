@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 import tensorflow as tf
 import keras
 
+from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
 
@@ -28,6 +29,7 @@ def cf_iris_explainer(request, logistic_iris):
     yield X, y, lr, cf_explainer
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
+
 
 @pytest.fixture
 def keras_logistic_mnist(request):
@@ -64,6 +66,7 @@ def keras_logistic_mnist(request):
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
+
 @pytest.fixture
 def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     X, y, model = keras_logistic_mnist
@@ -73,6 +76,7 @@ def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     yield X, y, model, cf_explainer
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
+
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
 def test_define_func(logistic_iris, target_class):
@@ -110,6 +114,9 @@ def test_cf_explainer_iris(cf_iris_explainer):
 
     # test explanation
     exp = cf.explain(x)
+    assert exp.meta.keys() == DEFAULT_META_CF.keys()
+    assert exp.data.keys() == DEFAULT_DATA_CF.keys()
+
     x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 
@@ -133,6 +140,7 @@ def test_cf_explainer_iris(cf_iris_explainer):
     if exp.success:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
+
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
 @pytest.mark.parametrize('keras_mnist_cf_explainer', ['other', 'same', 4, 9], indirect=True)
 def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_explainer):
@@ -145,6 +153,9 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_exp
 
     # test explanation
     exp = cf.explain(x)
+    assert exp.meta.keys() == DEFAULT_META_CF.keys()
+    assert exp.data.keys() == DEFAULT_DATA_CF.keys()
+
     x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 

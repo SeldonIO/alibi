@@ -1,5 +1,6 @@
 # flake8: noqa E731
 
+from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 from alibi.explainers import CEM
 import numpy as np
 from sklearn.datasets import load_iris
@@ -39,3 +40,5 @@ def test_cem():
     assert (explanation.X != explanation.PN).astype(int).sum() > 0
     assert explanation.X_pred != explanation.PN_pred
     assert explanation.grads_graph.shape == explanation.grads_num.shape
+    assert explanation.meta.keys() == DEFAULT_META_CEM.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_CEM.keys()

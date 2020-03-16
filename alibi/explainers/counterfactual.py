@@ -130,13 +130,12 @@ class CounterFactual(Explainer):
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
         # get params for storage in meta
         params = locals()
         remove = ['self', 'predict_fn', 'sess', '__class__']
         for key in remove:
             params.pop(key)
-        self.meta.update(DEFAULT_META_CF)
         self.meta['params'].update(params)
 
         self.data_shape = shape

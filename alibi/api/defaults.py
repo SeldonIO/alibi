@@ -1,8 +1,11 @@
 """
 This module defines the default metadata and data dictionaries for each explanation method.
+Note that the "name" field is automatically populated upon initialization of the corresponding
+Explainer class.
 """
 # Anchors
-DEFAULT_META_ANCHOR = {"type": ["blackbox"],
+DEFAULT_META_ANCHOR = {"name": None,
+                       "type": ["blackbox"],
                        "explanations": ["local"],
                        "params": {}}
 
@@ -18,7 +21,8 @@ DEFAULT_DATA_ANCHOR_IMG = {"anchor": [],
                            "raw": None}  # type: dict
 
 # CEM
-DEFAULT_META_CEM = {"type": ["blackbox", "tensorflow", "keras"],
+DEFAULT_META_CEM = {"name": None,
+                    "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
                     "params": {}}
 
@@ -33,7 +37,8 @@ DEFAULT_DATA_CEM = {"PN": None,
                     }
 
 # Counterfactuals
-DEFAULT_META_CF = {"type": ["blackbox", "tensorflow", "keras"],
+DEFAULT_META_CF = {"name": None,
+                   "type": ["blackbox", "tensorflow", "keras"],
                    "explanations": ["local"],
                    "params": {}}
 
@@ -44,7 +49,8 @@ DEFAULT_DATA_CF = {"cf": None,
                    "success": None}  # type: dict
 
 # CFProto
-DEFAULT_META_CFP = {"type": ["blackbox", "tensorflow", "keras"],
+DEFAULT_META_CFP = {"name": None,
+                    "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
                     "params": {}}
 

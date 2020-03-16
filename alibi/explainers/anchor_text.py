@@ -102,7 +102,7 @@ class AnchorText(Explainer):
         seed
             If set, ensures identical random streams.
         """
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)
 
         self.nlp = nlp
@@ -120,8 +120,6 @@ class AnchorText(Explainer):
         self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
         # the method used to generate samples
         self.perturbation = None  # type: Callable
-
-        self.meta.update(DEFAULT_META_ANCHOR)
 
     def set_words_and_pos(self, text: str) -> None:
         """

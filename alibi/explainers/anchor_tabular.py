@@ -670,7 +670,7 @@ class AnchorTabular(Explainer, FitMixin):
         seed
             Used to set the random number generator for repeatability purposes.
         """
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
 
         self.feature_names = feature_names
         # check if predictor returns predicted class or prediction probabilities for each class
@@ -696,8 +696,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.seed = seed
         self.instance_label = None
 
-        # set metadata
-        self.meta.update(DEFAULT_META_ANCHOR)
+        # update metadata
         self.meta['params'].update(seed=seed)
 
     def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore

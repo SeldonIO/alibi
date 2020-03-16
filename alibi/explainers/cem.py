@@ -84,13 +84,12 @@ class CEM(Explainer, FitMixin):
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_CEM))
         # get params for storage in meta
         params = locals()
         remove = ['self', 'predict', 'ae_model', 'sess', '__class__']
         for key in remove:
             params.pop(key)
-        self.meta.update(DEFAULT_META_CEM)
         self.meta['params'].update(params)
         self.predict = predict
 

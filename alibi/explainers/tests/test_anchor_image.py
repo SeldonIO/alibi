@@ -2,6 +2,7 @@
 import pytest
 
 import numpy as np
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
 from alibi.explainers.tests.utils import fashion_mnist_dataset
 
@@ -80,6 +81,8 @@ def test_anchor_image(conv_net):
     assert explanation.anchor.shape == image_shape
     assert explanation.precision >= threshold
     assert len(np.unique(explanation.segments)) == len(np.unique(segments))
+    assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
 
     # test scaling
     fake_img = np.random.random(size=image_shape) + scaling_offset

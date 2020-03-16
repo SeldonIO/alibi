@@ -5,6 +5,7 @@ import string
 
 import numpy as np
 
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
 from alibi.explainers.tests.utils import get_dataset
@@ -97,6 +98,8 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
     )
     assert explanation.precision >= threshold
     assert explanation.raw['prediction'] == label
+    assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_ANCHOR.keys()
 
     # check if sampled sentences are not cut short
     keys = ['covered_true', 'covered_false']

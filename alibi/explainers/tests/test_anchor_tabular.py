@@ -7,6 +7,7 @@ import pytest
 from collections import defaultdict
 from copy import deepcopy
 
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.distributed import RAY_INSTALLED
@@ -67,6 +68,8 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer):
         assert explainer.instance_label == instance_label
         assert explanation.precision >= threshold
         assert explanation.coverage >= 0.05
+        assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
+        assert explanation.data.keys() == DEFAULT_DATA_ANCHOR.keys()
 
     sampler = explainer.samplers[0]
     assert sampler.instance_label == instance_label

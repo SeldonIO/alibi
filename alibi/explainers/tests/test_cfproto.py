@@ -6,6 +6,7 @@ from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf
 from tensorflow.keras.utils import to_categorical
 import keras
+from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
@@ -139,6 +140,8 @@ def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
     assert cf.id_proto != pred_class
     assert np.argmax(model.predict(explanation.cf['X'])) == explanation.cf['class']
     assert explanation.cf['grads_num'].shape == explanation.cf['grads_graph'].shape == x.shape
+    assert explanation.meta.keys() == DEFAULT_META_CFP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_CFP.keys()
 
     # test gradient shapes
     y = np.zeros((1, cf.classes))
@@ -261,6 +264,8 @@ def test_tf_keras_adult_explainer(tf_keras_adult_explainer, use_kdtree, k, d_typ
     assert np.argmax(model.predict(explanation.cf['X'])) == explanation.cf['class']
     num_shape = (1, 12)
     assert explanation.cf['grads_num'].shape == explanation.cf['grads_graph'].shape == num_shape
+    assert explanation.meta.keys() == DEFAULT_META_CFP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_CFP.keys()
 
     # test gradient shapes
     y = np.zeros((1, cf.classes))

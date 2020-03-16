@@ -65,7 +65,12 @@ was trained on:
 explainer.fit(X_train)
 ```
 ```
-AnchorTabular(meta={'name': 'AnchorTabular', 'type': ['blackbox'], 'explanations': ['local'], 'params': {'seed': None, 'disc_perc': (25, 50, 75)}})
+AnchorTabular(meta={
+    'name': 'AnchorTabular',
+    'type': ['blackbox'],
+    'explanations': ['local'],
+    'params': {'seed': None, 'disc_perc': (25, 50, 75)}
+})
 ```
 
 Finally, we can call the explainer on a test instance which will return an `Explanation` object containing the

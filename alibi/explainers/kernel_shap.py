@@ -52,7 +52,8 @@ class KernelShap(Explainer, FitMixin):
                  predictor: Callable,
                  link: str = 'identity',
                  feature_names: Union[List, Tuple, None] = None,
-                 categorical_names: Optional[Dict] = None):
+                 categorical_names: Optional[Dict] = None,
+                 seed: int = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
         by allowing the user to specify variable groups in order to deal with one-hot encoded categorical
@@ -80,6 +81,8 @@ class KernelShap(Explainer, FitMixin):
             List with feature names.
         categorical_names
             Dictionary where keys are feature columns and values are list of categories for the feature.
+        seed
+            Fixes the random number stream, which influences which subsets are sampled during shap value estimation
         """
 
         super().__init__()
@@ -88,6 +91,7 @@ class KernelShap(Explainer, FitMixin):
         self.predictor = predictor
         self.feature_names = feature_names if feature_names else []
         self.categorical_names = categorical_names if categorical_names else {}
+        self.seed = seed
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -428,7 +432,8 @@ class KernelShap(Explainer, FitMixin):
                     continue
                 else:
                     self.meta['params'].update([(key, data_dict[key])])
-        self.meta.update(data_dict)
+        else:
+            self.meta.update(data_dict)
 
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray,  sparse.spmatrix, pd.DataFrame, shap.common.Data],
@@ -476,6 +481,8 @@ class KernelShap(Explainer, FitMixin):
             Expected keyword arguments include "keep_index" and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
+
+        np.random.seed(self.seed)
 
         self._fitted = True
         # user has specified variable groups
@@ -635,18 +642,25 @@ class KernelShap(Explainer, FitMixin):
 
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
 
-        raw_predictions = self._explainer.fx
+        raw_predictions = self._explainer.linkfv(self.predictor(X))
         argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
         importances = self.rank_by_importance(shap_values)
+
+        if isinstance(X, sparse.spmatrix):
+            X = X.toarray()
+        else:
+            X = np.array(X)
 
         data = {
             'shap_values': shap_values,
             'expected_value': expected_value,
             'link': self.link,
+            'categorical_names': self.categorical_names,
+            'feature_names': self.feature_names,
             'raw': {
                 'raw_prediction': raw_predictions,
                 'prediction': argmax_pred,
-                'instances': np.array(X),
+                'instances': X,
                 'importances': importances,
             }
         }  # type: Dict
@@ -674,6 +688,9 @@ class KernelShap(Explainer, FitMixin):
             ordered from highest (most important) to the lowest (least important) feature. The 'names'
             field contains the corresponding feature names.
         """
+
+        if len(shap_values[0].shape) == 1:
+            shap_values = [np.atleast_2d(arr) for arr in shap_values]
 
         if not self.feature_names:
             self.feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]

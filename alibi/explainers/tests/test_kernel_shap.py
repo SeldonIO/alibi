@@ -86,11 +86,13 @@ def gen_random_weights(n_weights, seed=None):
     return np.random.dirichlet(alpha=np.ones(n_weights))
 
 
-def setup_groups_and_weights(dimensions, b_group_names, b_groups, b_weights):
+def setup_groups_and_weights(dimensions, b_group_names, b_groups, b_weights, seed=None):
     """
     Generates random groups of columns, along with group names and weights, depending
     on the values of the corresponding boleans b_*.
     """
+
+    np.random.seed(seed)
 
     n_features, n_samples = dimensions
     if n_samples == 0:
@@ -831,6 +833,7 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
             b_group_names=True,
             b_groups=True,
             b_weights=False,
+            seed=seed,
         )
 
     else:

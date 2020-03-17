@@ -1,6 +1,6 @@
 # Documentation for alibi
 
-This directory contains the sources (`.md` and `.rst` files) for the
+This directory contains the sources (`.md`, `.rst` and `.ipynb` files) for the
 documentation. The main index page is defined in `source/index.rst`.
 The Sphinx options and plugins are found in the `source/conf.py` file.
 The documentation is generated in full by calling `make html` which
@@ -55,4 +55,4 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
-* Whilst superscript (for e.g. footnotes) can be rendered in Jupyuter using `<sup></sup>` tags, this won't work in the static docs
+* Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs

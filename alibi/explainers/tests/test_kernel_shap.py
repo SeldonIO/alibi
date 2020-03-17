@@ -879,9 +879,9 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     assert len(shap_dims) == 1
     assert inst_explained[0] == n_instances
     assert len(shap_values) == n_outs
-    assert explanation.data['raw']['raw_prediction'].shape == (n_instances, n_outs)
-    assert explanation.data['raw']['instances'].shape == (n_instances, n_feats)
-    assert len(explanation.data['raw']['prediction'].squeeze()) == n_instances
+    assert explanation.raw['raw_prediction'].shape == (n_instances, n_outs)
+    assert explanation.raw['instances'].shape == (n_instances, n_feats)
+    assert len(explanation.raw['prediction'].squeeze()) == n_instances
     # check dimensions of shap value arrays returned
     if use_groups:
         assert not explainer.summarise_result

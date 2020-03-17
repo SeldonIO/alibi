@@ -48,3 +48,11 @@ All examples are Jupyter notebooks and live in the top level `examples` director
 }
 ```
 From here on you can link and refer to the `notebook.ipynb` elsewhere in the documentation as if it lived under `doc/source/examples`.
+
+## Gotchas when writing notebooks as examples
+We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:
+* When using a bullet-point list, leave a blank line before the preceding paragraph, otherwise it will fail to render
+* Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math
+* For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
+[1](#f_1) reference here`
+* Whilst superscript (for e.g. footnotes) can be rendered in Jupyuter using `<sup></sup>` tags, this won't work in the static docs

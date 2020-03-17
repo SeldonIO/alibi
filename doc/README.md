@@ -31,7 +31,7 @@ during the build process. The resulting documentation is located in the
 
 ## Sphinx extensions and plugins
 We use various Sphinx extensions and plugins to build the documentation:
- * [recommonmark](https://recommonmark.readthedocs.io) - to handle both `.rst` and `.md`
+ * [m2r](https://github.com/miyakogi/m2r) - to handle both `.rst` and `.md`
  * [sphinx.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html) - support extracting Numpy style doctrings for API doc generation
  * [sphinx_autodoc_typehints](https://github.com/agronholm/sphinx-autodoc-typehints) - support parsing of typehints for API doc generation
  * [sphinxcontrib.apidoc](https://github.com/sphinx-contrib/apidoc) - automatic running of [sphinx-apidoc](https://www.sphinx-doc.org/en/master/man/sphinx-apidoc.html) during the build to document API
@@ -39,3 +39,12 @@ We use various Sphinx extensions and plugins to build the documentation:
  * [nbsphinx_link](https://nbsphinx-link.readthedocs.io) - support linking to notebooks outside of Sphinx source directory via `.nblink` files
 
 The full list of plugins and their options can be found in `source/conf.py`.
+
+## Adding new examples
+All examples are Jupyter notebooks and live in the top level `examples` directory. To make them available as documentation, create an `.nblink` file under `doc/source/examples` which is a piece of json pointing to the `.ipynb` example notebook. E.g. if there is a notebook called `examples/notebook.ipynb`, then create a file `doc/source/examples/notebook.nblink` with the following contents:
+```json
+{
+  "path": "../../../examples/notebook.ipynb"
+}
+```
+From here on you can link and refer to the `notebook.ipynb` elsewhere in the documentation as if it lived under `doc/source/examples`.

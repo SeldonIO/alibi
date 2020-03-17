@@ -24,6 +24,7 @@ def cf_iris_explainer(request, logistic_iris):
     cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
+
     yield X, y, lr, cf_explainer
     keras.backend.clear_session()
     tf.keras.backend.clear_session()

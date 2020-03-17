@@ -183,10 +183,9 @@ def mock_ks_explainer(request):
     Instantiates a KernelShap explainer with a mock predictor.
     """
 
-    np.random.seed(0)
     pred_out_dim, link = request.param
     predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
-    explainer = KernelShap(predictor=predictor)
+    explainer = KernelShap(predictor=predictor, seed=0)
 
     return explainer
 

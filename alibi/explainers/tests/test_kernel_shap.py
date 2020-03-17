@@ -73,10 +73,12 @@ def gen_random_groups(n_cols):
     return groups
 
 
-def gen_random_weights(n_weights):
+def gen_random_weights(n_weights, seed=None):
     """
     Generate randomly an array with `n_weights` summing to 1.
     """
+
+    np.random.seed(seed)
 
     if n_weights == 0:
         return
@@ -108,11 +110,13 @@ def setup_groups_and_weights(dimensions, b_group_names, b_groups, b_weights):
     return group_names, groups, weights
 
 
-def get_data(kind='array', n_rows=15, n_cols=49, fnames=None):
+def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
     """
     Generates random data with a specified type for the purposes
     of testing grouping functionality of the wrapper.
     """
+
+    np.random.seed(seed)
 
     if kind not in SUPPORTED_BACKGROUND_DATA_TYPES:
         msg = "Selected data type, {}, is not an allowed type. " \
@@ -151,7 +155,7 @@ def generate_test_data(dimensions,
                        error_type=None,
                        data_type='',
                        dim_mismatch=3,
-                       ):
+                       seed=None):
     """
     Generates:
         - a random dataset `data` with dim `dimensions` of type `data_type`
@@ -163,6 +167,7 @@ def generate_test_data(dimensions,
         `dim_mismatch` controls dimension mismatches
     """
 
+    np.random.seed(seed)
     # create dimension mismatches by removing `dim_mismatch` rows/columns from the data
     if all([dim <= dim_mismatch for dim in dimensions]):
         raise ValueError(
@@ -814,9 +819,10 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     Integration tests, runs .explain method to check output dimensions are as expected.
     """
     # create fake data and records to explain
+    seed = 0
     n_feats, n_samples, n_instances = 15, 20, 2
-    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats)
-    instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats)
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed+1)
 
     # create groups
     if use_groups:

@@ -9,14 +9,13 @@ pros and cons. A clean and a usable API is also a priority.
 * Ongoing optimizations of existing algorithms (speed, parallelisation, explanation quality)
 * Finalize a unified API ([Github PR](https://github.com/SeldonIO/alibi/pull/166))
 * Initial visualizations and visualization backends ([Github issue](https://github.com/SeldonIO/alibi/issues/165))
+* White-box explanation methods (e.g. Integrated Gradients)
+* Support both TensorFlow and PyTorch for white-box methods
 
 ## Medium term
 * Migrate counterfactual methods to TensorFlow 2.0 ([Github issue](https://github.com/SeldonIO/alibi/issues/155))
 * Additional black-box explanation methods ([ALE](https://github.com/SeldonIO/alibi/pull/152))
 * Additional model confidence/calibration methods
-* Provide integration with 3rd party explanation libraries (e.g. [SHAP](https://github.com/slundberg/shap))
-* White-box explanation methods (e.g. Integrated Gradients)
-* Support both TensorFlow and PyTorch for white-box methods
 
 ## Long term
 * Explanations for regression models

@@ -23,7 +23,8 @@ alibi.explainers.__all__
  'AnchorImage',
  'CEM',
  'CounterFactual',
- 'CounterFactualProto'] 
+ 'CounterFactualProto'
+ 'KernelShap'] 
 ```
 
 For gauging model confidence:
@@ -44,6 +45,7 @@ For detailed information on the methods:
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
+    * [Kernel SHAP](../methods/KernelSHAP.ipynb)
     * [Linearity Measure](../examples/linearity_measure_iris.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 

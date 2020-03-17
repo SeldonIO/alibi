@@ -55,4 +55,4 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
-* Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs
+* Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.

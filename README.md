@@ -60,6 +60,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|black-box|✔|✔|✔|✔|✔|For Tabular|
 |[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
 |[Counterfactual Instances](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
+|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.ipynb)|black-box|✔|✔|✔|✘|✘|✔|
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
 
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
@@ -82,6 +83,13 @@ The following table summarizes the capabilities of the current algorithms:
   - Examples: 
     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cf_mnist.html)
 
+- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)
+  - Examples:
+    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_intro.html),
+    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_lr.html),
+    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_adult_lr.html)
+    
 - Counterfactual Explanations Guided by Prototypes ([Van Looveren et al., 2019](https://arxiv.org/abs/1907.02584))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
   - Examples:

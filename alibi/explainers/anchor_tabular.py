@@ -875,10 +875,12 @@ class AnchorTabular(Explainer, FitMixin):
 
         # output explanation dictionary
         data = copy.deepcopy(DEFAULT_DATA_ANCHOR)
-        data.update(anchor=exp.names(),
-                    precision=exp.precision(),
-                    coverage=exp.coverage(),
-                    raw=exp.exp_map)
+        data.update(
+            anchor=exp.names(),
+            precision=exp.precision(),
+            coverage=exp.coverage(),
+            raw=exp.exp_map
+        )
 
         # create explanation object
         explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)

@@ -93,11 +93,13 @@ class AnchorImage(Explainer):
         self.p_sample = 0.5  # type: float
 
         # update metadata
-        self.meta['params'].update(custom_segmentation=self.custom_segmentation,
-                                   segmentation_kwargs=segmentation_kwargs,
-                                   p_sample=self.p_sample,
-                                   seed=seed,
-                                   image_shape=image_shape)
+        self.meta['params'].update(
+            custom_segmentation=self.custom_segmentation,
+            segmentation_kwargs=segmentation_kwargs,
+            p_sample=self.p_sample,
+            seed=seed,
+            image_shape=image_shape
+        )
         if not self.custom_segmentation:
             self.meta['params'].update(segmentation_fn=segmentation_fn)
         else:
@@ -432,11 +434,13 @@ class AnchorImage(Explainer):
 
         # output explanation dictionary
         data = copy.deepcopy(DEFAULT_DATA_ANCHOR_IMG)
-        data.update(anchor=anchor,
-                    segments=self.segments,
-                    precision=exp.precision(),
-                    coverage=exp.coverage(),
-                    raw=exp.exp_map)
+        data.update(
+            anchor=anchor,
+            segments=self.segments,
+            precision=exp.precision(),
+            coverage=exp.coverage(),
+            raw=exp.exp_map
+        )
 
         # create explanation object
         explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)

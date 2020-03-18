@@ -56,3 +56,5 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
 * Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.
+* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc` used both on Travis and ReadTheDocs machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell
+

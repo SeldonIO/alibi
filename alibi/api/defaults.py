@@ -91,7 +91,7 @@ Default counterfactual prototype metadata.
 # KernelSHAP
 DEFAULT_META_SHAP = {
     "name": None,
-    "type": "blackbox",
+    "type": ["blackbox"],
     "explanations": ["local", "global"],
     "params": {}
 }  # type: dict

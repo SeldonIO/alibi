@@ -1,9 +1,12 @@
+import copy
 import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
 from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union
 
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.wrappers import ArgmaxTransformer
@@ -334,7 +337,7 @@ class TabularSampler:
                 min_vals, max_vals = self.min[feat], self.max[feat]
                 samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
 
-    def replace_features(self, samples: np.ndarray, allowed_rows:  Dict[int, Any], uniq_feat_ids: List[int],
+    def replace_features(self, samples: np.ndarray, allowed_rows: Dict[int, Any], uniq_feat_ids: List[int],
                          partial_anchor_rows: List[np.ndarray], nb_partial_anchors: np.ndarray,
                          num_samples: int) -> None:
         """
@@ -651,7 +654,7 @@ class RemoteSampler:
         return [cat_lookup_id, ord_lookup_id, enc2feat_idx_id]
 
 
-class AnchorTabular:
+class AnchorTabular(Explainer, FitMixin):
 
     def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
                  seed: int = None) -> None:
@@ -667,6 +670,7 @@ class AnchorTabular:
         seed
             Used to set the random number generator for repeatability purposes.
         """
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
 
         self.feature_names = feature_names
         # check if predictor returns predicted class or prediction probabilities for each class
@@ -692,7 +696,11 @@ class AnchorTabular:
         self.seed = seed
         self.instance_label = None
 
-    def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75), **kwargs) -> None:
+        # update metadata
+        self.meta['params'].update(seed=seed)
+
+    def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
+            **kwargs) -> "AnchorTabular":
         """
         Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for
         numerical features. Create a mapping between the bin numbers of each discretised numerical feature and the
@@ -721,6 +729,11 @@ class AnchorTabular:
             seed=self.seed,
         )
         self.samplers = [sampler.deferred_init(train_data, d_train_data)]
+
+        # update metadata
+        self.meta['params'].update(disc_perc=disc_perc)
+
+        return self
 
     def _build_sampling_lookups(self, X: np.ndarray) -> None:
         """
@@ -752,7 +765,7 @@ class AnchorTabular:
                 cache_margin: int = 1000,
                 verbose: bool = False,
                 verbose_every: int = 1,
-                **kwargs: Any) -> dict:
+                **kwargs: Any) -> Explanation:
         """
         Explain prediction made by classifier on instance X.
 
@@ -799,6 +812,11 @@ class AnchorTabular:
         explanation
             Dictionary containing the result explaining the instance with additional metadata.
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['X', 'self']
+        for key in remove:
+            params.pop(key)
 
         for sampler in self.samplers:
             sampler.set_instance_label(X)
@@ -828,9 +846,9 @@ class AnchorTabular:
         )  # type: Any
         self.mab = mab
 
-        return self.build_explanation(X, result, self.instance_label)
+        return self.build_explanation(X, result, self.instance_label, params)
 
-    def build_explanation(self, X: np.ndarray, result: dict, predicted_label: int) -> dict:
+    def build_explanation(self, X: np.ndarray, result: dict, predicted_label: int, params: dict) -> Explanation:
         """
         Preprocess search output and return an explanation object containing metdata
 
@@ -842,6 +860,8 @@ class AnchorTabular:
             Dictionary with explanation search output and metadata.
         predicted_label:
             Label of the instance to be explained (inferred if not given).
+        params
+            Parameters passed to `explain`
 
         Return
         ------
@@ -853,13 +873,21 @@ class AnchorTabular:
         result['instance'] = X
         exp = AnchorExplanation('tabular', result)
 
-        return {
-            'names': exp.names(),
-            'precision': exp.precision(),
-            'coverage': exp.coverage(),
-            'raw': exp.exp_map,
-            'meta': {'name': self.__class__.__name__}
-        }
+        # output explanation dictionary
+        data = copy.deepcopy(DEFAULT_DATA_ANCHOR)
+        data.update(
+            anchor=exp.names(),
+            precision=exp.precision(),
+            coverage=exp.coverage(),
+            raw=exp.exp_map
+        )
+
+        # create explanation object
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+        # params passed to explain
+        explanation.meta['params'].update(params)
+        return explanation
 
     def add_names_to_exp(self, explanation: dict) -> None:
         """
@@ -944,7 +972,7 @@ class DistributedAnchorTabular(AnchorTabular):
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> None:
+    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> "AnchorTabular":  # type: ignore
         """
         Creates a list of handles to parallel processes handles that are used for submitting sampling
         tasks.
@@ -986,6 +1014,11 @@ class DistributedAnchorTabular(AnchorTabular):
             )
         self.samplers = d_samplers
 
+        # update metadata
+        self.meta['params'].update(disc_perc=disc_perc)
+
+        return self
+
     def _build_sampling_lookups(self, X: np.ndarray) -> None:
         """
         See superclass documentation.
@@ -1015,7 +1048,7 @@ class DistributedAnchorTabular(AnchorTabular):
                 cache_margin: int = 1000,
                 verbose: bool = False,
                 verbose_every: int = 1,
-                **kwargs: Any) -> dict:
+                **kwargs: Any) -> Explanation:
         """
         Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
@@ -1028,6 +1061,11 @@ class DistributedAnchorTabular(AnchorTabular):
         -------
             See superclass implementation.
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['X', 'self']
+        for key in remove:
+            params.pop(key)
 
         for sampler in self.samplers:
             label = sampler.set_instance_label.remote(X)
@@ -1057,4 +1095,4 @@ class DistributedAnchorTabular(AnchorTabular):
         )  # type: Any
         self.mab = mab
 
-        return self.build_explanation(X, result, self.instance_label)
+        return self.build_explanation(X, result, self.instance_label, params)

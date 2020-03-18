@@ -66,10 +66,58 @@ was trained on:
 ```python
 explainer.fit(X_train)
 ```
-Finally, we can call the explainer on a test instance which will return a dictionary containing the
+```
+AnchorTabular(meta={
+    'name': 'AnchorTabular',
+    'type': ['blackbox'],
+    'explanations': ['local'],
+    'params': {'seed': None, 'disc_perc': (25, 50, 75)}
+})
+```
+
+Finally, we can call the explainer on a test instance which will return an `Explanation` object containing the
 explanation and any additional metadata returned by the computation:
 ```python
- explainer.explain(x)
+ explanation = explainer.explain(x)
 ```
+
+The returned `Explanation` object has `meta` and `data` attributes which are dictionaries containing any explanation
+metadata (e.g. parameters, type of explanation) and the explanation itself respectively:
+
+```python
+explanation.meta
+```
+```
+{'name': 'AnchorTabular',
+ 'type': ['blackbox'],
+ 'explanations': ['local'],
+ 'params': {'seed': None,
+  'disc_perc': (25, 50, 75),
+  'threshold': 0.95,
+  'delta': ...truncated output...
+```
+
+```python
+explanation.data
+```
+```
+{'anchor': ['petal width (cm) > 1.80', 'sepal width (cm) <= 2.80'],
+ 'precision': 0.9839228295819936,
+ 'coverage': 0.31724137931034485,
+ 'raw': {'feature': [3, 1],
+  'mean': [0.6453362255965293, 0.9839228295819936],
+  'precision': [0.6453362255965293, 0.9839228295819936],
+  'coverage': [0.20689655172413793, 0.31724137931034485],
+  'examples': ...truncated output...
+```
+
+The top level keys of both `meta` and `data` dictionaries are also exposed as attributes for ease of use of the explanation:
+```python
+explanation.anchor
+```
+```
+['petal width (cm) > 1.80', 'sepal width (cm) <= 2.80']
+```
+
 The exact details will vary slightly from method to method, so we encourage the reader to become
 familiar with the [types of algorithms supported](../overview/algorithms.md) in Alibi.

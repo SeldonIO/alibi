@@ -2,8 +2,9 @@
 import pytest
 
 import numpy as np
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
-from alibi.explainers.tests.utils import fashion_mnist_dataset, get_dataset
+from alibi.explainers.tests.utils import fashion_mnist_dataset
 
 
 # Data preparation
@@ -12,7 +13,7 @@ x_train = data['X_train']
 y_train = data['y_train']
 
 
-@pytest.mark.parametrize('conv_net', (get_dataset('fashion_mnist'),), indirect=True)
+@pytest.mark.parametrize('conv_net', (data,), indirect=True)
 def test_anchor_image(conv_net):
 
     segmentation_fn = 'slic'
@@ -72,14 +73,16 @@ def test_anchor_image(conv_net):
     threshold = .95
     explanation = explainer.explain(image, threshold=threshold)
 
-    if explanation['raw']['feature']:
-        assert explanation['raw']['examples'][-1]['covered_true'].shape[0] <= explainer.n_covered_ex
-        assert explanation['raw']['examples'][-1]['covered_false'].shape[0] <= explainer.n_covered_ex
+    if explanation.raw['feature']:
+        assert explanation.raw['examples'][-1]['covered_true'].shape[0] <= explainer.n_covered_ex
+        assert explanation.raw['examples'][-1]['covered_false'].shape[0] <= explainer.n_covered_ex
     else:
-        assert not explanation['raw']['examples']
-    assert explanation['anchor'].shape == image_shape
-    assert explanation['precision'] >= threshold
-    assert len(np.unique(explanation['segments'])) == len(np.unique(segments))
+        assert not explanation.raw['examples']
+    assert explanation.anchor.shape == image_shape
+    assert explanation.precision >= threshold
+    assert len(np.unique(explanation.segments)) == len(np.unique(segments))
+    assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
 
     # test scaling
     fake_img = np.random.random(size=image_shape) + scaling_offset

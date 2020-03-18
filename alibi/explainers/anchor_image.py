@@ -7,6 +7,8 @@ from functools import partial
 from typing import Any, Callable, List, Tuple, Union
 
 from alibi.utils.wrappers import ArgmaxTransformer
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from skimage.segmentation import felzenszwalb, slic, quickshift
@@ -20,7 +22,7 @@ DEFAULT_SEGMENTATION_KWARGS = {
 }
 
 
-class AnchorImage:
+class AnchorImage(Explainer):
 
     def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None, images_background: np.ndarray = None,
@@ -45,7 +47,7 @@ class AnchorImage:
         seed
             If set, ensures different runs with the same input will yield same explanation.
         """
-
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)
 
         if isinstance(segmentation_fn, str) and not segmentation_kwargs:
@@ -89,6 +91,19 @@ class AnchorImage:
         self.image = None  # type: np.ndarray
         # a superpixel is perturbed with prob 1 - p_sample
         self.p_sample = 0.5  # type: float
+
+        # update metadata
+        self.meta['params'].update(
+            custom_segmentation=self.custom_segmentation,
+            segmentation_kwargs=segmentation_kwargs,
+            p_sample=self.p_sample,
+            seed=seed,
+            image_shape=image_shape
+        )
+        if not self.custom_segmentation:
+            self.meta['params'].update(segmentation_fn=segmentation_fn)
+        else:
+            self.meta['params'].update(segmentation_fn='custom')
 
     def generate_superpixels(self, image: np.ndarray) -> np.ndarray:
         """
@@ -290,7 +305,7 @@ class AnchorImage:
 
         return self.predictor(samples) == self.instance_label
 
-    def explain(self,
+    def explain(self,  # type: ignore
                 image: np.ndarray,
                 p_sample: float = 0.5,
                 threshold: float = 0.95,
@@ -305,9 +320,9 @@ class AnchorImage:
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,
                 cache_margin: int = 1000,
-                verbose: bool = True,
+                verbose: bool = False,
                 verbose_every: int = 1,
-                **kwargs: Any) -> dict:
+                **kwargs: Any) -> Explanation:
 
         """
         Explain instance and return anchor with metadata.
@@ -356,6 +371,11 @@ class AnchorImage:
         explanation
             Dictionary containing the anchor explaining the instance with additional metadata.
         """
+        # get params for storage in meta
+        params = locals()
+        remove = ['image', 'self']
+        for key in remove:
+            params.pop(key)
 
         self.image = image
         self.n_covered_ex = n_covered_ex
@@ -386,9 +406,9 @@ class AnchorImage:
         )  # type: Any
         self.mab = mab
 
-        return self.build_explanation(image, result, self.instance_label)
+        return self.build_explanation(image, result, self.instance_label, params)
 
-    def build_explanation(self, image: np.ndarray, result: dict, predicted_label: int) -> dict:
+    def build_explanation(self, image: np.ndarray, result: dict, predicted_label: int, params: dict) -> Explanation:
         """
         Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
@@ -401,6 +421,8 @@ class AnchorImage:
             Dictionary containing the search anchor and metadata.
         predicted_label
             Label of the instance to be explained.
+        params
+            Parameters passed to `explain`
         """
 
         result['instance'] = image
@@ -410,14 +432,22 @@ class AnchorImage:
         anchor = self.overlay_mask(image, self.segments, result['feature'])
         exp = AnchorExplanation('image', result)
 
-        return {
-            'anchor': anchor,
-            'segments': self.segments,
-            'precision': exp.precision(),
-            'coverage': exp.coverage(),
-            'raw': exp.exp_map,
-            'meta': {'name': self.__class__.__name__}
-        }
+        # output explanation dictionary
+        data = copy.deepcopy(DEFAULT_DATA_ANCHOR_IMG)
+        data.update(
+            anchor=anchor,
+            segments=self.segments,
+            precision=exp.precision(),
+            coverage=exp.coverage(),
+            raw=exp.exp_map
+        )
+
+        # create explanation object
+        explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+        # params passed to explain
+        explanation.meta['params'].update(params)
+        return explanation
 
     @staticmethod
     def _scale(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:

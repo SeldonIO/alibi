@@ -29,6 +29,7 @@ setup(name='alibi',
           'pytest-runner'
       ],
       install_requires=[
+          'attrs',
           'beautifulsoup4',
           'numpy',
           'Pillow',

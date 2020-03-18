@@ -28,22 +28,27 @@ pip install alibi
 ```
 This will install `alibi` with all its dependencies:
 ```bash
+  attrs
   beautifulsoup4
   numpy
   Pillow
   pandas
+  prettyprinter
   requests
   scikit-learn
-  spacy
   scikit-image
+  scipy
+  shap
+  spacy
   tensorflow
 ```
 
 To run all the example notebooks, you may additionally run `pip install alibi[examples]` which will
 install the following:
 ```bash
-  seaborn
   Keras
+  seaborn
+  xgboost
 ```
 
 ## Supported algorithms
@@ -60,7 +65,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|black-box|✔|✔|✔|✔|✔|For Tabular|
 |[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
 |[Counterfactual Instances](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.ipynb)|black-box|✔|✔|✔|✘|✘|✔|
+|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|black-box|✔|✔|✔|✘|✘|✔|
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
 
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))

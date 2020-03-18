@@ -4,7 +4,6 @@ import logging
 
 import pandas
 import pytest
-import random
 import scipy.sparse
 import shap
 
@@ -43,10 +42,11 @@ def random_ints_with_sum(n):
     Generate positive random integers summing to `n`, sampled
     uniformly from the ordered integer partitions of `n`.
     """
+
     p = 0
     for _ in range(n - 1):
         p += 1
-        if random.randrange(2):
+        if np.random.randint(0, 2):
             yield p
             p = 0
     yield p + 1
@@ -886,13 +886,13 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     inst_explained = [arr.shape[0] for arr in shap_values]
     assert len(set(inst_explained)) == 1
     shap_dims = set(n_shap_values)
-    print(explanation.data)
     assert len(shap_dims) == 1
     assert inst_explained[0] == n_instances
     assert len(shap_values) == n_outs
     assert explanation.raw['raw_prediction'].shape == (n_instances, n_outs)
     assert explanation.raw['instances'].shape == (n_instances, n_feats)
     assert len(explanation.raw['prediction'].squeeze()) == n_instances
+
     # check dimensions of shap value arrays returned
     if use_groups:
         assert not explainer.summarise_result

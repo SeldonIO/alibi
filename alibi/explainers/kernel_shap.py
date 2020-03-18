@@ -5,14 +5,14 @@ import shap
 import numpy as np
 import pandas as pd
 
-from alibi.explainers.base import Explanation, Explainer, FitMixin
+from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
+from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
 from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple
 from alibi.utils.wrappers import methdispatch
 
 logger = logging.getLogger(__name__)
-
 
 SHAP_PARAMS = [
     'link',
@@ -23,25 +23,6 @@ SHAP_PARAMS = [
     'summarise_result'
     'kwargs',
 ]
-
-DEFAULT_META_SHAP = {
-    "type": "blackbox",
-    "explanations": ["local", "global"],
-    "params": {}
-}  # type: Dict
-
-DEFAULT_DATA_SHAP = {
-    "shap_values": [],
-    "expected_value": [],
-    "link": 'identity',
-    "raw": {
-        "raw_prediction": None,
-        "prediction": None,
-        "instances": None,
-        "importances": {},
-    }
-}  # type: Dict
-
 
 BACKGROUND_WARNING_THRESHOLD = 300
 
@@ -85,7 +66,7 @@ class KernelShap(Explainer, FitMixin):
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation
         """
 
-        super().__init__()
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_SHAP))
 
         self.link = link
         self.predictor = predictor
@@ -107,7 +88,6 @@ class KernelShap(Explainer, FitMixin):
         self.summarise_background = False
         # checks if it has been fitted:
         self._fitted = False
-        self.meta.update(DEFAULT_META_SHAP)
 
     def _check_inputs(self,
                       background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
@@ -371,7 +351,7 @@ class KernelShap(Explainer, FitMixin):
         """
 
         _, groups, weights = args
-        new_args = (groups, weights) if weights is not None else (groups, )
+        new_args = (groups, weights) if weights is not None else (groups,)
         if self.use_groups:
             logging.info("Group names are specified by column headers, group_names will be ignored!")
             keep_index = kwargs.get("keep_index", False)
@@ -436,7 +416,7 @@ class KernelShap(Explainer, FitMixin):
             self.meta.update(data_dict)
 
     def fit(self,  # type: ignore
-            background_data: Union[np.ndarray,  sparse.spmatrix, pd.DataFrame, shap.common.Data],
+            background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap.common.Data],
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
             group_names: Union[Tuple, List, None] = None,
@@ -651,19 +631,21 @@ class KernelShap(Explainer, FitMixin):
         else:
             X = np.array(X)
 
-        data = {
-            'shap_values': shap_values,
-            'expected_value': expected_value,
-            'link': self.link,
-            'categorical_names': self.categorical_names,
-            'feature_names': self.feature_names,
-            'raw': {
-                'raw_prediction': raw_predictions,
-                'prediction': argmax_pred,
-                'instances': X,
-                'importances': importances,
-            }
-        }  # type: Dict
+        # output explanation dictionary
+        data = copy.deepcopy(DEFAULT_DATA_SHAP)
+        data.update(
+            shap_values=shap_values,
+            expected_value=expected_value,
+            link=self.link,
+            categorical_names=self.categorical_names,
+            feature_names=self.feature_names
+        )
+        data['raw'].update(
+            raw_prediction=raw_predictions,
+            prediction=argmax_pred,
+            instances=X,
+            importances=importances
+        )
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
@@ -702,7 +684,7 @@ class KernelShap(Explainer, FitMixin):
                 self.feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
 
         importances = {}  # type: Dict[str, Dict[str, np.ndarray]]
-        avg_mag = []      # type: List
+        avg_mag = []  # type: List
 
         # rank the features by average shap value for each class in turn
         for class_idx in range(len(shap_values)):

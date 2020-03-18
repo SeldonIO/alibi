@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 
+from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
 from alibi.explainers.kernel_shap import sum_categories, BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
@@ -21,6 +22,7 @@ from numpy.testing import assert_allclose, assert_almost_equal
 from shap.common import DenseData
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
+
 
 # Functions for data generation
 
@@ -98,7 +100,7 @@ def setup_groups_and_weights(dimensions, b_group_names, b_groups, b_weights, see
     if n_samples == 0:
         n_samples += 1
 
-    groups = gen_random_groups(n_features*int(b_groups))
+    groups = gen_random_groups(n_features * int(b_groups))
     if b_group_names:
         if groups:
             group_names = gen_group_names(len(groups))
@@ -122,7 +124,7 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
 
     if kind not in SUPPORTED_BACKGROUND_DATA_TYPES:
         msg = "Selected data type, {}, is not an allowed type. " \
-               "Allowed types are {}"
+              "Allowed types are {}"
         raise ValueError(msg.format(kind, SUPPORTED_BACKGROUND_DATA_TYPES))
 
     X = get_random_matrix(n_rows=n_rows, n_cols=n_cols)
@@ -250,7 +252,6 @@ def assert_groups(background_data, group_names, groups):
 class KMeansMock:
 
     def __init__(self, seed=None):
-
         self.seed = seed
         np.random.seed(seed)
 
@@ -258,7 +259,6 @@ class KMeansMock:
         return sklearn.utils.resample(data, n_samples=n_clusters, random_state=self.seed)
 
     def __call__(self, background_data, n_background_samples):
-
         sampled = self._mock_kmeans(background_data, n_background_samples)
         group_names = [str(i) for i in range(background_data.shape[1])]
 
@@ -267,13 +267,14 @@ class KMeansMock:
 
         return DenseData(sampled, group_names, None)
 
+
 # Tests below
 
 
 sum_categories_inputs = [
     (50, [3, 6, 4, 4], None),
     (50, None, [0, 6, 5, 12]),
-    (100, [3, 6, 4, 4],  [0, 6, 15, 22]),
+    (100, [3, 6, 4, 4], [0, 6, 15, 22]),
     (5, [3, 2, 4], [0, 5, 9]),
     (10, [3, 3, 4], [0, 3, 6])
 ]
@@ -442,7 +443,6 @@ summarise_background = [True, False]
 
 
 def uncollect_if_test_check_inputs(**kwargs):
-
     error_type = kwargs['input_settings']['error_type']
     group_settings = kwargs['group_settings']
     summarise_background = kwargs['summarise_background']
@@ -467,14 +467,14 @@ def uncollect_if_test_check_inputs(**kwargs):
         error_type == 'groups_group_names_mismatch' and (b_groups and not b_group_names),
         data_type == 'series' and n_samples == 1,
         summarise_background and not b_weights,
-        ]
+    ]
 
     return any(conditions)
 
 
 # @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True,  ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
@@ -591,13 +591,12 @@ categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True,  ids='n_outs, link={}'.format)
+@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
 def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_type, use_groups, categorical_names):
-
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -658,7 +657,6 @@ n_classes = [(5, 'identity'), (1, 'identity'), ]
 
 
 def uncollect_if_test_fit(**kwargs):
-
     _, _, b_weights = kwargs['group_settings']
     error_type = kwargs['input_settings']['error_type']
     summarise_background = kwargs['summarise_background']
@@ -824,7 +822,7 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     seed = 0
     n_feats, n_samples, n_instances = 15, 20, 2
     background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
-    instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed+1)
+    instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed + 1)
 
     # create groups
     if use_groups:
@@ -876,6 +874,10 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
         cat_vars_start_idx=cat_vars_start_idx,
         nsamples=4,
     )
+
+    # check that explanation metadata and data keys are as expected
+    assert explanation.meta.keys() == DEFAULT_META_SHAP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_SHAP.keys()
 
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim

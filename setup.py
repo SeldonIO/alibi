@@ -16,7 +16,7 @@ extras_require = {
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
-      version=__version__,
+      version=__version__,  # type: ignore # noqa F821
       description='Algorithms for monitoring and explaining machine learning models',
       long_description=readme(),
       long_description_content_type='text/markdown',
@@ -39,6 +39,8 @@ setup(name='alibi',
           'spacy',
           'scikit-image',
           'tensorflow<2.0',
+          'shap',
+          'scipy'
       ],
       tests_require=[
           'pytest',

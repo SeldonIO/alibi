@@ -18,7 +18,7 @@ from alibi.datasets import fetch_movie_sentiment, fetch_adult
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
 
-# When registring a dataset, add the dataset name in ['meta']['name'] and
+# When registring a dataset, add the dataset name in ['metadata']['name'] and
 # add its name to SUPPORTED_DATASETS. Follow the convention for the naming
 # of the function and the output as shown below
 
@@ -172,7 +172,7 @@ def predict_fcn(predict_type, clf, preproc=None):
             raise AttributeError(
                 "Passed preprocessor to predict_fn but the "
                 "preprocessor did not have a .transform method. "
-                 "Are you sure you passed the correct object?"
+                "Are you sure you passed the correct object?"
             )
     if predict_type == 'proba':
         if preproc:

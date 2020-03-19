@@ -141,9 +141,6 @@ def at_defaults(request):
 def at_iris_explainer(get_iris_dataset, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Iris dataset.
-    Because it is scoped at module level, the state of this  fixture
-    should not be mutated during test - if you need to do so, please copy the
-    objects returned.
     """
 
     predict_type = request.param
@@ -240,7 +237,7 @@ def no_warnings(caplog):
 @pytest.fixture
 def no_errors(caplog):
     """
-    This fixture should be passed to any test function in order to check if any correct are raised.
+    This fixture should be passed to any test function in order to check if any errors are raised.
     """
 
     caplog.set_level(logging.ERROR)

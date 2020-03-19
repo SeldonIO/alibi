@@ -16,16 +16,18 @@ from alibi.tests.utils import MockPredictor
 # A file containing fixtures that can be used across tests
 
 # Fixtures that return datasets can be combined with classifier
-# fixtures to generate models for testing
+# fixtures to generate models for testing.
 
 
 @pytest.fixture(scope='module')
 def get_iris_dataset():
     """
     This fixture can be passed to a classifier fixture to return
-    a trained classifier on the Iris dataset.
+    a trained classifier on the Iris dataset. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during testing - if you need to do so, please copy the
+    objects returned first.
     """
-
     return iris_dataset()
 
 
@@ -33,9 +35,11 @@ def get_iris_dataset():
 def get_adult_dataset():
     """
     This fixture can be passed to a classifier fixture to return
-    a trained classifier on the Adult dataset.
+    a trained classifier on the Adult dataset. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during testing - if you need to do so, please copy the
+    objects returned first.
     """
-
     return adult_dataset()
 
 
@@ -51,7 +55,10 @@ def get_adult_dataset():
 @pytest.fixture(scope='module')
 def rf_classifier(request):
     """
-    Trains a random forest classifier.
+    Trains a random forest classifier. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during test - if you need to do so, please copy the
+    objects returned.
     """
 
     is_preprocessor = False
@@ -60,6 +67,7 @@ def rf_classifier(request):
     # returns a dataset dictionary with specified attributes
     # see test_anchor_tabular for a usage example
     data = request.param
+
     if data['preprocessor']:
         is_preprocessor = True
         preprocessor = data['preprocessor']
@@ -78,7 +86,10 @@ def rf_classifier(request):
 @pytest.fixture(scope='module')
 def lr_classifier(request):
     """
-    Trains a logistic regression classifier.
+    Trains a logistic regression classifier. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during test - if you need to do so, please copy the
+    objects returned.
     """
 
     is_preprocessor = False
@@ -100,26 +111,16 @@ def lr_classifier(request):
     return clf, preprocessor
 
 
-@pytest.fixture(scope='module')
-def iris_rf_classifier(get_iris_dataset):
-    """
-    Fits random forrest classifier on Iris dataset.
-    """
-
-    dataset = get_iris_dataset
-    np.random.seed(0)
-    clf = RandomForestClassifier(n_estimators=50)
-    clf.fit(dataset['X_train'], dataset['y_train'])
-
-    return clf
-
 # Following fixtures are related to Anchor explainers testing
 
 
 @pytest.fixture(scope='module')
 def at_defaults(request):
     """
-    Default config for explainers.
+    Default config for explainers. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during test - if you need to do so, please copy the
+    objects returned.
     """
 
     desired_confidence = request.param
@@ -136,10 +137,13 @@ def at_defaults(request):
     }
 
 
-@pytest.fixture(scope='module', params=['proba', 'class'])
+@pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
 def at_iris_explainer(get_iris_dataset, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Iris dataset.
+    Because it is scoped at module level, the state of this  fixture
+    should not be mutated during test - if you need to do so, please copy the
+    objects returned.
     """
 
     predict_type = request.param
@@ -154,7 +158,7 @@ def at_iris_explainer(get_iris_dataset, rf_classifier, request):
     return data['X_test'], explainer, pred_fn, predict_type
 
 
-@pytest.fixture(scope='module', params=['proba', 'class'])
+@pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
 def at_adult_explainer(get_adult_dataset, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Adult dataset.
@@ -182,7 +186,6 @@ def mock_ks_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """
-
     pred_out_dim, link = request.param
     predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
     explainer = KernelShap(predictor=predictor, seed=0)
@@ -192,6 +195,11 @@ def mock_ks_explainer(request):
 
 @pytest.fixture(scope='module')
 def conv_net(request):
+    """
+    Creates a simple CNN classifier on the data in the request. This is a
+    module scoped fixture, so if you need to modify the state of the objects
+    returned, copy the objects first.
+    """
 
     data = request.param
     x_train, y_train = data['X_train'], data['y_train']
@@ -232,7 +240,7 @@ def no_warnings(caplog):
 @pytest.fixture
 def no_errors(caplog):
     """
-    This fixture should be passed to any test function in order to check if any errors are raised.
+    This fixture should be passed to any test function in order to check if any correct are raised.
     """
 
     caplog.set_level(logging.ERROR)

@@ -53,8 +53,9 @@ From here on you can link and refer to the `notebook.ipynb` elsewhere in the doc
 We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:
 * When using a bullet-point list, leave a blank line before the preceding paragraph, otherwise it will fail to render
 * Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math
+* Leave a blank line before and after any display math
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
 * Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.
-* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc` used both on Travis and ReadTheDocs machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell
-
+* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==1.16.0.2` used both on Travis and ReadTheDocs machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
+* Avoid nesting markdown markups, e.g. italicising a hyperlink, this might not render

@@ -14,8 +14,13 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
+
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
+
+# When registring a dataset, add the dataset name in ['metadata']['name'] and
+# add its name to SUPPORTED_DATASETS. Follow the convention for the naming
+# of the function and the output as shown below
 
 def adult_dataset():
     """
@@ -36,15 +41,25 @@ def adult_dataset():
 
     # Create feature transformation pipeline
     ordinal_features = [x for x in range(len(feature_names)) if x not in list(category_map.keys())]
-    ordinal_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),
-                                          ('scaler', StandardScaler())])
+    ordinal_transformer = Pipeline(
+        steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('scaler', StandardScaler())
+        ]
+    )
 
     categorical_features = list(category_map.keys())
-    categorical_transformer = Pipeline(steps=[('imputer', SimpleImputer(strategy='median')),
-                                              ('onehot', OneHotEncoder(handle_unknown='ignore'))])
-
-    preprocessor = ColumnTransformer(transformers=[('num', ordinal_transformer, ordinal_features),
-                                                   ('cat', categorical_transformer, categorical_features)])
+    categorical_transformer = Pipeline(
+        steps=[
+            ('imputer', SimpleImputer(strategy='median')),
+            ('onehot', OneHotEncoder(handle_unknown='ignore'))
+        ]
+    )
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ('num', ordinal_transformer, ordinal_features),
+            ('cat', categorical_transformer, categorical_features)]
+    )
     preprocessor.fit(X_train)
 
     return {
@@ -56,6 +71,7 @@ def adult_dataset():
         'metadata': {
             'feature_names': feature_names,
             'category_map': category_map,
+            'name': 'adult'
         }
     }
 
@@ -76,7 +92,7 @@ def fashion_mnist_dataset():
         'X_test': x_test,
         'y_test': y_test,
         'preprocessor': None,
-        'metadata': None,
+        'metadata': {'name': 'fashion_mnist'},
     }
 
 
@@ -99,7 +115,8 @@ def iris_dataset():
         'y_test': Y_test,
         'preprocessor': None,
         'metadata': {
-            'feature_names': feature_names
+            'feature_names': feature_names,
+            'name': 'iris'
         }
     }
 
@@ -123,11 +140,15 @@ def movie_sentiment_dataset():
         'X_test': test,
         'y_test': test_labels,
         'preprocessor': vectorizer,
-        'metadata': None,
+        'metadata': {'name': 'movie_sentiment'},
     }
 
 
 def get_dataset(name):
+    """
+    Returns a dataset given the name, which must be a member of
+    SUPPORTED_DATASETS.
+    """
 
     if name == 'adult':
         return adult_dataset()
@@ -148,9 +169,11 @@ def predict_fcn(predict_type, clf, preproc=None):
 
     if preproc:
         if not hasattr(preproc, "transform"):
-            raise AttributeError("Passed preprocessor to predict_fn but the "
-                                 "preprocessor did not have a .transform method. "
-                                 "Are you sure you passed the correct object?")
+            raise AttributeError(
+                "Passed preprocessor to predict_fn but the "
+                "preprocessor did not have a .transform method. "
+                "Are you sure you passed the correct object?"
+            )
     if predict_type == 'proba':
         if preproc:
             predict_fn = lambda x: clf.predict_proba(preproc.transform(x))
@@ -170,6 +193,7 @@ def get_random_matrix(*, n_rows=500, n_cols=100):
     Generates a random matrix with uniformly distributed
     numbers between 0 and 1 for testing puposes.
     """
+
     if n_rows == 0:
         sz = (n_cols, )
     elif n_cols == 0:

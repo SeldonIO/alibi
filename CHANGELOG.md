@@ -1,6 +1,21 @@
 # Change Log
 
+## [v0.4.0](https://github.com/SeldonIO/alibi/tree/v0.4.0) (2020-03-20)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.2...v0.4.0)
+
+**NB:** This is the last version supporting Python 3.5.
+
+### Added
+- **New feature** `KernelSHAP` explainer for black-box model SHAP scores
+- Documentation for the `LinearityMeasure` algorithm
+### Changed
+- **Breaking change** New API for explainer and explanation objects. Explainer objects now inherit from `Explainer` base class as a minimum. When calling `.explain` method, an `Explanation` object is returned (previously a dictionary). This contains two dictionaries `meta` and `data` accessed as attributes of the object, detailing the metadata and the data of the returned explanation. The common interfaces are under `api.interfaces` and default return metadata and data for each explainer are under `api.defaults`.
+- Complete refactoring of the Anchors algorithms, many code improvements
+- Explainer tests are now more modular, utilizing scoped fixtures defined in `explainers.tests.conftest` and various utility functions
+- Tests are now run sequentially insted of in parallel due to overhead of launching new processes
+
 ## [v0.3.2](https://github.com/SeldonIO/alibi/tree/v0.3.2) (2019-10-17)
+
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.1...v0.3.2)
 ### Added
 - All explanations return a metadata field `meta` with a `name` subfield which is currently the name of the class

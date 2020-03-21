@@ -30,7 +30,7 @@ def test_adult(return_X_y):
 
 
 @pytest.mark.parametrize('nb_images', [3])
-@pytest.mark.parametrize('category', ['Persian cat', 'volcano', 'strawberry'])
+@pytest.mark.parametrize('category', ['Persian cat', 'volcano', 'strawberry', 'Siamese cat', 'Siamese', 'Siamese cat, Siamese'])
 @pytest.mark.parametrize('return_X_y', [True, False])
 def test_imagenet(nb_images, category, return_X_y):
     try:

@@ -3,7 +3,6 @@ import PIL
 from io import BytesIO, StringIO
 import numpy as np
 import pandas as pd
-import pickle
 import random
 import requests
 from requests import RequestException
@@ -12,6 +11,7 @@ import tarfile
 from typing import Tuple, Union
 import logging
 from alibi.utils.data import Bunch
+from alibi.utils.imagenet import class_names_to_id, class_names_to_label_idx
 
 import tensorflow.keras as keras
 
@@ -66,7 +66,8 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     Parameters
     ----------
     category
-        Imagenet category in mapping keys
+        Imagenet category class name.
+        Must be one of keys present in https://gist.github.com/daavoo/9c86d0e5e39bf12988d8597ee74645fd
     nb_images
         Number of images to be retrieved
     target_size
@@ -86,12 +87,8 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     (data, target)
         Tuple if ``return_X_y`` is true
     """
-    mapping = {'Persian cat': 'n02123394',
-               'volcano': 'n09472597',
-               'strawberry': 'n07745940',
-               'centipede': 'n01784675',
-               'jellyfish': 'n01910747'}
-    url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + mapping[category]
+
+    url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + class_names_to_id[category]
     try:
         page = requests.get(url)
         page.raise_for_status()
@@ -123,19 +120,7 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
             break
     data = np.concatenate(data, axis=0)
 
-    # consider hosting list ourselves?
-    url_labels = 'https://gist.githubusercontent.com/yrevar/6135f1bd8dcf2e0cc683/raw/' \
-                 'd133d61a09d7e5a3b36b8c111a8dd5c4b5d560ee/imagenet1000_clsid_to_human.pkl'
-    try:
-        resp = requests.get(url_labels)
-        resp.raise_for_status()
-        label_dict = pickle.load(BytesIO(resp.content))
-    except RequestException:
-        logger.exception("Could not download labels, URL may be out of service")
-        raise
-
-    inv_label = {v: k for k, v in label_dict.items()}
-    label_idx = inv_label[category]
+    label_idx = class_names_to_label_idx[category]
     labels = np.array([label_idx for _ in range(nb_images)])
 
     if return_X_y:

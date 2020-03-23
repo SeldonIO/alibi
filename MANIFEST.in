@@ -1,0 +1,2 @@
+include alibi/data/imagenet_class_names_to_id.json
+include alibi/data/imagenet_class_names_to_label_idx.json

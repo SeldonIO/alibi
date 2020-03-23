@@ -1,8 +1,10 @@
 from bs4 import BeautifulSoup
 import PIL
 from io import BytesIO, StringIO
+import json
 import numpy as np
 import pandas as pd
+import pkgutil
 import random
 import requests
 from requests import RequestException
@@ -11,7 +13,6 @@ import tarfile
 from typing import Tuple, Union
 import logging
 from alibi.utils.data import Bunch
-from alibi.utils.imagenet import class_names_to_id, class_names_to_label_idx
 
 import tensorflow.keras as keras
 
@@ -67,7 +68,7 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     ----------
     category
         Imagenet category class name.
-        Must be one of keys present in https://gist.github.com/daavoo/9c86d0e5e39bf12988d8597ee74645fd
+        Must be one of keys present in alibi/data/imagenet_class_names_to_id.json
     nb_images
         Number of images to be retrieved
     target_size
@@ -87,6 +88,9 @@ def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_si
     (data, target)
         Tuple if ``return_X_y`` is true
     """
+    # load the mappings
+    class_names_to_id = json.loads(pkgutil.get_data(__name__, "data/imagenet_class_names_to_id.json"))
+    class_names_to_label_idx = json.loads(pkgutil.get_data(__name__, "data/imagenet_class_names_to_label_idx.json"))
 
     url = 'http://www.image-net.org/api/text/imagenet.synset.geturls?wnid=' + class_names_to_id[category]
     try:

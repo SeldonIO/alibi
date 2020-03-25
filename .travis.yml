@@ -1,14 +1,16 @@
 dist: xenial
 language: python
 python:
-  - "3.5"
   - "3.6"
   - "3.7"
 before_install:
   - sudo apt-get install pandoc
+  - pip install --upgrade pip
 install:
   - pip install -r requirements/requirements_all.txt
   - python -m spacy download en_core_web_md
+  - pip install -e .
+  - pip freeze
 script:
   - flake8 alibi
   - mypy alibi

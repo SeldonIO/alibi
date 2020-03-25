@@ -22,13 +22,13 @@ class AnchorExplanation:
         Parameters
         ----------
         partial_index
-            Get the anchor until a certain index.
-            For example, if the anchor is (A=1,B=2,C=2) and partial_index=1, this will return ["A=1", "B=2"].
+            Get the result until a certain index.
+            For example, if the result is (A=1,B=2,C=2) and partial_index=1, this will return ["A=1", "B=2"].
 
         Returns
         -------
         names
-            Names with the anchor conditions
+            Names with the result conditions
         """
         names = self.exp_map['names']
         if partial_index is not None:
@@ -40,13 +40,13 @@ class AnchorExplanation:
         Parameters
         ----------
         partial_index
-            Get the anchor until a certain index.
-            For example, if the anchor uses features (1, 2, 3) and partial_index=1, this will return [1, 2].
+            Get the result until a certain index.
+            For example, if the result uses segment_labels (1, 2, 3) and partial_index=1, this will return [1, 2].
 
         Returns
         -------
-        features
-            Features used in the anchor conditions.
+        segment_labels
+            Features used in the result conditions.
         """
         features = self.exp_map['feature']
         if partial_index is not None:
@@ -58,8 +58,8 @@ class AnchorExplanation:
         Parameters
         ----------
         partial_index
-            Get the anchor precision until a certain index.
-            For example, if the anchor has precisions [0.1, 0.5, 0.95] and partial_index=1, this will return 0.5.
+            Get the result precision until a certain index.
+            For example, if the result has precisions [0.1, 0.5, 0.95] and partial_index=1, this will return 0.5.
 
         Returns
         -------
@@ -79,8 +79,8 @@ class AnchorExplanation:
         Parameters
         ----------
         partial_index
-            Get the anchor coverage until a certain index.
-            For example, if the anchor has precisions [0.1, 0.5, 0.95] and partial_index=1, this will return 0.5.
+            Get the result coverage until a certain index.
+            For example, if the result has precisions [0.1, 0.5, 0.95] and partial_index=1, this will return 0.5.
 
         Returns
         -------
@@ -101,15 +101,15 @@ class AnchorExplanation:
         Parameters
         ----------
         only_different_prediction
-            If True, will only return examples where the anchor makes a different prediction than the original model
+            If True, will only return examples where the result makes a different prediction than the original model
         only_same_prediction
-            If True, will only return examples where the anchor makes the same prediction than the original model
+            If True, will only return examples where the result makes the same prediction than the original model
         partial_index
-            Get the examples from the partial anchor until a certain index
+            Get the examples from the partial result until a certain index
 
         Returns
         -------
-        Examples covered by anchor
+        Examples covered by result
         """
         if only_different_prediction and only_same_prediction:
             print('Error: you cannot have only_different_prediction and only_same_prediction at the same time')

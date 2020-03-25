@@ -3,6 +3,8 @@ import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 from typing import Dict, Union
 
+# TODO: This should inherit from collections.UserDict not dict
+
 
 class Bunch(dict):
     """

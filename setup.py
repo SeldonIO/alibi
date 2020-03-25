@@ -29,19 +29,25 @@ setup(name='alibi',
           'pytest-runner'
       ],
       install_requires=[
+          'attrs',
           'beautifulsoup4',
           'numpy',
           'Pillow',
           'pandas',
+          'prettyprinter',
           'requests',
           'scikit-learn',
           'spacy',
           'scikit-image',
           'tensorflow<2.0',
+          'shap',
+          'scipy'
       ],
       tests_require=[
           'pytest',
-          'pytest-cov'
+          'pytest-cov',
+          'pytest-xdist',
+          'pytest-lazy-fixture',
       ],
       extras_require=extras_require,
       test_suite='tests',

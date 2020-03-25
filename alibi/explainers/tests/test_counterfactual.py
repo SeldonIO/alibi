@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 import tensorflow as tf
 import keras
 
+from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
 
@@ -18,14 +19,16 @@ def logistic_iris():
 
 
 @pytest.fixture
-def iris_explainer(request, logistic_iris):
+def cf_iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lr.predict_proba
     cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
 
-    return X, y, lr, cf_explainer
+    yield X, y, lr, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.fixture
@@ -59,16 +62,20 @@ def keras_logistic_mnist(request):
 
     model.fit(X, y, epochs=5)
 
-    return X, y, model
+    yield X, y, model
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.fixture
-def keras_mnist_explainer(request, keras_logistic_mnist):
+def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     X, y, model = keras_logistic_mnist
     cf_explainer = CounterFactual(predict_fn=model, shape=(1, 784),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-    return X, y, model, cf_explainer
+    yield X, y, model, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -96,9 +103,9 @@ def test_define_func(logistic_iris, target_class):
         assert func(x) == probas[:, ix2]
 
 
-@pytest.mark.parametrize('iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
-def test_cf_explainer_iris(iris_explainer):
-    X, y, lr, cf = iris_explainer
+@pytest.mark.parametrize('cf_iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
+def test_cf_explainer_iris(cf_iris_explainer):
+    X, y, lr, cf = cf_iris_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
     pred_class = probas.argmax()
@@ -107,7 +114,10 @@ def test_cf_explainer_iris(iris_explainer):
 
     # test explanation
     exp = cf.explain(x)
-    x_cf = exp['cf']['X']
+    assert exp.meta.keys() == DEFAULT_META_CF.keys()
+    assert exp.data.keys() == DEFAULT_DATA_CF.keys()
+
+    x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
@@ -127,14 +137,14 @@ def test_cf_explainer_iris(iris_explainer):
     elif isinstance(target_class, int):
         assert pred_class_cf == target_class
 
-    if exp['success']:
+    if exp.success:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
-@pytest.mark.parametrize('keras_mnist_explainer', ['other', 'same', 4, 9], indirect=True)
-def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explainer):
-    X, y, model, cf = keras_mnist_explainer
+@pytest.mark.parametrize('keras_mnist_cf_explainer', ['other', 'same', 4, 9], indirect=True)
+def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_explainer):
+    X, y, model, cf = keras_mnist_cf_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
     pred_class = probas.argmax()
@@ -143,7 +153,10 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explai
 
     # test explanation
     exp = cf.explain(x)
-    x_cf = exp['cf']['X']
+    assert exp.meta.keys() == DEFAULT_META_CF.keys()
+    assert exp.data.keys() == DEFAULT_DATA_CF.keys()
+
+    x_cf = exp.cf['X']
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
@@ -163,5 +176,5 @@ def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_explai
     elif isinstance(target_class, int):
         assert pred_class_cf == target_class
 
-    if exp['success']:
+    if exp.success:
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol

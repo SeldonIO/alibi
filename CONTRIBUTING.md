@@ -39,7 +39,7 @@ and class signatures. If you're using a `PyCharm`, you can configure this under
 
 ## Building documentation
 We use `sphinx` for building documentation. You can call `make build_docs` from the project root,
-the docs will be built under `doc/_build/html`.
+the docs will be built under `doc/_build/html`. Detail information about documentation can be found [here](doc/README.md).
 
 ## CI
 All PRs triger a TravisCI build to run linting, type checking, tests, and build docs.

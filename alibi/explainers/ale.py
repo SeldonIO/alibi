@@ -1,7 +1,56 @@
 # flake8: noqa E131
+import copy
 import numpy as np
 import pandas as pd
-from typing import Callable, Tuple
+from typing import Callable, List, Tuple
+
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
+
+
+class ALE(Explainer):
+
+    def __init__(self,
+                 predictor: Callable):
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
+
+        self.predictor = predictor
+
+    def explain(self,
+                X: np.ndarray,
+                num_intervals: int = 40) -> Explanation:
+        # TODO raise an error if X is not 2D
+        n_features = X.shape[1]
+        feature_values = []
+        ale_values = []
+
+        for feature in range(n_features):
+            q, ale = ale_num(self.predictor,
+                             X=X,
+                             feature=feature,
+                             num_intervals=num_intervals)
+
+            feature_values.append(q)
+            ale_values.append(ale)
+
+        # TODO: an ALE plot requires a rugplot to gauge density of instances in each
+        # feature region, should we calculate it here and return as part of the explanation
+        # for further visualisation?
+        return self.build_explanation(ale_values=ale_values, feature_values=feature_values)
+
+    def build_explanation(self,
+                          ale_values: List[np.ndarray],
+                          feature_values: List[np.ndarray]) -> Explanation:
+        # TODO decide on the format for these lists of arrays
+        # Currently each list element relates to a feature and each
+        # column relates to an output dimension, this is different from e.g. SHAP
+
+        data = copy.deepcopy(DEFAULT_DATA_ALE)
+        data.update(ale_values=ale_values,
+                    feature_values=feature_values,
+                    feature_names=None)
+
+        return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
 
 def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linear') -> np.ndarray:
@@ -45,9 +94,9 @@ def ale_num(
     Returns
     -------
     q
-        Array of quantiles of the input values
+        Array of quantiles of the input values, a num_intervals length vector
     ale
-        ALE values for the feature
+        ALE values for the feature, a num_intervals x n_outputs array
 
     """
     # TODO handle case when num_intervals is too large for the dataset

@@ -115,3 +115,23 @@ DEFAULT_DATA_SHAP = {
 """
 Default KernelSHAP data.
 """
+
+# ALE
+DEFAULT_META_ALE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {}
+}  # type: dict
+"""
+Default ALE metadata.
+"""
+
+DEFAULT_DATA_ALE = {
+    "ale_values": [],
+    "feature_values": [],
+    "feature_names": None,
+}  # type: dict
+"""
+Default ALE data.
+"""

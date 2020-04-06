@@ -115,3 +115,25 @@ DEFAULT_DATA_SHAP = {
 """
 Default KernelSHAP data.
 """
+
+# Integrated Gradients
+DEFAULT_META_INTGRAD = {"name": None,
+                        "type": ["tensorflow", "keras"],
+                        "explanations": ["local", "global"],
+                        "params": {}
+                        }
+"""
+Default INTGRAD metadata.
+"""
+
+DEFAULT_DATA_INTGRAD = {"attributions": None,
+                        "feature_names": None,
+                        "raw": {
+                            "prediction": None,
+                            "instances": None,
+                            "importances": {},
+                            }
+                        }
+"""
+Default INTGRAD data.
+"""

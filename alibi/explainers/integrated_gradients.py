@@ -1,10 +1,13 @@
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
+tf.compat.v1.enable_eager_execution()
 
+from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
 import logging
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
+import copy
 import string
 from time import time
 
@@ -125,19 +128,31 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
-class IntegratedGradientsTf(object):
+class IntegratedGradientsTf(Explainer):
 
-    def __init__(self, forward_function: Callable, verbose=True):
+    def __init__(self, forward_function: Union[tf.keras.Model, 'keras.Model'],
+                 n_steps: int = 50,
+                 method: string = "gausslegendre",
+                 return_convergence_delta: bool = False,
+                 return_predictions: bool = False):
+
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
+        params = locals()
+        remove = ['self', 'forward_function']
+        for key in remove:
+            params.pop(key)
+        self.meta['params'].update(params)
         self.forward_function = forward_function
-        self.verbose = verbose
+        self.n_steps = n_steps
+        self.method = method
+        self.return_convergence_delta = return_convergence_delta
+        self.return_predictions = return_predictions
 
     def explain(self, X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
+                features_names: Union[list, None] = None,
                 target: Union[None, int, list, np.ndarray] = None,
-                n_steps: int = 50,
-                method: string = "gausslegendre",
-                internal_batch_size: Union[None, int] = None,
-                return_convergence_delta: bool = False) -> Union[Tuple, np.ndarray]:
+                internal_batch_size: Union[None, int] = None) -> Explanation:
 
         t_0 = time()
         nb_samples = len(X)
@@ -145,14 +160,14 @@ class IntegratedGradientsTf(object):
         X, baselines = _format_input_baseline(X, baselines)
         target = _format_target(target, nb_samples)
 
-        step_sizes_func, alphas_func = approximation_parameters(method)
-        step_sizes, alphas = step_sizes_func(n_steps), alphas_func(n_steps)
+        step_sizes_func, alphas_func = approximation_parameters(self.method)
+        step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
 
-        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(n_steps)], axis=0)
-        target_paths = np.concatenate([target for _ in range(n_steps)], axis=0)
+        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
+        target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
 
-        orig_shape = (n_steps,) + X.shape
-        orig_shape_target = (n_steps, len(target))
+        orig_shape = (self.n_steps,) + X.shape
+        orig_shape_target = (self.n_steps, len(target))
         assert orig_shape[0] == orig_shape_target[0]
         t_paths = time() - t_0
 
@@ -173,16 +188,33 @@ class IntegratedGradientsTf(object):
 
         # sum integral terms
         self.attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
+        data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
 
-        if return_convergence_delta:
+        if self.return_convergence_delta:
             t_22 = time()
             deltas = self.compute_convergence_delta(baselines, X, target)
             t_delta = time() - t_22
             times = (t_paths, t_batching, t_delta)
-            return self.attr, deltas, times
+
+            data['X'] = X
+            if self.return_predictions:
+                predictions = self.forward_function(X).numpy()
+                data['predictions'] = predictions
+            data['attributions'] = self.attr
+            data['features_names'] = features_names
+            data['deltas'] = deltas
+            # return self.attr, deltas, times
         else:
             times = (t_paths, t_batching)
-            return self.attr, times
+            data['X'] = X
+            if self.return_predictions:
+                predictions = self.forward_function(X).numpy()
+                data['predictions'] = predictions
+            data['attributions'] = self.attr
+            data['features_names'] = features_names
+            #return self.attr, times
+
+        return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
     def compute_convergence_delta(self, start_point, end_point, target):
         return _compute_convergence_delta(self.forward_function, self.attr, start_point, end_point, target)

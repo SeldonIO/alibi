@@ -127,11 +127,11 @@ Default INTGRAD metadata.
 """
 
 DEFAULT_DATA_INTGRAD = {"attributions": None,
+                        "deltas": None,
                         "feature_names": None,
                         "raw": {
                             "prediction": None,
-                            "instances": None,
-                            "importances": {},
+                            "X": None,
                             }
                         }
 """

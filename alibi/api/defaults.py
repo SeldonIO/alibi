@@ -131,6 +131,8 @@ DEFAULT_DATA_ALE = {
     "ale_values": [],
     "feature_values": [],
     "feature_names": None,
+    "target_names": None,
+    "feature_deciles": None
 }  # type: dict
 """
 Default ALE data.

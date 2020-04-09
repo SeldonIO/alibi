@@ -2,7 +2,7 @@
 import copy
 import numpy as np
 import pandas as pd
-from typing import Callable, List, Tuple, TYPE_CHECKING
+from typing import Callable, List, Tuple, TYPE_CHECKING, no_type_check
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
@@ -184,6 +184,7 @@ def ale_num(
     return q, ale
 
 
+@no_type_check
 def _show_ale_num_mpl(exp: 'Explanation',
                       feature: int,
                       ax: 'mpl.axes.Axes' = None,
@@ -205,54 +206,3 @@ def _show_ale_num_mpl(exp: 'Explanation',
     ax.legend(lines, exp.target_names)
 
     return ax
-
-
-def show_first_ale_num_altair(X: np.ndarray, q: np.ndarray, ale: np.ndarray, feature: int,
-                              feature_name: str = None) -> None:
-    import altair as alt
-    import pandas as pd
-
-    if feature_name is None:
-        feature_name = "feature"
-
-    data = pd.DataFrame(
-        {
-            feature_name: q,
-            "ale": ale[:, 0],  # TODO: handle multiclass
-        }
-    )
-
-    height = 250
-    tick_height = 20
-    tick_baseline = height - tick_height / 2
-
-    # ALE plot
-    base = (
-        alt.Chart(data, height=height)
-            .mark_line(point=True)
-            .encode(x=feature_name, y="ale", tooltip=["ale", feature_name])
-    )
-
-    # rug plot
-    pdX = pd.DataFrame(X)
-    x_ticks = (
-        alt.Chart(pdX)
-            .mark_tick(size=tick_height, y=tick_baseline)
-            .encode(alt.X("{}:Q".format(feature), title=feature_name), tooltip="{}:Q".format(feature))
-    )
-
-    (base + x_ticks).display()
-
-
-if __name__ == '__main__':
-    from sklearn.datasets import load_iris
-    from sklearn.linear_model import LogisticRegression
-
-    X, y = load_iris(return_X_y=True)
-
-    clf = LogisticRegression()
-    clf.fit(X, y)
-
-    predictor = lambda x: clf.predict_proba(x)
-
-    q, ale = ale_num(predictor, X, 0, num_intervals=50)

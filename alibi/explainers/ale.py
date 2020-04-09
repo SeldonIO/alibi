@@ -192,7 +192,8 @@ def plot_ale(exp: Explanation,
              targets: Union[List[int], str] = 'all',
              ncols: int = 3,
              ax: 'plt.Axes' = None,
-             **kwargs) -> 'plt.axes':
+             line_kwargs: dict = None,
+             fig_kwargs: dict = None) -> 'plt.axes':
     import matplotlib.pyplot as plt
 
     if features == 'all':
@@ -209,18 +210,27 @@ def plot_ale(exp: Explanation,
     axes_ravel = axes.ravel()
 
     # make plots
-    for ix, feature, ax_ravel in zip(count(), features, axes_ravel):
+    if line_kwargs is None:
+        line_kwargs = {}
+    default_line_kwargs = {'markersize': 3, 'marker': 'o'}
+    line_kwargs = {**default_line_kwargs, **line_kwargs}
+    for ix, feature, ax_ravel in \
+            zip(count(), features, axes_ravel):
         _ = _plot_one_ale_num(exp=exp,
                               feature=feature,
                               targets=targets,
                               ax=ax_ravel,
                               legend=not ix,  # only one legend
-                              **kwargs)
+                              line_kwargs=line_kwargs)
     # don't show blank axis
     for ax in range(len(features), len(axes_ravel)):
         axes_ravel[ax].set_axis_off()
 
-    fig.tight_layout()
+    default_fig_kwargs = {'tight_layout': 'tight'}
+    if fig_kwargs is None:
+        fig_kwargs = {}
+    fig_kwargs = {**default_fig_kwargs, **fig_kwargs}
+    fig.set(**fig_kwargs)
     return axes
 
 
@@ -230,14 +240,13 @@ def _plot_one_ale_num(exp: Explanation,
                       targets: List[int],
                       ax: 'plt.Axes' = None,
                       legend: bool = True,
-                      **kwargs) -> 'plt.Axes':
+                      line_kwargs: dict = None) -> 'plt.Axes':
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
     if ax is None:
         ax = plt.gca()
-
-    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], '-o', markersize=3)
+    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], **line_kwargs)
 
     # add decile markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)

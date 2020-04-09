@@ -1,8 +1,9 @@
 # flake8: noqa E131
 import copy
+import math
 import numpy as np
 import pandas as pd
-from typing import Callable, List, Tuple, TYPE_CHECKING, no_type_check
+from typing import Callable, List, Tuple, Union, TYPE_CHECKING, no_type_check
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
@@ -185,9 +186,46 @@ def ale_num(
 
 
 @no_type_check
-def _show_ale_num_mpl(exp: 'Explanation',
+def plot_ale(exp: Explanation,
+             features: Union[List[int], str] = 'all',
+             targets: Union[List[int], str] = 'all',
+             ncols: int = 3,
+             ax: 'mpl.axes.Axes' = None,
+             **kwargs) -> 'mpl.axes.Axes':
+    import matplotlib.pyplot as plt
+
+    if features == 'all':
+        features = range(0, len(exp.feature_names))
+    n_features = len(features)
+
+    if targets == 'all':
+        targets = range(0, len(exp.target_names))
+
+    # make axes
+    nrows = math.ceil(n_features / ncols)
+    fig, axes = plt.subplots(nrows, ncols)
+    axes = np.atleast_2d(axes)
+    axes_ravel = axes.ravel()
+
+    # make plots
+    for feature, ax_ravel in zip(features, axes_ravel):
+        _ = _plot_one_ale_num(exp=exp,
+                              feature=feature,
+                              targets=targets,
+                              ax=ax_ravel,
+                              legend=not feature,  # only one legend
+                              **kwargs)
+
+    fig.tight_layout()
+    return axes
+
+
+@no_type_check
+def _plot_one_ale_num(exp: Explanation,
                       feature: int,
+                      targets: List[int],
                       ax: 'mpl.axes.Axes' = None,
+                      legend: bool = True,
                       **kwargs) -> 'mpl.axes.Axes':
     import matplotlib.pyplot as plt
     from matplotlib import transforms
@@ -195,7 +233,7 @@ def _show_ale_num_mpl(exp: 'Explanation',
     if ax is None:
         ax = plt.gca()
 
-    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature], '-o')
+    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], '-o', markersize=3)
 
     # add decile markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
@@ -203,6 +241,8 @@ def _show_ale_num_mpl(exp: 'Explanation',
 
     ax.set_xlabel(exp.feature_names[feature])
     ax.set_ylabel('ALE')
-    ax.legend(lines, exp.target_names)
+
+    if legend:
+        ax.legend(lines, exp.target_names[targets])
 
     return ax

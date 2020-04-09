@@ -135,7 +135,7 @@ def ale_num(
     indices[indices == 0] = 1  # put the smallest data point in the first interval
     interval_n = np.bincount(indices)  # number of points in each interval
     nonzero_interval_ix = np.argwhere(interval_n != 0).squeeze()
-    nonzero_intervals = interval_n[nonzero_interval_ix]
+    nonzero_intervals = np.atleast_1d(interval_n[nonzero_interval_ix])
 
     # predictions for the upper and lower ranges of intervals
     z_low = X.copy()

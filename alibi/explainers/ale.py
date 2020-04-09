@@ -1,6 +1,7 @@
 # flake8: noqa E131
 import copy
 import math
+from itertools import count
 import numpy as np
 import pandas as pd
 from typing import Callable, List, Tuple, Union, TYPE_CHECKING, no_type_check
@@ -9,7 +10,7 @@ from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
 
 if TYPE_CHECKING:
-    import matplotlib as mpl
+    import matplotlib.pyplot as plt
 
 
 class ALE(Explainer):
@@ -190,8 +191,8 @@ def plot_ale(exp: Explanation,
              features: Union[List[int], str] = 'all',
              targets: Union[List[int], str] = 'all',
              ncols: int = 3,
-             ax: 'mpl.axes.Axes' = None,
-             **kwargs) -> 'mpl.axes.Axes':
+             ax: 'plt.Axes' = None,
+             **kwargs) -> 'plt.axes':
     import matplotlib.pyplot as plt
 
     if features == 'all':
@@ -208,13 +209,16 @@ def plot_ale(exp: Explanation,
     axes_ravel = axes.ravel()
 
     # make plots
-    for feature, ax_ravel in zip(features, axes_ravel):
+    for ix, feature, ax_ravel in zip(count(), features, axes_ravel):
         _ = _plot_one_ale_num(exp=exp,
                               feature=feature,
                               targets=targets,
                               ax=ax_ravel,
-                              legend=not feature,  # only one legend
+                              legend=not ix,  # only one legend
                               **kwargs)
+    # don't show blank axis
+    for ax in range(len(features), len(axes_ravel)):
+        axes_ravel[ax].set_axis_off()
 
     fig.tight_layout()
     return axes
@@ -224,9 +228,9 @@ def plot_ale(exp: Explanation,
 def _plot_one_ale_num(exp: Explanation,
                       feature: int,
                       targets: List[int],
-                      ax: 'mpl.axes.Axes' = None,
+                      ax: 'plt.Axes' = None,
                       legend: bool = True,
-                      **kwargs) -> 'mpl.axes.Axes':
+                      **kwargs) -> 'plt.Axes':
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 

@@ -9,6 +9,7 @@ from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
 from .kernel_shap import KernelShap
+from .integrated_gradients import IntegratedGradients
 
 __all__ = ["AnchorTabular",
            "DistributedAnchorTabular",
@@ -18,4 +19,5 @@ __all__ = ["AnchorTabular",
            "CounterFactual",
            "CounterFactualProto",
            "KernelShap",
+           "IntegratedGradients",
            ]

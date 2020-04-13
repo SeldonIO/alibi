@@ -181,11 +181,16 @@ class KernelShap(Explainer, FitMixin):
             for an in-depth discussion about the semantics of explaining the model in the probability vs the
             margin space.
         feature_names
-            List with feature names.
+            List with feature names. Used to infer group names when categorical data is treated by grouping
+            and `group_names` input to `fit` is not specified, assuming it has the same len as `groups` argument
+            of `fit` method. It is also used to compute the `names` field, which appears as a key in each of the
+            values of the `importances` sub-field of the response `raw` field.
         categorical_names
-            Dictionary where keys are feature columns and values are list of categories for the feature.
+            Dictionary where keys are feature columns and values are list of categories for the feature. Used to
+            select the method for background data summarisation (if specified, subsampling is performed as opposed
+            to kmeans).
         seed
-            Fixes the random number stream, which influences which subsets are sampled during shap value estimation
+            Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
         """
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))

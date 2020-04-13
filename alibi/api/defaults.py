@@ -89,7 +89,7 @@ Default counterfactual prototype metadata.
 """
 
 # KernelSHAP
-DEFAULT_META_SHAP = {
+DEFAULT_META_KERNEL_SHAP = {
     "name": None,
     "type": ["blackbox"],
     "explanations": ["local", "global"],
@@ -99,7 +99,7 @@ DEFAULT_META_SHAP = {
 Default KernelSHAP metadata.
 """
 
-DEFAULT_DATA_SHAP = {
+DEFAULT_DATA_KERNEL_SHAP = {
     "shap_values": [],
     "expected_value": [],
     "link": 'identity',

@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 
-from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
+from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
 from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
@@ -876,8 +876,8 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     )
 
     # check that explanation metadata and data keys are as expected
-    assert explanation.meta.keys() == DEFAULT_META_SHAP.keys()
-    assert explanation.data.keys() == DEFAULT_DATA_SHAP.keys()
+    assert explanation.meta.keys() == DEFAULT_META_KERNEL_SHAP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim

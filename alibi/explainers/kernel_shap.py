@@ -5,7 +5,7 @@ import shap
 import numpy as np
 import pandas as pd
 
-from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
+from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
@@ -188,7 +188,7 @@ class KernelShap(Explainer, FitMixin):
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation
         """
 
-        super().__init__(meta=copy.deepcopy(DEFAULT_META_SHAP))
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))
 
         self.link = link
         self.predictor = predictor
@@ -754,7 +754,7 @@ class KernelShap(Explainer, FitMixin):
             X = np.array(X)
 
         # output explanation dictionary
-        data = copy.deepcopy(DEFAULT_DATA_SHAP)
+        data = copy.deepcopy(DEFAULT_DATA_KERNEL_SHAP)
         data.update(
             shap_values=shap_values,
             expected_value=expected_value,

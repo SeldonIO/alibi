@@ -155,7 +155,7 @@ class KernelShap(Explainer, FitMixin):
                  predictor: Callable,
                  link: str = 'identity',
                  feature_names: Union[List[str], Tuple[str], None] = None,
-                 categorical_names: Optional[Dict] = None,
+                 categorical_names: Optional[Dict[int, List[str]]] = None,
                  seed: int = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality

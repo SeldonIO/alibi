@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Callable, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
 
@@ -9,7 +9,6 @@ from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 import copy
 import string
-from time import time
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -86,7 +85,7 @@ def _tf2_gradients(forward_function: Callable,
     return grads
 
 
-def _sum_integral_terms(step_sizes: int,
+def _sum_integral_terms(step_sizes: list,
                         grads: tf.Tensor) -> tf.Tensor:
 
     step_sizes = tf.convert_to_tensor(step_sizes)
@@ -105,9 +104,6 @@ def _format_input_baseline(X: np.ndarray,
         bls = np.full(X.shape, baselines)
     else:
         raise ValueError('baselines must be int, float, np.ndarray or None. Found {}'.format(type(baselines)))
-
-    #if isinstance(X, np.ndarray):
-        #X = tf.convert_to_tensor(X)
 
     assert len(X) == len(bls)
 
@@ -128,7 +124,7 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
-class IntegratedGradientsTf(Explainer):
+class IntegratedGradients(Explainer):
 
     def __init__(self, forward_function: Union[tf.keras.Model, 'keras.Model'],
                  n_steps: int = 50,
@@ -138,7 +134,7 @@ class IntegratedGradientsTf(Explainer):
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
         params = locals()
-        remove = ['self', 'forward_function']
+        remove = ['self', 'forward_function', '__class__']
         for key in remove:
             params.pop(key)
         self.meta['params'].update(params)
@@ -152,9 +148,8 @@ class IntegratedGradientsTf(Explainer):
                 baselines: Union[None, int, float, np.ndarray] = None,
                 features_names: Union[list, None] = None,
                 target: Union[None, int, list, np.ndarray] = None,
-                internal_batch_size: Union[None, int] = None) -> Explanation:
+                internal_batch_size: Union[None, int] = 100) -> Explanation:
 
-        t_0 = time()
         nb_samples = len(X)
 
         X, baselines = _format_input_baseline(X, baselines)
@@ -169,12 +164,9 @@ class IntegratedGradientsTf(Explainer):
         orig_shape = (self.n_steps,) + X.shape
         orig_shape_target = (self.n_steps, len(target))
         assert orig_shape[0] == orig_shape_target[0]
-        t_paths = time() - t_0
 
-        t_1 = time()
         paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
-        t_batching = time() - t_1
 
         batches = []
         for paths_b, target_b in paths_ds:
@@ -191,10 +183,7 @@ class IntegratedGradientsTf(Explainer):
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
 
         if self.return_convergence_delta:
-            t_22 = time()
             deltas = self.compute_convergence_delta(baselines, X, target)
-            t_delta = time() - t_22
-            times = (t_paths, t_batching, t_delta)
 
             data['X'] = X
             if self.return_predictions:
@@ -203,16 +192,13 @@ class IntegratedGradientsTf(Explainer):
             data['attributions'] = self.attr
             data['features_names'] = features_names
             data['deltas'] = deltas
-            # return self.attr, deltas, times
         else:
-            times = (t_paths, t_batching)
             data['X'] = X
             if self.return_predictions:
                 predictions = self.forward_function(X).numpy()
                 data['predictions'] = predictions
             data['attributions'] = self.attr
             data['features_names'] = features_names
-            #return self.attr, times
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 

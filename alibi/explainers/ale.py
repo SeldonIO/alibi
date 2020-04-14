@@ -190,11 +190,12 @@ def ale_num(
 def plot_ale(exp: Explanation,
              features: Union[List[int], str] = 'all',
              targets: Union[List[int], str] = 'all',
-             ncols: int = 3,
-             ax: 'plt.Axes' = None,
+             n_cols: int = 3,
+             ax: Union['plt.Axes', np.ndarray] = None,
              line_kwargs: dict = None,
-             fig_kwargs: dict = None) -> 'plt.axes':
+             fig_kwargs: dict = None) -> 'np.ndarray':
     import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
 
     if features == 'all':
         features = range(0, len(exp.feature_names))
@@ -204,10 +205,28 @@ def plot_ale(exp: Explanation,
         targets = range(0, len(exp.target_names))
 
     # make axes
-    nrows = math.ceil(n_features / ncols)
-    fig, axes = plt.subplots(nrows, ncols)
-    axes = np.atleast_2d(axes)
-    axes_ravel = axes.ravel()
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    if isinstance(ax, plt.Axes):
+        ax.set_axis_off()
+        fig = ax.figure
+        n_cols = min(n_cols, n_features)
+        n_rows = math.ceil(n_features / n_cols)
+
+        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes_ravel = axes.ravel()
+        # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
+        gs = GridSpec(n_rows, n_cols)
+        for i, spec in zip(range(n_features), gs):
+            axes_ravel[i] = fig.add_subplot(spec)
+
+    else:  # array-like
+        if ax.size != n_features:
+            raise ValueError(f"Expected ax to have {n_features} axes, got {ax.size}")
+        axes = np.atleast_2d(ax)
+        axes_ravel = axes.ravel()
+        fig = axes_ravel[0].figure
 
     # make plots
     if line_kwargs is None:
@@ -222,15 +241,13 @@ def plot_ale(exp: Explanation,
                               ax=ax_ravel,
                               legend=not ix,  # only one legend
                               line_kwargs=line_kwargs)
-    # don't show blank axis
-    for ax in range(len(features), len(axes_ravel)):
-        axes_ravel[ax].set_axis_off()
 
     default_fig_kwargs = {'tight_layout': 'tight'}
     if fig_kwargs is None:
         fig_kwargs = {}
     fig_kwargs = {**default_fig_kwargs, **fig_kwargs}
     fig.set(**fig_kwargs)
+    # TODO: should we return just axes or ax + axes
     return axes
 
 

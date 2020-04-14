@@ -101,6 +101,39 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     return quantiles
 
 
+def adaptive_grid(values: np.ndarray, min_bin_points: int = 1, n_init: int = 40) -> np.ndarray:
+    """
+    Find the optimal number of points to subdivice the feature range into
+    so that each interbal has at least `min_bin_points`. Uses bisection.
+
+    Parameters
+    ----------
+    values
+    min_bin_points
+    n_init
+
+    Returns
+    -------
+
+    """
+
+    def minimum_satisfied(q: np.ndarray) -> bool:
+        indices = np.searchsorted(q, values, side="left")
+        indices[indices == 0] = 1
+        interval_n = np.bincount(indices)
+        return np.all(interval_n[1:] > min_bin_points)
+
+    num_points = max(n_init, len(values))
+
+    # TODO actually implement bisection
+    q = np.unique(get_quantiles(values, num_points=num_points))
+    while not minimum_satisfied(q):
+        num_points = math.ceil(num_points / 2)
+        q = np.unique(get_quantiles(values, num_points=num_points))
+
+    return q
+
+
 def ale_num(
         predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 40
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -128,7 +161,8 @@ def ale_num(
     """
     # TODO handle case when num_intervals is too large for the dataset
     num_points = num_intervals + 1
-    q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
+    # q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
+    q = adaptive_grid(X[:, feature], n_init=num_points)
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")
@@ -209,7 +243,7 @@ def plot_ale(exp: Explanation,
         fig, ax = plt.subplots()
 
     if isinstance(ax, plt.Axes):
-        ax.set_axis_off()
+        ax.set_axis_off()  # treat passed axis as a canvas
         fig = ax.figure
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)

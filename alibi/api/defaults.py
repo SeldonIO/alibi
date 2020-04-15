@@ -132,6 +132,7 @@ DEFAULT_DATA_INTGRAD = {"attributions": None,
                         "raw": {
                             "prediction": None,
                             "X": None,
+                            "baselines": None,
                             }
                         }
 """

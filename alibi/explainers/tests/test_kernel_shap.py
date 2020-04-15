@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 import sklearn
 
-from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
-from alibi.explainers.kernel_shap import sum_categories, BACKGROUND_WARNING_THRESHOLD
+from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
+from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
 from copy import copy
@@ -876,8 +876,8 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     )
 
     # check that explanation metadata and data keys are as expected
-    assert explanation.meta.keys() == DEFAULT_META_SHAP.keys()
-    assert explanation.data.keys() == DEFAULT_DATA_SHAP.keys()
+    assert explanation.meta.keys() == DEFAULT_META_KERNEL_SHAP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim
@@ -905,14 +905,14 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
             assert n_feats in shap_dims
 
 
-n_classes = [(5, 'identity'), ]
+n_outputs = [(5,), (1,), ]
 data_dimensions = [(100, 50), ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
-def test_rank_by_importance(mock_ks_explainer, data_dimension):
+def test_rank_by_importance(n_outputs, data_dimension):
     """
     Tests the feature effects ranking function.
     """
@@ -933,11 +933,10 @@ def test_rank_by_importance(mock_ks_explainer, data_dimension):
 
     # setup explainer
     n_samples, n_features = data_dimension
-    explainer = mock_ks_explainer
-    explainer.feature_names = gen_group_names(n_features)
+    feature_names = gen_group_names(n_features)
 
     # create inputs
-    n_outs = explainer.predictor.out_dim
+    (n_outs, ) = n_outputs
     shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
 
     # compute desired values
@@ -947,13 +946,13 @@ def test_rank_by_importance(mock_ks_explainer, data_dimension):
     ranks, vals = list(zip(*ranks_and_vals))
     for i, values in enumerate(vals):
         exp_ranked_effects_class[str(i)] = vals[i]
-        expected_feat_names_order[str(i)] = [explainer.feature_names[k] for k in ranks[i]]
+        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
     aggregate_shap = np.sum(shap_values, axis=0)
     exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
-    exp_aggregate_names = [explainer.feature_names[k] for k in exp_aggregate_rank]
+    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
 
     # check results
-    importances = explainer.rank_by_importance(shap_values)
+    importances = rank_by_importance(shap_values, feature_names=feature_names)
     assert len(importances.keys()) == n_outs + 1
     for key in importances:
         if key != 'aggregated':

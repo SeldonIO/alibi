@@ -33,11 +33,11 @@ class ALE(Explainer):
         n_features = X.shape[1]
 
         if self.feature_names is None:
-            self.feature_names = [f'f_{i}' for i in range(n_features)]
+            self.feature_names = np.array([f'f_{i}' for i in range(n_features)])
         if self.target_names is None:
-            pred = self.predictor(X[0].reshape(1, -1))
+            pred = np.atleast_2d(self.predictor(X[0].reshape(1, -1)))
             n_targets = pred.shape[1]
-            self.target_names = [f'c_{i}' for i in range(n_targets)]
+            self.target_names = np.array([f'c_{i}' for i in range(n_targets)])
 
         feature_values = []
         ale_values = []

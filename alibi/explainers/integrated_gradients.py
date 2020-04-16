@@ -308,6 +308,7 @@ class IntegratedGradients(Explainer):
             orig_shape = (self.n_steps,) + X.shape
         else:
             orig_shape = (self.n_steps, len(X)) + self.layer.output_shape[1:]
+            orig_call = self.layer.call
         orig_shape_target = (self.n_steps, len(target))
         assert orig_shape[0] == orig_shape_target[0]
 
@@ -315,7 +316,6 @@ class IntegratedGradients(Explainer):
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         batches = []
-        orig_call = self.layer.call
         for paths_b, target_b in paths_ds:
 
             # calculate gradients for batch

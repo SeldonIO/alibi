@@ -20,7 +20,7 @@ TREE_SHAP_PARAMS = [
     'kwargs'
 ]
 
-BACKGROUND_WARNING_THRESHOLD = 300
+TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 300
 
 
 def rank_by_importance(shap_values: List[np.ndarray],

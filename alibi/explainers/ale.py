@@ -27,7 +27,9 @@ class ALE(Explainer):
 
     def explain(self,
                 X: np.ndarray,
-                num_intervals: int = 40) -> Explanation:
+                min_bin_points: int = 4) -> Explanation:
+        self.meta['params'].update(min_bin_points=min_bin_points)
+
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional')
         n_features = X.shape[1]
@@ -48,7 +50,7 @@ class ALE(Explainer):
             q, ale = ale_num(self.predictor,
                              X=X,
                              feature=feature,
-                             num_intervals=num_intervals)
+                             min_bin_points=min_bin_points)
             deciles = get_quantiles(X[:, feature])
 
             feature_values.append(q)
@@ -101,41 +103,78 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     return quantiles
 
 
-def adaptive_grid(values: np.ndarray, min_bin_points: int = 1, n_init: int = 40) -> np.ndarray:
+def bisect_fun(fun: callable, target: float, lo: int, hi: int) -> int:
     """
-    Find the optimal number of points to subdivice the feature range into
-    so that each interbal has at least `min_bin_points`. Uses bisection.
+    Bisection algorithm for function evaluation with integer support.
+
+    Assumes the function is non-decreasing on the interval [lo, hi].
+    Return a value v such that for all x<v, fun(x)<target and for all x>=v fun(x)>=target.
+    This is equivalent to the library function `bisect.bisect_left` but for functions.
 
     Parameters
     ----------
-    values
-    min_bin_points
-    n_init
+    fun
+    target
+    lo
+    hi
 
     Returns
     -------
 
     """
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if fun(mid) < target:
+            lo = mid + 1
+        else:
+            hi = mid
+    return lo
 
-    def minimum_satisfied(q: np.ndarray) -> bool:
-        indices = np.searchsorted(q, values, side="left")
+
+def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarray, int]:
+    """
+    Find the optimal number of points to subdivide the feature range into
+    so that each bin has at least `min_bin_points`. Uses bisection.
+
+    Note: This is a heuristic procedure since the bisection algorithm is applied
+    to a function which is not monotonic.
+
+    Parameters
+    ----------
+    values
+        Array of feature values
+    min_bin_points
+        Minimum number of points in each found bin
+
+    Returns
+    -------
+    q
+        Unique quantiles
+    num_points
+        Number of non-unique points the feature array was subdivided into
+    """
+
+    def minimum_satisfied(n: int) -> int:
+        """
+        Calculates whether the partition into n quantiles has the minimum number
+        of point in each resulting bin.
+        """
+        q = np.unique(get_quantiles(values, num_points=n))
+        indices = np.searchsorted(q, values, side='left')
         indices[indices == 0] = 1
         interval_n = np.bincount(indices)
-        return np.all(interval_n[1:] > min_bin_points)
+        return int(np.all(interval_n[1:] > min_bin_points))
 
-    num_points = max(n_init, len(values))
-
-    # TODO actually implement bisection
+    # bisect
+    num_points = bisect_fun(fun=lambda x: 1 - minimum_satisfied(x), target=0.5, lo=0, hi=len(values)) - 1
+    assert minimum_satisfied(num_points)
     q = np.unique(get_quantiles(values, num_points=num_points))
-    while not minimum_satisfied(q):
-        num_points = math.ceil(num_points / 2)
-        q = np.unique(get_quantiles(values, num_points=num_points))
 
-    return q
+    return q, num_points
 
 
 def ale_num(
-        predict: Callable, X: np.ndarray, feature: int, num_intervals: int = 40
+        predict: Callable, X: np.ndarray, feature: int, min_bin_points: int = 4
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Calculate the first order ALE for a numerical feature.
@@ -160,9 +199,9 @@ def ale_num(
 
     """
     # TODO handle case when num_intervals is too large for the dataset
-    num_points = num_intervals + 1
+    # num_points = num_intervals + 1
     # q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
-    q = adaptive_grid(X[:, feature], n_init=num_points)
+    q, _ = adaptive_grid(X[:, feature], min_bin_points)
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

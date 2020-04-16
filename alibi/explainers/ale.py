@@ -103,7 +103,7 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     return quantiles
 
 
-def bisect_fun(fun: callable, target: float, lo: int, hi: int) -> int:
+def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
     """
     Bisection algorithm for function evaluation with integer support.
 

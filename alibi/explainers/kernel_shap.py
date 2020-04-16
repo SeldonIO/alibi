@@ -24,7 +24,7 @@ KERNEL_SHAP_PARAMS = [
     'kwargs',
 ]
 
-BACKGROUND_WARNING_THRESHOLD = 300
+KERNEL_SHAP_BACKGROUND_THRESHOLD = 300
 
 
 def rank_by_importance(shap_values: List[np.ndarray],
@@ -181,14 +181,16 @@ class KernelShap(Explainer, FitMixin):
             for an in-depth discussion about the semantics of explaining the model in the probability vs the
             margin space.
         feature_names
-            List with feature names. Used to infer group names when categorical data is treated by grouping
-            and `group_names` input to `fit` is not specified, assuming it has the same len as `groups` argument
-            of `fit` method. It is also used to compute the `names` field, which appears as a key in each of the
-            values of the `importances` sub-field of the response `raw` field.
+            Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit`
+            is not specified, assuming it has the same len as `groups` argument of `fit` method. It is also used to
+            compute the `names` field, which appears as a key in each of the values of the `importances` sub-field of
+            the response `raw` field.
         categorical_names
-            Dictionary where keys are feature columns and values are list of categories for the feature. Used to
-            select the method for background data summarisation (if specified, subsampling is performed as opposed
-            to kmeans).
+            Keys are feature column indices in the `background_data` matrix (see `fit`). Each value contains strings
+            with the names of the categories for the feature. Used to select the method for background data
+            summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it
+            may be used for visualisation.
+
         seed
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
         """
@@ -239,12 +241,12 @@ class KernelShap(Explainer, FitMixin):
         if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
             background_data = np.atleast_2d(background_data)
 
-        if background_data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+        if background_data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
             msg = "Large datasets can cause slow runtimes for shap. The background dataset " \
                   "provided has {} records. Consider passing a subset or allowing the algorithm " \
                   "to automatically summarize the data by setting the summarise_background=True or" \
                   "setting summarise_background to 'auto' which will default to {} samples!"
-            logging.warning(msg.format(background_data.shape[0], BACKGROUND_WARNING_THRESHOLD))
+            logging.warning(msg.format(background_data.shape[0], KERNEL_SHAP_BACKGROUND_THRESHOLD))
 
         if group_names and not groups:
             logging.info(
@@ -545,7 +547,7 @@ class KernelShap(Explainer, FitMixin):
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap.common.Data],
             summarise_background: Union[bool, str] = False,
-            n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
+            n_background_samples: int = KERNEL_SHAP_BACKGROUND_THRESHOLD,
             group_names: Union[Tuple[str], List[str], None] = None,
             groups: Optional[List[Union[Tuple[int], List[int]]]] = None,
             weights: Union[Union[List[float], Tuple[float]], np.ndarray, None] = None,
@@ -602,7 +604,7 @@ class KernelShap(Explainer, FitMixin):
                     n_samples = background_data.shape[0]
                 else:
                     n_samples = background_data.data.shape[0]
-                n_background_samples = min(n_samples, BACKGROUND_WARNING_THRESHOLD)
+                n_background_samples = min(n_samples, KERNEL_SHAP_BACKGROUND_THRESHOLD)
             background_data = self._summarise_background(background_data, n_background_samples)
 
         # check user inputs to provide warnings if input is incorrect

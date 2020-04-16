@@ -12,7 +12,7 @@ import pandas as pd
 import sklearn
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
-from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, BACKGROUND_WARNING_THRESHOLD
+from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
 from copy import copy
@@ -438,7 +438,7 @@ input_settings = [
     {'correct': True, 'error_type': None},
 ]
 n_classes = [(5, 'identity'), ]
-data_dimensions = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (1, 49)]
+data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (55, 49), (1, 49)]
 summarise_background = [True, False]
 
 
@@ -526,7 +526,7 @@ def test__check_inputs(caplog,
     # if shap.common.Data is passed, expect no warnings
     if data_type == 'data':
         if summarise_background:
-            if data.data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+            if data.data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
                 msg_start = 'Large datasets can cause slow runtimes for shap.'
                 assert_message_in_logs(msg_start, records)
         else:
@@ -545,7 +545,7 @@ def test__check_inputs(caplog,
                 assert not explainer.use_groups
             assert not explainer.transposed
     else:
-        if data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+        if data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
             msg_start = 'Large datasets can cause slow runtimes for shap.'
             assert_message_in_logs(msg_start, records)
 
@@ -585,7 +585,7 @@ def test__check_inputs(caplog,
 
 data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 n_classes = [(5, 'identity'), ]  # second element refers to the predictor link function
-data_dimension = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), ]
+data_dimension = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), ]
 use_groups = [True, False]
 categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
@@ -652,7 +652,7 @@ input_settings = [
     {'correct': True, 'error_type': None},
     {'correct': False, 'error_type': 'weights_dim_mismatch'},
 ]
-data_dimensions = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), (49, 49), ]
+data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (49, 49), ]
 n_classes = [(5, 'identity'), (1, 'identity'), ]
 
 
@@ -710,7 +710,7 @@ def test_fit(caplog,
     else:
         if b_weights:
             if summarise_background == 'auto':
-                weights = weights[:BACKGROUND_WARNING_THRESHOLD]
+                weights = weights[:KERNEL_SHAP_BACKGROUND_THRESHOLD]
             elif summarise_background:
                 weights = weights[:n_background_examples]
 
@@ -780,8 +780,8 @@ def test_fit(caplog,
 
                 # check dimensions are reduced
                 if isinstance(summarise_background, str):
-                    if n_samples > BACKGROUND_WARNING_THRESHOLD:
-                        assert background_data.shape[0] == BACKGROUND_WARNING_THRESHOLD
+                    if n_samples > KERNEL_SHAP_BACKGROUND_THRESHOLD:
+                        assert background_data.shape[0] == KERNEL_SHAP_BACKGROUND_THRESHOLD
                     else:
                         assert background_data.shape[0] == data.shape[0]
                 elif summarise_background:

@@ -16,11 +16,25 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 
-def _compute_convergence_delta(forward_function: Callable,
+def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
                                attributions: np.ndarray,
                                start_point: np.ndarray,
                                end_point: np.ndarray,
                                target: Union[np.ndarray, list]) -> np.ndarray:
+    """
+
+    Parameters
+    ----------
+    forward_function
+    attributions
+    start_point
+    end_point
+    target
+
+    Returns
+    -------
+
+    """
 
     assert end_point.shape[0] == attributions.shape[0], (
         "Attributions and end_point must match on the first"
@@ -28,7 +42,6 @@ def _compute_convergence_delta(forward_function: Callable,
             attributions.shape[0], end_point.shape[0]))
 
     def _sum_rows(inp):
-
         if isinstance(inp, tf.Tensor):
             input_str = string.ascii_lowercase[1: len(inp.shape)]
             sums = tf.einsum('a{}->a'.format(input_str), inp).numpy()
@@ -37,7 +50,6 @@ def _compute_convergence_delta(forward_function: Callable,
             sums = np.einsum('a{}->a'.format(input_str), inp)
         else:
             raise NotImplementedError('input must be a tf tensor or a np array')
-
         return sums
 
     start_out_sum = _sum_rows(_run_forward(forward_function, start_point, target))
@@ -50,12 +62,22 @@ def _compute_convergence_delta(forward_function: Callable,
     return _deltas
 
 
-def _run_forward(forward_function: Callable,
+def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
                  x: Union[tf.Tensor, np.ndarray],
                  target: Union[tf.Tensor, np.ndarray, list]) -> tf.Tensor:
+    """
 
+    Parameters
+    ----------
+    forward_function
+    x
+    target
+
+    Returns
+    -------
+
+    """
     def _select_target(ps, ts):
-
         if ts is not None:
             if isinstance(ps, tf.Tensor):
                 ps = tf.linalg.diag_part(tf.gather(ps, ts, axis=1))
@@ -63,7 +85,6 @@ def _run_forward(forward_function: Callable,
                 raise NotImplementedError
         else:
             raise ValueError("target cannot be None")
-
         return ps
 
     preds = forward_function(x)
@@ -72,9 +93,21 @@ def _run_forward(forward_function: Callable,
     return preds
 
 
-def _tf2_gradients(forward_function: Callable,
+def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
                    x: tf.Tensor,
                    target: tf.Tensor) -> tf.Tensor:
+    """
+
+    Parameters
+    ----------
+    forward_function
+    x
+    target
+
+    Returns
+    -------
+
+    """
 
     with tf.GradientTape() as tape:
         tape.watch(x)
@@ -85,9 +118,74 @@ def _tf2_gradients(forward_function: Callable,
     return grads
 
 
+def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
+                     layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
+                     orig_call: Callable,
+                     x: tf.Tensor,
+                     target: tf.Tensor) -> tf.Tensor:
+    """
+
+    Parameters
+    ----------
+    forward_function
+    layer
+    orig_call
+    x
+    target
+
+    Returns
+    -------
+
+    """
+    def watch_layer(layer, tape):
+        """
+        Make an intermediate hidden `layer` watchable by the `tape`.
+        After calling this function, you can obtain the gradient with
+        respect to the output of the `layer` by calling:
+
+            grads = tape.gradient(..., layer.result)
+
+        """
+
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                # Store the result of `layer.call` internally.
+                layer.result = func(*args, **kwargs)
+                # From this point onwards, watch this tensor.
+                tape.watch(layer.result)
+                # Return the result to continue with the forward pass.
+                return layer.result
+
+            return wrapper
+
+        layer.call = decorator(layer.call)
+        return layer
+
+    with tf.GradientTape() as tape:
+        watch_layer(layer, tape)
+        preds = _run_forward(forward_function, x, target)
+
+    grads = tape.gradient(preds, layer.result)
+
+    delattr(layer, 'result')
+    layer.call = orig_call
+
+    return grads
+
+
 def _sum_integral_terms(step_sizes: list,
                         grads: tf.Tensor) -> tf.Tensor:
+    """
 
+    Parameters
+    ----------
+    step_sizes
+    grads
+
+    Returns
+    -------
+
+    """
     step_sizes = tf.convert_to_tensor(step_sizes)
     input_str = string.ascii_lowercase[1: len(grads.shape)]
     einstr = 'a,a{}->{}'.format(input_str, input_str)
@@ -97,7 +195,17 @@ def _sum_integral_terms(step_sizes: list,
 
 def _format_input_baseline(X: np.ndarray,
                            baselines: Union[None, int, float, np.ndarray]) -> Union[Tuple, np.ndarray]:
+    """
 
+    Parameters
+    ----------
+    X
+    baselines
+
+    Returns
+    -------
+
+    """
     if baselines is None:
         bls = np.zeros(X.shape)
     elif isinstance(baselines, int) or isinstance(baselines, float):
@@ -112,7 +220,17 @@ def _format_input_baseline(X: np.ndarray,
 
 def _format_target(target: Union[None, int, list, np.ndarray],
                    nb_samples: int) -> list:
+    """
 
+    Parameters
+    ----------
+    target
+    nb_samples
+
+    Returns
+    -------
+
+    """
     if target is not None:
         if isinstance(target, int):
             target = [target for _ in range(nb_samples)]
@@ -127,18 +245,30 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 class IntegratedGradients(Explainer):
 
     def __init__(self, forward_function: Union[tf.keras.Model, 'keras.Model'],
+                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
                  n_steps: int = 50,
                  method: string = "gausslegendre",
                  return_convergence_delta: bool = False,
                  return_predictions: bool = False):
+        """
 
+        Parameters
+        ----------
+        forward_function
+        layer
+        n_steps
+        method
+        return_convergence_delta
+        return_predictions
+        """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
         params = locals()
-        remove = ['self', 'forward_function', '__class__']
-        for key in remove:
-            params.pop(key)
+        remove = ['self', 'forward_function', '__class__', 'layer']
+        params = {k: v for k, v in params.items() if k not in remove}
         self.meta['params'].update(params)
+
         self.forward_function = forward_function
+        self.layer = layer
         self.n_steps = n_steps
         self.method = method
         self.return_convergence_delta = return_convergence_delta
@@ -149,7 +279,20 @@ class IntegratedGradients(Explainer):
                 features_names: Union[list, None] = None,
                 target: Union[None, int, list, np.ndarray] = None,
                 internal_batch_size: Union[None, int] = 100) -> Explanation:
+        """
 
+        Parameters
+        ----------
+        X
+        baselines
+        features_names
+        target
+        internal_batch_size
+
+        Returns
+        -------
+
+        """
         nb_samples = len(X)
 
         X, baselines = _format_input_baseline(X, baselines)
@@ -161,7 +304,10 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
         target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
 
-        orig_shape = (self.n_steps,) + X.shape
+        if self.layer is None:
+            orig_shape = (self.n_steps,) + X.shape
+        else:
+            orig_shape = (self.n_steps, len(X)) + self.layer.output_shape[1:]
         orig_shape_target = (self.n_steps, len(target))
         assert orig_shape[0] == orig_shape_target[0]
 
@@ -169,9 +315,15 @@ class IntegratedGradients(Explainer):
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         batches = []
+        orig_call = self.layer.call
         for paths_b, target_b in paths_ds:
+
             # calculate gradients for batch
-            grads_b = _tf2_gradients(self.forward_function, paths_b, target_b)
+            if self.layer is not None:
+                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+            else:
+                grads_b = _gradients_input(self.forward_function, paths_b, target_b)
+
             batches.append(grads_b)
 
         # tf concatatation
@@ -179,28 +331,20 @@ class IntegratedGradients(Explainer):
         grads = tf.reshape(grads, orig_shape)
 
         # sum integral terms
-        self.attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
+        attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
+
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
+        data['X'] = X
+        data['baselines'] = baselines
+        data['attributions'] = attr
+        data['features_names'] = features_names
+
+        if self.return_predictions:
+            predictions = self.forward_function(X).numpy()
+            data['predictions'] = predictions
 
         if self.return_convergence_delta:
-            deltas = self.compute_convergence_delta(baselines, X, target)
-
-            data['X'] = X
-            if self.return_predictions:
-                predictions = self.forward_function(X).numpy()
-                data['predictions'] = predictions
-            data['attributions'] = self.attr
-            data['features_names'] = features_names
+            deltas = _compute_convergence_delta(self.forward_function, attr, baselines, X, target)
             data['deltas'] = deltas
-        else:
-            data['X'] = X
-            if self.return_predictions:
-                predictions = self.forward_function(X).numpy()
-                data['predictions'] = predictions
-            data['attributions'] = self.attr
-            data['features_names'] = features_names
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
-
-    def compute_convergence_delta(self, start_point, end_point, target):
-        return _compute_convergence_delta(self.forward_function, self.attr, start_point, end_point, target)

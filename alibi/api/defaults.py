@@ -92,6 +92,7 @@ Default counterfactual prototype metadata.
 DEFAULT_META_KERNEL_SHAP = {
     "name": None,
     "type": ["blackbox"],
+    "model_type": None,
     "explanations": ["local", "global"],
     "params": {}
 }  # type: dict

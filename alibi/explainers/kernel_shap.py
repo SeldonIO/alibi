@@ -20,11 +20,134 @@ KERNEL_SHAP_PARAMS = [
     'groups',
     'weights',
     'summarise_background',
-    'summarise_result'
+    'summarise_result',
+    'model_type',
     'kwargs',
 ]
 
-BACKGROUND_WARNING_THRESHOLD = 300
+KERNEL_SHAP_BACKGROUND_THRESHOLD = 300
+
+
+def rank_by_importance(shap_values: List[np.ndarray],
+                       feature_names: Union[List[str], Tuple[str], None] = None) -> Dict:
+    """
+    Given the shap values estimated for a multi-output model, this feature ranks
+    features according to their importance. The feature importance is the average
+    absolute value for a given feature.
+
+    Parameters
+    ----------
+    shap_values
+        Each element corresponds to a samples x features array of shap values corresponding
+        to each model output.
+    feature_names
+        Each element is the name of the column with the corresponding index in each of the
+        arrays in the shap_values list.
+
+    Returns
+    -------
+    importances
+        A dictionary containing a key for each model output ('0', '1', ...) and a key for
+        aggregated model output ('aggregated'). Each value is a dictionary contains a 'ranked_effect' field,
+        populated with an array of values representing the average magnitude for each shap value,
+        ordered from highest (most important) to the lowest (least important) feature. The 'names'
+        field contains the corresponding feature names.
+    """
+
+    if len(shap_values[0].shape) == 1:
+        shap_values = [np.atleast_2d(arr) for arr in shap_values]
+
+    if not feature_names:
+        feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
+    else:
+        if len(feature_names) != shap_values[0].shape[1]:
+            msg = "The feature names provided do not match the number of shap values estimated. " \
+                  "Received {} feature names but estimated {} shap values!"
+            logging.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
+            feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
+
+    importances = {}  # type: Dict[str, Dict[str, np.ndarray]]
+    avg_mag = []  # type: List
+
+    # rank the features by average shap value for each class in turn
+    for class_idx in range(len(shap_values)):
+        avg_mag_shap = np.abs(shap_values[class_idx]).mean(axis=0)
+        avg_mag.append(avg_mag_shap)
+        feature_order = np.argsort(avg_mag_shap)[::-1]
+        most_important = avg_mag_shap[feature_order]
+        most_important_names = [feature_names[i] for i in feature_order]
+        importances[str(class_idx)] = {
+            'ranked_effect': most_important,
+            'names': most_important_names,
+        }
+
+    # rank feature by average shap value for aggregated classes
+    combined_shap = np.sum(avg_mag, axis=0)
+    feature_order = np.argsort(combined_shap)[::-1]
+    most_important_c = combined_shap[feature_order]
+    most_important_c_names = [feature_names[i] for i in feature_order]
+    importances['aggregated'] = {
+        'ranked_effect': most_important_c,
+        'names': most_important_c_names
+    }
+
+    return importances
+
+
+def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
+    """
+    For each entry in start_idx, the function sums the following k columns where k is the
+    corresponding entry in the enc_feat_dim sequence. The columns whose indices are not in
+    start_idx are left unchanged.
+
+    Parameters
+    ----------
+    values
+        The array whose columns will be summed.
+    start_idx
+        The start indices of the columns to be summed.
+    enc_feat_dim
+        The number of columns to be summed, one for each start index.
+
+    Returns
+    -------
+    new_values
+        An array whose columns have been summed according to the entries in start_idx and enc_feat_dim.
+    """
+
+    if start_idx is None or enc_feat_dim is None:
+        raise ValueError("Both the start indices or the encoding dimension need to be specified!")
+
+    if not len(enc_feat_dim) == len(start_idx):
+        raise ValueError("The lengths of the sequences of start indices and encodings must be equal!")
+
+    n_encoded_levels = sum(enc_feat_dim)
+    if n_encoded_levels > values.shape[1]:
+        raise ValueError("The sum of the encoded features dimensions exceeds data dimension!")
+
+    new_values = np.zeros((values.shape[0], values.shape[1] - n_encoded_levels + len(enc_feat_dim)))
+
+    # find all the other indices of categorical columns other than those specified
+    cat_cols = []
+    for start, feat_dim in zip(start_idx, enc_feat_dim):
+        for i in range(1, feat_dim):
+            cat_cols.append(start + i)
+
+    # sum the columns corresponding to a categorical variable
+    enc_idx, new_vals_idx = 0, 0
+    for idx in range(values.shape[1]):
+        if idx in start_idx:
+            feat_dim = enc_feat_dim[enc_idx]
+            enc_idx += 1
+            stop_idx = idx + feat_dim
+            new_values[:, new_vals_idx] = np.sum(values[:, idx:stop_idx], axis=1)
+        elif idx in cat_cols:
+            continue
+        else:
+            new_values[:, new_vals_idx] = values[:, idx]
+        new_vals_idx += 1
+
+    return new_values
 
 
 def rank_by_importance(shap_values: List[np.ndarray],
@@ -156,6 +279,7 @@ class KernelShap(Explainer, FitMixin):
                  link: str = 'identity',
                  feature_names: Union[List[str], Tuple[str], None] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
+                 model_type: str = 'classification',
                  seed: int = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
@@ -181,14 +305,18 @@ class KernelShap(Explainer, FitMixin):
             for an in-depth discussion about the semantics of explaining the model in the probability vs the
             margin space.
         feature_names
-            List with feature names. Used to infer group names when categorical data is treated by grouping
-            and `group_names` input to `fit` is not specified, assuming it has the same len as `groups` argument
-            of `fit` method. It is also used to compute the `names` field, which appears as a key in each of the
-            values of the `importances` sub-field of the response `raw` field.
+            Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit`
+            is not specified, assuming it has the same len as `groups` argument of `fit` method. It is also used to
+            compute the `names` field, which appears as a key in each of the values of the `importances` sub-field of
+            the response `raw` field.
         categorical_names
-            Dictionary where keys are feature columns and values are list of categories for the feature. Used to
-            select the method for background data summarisation (if specified, subsampling is performed as opposed
-            to kmeans).
+            Keys are feature column indices in the `background_data` matrix (see `fit`). Each value contains strings
+            with the names of the categories for the feature. Used to select the method for background data
+            summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it
+            may be used for visualisation.
+        model_type
+            Can have values 'classification' and 'regression'. It is only used to set the contents of the `prediction`
+            field in the `data['raw']` response field.
         seed
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
         """
@@ -199,7 +327,9 @@ class KernelShap(Explainer, FitMixin):
         self.predictor = predictor
         self.feature_names = feature_names if feature_names else []
         self.categorical_names = categorical_names if categorical_names else {}
+        self.model_type = model_type
         self.seed = seed
+        self._update_metadata({"model_type": self.model_type})
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -239,12 +369,12 @@ class KernelShap(Explainer, FitMixin):
         if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
             background_data = np.atleast_2d(background_data)
 
-        if background_data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+        if background_data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
             msg = "Large datasets can cause slow runtimes for shap. The background dataset " \
                   "provided has {} records. Consider passing a subset or allowing the algorithm " \
                   "to automatically summarize the data by setting the summarise_background=True or" \
                   "setting summarise_background to 'auto' which will default to {} samples!"
-            logging.warning(msg.format(background_data.shape[0], BACKGROUND_WARNING_THRESHOLD))
+            logging.warning(msg.format(background_data.shape[0], KERNEL_SHAP_BACKGROUND_THRESHOLD))
 
         if group_names and not groups:
             logging.info(
@@ -545,7 +675,8 @@ class KernelShap(Explainer, FitMixin):
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap.common.Data],
             summarise_background: Union[bool, str] = False,
-            n_background_samples: int = BACKGROUND_WARNING_THRESHOLD,
+
+            n_background_samples: int = KERNEL_SHAP_BACKGROUND_THRESHOLD,
             group_names: Union[Tuple[str], List[str], None] = None,
             groups: Optional[List[Union[Tuple[int], List[int]]]] = None,
             weights: Union[Union[List[float], Tuple[float]], np.ndarray, None] = None,
@@ -602,7 +733,7 @@ class KernelShap(Explainer, FitMixin):
                     n_samples = background_data.shape[0]
                 else:
                     n_samples = background_data.data.shape[0]
-                n_background_samples = min(n_samples, BACKGROUND_WARNING_THRESHOLD)
+                n_background_samples = min(n_samples, KERNEL_SHAP_BACKGROUND_THRESHOLD)
             background_data = self._summarise_background(background_data, n_background_samples)
 
         # check user inputs to provide warnings if input is incorrect
@@ -750,7 +881,11 @@ class KernelShap(Explainer, FitMixin):
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
-        argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+
+        if self.model_type != 'regression':
+            argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+        else:
+            argmax_pred = []
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if isinstance(X, sparse.spmatrix):

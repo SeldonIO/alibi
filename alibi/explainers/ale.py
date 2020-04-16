@@ -108,18 +108,23 @@ def bisect_fun(fun: callable, target: float, lo: int, hi: int) -> int:
     Bisection algorithm for function evaluation with integer support.
 
     Assumes the function is non-decreasing on the interval [lo, hi].
-    Return a value v such that for all x<v, fun(x)<target and for all x>=v fun(x)>=target.
+    Return an integer value v such that for all x<v, fun(x)<target and for all x>=v fun(x)>=target.
     This is equivalent to the library function `bisect.bisect_left` but for functions.
 
     Parameters
     ----------
     fun
+        A function defined on integers in the range [lo, hi] and returning floats
     target
+        Target value to be searched for
     lo
+        Lower bound of the domain
     hi
+        Upper bound of the domain
 
     Returns
     -------
+    Integer index
 
     """
     while lo < hi:
@@ -137,7 +142,9 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
     so that each bin has at least `min_bin_points`. Uses bisection.
 
     Note: This is a heuristic procedure since the bisection algorithm is applied
-    to a function which is not monotonic.
+    to a function which is not monotonic. This will not necessarily find the
+    maximum number of quantiles the interval can be subdivided into to satisfy
+    the minimum number of points in each resulting bin.
 
     Parameters
     ----------
@@ -198,9 +205,6 @@ def ale_num(
         ALE values for the feature, a num_intervals x n_outputs array
 
     """
-    # TODO handle case when num_intervals is too large for the dataset
-    # num_points = num_intervals + 1
-    # q = np.unique(get_quantiles(X[:, feature], num_points=num_points))
     q, _ = adaptive_grid(X[:, feature], min_bin_points)
 
     # find which interval each observation falls into

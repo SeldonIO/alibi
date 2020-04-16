@@ -280,6 +280,7 @@ sum_categories_inputs = [
 ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('n_feats, feat_enc_dim, start_idx', sum_categories_inputs)
 def test_sum_categories(n_feats, feat_enc_dim, start_idx):
     """
@@ -963,7 +964,7 @@ def test_rank_by_importance(n_outputs, data_dimension):
             assert importances[key]['names'] == exp_aggregate_names
 
 
-# pytest.mark.skip
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 def test_update_metadata(mock_ks_explainer):
     """
@@ -978,3 +979,33 @@ def test_update_metadata(mock_ks_explainer):
     assert 'wrong_arg' not in metadata['params']
     assert metadata['params']['link'] == 'logit'
     assert metadata['random_arg'] == 0
+    assert metadata['model_type']
+
+
+model_type = ['classification', 'regression']
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('model_type', model_type, ids='model_type={}'.format)
+@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_kernel_shap_build_explanation(mock_ks_explainer, model_type):
+    """
+    Test that response is correct for each model type.
+    """
+
+    n_instances, n_feats = 50, 12
+    explainer = mock_ks_explainer
+    explainer.model_type = model_type
+    background_data = get_random_matrix(n_rows=100, n_cols=n_feats)
+    explainer.fit(background_data)
+    n_outs = explainer.predictor.out_dim
+    X = get_random_matrix(n_rows=n_instances, n_cols=n_feats)
+    shap_values = [get_random_matrix(n_rows=n_instances, n_cols=n_feats) for _ in range(n_outs)]
+    expected_value = [np.random.random() for _ in range(n_outs)]
+    response = explainer.build_explanation(X, shap_values, expected_value)
+
+    if model_type == 'regression':
+        assert not response.data['raw']['prediction']
+    else:
+        assert len(response.data['raw']['prediction'].shape) == 1
+        assert len(response.data['raw']['prediction']) == n_instances

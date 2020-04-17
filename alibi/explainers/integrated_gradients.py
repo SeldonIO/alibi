@@ -317,6 +317,7 @@ class IntegratedGradients(Explainer):
 
         X, baselines = _format_input_baseline(X, baselines)
         target = _format_target(target, nb_samples)
+        assert len(target) == nb_samples
 
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
@@ -324,18 +325,20 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
         target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
 
-        if self.layer is None:
-            orig_shape = (self.n_steps,) + X.shape
-        else:
-            orig_shape = (self.n_steps, len(X)) + self.layer.output_shape[1:]
-            orig_call = self.layer.call
-        orig_shape_target = (self.n_steps, len(target))
-        assert orig_shape[0] == orig_shape_target[0]
+        #if self.layer is None:
+        #    orig_shape = (self.n_steps,) + X.shape
+        #else:
+        #    orig_shape = (self.n_steps, len(X)) + self.layer.output_shape[1:]
+        #
+        #orig_shape_target = (self.n_steps, len(target))
+        #assert orig_shape[0] == orig_shape_target[0]
 
         paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         batches = []
+        if self.layer is not None:
+            orig_call = self.layer.call
         for paths_b, target_b in paths_ds:
 
             # calculate gradients for batch
@@ -350,12 +353,13 @@ class IntegratedGradients(Explainer):
 
         # tf concatatation
         grads = tf.concat(batches, 0)
+        shape = grads.shape[1:]
         #grads = grads.numpy()
         print(grads)
         print(grads.shape)
         print(type(grads))
-        print(orig_shape)
-        grads = tf.reshape(grads, orig_shape)
+        print(shape)
+        grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
         #grads = grads.reshape(orig_shape)
 
         # sum integral terms

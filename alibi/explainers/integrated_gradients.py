@@ -1,7 +1,8 @@
-import numpy as np
-from typing import Callable, Tuple, Union, TYPE_CHECKING
 import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
+import numpy as np
+from typing import Callable, Tuple, Union, TYPE_CHECKING
+
 
 from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
 import logging
@@ -193,6 +194,25 @@ def _sum_integral_terms(step_sizes: list,
     return tf.einsum(einstr, step_sizes, grads)
 
 
+def _sum_integral_terms_np(step_sizes: list,
+                           grads: np.ndarray) -> np.ndarray:
+    """
+
+    Parameters
+    ----------
+    step_sizes
+    grads
+
+    Returns
+    -------
+
+    """
+    input_str = string.ascii_lowercase[1: len(grads.shape)]
+    einstr = 'a,a{}->{}'.format(input_str, input_str)
+
+    return np.einsum(einstr, step_sizes, grads)
+
+
 def _format_input_baseline(X: np.ndarray,
                            baselines: Union[None, int, float, np.ndarray]) -> Union[Tuple, np.ndarray]:
     """
@@ -321,17 +341,26 @@ class IntegratedGradients(Explainer):
             # calculate gradients for batch
             if self.layer is not None:
                 grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+                print(grads_b.shape)
+                print(type(grads_b))
             else:
                 grads_b = _gradients_input(self.forward_function, paths_b, target_b)
-
+            
             batches.append(grads_b)
 
         # tf concatatation
         grads = tf.concat(batches, 0)
+        #grads = grads.numpy()
+        print(grads)
+        print(grads.shape)
+        print(type(grads))
+        print(orig_shape)
         grads = tf.reshape(grads, orig_shape)
+        #grads = grads.reshape(orig_shape)
 
         # sum integral terms
         attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
+        #attr = (X - baselines) * _sum_integral_terms_np(step_sizes, grads)
 
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data['X'] = X

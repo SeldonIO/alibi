@@ -1,5 +1,5 @@
 import tensorflow as tf
-tf.compat.v1.enable_eager_execution()
+#tf.compat.v1.enable_eager_execution()
 import numpy as np
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 
@@ -191,6 +191,9 @@ def _sum_integral_terms(step_sizes: list,
     input_str = string.ascii_lowercase[1: len(grads.shape)]
     einstr = 'a,a{}->{}'.format(input_str, input_str)
 
+    print(step_sizes.shape, type(step_sizes))
+    print(grads.shape, type(grads))
+    
     return tf.einsum(einstr, step_sizes, grads)
 
 
@@ -363,8 +366,8 @@ class IntegratedGradients(Explainer):
         #grads = grads.reshape(orig_shape)
 
         # sum integral terms
-        attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
-        #attr = (X - baselines) * _sum_integral_terms_np(step_sizes, grads)
+        #attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
+        attr = (X - baselines) * _sum_integral_terms_np(step_sizes, grads.numpy())
 
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data['X'] = X

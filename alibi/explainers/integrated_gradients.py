@@ -1,8 +1,6 @@
 import tensorflow as tf
-#tf.compat.v1.enable_eager_execution()
 import numpy as np
 from typing import Callable, Tuple, Union, TYPE_CHECKING
-
 
 from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
 import logging
@@ -14,6 +12,7 @@ import string
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
+tf.compat.v1.enable_eager_execution()
 logger = logging.getLogger(__name__)
 
 
@@ -95,8 +94,8 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
 
 
 def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
-                   x: tf.Tensor,
-                   target: tf.Tensor) -> tf.Tensor:
+                     x: tf.Tensor,
+                     target: tf.Tensor) -> tf.Tensor:
     """
 
     Parameters
@@ -191,9 +190,6 @@ def _sum_integral_terms(step_sizes: list,
     input_str = string.ascii_lowercase[1: len(grads.shape)]
     einstr = 'a,a{}->{}'.format(input_str, input_str)
 
-    print(step_sizes.shape, type(step_sizes))
-    print(grads.shape, type(grads))
-    
     return tf.einsum(einstr, step_sizes, grads)
 
 
@@ -328,14 +324,6 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
         target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
 
-        #if self.layer is None:
-        #    orig_shape = (self.n_steps,) + X.shape
-        #else:
-        #    orig_shape = (self.n_steps, len(X)) + self.layer.output_shape[1:]
-        #
-        #orig_shape_target = (self.n_steps, len(target))
-        #assert orig_shape[0] == orig_shape_target[0]
-
         paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
@@ -347,27 +335,23 @@ class IntegratedGradients(Explainer):
             # calculate gradients for batch
             if self.layer is not None:
                 grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
-                print(grads_b.shape)
-                print(type(grads_b))
             else:
                 grads_b = _gradients_input(self.forward_function, paths_b, target_b)
-            
+
             batches.append(grads_b)
 
         # tf concatatation
         grads = tf.concat(batches, 0)
         shape = grads.shape[1:]
-        #grads = grads.numpy()
-        print(grads)
-        print(grads.shape)
-        print(type(grads))
-        print(shape)
         grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
-        #grads = grads.reshape(orig_shape)
 
         # sum integral terms
-        #attr = (X - baselines) * _sum_integral_terms(step_sizes, grads).numpy()
-        attr = (X - baselines) * _sum_integral_terms_np(step_sizes, grads.numpy())
+        sum_int = _sum_integral_terms_np(step_sizes, grads.numpy())
+        if self.layer is not None:
+            norm = (self.layer(X) - self.layer(baselines)).numpy()
+        else:
+            norm = X - baselines
+        attr = norm * sum_int
 
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data['X'] = X

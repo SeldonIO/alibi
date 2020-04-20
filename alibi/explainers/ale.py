@@ -265,8 +265,8 @@ def ale_num(
 
 @no_type_check
 def plot_ale(exp: Explanation,
-             features: Union[List[int], str] = 'all',
-             targets: Union[List[int], str] = 'all',
+             features: Union[List[int, str], str] = 'all',
+             targets: Union[List[int, str], str] = 'all',
              n_cols: int = 3,
              ax: Union['plt.Axes', np.ndarray] = None,
              line_kw: dict = None,
@@ -276,6 +276,14 @@ def plot_ale(exp: Explanation,
 
     if features == 'all':
         features = range(0, len(exp.feature_names))
+    else:
+        for ix, f in enumerate(features):
+            if isinstance(f, str):
+                try:
+                    f = np.argwhere(exp.feature_names == f).item()
+                except ValueError:
+                    raise ValueError(f"Feature name {f} does not exist.")
+            features[ix] = f
     n_features = len(features)
 
     if targets == 'all':

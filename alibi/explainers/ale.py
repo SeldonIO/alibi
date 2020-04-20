@@ -22,8 +22,8 @@ class ALE(Explainer):
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
         self.predictor = predictor
-        self.feature_names = feature_names
-        self.target_names = target_names
+        self.feature_names = np.array(feature_names)
+        self.target_names = np.array(target_names)
 
     def explain(self,
                 X: np.ndarray,
@@ -269,8 +269,8 @@ def plot_ale(exp: Explanation,
              targets: Union[List[int], str] = 'all',
              n_cols: int = 3,
              ax: Union['plt.Axes', np.ndarray] = None,
-             line_kwargs: dict = None,
-             fig_kwargs: dict = None) -> 'np.ndarray':
+             line_kw: dict = None,
+             fig_kw: dict = None) -> 'np.ndarray':
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
@@ -285,8 +285,8 @@ def plot_ale(exp: Explanation,
     if ax is None:
         fig, ax = plt.subplots()
 
-    if isinstance(ax, plt.Axes):
-        ax.set_axis_off()  # treat passed axis as a canvas
+    if isinstance(ax, plt.Axes) and n_features != 1:
+        ax.set_axis_off()  # treat passed axis as a canvas for subplots
         fig = ax.figure
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
@@ -299,17 +299,19 @@ def plot_ale(exp: Explanation,
             axes_ravel[i] = fig.add_subplot(spec)
 
     else:  # array-like
-        if ax.size != n_features:
+        if isinstance(ax, plt.Axes):
+            ax = np.array(ax)
+        if ax.size < n_features:
             raise ValueError(f"Expected ax to have {n_features} axes, got {ax.size}")
         axes = np.atleast_2d(ax)
         axes_ravel = axes.ravel()
         fig = axes_ravel[0].figure
 
     # make plots
-    if line_kwargs is None:
-        line_kwargs = {}
-    default_line_kwargs = {'markersize': 3, 'marker': 'o'}
-    line_kwargs = {**default_line_kwargs, **line_kwargs}
+    if line_kw is None:
+        line_kw = {}
+    default_line_kw = {'markersize': 3, 'marker': 'o', 'label': None}
+    line_kw = {**default_line_kw, **line_kw}
     for ix, feature, ax_ravel in \
             zip(count(), features, axes_ravel):
         _ = _plot_one_ale_num(exp=exp,
@@ -317,13 +319,17 @@ def plot_ale(exp: Explanation,
                               targets=targets,
                               ax=ax_ravel,
                               legend=not ix,  # only one legend
-                              line_kwargs=line_kwargs)
+                              line_kw=line_kw)
 
-    default_fig_kwargs = {'tight_layout': 'tight'}
-    if fig_kwargs is None:
-        fig_kwargs = {}
-    fig_kwargs = {**default_fig_kwargs, **fig_kwargs}
-    fig.set(**fig_kwargs)
+    # if explicit labels passed, handle the legend here as the axis passed might be repeated
+    if line_kw['label'] is not None:
+        axes_ravel[0].legend()
+
+    default_fig_kw = {'tight_layout': 'tight'}
+    if fig_kw is None:
+        fig_kw = {}
+    fig_kw = {**default_fig_kw, **fig_kw}
+    fig.set(**fig_kw)
     # TODO: should we return just axes or ax + axes
     return axes
 
@@ -334,13 +340,17 @@ def _plot_one_ale_num(exp: Explanation,
                       targets: List[int],
                       ax: 'plt.Axes' = None,
                       legend: bool = True,
-                      line_kwargs: dict = None) -> 'plt.Axes':
+                      line_kw: dict = None) -> 'plt.Axes':
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
     if ax is None:
         ax = plt.gca()
-    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], **line_kwargs)
+
+    # add zero baseline
+    ax.axhline(0, color='grey')
+
+    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], **line_kw)
 
     # add decile markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
@@ -350,6 +360,8 @@ def _plot_one_ale_num(exp: Explanation,
     ax.set_ylabel('ALE')
 
     if legend:
-        ax.legend(lines, exp.target_names[targets])
+        # if no explicit labels passed, just use target names
+        if line_kw['label'] is None:
+            ax.legend(lines, exp.target_names[targets])
 
     return ax

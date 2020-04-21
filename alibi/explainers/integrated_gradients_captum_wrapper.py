@@ -1,9 +1,7 @@
-import numpy as np
-from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
-import tensorflow as tf
+from typing import TYPE_CHECKING
 import logging
 
-from captum.attr import IntegratedGradients, LayerConductance, NeuronConductance
+from captum.attr import IntegratedGradients
 from captum.attr import NoiseTunnel
 import torch
 

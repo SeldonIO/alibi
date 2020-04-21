@@ -531,7 +531,7 @@ class KernelShap(Explainer, FitMixin):
         This function updates the metadata of the explainer using the data from
         the data_dict. If the params option is specified, then each key-value
         pair is added to the metadata 'params' dictionary only if the key is
-        included in SHAP_PARAMS.
+        included in KERNEL_SHAP_PARAMS.
 
         Parameters
         ----------

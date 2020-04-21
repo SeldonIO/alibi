@@ -104,8 +104,8 @@ DEFAULT_DATA_KERNEL_SHAP = {
     "shap_values": [],
     "expected_value": [],
     "link": 'identity',
-    "categorical_names": None,
-    "feature_names": None,
+    "categorical_names": {},
+    "feature_names": [],
     "raw": {
         "raw_prediction": None,
         "prediction": None,

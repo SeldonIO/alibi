@@ -305,10 +305,13 @@ def plot_ale(exp: Explanation,
         # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
         gs = GridSpec(n_rows, n_cols)
         for i, spec in zip(range(n_features), gs):
+            # determine which y-axes should be shared
             if sharey == 'all':
                 cond = i != 0
             elif sharey == 'row':
                 cond = i % n_cols != 0
+            else:
+                cond = False
 
             if cond:
                 axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i - 1])

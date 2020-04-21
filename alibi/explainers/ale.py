@@ -268,6 +268,7 @@ def plot_ale(exp: Explanation,
              features: Union[List[Union[int, str]], str] = 'all',
              targets: Union[List[Union[int, str]], str] = 'all',
              n_cols: int = 3,
+             sharey: str = 'all',
              ax: Union['plt.Axes', np.ndarray] = None,
              line_kw: dict = None,
              fig_kw: dict = None) -> 'np.ndarray':
@@ -304,6 +305,14 @@ def plot_ale(exp: Explanation,
         # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
         gs = GridSpec(n_rows, n_cols)
         for i, spec in zip(range(n_features), gs):
+            if sharey == 'all':
+                cond = i != 0
+            elif sharey == 'row':
+                cond = i % n_cols != 0
+
+            if cond:
+                axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i - 1])
+                continue
             axes_ravel[i] = fig.add_subplot(spec)
 
     else:  # array-like

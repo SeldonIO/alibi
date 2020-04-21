@@ -664,7 +664,7 @@ class KernelShap(Explainer, FitMixin):
         Parameters
         ----------
         X
-            Array with instances to be explained.
+            Instances to be explained.
         summarise_result
             Specifies whether the shap values corresponding to dimensions of
             encoded categorical variables should be summed so that a single
@@ -753,11 +753,12 @@ class KernelShap(Explainer, FitMixin):
         Returns
         -------
             An explanation containing a meta field with basic classifier metadata
-            # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
-            #  explain in?
+
         """
 
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
+        # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
+        #  explain in?
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
         if self.task != 'regression':

@@ -265,8 +265,8 @@ def ale_num(
 
 @no_type_check
 def plot_ale(exp: Explanation,
-             features: Union[List[int, str], str] = 'all',
-             targets: Union[List[int, str], str] = 'all',
+             features: Union[List[Union[int, str]], str] = 'all',
+             targets: Union[List[Union[int, str]], str] = 'all',
              n_cols: int = 3,
              ax: Union['plt.Axes', np.ndarray] = None,
              line_kw: dict = None,

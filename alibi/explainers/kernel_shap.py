@@ -21,7 +21,6 @@ KERNEL_SHAP_PARAMS = [
     'weights',
     'summarise_background',
     'summarise_result',
-    'model_type',
     'kwargs',
 ]
 
@@ -157,7 +156,7 @@ class KernelShap(Explainer, FitMixin):
                  link: str = 'identity',
                  feature_names: Union[List[str], Tuple[str], None] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
-                 model_type: str = 'classification',
+                 task: str = 'classification',
                  seed: int = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
@@ -192,7 +191,7 @@ class KernelShap(Explainer, FitMixin):
             with the names of the categories for the feature. Used to select the method for background data
             summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it
             may be used for visualisation.
-        model_type
+        task
             Can have values 'classification' and 'regression'. It is only used to set the contents of the `prediction`
             field in the `data['raw']` response field.
         seed
@@ -205,9 +204,9 @@ class KernelShap(Explainer, FitMixin):
         self.predictor = predictor
         self.feature_names = feature_names if feature_names else []
         self.categorical_names = categorical_names if categorical_names else {}
-        self.model_type = model_type
+        self.task = task
         self.seed = seed
-        self._update_metadata({"model_type": self.model_type})
+        self._update_metadata({"task": self.task})
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -761,7 +760,7 @@ class KernelShap(Explainer, FitMixin):
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
-        if self.model_type != 'regression':
+        if self.task != 'regression':
             argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
         else:
             argmax_pred = []

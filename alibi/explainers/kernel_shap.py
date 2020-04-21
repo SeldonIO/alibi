@@ -701,9 +701,12 @@ class KernelShap(Explainer, FitMixin):
             X = X.toarray()
 
         shap_values = self._explainer.shap_values(X, **kwargs)
+        expected_value = self.expected_value
         # for scalar model outputs a single numpy array is returned
         if isinstance(shap_values, np.ndarray):
             shap_values = [shap_values]
+        if isinstance(expected_value, float):
+            expected_value = [self.expected_value]
         if summarise_result:
             self.summarise_result = True
             if not cat_vars_start_idx or not cat_vars_start_idx:
@@ -728,12 +731,12 @@ class KernelShap(Explainer, FitMixin):
 
         self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
-        return self.build_explanation(X, shap_values, self.expected_value)
+        return self.build_explanation(X, shap_values, expected_value)
 
     def build_explanation(self,
                           X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                           shap_values: List[np.ndarray],
-                          expected_value: List) -> Explanation:
+                          expected_value: List[float]) -> Explanation:
         """
         Create an explanation object.
 

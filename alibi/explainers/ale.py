@@ -22,8 +22,8 @@ class ALE(Explainer):
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
         self.predictor = predictor
-        self.feature_names = np.array(feature_names)
-        self.target_names = np.array(target_names)
+        self.feature_names = feature_names
+        self.target_names = target_names
 
     def explain(self,
                 X: np.ndarray,
@@ -35,11 +35,13 @@ class ALE(Explainer):
         n_features = X.shape[1]
 
         if self.feature_names is None:
-            self.feature_names = np.array([f'f_{i}' for i in range(n_features)])
+            self.feature_names = [f'f_{i}' for i in range(n_features)]
         if self.target_names is None:
             pred = np.atleast_2d(self.predictor(X[0].reshape(1, -1)))
             n_targets = pred.shape[1]
-            self.target_names = np.array([f'c_{i}' for i in range(n_targets)])
+            self.target_names = [f'c_{i}' for i in range(n_targets)]
+        self.feature_names = np.array(self.feature_names)
+        self.target_names = np.array(self.target_names)
 
         feature_values = []
         ale_values = []
@@ -211,8 +213,8 @@ def ale_num(
     indices = np.searchsorted(q, X[:, feature], side="left")
     indices[indices == 0] = 1  # put the smallest data point in the first interval
     interval_n = np.bincount(indices)  # number of points in each interval
-    nonzero_interval_ix = np.argwhere(interval_n != 0).squeeze()
-    nonzero_intervals = np.atleast_1d(interval_n[nonzero_interval_ix])
+    # nonzero_interval_ix = np.argwhere(interval_n != 0).squeeze()
+    # nonzero_intervals = np.atleast_1d(interval_n[nonzero_interval_ix])
 
     # predictions for the upper and lower ranges of intervals
     z_low = X.copy()
@@ -251,14 +253,14 @@ def ale_num(
     accum_p_deltas = np.insert(accum_p_deltas, 0, zeros, axis=0)
 
     # mean effect
-    ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * nonzero_intervals[:, np.newaxis]) \
-               .sum(axis=0) / nonzero_intervals.sum()
+    ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * interval_n[1:, np.newaxis]) \
+               .sum(axis=0) / interval_n.sum()
 
     # center
     ale = accum_p_deltas - ale0
 
     # refine q
-    q = np.hstack((q[[0]], q[nonzero_interval_ix]))
+    # q = np.hstack((q[[0]], q[nonzero_interval_ix]))
 
     return q, ale
 

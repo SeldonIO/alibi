@@ -21,7 +21,6 @@ KERNEL_SHAP_PARAMS = [
     'weights',
     'summarise_background',
     'summarise_result',
-    'model_type',
     'kwargs',
 ]
 
@@ -63,7 +62,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
         if len(feature_names) != shap_values[0].shape[1]:
             msg = "The feature names provided do not match the number of shap values estimated. " \
                   "Received {} feature names but estimated {} shap values!"
-            logging.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
+            logger.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
             feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
 
     importances = {}  # type: Dict[str, Dict[str, np.ndarray]]
@@ -157,7 +156,7 @@ class KernelShap(Explainer, FitMixin):
                  link: str = 'identity',
                  feature_names: Union[List[str], Tuple[str], None] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
-                 model_type: str = 'classification',
+                 task: str = 'classification',
                  seed: int = None):
         """
         A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
@@ -192,7 +191,7 @@ class KernelShap(Explainer, FitMixin):
             with the names of the categories for the feature. Used to select the method for background data
             summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it
             may be used for visualisation.
-        model_type
+        task
             Can have values 'classification' and 'regression'. It is only used to set the contents of the `prediction`
             field in the `data['raw']` response field.
         seed
@@ -205,9 +204,9 @@ class KernelShap(Explainer, FitMixin):
         self.predictor = predictor
         self.feature_names = feature_names if feature_names else []
         self.categorical_names = categorical_names if categorical_names else {}
-        self.model_type = model_type
+        self.task = task
         self.seed = seed
-        self._update_metadata({"model_type": self.model_type})
+        self._update_metadata({"task": self.task})
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -252,10 +251,10 @@ class KernelShap(Explainer, FitMixin):
                   "provided has {} records. Consider passing a subset or allowing the algorithm " \
                   "to automatically summarize the data by setting the summarise_background=True or" \
                   "setting summarise_background to 'auto' which will default to {} samples!"
-            logging.warning(msg.format(background_data.shape[0], KERNEL_SHAP_BACKGROUND_THRESHOLD))
+            logger.warning(msg.format(background_data.shape[0], KERNEL_SHAP_BACKGROUND_THRESHOLD))
 
         if group_names and not groups:
-            logging.info(
+            logger.info(
                 "Specified group_names but no corresponding sequence 'groups' with indices "
                 "for each group was specified. All groups will have len=1."
             )
@@ -263,11 +262,11 @@ class KernelShap(Explainer, FitMixin):
                 msg = "Specified {} group names but data dimension is {}. When grouping " \
                       "indices are not specifies the number of group names should equal " \
                       "one of the data dimensions! Igoring grouping inputs!"
-                logging.warning(msg.format(len(group_names), background_data.shape))
+                logger.warning(msg.format(len(group_names), background_data.shape))
                 self.use_groups = False
 
         if groups and not group_names:
-            logging.warning(
+            logger.warning(
                 "No group names specified but groups specified! Automatically "
                 "assigning 'group_' name for every index group specified!")
             if self.feature_names:
@@ -277,7 +276,7 @@ class KernelShap(Explainer, FitMixin):
                     msg = "Number of feature names specified did not match the number of groups." \
                           "Specified {} groups and {} features names. Creating default names for " \
                           "specified groups"
-                    logging.warning(msg.format(n_groups, n_features))
+                    logger.warning(msg.format(n_groups, n_features))
                     self.create_group_names = True
                 else:
                     group_names = self.feature_names
@@ -289,7 +288,7 @@ class KernelShap(Explainer, FitMixin):
                 msg = "groups should be specified as List[Union[Tuple[int], List[int]]] where each " \
                       "sublist represents a group and int represent group instance. Specified group " \
                       "elements have type {}. Ignoring grouping inputs!"
-                logging.warning(msg.format(type(groups[0])))
+                logger.warning(msg.format(type(groups[0])))
                 self.use_groups = False
 
             expected_dim = sum(len(g) for g in groups)
@@ -299,7 +298,7 @@ class KernelShap(Explainer, FitMixin):
                 actual_dim = background_data.shape[1]
             if expected_dim != actual_dim:
                 if background_data.shape[0] == expected_dim:
-                    logging.warning(
+                    logger.warning(
                         "The sum of the group indices list did not match the "
                         "data dimension along axis=1 but matched dimension "
                         "along axis=0. Consider transposing the data!"
@@ -308,7 +307,7 @@ class KernelShap(Explainer, FitMixin):
                 else:
                     msg = "The sum of the group sizes specified did not match the number of features. " \
                           "Sum of group sizes: {}. Number of features: {}. Ignoring grouping inputs!"
-                    logging.warning(msg.format(expected_dim, actual_dim))
+                    logger.warning(msg.format(expected_dim, actual_dim))
                     self.use_groups = False
 
             if group_names:
@@ -317,12 +316,12 @@ class KernelShap(Explainer, FitMixin):
                 if n_group_names != n_groups:
                     msg = "The number of group names specified does not match the number of groups. " \
                           "Received {} groups and {} names! Ignoring grouping inputs!"
-                    logging.warning(msg.format(n_groups, n_group_names))
+                    logger.warning(msg.format(n_groups, n_group_names))
                     self.use_groups = False
 
         if weights is not None:
             if background_data.ndim == 1 or background_data.shape[0] == 1:
-                logging.warning(
+                logger.warning(
                     "Specified weights but the background data has only one record. "
                     "Weights will be ignored!"
                 )
@@ -336,7 +335,7 @@ class KernelShap(Explainer, FitMixin):
                         msg = "The number of weights specified did not match data dimension. " \
                               "Number of weights: {}. Number of datapoints: {}. Weights will " \
                               "be ignored!"
-                        logging.warning(msg.format(weights_dim, data_dim))
+                        logger.warning(msg.format(weights_dim, data_dim))
                         self.ignore_weights = True
 
             # NB: we have already summarised the data at this point
@@ -354,7 +353,7 @@ class KernelShap(Explainer, FitMixin):
                 if weights_dim != n_background_samples:
                     msg = "The number of weights vector provided ({}) did not match the number of " \
                           "summary data points ({}). The weights provided will be ignored!"
-                    logging.warning(msg.format(weights_dim, n_background_samples))
+                    logger.warning(msg.format(weights_dim, n_background_samples))
 
                     self.ignore_weights = True
 
@@ -377,13 +376,13 @@ class KernelShap(Explainer, FitMixin):
         if isinstance(background_data, shap.common.Data):
             msg = "Received option to summarise the data but the background_data object " \
                   "was an instance of shap.common.Data. No summarisation will take place!"
-            logging.warning(msg)
+            logger.warning(msg)
             return background_data
 
         if background_data.ndim == 1:
             msg = "Received option to summarise the data but the background_data object only had " \
                   "one record with {} features. No summarisation will take place!"
-            logging.warning(msg.format(len(background_data)))
+            logger.warning(msg.format(len(background_data)))
             return background_data
 
         self.summarise_background = True
@@ -392,7 +391,7 @@ class KernelShap(Explainer, FitMixin):
         if self.use_groups or self.categorical_names or isinstance(background_data, sparse.spmatrix):
             return shap.sample(background_data, nsamples=n_background_samples)
         else:
-            logging.info(
+            logger.info(
                 "When summarising with kmeans, the samples are weighted in proportion to their "
                 "cluster occurrence frequency. Please specify a different weighting of the samples "
                 "through the by passing a weights of len=n_background_samples to the constructor!"
@@ -464,7 +463,7 @@ class KernelShap(Explainer, FitMixin):
         new_args = (group_names, groups, weights) if weights is not None else (group_names, groups)
 
         if self.use_groups:
-            logging.warning(
+            logger.warning(
                 "Grouping is not currently compatible with sparse matrix inputs. "
                 "Converting background data sparse array to dense matrix."
             )
@@ -488,7 +487,7 @@ class KernelShap(Explainer, FitMixin):
         _, groups, weights = args
         new_args = (groups, weights) if weights is not None else (groups,)
         if self.use_groups:
-            logging.info("Group names are specified by column headers, group_names will be ignored!")
+            logger.info("Group names are specified by column headers, group_names will be ignored!")
             keep_index = kwargs.get("keep_index", False)
             if keep_index:
                 return DenseDataWithIndex(
@@ -634,7 +633,7 @@ class KernelShap(Explainer, FitMixin):
         )  # type: shap.KernelExplainer
         self.expected_value = self._explainer.expected_value
         if not self._explainer.vector_out:
-            logging.warning(
+            logger.warning(
                 "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
                 "as opposed to a classification label!"
             )
@@ -665,7 +664,7 @@ class KernelShap(Explainer, FitMixin):
         Parameters
         ----------
         X
-            Array with instances to be explained.
+            Instances to be explained.
         summarise_result
             Specifies whether the shap values corresponding to dimensions of
             encoded categorical variables should be summed so that a single
@@ -701,13 +700,16 @@ class KernelShap(Explainer, FitMixin):
             X = X.toarray()
 
         shap_values = self._explainer.shap_values(X, **kwargs)
+        expected_value = self.expected_value
         # for scalar model outputs a single numpy array is returned
         if isinstance(shap_values, np.ndarray):
             shap_values = [shap_values]
+        if isinstance(expected_value, float):
+            expected_value = [self.expected_value]
         if summarise_result:
             self.summarise_result = True
             if not cat_vars_start_idx or not cat_vars_start_idx:
-                logging.warning(
+                logger.warning(
                     "Results cannot be summarised as either the"
                     "start indices for categorical variables or"
                     "the encoding dimensions were not passed!"
@@ -728,12 +730,12 @@ class KernelShap(Explainer, FitMixin):
 
         self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
-        return self.build_explanation(X, shap_values, self.expected_value)
+        return self.build_explanation(X, shap_values, expected_value)
 
     def build_explanation(self,
                           X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                           shap_values: List[np.ndarray],
-                          expected_value: List) -> Explanation:
+                          expected_value: List[float]) -> Explanation:
         """
         Create an explanation object.
 
@@ -751,15 +753,16 @@ class KernelShap(Explainer, FitMixin):
         Returns
         -------
             An explanation containing a meta field with basic classifier metadata
-            # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
-            #  explain in?
+
         """
 
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
+        # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
+        #  explain in?
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
 
-        if self.model_type != 'regression':
+        if self.task != 'regression':
             argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
         else:
             argmax_pred = []

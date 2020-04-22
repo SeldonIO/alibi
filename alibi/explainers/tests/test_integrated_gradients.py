@@ -1,38 +1,45 @@
 import numpy as np
-import tensorflow as tf
 import pytest
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import Input
-from tensorflow.keras.models import Model
-from tensorflow.keras.utils import to_categorical
 from alibi.explainers import IntegratedGradients
 from alibi.api.interfaces import Explanation
 
-X = np.random.rand(100, 4)
-y = (X[:, 0] + X[:, 1] > 1).astype(int)
-y = to_categorical(y)
-X_train, y_train = X[:90, :], y[:90, :]
-X_test, y_test = X[90:, :], y[90:, :]
-test_labels = np.argmax(y_test, axis=1)
 
-inputs = Input(shape=(X.shape[1:]), dtype=tf.float64)
-x = Dense(20, activation='linear')(inputs)
-outputs = Dense(2, activation='softmax')(x)
-model = Model(inputs=inputs, outputs=outputs)
-model.compile(loss='categorical_crossentropy',
-              optimizer='adam',
-              metrics=['accuracy'])
+@pytest.fixture(scope='module')
+def hacky_cnn(tensorflow):
+    tf = tensorflow
+    print(tf)
 
-# train model
-model.fit(X_train,
-          y_train,
-          epochs=2,
-          batch_size=256,
-          verbose=0,
-          validation_data=(X_test, y_test)
-          )
+    X = np.random.rand(100, 4)
+    y = (X[:, 0] + X[:, 1] > 1).astype(int)
+    y = tf.keras.utils.to_categorical(y)
+    X_train, y_train = X[:90, :], y[:90, :]
+    X_test, y_test = X[90:, :], y[90:, :]
+    test_labels = np.argmax(y_test, axis=1)
 
+    inputs = tf.keras.Input(shape=(X.shape[1:]))
+    print("TF executed eagerly:", tf.executing_eagerly())
+    x = tf.keras.layers.Dense(20, activation='linear')(inputs)
+    outputs = tf.keras.layers.Dense(2, activation='softmax')(x)
+    print("TF executed eagerly:", tf.executing_eagerly())
+    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+    print("TF executed eagerly:", tf.executing_eagerly())
+    model.compile(loss='categorical_crossentropy',
+                  optimizer='adam',
+                  metrics=['accuracy'])
+    print("TF executed eagerly:", tf.executing_eagerly())
+    # train model
+    model.fit(X_train,
+              y_train,
+              epochs=1,
+              batch_size=256,
+              verbose=0,
+              validation_data=(X_test, y_test)
+              )
+    print("TF executed eagerly:", tf.executing_eagerly())
+    return model, X_test, test_labels
 
+@pytest.mark.parametrize('tensorflow', ('eager', ), indirect=True, ids='mode={}'.format)
+@pytest.mark.paramterize('hacky_cnn', (pytest.lazy_fixture('tensorflow'), ), ids='exp={}'.format)
 @pytest.mark.parametrize('method', ('gausslegendre',
                                     "riemann_left",
                                     "riemann_right",
@@ -41,8 +48,8 @@ model.fit(X_train,
 @pytest.mark.parametrize('rcd', (True, False))
 @pytest.mark.parametrize('rp', (True, False))
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integratedgradients(method, rcd, rp, fn):
-
+def test_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn):
+    model, X_test, test_labels = hacky_cnn
     ig = IntegratedGradients(model, n_steps=50, method=method, return_convergence_delta=rcd,
                              return_predictions=rp)
 
@@ -63,6 +70,9 @@ def test_integratedgradients(method, rcd, rp, fn):
         assert len(fn) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
+#@pytest.mark.skip
+@pytest.mark.parametrize('tensorflow', ('eager', ), indirect=True, ids='mode={}'.format)
+@pytest.mark.paramterize('hacky_cnn', (pytest.lazy_fixture('tensorflow'), ), ids='exp={}'.format)
 @pytest.mark.parametrize('method', ('gausslegendre',
                                     "riemann_left",
                                     "riemann_right",
@@ -72,8 +82,9 @@ def test_integratedgradients(method, rcd, rp, fn):
 @pytest.mark.parametrize('rp', (True, False))
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 @pytest.mark.parametrize('layer_nb', (None, 1))
-def test_layer_integratedgradients(method, rcd, rp, fn, layer_nb):
+def test_layer_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn, layer_nb):
 
+    model, X_test, test_labels = hacky_cnn
     if layer_nb is not None:
         layer = model.layers[layer_nb]
     else:

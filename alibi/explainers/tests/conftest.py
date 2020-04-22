@@ -20,6 +20,21 @@ from alibi.tests.utils import MockPredictor
 
 
 @pytest.fixture(scope='module')
+def tensorflow(request):
+    mode = request.param
+    import tensorflow as tf
+    if mode == 'eager':
+        if not tf.executing_eagerly():
+            tf.compat.v1.enable_eager_execution()
+    else:
+        if tf.executing_eagerly():
+            tf.compat.v1.disable_eager_execution()
+    yield tf
+    if request.param == 'eager':
+        tf.compat.v1.disable_eager_execution()
+
+
+@pytest.fixture(scope='module')
 def get_iris_dataset():
     """
     This fixture can be passed to a classifier fixture to return

@@ -121,7 +121,7 @@ DEFAULT_META_INTGRAD = {"name": None,
                         "type": ["tensorflow", "keras"],
                         "explanations": ["local", "global"],
                         "params": {}
-                        }
+                        }  # type: dict
 """
 Default INTGRAD metadata.
 """
@@ -134,7 +134,7 @@ DEFAULT_DATA_INTGRAD = {"attributions": None,
                             "X": None,
                             "baselines": None,
                             }
-                        }
+                        }  # type: dict
 """
 Default INTGRAD data.
 """

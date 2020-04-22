@@ -108,7 +108,6 @@ def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.model
     -------
 
     """
-
     with tf.GradientTape() as tape:
         tape.watch(x)
         preds = _run_forward(forward_function, x, target)
@@ -266,7 +265,7 @@ class IntegratedGradients(Explainer):
     def __init__(self, forward_function: Union[tf.keras.Model, 'keras.Model'],
                  layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
                  n_steps: int = 50,
-                 method: string = "gausslegendre",
+                 method: str = "gausslegendre",
                  return_convergence_delta: bool = False,
                  return_predictions: bool = False):
         """

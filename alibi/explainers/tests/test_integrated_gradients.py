@@ -55,23 +55,19 @@ X_train, y_train = X[:90, :], y[:90, :]
 X_test, y_test = X[90:, :], y[90:, :]
 test_labels = np.argmax(y_test, axis=1)
 
+import tensorflow as tf 
 
 @pytest.fixture(scope='module')
-def hacky_cnn(tensorflow):
-    tf = tensorflow
-    print(tf)
+def hacky_cnn():
 
     inputs = tf.keras.Input(shape=(X.shape[1:]))
-    print("TF executed eagerly:", tf.executing_eagerly())
     x = tf.keras.layers.Dense(20, activation='linear')(inputs)
     outputs = tf.keras.layers.Dense(2, activation='softmax')(x)
-    print("TF executed eagerly:", tf.executing_eagerly())
     model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
-    print("TF executed eagerly:", tf.executing_eagerly())
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
-    print("TF executed eagerly:", tf.executing_eagerly())
+  
     # train model
     model.fit(X_train,
               y_train,
@@ -80,12 +76,10 @@ def hacky_cnn(tensorflow):
               verbose=0,
               validation_data=(X_test, y_test)
               )
-    print("TF executed eagerly:", tf.executing_eagerly())
+
     return model
 
-
-@pytest.mark.parametrize('tensorflow', ('eager', ), indirect=True, ids='mode={}'.format)
-@pytest.mark.paramterize('hacky_cnn', (pytest.lazy_fixture('tensorflow'), ), ids='exp={}'.format)
+@pytest.mark.eager
 @pytest.mark.parametrize('method', ('gausslegendre',
                                     "riemann_left",
                                     "riemann_right",
@@ -116,8 +110,7 @@ def test_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn):
         assert len(fn) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
-@pytest.mark.parametrize('tensorflow', ('eager', ), indirect=True, ids='mode={}'.format)
-@pytest.mark.paramterize('hacky_cnn', (pytest.lazy_fixture('tensorflow'), ), ids='exp={}'.format)
+@pytest.mark.eager
 @pytest.mark.parametrize('method', ('gausslegendre',
                                     "riemann_left",
                                     "riemann_right",

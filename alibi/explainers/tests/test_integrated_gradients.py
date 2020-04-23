@@ -2,6 +2,8 @@ import numpy as np
 import pytest
 from alibi.explainers import IntegratedGradients
 from alibi.api.interfaces import Explanation
+import tensorflow as tf 
+tf.compat.v1.enable_eager_execution()
 
 
 def to_categorical(y, num_classes=None, dtype='float32'):
@@ -55,8 +57,6 @@ X_train, y_train = X[:90, :], y[:90, :]
 X_test, y_test = X[90:, :], y[90:, :]
 test_labels = np.argmax(y_test, axis=1)
 
-import tensorflow as tf 
-
 @pytest.fixture(scope='module')
 def hacky_cnn():
 
@@ -88,7 +88,7 @@ def hacky_cnn():
 @pytest.mark.parametrize('rcd', (True, False))
 @pytest.mark.parametrize('rp', (True, False))
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn):
+def test_integratedgradients(hacky_cnn, method, rcd, rp, fn):
     model = hacky_cnn
     ig = IntegratedGradients(model, n_steps=50, method=method, return_convergence_delta=rcd,
                              return_predictions=rp)
@@ -120,7 +120,7 @@ def test_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn):
 @pytest.mark.parametrize('rp', (True, False))
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 @pytest.mark.parametrize('layer_nb', (None, 1))
-def test_layer_integratedgradients(tensorflow, hacky_cnn, method, rcd, rp, fn, layer_nb):
+def test_layer_integratedgradients(hacky_cnn, method, rcd, rp, fn, layer_nb):
 
     model = hacky_cnn
     if layer_nb is not None:

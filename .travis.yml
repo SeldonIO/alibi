@@ -14,7 +14,8 @@ install:
 script:
   - flake8 alibi
   - mypy alibi
-  - travis_wait pytest
+  - travis_wait pytest -m eager
+  - travis_wait pytest -m "not eager"
   - make build_pypi
   - make build_docs
 after_success:

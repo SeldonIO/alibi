@@ -12,7 +12,7 @@ import string
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
-tf.compat.v1.enable_eager_execution()
+# tf.compat.v1.enable_eager_execution()
 logger = logging.getLogger(__name__)
 
 
@@ -311,6 +311,13 @@ class IntegratedGradients(Explainer):
         -------
 
         """
+        if not tf.executing_eagerly():
+            raise RuntimeError("""To run IntegratedGradients tensorflow must be executed eagerly.
+            To enable eager execution,  add the following lines:
+            `import tensorflow as tf`
+            `tf.compat.v1.enable_eager_execution()`
+            at the beninning of your script""")
+
         nb_samples = len(X)
 
         X, baselines = _format_input_baseline(X, baselines)

@@ -57,6 +57,7 @@ X_train, y_train = X[:90, :], y[:90, :]
 X_test, y_test = X[90:, :], y[90:, :]
 test_labels = np.argmax(y_test, axis=1)
 
+
 @pytest.fixture(scope='module')
 def hacky_cnn():
 
@@ -78,6 +79,7 @@ def hacky_cnn():
               )
 
     return model
+
 
 @pytest.mark.eager
 @pytest.mark.parametrize('method', ('gausslegendre',

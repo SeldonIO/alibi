@@ -7,10 +7,11 @@ import pandas as pd
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
+from alibi.utils.wrappers import methdispatch
+from functools import partial
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
 from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple
-from alibi.utils.wrappers import methdispatch
 
 logger = logging.getLogger(__name__)
 
@@ -93,7 +94,9 @@ def rank_by_importance(shap_values: List[np.ndarray],
     return importances
 
 
-def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
+def sum_categories(values: np.ndarray,
+                   start_idx: Union[List[int], Tuple[int]],
+                   enc_feat_dim: Union[List[int], Tuple[int]]):
     """
     For each entry in start_idx, the function sums the following k columns where k is the
     corresponding entry in the enc_feat_dim sequence. The columns whose indices are not in
@@ -121,32 +124,58 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         raise ValueError("The lengths of the sequences of start indices and encodings must be equal!")
 
     n_encoded_levels = sum(enc_feat_dim)
-    if n_encoded_levels > values.shape[1]:
+    if n_encoded_levels > values.shape[-1]:
         raise ValueError("The sum of the encoded features dimensions exceeds data dimension!")
 
-    new_values = np.zeros((values.shape[0], values.shape[1] - n_encoded_levels + len(enc_feat_dim)))
+    def _get_slices(start: Union[List[int], Tuple[int]], dim: Union[List[int], Tuple[int]], arr_trailing_dim: int):
+        """
+        Given start indices, encoding dimensions and the array trailing shape, this function returns
+        an array where contiguous numbers are slices. This array is used to reduce along an axis
+        only the slices `slice(start[i], start[i]+dim[i], 1)` from a tensor and leave all other slices
+        unchanged.
+        """
 
-    # find all the other indices of categorical columns other than those specified
-    cat_cols = []
-    for start, feat_dim in zip(start_idx, enc_feat_dim):
-        for i in range(1, feat_dim):
-            cat_cols.append(start + i)
+        idx = []  # type: List[int]
+        # first columns may not be reduced
+        if start[0] > 0:
+            idx.extend(tuple(range(start[0])))
 
-    # sum the columns corresponding to a categorical variable
-    enc_idx, new_vals_idx = 0, 0
-    for idx in range(values.shape[1]):
-        if idx in start_idx:
-            feat_dim = enc_feat_dim[enc_idx]
-            enc_idx += 1
-            stop_idx = idx + feat_dim
-            new_values[:, new_vals_idx] = np.sum(values[:, idx:stop_idx], axis=1)
-        elif idx in cat_cols:
-            continue
-        else:
-            new_values[:, new_vals_idx] = values[:, idx]
-        new_vals_idx += 1
+        # add all slices to reduce
+        idx.extend([start[0], start[0] + dim[0]])
+        for s_idx, d in zip(start[1:], dim[1:]):
+            last_idx = idx[-1]
+            # some columns might not be reduced
+            while last_idx < s_idx - 1:
+                last_idx += 1
+                idx.append(last_idx)
+            if s_idx == last_idx:
+                idx.append(s_idx + d)
+            else:
+                idx.extend((s_idx, s_idx + d))
 
-    return new_values
+        # avoid index error
+        if start[-1] + dim[-1] == arr_trailing_dim:
+            idx.pop()
+            return idx
+
+        # last few columns may not be reduced
+        last_idx = idx[-1]
+        if last_idx < arr_trailing_dim:
+            while last_idx < arr_trailing_dim - 1:
+                last_idx += 1
+                idx.append(last_idx)
+
+        return idx
+
+    def _reduction(arr, axis, indices=None):
+        return np.add.reduceat(arr, indices, axis)
+
+    # create array of slices to be reduced
+    slices = _get_slices(start_idx, enc_feat_dim, values.shape[-1])
+    if len(values.shape) == 3:
+        reduction = partial(_reduction, indices=slices)
+        return np.apply_over_axes(reduction, values, axes=(2, 1))
+    return np.add.reduceat(values, slices, axis=1)
 
 
 class KernelShap(Explainer, FitMixin):

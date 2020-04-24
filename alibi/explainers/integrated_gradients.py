@@ -313,10 +313,9 @@ class IntegratedGradients(Explainer):
         """
         if not tf.executing_eagerly():
             raise RuntimeError("""To run IntegratedGradients tensorflow must be executed eagerly.
-            To enable eager execution,  add the following lines:
+            To enable eager execution, add the following lines at the beninning of your script:
             `import tensorflow as tf`
-            `tf.compat.v1.enable_eager_execution()`
-            at the beninning of your script""")
+            `tf.compat.v1.enable_eager_execution()` """)
 
         nb_samples = len(X)
 

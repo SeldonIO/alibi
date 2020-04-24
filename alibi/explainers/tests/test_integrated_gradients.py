@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from alibi.explainers import IntegratedGradients
 from alibi.api.interfaces import Explanation
-import tensorflow as tf 
+import tensorflow as tf
 tf.compat.v1.enable_eager_execution()
 
 
@@ -68,7 +68,7 @@ def hacky_cnn():
     model.compile(loss='categorical_crossentropy',
                   optimizer='adam',
                   metrics=['accuracy'])
-  
+
     # train model
     model.fit(X_train,
               y_train,

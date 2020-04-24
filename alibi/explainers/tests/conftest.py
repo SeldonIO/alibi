@@ -19,8 +19,6 @@ from alibi.tests.utils import MockPredictor
 # fixtures to generate models for testing.
 
 
-
-
 @pytest.fixture(scope='module')
 def get_iris_dataset():
     """
@@ -199,7 +197,7 @@ def conv_net(request):
     module scoped fixture, so if you need to modify the state of the objects
     returned, copy the objects first.
     """
-    import tensorflow as tf 
+    import tensorflow as tf
     if tf.executing_eagerly():
         tf.compat.v1.disable_eager_execution()
     data = request.param

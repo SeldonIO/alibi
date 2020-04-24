@@ -94,9 +94,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
     return importances
 
 
-def sum_categories(values: np.ndarray,
-                   start_idx: Union[List[int], Tuple[int]],
-                   enc_feat_dim: Union[List[int], Tuple[int]]):
+def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tuple[int]):
     """
     For each entry in start_idx, the function sums the following k columns where k is the
     corresponding entry in the enc_feat_dim sequence. The columns whose indices are not in
@@ -127,7 +125,7 @@ def sum_categories(values: np.ndarray,
     if n_encoded_levels > values.shape[-1]:
         raise ValueError("The sum of the encoded features dimensions exceeds data dimension!")
 
-    def _get_slices(start: Union[List[int], Tuple[int]], dim: Union[List[int], Tuple[int]], arr_trailing_dim: int):
+    def _get_slices(start: Tuple, dim: Tuple, arr_trailing_dim: int) -> List[int]:
         """
         Given start indices, encoding dimensions and the array trailing shape, this function returns
         an array where contiguous numbers are slices. This array is used to reduce along an axis
@@ -684,8 +682,8 @@ class KernelShap(Explainer, FitMixin):
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
-                cat_vars_start_idx: List[int] = None,
-                cat_vars_enc_dim: List[int] = None,
+                cat_vars_start_idx: Tuple[int] = None,
+                cat_vars_enc_dim: Tuple[int] = None,
                 **kwargs) -> Explanation:
         """
         Explains the instances in the array X.
@@ -695,22 +693,23 @@ class KernelShap(Explainer, FitMixin):
         X
             Instances to be explained.
         summarise_result
-            Specifies whether the shap values corresponding to dimensions of
-            encoded categorical variables should be summed so that a single
-            shap value is returned for each categorical variable. Both
-            the start indices of the categorical variables (`cat_vars_start_idx`)
-            and the encoding dimensions (`cat_vars_enc_dim`) have to be specified
+            Specifies whether the shap values corresponding to dimensions of encoded categorical variables should be
+            summed so that a single shap value is returned for each categorical variable. Both the start indices of
+            the categorical variables (`cat_vars_start_idx`) and the encoding dimensions (`cat_vars_enc_dim`)
+            have to be specified
         cat_vars_start_idx
-            A sequence containing the start indices of the categorical variables.
-            If specified, cat_vars_enc_dim should also be specified.
+            The start indices of the categorical variables. If specified, cat_vars_enc_dim should also be specified.
         cat_vars_enc_dim
-            A sequence containing the length of the encoding dimension for each
-            categorical variable.
+            The length of the encoding dimension for each categorical variable.
         kwargs
             Keyword arguments specifying explain behaviour. Valid arguments are:
-                *nsamples: controls the number of predictor calls and therefore runtime.
-                *l1_reg: controls the explanation sparsity.
-            For more details, please see https://shap.readthedocs.io/en/latest/.
+
+                -`nsamples`: controls the number of predictor calls and therefore runtime.
+                -`l1_reg`: controls the explanation sparsity.
+
+            For more details, please see the shap library documentation_ .
+
+            .. _documentation https://shap.readthedocs.io/en/latest/.
 
         Returns
         -------
@@ -735,36 +734,23 @@ class KernelShap(Explainer, FitMixin):
             shap_values = [shap_values]
         if isinstance(expected_value, float):
             expected_value = [self.expected_value]
-        if summarise_result:
-            self.summarise_result = True
-            if not cat_vars_start_idx or not cat_vars_start_idx:
-                logger.warning(
-                    "Results cannot be summarised as either the"
-                    "start indices for categorical variables or"
-                    "the encoding dimensions were not passed!"
-                )
-                self.summarise_result = False
-            elif self.use_groups:
-                logger.warning(
-                    "Specified both groups as well as summarisation for categorical variables. "
-                    "By grouping, only one shap value is estimated for each categorical variable. "
-                    "Summarisation is thus not necessary!"
-                )
-                self.summarise_result = False
-            else:
-                summarised_shap = []
-                for shap_array in shap_values:
-                    summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
-                shap_values = summarised_shap
 
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
+        explanation = self.build_explanation(
+            X,
+            shap_values,
+            expected_value,
+            summarise_result=summarise_result,
+            cat_vars_start_idx=cat_vars_start_idx,
+            cat_vars_enc_dim=cat_vars_enc_dim,
+        )
 
-        return self.build_explanation(X, shap_values, expected_value)
+        return explanation
 
     def build_explanation(self,
                           X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                           shap_values: List[np.ndarray],
-                          expected_value: List[float]) -> Explanation:
+                          expected_value: List[float],
+                          **kwargs) -> Explanation:
         """
         Create an explanation object.
 
@@ -781,9 +767,20 @@ class KernelShap(Explainer, FitMixin):
 
         Returns
         -------
-            An explanation containing a meta field with basic classifier metadata
+            An explanation containing a meta field with basic classifier metadata.
 
         """
+
+        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
+        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
+        summarise_result = kwargs.get('summarise_result', False)  # type: bool
+
+        self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
+        if self.summarise_result:
+            summarised_shap = []
+            for shap_array in shap_values:
+                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
+            shap_values = summarised_shap
 
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
         # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
@@ -818,3 +815,39 @@ class KernelShap(Explainer, FitMixin):
         )
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def _check_result_summarisation(self,
+                                    summarise_result: bool,
+                                    cat_vars_start_idx: Tuple[int],
+                                    cat_vars_enc_dim: Tuple[int]) -> None:
+        """
+        This function checks whether the result summarisation option is correct given the inputs and explainer setup.
+
+        Parameters
+        ----------
+        summarise_result:
+            See `explain` documentation.
+        cat_vars_start_idx:
+            See `explain` documentation.
+        cat_vars_enc_dim:
+            See `explain` documentation.
+        """
+
+        self.summarise_result = summarise_result
+        if summarise_result:
+            if not cat_vars_start_idx or not cat_vars_enc_dim:
+                logger.warning(
+                    "Results cannot be summarised as either the"
+                    "start indices for categorical variables or"
+                    "the encoding dimensions were not passed!"
+                )
+                self.summarise_result = False
+            elif self.use_groups:
+                logger.warning(
+                    "Specified both groups as well as summarisation for categorical variables. "
+                    "By grouping, only one shap value is estimated for each categorical variable. "
+                    "Summarisation is thus not necessary!"
+                )
+                self.summarise_result = False
+
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True)

@@ -297,8 +297,7 @@ sum_categories_inputs = [
 @pytest.mark.parametrize('n_feats, ndim, feat_enc_dim, start_idx', sum_categories_inputs)
 def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     """
-    Tests if summing the columns corresponding to categorical
-    variables into one variable works properly.
+    Tests if summing the columns corresponding to categorical variables into one variable works properly.
     """
 
     # create inputs to feed the function

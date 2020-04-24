@@ -12,6 +12,10 @@ from typing import Any, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECK
 if TYPE_CHECKING:
     import catboost
 
+
+logger = logging.getLogger(__name__)
+
+
 TREE_SHAP_PARAMS = [
     'model_output',
     'summarise_background',
@@ -157,6 +161,9 @@ class TreeShap(Explainer, FitMixin):
             1. Input summarisation options to allow control over background dataset size and hence runtime
             2. Output summarisation for sklearn models with one-hot encoded categorical variables
 
+
+        # TODO: ADD LINK TO DOCS HERE ...
+
         Parameters
         ----------
         predictor
@@ -167,8 +174,9 @@ class TreeShap(Explainer, FitMixin):
             Supported values are: 'raw', 'probability', 'probability_doubled', 'log_loss':
 
             - 'raw': the raw model of the output, which varies by method, is explained. This option
-            should always be used if the `fit` method is not called. For regression models it is the
-            standard output, for binary classification in XGBoost it is the log odds ratio.
+            should always be used if the `fit` is called without arguments. It should also be set to compute
+            shap interaction values. For regression models it is the standard output, for binary classification
+            in XGBoost it is the log odds ratio.
             - 'probability': the probability output is explained. This option should only be used if `fit`
             was called. If the tree outputs log-odds, then an inverse logit transformation is applied to
             - 'probability_doubled': used for binary classification problem in situations where the model outputs
@@ -183,7 +191,8 @@ class TreeShap(Explainer, FitMixin):
             - 'log_loss': logarithmic loss is explained. This option shoud be used only if `fit` was called and
             labels, y, are provided to the fit method. If the objective is squared error, then the transformation
             (output - y)*(output -y) is applied. For binary cross-entropy objective, the transformation
-            :math:`log(1 + exp(output)) - y * output` with  :math:`y \in \{0, 1\}`
+            :math:`log(1 + exp(output)) - y * output` with  :math:`y \in \{0, 1\}`. Currently only binary cross-entropy
+            and squared error losses can be explained.
 
         feature_names
             Used to compute the `names` field, which appears as a key in each of the values of the `importances`
@@ -229,8 +238,6 @@ class TreeShap(Explainer, FitMixin):
         self.summarise_background = False
         # checks if it has been fitted:
         self._fitted = False
-
-    def _check_inputs(self) -> None: pass
 
     def _summarise_background(self) -> np.ndarray: pass
 
@@ -295,13 +302,13 @@ class TreeShap(Explainer, FitMixin):
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, catboost.Pool],
                 y: Optional[np.ndarray] = None,
-                interactions=False,
-                approximate=False,
-                check_additivity=True,
-                tree_limit=None,
+                interactions: bool = False,
+                approximate: bool = False,
+                check_additivity: bool = True,
+                tree_limit: Optional[int] = None,
                 summarise_result: bool = False,
-                cat_vars_start_idx: List[int] = None,
-                cat_vars_enc_dim: List[int] = None,
+                cat_vars_start_idx: Optional[List[int]] = None,
+                cat_vars_enc_dim: Optional[List[int]] = None,
                 **kwargs) -> "Explanation":
         """
         Explains the instances in X. `y` should be passed if the model loss function is to be explained,
@@ -313,9 +320,35 @@ class TreeShap(Explainer, FitMixin):
         ----------
         X
             Instances to be explained.
+        y
+            Labels corresponding to rows of X. Should be passed only if a background dataset was passed to the
+            fit method.
+        interactions
+            If True, the shap value for every feature of every instance in X is decomposed into `X.shape[1] - 1`
+            shap value interactions and one shap main effects. This is only supported if no background dataset is
+            passed to the algorithm.
+        approximate
+            If True, an approximation to the shap values that does not account for feature order is computed. This
+            was proposed by Sabaas here_. Check this_ resource for more details. This option is currently only supported
+            for `xgboost` and `sklearn` models.
+        check_additivity
+            If True, output correctness is ensured if `model_output=raw` has been passed to the constructor.
+        tree_limit
+            Explain the output of a subset of the first `tree_limit` trees in an ensamble model.
+        summarise_result
+            This should be set to True only when some of the columns in `X` represent encoded dimensions of a
+            categorical variable and one single shap value per categorical variable is desired. Both `cat_vars_start_idx`
+            and `cat_vars_enc_dim` should be specified as detailed below to allow this.
+        cat_vars_start_idx
+            The start indices of the categorical variables
+        cat_vars_enc_dim
+            The length of the encoding dimension for each
+            categorical variable.
 
+        .. _this: https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_
+        MOESM1_ESM.pdf)
 
-
+        .. _here: https://github.com/andosa/treeinterpreter
         """
 
         if not self._fitted:
@@ -325,14 +358,79 @@ class TreeShap(Explainer, FitMixin):
             )
 
         self.tree_limit = tree_limit
+        self.approximate = approximate
+        self.interactions = interactions
+        self.summarise_result = summarise_result
 
-        # TODO: Deal with the case where they e.g., want to explain loss or want
-        #  interactions but pass a background dataset
-        # TODO: For which algorithm does approximate work?
-        # TODO: Interactions and approximate don't go well together - warn about this and default
-        # TODO: Interactions require specific settings in terms of model outputs - set those and warn
-        #  users if they are different to the settings they want to explain
-        # TODO: Interactions are not supported for loss functions, disable and return shap values
+        if interactions:
+            self._check_interactions(approximate, self.background_data, y)
+            shap_output = self._explainer.shap_interaction_values(X, tree_limit=tree_limit)
+        else:
+            self._check_explainer_setup(self.background_data, self.model_output, y)
+            shap_output = self._explainer.shap_values(
+                X,
+                y=y,
+                tree_limit=tree_limit,
+                approximate=self.approximate,
+                check_additivity=check_additivity,
+            )
+        expected_value  = self.expected_value
+        if isinstance(shap_output, np.ndarray):
+            shap_output = [shap_output]
+        if isinstance(expected_value, float):
+            expected_value = [self.expected_value]
+        self._check_output_summarisation(cat_vars_start_idx, cat_vars_enc_dim)
+        if self.summarise_result:
+            pass
+        # TODO: Continue here
+
+
+    def _check_interactions(self, approximate: bool, background_data, y: Optional[np.ndarray]) -> None:
+
+        if approximate:
+            logger.warning("Approximate shap values are not defined for shap interaction values, "
+                           "ignoring argument!")
+            self.approximate = False
+        if background_data is not None:
+            # TODO: @Janis: Here we can just disable the interactions, give a warning and just
+            #  return the shap values?
+            raise NotImplementedError(
+                "Interactions can currently only be computed if no background dataset is specified. "
+                "Re-instantiate the explainer and run fit without any arguments to compute shap "
+                "interaction values!")
+        if y is not None:
+            raise NotImplementedError(
+                "Interactions can currently only be computed if no background dataset is specified "
+                "but explaining loss functions requires a background dataset. Re-instantiate the "
+                "explainer with model_output='log_loss' and run fit(background_data=my_data) to "
+                "explain loss values!!"
+            )
+
+    def _check_explainer_setup(self,
+                               background_data: Union[np.ndarray, pd.DataFrame, None],
+                               model_output: str,
+                               y: Optional[np.ndarray]) -> None:
+
+        # check settings are correct for loss value explanations
+        if y is not None:
+            if background_data is None:
+                raise NotImplementedError(
+                    "Loss values can only currently be explained with respect to the value over a background dataset. "
+                    "Re-instantiate the explainer and run fit(background_data=my_data)!")
+            if model_output != 'log_loss':
+                raise ValueError(
+                    "Model output should be set to 'log_loss' in order to explain loss values. Re-instantiate the model"
+                    "with the option `model_output='log_loss' passed to the constructor.`"
+                )
+        # check model output data is compatible with background data setting
+        else:
+            if background_data is None:
+                if model_output != 'raw':
+                    raise NotImplementedError(
+                        f"Without a background dataset, only raw output can be explained currently. "
+                        f"To explain output {model_output}, select an background dataset, re-instanstiate the "
+                        f"explainer with the desired model output option and then call fit(background_data=my_data)!"
+                    )
 
     def build_explanation(self,
                           X: Union[np.ndarray, pd.DataFrame, catboost.Pool],
@@ -391,6 +489,15 @@ class TreeShap(Explainer, FitMixin):
         )
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def _check_output_summarisation(self, cat_var_start_idx, cat_var_enc_dim):
+        if not cat_var_start_idx or cat_var_enc_dim:
+            logger.warning(
+                "Results cannot be summarised as either the"
+                "start indices for categorical variables or"
+                "the encoding dimensions were not passed!"
+            )
+            self.summarise_result = False
 
 # TODO: Test:
 #  Probability doubled ?

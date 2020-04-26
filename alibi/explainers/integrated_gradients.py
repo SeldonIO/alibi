@@ -64,7 +64,7 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
 
 def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
                  x: Union[tf.Tensor, np.ndarray],
-                 target: Union[tf.Tensor, np.ndarray, list]) -> tf.Tensor:
+                 target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
 
     Parameters
@@ -84,18 +84,19 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
             else:
                 raise NotImplementedError
         else:
-            raise ValueError("target cannot be None")
+            raise ValueError("target cannot be None if forwar_function output dimensions > 1")
         return ps
 
     preds = forward_function(x)
-    preds = _select_target(preds, target)
+    if forward_function.output_shape[1] > 1:
+        preds = _select_target(preds, target)
 
     return preds
 
 
 def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
                      x: tf.Tensor,
-                     target: tf.Tensor) -> tf.Tensor:
+                     target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
 
     Parameters
@@ -121,7 +122,7 @@ def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.model
                      layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
                      orig_call: Callable,
                      x: tf.Tensor,
-                     target: tf.Tensor) -> tf.Tensor:
+                     target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
 
     Parameters
@@ -321,33 +322,52 @@ class IntegratedGradients(Explainer):
 
         X, baselines = _format_input_baseline(X, baselines)
         target = _format_target(target, nb_samples)
-        assert len(target) == nb_samples
+        if target is not None:
+            assert len(target) == nb_samples
 
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
 
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
-        target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+        if target is not None:
+            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(internal_batch_size)
 
-        paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         batches = []
         if self.layer is not None:
             orig_call = self.layer.call
-        for paths_b, target_b in paths_ds:
+        else:
+            orig_call = None
+
+        for path in paths_ds:
 
             # calculate gradients for batch
-            if self.layer is not None:
-                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+            if target is not None:
+                paths_b, target_b = path
+                if self.layer is not None:
+                    grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+                else:
+                    grads_b = _gradients_input(self.forward_function, paths_b, target_b)
             else:
-                grads_b = _gradients_input(self.forward_function, paths_b, target_b)
+                if self.layer is not None:
+                    grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, path, None)
+                else:
+                    grads_b = _gradients_input(self.forward_function, path, None)
 
             batches.append(grads_b)
 
         # tf concatatation
         grads = tf.concat(batches, 0)
         shape = grads.shape[1:]
+
+        if self.forward_function.output_shape[1] == 1 and target is not None:
+            sign = 2 * target_paths - 1
+            grads = np.array([s * g for s, g in zip(sign, grads)])
+
         grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
 
         # sum integral terms

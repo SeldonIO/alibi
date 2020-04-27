@@ -191,9 +191,9 @@ class TreeShap(Explainer, FitMixin):
         """
         A wrapper around the `shap.TreeExplainer` class. It adds the following functionality:
             1. Input summarisation options to allow control over background dataset size and hence runtime
-            2. Output summarisation for sklearn models with one-hot encoded categorical variables
+            2. Output summarisation for sklearn models with one-hot encoded categorical variables.
         Users are strongly encouraged to familiarise themselves with the algorithm by reading the method
-        overview in the documentation to understand the different explanation algorithms offered by TreeShap.
+        overview in the documentation.
 
         Parameters
         ----------
@@ -245,8 +245,6 @@ class TreeShap(Explainer, FitMixin):
         .. _resource: https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
     """
 
-    # TODO: Define meta, data and params. Update all accordingly
-
         super().__init__(meta=copy.deepcopy(DEFAULT_META_TREE_SHAP))
         if model_output in TREE_SHAP_MODEL_OUTPUT:
             self.model_output = model_output
@@ -294,7 +292,15 @@ class TreeShap(Explainer, FitMixin):
 
     @staticmethod
     def _check_inputs(background_data: Union[pd.DataFrame, np.ndarray]) -> None:
-        # TODO: Docstring
+        """
+        This function warns the user if slow runtime can occur due to the background dataset.
+
+        Parameters
+        ----------
+        background_data
+            Background dataset.
+        """
+
         if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
             background_data = np.atleast_2d(background_data)
 
@@ -311,6 +317,30 @@ class TreeShap(Explainer, FitMixin):
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,
             **kwargs) -> "TreeShap":
+        """
+        This function instantiates an explainer which can then be use to explain instances using the `explain` method.
+        If no background dataset is passed, the explainer uses the path-dependent feaature perturbation algorithm
+        to explain the values. As such, only the model raw output can be explained and this should be reflected by
+        passing `model_output='raw'` when instantiating the explainer. If a background dataset is passed, the
+        interventional feature perturbation algorithm is used. Using this algorithm, probability outputs can also be
+        explained. Additionally, if the `model_output='log_loss'` option is passed to the explainer constructor, then
+        the model loss function can be explained by passing the labels as the `y` argument to the explain method.
+        A limited number of loss functions are supported, as detailed in the constructor documentation.
+
+        Parameters
+        -----------
+        background_data
+            Data used to estimate feature contributions and baseline values for force plots. The rows of the
+            background data should represent samples and the columns features.
+        summarise_background
+            A large background dataset may impact the runtime and memory footprint of the algorithm. By setting
+            this argument to True, only n_background_samples from the provided data are selected. If the
+            `categorical_names` argument has been passed to the constructor, subsampling of the data is used.
+             Otherwise, shap.kmeans (a wrapper around sklearn kmeans implementation) is used for selection.
+             If set to 'auto', a default of TREE_SHAP_BACKGROUND_WARNING_THRESHOLD samples is selected.
+        n_background_samples
+            The number of samples to keep in the background dataset if summarise_background=True.
+        """
 
         np.random.seed(self.seed)
 
@@ -329,13 +359,12 @@ class TreeShap(Explainer, FitMixin):
             model_output=self.model_output,
         )  # type: shap.TreeExplainer
         self.expected_value = self._explainer.expected_value
-        if not self._explainer.model.num_outputs:
+        if self._explainer.model.num_outputs == 1:
             logger.warning(
                 "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
                 "as opposed to a classification label!"
             )
 
-        # TODO: Update metadata here
         # update metadata
         params = {
             'summarise_background': self.summarise_background,
@@ -347,8 +376,17 @@ class TreeShap(Explainer, FitMixin):
 
     def _summarise_background(self,
                               background_data: Union[pd.DataFrame, np.ndarray],
-                              n_background_samples: int) -> Union[np.ndarray, shap.common.DenseData]:
-        # TODO: Docstring
+                              n_background_samples: int) -> Union[np.ndarray,pd.DataFrame, shap.common.DenseData]:
+        """
+        Summarises the background data to n_background_samples in order to reduce the computational cost.
+
+        Returns
+        -------
+            If the `categorical_names` argument to the constructor is specified, then an object of the same type as
+            input containing only `n_background_samples` is returned. Otherwise, a `shap.common.Data` containing a
+            `np.ndarray` of `n_background_samples` in the `data` field is returned.
+
+        """
 
         if background_data.ndim == 1 or background_data.shape[0] == 1:
             msg = "Received option to summarise the data but the background_data object only had " \
@@ -464,7 +502,30 @@ class TreeShap(Explainer, FitMixin):
         return explanation
 
     def _check_interactions(self, approximate: bool, background_data, y: Optional[np.ndarray]) -> None:
-        # TODO: Docstring
+        """
+        Checks if the inputs to the explain method match the explainer setup if shap interaction values
+        are to be explained.
+
+        Parameters
+        ----------
+        approximate
+            See `explain` documentation.
+        background_data
+            See `fit` documentation.
+        y
+            See explain documentation.
+
+        Raises
+        ------
+        NotImplementedError
+            If a background dataset is passed to the `fit` method or argument `y` is specified to the `explain`
+            method. These algorithms are not yet supported in the shap library.
+
+        Warns
+        -----
+            If approximate values are requested. These values are not defined for interactions.
+        """
+
         self.approximate = approximate
         if approximate:
             logger.warning("Approximate shap values are not defined for shap interaction values, "
@@ -489,7 +550,30 @@ class TreeShap(Explainer, FitMixin):
                                background_data: Union[np.ndarray, pd.DataFrame, None],
                                model_output: str,
                                y: Optional[np.ndarray]) -> None:
-        # TODO: Docstring
+        """
+        Checks whether the inputs to the `explain` method match the explainer setup if shap interaction values are
+        note required
+
+        Parameters
+        ----------
+        background_data
+            See `fit` method documentation.
+        model_output
+            See TreeShap constructor documentation.
+        y
+            See`explain` method documentation.
+
+
+        Raises
+        ------
+        NotImplementedError
+            If the users passes labels to the `explain` method but does not specify a background dataset or
+            if the user does not pass a background dataset to `fit` and specifies a `model_output` other than
+            raw when initialising the explainer.
+        ValueError
+            If the user passes labels to the `explain` method but has not set `model_output='log_loss'` when
+            initialising the explainer.
+        """
         # check settings are correct for loss value explanations
         if y is not None:
             if background_data is None:
@@ -520,7 +604,32 @@ class TreeShap(Explainer, FitMixin):
                           expected_value: List[float],
                           **kwargs) -> Explanation:
 
-        # TODO: In docstring, explain what shap_output can be
+        """
+        Create an explanation object. If output summarisation is required and all inputs necessary for this operation
+        are passed, the raw shap values are summed first so that a single shap value is returned for each categorical
+        variable, as opposed to a shap value per dimension of categorical variable encoding. Similarly, the
+        shap interaction values are summed such that they represent the interaction between categorical variables as
+        opposed to levels of categorical variables. If the interaction option has been specified during `explain`, this
+        method computes the shap values given the interactions prior to creating the response.
+
+        Parameters
+        ----------
+        X:
+            Instances to be explained.
+        shap_output:
+            If `explain` is callled with `interactions=True` then the list contains tensors of dimensionality
+            n_instances x n_features x n_features of shap interaction values. Otherwise, it contains tensors of
+            dimension n_instances x n_features representing shap values. The length of the list equals the number of
+            model outputs.
+        expected_value:
+            A list containing the expected value of the prediction for each class. Its length should be equal to that of
+            `shap_output`.
+
+        Returns
+        -------
+            An explanation object containing the shap values and prediction in the `data` field, along with a `meta` field
+            containing additional data. See usage examples in the method overview for details.
+        """
         y = kwargs.get('y')
         if not y:
             y = np.array([])

@@ -15,6 +15,7 @@ from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHA
 from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
+from collections import deque
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
@@ -272,24 +273,38 @@ class KMeansMock:
 
 
 sum_categories_inputs = [
-    (50, [3, 6, 4, 4], None),
-    (50, None, [0, 6, 5, 12]),
-    (100, [3, 6, 4, 4], [0, 6, 15, 22]),
-    (5, [3, 2, 4], [0, 5, 9]),
-    (10, [3, 3, 4], [0, 3, 6])
+    (50, 2, [3, 6, 4, 4], None),
+    (50, 2, None, [0, 6, 5, 12]),
+    (100, 2,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 3,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (5, 2, [3, 2, 4], [0, 5, 9]),
+    (10, 2,  [3, 3, 4], [0, 3, 6]),
+    (10, 3,  [3, 3, 4], [0, 3, 6]),
+    (8, 2, [2, 3], [0, 2]),
+    (8, 3, [2, 3], [0, 2]),
+    (8, 2, [3], [5]),
+    (8, 3, [3], [5]),
+    (8, 2, [2, 3], [0, 5]),
+    (8, 3, [2, 3], [0, 5]),
+    (8, 2, [2, 3], [3, 5]),
+    (8, 3, [2, 3], [3, 5]),
+    (8, 2, [3], [2]),
+    (8, 3, [3], [2]),
 ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('n_feats, feat_enc_dim, start_idx', sum_categories_inputs)
-def test_sum_categories(n_feats, feat_enc_dim, start_idx):
+@pytest.mark.parametrize('n_feats, ndim, feat_enc_dim, start_idx', sum_categories_inputs)
+def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     """
-    Tests if summing the columns corresponding to categorical
-    variables into one variable works properly.
+    Tests if summing the columns corresponding to categorical variables into one variable works properly.
     """
 
     # create inputs to feed the function
-    X = get_random_matrix(n_cols=n_feats)
+    if ndim == 2:
+        X = get_random_matrix(n_cols=n_feats)
+    else:
+        X = np.stack([get_random_matrix(n_rows=n_feats, n_cols=n_feats) for _ in range(2)])
 
     # check a value correct is raised if start indices or
     # encoding lengths are not provided
@@ -311,12 +326,35 @@ def test_sum_categories(n_feats, feat_enc_dim, start_idx):
     # check that if inputs are correct, we retrieve the sum in the correct col
     else:
         summ_X = sum_categories(X, start_idx, feat_enc_dim)
-        assert summ_X.shape[1] == X.shape[1] - sum(feat_enc_dim) + len(feat_enc_dim)
+        assert summ_X.shape[-1] == X.shape[-1] - sum(feat_enc_dim) + len(feat_enc_dim)
+        if ndim == 3:
+            assert summ_X.shape[-2] == X.shape[-2] - sum(feat_enc_dim) + len(feat_enc_dim)
         for i, enc_dim in enumerate(feat_enc_dim):
             # work out the index of the summed column in the returned matrix
             sum_col_idx = start_idx[i] - sum(feat_enc_dim[:i]) + len(feat_enc_dim[:i])
-            diff = summ_X[:, sum_col_idx] - np.sum(X[:, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
-            assert diff.sum() == 0.0
+            expected = summ_X[..., sum_col_idx]
+            if ndim == 2:
+                actual = np.sum(X[:, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
+            else:
+                # here we compute the expected result naively ...
+                actual = []
+                for j in range(X.shape[0]):
+                    tmp = np.sum(X[j, :, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
+                    res = []
+                    tmp_idx = 0
+                    for s, nelem in zip(start_idx, feat_enc_dim):
+                        res.extend(tuple(tmp[tmp_idx:s]))
+                        res.append(np.sum(tmp[s:s + nelem]))
+                        tmp_idx += (s - tmp_idx + nelem)
+                    if tmp_idx < len(tmp):
+                        res += list(tmp[tmp_idx:])
+                    res = np.array(res)
+                    actual.append(res)
+
+                actual = np.stack(actual)
+                assert actual.shape == expected.shape
+            diff = expected - actual
+            assert np.isclose(diff.sum(), 0.0)
 
 
 # each tuple in group_settings controls whether the

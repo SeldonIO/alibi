@@ -751,24 +751,31 @@ class KernelShap(Explainer, FitMixin):
                           expected_value: List[float],
                           **kwargs) -> Explanation:
         """
-        Create an explanation object.
+        Create an explanation object.  If output summarisation is required and all inputs necessary for this operation
+        are passed, the raw shap values are summed first so that a single shap value is returned for each categorical
+        variable, as opposed to a shap value per dimension of categorical variable encoding.
 
         Parameters
         ----------
         X
-            Array of instances to be explained.
+            Instances to be explained.
         shap_values
             Each entry is a n_instances x n_features array, and the length of the list equals the dimensionality
             of the predictor output. The rows of each array correspond to the shap values for the instances with
-            the corresponding row index in X
+            the corresponding row index in X. The length of the list equals the number of model outputs.
         expected_value
-            A list containing the expected value of the prediction for each class.
+            A list containing the expected value of the prediction for each class. Its length should be equal to that of
+            `shap_values`.
 
         Returns
         -------
-            An explanation containing a meta field with basic classifier metadata.
-
+            An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
+            field containing additional data. See usage examples in the method overview for details.
         """
+
+        # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
+        # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
+        #  explain in?
 
         cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
         cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
@@ -780,10 +787,6 @@ class KernelShap(Explainer, FitMixin):
             for shap_array in shap_values:
                 summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
             shap_values = summarised_shap
-
-        # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
-        # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
-        #  explain in?
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
         if self.task != 'regression':

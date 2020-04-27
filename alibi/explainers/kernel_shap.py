@@ -146,7 +146,7 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
             if last_idx < s_idx - 1:
                 slices.extend(tuple(range(last_idx + 1, s_idx)))
                 last_idx += (s_idx - last_idx - 2)
-            # handle contiguous slices 
+            # handle contiguous slices
             if s_idx == last_idx:
                 slices.append(s_idx + d)
             else:
@@ -815,7 +815,6 @@ class KernelShap(Explainer, FitMixin):
             instances=X,
             importances=importances
         )
-        
         self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

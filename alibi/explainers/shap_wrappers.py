@@ -1010,7 +1010,7 @@ class TreeShap(Explainer, FitMixin):
                   "'auto' which will default to {} samples!"
             logger.warning(msg.format(background_data.shape[0], TREE_SHAP_BACKGROUND_WARNING_THRESHOLD))
 
-    def fit(self,
+    def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,

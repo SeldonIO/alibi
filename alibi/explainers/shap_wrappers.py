@@ -17,7 +17,7 @@ from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple, Any, 
 
 
 if TYPE_CHECKING:
-    import catboost
+    import catboost  # noqa F401
 
 logger = logging.getLogger(__name__)
 
@@ -152,7 +152,7 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
             if last_idx < s_idx - 1:
                 slices.extend(tuple(range(last_idx + 1, s_idx)))
                 last_idx += (s_idx - last_idx - 2)
-            # handle contiguous slices 
+            # handle contiguous slices
             if s_idx == last_idx:
                 slices.append(s_idx + d)
             else:
@@ -822,7 +822,6 @@ class KernelShap(Explainer, FitMixin):
             instances=X,
             importances=importances
         )
-        
         self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
@@ -922,7 +921,7 @@ class TreeShap(Explainer, FitMixin):
             labels, y, are provided to the fit method. If the objective is squared error, then the transformation
             (output - y)*(output -y) is applied. For binary cross-entropy objective, the transformation
             :math:`log(1 + exp(output)) - y * output` with  :math:`y \in \{0, 1\}`. Currently only binary cross-entropy
-            and squared error losses can be explained.
+            and squared error losses can be explained. 
 
         feature_names
             Used to compute the `names` field, which appears as a key in each of the values of the `importances`
@@ -942,7 +941,7 @@ class TreeShap(Explainer, FitMixin):
         consult this  resource_.
 
         .. _resource: https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
-    """
+    """ # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_TREE_SHAP))
         if model_output in TREE_SHAP_MODEL_OUTPUT:
@@ -1075,7 +1074,7 @@ class TreeShap(Explainer, FitMixin):
 
     def _summarise_background(self,
                               background_data: Union[pd.DataFrame, np.ndarray],
-                              n_background_samples: int) -> Union[np.ndarray,pd.DataFrame, shap.common.DenseData]:
+                              n_background_samples: int) -> Union[np.ndarray, pd.DataFrame, shap.common.DenseData]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost.
 
@@ -1138,8 +1137,8 @@ class TreeShap(Explainer, FitMixin):
             Explain the output of a subset of the first `tree_limit` trees in an ensamble model.
         summarise_result
             This should be set to True only when some of the columns in `X` represent encoded dimensions of a
-            categorical variable and one single shap value per categorical variable is desired. Both `cat_vars_start_idx`
-            and `cat_vars_enc_dim` should be specified as detailed below to allow this.
+            categorical variable and one single shap value per categorical variable is desired. Both
+            `cat_vars_start_idx` and `cat_vars_enc_dim` should be specified as detailed below to allow this.
         cat_vars_start_idx
             The start indices of the categorical variables
         cat_vars_enc_dim
@@ -1326,8 +1325,8 @@ class TreeShap(Explainer, FitMixin):
 
         Returns
         -------
-            An explanation object containing the shap values and prediction in the `data` field, along with a `meta` field
-            containing additional data. See usage examples in the method overview for details.
+            An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
+            field containing additional data. See usage examples in the method overview for details.
         """
         y = kwargs.get('y')
         if not y:

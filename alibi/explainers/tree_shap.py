@@ -7,7 +7,8 @@ import pandas as pd
 
 from alibi.api.defaults import DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
-from typing import Any, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
+from functools import partial
+from typing import Any, Dict, List, Optional, Union, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import catboost
@@ -20,14 +21,18 @@ TREE_SHAP_PARAMS = [
     'model_output',
     'summarise_background',
     'summarise_result',
+    'approximate',
+    'interactions',
+    'explain_loss',
     'kwargs'
 ]
 
 
-TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 300
+TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 500
+TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss']
 
-# TODO: Add support for pyspark if necessary.
-
+# TODO: Look into pyspark support requirements if requested
+# TODO: catboost.Pool not supported for fit stage (due to summarisation) but can do if there is a user need
 
 def rank_by_importance(shap_values: List[np.ndarray],
                        feature_names: Union[List[str], Tuple[str], None] = None) -> Dict:
@@ -93,11 +98,12 @@ def rank_by_importance(shap_values: List[np.ndarray],
     return importances
 
 
-def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
+def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tuple[int]):
     """
     For each entry in start_idx, the function sums the following k columns where k is the
     corresponding entry in the enc_feat_dim sequence. The columns whose indices are not in
     start_idx are left unchanged.
+
     Parameters
     ----------
     values
@@ -106,6 +112,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         The start indices of the columns to be summed.
     enc_feat_dim
         The number of columns to be summed, one for each start index.
+
     Returns
     -------
     new_values
@@ -119,32 +126,57 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         raise ValueError("The lengths of the sequences of start indices and encodings must be equal!")
 
     n_encoded_levels = sum(enc_feat_dim)
-    if n_encoded_levels > values.shape[1]:
+    if n_encoded_levels > values.shape[-1]:
         raise ValueError("The sum of the encoded features dimensions exceeds data dimension!")
 
-    new_values = np.zeros((values.shape[0], values.shape[1] - n_encoded_levels + len(enc_feat_dim)))
+    def _get_slices(start: Tuple, dim: Tuple, arr_trailing_dim: int) -> List[int]:
+        """
+        Given start indices, encoding dimensions and the array trailing shape, this function returns
+        an array where contiguous numbers are slices. This array is used to reduce along an axis
+        only the slices `slice(start[i], start[i]+dim[i], 1)` from a tensor and leave all other slices
+        unchanged.
+        """
 
-    # find all the other indices of categorical columns other than those specified
-    cat_cols = []
-    for start, feat_dim in zip(start_idx, enc_feat_dim):
-        for i in range(1, feat_dim):
-            cat_cols.append(start + i)
+        slices = []  # type: List[int]
+        # first columns may not be reduced
+        if start[0] > 0:
+            slices.extend(tuple(range(start[0])))
 
-    # sum the columns corresponding to a categorical variable
-    enc_idx, new_vals_idx = 0, 0
-    for idx in range(values.shape[1]):
-        if idx in start_idx:
-            feat_dim = enc_feat_dim[enc_idx]
-            enc_idx += 1
-            stop_idx = idx + feat_dim
-            new_values[:, new_vals_idx] = np.sum(values[:, idx:stop_idx], axis=1)
-        elif idx in cat_cols:
-            continue
-        else:
-            new_values[:, new_vals_idx] = values[:, idx]
-        new_vals_idx += 1
+        # add all slices to reduce
+        slices.extend([start[0], start[0] + dim[0]])
+        for s_idx, d in zip(start[1:], dim[1:]):
+            last_idx = slices[-1]
+            # some columns might not be reduced
+            if last_idx < s_idx - 1:
+                slices.extend(tuple(range(last_idx + 1, s_idx)))
+                last_idx += (s_idx - last_idx - 2)
+            # handle contiguous slices
+            if s_idx == last_idx:
+                slices.append(s_idx + d)
+            else:
+                slices.extend((s_idx, s_idx + d))
 
-    return new_values
+        # avoid index error
+        if start[-1] + dim[-1] == arr_trailing_dim:
+            slices.pop()
+            return slices
+
+        # last few columns may not be reduced
+        last_idx = slices[-1]
+        if last_idx < arr_trailing_dim:
+            slices.extend(tuple(range(last_idx + 1, arr_trailing_dim)))
+
+        return slices
+
+    def _reduction(arr, axis, indices=None):
+        return np.add.reduceat(arr, indices, axis)
+
+    # create array of slices to be reduced
+    slices = _get_slices(start_idx, enc_feat_dim, values.shape[-1])
+    if len(values.shape) == 3:
+        reduction = partial(_reduction, indices=slices)
+        return np.apply_over_axes(reduction, values, axes=(2, 1))
+    return np.add.reduceat(values, slices, axis=1)
 
 
 class TreeShap(Explainer, FitMixin):
@@ -160,9 +192,8 @@ class TreeShap(Explainer, FitMixin):
         A wrapper around the `shap.TreeExplainer` class. It adds the following functionality:
             1. Input summarisation options to allow control over background dataset size and hence runtime
             2. Output summarisation for sklearn models with one-hot encoded categorical variables
-
-
-        # TODO: ADD LINK TO DOCS HERE ...
+        Users are strongly encouraged to familiarise themselves with the algorithm by reading the method
+        overview in the documentation to understand the different explanation algorithms offered by TreeShap.
 
         Parameters
         ----------
@@ -214,23 +245,19 @@ class TreeShap(Explainer, FitMixin):
         .. _resource: https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
     """
 
-    # TODO: Default to something sensible and warn user if they don't call fit and pass something crazy in
-    #    model_output
-    # TODO: Default to model output raw if the user provides loss but no labels
-    # TODO: Define meta, data and params
-    # TODO: Implement summarisation
-    # TODO: Default to `raw` if model_output not as expected
-    # TODO: deal with interactions (should be kwarg to explain)
+    # TODO: Define meta, data and params. Update all accordingly
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_TREE_SHAP))
-
-        self.model_output = model_output
+        if model_output in TREE_SHAP_MODEL_OUTPUT:
+            self.model_output = model_output
+        else:
+            logger.warning(f"Unrecognised model output {model_output}. Defaulting to model_output='raw'")
+            self.model_output = 'raw'
         self.predictor = predictor
         self.feature_names = feature_names if feature_names else []
         self.categorical_names = categorical_names if categorical_names else {}
         self.task = task
         self.seed = seed
-        self._update_metadata({"task": self.task})
 
         # sums up shap values for each level of categorical var
         self.summarise_result = False
@@ -239,7 +266,7 @@ class TreeShap(Explainer, FitMixin):
         # checks if it has been fitted:
         self._fitted = False
 
-    def _summarise_background(self) -> np.ndarray: pass
+        self._update_metadata({"task": self.task})
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
@@ -265,22 +292,36 @@ class TreeShap(Explainer, FitMixin):
         else:
             self.meta.update(data_dict)
 
+    @staticmethod
+    def _check_inputs(background_data: Union[pd.DataFrame, np.ndarray]) -> None:
+        # TODO: Docstring
+        if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
+            background_data = np.atleast_2d(background_data)
+
+        if background_data.shape[0] > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+            msg = "Large datasets may cause slow runtimes for shap. The background dataset " \
+                  "provided has {} records. If the runtime is too slow, consider passing a " \
+                  "subset or allowing the algorithm to automatically summarize the data by " \
+                  "setting the summarise_background=True or setting summarise_background to " \
+                  "'auto' which will default to {} samples!"
+            logger.warning(msg.format(background_data.shape[0], TREE_SHAP_BACKGROUND_WARNING_THRESHOLD))
+
     def fit(self,
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,
             **kwargs) -> "TreeShap":
 
-        # TODO: we could support fitting if catboost.Pool was passed but that goes in
-        # docs for ppl to raise issues if they need it
         np.random.seed(self.seed)
 
         self._fitted = True
         if isinstance(background_data, pd.DataFrame):
             self.feature_names = list(background_data.columns)
-        # TODO: summarisation here
-        # TODO: check inputs wrt to model output type, and whether data is passed or not.
-        #  This check should override model output type
+        if summarise_background:
+            if isinstance(summarise_background, str):
+                n_samples = background_data.shape[0]
+                n_background_samples = min(n_samples, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD)
+            background_data = self._summarise_background(background_data, n_background_samples)
         self.background_data = background_data
         self._explainer = shap.TreeExplainer(
             self.predictor,
@@ -288,16 +329,39 @@ class TreeShap(Explainer, FitMixin):
             model_output=self.model_output,
         )  # type: shap.TreeExplainer
         self.expected_value = self._explainer.expected_value
+        if not self._explainer.model.num_outputs:
+            logger.warning(
+                "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
+                "as opposed to a classification label!"
+            )
 
         # TODO: Update metadata here
         # update metadata
         params = {
-            'kwargs': kwargs,
             'summarise_background': self.summarise_background,
+            'kwargs': kwargs,
         }
         self._update_metadata(params, params=True)
 
         return self
+
+    def _summarise_background(self,
+                              background_data: Union[pd.DataFrame, np.ndarray],
+                              n_background_samples: int) -> Union[np.ndarray, shap.common.DenseData]:
+        # TODO: Docstring
+
+        if background_data.ndim == 1 or background_data.shape[0] == 1:
+            msg = "Received option to summarise the data but the background_data object only had " \
+                  "one record with {} features. No summarisation will take place!"
+            logger.warning(msg.format(len(background_data)))
+            return background_data
+
+        self.summarise_background = True
+
+        if self.categorical_names:
+            return shap.sample(background_data, nsamples=n_background_samples)
+        else:
+            return shap.kmeans(background_data, n_background_samples)
 
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, catboost.Pool],
@@ -374,19 +438,34 @@ class TreeShap(Explainer, FitMixin):
                 approximate=self.approximate,
                 check_additivity=check_additivity,
             )
-        expected_value  = self.expected_value
+        expected_value = self.expected_value
         if isinstance(shap_output, np.ndarray):
             shap_output = [shap_output]
         if isinstance(expected_value, float):
             expected_value = [self.expected_value]
-        self._check_output_summarisation(cat_vars_start_idx, cat_vars_enc_dim)
-        if self.summarise_result:
-            pass
-        # TODO: Continue here
 
+        explanation = self.build_explanation(
+            X,
+            shap_output,
+            expected_value,
+            summarise_result=summarise_result,
+            cat_vars_start_idx=cat_vars_start_idx,
+            cat_vars_enc_dim=cat_vars_enc_dim,
+        )
+
+        self._update_metadata(
+            {'interactions': self.interactions,
+             'explain_loss': True if y is not None else False,
+             'approximate': self.approximate,
+             },
+            params=True,
+        )
+
+        return explanation
 
     def _check_interactions(self, approximate: bool, background_data, y: Optional[np.ndarray]) -> None:
-
+        # TODO: Docstring
+        self.approximate = approximate
         if approximate:
             logger.warning("Approximate shap values are not defined for shap interaction values, "
                            "ignoring argument!")
@@ -410,7 +489,7 @@ class TreeShap(Explainer, FitMixin):
                                background_data: Union[np.ndarray, pd.DataFrame, None],
                                model_output: str,
                                y: Optional[np.ndarray]) -> None:
-
+        # TODO: Docstring
         # check settings are correct for loss value explanations
         if y is not None:
             if background_data is None:
@@ -420,15 +499,18 @@ class TreeShap(Explainer, FitMixin):
             if model_output != 'log_loss':
                 raise ValueError(
                     "Model output should be set to 'log_loss' in order to explain loss values. Re-instantiate the model"
-                    "with the option `model_output='log_loss' passed to the constructor.`"
+                    "with the option `model_output='log_loss' passed to the constructor, call  "
+                    "fit(background_data=my_data) and then explain with the default arguments."
                 )
         # check model output data is compatible with background data setting
         else:
             if background_data is None:
+                # TODO: @ Janis: Technically, we can catch this error in fit, set model_output='raw' and warn
+                #  Depending on what model they actually use, it might work just fine but not guaranteed.
                 if model_output != 'raw':
                     raise NotImplementedError(
                         f"Without a background dataset, only raw output can be explained currently. "
-                        f"To explain output {model_output}, select an background dataset, re-instanstiate the "
+                        f"To explain output {model_output}, select a background dataset, re-instanstiate the "
                         f"explainer with the desired model output option and then call fit(background_data=my_data)!"
                     )
 
@@ -436,16 +518,15 @@ class TreeShap(Explainer, FitMixin):
                           X: Union[np.ndarray, pd.DataFrame, catboost.Pool],
                           shap_output: List[np.ndarray],
                           expected_value: List[float],
-                          kwargs) -> Explanation:
+                          **kwargs) -> Explanation:
 
         # TODO: In docstring, explain what shap_output can be
-
         y = kwargs.get('y')
         if not y:
             y = np.array([])
-
-        if isinstance(X, catboost.Pool):
-            X = X.get_features()
+        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
+        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
+        summarise_result = kwargs.get('summarise_result', False)  # type: bool
 
         # check if interactions were computed
         if len(shap_output[0].shape) == 3:
@@ -453,8 +534,22 @@ class TreeShap(Explainer, FitMixin):
             # shap values are the sum over all shap interaction values for each instance
             shap_values = [interactions.sum(axis=2) for interactions in shap_output]
         else:
-            shap_interaction_values = np.array([])
+            shap_interaction_values = [np.array([])]
             shap_values = shap_output
+
+        self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
+        if self.summarise_result:
+            summarised_shap = []
+            for shap_array in shap_values:
+                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
+            shap_values = summarised_shap
+            if shap_interaction_values[0].size != 0:
+                summarised_shap_interactions = []
+                for shap_array in shap_interaction_values:
+                    summarised_shap_interactions.append(
+                        sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim)
+                    )
+                shap_interaction_values = summarised_shap_interactions
 
         raw_predictions, loss = [], []
         # raw output of a regression or classification task. Will not work for pyspark.
@@ -470,6 +565,10 @@ class TreeShap(Explainer, FitMixin):
             argmax_pred = []
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
+        if isinstance(X, catboost.Pool):
+            X = X.get_features()
+
+        # output explanation dictionary
         data = copy.deepcopy(DEFAULT_DATA_TREE_SHAP)
         data.update(
             shap_values=shap_values,
@@ -488,10 +587,29 @@ class TreeShap(Explainer, FitMixin):
             importances=importances,
         )
 
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
+
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-    def _check_output_summarisation(self, cat_var_start_idx, cat_var_enc_dim):
-        if not cat_var_start_idx or cat_var_enc_dim:
+    def _check_result_summarisation(self,
+                                    summarise_result: bool,
+                                    cat_vars_start_idx: Tuple[int],
+                                    cat_vars_enc_dim: Tuple[int]):
+        """
+        This function checks whether the result summarisation option is correct given the inputs and explainer setup.
+
+        Parameters
+        ----------
+        summarise_result:
+            See `explain` documentation.
+        cat_vars_start_idx:
+            See `explain` documentation.
+        cat_vars_enc_dim:
+            See `explain` documentation.
+        """
+
+        self.summarise_result = summarise_result
+        if not cat_vars_start_idx or cat_vars_enc_dim:
             logger.warning(
                 "Results cannot be summarised as either the"
                 "start indices for categorical variables or"

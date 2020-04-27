@@ -813,6 +813,8 @@ class KernelShap(Explainer, FitMixin):
             instances=X,
             importances=importances
         )
+        
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
@@ -849,5 +851,3 @@ class KernelShap(Explainer, FitMixin):
                     "Summarisation is thus not necessary!"
                 )
                 self.summarise_result = False
-
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True)

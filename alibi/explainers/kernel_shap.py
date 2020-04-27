@@ -133,37 +133,36 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
         unchanged.
         """
 
-        idx = []  # type: List[int]
+        slices = []  # type: List[int]
         # first columns may not be reduced
         if start[0] > 0:
-            idx.extend(tuple(range(start[0])))
+            slices.extend(tuple(range(start[0])))
 
         # add all slices to reduce
-        idx.extend([start[0], start[0] + dim[0]])
+        slices.extend([start[0], start[0] + dim[0]])
         for s_idx, d in zip(start[1:], dim[1:]):
-            last_idx = idx[-1]
+            last_idx = slices[-1]
             # some columns might not be reduced
-            while last_idx < s_idx - 1:
-                last_idx += 1
-                idx.append(last_idx)
+            if last_idx < s_idx - 1:
+                slices.extend(tuple(range(last_idx + 1, s_idx)))
+                last_idx += (s_idx - last_idx - 2)
+            # handle contiguous slices 
             if s_idx == last_idx:
-                idx.append(s_idx + d)
+                slices.append(s_idx + d)
             else:
-                idx.extend((s_idx, s_idx + d))
+                slices.extend((s_idx, s_idx + d))
 
         # avoid index error
         if start[-1] + dim[-1] == arr_trailing_dim:
-            idx.pop()
-            return idx
+            slices.pop()
+            return slices
 
         # last few columns may not be reduced
-        last_idx = idx[-1]
+        last_idx = slices[-1]
         if last_idx < arr_trailing_dim:
-            while last_idx < arr_trailing_dim - 1:
-                last_idx += 1
-                idx.append(last_idx)
+            slices.extend(tuple(range(last_idx + 1, arr_trailing_dim)))
 
-        return idx
+        return slices
 
     def _reduction(arr, axis, indices=None):
         return np.add.reduceat(arr, indices, axis)

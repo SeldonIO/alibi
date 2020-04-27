@@ -340,17 +340,12 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
                 actual = []
                 for j in range(X.shape[0]):
                     tmp = np.sum(X[j, :, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
-                    slices, res = deque([]), []
+                    res = []
                     tmp_idx = 0
-                    for slice_s, nelem in zip(start_idx, feat_enc_dim):
-                        slices.append(range(slice_s, slice_s + nelem))
-                    while slices:
-                        this_slice = slices.popleft()
-                        while tmp_idx not in this_slice:
-                            res.append(tmp[tmp_idx])
-                            tmp_idx += 1
-                        res.append(np.sum(tmp[this_slice]))
-                        tmp_idx += len(this_slice)
+                    for s, nelem in zip(start_idx, feat_enc_dim):
+                        res.extend(tuple(tmp[tmp_idx:s]))
+                        res.append(np.sum(tmp[s:s + nelem]))
+                        tmp_idx += (s - tmp_idx + nelem)
                     if tmp_idx < len(tmp):
                         res += list(tmp[tmp_idx:])
                     res = np.array(res)

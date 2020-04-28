@@ -22,18 +22,25 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
                                end_point: np.ndarray,
                                target: Union[np.ndarray, list]) -> np.ndarray:
     """
+    Conputes convergence deltas for each datapoint. Convergence delta measures how close the sum of all attribution
+    is to the difference of the model outputs at the baseline and the model output at the data point.
 
     Parameters
     ----------
     forward_function
+        Tensorflow or keras model
     attributions
+        Attribution assigned by the integrated gradients method to each feature
     start_point
+        Baselines
     end_point
+        Data points
     target
+        Target class for which the gradients are calculated in case of classification models
 
     Returns
     -------
-
+        Covergence  deltas for each datapoint
     """
 
     assert end_point.shape[0] == attributions.shape[0], (
@@ -42,11 +49,10 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
             attributions.shape[0], end_point.shape[0]))
 
     def _sum_rows(inp):
+        input_str = string.ascii_lowercase[1: len(inp.shape)]
         if isinstance(inp, tf.Tensor):
-            input_str = string.ascii_lowercase[1: len(inp.shape)]
             sums = tf.einsum('a{}->a'.format(input_str), inp).numpy()
         elif isinstance(inp, np.ndarray):
-            input_str = string.ascii_lowercase[1: len(inp.shape)]
             sums = np.einsum('a{}->a'.format(input_str), inp)
         else:
             raise NotImplementedError('input must be a tf tensor or a np array')
@@ -66,15 +72,20 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
                  x: Union[tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
+    Returns the output of the forward function after target selection if the target is not None
 
     Parameters
     ----------
     forward_function
+        Tensorflow or keras model
     x
+        Input data point
     target
+        Target for which the gradients are calculated
 
     Returns
     -------
+        Model output after target selection
 
     """
     def _select_target(ps, ts):
@@ -98,15 +109,21 @@ def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.model
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
+    Calculate the gradients of the target class output (or the output if the model returns a scalar)
+    with respect of each input feature
 
     Parameters
     ----------
     forward_function
+        Tensorflwo or keras model
     x
+        Input data point
     target
+        Target for which the gradients are calculated
 
     Returns
     -------
+        Gradients for each input feature
 
     """
     with tf.GradientTape() as tape:
@@ -124,17 +141,26 @@ def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.model
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
+    Calculate the gradients of the target class output (or the output if the model returns a scalar)
+    with respect of each input feature
 
     Parameters
     ----------
     forward_function
+        Tensorflwo or keras model
     layer
+        Layer of the model respect to which the gradients are calculated
     orig_call
+        Original `call` method of the layer. This is necessary since the call method is modifyed by the function
+        in order to make the layer output 'visible' to the GradientTape
     x
+        Input data point
     target
+        Target for which the gradients are calculated
 
     Returns
     -------
+        Gradients for each element of layer
 
     """
     def watch_layer(layer, tape):
@@ -174,55 +200,50 @@ def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.model
 
 
 def _sum_integral_terms(step_sizes: list,
-                        grads: tf.Tensor) -> tf.Tensor:
+                        grads: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
     """
+    Sums the terms in the path integral with weights `step_sizes`
 
     Parameters
     ----------
     step_sizes
+        Weights in the path integral sum
     grads
+        Gradients to for each feature
 
     Returns
     -------
-
-    """
-    step_sizes = tf.convert_to_tensor(step_sizes)
-    input_str = string.ascii_lowercase[1: len(grads.shape)]
-    einstr = 'a,a{}->{}'.format(input_str, input_str)
-
-    return tf.einsum(einstr, step_sizes, grads)
-
-
-def _sum_integral_terms_np(step_sizes: list,
-                           grads: np.ndarray) -> np.ndarray:
-    """
-
-    Parameters
-    ----------
-    step_sizes
-    grads
-
-    Returns
-    -------
+        Sums of the gradients along the chosen path
 
     """
     input_str = string.ascii_lowercase[1: len(grads.shape)]
-    einstr = 'a,a{}->{}'.format(input_str, input_str)
-
-    return np.einsum(einstr, step_sizes, grads)
+    if isinstance(grads, tf.Tensor):
+        step_sizes = tf.convert_to_tensor(step_sizes)
+        einstr = 'a,a{}->{}'.format(input_str, input_str)
+        sums = tf.einsum(einstr, step_sizes, grads).numpy()
+    elif isinstance(grads, np.ndarray):
+        einstr = 'a,a{}->{}'.format(input_str, input_str)
+        sums = np.einsum(einstr, step_sizes, grads)
+    else:
+        raise NotImplementedError('input must be a tf tensor or a np array')
+    return sums
 
 
 def _format_input_baseline(X: np.ndarray,
                            baselines: Union[None, int, float, np.ndarray]) -> Union[Tuple, np.ndarray]:
     """
+    Formats inputs and baselines
 
     Parameters
     ----------
     X
+        Input data points
     baselines
+        Baselines
 
     Returns
     -------
+        Formatted inputs and baselines
 
     """
     if baselines is None:
@@ -240,14 +261,18 @@ def _format_input_baseline(X: np.ndarray,
 def _format_target(target: Union[None, int, list, np.ndarray],
                    nb_samples: int) -> list:
     """
+    Formats targets
 
     Parameters
     ----------
     target
+        Original target
     nb_samples
+        Number of samples in the batch
 
     Returns
     -------
+        Formatted target
 
     """
     if target is not None:
@@ -270,15 +295,30 @@ class IntegratedGradients(Explainer):
                  return_convergence_delta: bool = False,
                  return_predictions: bool = False):
         """
+        The class IntegratedGradients provide an implementation of the integrated gradients method
+        for Tensorflow and Keras models
+
+        For details about the integrated gradients method see the original paper:
+        https://arxiv.org/abs/1703.01365
+
 
         Parameters
         ----------
         forward_function
+            Tensorflow or Keras model
         layer
+            Layer respect to which the gradients are calculated.
+            If not provided, the gradients are calculated respect to the input
         n_steps
+            Number of step in the path integral approximation from the baseline to the input instance
         method
+            Method for the integral approximation. Methods available:
+            "riemann_left", "riemann_right", "riemann_middle", "riemann_trapezoid", "gausslegendre"
         return_convergence_delta
+            If set to True, convergence deltas for all examples are returned in the Explanation object
         return_predictions
+            If set to true, the original predictions for all examples are returned in the Explanation object
+
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
         params = locals()
@@ -303,13 +343,21 @@ class IntegratedGradients(Explainer):
         Parameters
         ----------
         X
+            Instance for which integrated gradients attribution are computed
         baselines
+            Baselines (start point of the path integral) for each instance. Must have the same shape of X.
+            If not provided, all features values for the baselines are set to 0
         features_names
+            Names of each features (optional)
         target
+            Target class for which the gradients are computed. They must be provided if the model output
+            dimension is higher than 1
         internal_batch_size
+            Bach size for the internal batching
 
         Returns
         -------
+            Explanation object including meta data and integrated gradients attributions for each feature
 
         """
         if not tf.executing_eagerly():
@@ -320,43 +368,44 @@ class IntegratedGradients(Explainer):
 
         nb_samples = len(X)
 
+        # format and check inputs and targets
         X, baselines = _format_input_baseline(X, baselines)
         target = _format_target(target, nb_samples)
         if target is not None:
             assert len(target) == nb_samples
 
+        # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
 
+        # construct paths and prepare batches
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
         if target is not None:
             target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
             paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
         else:
             paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(internal_batch_size)
-
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
-        batches = []
+        # fix orginal call method for layer
         if self.layer is not None:
             orig_call = self.layer.call
         else:
             orig_call = None
 
+        # calculate gradients for batches
+        batches = []
         for path in paths_ds:
 
-            # calculate gradients for batch
             if target is not None:
                 paths_b, target_b = path
-                if self.layer is not None:
-                    grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
-                else:
-                    grads_b = _gradients_input(self.forward_function, paths_b, target_b)
             else:
-                if self.layer is not None:
-                    grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, path, None)
-                else:
-                    grads_b = _gradients_input(self.forward_function, path, None)
+                paths_b, target_b = path, None
+
+            if self.layer is not None:
+                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+            else:
+                grads_b = _gradients_input(self.forward_function, paths_b, target_b)
 
             batches.append(grads_b)
 
@@ -364,20 +413,22 @@ class IntegratedGradients(Explainer):
         grads = tf.concat(batches, 0)
         shape = grads.shape[1:]
 
+        # invert sign of gradients for target 0 examples if classifier returns only positive class probability
         if self.forward_function.output_shape[1] == 1 and target is not None:
             sign = 2 * target_paths - 1
             grads = np.array([s * g for s, g in zip(sign, grads)])
 
         grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
 
-        # sum integral terms
-        sum_int = _sum_integral_terms_np(step_sizes, grads.numpy())
+        # sum integral terms and scale attributions
+        sum_int = _sum_integral_terms(step_sizes, grads.numpy())
         if self.layer is not None:
             norm = (self.layer(X) - self.layer(baselines)).numpy()
         else:
             norm = X - baselines
         attr = norm * sum_int
 
+        # Build explanation
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data['X'] = X
         data['baselines'] = baselines

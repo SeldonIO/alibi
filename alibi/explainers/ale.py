@@ -45,29 +45,36 @@ class ALE(Explainer):
 
         feature_values = []
         ale_values = []
+        ale0 = []
         feature_deciles = []
 
         # TODO: use joblib to paralelise?
         for feature in range(n_features):
-            q, ale = ale_num(self.predictor,
-                             X=X,
-                             feature=feature,
-                             min_bin_points=min_bin_points)
+            q, ale, a0 = ale_num(self.predictor,
+                                 X=X,
+                                 feature=feature,
+                                 min_bin_points=min_bin_points)
             deciles = get_quantiles(X[:, feature])
 
             feature_values.append(q)
             ale_values.append(ale)
+            ale0.append(a0)
             feature_deciles.append(deciles)
 
+        constant_value = self.predictor(X).mean()
         # TODO: an ALE plot requires a rugplot to gauge density of instances in each
         # feature region, should we calculate it here and return as part of the explanation
         # for further visualisation?
         return self.build_explanation(ale_values=ale_values,
+                                      ale0=ale0,
+                                      constant_value=constant_value,
                                       feature_values=feature_values,
                                       feature_deciles=feature_deciles)
 
     def build_explanation(self,
                           ale_values: List[np.ndarray],
+                          ale0: List[np.ndarray],
+                          constant_value: float,
                           feature_values: List[np.ndarray],
                           feature_deciles: List[np.ndarray]) -> Explanation:
         # TODO decide on the format for these lists of arrays
@@ -76,6 +83,8 @@ class ALE(Explainer):
 
         data = copy.deepcopy(DEFAULT_DATA_ALE)
         data.update(ale_values=ale_values,
+                    ale0=ale0,
+                    constant_value=constant_value,
                     feature_values=feature_values,
                     feature_names=self.feature_names,
                     target_names=self.target_names,
@@ -213,8 +222,6 @@ def ale_num(
     indices = np.searchsorted(q, X[:, feature], side="left")
     indices[indices == 0] = 1  # put the smallest data point in the first interval
     interval_n = np.bincount(indices)  # number of points in each interval
-    # nonzero_interval_ix = np.argwhere(interval_n != 0).squeeze()
-    # nonzero_intervals = np.atleast_1d(interval_n[nonzero_interval_ix])
 
     # predictions for the upper and lower ranges of intervals
     z_low = X.copy()
@@ -231,19 +238,7 @@ def ale_num(
     concat = np.column_stack((p_deltas, indices))
     df = pd.DataFrame(concat)
 
-    # append dummy zero rows for intervals with no data points (to ensure lengths of vectors are consistent)
-    # empty_intervals = np.argwhere(interval_n==0).reshape(-1, 1)
-    # to_append = np.hstack((np.zeros((len(empty_intervals), df.shape[1] - 1)), empty_intervals))
-    # df = df.append(pd.DataFrame(to_append), ignore_index=True)
-
-    # TODO need to linearly interpolate instead of appending dummy zeros
-    # TODO: alternatively, prune entries in q with no data points
-
     avg_p_deltas = df.groupby(df.shape[1] - 1).mean().values  # groupby indices
-
-    # alternative numpy implementation (for 1-dimensional output only)
-    # counts = np.bincount(indices, p_deltas)
-    # avg_p_deltas = counts[1:] / interval_n[1:]
 
     # accummulate over intervals
     accum_p_deltas = np.cumsum(avg_p_deltas, axis=0)
@@ -252,17 +247,22 @@ def ale_num(
     zeros = np.zeros((1, accum_p_deltas.shape[1]))
     accum_p_deltas = np.insert(accum_p_deltas, 0, zeros, axis=0)
 
-    # mean effect
+    # mean effect R's `ALEPlot` and `iml` version (approximation per interval)
     ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * interval_n[1:, np.newaxis]) \
                .sum(axis=0) / interval_n.sum()
+
+    # crude approximation (assume datapoints on interval endpoints)
+    # ale0 = accum_p_deltas.mean(axis=0)
+
+    # exact marginalisation
+    # exact_ale = accum_p_deltas[indices - 1] + ((X[:, feature] - q[indices])) / (q[indices] - q[indices - 1]) * (
+    #            accum_p_deltas[indices] - accum_p_deltas[indices - 1])
+    # ale0 = exact_ale.mean()
 
     # center
     ale = accum_p_deltas - ale0
 
-    # refine q
-    # q = np.hstack((q[[0]], q[nonzero_interval_ix]))
-
-    return q, ale
+    return q, ale, ale0
 
 
 @no_type_check
@@ -271,6 +271,7 @@ def plot_ale(exp: Explanation,
              targets: Union[List[Union[int, str]], str] = 'all',
              n_cols: int = 3,
              sharey: str = 'all',
+             constant: bool = False,
              ax: Union['plt.Axes', np.ndarray] = None,
              line_kw: dict = None,
              fig_kw: dict = None) -> 'np.ndarray':
@@ -339,6 +340,7 @@ def plot_ale(exp: Explanation,
         _ = _plot_one_ale_num(exp=exp,
                               feature=feature,
                               targets=targets,
+                              constant=constant,
                               ax=ax_ravel,
                               legend=not ix,  # only one legend
                               line_kw=line_kw)
@@ -360,6 +362,7 @@ def plot_ale(exp: Explanation,
 def _plot_one_ale_num(exp: Explanation,
                       feature: int,
                       targets: List[int],
+                      constant: bool = False,
                       ax: 'plt.Axes' = None,
                       legend: bool = True,
                       line_kw: dict = None) -> 'plt.Axes':
@@ -372,7 +375,8 @@ def _plot_one_ale_num(exp: Explanation,
     # add zero baseline
     ax.axhline(0, color='grey')
 
-    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets], **line_kw)
+    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets] + \
+                    constant * exp.constant_value, **line_kw)
 
     # add decile markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)

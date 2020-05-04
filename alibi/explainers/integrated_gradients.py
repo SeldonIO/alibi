@@ -327,6 +327,7 @@ class IntegratedGradients(Explainer):
         self.meta['params'].update(params)
 
         self.forward_function = forward_function
+        self.input_dtype = self.forward_function.input.dtype
         self.layer = layer
         self.n_steps = n_steps
         self.method = method
@@ -350,8 +351,8 @@ class IntegratedGradients(Explainer):
         features_names
             Names of each features (optional)
         target
-            Target class for which the gradients are computed. They must be provided if the model output
-            dimension is higher than 1
+            Target class for which the gradients are computed. It must be provided if the model output
+            dimension is higher than 1. For regressions model, target should not be provided
         internal_batch_size
             Bach size for the internal batching
 
@@ -362,7 +363,7 @@ class IntegratedGradients(Explainer):
         """
         if not tf.executing_eagerly():
             raise RuntimeError("""To run IntegratedGradients tensorflow must be executed eagerly.
-            To enable eager execution, add the following lines at the beninning of your script:
+            To enable eager execution, add the following lines at the beginning of your script:
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
 
@@ -398,9 +399,9 @@ class IntegratedGradients(Explainer):
         for path in paths_ds:
 
             if target is not None:
-                paths_b, target_b = path
+                paths_b, target_b = path.astype(self.input_dtype)
             else:
-                paths_b, target_b = path, None
+                paths_b, target_b = path.astype(self.input_dtype), None
 
             if self.layer is not None:
                 grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)

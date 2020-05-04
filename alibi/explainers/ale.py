@@ -292,6 +292,14 @@ def plot_ale(exp: Explanation,
 
     if targets == 'all':
         targets = range(0, len(exp.target_names))
+    else:
+        for ix, t in enumerate(targets):
+            if isinstance(t, str):
+                try:
+                    t = np.argwhere(exp.target_names == t).item()
+                except ValueError:
+                    raise ValueError(f"Target name {t} does not exist.")
+            targets[ix] = t
 
     # make axes
     if ax is None:

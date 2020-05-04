@@ -129,6 +129,8 @@ Default ALE metadata.
 
 DEFAULT_DATA_ALE = {
     "ale_values": [],
+    "constant_value": None,
+    "ale0": [],
     "feature_values": [],
     "feature_names": None,
     "target_names": None,

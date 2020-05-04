@@ -193,7 +193,7 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
 
 def ale_num(
         predict: Callable, X: np.ndarray, feature: int, min_bin_points: int = 4
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
     Calculate the first order ALE for a numerical feature.
 

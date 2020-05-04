@@ -47,8 +47,12 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
         "Attributions and end_point must match on the first"
         " dimension but found attributions: {} and end_point: {}".format(
             attributions.shape[0], end_point.shape[0]))
+    
+    start_point = tf.convert_to_tensor(start_point, dtype=forward_function.input.dtype)
+    end_point = tf.convert_to_tensor(end_point, dtype=forward_function.input.dtype)
 
     def _sum_rows(inp):
+
         input_str = string.ascii_lowercase[1: len(inp.shape)]
         if isinstance(inp, tf.Tensor):
             sums = tf.einsum('a{}->a'.format(input_str), inp).numpy()
@@ -97,7 +101,7 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
         else:
             raise ValueError("target cannot be None if forwar_function output dimensions > 1")
         return ps
-
+    print(x, type(x))
     preds = forward_function(x)
     if forward_function.output_shape[1] > 1:
         preds = _select_target(preds, target)
@@ -279,7 +283,7 @@ def _format_target(target: Union[None, int, list, np.ndarray],
         if isinstance(target, int):
             target = [target for _ in range(nb_samples)]
         elif isinstance(target, list) or isinstance(target, np.ndarray):
-            pass
+            target = [t.astype(int) for t in target]
         else:
             raise NotImplementedError
 
@@ -366,7 +370,7 @@ class IntegratedGradients(Explainer):
             To enable eager execution, add the following lines at the beginning of your script:
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
-
+        print(target, type(target), type(target[0]))
         nb_samples = len(X)
 
         # format and check inputs and targets
@@ -399,14 +403,14 @@ class IntegratedGradients(Explainer):
         for path in paths_ds:
 
             if target is not None:
-                paths_b, target_b = path.astype(self.input_dtype)
+                paths_b, target_b = path
             else:
-                paths_b, target_b = path.astype(self.input_dtype), None
+                paths_b, target_b = path, None
 
             if self.layer is not None:
-                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, paths_b, target_b)
+                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call, tf.dtypes.cast(paths_b, self.input_dtype), target_b)
             else:
-                grads_b = _gradients_input(self.forward_function, paths_b, target_b)
+                grads_b = _gradients_input(self.forward_function, tf.dtypes.cast(paths_b, self.input_dtype), target_b)
 
             batches.append(grads_b)
 

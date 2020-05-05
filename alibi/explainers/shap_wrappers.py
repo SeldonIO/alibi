@@ -924,26 +924,32 @@ class TreeShap(Explainer, FitMixin):
         model_output
             Supported values are: 'raw', 'probability', 'probability_doubled', 'log_loss':
 
-            - 'raw': the raw model of the output, which varies by method, is explained. This option
+            - 'raw': the raw model of the output, which varies by task, is explained. This option
             should always be used if the `fit` is called without arguments. It should also be set to compute
             shap interaction values. For regression models it is the standard output, for binary classification
-            in XGBoost it is the log odds ratio.
+            in XGBoost it is the log odds ratio. 
             - 'probability': the probability output is explained. This option should only be used if `fit`
-            was called. If the tree outputs log-odds, then an inverse logit transformation is applied to
+            was called with the `background_data` argument set. The effect of specifying this parameter is that
+            the `shap` library will use this information to transform the shap values computed in margin space (aka 
+            using the raw output) to shap values that sum to the probability output by the model plus the model expected 
+            output probability. This requires knowledge of the type of output for `predictor` which is inferred by the
+            `shap` library from the model type (e.g., most sklearn models with exception of 
+            `sklearn.tree.DecisionTreeClassifier`, `"sklearn.ensemble.RandomForestClassifier`, 
+            `sklearn.ensemble.ExtraTreesClassifier` output logits) or on the basis of the mapping implemented in the 
+            `shap.TreeEnsemble` constructor. Only trees that output log odds and probabilities are supported currently.
             - 'probability_doubled': used for binary classification problem in situations where the model outputs
             the logits/probabilities for the positive class but shap values for both outcomes are desired. This
-            option should be used only if `fit` was called. In
+            option should be used only if `fit` was called with the `background_data` argument set. In
             this case the expected value for the negative class is 1 - expected_value for positive class and
             the shap values for the negative class are the negative values of the positive class shap values.
-            convert the model output to probabilities. The tree output is inferred either from the model type
-            (e.g., most sklearn models with exception of `sklearn.tree.DecisionTreeClassifier`,
-            `"sklearn.ensemble.RandomForestClassifier`, `sklearn.ensemble.ExtraTreesClassifier` output
-            logits) or on the basis of the mapping implemented in the `shap.TreeEnsemble` constructor.
-            - 'log_loss': logarithmic loss is explained. This option shoud be used only if `fit` was called and
-            labels, y, are provided to the fit method. If the objective is squared error, then the transformation
-            (output - y)*(output -y) is applied. For binary cross-entropy objective, the transformation
-            :math:`log(1 + exp(output)) - y * output` with  :math:`y \in \{0, 1\}`. Currently only binary cross-entropy
-            and squared error losses can be explained. 
+            As before, the explanation happens in the margin space, and the shap values are subsequently adjusted.
+            convert the model output to probabilities. The same considerations as for `probability` apply for this 
+            output type too. 
+            - 'log_loss': logarithmic loss is explained. This option shoud be used only if `fit` was called with the
+            `background_data` argument set and requires specifying labels, `y`, when calling `explain`.  If the 
+            objective is squared error, then the transformation (output - y)*(output -y) is applied. For binary 
+            cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with  
+            :math:`y \in \{0, 1\}`. Currently only binary cross-entropy and squared error losses can be explained. 
 
         feature_names
             Used to compute the `names` field, which appears as a key in each of the values of the `importances`
@@ -1252,8 +1258,6 @@ class TreeShap(Explainer, FitMixin):
                            "ignoring argument!")
             self.approximate = False
         if background_data is not None:
-            # TODO: @Janis: Here we can just disable the interactions, give a warning and just
-            #  return the shap values?
             raise NotImplementedError(
                 "Interactions can currently only be computed if no background dataset is specified. "
                 "Re-instantiate the explainer and run fit without any arguments to compute shap "
@@ -1272,7 +1276,7 @@ class TreeShap(Explainer, FitMixin):
                                y: Optional[np.ndarray]) -> None:
         """
         Checks whether the inputs to the `explain` method match the explainer setup if shap interaction values are
-        note required
+        not required
 
         Parameters
         ----------
@@ -1309,8 +1313,6 @@ class TreeShap(Explainer, FitMixin):
         # check model output data is compatible with background data setting
         else:
             if background_data is None:
-                # TODO: @ Janis: Technically, we can catch this error in fit, set model_output='raw' and warn
-                #  Depending on what model they actually use, it might work just fine but not guaranteed.
                 if model_output != 'raw':
                     raise NotImplementedError(
                         f"Without a background dataset, only raw output can be explained currently. "
@@ -1334,7 +1336,7 @@ class TreeShap(Explainer, FitMixin):
 
         Parameters
         ----------
-        X:
+        X
             Instances to be explained.
         shap_output:
             If `explain` is callled with `interactions=True` then the list contains tensors of dimensionality

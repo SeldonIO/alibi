@@ -12,7 +12,7 @@ import pandas as pd
 import sklearn
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
-from alibi.explainers.kernel_shap import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
+from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
 from copy import copy

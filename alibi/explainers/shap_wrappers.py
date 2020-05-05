@@ -37,7 +37,7 @@ KERNEL_SHAP_BACKGROUND_THRESHOLD = 300
 def rank_by_importance(shap_values: List[np.ndarray],
                        feature_names: Union[List[str], Tuple[str], None] = None) -> Dict:
     """
-    Given the shap values estimated for a multi-output model, this feature ranks
+    Given the shap values estimated for a multi-output model, this function ranks
     features according to their importance. The feature importance is the average
     absolute value for a given feature.
 
@@ -54,7 +54,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
     -------
     importances
         A dictionary containing a key for each model output ('0', '1', ...) and a key for
-        aggregated model output ('aggregated'). Each value is a dictionary contains a 'ranked_effect' field,
+        aggregated model output ('aggregated'). Each value is a dictionary containing a 'ranked_effect' field,
         populated with an array of values representing the average magnitude for each shap value,
         ordered from highest (most important) to the lowest (least important) feature. The 'names'
         field contains the corresponding feature names.
@@ -102,19 +102,31 @@ def rank_by_importance(shap_values: List[np.ndarray],
 
 def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tuple[int]):
     """
-    For each entry in start_idx, the function sums the following k columns where k is the
-    corresponding entry in the enc_feat_dim sequence. The columns whose indices are not in
-    start_idx are left unchanged.
+    This function is used to reduce specified slices in a two- or three- dimensional tensor.
+
+    For two-dimensional `values` arrays, for each entry in start_idx, the function sums the
+    following k columns where k is the corresponding entry in the enc_feat_dim sequence.
+    The columns whose indices are not in start_idx are left unchanged. This arises when the slices
+    contain the shap values for each dimension of an encoded categorical variable and a single shap
+    value for each variable is desired.
+
+    For three-dimensional `values` arrays, the reduction is applied for each rank 2 subtensor, first
+    along the column dimension and then across the row dimension. This arises when summarising shap
+    interaction values. Each rank 2 tensor is a E x E matrix of shap interaction values, where E is
+    the dimension of the data after one-hot encoding. The result of applying the reduction yields a
+    rank 2 tensor of dimension F x F, where F is the number of features (ie, the feature dimension
+    of the data matrix before encoding). By applying this transformation, a single value describing
+    the interaction of categorical features i and j and a single value describing the intearction of
+    j and i is returned.
 
     Parameters
     ----------
     values
-        The array whose columns will be summed.
+        A two or three dimensional array to be reduced, as described above.
     start_idx
         The start indices of the columns to be summed.
     enc_feat_dim
         The number of columns to be summed, one for each start index.
-
     Returns
     -------
     new_values
@@ -130,6 +142,12 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
     n_encoded_levels = sum(enc_feat_dim)
     if n_encoded_levels > values.shape[-1]:
         raise ValueError("The sum of the encoded features dimensions exceeds data dimension!")
+
+    if len(values.shape) not in (2, 3):
+        raise ValueError(
+            f"Shap value summarisation can only be applied to tensors of shap values (dim=2) or shap "
+            f"interaction values (dim=3). The tensor to be summarised had dimension {values.shape}!"
+        )
 
     def _get_slices(start: Tuple, dim: Tuple, arr_trailing_dim: int) -> List[int]:
         """
@@ -710,8 +728,12 @@ class KernelShap(Explainer, FitMixin):
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
                 -`nsamples`: controls the number of predictor calls and therefore runtime.
-                -`l1_reg`: controls the explanation sparsity.
-
+                -`l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will
+                first run a feature selection algorithm to select the top features, provided the fraction of sampled
+                sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information
+                Criterion is used in this case. See our examples for more details about available settings for this
+                parameter. Note that by first running a feature selection step, the shapley values of the remainder of
+                the features will be different to those estimated from the entire set.
             For more details, please see the shap library documentation_ .
 
             .. _documentation https://shap.readthedocs.io/en/latest/.

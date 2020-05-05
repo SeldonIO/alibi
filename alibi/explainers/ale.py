@@ -4,7 +4,7 @@ import math
 from itertools import count
 import numpy as np
 import pandas as pd
-from typing import Callable, List, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
@@ -18,7 +18,22 @@ class ALE(Explainer):
     def __init__(self,
                  predictor: Callable,
                  feature_names: List[str] = None,
-                 target_names: List[str] = None):
+                 target_names: List[str] = None) -> None:
+        """
+        Accumulated Local Effects for tabular datasets. Current implementation supports first order
+        feature effects of numerical features.
+
+        Parameters
+        ----------
+        predictor
+            A callable that takes in an NxF array as input and outputs an NxT array (N - number of
+            data points, F - number of features, T - number of outputs/targets, e.g. 1 for ordinary
+            regression, >=2 for classification).
+        feature_names
+            A list of feature names used for displaying results.
+        target_names
+            A list of target/output names used for displaying results.
+        """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
         self.predictor = predictor
@@ -28,6 +43,23 @@ class ALE(Explainer):
     def explain(self,
                 X: np.ndarray,
                 min_bin_points: int = 4) -> Explanation:
+        """
+        Calculate the ALE curves for each feature with respect to the dataset X.
+
+        Parameters
+        ----------
+        X
+            An NxF tabular dataset used to calculate the ALE curves, this is typically the training dataset
+            or a representative sample.
+        min_bin_points
+            Minimum number of points each discretized interval should contain to ensure more precise
+            ALE estimation.
+
+        Returns
+        -------
+            An `Explanation` object containing the data and the metadata of the calculated ALE curves.
+
+        """
         self.meta['params'].update(min_bin_points=min_bin_points)
 
         if X.ndim != 2:
@@ -62,9 +94,10 @@ class ALE(Explainer):
             feature_deciles.append(deciles)
 
         constant_value = self.predictor(X).mean()
-        # TODO: an ALE plot requires a rugplot to gauge density of instances in each
-        # feature region, should we calculate it here and return as part of the explanation
-        # for further visualisation?
+        # TODO: an ALE plot ideally requires a rugplot to gauge density of instances in the feature space.
+        # I've replaced this with feature deciles which is coarser but has constant space complexity
+        # as opposed to a rugplot. Alternatively, could consider subsampling to produce a rug with some
+        # maximum number of points.
         return self.build_explanation(ale_values=ale_values,
                                       ale0=ale0,
                                       constant_value=constant_value,
@@ -77,9 +110,12 @@ class ALE(Explainer):
                           constant_value: float,
                           feature_values: List[np.ndarray],
                           feature_deciles: List[np.ndarray]) -> Explanation:
+        """
+        Helper method to build the Explanation object.
+        """
         # TODO decide on the format for these lists of arrays
-        # Currently each list element relates to a feature and each
-        # column relates to an output dimension, this is different from e.g. SHAP
+        # Currently each list element relates to a feature and each column relates to an output dimension,
+        # this is different from e.g. SHAP but arguably more convenient for ALE.
 
         data = copy.deepcopy(DEFAULT_DATA_ALE)
         data.update(ale_values=ale_values,
@@ -100,13 +136,13 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     Parameters
     ----------
     values
-        Array of values
+        Array of values.
     num_points
-        Number of quantiles to calculate
+        Number of quantiles to calculate.
 
     Returns
     -------
-    Array of quantiles of the input values
+    Array of quantiles of the input values.
 
     """
     percentiles = np.linspace(0, 100, num=num_points)
@@ -120,22 +156,22 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
 
     Assumes the function is non-decreasing on the interval [lo, hi].
     Return an integer value v such that for all x<v, fun(x)<target and for all x>=v fun(x)>=target.
-    This is equivalent to the library function `bisect.bisect_left` but for functions.
+    This is equivalent to the library function `bisect.bisect_left` but for functions defined on integers.
 
     Parameters
     ----------
     fun
-        A function defined on integers in the range [lo, hi] and returning floats
+        A function defined on integers in the range [lo, hi] and returning floats.
     target
-        Target value to be searched for
+        Target value to be searched for.
     lo
-        Lower bound of the domain
+        Lower bound of the domain.
     hi
-        Upper bound of the domain
+        Upper bound of the domain.
 
     Returns
     -------
-    Integer index
+    Integer index.
 
     """
     while lo < hi:
@@ -160,22 +196,23 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
     Parameters
     ----------
     values
-        Array of feature values
+        Array of feature values.
     min_bin_points
-        Minimum number of points in each found bin
+        Minimum number of points each discretized interval should contain to ensure more precise
+        ALE estimation.
 
     Returns
     -------
     q
-        Unique quantiles
+        Unique quantiles.
     num_points
-        Number of non-unique points the feature array was subdivided into
+        Number of non-unique points the feature array was subdivided into.
     """
 
     def minimum_satisfied(n: int) -> int:
         """
         Calculates whether the partition into n quantiles has the minimum number
-        of point in each resulting bin.
+        of points in each resulting bin.
         """
         q = np.unique(get_quantiles(values, num_points=n))
         indices = np.searchsorted(q, values, side='left')
@@ -192,28 +229,33 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
 
 
 def ale_num(
-        predict: Callable, X: np.ndarray, feature: int, min_bin_points: int = 4
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        predictor: Callable,
+        X: np.ndarray,
+        feature: int,
+        min_bin_points: int = 4) -> Tuple[np.ndarray, ...]:
     """
-    Calculate the first order ALE for a numerical feature.
+    Calculate the first order ALE curve for a numerical feature.
 
     Parameters
     ----------
-    predict
-        Model prediction function
+    predictor
+        Model prediction function.
     X
-        Dataset to calculate the ALE on
+        Dataset used to calculate the ALE curves.
     feature
-        Index of the numerical feature for which to calculate ALE
-    num_intervals
-        Number of intervals to subdivide the feature into according to quantiles
+        Index of the numerical feature for which to calculate ALE.
+    min_bin_points
+        Minimum number of points each discretized interval should contain to ensure more precise
+        ALE estimation.
 
     Returns
     -------
     q
-        Array of quantiles of the input values, a num_intervals length vector
+        Array of quantiles of the input values.
     ale
-        ALE values for the feature, a num_intervals x n_outputs array
+        ALE values for each feature at each of the points in q.
+    ale0
+        The constant offset used to center the ALE curves.
 
     """
     q, _ = adaptive_grid(X[:, feature], min_bin_points)
@@ -228,8 +270,8 @@ def ale_num(
     z_high = X.copy()
     z_low[:, feature] = q[indices - 1]
     z_high[:, feature] = q[indices]
-    p_low = predict(z_low)
-    p_high = predict(z_high)
+    p_low = predictor(z_low)
+    p_high = predictor(z_high)
 
     # finite differences
     p_deltas = p_high - p_low
@@ -247,7 +289,7 @@ def ale_num(
     zeros = np.zeros((1, accum_p_deltas.shape[1]))
     accum_p_deltas = np.insert(accum_p_deltas, 0, zeros, axis=0)
 
-    # mean effect R's `ALEPlot` and `iml` version (approximation per interval)
+    # mean effect, R's `ALEPlot` and `iml` version (approximation per interval)
     ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * interval_n[1:, np.newaxis]) \
                .sum(axis=0) / interval_n.sum()
 
@@ -272,9 +314,42 @@ def plot_ale(exp: Explanation,
              n_cols: int = 3,
              sharey: str = 'all',
              constant: bool = False,
-             ax: Union['plt.Axes', np.ndarray] = None,
-             line_kw: dict = None,
-             fig_kw: dict = None) -> 'np.ndarray':
+             ax: Union['plt.Axes', np.ndarray, None] = None,
+             line_kw: Optional[dict] = None,
+             fig_kw: Optional[dict] = None) -> 'np.ndarray':
+    """
+    Plot ALE curves on matplotlib axes.
+
+    Parameters
+    ----------
+    exp
+        An `Explanation` object produced by a call to the `ALE.explain` method.
+    features
+        A list of features for which to plot the ALE curves. Can be a mix of integers denoting
+        feature index or strings denoting entries in `exp.feature_names`. Defaults to 'all'.
+    targets
+        A list of targets for which to plot the ALE curves. Can be a mix of integers denoting
+        target index or strings denoting entries in `exp.target_names`. Defaults to 'all'.
+    n_cols
+        Number of columns to organize the resulting plot into.
+    sharey
+        A parameter specifying whether the y-axis of the ALE curves should be on the same scale
+        for several features. Possible values are 'all', 'row', None.
+    constant
+        A parameter specifying whether the constant zeroth order effects should be added to the
+        ALE first order effects.
+    ax
+        A matplotlib axes or a numpy array of matpotlib axes to plot on.
+    line_kw
+        Keyword arguments passed to the `plt.plot` function.
+    fig_kw
+        Keyword arguments passed to the `fig.set` function.
+
+    Returns
+    -------
+    An array of matplotlib axes with the resulting ALE plots.
+
+    """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
@@ -374,6 +449,9 @@ def _plot_one_ale_num(exp: Explanation,
                       ax: 'plt.Axes' = None,
                       legend: bool = True,
                       line_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots the ALE of exactly one feature on one axes.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 

@@ -325,9 +325,11 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     # check that if inputs are correct, we retrieve the sum in the correct col
     else:
         summ_X = sum_categories(X, start_idx, feat_enc_dim)
-        assert summ_X.shape[-1] == X.shape[-1] - sum(feat_enc_dim) + len(feat_enc_dim)
-        if ndim == 3:
-            assert summ_X.shape[-2] == X.shape[-2] - sum(feat_enc_dim) + len(feat_enc_dim)
+        # check the reduction gives the correct dimensions for the reduced array
+        assert summ_X.shape[0] == X.shape[0]
+        for dim in range(1, len(X.shape)):
+            assert summ_X.shape[dim] == X.shape[dim] - sum(feat_enc_dim) + len(feat_enc_dim)
+        # check the values in the reduced array are as expected
         for i, enc_dim in enumerate(feat_enc_dim):
             # work out the index of the summed column in the returned matrix
             sum_col_idx = start_idx[i] - sum(feat_enc_dim[:i]) + len(feat_enc_dim[:i])

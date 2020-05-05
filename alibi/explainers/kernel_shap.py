@@ -722,7 +722,12 @@ class KernelShap(Explainer, FitMixin):
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
                 -`nsamples`: controls the number of predictor calls and therefore runtime.
-                -`l1_reg`: controls the explanation sparsity.
+                -`l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will
+                first run a feature selection algorithm to select the top features, provided the fraction of sampled
+                sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information
+                Criterion is used in this case. See our examples for more details about available settings for this
+                parameter. Note that by first running a feature selection step, the shapley values of the remainder of
+                the features will be different to those estimated from the entire set. 
 
             For more details, please see the shap library documentation_ .
 

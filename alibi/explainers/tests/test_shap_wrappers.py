@@ -268,7 +268,64 @@ class KMeansMock:
         return DenseData(sampled, group_names, None)
 
 
-# Tests below
+# Tests for functions used by both wrappers
+
+n_outputs = [(5,), (1,), ]
+data_dimensions = [(100, 50), ]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
+def test_rank_by_importance(n_outputs, data_dimension):
+    """
+    Tests the feature effects ranking function.
+    """
+
+    def get_column_ranks(X, ascending=False):
+        """
+        Ranks the columns of X according to the average magnitude value
+        and returns an array of ranking indices and a an array of
+        sorted values according to the ranking.
+        """
+
+        avg_mag = np.mean(np.abs(X), axis=0)
+        rank = np.argsort(avg_mag)
+        if ascending:
+            return rank, avg_mag[rank]
+        else:
+            return rank[::-1], avg_mag[rank][::-1]
+
+    # setup explainer
+    n_samples, n_features = data_dimension
+    feature_names = gen_group_names(n_features)
+
+    # create inputs
+    (n_outs, ) = n_outputs
+    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
+
+    # compute desired values
+    exp_ranked_effects_class = {}
+    expected_feat_names_order = {}
+    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
+    ranks, vals = list(zip(*ranks_and_vals))
+    for i, values in enumerate(vals):
+        exp_ranked_effects_class[str(i)] = vals[i]
+        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
+    aggregate_shap = np.sum(shap_values, axis=0)
+    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
+    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
+
+    # check results
+    importances = rank_by_importance(shap_values, feature_names=feature_names)
+    assert len(importances.keys()) == n_outs + 1
+    for key in importances:
+        if key != 'aggregated':
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
+            assert importances[key]['names'] == expected_feat_names_order[key]
+        else:
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
+            assert importances[key]['names'] == exp_aggregate_names
 
 
 sum_categories_inputs = [
@@ -357,12 +414,14 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
             diff = expected - actual
             assert np.isclose(diff.sum(), 0.0)
 
+# Tests for KernelShap
 
 # each tuple in group_settings controls whether the
 # group_names, groups or weights arguments are passed to
 # KernelShap._get_data. The data is generated randomly
 # as a function of `n_features` and `n_samples` by functions
 # defined above
+
 
 group_settings = [
     (False, False, False),
@@ -381,12 +440,12 @@ n_classes = [(5, 'identity'), ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('data_type', SUPPORTED_BACKGROUND_DATA_TYPES, ids='data_type={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
-def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings, input_settings):
+def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_settings, input_settings):
     """
     Tests the _get_data method of the wrapper.
     """
@@ -405,7 +464,7 @@ def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings,
         group_names = ['group_i'.format(i) for i in range(len(groups))]
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = False
 
@@ -514,14 +573,14 @@ def uncollect_if_test_check_inputs_kernel(**kwargs):
 
 # @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs_kernel)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
 def test__check_inputs_kernel(caplog,
-                              mock_ks_explainer,
+                              mock_kernel_shap_explainer,
                               data_type,
                               data_dimension,
                               group_settings,
@@ -549,7 +608,7 @@ def test__check_inputs_kernel(caplog,
     _, error_type = input_settings['correct'], input_settings['error_type']
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = summarise_background
     explainer._check_inputs(data, group_names, groups, weights)
@@ -631,12 +690,18 @@ categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
-def test__summarise_background_kernel(mock_ks_explainer, caplog, data_dimension, data_type, use_groups, categorical_names):
+def test__summarise_background_kernel(caplog,
+                                      mock_kernel_shap_explainer,
+                                      data_dimension,
+                                      data_type,
+                                      use_groups,
+                                      categorical_names):
+
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -644,7 +709,7 @@ def test__summarise_background_kernel(mock_ks_explainer, caplog, data_dimension,
     background_data = get_data(data_type, n_rows=n_samples, n_cols=n_features)
 
     # initialise explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.categorical_names = categorical_names
     explainer.use_groups = use_groups
     summary_data = explainer._summarise_background(background_data, n_bckg_samples)
@@ -711,7 +776,7 @@ def uncollect_if_test_fit_kernel(**kwargs):
 
 # @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_fit_kernel)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', [True, False, 'auto'], ids='summarise={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
@@ -719,7 +784,7 @@ def uncollect_if_test_fit_kernel(**kwargs):
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 def test_fit_kernel(caplog,
                     monkeypatch,
-                    mock_ks_explainer,
+                    mock_kernel_shap_explainer,
                     data_type,
                     summarise_background,
                     data_dimension,
@@ -754,7 +819,7 @@ def test_fit_kernel(caplog,
             elif summarise_background:
                 weights = weights[:n_background_examples]
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     # replace kmeans with a mock object so we don't run actual kmeans a zillion times
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     # check weights are not set
@@ -767,7 +832,7 @@ def test_fit_kernel(caplog,
         weights=weights,
     )
     records = caplog.records
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
 
     n_outs = explainer.predictor.out_dim
     if n_outs == 1:
@@ -850,11 +915,11 @@ summarise_result = [True, False]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
-def test_explain_kernel(monkeypatch, mock_ks_explainer, use_groups, summarise_result, data_type):
+def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, summarise_result, data_type):
     """
     Integration tests, runs .explain method to check output dimensions are as expected.
     """
@@ -901,7 +966,7 @@ def test_explain_kernel(monkeypatch, mock_ks_explainer, use_groups, summarise_re
         cat_vars_start_idx, cat_vars_enc_dim = None, None
 
     # initialise and fit explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     explainer.use_groups = use_groups
     explainer.fit(background_data, group_names=group_names, groups=groups)
@@ -945,72 +1010,14 @@ def test_explain_kernel(monkeypatch, mock_ks_explainer, use_groups, summarise_re
             assert n_feats in shap_dims
 
 
-n_outputs = [(5,), (1,), ]
-data_dimensions = [(100, 50), ]
-
-
 # @pytest.mark.skip
-@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
-@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
-def test_rank_by_importance(n_outputs, data_dimension):
-    """
-    Tests the feature effects ranking function.
-    """
-
-    def get_column_ranks(X, ascending=False):
-        """
-        Ranks the columns of X according to the average magnitude value
-        and returns an array of ranking indices and a an array of
-        sorted values according to the ranking.
-        """
-
-        avg_mag = np.mean(np.abs(X), axis=0)
-        rank = np.argsort(avg_mag)
-        if ascending:
-            return rank, avg_mag[rank]
-        else:
-            return rank[::-1], avg_mag[rank][::-1]
-
-    # setup explainer
-    n_samples, n_features = data_dimension
-    feature_names = gen_group_names(n_features)
-
-    # create inputs
-    (n_outs, ) = n_outputs
-    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
-
-    # compute desired values
-    exp_ranked_effects_class = {}
-    expected_feat_names_order = {}
-    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
-    ranks, vals = list(zip(*ranks_and_vals))
-    for i, values in enumerate(vals):
-        exp_ranked_effects_class[str(i)] = vals[i]
-        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
-    aggregate_shap = np.sum(shap_values, axis=0)
-    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
-    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
-
-    # check results
-    importances = rank_by_importance(shap_values, feature_names=feature_names)
-    assert len(importances.keys()) == n_outs + 1
-    for key in importances:
-        if key != 'aggregated':
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
-            assert importances[key]['names'] == expected_feat_names_order[key]
-        else:
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
-            assert importances[key]['names'] == exp_aggregate_names
-
-
-# @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata_kernel(mock_ks_explainer):
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_update_metadata_kernel(mock_kernel_shap_explainer):
     """
     Test that the metadata updates are correct.
     """
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer._update_metadata({'wrong_arg': None, 'link': 'logit'}, params=True)
     explainer._update_metadata({'random_arg': 0}, params=False)
     metadata = explainer.meta
@@ -1026,14 +1033,14 @@ task = ['classification', 'regression']
 
 # @pytest.mark.skip
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_build_explanation_kernel(mock_ks_explainer, task):
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
     """
     Test that response is correct for both classification and regression.
     """
 
     n_instances, n_feats = 50, 12
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.task = task
     background_data = get_random_matrix(n_rows=100, n_cols=n_feats)
     explainer.fit(background_data)

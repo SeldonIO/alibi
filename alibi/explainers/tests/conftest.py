@@ -179,7 +179,7 @@ def at_adult_explainer(get_adult_dataset, rf_classifier, request):
 
 
 @pytest.fixture
-def mock_ks_explainer(request):
+def mock_kernel_shap_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """

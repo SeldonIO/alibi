@@ -268,7 +268,64 @@ class KMeansMock:
         return DenseData(sampled, group_names, None)
 
 
-# Tests below
+# Tests for functions used by both wrappers
+
+n_outputs = [(5,), (1,), ]
+data_dimensions = [(100, 50), ]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
+def test_rank_by_importance(n_outputs, data_dimension):
+    """
+    Tests the feature effects ranking function.
+    """
+
+    def get_column_ranks(X, ascending=False):
+        """
+        Ranks the columns of X according to the average magnitude value
+        and returns an array of ranking indices and a an array of
+        sorted values according to the ranking.
+        """
+
+        avg_mag = np.mean(np.abs(X), axis=0)
+        rank = np.argsort(avg_mag)
+        if ascending:
+            return rank, avg_mag[rank]
+        else:
+            return rank[::-1], avg_mag[rank][::-1]
+
+    # setup explainer
+    n_samples, n_features = data_dimension
+    feature_names = gen_group_names(n_features)
+
+    # create inputs
+    (n_outs, ) = n_outputs
+    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
+
+    # compute desired values
+    exp_ranked_effects_class = {}
+    expected_feat_names_order = {}
+    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
+    ranks, vals = list(zip(*ranks_and_vals))
+    for i, values in enumerate(vals):
+        exp_ranked_effects_class[str(i)] = vals[i]
+        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
+    aggregate_shap = np.sum(shap_values, axis=0)
+    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
+    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
+
+    # check results
+    importances = rank_by_importance(shap_values, feature_names=feature_names)
+    assert len(importances.keys()) == n_outs + 1
+    for key in importances:
+        if key != 'aggregated':
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
+            assert importances[key]['names'] == expected_feat_names_order[key]
+        else:
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
+            assert importances[key]['names'] == exp_aggregate_names
 
 
 sum_categories_inputs = [
@@ -325,9 +382,11 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     # check that if inputs are correct, we retrieve the sum in the correct col
     else:
         summ_X = sum_categories(X, start_idx, feat_enc_dim)
+        # check the reduction gives the correct dimensions for the reduced array
         assert summ_X.shape[0] == X.shape[0]
         for dim in range(1, len(X.shape)):
             assert summ_X.shape[dim] == X.shape[dim] - sum(feat_enc_dim) + len(feat_enc_dim)
+        # check the values in the reduced array are as expected
         for i, enc_dim in enumerate(feat_enc_dim):
             # work out the index of the summed column in the returned matrix
             sum_col_idx = start_idx[i] - sum(feat_enc_dim[:i]) + len(feat_enc_dim[:i])
@@ -355,12 +414,14 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
             diff = expected - actual
             assert np.isclose(diff.sum(), 0.0)
 
+# Tests for KernelShap
 
 # each tuple in group_settings controls whether the
 # group_names, groups or weights arguments are passed to
 # KernelShap._get_data. The data is generated randomly
 # as a function of `n_features` and `n_samples` by functions
 # defined above
+
 
 group_settings = [
     (False, False, False),
@@ -640,6 +701,7 @@ def test__summarise_background_kernel(caplog,
                                       data_type,
                                       use_groups,
                                       categorical_names):
+
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -946,64 +1008,6 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
             assert n_feats - sum(cat_vars_enc_dim) + len(cat_vars_start_idx) in shap_dims
         else:
             assert n_feats in shap_dims
-
-
-n_outputs = [(5,), (1,), ]
-data_dimensions = [(100, 50), ]
-
-
-# @pytest.mark.skip
-@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
-@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
-def test_rank_by_importance(n_outputs, data_dimension):
-    """
-    Tests the feature effects ranking function.
-    """
-
-    def get_column_ranks(X, ascending=False):
-        """
-        Ranks the columns of X according to the average magnitude value
-        and returns an array of ranking indices and a an array of
-        sorted values according to the ranking.
-        """
-
-        avg_mag = np.mean(np.abs(X), axis=0)
-        rank = np.argsort(avg_mag)
-        if ascending:
-            return rank, avg_mag[rank]
-        else:
-            return rank[::-1], avg_mag[rank][::-1]
-
-    # setup explainer
-    n_samples, n_features = data_dimension
-    feature_names = gen_group_names(n_features)
-
-    # create inputs
-    (n_outs, ) = n_outputs
-    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
-
-    # compute desired values
-    exp_ranked_effects_class = {}
-    expected_feat_names_order = {}
-    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
-    ranks, vals = list(zip(*ranks_and_vals))
-    for i, values in enumerate(vals):
-        exp_ranked_effects_class[str(i)] = vals[i]
-        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
-    aggregate_shap = np.sum(shap_values, axis=0)
-    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
-    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
-
-    # check results
-    importances = rank_by_importance(shap_values, feature_names=feature_names)
-    assert len(importances.keys()) == n_outs + 1
-    for key in importances:
-        if key != 'aggregated':
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
-            assert importances[key]['names'] == expected_feat_names_order[key]
-        else:
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
-            assert importances[key]['names'] == exp_aggregate_names
 
 
 # @pytest.mark.skip

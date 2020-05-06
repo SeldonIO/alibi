@@ -895,7 +895,7 @@ TREE_SHAP_PARAMS = [
     'explain_loss',
     'kwargs'
 ]
-TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 500
+TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 1000
 TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss']
 
 
@@ -1073,16 +1073,19 @@ class TreeShap(Explainer, FitMixin):
         self._fitted = True
         if isinstance(background_data, pd.DataFrame):
             self.feature_names = list(background_data.columns)
-        if summarise_background:
-            if isinstance(summarise_background, str):
-                n_samples = background_data.shape[0]
-                n_background_samples = min(n_samples, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD)
-            background_data = self._summarise_background(background_data, n_background_samples)
+        if background_data is not None:
+            if summarise_background:
+                if isinstance(summarise_background, str):
+                    n_samples = background_data.shape[0]
+                    n_background_samples = min(n_samples, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD)
+                background_data = self._summarise_background(background_data, n_background_samples)
+        perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
         self.background_data = background_data
         self._explainer = shap.TreeExplainer(
             self.predictor,
             data=self.background_data,
             model_output=self.model_output,
+            feature_perturbation=perturbation,
         )  # type: shap.TreeExplainer
         self.expected_value = self._explainer.expected_value
         if self._explainer.model.num_outputs == 1:

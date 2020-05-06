@@ -379,12 +379,12 @@ n_classes = [(5, 'identity'), ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('data_type', SUPPORTED_BACKGROUND_DATA_TYPES, ids='data_type={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
-def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings, input_settings):
+def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_settings, input_settings):
     """
     Tests the _get_data method of the wrapper.
     """
@@ -403,7 +403,7 @@ def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings,
         group_names = ['group_i'.format(i) for i in range(len(groups))]
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = False
 
@@ -480,7 +480,7 @@ data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (55, 49), (1, 49)
 summarise_background = [True, False]
 
 
-def uncollect_if_test_check_inputs(**kwargs):
+def uncollect_if_test_check_inputs_kernel(**kwargs):
     error_type = kwargs['input_settings']['error_type']
     group_settings = kwargs['group_settings']
     summarise_background = kwargs['summarise_background']
@@ -511,21 +511,21 @@ def uncollect_if_test_check_inputs(**kwargs):
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs_kernel)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
-def test__check_inputs(caplog,
-                       mock_ks_explainer,
-                       data_type,
-                       data_dimension,
-                       group_settings,
-                       input_settings,
-                       summarise_background,
-                       ):
+def test__check_inputs_kernel(caplog,
+                              mock_kernel_shap_explainer,
+                              data_type,
+                              data_dimension,
+                              group_settings,
+                              input_settings,
+                              summarise_background,
+                              ):
     """
     Tests that the _check_inputs method logs the expected warnings and info messages.
     """
@@ -547,7 +547,7 @@ def test__check_inputs(caplog,
     _, error_type = input_settings['correct'], input_settings['error_type']
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = summarise_background
     explainer._check_inputs(data, group_names, groups, weights)
@@ -629,12 +629,17 @@ categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
-def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_type, use_groups, categorical_names):
+def test__summarise_background_kernel(caplog,
+                                      mock_kernel_shap_explainer,
+                                      data_dimension,
+                                      data_type,
+                                      use_groups,
+                                      categorical_names):
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -642,7 +647,7 @@ def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_t
     background_data = get_data(data_type, n_rows=n_samples, n_cols=n_features)
 
     # initialise explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.categorical_names = categorical_names
     explainer.use_groups = use_groups
     summary_data = explainer._summarise_background(background_data, n_bckg_samples)
@@ -694,7 +699,7 @@ data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (49, 49), ]
 n_classes = [(5, 'identity'), (1, 'identity'), ]
 
 
-def uncollect_if_test_fit(**kwargs):
+def uncollect_if_test_fit_kernel(**kwargs):
     _, _, b_weights = kwargs['group_settings']
     error_type = kwargs['input_settings']['error_type']
     summarise_background = kwargs['summarise_background']
@@ -708,21 +713,21 @@ def uncollect_if_test_fit(**kwargs):
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_fit)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.uncollect_if(func=uncollect_if_test_fit_kernel)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', [True, False, 'auto'], ids='summarise={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
-def test_fit(caplog,
-             monkeypatch,
-             mock_ks_explainer,
-             data_type,
-             summarise_background,
-             data_dimension,
-             group_settings,
-             input_settings):
+def test_fit_kernel(caplog,
+                    monkeypatch,
+                    mock_kernel_shap_explainer,
+                    data_type,
+                    summarise_background,
+                    data_dimension,
+                    group_settings,
+                    input_settings):
     """
     This is an integration test where we check that the _check_inputs, _get_data and _summarise_background
     methods work well together.
@@ -752,7 +757,7 @@ def test_fit(caplog,
             elif summarise_background:
                 weights = weights[:n_background_examples]
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     # replace kmeans with a mock object so we don't run actual kmeans a zillion times
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     # check weights are not set
@@ -765,7 +770,7 @@ def test_fit(caplog,
         weights=weights,
     )
     records = caplog.records
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
 
     n_outs = explainer.predictor.out_dim
     if n_outs == 1:
@@ -848,11 +853,11 @@ summarise_result = [True, False]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
-def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, data_type):
+def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, summarise_result, data_type):
     """
     Integration tests, runs .explain method to check output dimensions are as expected.
     """
@@ -899,7 +904,7 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
         cat_vars_start_idx, cat_vars_enc_dim = None, None
 
     # initialise and fit explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     explainer.use_groups = use_groups
     explainer.fit(background_data, group_names=group_names, groups=groups)
@@ -1002,13 +1007,13 @@ def test_rank_by_importance(n_outputs, data_dimension):
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata(mock_ks_explainer):
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_update_metadata_kernel(mock_kernel_shap_explainer):
     """
     Test that the metadata updates are correct.
     """
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer._update_metadata({'wrong_arg': None, 'link': 'logit'}, params=True)
     explainer._update_metadata({'random_arg': 0}, params=False)
     metadata = explainer.meta
@@ -1024,14 +1029,14 @@ task = ['classification', 'regression']
 
 # @pytest.mark.skip
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_kernel_shap_build_explanation(mock_ks_explainer, task):
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
     """
     Test that response is correct for both classification and regression.
     """
 
     n_instances, n_feats = 50, 12
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.task = task
     background_data = get_random_matrix(n_rows=100, n_cols=n_feats)
     explainer.fit(background_data)
@@ -1046,3 +1051,25 @@ def test_kernel_shap_build_explanation(mock_ks_explainer, task):
     else:
         assert len(response.data['raw']['prediction'].shape) == 1
         assert len(response.data['raw']['prediction']) == n_instances
+
+# TreeShap tests start here
+
+
+@pytest.mark.skip
+def test__check_inputs_tree(caplog, mock_tree_shap_explainer):
+    pass
+
+
+@pytest.mark.skip
+def test__summarise_background_tree(caplog, mock_tree_shap_explainer):
+    pass
+
+
+@pytest.mark.skip
+def test_fit_kernel(caplog, mock_tree_shap_explainer):
+    pass
+
+
+@pytest.mark.skip
+def test_explain_kernel(mock_tree_shap_explainer):
+    pass

@@ -1,17 +1,17 @@
 import pytest
 import logging
+import shap
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
-from alibi.explainers import AnchorTabular
-from alibi.explainers import KernelShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
+from alibi.explainers import AnchorTabular, KernelShap, TreeShap
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, MockTreeExplainer
+from alibi.tests.utils import MockPredictor
 from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
 
-from alibi.tests.utils import MockPredictor
 
 # A file containing fixtures that can be used across tests
 
@@ -179,13 +179,35 @@ def at_adult_explainer(get_adult_dataset, rf_classifier, request):
 
 
 @pytest.fixture
-def mock_ks_explainer(request):
+def mock_kernel_shap_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """
     pred_out_dim, link = request.param
     predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
     explainer = KernelShap(predictor=predictor, seed=0)
+
+    return explainer
+
+
+@pytest.fixture
+def mock_tree_shap_explainer(monkeypatch, request):
+    """
+    Instantiates a TreeShap explainer where both the `_explainer` and `model` atttributes
+    are mocked
+
+    Parameters
+    ----------
+    request:
+        Tuple containing number of outputs and model_output string (see TreeShap constructor).
+    """
+
+    n_outs, model_output = request
+    seed = 0
+    predictor = MockPredictor(out_dim=n_outs, out_type=model_output, seed=seed)
+    tree_explainer = MockTreeExplainer(predictor, seed=seed)
+    monkeypatch.setattr(shap, "TreeExplainer", tree_explainer)
+    explainer = TreeShap(predictor, model_output=model_output)
 
     return explainer
 

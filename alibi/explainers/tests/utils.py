@@ -3,6 +3,7 @@
 import tensorflow.keras as keras
 
 import numpy as np
+from alibi.tests.utils import MockPredictor
 
 from keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
@@ -202,3 +203,50 @@ def get_random_matrix(*, n_rows=500, n_cols=100):
         sz = (n_rows, n_cols)
 
     return np.random.random(size=sz)
+
+
+class MockTreeExplainer:
+    """
+    A class that can be used to replace shap.TreeExplainer so that
+    the wrapper can be tested without fitting a model and instantiating
+    an actual explainer.
+    """
+
+    def __init__(self, predictor, seed=None, *args, **kwargs):
+
+        self.seed = seed
+        np.random.seed(self.seed)
+        self._set_expected_value()
+        self.model = predictor
+        self.n_outputs = predictor.out_dim
+
+    def shap_values(self, X, *args, **kwargs):
+        """
+        Returns random numbers simulating shap values.
+        """
+
+        if self.n_outputs == 1:
+            return np.random.random(X.shape)
+        return [np.random.random(X.shape) for _ in range(self.n_outputs)]
+
+    def shap_interaction_values(self, X, *args, **kwargs):
+        """
+        Returns random numbers simulating shap interaction values.
+        """
+
+        if self.n_outputs == 1:
+            return np.random.random((X.shape[0], X.shape[1], X.shape[1]))
+        shap_output = []
+        for _ in range(self.n_outputs):
+            shap_output.append(np.random.random((X.shape[0], X.shape[1], X.shape[1])))
+        return shap_output
+
+    def _set_expected_value(self):
+        """
+        Set random expected value for the explainer.
+        """
+
+        if self.n_outputs == 1:
+            self.expected_value = np.random.random()
+        else:
+            self.expected_value = [np.random.random() for _ in range(self.n_outputs)]

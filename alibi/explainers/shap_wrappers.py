@@ -1400,7 +1400,7 @@ class TreeShap(Explainer, FitMixin):
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if self._explainer.model.model_type == 'catboost':
-            if not (isinstance(X, np.ndarray) or isinstance(X, pd.DataFrame)):
+            if isinstance(X, catboost.Pool):
                 X = X.get_features()
 
         # output explanation dictionary

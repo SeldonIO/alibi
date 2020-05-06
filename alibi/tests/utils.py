@@ -3,7 +3,7 @@ import numpy as np
 from contextlib import contextmanager
 
 
-OUT_TYPES = ['proba', 'class']
+OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'log_loss']
 
 
 class MockPredictor:
@@ -12,8 +12,10 @@ class MockPredictor:
     allow testing of functionality that depends on it without
     inference overhead.
     """
-    def __init__(self, out_dim: int,
+    def __init__(self,
+                 out_dim: int,
                  out_type: str = 'proba',
+                 model_type: str = None,
                  seed: int = None,
                  ) -> None:
         """
@@ -22,13 +24,14 @@ class MockPredictor:
             out_dim
                 The number of output classes.
             out_type
-                Indicates if probabilities or class predictions are generated.
+                Indicates if probabilities or class label predictions are generated.
         """
 
         np.random.seed(seed)
 
         self.out_dim = out_dim
         self.out_type = out_type
+        self.model_type = model_type
         if out_type not in OUT_TYPES:
             raise ValueError("Unknown output type. Accepted values are {}".format(OUT_TYPES))
 
@@ -40,8 +43,10 @@ class MockPredictor:
         else:
             raise ValueError("Classifier expects the input to have attribute .shape!")
 
-        if self.out_type == 'proba':
+        if self.out_type == 'proba' or self.out_type == 'probability':
             return self._generate_probas(sz, *args, **kwargs)
+        elif self.out_type == 'raw' or self.out_type == 'log_loss':
+            return self._generate_logits(sz, *args, **kwargs)
         else:
             return self._generate_labels(sz, *args, **kwargs)
 
@@ -90,6 +95,17 @@ class MockPredictor:
         if sz:
             sz += (self.out_dim,)
         return np.random.randint(0, self.out_dim + 1, size=sz)
+
+    def _generate_logits(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+        """
+        Generates fake logit values by sampling from the standard normal
+        """
+        if sz:
+            sz += (self.out_dim,)
+        return np.random.normal(size=sz)
+
+    def predict(self, *args, **kwargs):
+        return self.__call__(*args, **kwargs)
 
 
 def issorted(arr, reverse=False):

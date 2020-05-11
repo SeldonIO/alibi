@@ -101,7 +101,7 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
         else:
             raise ValueError("target cannot be None if forwar_function output dimensions > 1")
         return ps
-    print(x, type(x))
+    
     preds = forward_function(x)
     if forward_function.output_shape[1] > 1:
         preds = _select_target(preds, target)
@@ -370,7 +370,7 @@ class IntegratedGradients(Explainer):
             To enable eager execution, add the following lines at the beginning of your script:
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
-        print(target, type(target), type(target[0]))
+        
         nb_samples = len(X)
 
         # format and check inputs and targets

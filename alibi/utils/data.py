@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
-from typing import Dict, Union
+from typing import Dict, List, Union
+
 
 # TODO: This should inherit from collections.UserDict not dict
 
@@ -29,7 +30,7 @@ class Bunch(dict):
 
 
 def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
-                     categorical_columns: list = None) -> Dict[int, list]:
+                     categorical_columns: Union[List[int], List[str], None] = None) -> Dict[int, list]:
     """
 
     Parameters
@@ -55,6 +56,8 @@ def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
         # if numpy array, we need categorical_columns, otherwise impossible to infer
         if categorical_columns is None:
             raise ValueError('If passing a numpy array, `categorical_columns` is required')
+        elif not all(isinstance(ix, int) for ix in categorical_columns):
+            raise ValueError('If passing a numpy array, `categorical_columns` must be a list of integers')
         data = pd.DataFrame(data)
 
     # infer categorical columns
@@ -65,8 +68,10 @@ def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
             raise
 
     # create the map
-    category_map = dict.fromkeys(categorical_columns)
+    category_map = {}
     for col in categorical_columns:
+        if not isinstance(col, int):
+            col = int(data.columns.get_loc(col))
         le = LabelEncoder()
         try:
             _ = le.fit_transform(data.iloc[:, col])

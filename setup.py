@@ -39,7 +39,7 @@ setup(name='alibi',
           'requests',
           'scikit-learn',
           'spacy',
-          'scikit-image',
+          'scikit-image<0.17',
           'tensorflow<2.0',
           'shap',
           'scipy'

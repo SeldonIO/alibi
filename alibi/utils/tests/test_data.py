@@ -9,21 +9,21 @@ data = {'col1': [1, 2, 3, 4, 5],
         'col3': [1., 2., 3., 4., 5.],
         'col4': ['a', 'a', 'b', 'b', 'c']}
 
+expected_category_map = {1: ['a', 'b', 'c', 'd', 'f'],
+                         3: ['a', 'b', 'c']}
+
 dframe = pd.DataFrame(data=data)
 arr = dframe.values
 
 
 @pytest.mark.parametrize('df', [dframe, arr])
-@pytest.mark.parametrize('categorical_columns', [None, [1, 3]])
+@pytest.mark.parametrize('categorical_columns', [None, [1, 3], ['col2', 'col4']])
 def test_get_category_map(categorical_columns, df):
     # test numpy case with no categorical_columns raises error
-    if df is arr and categorical_columns is None:
+    if df is arr and (categorical_columns is None or categorical_columns == ['col2', 'col4']):
         with pytest.raises(ValueError):
             _ = gen_category_map(df)
 
     else:
         category_map = gen_category_map(df, categorical_columns=categorical_columns)
-        assert list(category_map.keys()) == CAT_COLUMNS_IX
-
-        for ix, C in zip(CAT_COLUMNS_IX, CAT_COLUMNS):
-            assert len(set(data[C])) == len(category_map[ix])
+        assert category_map == expected_category_map

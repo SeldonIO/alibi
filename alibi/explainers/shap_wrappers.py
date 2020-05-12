@@ -13,7 +13,7 @@ from alibi.utils.wrappers import methdispatch
 from functools import partial
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex
-from typing import Callable, Dict, List, Optional, Sequence, Union, Tuple, Any, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
 
 
 if TYPE_CHECKING:
@@ -1016,28 +1016,6 @@ class TreeShap(Explainer, FitMixin):
         else:
             self.meta.update(data_dict)
 
-    @staticmethod
-    def _check_inputs(background_data: Union[pd.DataFrame, np.ndarray]) -> None:
-        """
-        This function warns the user if slow runtime can occur due to the background dataset.
-
-        Parameters
-        ----------
-        background_data
-            Background dataset.
-        """
-
-        if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
-            background_data = np.atleast_2d(background_data)
-
-        if background_data.shape[0] > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
-            msg = "Large datasets may cause slow runtimes for shap. The background dataset " \
-                  "provided has {} records. If the runtime is too slow, consider passing a " \
-                  "subset or allowing the algorithm to automatically summarize the data by " \
-                  "setting the summarise_background=True or setting summarise_background to " \
-                  "'auto' which will default to {} samples!"
-            logger.warning(msg.format(background_data.shape[0], TREE_SHAP_BACKGROUND_WARNING_THRESHOLD))
-
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
@@ -1074,11 +1052,25 @@ class TreeShap(Explainer, FitMixin):
         if isinstance(background_data, pd.DataFrame):
             self.feature_names = list(background_data.columns)
         if background_data is not None:
+            if isinstance(background_data, np.ndarray) and background_data.ndim == 1:
+                background_data = np.atleast_2d(background_data)
             if summarise_background:
+                n_samples = background_data.shape[0]
                 if isinstance(summarise_background, str):
-                    n_samples = background_data.shape[0]
-                    n_background_samples = min(n_samples, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD)
-                background_data = self._summarise_background(background_data, n_background_samples)
+                    if n_samples > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+                        background_data = self._summarise_background(
+                            background_data,
+                            TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,
+                        )
+                else:
+                    if n_samples > n_background_samples:
+                        background_data = self._summarise_background(
+                            background_data,
+                            n_background_samples
+                        )
+            else:
+                self._check_inputs(background_data)
+
         perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
         self.background_data = background_data
         self._explainer = shap.TreeExplainer(
@@ -1103,6 +1095,25 @@ class TreeShap(Explainer, FitMixin):
 
         return self
 
+    @staticmethod
+    def _check_inputs(background_data: Union[pd.DataFrame, np.ndarray]) -> None:
+        """
+        This function warns the user if slow runtime can occur due to the background dataset.
+
+        Parameters
+        ----------
+        background_data
+            Background dataset.
+        """
+
+        if background_data.shape[0] > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+            msg = "Large datasets may cause slow runtimes for shap. The background dataset " \
+                  "provided has {} records. If the runtime is too slow, consider passing a " \
+                  "subset or allowing the algorithm to automatically summarize the data by " \
+                  "setting the summarise_background=True or setting summarise_background to " \
+                  "'auto' which will default to {} samples!"
+            logger.warning(msg.format(background_data.shape[0], TREE_SHAP_BACKGROUND_WARNING_THRESHOLD))
+
     def _summarise_background(self,
                               background_data: Union[pd.DataFrame, np.ndarray],
                               n_background_samples: int) -> Union[np.ndarray, pd.DataFrame, shap.common.DenseData]:
@@ -1116,12 +1127,6 @@ class TreeShap(Explainer, FitMixin):
             `np.ndarray` of `n_background_samples` in the `data` field is returned.
 
         """
-
-        if background_data.ndim == 1 or background_data.shape[0] == 1:
-            msg = "Received option to summarise the data but the background_data object only had " \
-                  "one record with {} features. No summarisation will take place!"
-            logger.warning(msg.format(len(background_data)))
-            return background_data
 
         self.summarise_background = True
 
@@ -1301,6 +1306,7 @@ class TreeShap(Explainer, FitMixin):
             If the user passes labels to the `explain` method but has not set `model_output='log_loss'` when
             initialising the explainer.
         """
+
         # check settings are correct for loss value explanations
         if y is not None:
             if background_data is None:
@@ -1355,8 +1361,9 @@ class TreeShap(Explainer, FitMixin):
             An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
             field containing additional data. See usage examples in the method overview for details.
         """
+
         y = kwargs.get('y')
-        if not y:
+        if y is None:
             y = np.array([])
         cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
         cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
@@ -1370,8 +1377,8 @@ class TreeShap(Explainer, FitMixin):
         else:
             shap_interaction_values = [np.array([])]
             shap_values = shap_output
-
-        self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
+        if summarise_result:
+            self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
             summarised_shap = []
             for shap_array in shap_values:
@@ -1385,24 +1392,28 @@ class TreeShap(Explainer, FitMixin):
                     )
                 shap_interaction_values = summarised_shap_interactions
 
-        raw_predictions, loss = [], []
-        # raw output of a regression or classification task. Will not work for pyspark.
-        if self.model_output != 'log_loss':
-            raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)
-        # loss function values explained
-        if y is not None or self.model_output == 'log_loss':
+        # NB: Can't get the raw prediction from model when model_output = 'log_loss` as shap library does
+        # not support this (issue raised). We may be able to support this if there's a compelling need.
+        # NB: raw output of a regression or classification task will not work for pyspark (predict not implemented)
+        if self.model_output == 'log_loss':
             loss = self._explainer.model.predict(X, y, tree_limit=self.tree_limit)
-        # predicted class
-        if self.task != 'regression' and raw_predictions:
-            argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+            raw_predictions = []
         else:
-            argmax_pred = []
+            loss = []
+            raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)
+
+        # predicted class
+        argmax_pred = []  # type: Union[List, np.ndarray]
+        if self.task != 'regression':
+            if not isinstance(raw_predictions, list):
+                argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if self._explainer.model.model_type == 'catboost':
+            import catboost  # noqa: F811
             if isinstance(X, catboost.Pool):
                 X = X.get_features()
-
         # output explanation dictionary
         data = copy.deepcopy(DEFAULT_DATA_TREE_SHAP)
         data.update(
@@ -1417,7 +1428,7 @@ class TreeShap(Explainer, FitMixin):
             raw_prediction=raw_predictions,
             loss=loss,
             prediction=argmax_pred,
-            instances=X,
+            instances=np.array(X),
             labels=y,
             importances=importances,
         )
@@ -1442,9 +1453,8 @@ class TreeShap(Explainer, FitMixin):
         cat_vars_enc_dim:
             See `explain` documentation.
         """
-
         self.summarise_result = summarise_result
-        if not cat_vars_start_idx or cat_vars_enc_dim:
+        if not cat_vars_start_idx or not cat_vars_enc_dim:
             logger.warning(
                 "Results cannot be summarised as either the"
                 "start indices for categorical variables or"
@@ -1455,4 +1465,4 @@ class TreeShap(Explainer, FitMixin):
 #  Probability doubled ?
 #  That the output contains the data you expect: all fields in data['raw']
 #   are as expected and contain the correct data depending on other settings
-#   such as e.g., task (should be test_build_explanation)
+#   such as e.g, task (should be test_build_explanation)

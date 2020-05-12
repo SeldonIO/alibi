@@ -3,12 +3,12 @@ import numpy as np
 from contextlib import contextmanager
 
 
-OUT_TYPES = ['proba', 'class']
+OUT_TYPES = ['proba', 'class', 'continuous']
 
 
 class MockPredictor:
     """
-    A class the mimicks the output of a classifier to
+    A class the mimicks the output of a classifier or regressor to
     allow testing of functionality that depends on it without
     inference overhead.
     """
@@ -22,7 +22,8 @@ class MockPredictor:
             out_dim
                 The number of output classes.
             out_type
-                Indicates if probabilities or class predictions are generated.
+                Indicates if probabilities, class predictions or continuous outputs
+                are generated.
         """
 
         np.random.seed(seed)
@@ -38,12 +39,14 @@ class MockPredictor:
         if hasattr(args[0], 'shape'):
             sz = args[0].shape[:-1]
         else:
-            raise ValueError("Classifier expects the input to have attribute .shape!")
+            raise ValueError("Predictor expects the input to have attribute .shape!")
 
         if self.out_type == 'proba':
             return self._generate_probas(sz, *args, **kwargs)
-        else:
+        elif self.out_type == 'class':
             return self._generate_labels(sz, *args, **kwargs)
+        else:
+            return self._generate_continuous(sz, *args, **kwargs)
 
     def _generate_probas(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """
@@ -90,6 +93,14 @@ class MockPredictor:
         if sz:
             sz += (self.out_dim,)
         return np.random.randint(0, self.out_dim + 1, size=sz)
+
+    def _generate_continuous(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+        """
+        Generate continuous output by sampling from a standard normal distribution.
+        """
+        if sz:
+            sz += (self.out_dim,)
+        return np.random.normal(size=sz)
 
 
 def issorted(arr, reverse=False):

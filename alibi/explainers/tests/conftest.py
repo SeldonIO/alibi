@@ -4,6 +4,7 @@ import logging
 import numpy as np
 from sklearn.linear_model import LogisticRegression
 
+from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
@@ -12,6 +13,7 @@ from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
 
 from alibi.tests.utils import MockPredictor
+
 
 # A file containing fixtures that can be used across tests
 
@@ -190,6 +192,18 @@ def mock_ks_explainer(request):
     return explainer
 
 
+@pytest.fixture
+def mock_ale_explainer(request):
+    """
+    Instantiates an ALE explainer with a mock predictor.
+    """
+    out_dim, out_type = request.param
+    predictor = MockPredictor(out_dim=out_dim, out_type=out_type, seed=0)
+    explainer = ALE(predictor)
+
+    return explainer
+
+
 @pytest.fixture(scope='module')
 def conv_net(request):
     """
@@ -202,7 +216,6 @@ def conv_net(request):
     x_train, y_train = data['X_train'], data['y_train']
 
     def model():
-
         x_in = Input(shape=(28, 28, 1))
         x = Conv2D(filters=8, kernel_size=2, padding='same', activation='relu')(x_in)
         x = MaxPooling2D(pool_size=2)(x)

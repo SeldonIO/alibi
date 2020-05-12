@@ -803,8 +803,8 @@ class KernelShap(Explainer, FitMixin):
         cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
         cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
         summarise_result = kwargs.get('summarise_result', False)  # type: bool
-
-        self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
+        if summarise_result:
+            self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
             summarised_shap = []
             for shap_array in shap_values:

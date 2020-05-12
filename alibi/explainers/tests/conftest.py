@@ -202,7 +202,7 @@ def mock_tree_shap_explainer(monkeypatch, request):
         Tuple containing number of outputs and model_output string (see TreeShap constructor).
     """
 
-    n_outs, model_output = request
+    n_outs, model_output = request.param
     seed = 0
     predictor = MockPredictor(out_dim=n_outs, out_type=model_output, seed=seed)
     tree_explainer = MockTreeExplainer(predictor, seed=seed)

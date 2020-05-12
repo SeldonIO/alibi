@@ -3,7 +3,7 @@ import numpy as np
 from contextlib import contextmanager
 
 
-OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'log_loss']
+OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'probability_doubled', 'log_loss']
 
 
 class MockPredictor:
@@ -30,6 +30,7 @@ class MockPredictor:
         np.random.seed(seed)
 
         self.out_dim = out_dim
+        self.num_outputs = out_dim
         self.out_type = out_type
         self.model_type = model_type
         if out_type not in OUT_TYPES:

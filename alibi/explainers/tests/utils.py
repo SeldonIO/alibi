@@ -1,9 +1,7 @@
 # flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
-import tensorflow.keras as keras
-
 import numpy as np
-from alibi.tests.utils import MockPredictor
+import tensorflow.keras as keras
 
 from keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
@@ -15,6 +13,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
+
 
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
@@ -216,7 +215,6 @@ class MockTreeExplainer:
 
         self.seed = seed
         np.random.seed(self.seed)
-        self._set_expected_value()
         self.model = predictor
         self.n_outputs = predictor.out_dim
 
@@ -224,6 +222,8 @@ class MockTreeExplainer:
         """
         Returns random numbers simulating shap values.
         """
+
+        self._check_input(X)
 
         if self.n_outputs == 1:
             return np.random.random(X.shape)
@@ -233,6 +233,8 @@ class MockTreeExplainer:
         """
         Returns random numbers simulating shap interaction values.
         """
+
+        self._check_input(X)
 
         if self.n_outputs == 1:
             return np.random.random((X.shape[0], X.shape[1], X.shape[1]))
@@ -250,3 +252,11 @@ class MockTreeExplainer:
             self.expected_value = np.random.random()
         else:
             self.expected_value = [np.random.random() for _ in range(self.n_outputs)]
+
+    def __call__(self, *args, **kwargs):
+        self._set_expected_value()
+        return self
+
+    def _check_input(self, X):
+        if not hasattr(X, 'shape'):
+            raise TypeError("Input X has no attribute shape!")

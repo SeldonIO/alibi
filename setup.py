@@ -31,6 +31,7 @@ setup(name='alibi',
       install_requires=[
           'attrs',
           'beautifulsoup4',
+          'matplotlib',
           'numpy',
           'Pillow',
           'pandas',

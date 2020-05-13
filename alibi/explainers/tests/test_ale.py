@@ -61,8 +61,23 @@ out_dim_out_type = [(1, 'continuous'), (3, 'proba')]
 @pytest.mark.parametrize('batch_size', (10, 100, 1000), ids='batch_size={}'.format)
 @pytest.mark.parametrize('mock_ale_explainer', out_dim_out_type, indirect=True, ids='out_dim, out_type={}'.format)
 def test_explain(mock_ale_explainer, input_dim, batch_size):
+    out_dim = mock_ale_explainer.predictor.out_dim
     X = np.random.rand(batch_size, input_dim)
-    explanation = mock_ale_explainer.explain(X)
+    exp = mock_ale_explainer.explain(X)
 
-    assert explanation.meta.keys() == DEFAULT_META_ALE.keys()
-    assert explanation.data.keys() == DEFAULT_DATA_ALE.keys()
+    assert all(len(attr) == input_dim for attr in (exp.ale_values, exp.feature_values,
+                                                   exp.feature_names, exp.feature_deciles,
+                                                   exp.ale0))
+
+    assert len(exp.target_names) == out_dim
+
+    for alev, featv in zip(exp.ale_values, exp.feature_values):
+        assert alev.shape == (featv.shape[0], out_dim)
+
+    assert isinstance(exp.constant_value, float)
+
+    for a0 in exp.ale0:
+        assert a0.shape == (out_dim,)
+
+    assert exp.meta.keys() == DEFAULT_META_ALE.keys()
+    assert exp.data.keys() == DEFAULT_DATA_ALE.keys()

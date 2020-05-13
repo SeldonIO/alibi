@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="_static/Alibi_Logo.png" alt="Alibi Logo" width="50%">
+  <img src="_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
 </p>
 
 [Alibi](https://github.com/SeldonIO/alibi) is an open source Python library aimed at machine learning

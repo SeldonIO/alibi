@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/source/_static/Alibi_Logo.png" alt="Alibi Logo" width="50%">
+  <img src="doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
 </p>
 
 [![Build Status](https://travis-ci.com/SeldonIO/alibi.svg?branch=master)](https://travis-ci.com/SeldonIO/alibi)

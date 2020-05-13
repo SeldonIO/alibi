@@ -94,7 +94,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
     return importances
 
 
-def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tuple[int]):
+def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
     """
     This function is used to reduce specified slices in a two- or three- dimensional tensor.
 
@@ -143,7 +143,7 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
             f"interaction values (dim=3). The tensor to be summarised had dimension {values.shape}!"
         )
 
-    def _get_slices(start: Tuple, dim: Tuple, arr_trailing_dim: int) -> List[int]:
+    def _get_slices(start: Sequence[int], dim: Sequence[int], arr_trailing_dim: int) -> List[int]:
         """
         Given start indices, encoding dimensions and the array trailing shape, this function returns
         an array where contiguous numbers are slices. This array is used to reduce along an axis
@@ -699,8 +699,8 @@ class KernelShap(Explainer, FitMixin):
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
-                cat_vars_start_idx: Tuple[int] = None,
-                cat_vars_enc_dim: Tuple[int] = None,
+                cat_vars_start_idx: Sequence[int] = None,
+                cat_vars_enc_dim: Sequence[int] = None,
                 **kwargs) -> Explanation:
         """
         Explains the instances in the array X.
@@ -800,8 +800,8 @@ class KernelShap(Explainer, FitMixin):
         # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
         #  explain in?
 
-        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
-        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
+        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Sequence[int]
+        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Sequence[int]
         summarise_result = kwargs.get('summarise_result', False)  # type: bool
         if summarise_result:
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
@@ -844,8 +844,8 @@ class KernelShap(Explainer, FitMixin):
 
     def _check_result_summarisation(self,
                                     summarise_result: bool,
-                                    cat_vars_start_idx: Tuple[int],
-                                    cat_vars_enc_dim: Tuple[int]) -> None:
+                                    cat_vars_start_idx: Sequence[int],
+                                    cat_vars_enc_dim: Sequence[int]) -> None:
         """
         This function checks whether the result summarisation option is correct given the inputs and explainer setup.
 

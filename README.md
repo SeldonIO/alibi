@@ -11,63 +11,87 @@
 [![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](http://seldondev.slack.com/messages/alibi)
 ---
 [Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation.
-The initial focus on the library is on black-box, instance based model explanations.
+The focus of the library is to provide high-quality implementations of black-box, white-box, local and global
+explanation methods for classification and regression models.
 *  [Documentation](https://docs.seldon.io/projects/alibi/en/latest/)
 
 If you're interested in outlier detection, concept drift or adversarial instance detection, check out our sister project [alibi-detect](https://github.com/SeldonIO/alibi-detect).
 
-## Goals
-* Provide high quality reference implementations of black-box ML model explanation and interpretation algorithms
-* Define a consistent API for interpretable ML methods
-* Support multiple use cases (e.g. tabular, text and image data classification, regression)
+## Table of Contents
 
-## Installation
+* [Installation and Usage](#installation-and-usage)
+* [Supported Methods](#supported-methods)
+  * [Model Explanations](#model-explanations)
+  * [Model Confidence](#model-confidence)
+  * [References and Examples](#references-and-examples)
+* [Dependencies](#dependencies)
+* [Sample Outputs](#sample-outputs)
+* [Citations](#citations)
+
+## Installation and Usage
 Alibi can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```
-This will install `alibi` with all its dependencies:
+Alternatively, the development version can be installed:
 ```bash
-  attrs
-  beautifulsoup4
-  numpy
-  Pillow
-  pandas
-  prettyprinter
-  requests
-  scikit-learn
-  scikit-image
-  scipy
-  shap
-  spacy
-  tensorflow
+pip install git+https://github.com/SeldonIO/alibi.git 
 ```
 
-To run all the example notebooks, you may additionally run `pip install alibi[examples]` which will
-install the following:
-```bash
-  Keras
-  seaborn
-  xgboost
+The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
+fit and explain steps. We will use the [AnchorTabular](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
+explainer to illustrate the API:
+
+```python
+from alibi.explainers import AnchorTabular
+
+# initialize and fit explainer by passing a prediction function and any other required arguments
+explainer = AnchorTabular(predict_fn, feature_names=feature_names, category_map=category_map)
+explainer.fit(X_train)
+
+# explain an instance
+explanation = explainer.explain(x)
 ```
 
-## Supported algorithms
-### Model explanations
-These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
-predictions. Given a single instance and a model prediction they aim to answer the question "Why did
-my model make this prediction?" The following algorithms all work with **black-box** models meaning that the
-only requirement is to have acces to a prediction function (which could be an API endpoint for a model in production).
+The explanation returned is an `Explanation` object with attributes `meta` and `data`. `meta` is a dictionary
+containing the explainer metadata and any hyperparameters and `data` is a dictionary containing everything
+related to the computed explanation. For example, for the Anchor algorithm the explanation can be accessed
+via `explanation.data['anchor']` (or `explanation.anchor`). The exact details of available fields varies
+from method to method so we encourage the reader to become familiar with the
+[types of methods supported](https://docs.seldon.io/projects/alibi/en/latest/overview/algorithms.html).
+ 
 
-The following table summarizes the capabilities of the current algorithms:
+## Supported Methods
+The following tables summarize the possible use cases for each method.
 
-|Explainer|Model types|Classification|Categorical data|Tabular|Text|Images|Need training set|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|black-box|✔|✔|✔|✔|✔|For Tabular|
-|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
-|[Counterfactual Instances](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|black-box|✔|✔|✔|✘|✘|✔|
-|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
+### Model Explanations
+|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔||✔|✔|✔|✔|For Tabular|
+|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
+|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
+|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
+|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local/global|✔|✔|✔| | |✔|✔|
+ 
+### Model Confidence
+These algorihtms provide **instance-specific** scores measuring the model confidence for making a
+particular prediction.
 
+|Method|Models|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set required|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[Trust Scores](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)|BB|✔| |✔|✔(1)|✔(2)| |Yes|
+|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html)|BB|✔|✔|✔| |✔| |Optional|
+
+Key:
+ - **BB** - black-box (only require a prediction function)
+ - **BB\*** - black-box but assume model is differentiable
+ - **TF/Keras** - TensorFlow models via the Keras API
+ - **Local** - instance specific explanation, why was this prediction made?
+ - **Global** - explains the model with respect to a set of instances
+ - **(1)** -  depending on model
+ - **(2)** -  may require dimensionality reduction
+
+## References and Examples
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
    - Examples:
@@ -103,19 +127,6 @@ The following table summarizes the capabilities of the current algorithms:
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ord.html)
 
-### Model confidence metrics
-These algorihtms provide **instance-specific** scores measuring the model confidence for making a
-particular prediction.
-
-|Algorithm|Model types|Classification|Regression|Categorical data|Tabular|Text|Images|Need training set|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Trust Scores](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)|black-box|✔|✘|✘|✔|✔(1)|✔(2)|Yes|
-|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html)|black-box|✔|✔|✘|✔|✘|✔|Optional|
-
-(1) Depending on model
-
-(2) May require dimensionality reduction
-
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)
   - Examples:
@@ -126,7 +137,24 @@ particular prediction.
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html),
     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_fashion_mnist.html)
 
-## Example outputs
+## Dependencies
+```bash
+  attrs
+  beautifulsoup4
+  numpy
+  Pillow
+  pandas
+  prettyprinter
+  requests
+  scikit-learn
+  scikit-image<0.17
+  scipy
+  shap
+  spacy
+  tensorflow<2.0
+```
+
+## Sample Outputs
 
 [**Anchor method applied to the InceptionV3 model trained on ImageNet:**](examples/anchor_image_imagenet.ipynb)
 

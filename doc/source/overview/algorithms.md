@@ -8,19 +8,26 @@ These algorithms provide **instance-specific** (sometimes also called **local**)
 predictions. Given a single instance and a model prediction they aim to answer the question "Why did
 my model make this prediction?" The following algorithms all work with **black-box** models meaning that the
 only requirement is to have acces to a prediction function (which could be an API endpoint for a model in production).
-Note that local explanations can be combined to give insights into global model behaviour, but this comes at the
-expense of significant runtime increase.
 
 The following table summarizes the capabilities of the current algorithms:
 
-|Explainer|Model types|Classification|Categorical data|Tabular|Text|Images|Need training set|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---|
-|[Anchors](../methods/Anchors.ipynb)|black-box|✔|✔|✔|✔|✔|For Tabular|
-|[CEM](../methods/CEM.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|Optional|
-|[Counterfactual Instances](../methods/CF.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
-|[Kernel SHAP](../methods/KernelSHAP.ipynb)|black-box|✔|✔|✔|✘|✘|✔|
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
+|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train?|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔||✔|✔|✔|✔|For Tabular|
+|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
+|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
+|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
+|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local/global|✔|✔|✔| | |✔|✔|
 
+Key:
+ - **BB** - black-box (only require a prediction function)
+ - **BB\*** - black-box but assume model is differentiable
+ - **TF/Keras** - TensorFlow models via the Keras API
+ - **Local** - instance specific explanation, why was this prediction made?
+ - **Global** - explains the model with respect to a set of instances
+ - **Cat. data** - support for categorical features
+ - **Train?** - whether a training set is required to fit the explainer
+ 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
 [tabular example](../examples/anchor_tabular_adult.nblink),
@@ -43,13 +50,16 @@ instance that would result in a different prediction). [Documentation](../method
 
 
 ## Model Confidence
-These algorihtms provide **instance-specific** scores measuring the model confidence for making a
+These algorithms provide **instance-specific** scores measuring the model confidence for making a
 particular prediction.
 
-|Algorithm|Model types|Classification|Regression|Categorical data|Tabular|Text|Images|Need training set|
+|Method|Models|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set required|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Trust Scores](../methods/TrustScores.ipynb)|black-box|✔|✘|✘|✔|✔[^1]|✔[^2]|Yes|
-|[Linearity Measure](../examples/linearity_measure_iris.ipynb)|black-box|✔|✔|✘|✔|✘|✔|Optional|
+|[Trust Scores](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)|BB|✔| |✔|✔[^1]|✔[^2]| |Yes|
+|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html)|BB|✔|✔|✔| |✔| |Optional|
+
+[^1]: depending on model
+[^2]: may require dimensionality reduction
 
 **Trust scores**: produce a "trust score" of a classifier's prediction. The trust score is the ratio
 between the distance to the nearest class different from the predicted class and the distance to the
@@ -57,9 +67,6 @@ predicted class, higher scores correspond to more trustworthy predictions.
 [Documentation](../methods/TrustScores.ipynb),
 [tabular example](../examples/trustscore_iris.nblink),
 [image classification](../examples/trustscore_mnist.nblink)
-
-[^1]: Depending on model
-[^2]: May require dimensionality reduction
 
 **Linearity measure**: produces a score quantifying how linear the model is around a test instance.
 The linearity score measures the model linearity around a test instance by feeding the model linear

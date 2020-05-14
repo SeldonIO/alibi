@@ -74,7 +74,7 @@ The following tables summarize the possible use cases for each method.
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local/global|✔|✔|✔| | |✔|✔|
  
 ### Model Confidence
-These algorihtms provide **instance-specific** scores measuring the model confidence for making a
+These algorithms provide **instance-specific** scores measuring the model confidence for making a
 particular prediction.
 
 |Method|Models|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set required|

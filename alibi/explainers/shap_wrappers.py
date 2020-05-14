@@ -1200,7 +1200,10 @@ class TreeShap(Explainer, FitMixin):
 
         if interactions:
             self._check_interactions(approximate, self.background_data, y)
-            shap_output = self._explainer.shap_interaction_values(X, tree_limit=tree_limit)
+            if self._explainer.model.model_type == 'xgboost':
+                shap_output = self._xgboost_interactions(X)
+            else:
+                shap_output = self._explainer.shap_interaction_values(X, tree_limit=tree_limit)
         else:
             self._check_explainer_setup(self.background_data, self.model_output, y)
             shap_output = self._explainer.shap_values(
@@ -1234,6 +1237,21 @@ class TreeShap(Explainer, FitMixin):
         )
 
         return explanation
+
+    def _xgboost_interactions(self, X: Union[np.ndarray, pd.DataFrame]) -> Union[np.ndarray, List[np.ndarray]]:
+        """
+        shap library handling of xgboost causes a ValueError due to xgboost (features name mismatch)
+        if you call shap_interaction_values with a numpy array (likely only if the user declares their
+        xgboost.DMatrix object with the feature_names keyword argument). This method converts the
+        incoming numpy array to an xgboost.DMatrix object with feature names that match the predictor.
+        """
+
+        import xgboost
+
+        dexplain = xgboost.DMatrix(X, feature_names=self.predictor.feature_names)
+        shap_output = self._explainer.shap_interaction_values(dexplain, tree_limit=self.tree_limit)
+
+        return shap_output
 
     def _check_interactions(self, approximate: bool, background_data, y: Optional[np.ndarray]) -> None:
         """
@@ -1461,8 +1479,3 @@ class TreeShap(Explainer, FitMixin):
                 "the encoding dimensions were not passed!"
             )
             self.summarise_result = False
-# TODO: Test:
-#  Probability doubled ?
-#  That the output contains the data you expect: all fields in data['raw']
-#   are as expected and contain the correct data depending on other settings
-#   such as e.g, task (should be test_build_explanation)

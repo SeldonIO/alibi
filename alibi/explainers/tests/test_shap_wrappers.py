@@ -461,7 +461,7 @@ def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_
     )
     # the algorithm would take this step in fit before calling _get_data
     if not b_group_names and b_groups:
-        group_names = ['group_i'.format(i) for i in range(len(groups))]
+        group_names = ['group_{}'.format(i) for i in range(len(groups))]
 
     # initialise a KernelShap with a mock predictor
     explainer = mock_kernel_shap_explainer

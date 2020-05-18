@@ -13,11 +13,11 @@ The following table summarizes the capabilities of the current algorithms:
 
 |Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train?|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔||✔|✔|✔|✔|For Tabular|
-|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
-|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
-|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local/global|✔|✔|✔| | |✔|✔|
+|[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular|
+|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
+|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
+|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local/global|✔|✔|✔| | |✔|✔|
 
 Key:
  - **BB** - black-box (only require a prediction function)
@@ -55,8 +55,8 @@ particular prediction.
 
 |Method|Models|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set required|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Trust Scores](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)|BB|✔| |✔|✔[^1]|✔[^2]| |Yes|
-|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html)|BB|✔|✔|✔| |✔| |Optional|
+|[Trust Scores](../methods/TrustScores.ipynb)|BB|✔| |✔|✔[^1]|✔[^2]| |Yes|
+|[Linearity Measure](../methods/LinearityMeasure.ipynb)|BB|✔|✔|✔| |✔| |Optional|
 
 [^1]: depending on model
 [^2]: may require dimensionality reduction

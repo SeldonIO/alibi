@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# This module is copied from the captum library at
+# https://github.com/pytorch/captum/blob/master/captum/attr/_utils/approximation_methods.py
+
 from typing import List, Callable, Tuple
 import numpy as np
 from enum import Enum
@@ -24,11 +26,12 @@ SUPPORTED_METHODS = SUPPORTED_RIEMANN_METHODS + ["gausslegendre"]
 def approximation_parameters(
     method: str,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
-    r"""Retrieves parameters for the input approximation `method`
+    """Retrieves parameters for the input approximation `method`
 
-        Args:
-            method: The name of the approximation method. Currently only `riemann`
-                    and gauss legendre are
+    Parameters
+    ----------
+    method
+        The name of the approximation method. Currently only `riemann` and gauss legendre are
     """
     if method in SUPPORTED_RIEMANN_METHODS:
         return riemann_builders(method=Riemann[method.split("_")[-1]])
@@ -40,15 +43,18 @@ def approximation_parameters(
 def riemann_builders(
     method: Riemann = Riemann.trapezoid,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
-    r"""Step sizes are identical and alphas are scaled in [0, 1]
+    """Step sizes are identical and alphas are scaled in [0, 1]
 
-        Args:
+    Parameters
+    ----------
+    n
+        The number of integration steps
+    method
+        `left`, `right`, `middle` and `trapezoid` riemann
 
-             n: The number of integration steps
-             method: `left`, `right`, `middle` and `trapezoid` riemann
-
-        Returns:
-            2-element tuple of **step_sizes**, **alphas**:
+    Returns
+    -------
+        2-element tuple of **step_sizes**, **alphas**:
             - **step_sizes** (*callable*):
                         `step_sizes` takes the number of steps as an
                         input argument and returns an array of steps sizes which
@@ -94,7 +100,7 @@ def riemann_builders(
 def gauss_legendre_builders() -> Tuple[
     Callable[[int], List[float]], Callable[[int], List[float]]
 ]:
-    r""" Numpy's `np.polynomial.legendre` function helps to compute step sizes
+    """ Numpy's `np.polynomial.legendre` function helps to compute step sizes
     and alpha coefficients using gauss-legendre quadrature rule.
     Since numpy returns the integration parameters in different scales we need to
     rescale them to adjust to the desired scale.
@@ -103,11 +109,13 @@ def gauss_legendre_builders() -> Tuple[
     proposed by [Xue Feng and her intern Hauroun Habeeb]
     (https://research.fb.com/people/feng-xue/).
 
-    Args:
+    Parameters
+    ----------
+    n
+        The number of integration steps
 
-        n (int): The number of integration steps
-
-    Returns:
+    Returns
+    -------
         2-element tuple of **step_sizes**, **alphas**:
         - **step_sizes** (*callable*):
                     `step_sizes` takes the number of steps as an

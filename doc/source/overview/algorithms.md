@@ -72,5 +72,6 @@ predicted class, higher scores correspond to more trustworthy predictions.
 The linearity score measures the model linearity around a test instance by feeding the model linear
 superpositions of inputs and comparing the outputs with the linear combination of outputs from
 predictions on single inputs.
+[Documentation](../methods/LinearityMeasure.ipynb)
 [Tabular example](../examples/linearity_measure_iris.nblink),
 [image classification](../examples/linearity_measure_fashion_mnist.nblink)

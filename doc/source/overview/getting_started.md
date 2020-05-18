@@ -49,7 +49,7 @@ For detailed information on the methods:
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
-    * [Linearity Measure](../examples/linearity_measure_iris.ipynb)
+    * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 
 ## Basic Usage

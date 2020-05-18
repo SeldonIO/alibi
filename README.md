@@ -80,7 +80,7 @@ particular prediction.
 |Method|Models|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set required|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---|
 |[Trust Scores](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)|BB|✔| |✔|✔(1)|✔(2)| |Yes|
-|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html)|BB|✔|✔|✔| |✔| |Optional|
+|[Linearity Measure](https://docs.seldon.io/projects/alibi/en/latest/methods/LinearityMeasure.html)|BB|✔|✔|✔| |✔| |Optional|
 
 Key:
  - **BB** - black-box (only require a prediction function)
@@ -133,6 +133,7 @@ Key:
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html),
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html)
 - Linearity Measure
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/LinearityMeasure.html)
   - Examples:
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html),
     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_fashion_mnist.html)

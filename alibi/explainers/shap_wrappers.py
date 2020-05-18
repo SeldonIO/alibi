@@ -100,7 +100,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
     return importances
 
 
-def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tuple[int]):
+def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
     """
     This function is used to reduce specified slices in a two- or three- dimensional tensor.
 
@@ -149,7 +149,7 @@ def sum_categories(values: np.ndarray, start_idx: Tuple[int], enc_feat_dim: Tupl
             f"interaction values (dim=3). The tensor to be summarised had dimension {values.shape}!"
         )
 
-    def _get_slices(start: Tuple, dim: Tuple, arr_trailing_dim: int) -> List[int]:
+    def _get_slices(start: Sequence[int], dim: Sequence[int], arr_trailing_dim: int) -> List[int]:
         """
         Given start indices, encoding dimensions and the array trailing shape, this function returns
         an array where contiguous numbers are slices. This array is used to reduce along an axis
@@ -1143,8 +1143,8 @@ class TreeShap(Explainer, FitMixin):
                 check_additivity: bool = True,
                 tree_limit: Optional[int] = None,
                 summarise_result: bool = False,
-                cat_vars_start_idx: Optional[List[int]] = None,
-                cat_vars_enc_dim: Optional[List[int]] = None,
+                cat_vars_start_idx: Optional[Sequence[int]] = None,
+                cat_vars_enc_dim: Optional[Sequence[int]] = None,
                 **kwargs) -> "Explanation":
         """
         Explains the instances in X. `y` should be passed if the model loss function is to be explained,
@@ -1178,8 +1178,7 @@ class TreeShap(Explainer, FitMixin):
         cat_vars_start_idx
             The start indices of the categorical variables
         cat_vars_enc_dim
-            The length of the encoding dimension for each
-            categorical variable.
+            The length of the encoding dimension for each categorical variable.
 
         .. _this: https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_
         MOESM1_ESM.pdf)
@@ -1383,8 +1382,8 @@ class TreeShap(Explainer, FitMixin):
         y = kwargs.get('y')
         if y is None:
             y = np.array([])
-        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Tuple[int]
-        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Tuple[int]
+        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Sequence[int]
+        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Sequence[int]
         summarise_result = kwargs.get('summarise_result', False)  # type: bool
 
         # check if interactions were computed
@@ -1457,8 +1456,8 @@ class TreeShap(Explainer, FitMixin):
 
     def _check_result_summarisation(self,
                                     summarise_result: bool,
-                                    cat_vars_start_idx: Tuple[int],
-                                    cat_vars_enc_dim: Tuple[int]):
+                                    cat_vars_start_idx: Sequence[int],
+                                    cat_vars_enc_dim: Sequence[int]):
         """
         This function checks whether the result summarisation option is correct given the inputs and explainer setup.
 

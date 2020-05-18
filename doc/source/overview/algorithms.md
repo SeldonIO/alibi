@@ -11,13 +11,13 @@ only requirement is to have acces to a prediction function (which could be an AP
 
 The following table summarizes the capabilities of the current algorithms:
 
-|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train?|
+|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
 |[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular|
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
-|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local/global|✔|✔|✔| | |✔|✔|
+|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|
 
 Key:
  - **BB** - black-box (only require a prediction function)
@@ -26,7 +26,7 @@ Key:
  - **Local** - instance specific explanation, why was this prediction made?
  - **Global** - explains the model with respect to a set of instances
  - **Cat. data** - support for categorical features
- - **Train?** - whether a training set is required to fit the explainer
+ - **Train** - whether a training set is required to fit the explainer
  
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),

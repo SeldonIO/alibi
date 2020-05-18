@@ -11,8 +11,6 @@ import unittest
 import numpy as np
 import pandas as pd
 import sklearn
-from typing import Any
-
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
@@ -23,7 +21,9 @@ from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
 from shap.common import DenseData
+from scipy.special import expit
 from unittest.mock import MagicMock
+from typing import Any
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 
@@ -1408,7 +1408,13 @@ def test_update_metadata_tree(mock_tree_shap_explainer):
     assert metadata['task']
 
 
-n_classes = [(5, 'raw'), (5, 'probability'), (5, 'probability_doubled'), (5, 'log_loss')]
+n_classes = [
+    (5, 'raw'),
+    (1, 'raw'),
+    (1, 'probability'),
+    (5, 'probability'),
+    (5, 'log_loss'),
+]
 data_types = ['frame', 'array', 'none', 'catboost.Pool']
 summarise_result = [True, False]
 interactions = [False, True]
@@ -1477,8 +1483,11 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_
     else:
         shap_output = explainer._explainer.shap_values(instances)
 
+    # these would be executed in explain
     if isinstance(shap_output, np.ndarray):
         shap_output = [shap_output]
+    if len(shap_output) == 1:
+        explainer.expected_value = [explainer.expected_value]
 
     with unittest.mock.patch.object(
             explainer, '_check_result_summarisation',
@@ -1543,8 +1552,18 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_
             assert not raw_data['prediction']
         else:
             if explainer.model_output != 'log_loss':
+                assert isinstance(raw_data['raw_prediction'], np.ndarray)
                 assert isinstance(raw_data['prediction'], np.ndarray)
-                assert raw_data['prediction'].ndim == 1
+
+                if explainer.predictor.num_outputs == 1:
+                    assert raw_data['prediction'].ndim == 1
+                    if explainer.model_output == 'probability':
+                        class_1_idx = raw_data['raw_prediction'] > 0.5
+                    else:
+                        class_1_idx = expit(raw_data['raw_prediction']) > 0.5
+                    assert class_1_idx.sum() == raw_data['prediction'].sum()
+                else:
+                    assert len(raw_data['prediction']) == n_instances
             else:
                 assert isinstance(raw_data['prediction'], list)
                 assert not raw_data['prediction']

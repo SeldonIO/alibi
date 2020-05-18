@@ -1,6 +1,5 @@
 import copy
 import logging
-
 import shap
 
 import numpy as np
@@ -12,6 +11,7 @@ from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from alibi.utils.wrappers import methdispatch
 from functools import partial
 from scipy import sparse
+from scipy.special import expit
 from shap.common import DenseData, DenseDataWithIndex
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
 
@@ -893,6 +893,7 @@ TREE_SHAP_PARAMS = [
     'approximate',
     'interactions',
     'explain_loss',
+    'algorithm',
     'kwargs'
 ]
 TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 1000
@@ -1080,15 +1081,19 @@ class TreeShap(Explainer, FitMixin):
             feature_perturbation=perturbation,
         )  # type: shap.TreeExplainer
         self.expected_value = self._explainer.expected_value
+
+        self.scalar_output = False
         if self._explainer.model.num_outputs == 1:
             logger.warning(
                 "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
                 "as opposed to a classification label!"
             )
+            self.scalar_output = True
 
         # update metadata
         params = {
             'summarise_background': self.summarise_background,
+            'algorithm': perturbation,
             'kwargs': kwargs,
         }
         self._update_metadata(params, params=True)
@@ -1217,6 +1222,7 @@ class TreeShap(Explainer, FitMixin):
             shap_output = [shap_output]
         if isinstance(expected_value, float):
             expected_value = [self.expected_value]
+
 
         explanation = self.build_explanation(
             X,
@@ -1418,12 +1424,22 @@ class TreeShap(Explainer, FitMixin):
         else:
             loss = []
             raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)
+            # flatten array of predictions if the trailing dimension is 1
+            if raw_predictions.shape[-1] == 1:
+                raw_predictions = raw_predictions.squeeze(-1)
 
         # predicted class
         argmax_pred = []  # type: Union[List, np.ndarray]
         if self.task != 'regression':
             if not isinstance(raw_predictions, list):
-                argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+                if self.scalar_output:
+                    if self.model_output == 'raw':
+                        probas = expit(raw_predictions)
+                    else:
+                        probas = raw_predictions
+                    argmax_pred = (probas > 0.5).astype(int)
+                else:
+                    argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
 
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 

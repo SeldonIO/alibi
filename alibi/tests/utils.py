@@ -64,30 +64,25 @@ class MockPredictor:
             Output dimension: [N, B] where N is number of batches and B is batch size.
         """
 
+        if self.out_dim == 1:
+            return np.random.uniform(size=sz)
+
         # set distribution parameters
         alpha = kwargs.get('alpha', np.ones(self.out_dim))
 
         if isinstance(alpha, np.ndarray):
-            if self.out_dim > 1:
-                (dim,) = alpha.squeeze().shape
-            else:
-                dim = 1
+            (dim,) = alpha.squeeze().shape
         elif isinstance(alpha, list):
             dim = len(alpha)
         else:
-            raise TypeError("Expected alpha to be of type list or np.ndarray!")
+            raise TypeError("Expected Dirichlet parameters to be of type list or np.ndarray!")
 
-        try:
-            assert dim == self.out_dim
-        except AssertionError:
+        if dim != self.out_dim:
             raise ValueError("The dimension of the Dirichlet distribution parameters"
                              "must match output dimension. Got alpha dim={} and "
                              "out_dim={} ".format(dim, self.out_dim))
 
-        if self.out_dim == 1:
-            return np.random.dirichlet(alpha, size=sz).squeeze()
-        else:
-            return np.random.dirichlet(alpha, size=sz)
+        return np.random.dirichlet(alpha, size=sz)
 
     def _generate_labels(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """

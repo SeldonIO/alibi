@@ -911,8 +911,10 @@ class TreeShap(Explainer, FitMixin):
                  seed: int = None):
         """
         A wrapper around the `shap.TreeExplainer` class. It adds the following functionality:
+        
             1. Input summarisation options to allow control over background dataset size and hence runtime
             2. Output summarisation for sklearn models with one-hot encoded categorical variables.
+        
         Users are strongly encouraged to familiarise themselves with the algorithm by reading the method
         overview in the documentation.
 
@@ -923,34 +925,38 @@ class TreeShap(Explainer, FitMixin):
             scikit-learn models are supported. In the future, Pyspark could also be supported.
             Please open an issue if this is a use case for you.
         model_output
-            Supported values are: 'raw', 'probability', 'probability_doubled', 'log_loss':
+            Supported values are: `'raw'`, `'probability'`, `'probability_doubled'`, `'log_loss'`: 
 
-            - 'raw': the raw model of the output, which varies by task, is explained. This option
-            should always be used if the `fit` is called without arguments. It should also be set to compute
-            shap interaction values. For regression models it is the standard output, for binary classification
-            in XGBoost it is the log odds ratio. 
-            - 'probability': the probability output is explained. This option should only be used if `fit`
-            was called with the `background_data` argument set. The effect of specifying this parameter is that
-            the `shap` library will use this information to transform the shap values computed in margin space (aka 
-            using the raw output) to shap values that sum to the probability output by the model plus the model expected 
-            output probability. This requires knowledge of the type of output for `predictor` which is inferred by the
-            `shap` library from the model type (e.g., most sklearn models with exception of 
-            `sklearn.tree.DecisionTreeClassifier`, `"sklearn.ensemble.RandomForestClassifier`, 
-            `sklearn.ensemble.ExtraTreesClassifier` output logits) or on the basis of the mapping implemented in the 
-            `shap.TreeEnsemble` constructor. Only trees that output log odds and probabilities are supported currently.
-            - 'probability_doubled': used for binary classification problem in situations where the model outputs
-            the logits/probabilities for the positive class but shap values for both outcomes are desired. This
-            option should be used only if `fit` was called with the `background_data` argument set. In
-            this case the expected value for the negative class is 1 - expected_value for positive class and
-            the shap values for the negative class are the negative values of the positive class shap values.
-            As before, the explanation happens in the margin space, and the shap values are subsequently adjusted.
-            convert the model output to probabilities. The same considerations as for `probability` apply for this 
-            output type too. 
-            - 'log_loss': logarithmic loss is explained. This option shoud be used only if `fit` was called with the
-            `background_data` argument set and requires specifying labels, `y`, when calling `explain`.  If the 
-            objective is squared error, then the transformation (output - y)*(output -y) is applied. For binary 
-            cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with  
-            :math:`y \in \{0, 1\}`. Currently only binary cross-entropy and squared error losses can be explained. 
+                - `'raw'`: the raw model of the output, which varies by task, is explained. This option \
+                should always be used if the `fit` is called without arguments. It should also be set to compute \
+                shap interaction values. For regression models it is the standard output, for binary classification \
+                in XGBoost it is the log odds ratio. \
+            
+                - `'probability'`: the probability output is explained. This option should only be used if `fit` was \
+                was called with the `background_data` argument set. The effect of specifying this parameter is that \
+                the `shap` library will use this information to transform the shap values computed in margin space (aka \
+                using the raw output) to shap values that sum to the probability output by the model plus the model expected \
+                output probability. This requires knowledge of the type of output for `predictor` which is inferred by the \
+                `shap` library from the model type (e.g., most sklearn models with exception of \
+                `sklearn.tree.DecisionTreeClassifier`, `sklearn.ensemble.RandomForestClassifier`, \
+                `sklearn.ensemble.ExtraTreesClassifier` output logits) or on the basis of the mapping implemented in \
+                the `shap.TreeEnsemble` constructor. Only trees that output log odds and probabilities are supported \
+                currently.  
+            
+                - `'probability_doubled'`: used for binary classification problem in situations where the model outputs \
+                the logits/probabilities for the positive class but shap values for both outcomes are desired. This \
+                option should be used only if `fit` was called with the `background_data` argument set. In \
+                this case the expected value for the negative class is 1 - expected_value for positive class and \
+                the shap values for the negative class are the negative values of the positive class shap values. \
+                As before, the explanation happens in the margin space, and the shap values are subsequently adjusted. \
+                convert the model output to probabilities. The same considerations as for `probability` apply for this \
+                output type too. 
+            
+                - `'log_loss'`: logarithmic loss is explained. This option shoud be used only if `fit` was called with the \
+                `background_data` argument set and requires specifying labels, `y`, when calling `explain`.  If the \
+                objective is squared error, then the transformation :math:`(output - y)^2` is applied. For binary \
+                cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with  \
+                :math:`y \in \{0, 1\}`. Currently only binary cross-entropy and squared error losses can be explained. \
 
         feature_names
             Used to compute the `names` field, which appears as a key in each of the values of the `importances`
@@ -960,8 +966,8 @@ class TreeShap(Explainer, FitMixin):
             for the feature. Used to select the method for background data summarisation (if specified,
             subsampling is performed as opposed to kmeans clustering). In the future it may be used for visualisation.
         task
-            Can have values 'classification' and 'regression'. It is only used to set the contents of the `prediction`
-            field in the `data['raw']` response field.
+            Can have values `'classification'` and `'regression'`. It is only used to set the contents of the 
+            `prediction` field in the `data['raw']` response field.
 
         Notes
         -----
@@ -996,16 +1002,16 @@ class TreeShap(Explainer, FitMixin):
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
         This function updates the metadata of the explainer using the data from
-        the data_dict. If the params option is specified, then each key-value
-        pair is added to the metadata 'params' dictionary only if the key is
-        included in TREE_SHAP_PARAMS.
+        the `data_dict`. If `params=True`, then each key-value pair is added
+        to the metadata `params` dictionary only if the key is included in
+        `TREE_SHAP_PARAMS`.
 
         Parameters
         ----------
         data_dict
             Dictionary containing the data to be stored in the metadata.
         params
-            If True, the method updates the 'params' attribute of the metatadata.
+            If `True`, the method updates the `['params']` attribute of the metadata.
         """
 
         if params:
@@ -1024,7 +1030,7 @@ class TreeShap(Explainer, FitMixin):
             **kwargs) -> "TreeShap":
         """
         This function instantiates an explainer which can then be use to explain instances using the `explain` method.
-        If no background dataset is passed, the explainer uses the path-dependent feaature perturbation algorithm
+        If no background dataset is passed, the explainer uses the path-dependent feature perturbation algorithm
         to explain the values. As such, only the model raw output can be explained and this should be reflected by
         passing `model_output='raw'` when instantiating the explainer. If a background dataset is passed, the
         interventional feature perturbation algorithm is used. Using this algorithm, probability outputs can also be
@@ -1039,12 +1045,12 @@ class TreeShap(Explainer, FitMixin):
             background data should represent samples and the columns features.
         summarise_background
             A large background dataset may impact the runtime and memory footprint of the algorithm. By setting
-            this argument to True, only n_background_samples from the provided data are selected. If the
+            this argument to `True`, only `n_background_samples` from the provided data are selected. If the
             `categorical_names` argument has been passed to the constructor, subsampling of the data is used.
-             Otherwise, shap.kmeans (a wrapper around sklearn kmeans implementation) is used for selection.
-             If set to 'auto', a default of TREE_SHAP_BACKGROUND_WARNING_THRESHOLD samples is selected.
+            Otherwise, `shap.kmeans` (a wrapper around `sklearn.kmeans` implementation) is used for selection.
+            If set to `'auto'`, a default of `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD` samples is selected.
         n_background_samples
-            The number of samples to keep in the background dataset if summarise_background=True.
+            The number of samples to keep in the background dataset if `summarise_background=True`.
         """
 
         np.random.seed(self.seed)
@@ -1128,8 +1134,8 @@ class TreeShap(Explainer, FitMixin):
         Returns
         -------
             If the `categorical_names` argument to the constructor is specified, then an object of the same type as
-            input containing only `n_background_samples` is returned. Otherwise, a `shap.common.Data` containing a
-            `np.ndarray` of `n_background_samples` in the `data` field is returned.
+            input containing only `n_background_samples` is returned. Otherwise, a `shap.common.Data` containing an
+            `np.ndarray` object of `n_background_samples` in the `data` field is returned.
 
         """
 
@@ -1152,7 +1158,7 @@ class TreeShap(Explainer, FitMixin):
                 cat_vars_enc_dim: Optional[Sequence[int]] = None,
                 **kwargs) -> "Explanation":
         """
-        Explains the instances in X. `y` should be passed if the model loss function is to be explained,
+        Explains the instances in `X`. `y` should be passed if the model loss function is to be explained,
         which can be useful in order to understand how various features affect model performance over
         time. This is only possible if the explainer has been fitted with a background dataset and
         requires setting `model_output='log_loss'`.
@@ -1162,34 +1168,36 @@ class TreeShap(Explainer, FitMixin):
         X
             Instances to be explained.
         y
-            Labels corresponding to rows of X. Should be passed only if a background dataset was passed to the
-            fit method.
+            Labels corresponding to rows of `X`. Should be passed only if a background dataset was passed to the
+            `fit` method.
         interactions
-            If True, the shap value for every feature of every instance in X is decomposed into `X.shape[1] - 1`
-            shap value interactions and one shap main effects. This is only supported if no background dataset is
-            passed to the algorithm.
+            If `True`, the shap value for every feature of every instance in `X` is decomposed into
+            `X.shape[1] - 1` shap value interactions and one main effect. This is only supported if `fit` is called
+            with `background_dataset=None`.
         approximate
-            If True, an approximation to the shap values that does not account for feature order is computed. This
-            was proposed by Sabaas here_. Check this_ resource for more details. This option is currently only supported
-            for `xgboost` and `sklearn` models.
+            If `True`, an approximation to the shap values that does not account for feature order is computed. This
+            was proposed by `Ando Sabaas`_ here . Check `this`_ resource for more details. This option is currently
+            only supported for `xgboost` and `sklearn` models.
+
+            .. _Ando Sabaas:
+               https://github.com/andosa/treeinterpreter
+
+            .. _this:
+               https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_MOESM1_ESM.pdf
+
         check_additivity
-            If True, output correctness is ensured if `model_output=raw` has been passed to the constructor.
+            If `True`, output correctness is ensured if `model_output='raw'` has been passed to the constructor.
         tree_limit
-            Explain the output of a subset of the first `tree_limit` trees in an ensamble model.
+            Explain the output of a subset of the first `tree_limit` trees in an ensemble model.
         summarise_result
             This should be set to True only when some of the columns in `X` represent encoded dimensions of a
             categorical variable and one single shap value per categorical variable is desired. Both
             `cat_vars_start_idx` and `cat_vars_enc_dim` should be specified as detailed below to allow this.
         cat_vars_start_idx
-            The start indices of the categorical variables
+            The start indices of the categorical variables.
         cat_vars_enc_dim
             The length of the encoding dimension for each categorical variable.
-
-        .. _this: https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_
-        MOESM1_ESM.pdf)
-
-        .. _here: https://github.com/andosa/treeinterpreter
-        """
+        """  # noqa: E501
 
         if not self._fitted:
             raise TypeError(
@@ -1223,7 +1231,6 @@ class TreeShap(Explainer, FitMixin):
         if isinstance(expected_value, float):
             expected_value = [self.expected_value]
 
-
         explanation = self.build_explanation(
             X,
             shap_output,
@@ -1245,10 +1252,10 @@ class TreeShap(Explainer, FitMixin):
 
     def _xgboost_interactions(self, X: Union[np.ndarray, pd.DataFrame]) -> Union[np.ndarray, List[np.ndarray]]:
         """
-        shap library handling of xgboost causes a ValueError due to xgboost (features name mismatch)
-        if you call shap_interaction_values with a numpy array (likely only if the user declares their
-        xgboost.DMatrix object with the feature_names keyword argument). This method converts the
-        incoming numpy array to an xgboost.DMatrix object with feature names that match the predictor.
+        `shap` library handling of `xgboost` causes a `ValueError` due to `xgboost` (features name mismatch)
+        if you call `shap_interaction_values` with a numpy array (likely only if the user declares their
+        `xgboost.DMatrix` object with the feature_names keyword argument). This method converts the
+        incoming numpy array to an `xgboost.DMatrix` object with feature names that match the predictor.
         """
 
         import xgboost
@@ -1270,13 +1277,13 @@ class TreeShap(Explainer, FitMixin):
         background_data
             See `fit` documentation.
         y
-            See explain documentation.
+            See `explain` documentation.
 
         Raises
         ------
         NotImplementedError
             If a background dataset is passed to the `fit` method or argument `y` is specified to the `explain`
-            method. These algorithms are not yet supported in the shap library.
+            method. These algorithms are not yet supported in the `shap` library.
 
         Warns
         -----
@@ -1314,9 +1321,9 @@ class TreeShap(Explainer, FitMixin):
         background_data
             See `fit` method documentation.
         model_output
-            See TreeShap constructor documentation.
+            See `TreeShap` constructor documentation.
         y
-            See`explain` method documentation.
+            See `explain` method documentation.
 
 
         Raises
@@ -1324,7 +1331,7 @@ class TreeShap(Explainer, FitMixin):
         NotImplementedError
             If the users passes labels to the `explain` method but does not specify a background dataset or
             if the user does not pass a background dataset to `fit` and specifies a `model_output` other than
-            raw when initialising the explainer.
+            `'raw'` when initialising the explainer.
         ValueError
             If the user passes labels to the `explain` method but has not set `model_output='log_loss'` when
             initialising the explainer.
@@ -1363,26 +1370,31 @@ class TreeShap(Explainer, FitMixin):
         are passed, the raw shap values are summed first so that a single shap value is returned for each categorical
         variable, as opposed to a shap value per dimension of categorical variable encoding. Similarly, the
         shap interaction values are summed such that they represent the interaction between categorical variables as
-        opposed to levels of categorical variables. If the interaction option has been specified during `explain`, this
-        method computes the shap values given the interactions prior to creating the response.
+        opposed to levels of categorical variables. If the interaction option has been specified during `explain`,
+        this method computes the shap values given the interactions prior to creating the response.
 
         Parameters
         ----------
         X
             Instances to be explained.
-        shap_output:
+        shap_output
             If `explain` is callled with `interactions=True` then the list contains tensors of dimensionality
-            n_instances x n_features x n_features of shap interaction values. Otherwise, it contains tensors of
-            dimension n_instances x n_features representing shap values. The length of the list equals the number of
+            `n_instances x n_features x n_features` of shap interaction values. Otherwise, it contains tensors of
+            dimension `n_instances x n_features` representing shap values. The length of the list equals the number of
             model outputs.
-        expected_value:
-            A list containing the expected value of the prediction for each class. Its length should be equal to that of
+        expected_value
+            A list containing the expected value of the prediction for each class. Its length is equal to that of
             `shap_output`.
 
         Returns
         -------
-            An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
-            field containing additional data. See usage examples in the method overview for details.
+        explanation
+            An `Explanation` object containing the shap values and prediction in the `data` field, along with a
+            `meta` field containing additional data. See usage examples `here`_ for details.
+
+            .. _here:
+               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+
         """
 
         y = kwargs.get('y')
@@ -1486,6 +1498,7 @@ class TreeShap(Explainer, FitMixin):
         cat_vars_enc_dim:
             See `explain` documentation.
         """
+
         self.summarise_result = summarise_result
         if not cat_vars_start_idx or not cat_vars_enc_dim:
             logger.warning(

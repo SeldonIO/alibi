@@ -3,7 +3,7 @@
 import numpy as np
 import tensorflow.keras as keras
 
-from keras.utils import to_categorical
+from tensorflow.keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
 from sklearn.datasets import load_iris
 from sklearn.feature_extraction.text import CountVectorizer

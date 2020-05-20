@@ -3,14 +3,15 @@ import logging
 import shap
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
 
-from alibi.explainers import AnchorTabular, KernelShap, TreeShap
+from alibi.explainers import AnchorTabular
+from alibi.explainers import KernelShap, TreeShap
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
-from keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
-from keras.models import Model
+from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
+from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 
 
 # A file containing fixtures that can be used across tests

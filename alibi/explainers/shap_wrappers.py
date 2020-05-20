@@ -1285,7 +1285,9 @@ class TreeShap(Explainer, FitMixin):
 
         return shap_output
 
-    def _check_interactions(self, approximate: bool, background_data, y: Optional[np.ndarray]) -> None:
+    def _check_interactions(self, approximate: bool,
+                            background_data: Union[np.ndarray, pd.DataFrame, None],
+                            y: Optional[np.ndarray]) -> None:
         """
         Checks if the inputs to the explain method match the explainer setup if shap interaction values
         are to be explained.

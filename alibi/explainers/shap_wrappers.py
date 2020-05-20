@@ -848,7 +848,7 @@ class KernelShap(Explainer, FitMixin):
         data = copy.deepcopy(DEFAULT_DATA_KERNEL_SHAP)
         data.update(
             shap_values=shap_values,
-            expected_value=np.ndarray(expected_value),
+            expected_value=np.array(expected_value),
             link=self.link,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names
@@ -893,6 +893,6 @@ class KernelShap(Explainer, FitMixin):
                 logger.warning(
                     "Specified both groups as well as summarisation for categorical variables. "
                     "By grouping, only one shap value is estimated for each categorical variable. "
-                    "Summarisation is thus not necessary!"
+                    "Summarisation is not necessary!"
                 )
                 self.summarise_result = False

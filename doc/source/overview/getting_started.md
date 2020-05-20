@@ -1,16 +1,19 @@
 # Getting Started
 
 ## Installation
-Alibi works with Python 3.6+ and can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi works with Python 3.6-3.7 and can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```
+Alternatively, the development version can be installed:
+```bash
+pip install git+https://github.com/SeldonIO/alibi.git 
+```
 
 ## Features
-Alibi is a Python package designed to help explain the predictions of machine learning models, gauge
-the confidence of predictions and eventually support wider capabilities of inspecting the
-performance of models with respect to concept drift and algorithmic bias. The focus of the library
-is to support the widest range of models using black-box methods where possible.
+Alibi is a Python package designed to help explain the predictions of machine learning models and gauge
+the confidence of predictions. The focus of the library is to support the widest range of models using
+black-box methods where possible.
 
 To get a list of the latest available model explanation algorithms, you can type:
 ```python
@@ -24,8 +27,7 @@ alibi.explainers.__all__
  'CEM',
  'CounterFactual',
  'CounterFactualProto'
- 'KernelShap'
- 'IntegratedGradients'] 
+ 'KernelShap'] 
 ```
 
 For gauging model confidence:
@@ -47,13 +49,13 @@ For detailed information on the methods:
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
-    * [IntegratedGradients](../methods/IntegratedGradients.ipynb)
-    * [Linearity Measure](../examples/linearity_measure_iris.ipynb)
+    * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 
 ## Basic Usage
-We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data) to illustrate
-the usage of explainers in Alibi.
+The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
+fit and explain steps. We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data)
+to illustrate the API.
 
 First, we import the explainer:
 ```python

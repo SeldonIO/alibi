@@ -89,9 +89,10 @@ Default counterfactual prototype metadata.
 """
 
 # KernelSHAP
-DEFAULT_META_SHAP = {
+DEFAULT_META_KERNEL_SHAP = {
     "name": None,
     "type": ["blackbox"],
+    "task": None,
     "explanations": ["local", "global"],
     "params": {}
 }  # type: dict
@@ -99,12 +100,12 @@ DEFAULT_META_SHAP = {
 Default KernelSHAP metadata.
 """
 
-DEFAULT_DATA_SHAP = {
+DEFAULT_DATA_KERNEL_SHAP = {
     "shap_values": [],
     "expected_value": [],
     "link": 'identity',
-    "categorical_names": None,
-    "feature_names": None,
+    "categorical_names": {},
+    "feature_names": [],
     "raw": {
         "raw_prediction": None,
         "prediction": None,

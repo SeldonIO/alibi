@@ -11,8 +11,8 @@ import numpy as np
 import pandas as pd
 import sklearn
 
-from alibi.api.defaults import DEFAULT_META_SHAP, DEFAULT_DATA_SHAP
-from alibi.explainers.kernel_shap import sum_categories, BACKGROUND_WARNING_THRESHOLD
+from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
+from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs
 from copy import copy
@@ -268,27 +268,99 @@ class KMeansMock:
         return DenseData(sampled, group_names, None)
 
 
-# Tests below
+# Tests for functions used by both wrappers
+
+n_outputs = [(5,), (1,), ]
+data_dimensions = [(100, 50), ]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
+def test_rank_by_importance(n_outputs, data_dimension):
+    """
+    Tests the feature effects ranking function.
+    """
+
+    def get_column_ranks(X, ascending=False):
+        """
+        Ranks the columns of X according to the average magnitude value
+        and returns an array of ranking indices and a an array of
+        sorted values according to the ranking.
+        """
+
+        avg_mag = np.mean(np.abs(X), axis=0)
+        rank = np.argsort(avg_mag)
+        if ascending:
+            return rank, avg_mag[rank]
+        else:
+            return rank[::-1], avg_mag[rank][::-1]
+
+    # setup explainer
+    n_samples, n_features = data_dimension
+    feature_names = gen_group_names(n_features)
+
+    # create inputs
+    (n_outs, ) = n_outputs
+    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
+
+    # compute desired values
+    exp_ranked_effects_class = {}
+    expected_feat_names_order = {}
+    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
+    ranks, vals = list(zip(*ranks_and_vals))
+    for i, values in enumerate(vals):
+        exp_ranked_effects_class[str(i)] = vals[i]
+        expected_feat_names_order[str(i)] = [feature_names[k] for k in ranks[i]]
+    aggregate_shap = np.sum(shap_values, axis=0)
+    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
+    exp_aggregate_names = [feature_names[k] for k in exp_aggregate_rank]
+
+    # check results
+    importances = rank_by_importance(shap_values, feature_names=feature_names)
+    assert len(importances.keys()) == n_outs + 1
+    for key in importances:
+        if key != 'aggregated':
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
+            assert importances[key]['names'] == expected_feat_names_order[key]
+        else:
+            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
+            assert importances[key]['names'] == exp_aggregate_names
 
 
 sum_categories_inputs = [
-    (50, [3, 6, 4, 4], None),
-    (50, None, [0, 6, 5, 12]),
-    (100, [3, 6, 4, 4], [0, 6, 15, 22]),
-    (5, [3, 2, 4], [0, 5, 9]),
-    (10, [3, 3, 4], [0, 3, 6])
+    (50, 2, [3, 6, 4, 4], None),
+    (50, 2, None, [0, 6, 5, 12]),
+    (100, 2,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 3,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (5, 2, [3, 2, 4], [0, 5, 9]),
+    (10, 2,  [3, 3, 4], [0, 3, 6]),
+    (10, 3,  [3, 3, 4], [0, 3, 6]),
+    (8, 2, [2, 3], [0, 2]),
+    (8, 3, [2, 3], [0, 2]),
+    (8, 2, [3], [5]),
+    (8, 3, [3], [5]),
+    (8, 2, [2, 3], [0, 5]),
+    (8, 3, [2, 3], [0, 5]),
+    (8, 2, [2, 3], [3, 5]),
+    (8, 3, [2, 3], [3, 5]),
+    (8, 2, [3], [2]),
+    (8, 3, [3], [2]),
 ]
 
 
-@pytest.mark.parametrize('n_feats, feat_enc_dim, start_idx', sum_categories_inputs)
-def test_sum_categories(n_feats, feat_enc_dim, start_idx):
+# @pytest.mark.skip
+@pytest.mark.parametrize('n_feats, ndim, feat_enc_dim, start_idx', sum_categories_inputs)
+def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     """
-    Tests if summing the columns corresponding to categorical
-    variables into one variable works properly.
+    Tests if summing the columns corresponding to categorical variables into one variable works properly.
     """
 
     # create inputs to feed the function
-    X = get_random_matrix(n_cols=n_feats)
+    if ndim == 2:
+        X = get_random_matrix(n_cols=n_feats)
+    else:
+        X = np.stack([get_random_matrix(n_rows=n_feats, n_cols=n_feats) for _ in range(2)])
 
     # check a value correct is raised if start indices or
     # encoding lengths are not provided
@@ -310,19 +382,46 @@ def test_sum_categories(n_feats, feat_enc_dim, start_idx):
     # check that if inputs are correct, we retrieve the sum in the correct col
     else:
         summ_X = sum_categories(X, start_idx, feat_enc_dim)
-        assert summ_X.shape[1] == X.shape[1] - sum(feat_enc_dim) + len(feat_enc_dim)
+        # check the reduction gives the correct dimensions for the reduced array
+        assert summ_X.shape[0] == X.shape[0]
+        for dim in range(1, len(X.shape)):
+            assert summ_X.shape[dim] == X.shape[dim] - sum(feat_enc_dim) + len(feat_enc_dim)
+        # check the values in the reduced array are as expected
         for i, enc_dim in enumerate(feat_enc_dim):
             # work out the index of the summed column in the returned matrix
             sum_col_idx = start_idx[i] - sum(feat_enc_dim[:i]) + len(feat_enc_dim[:i])
-            diff = summ_X[:, sum_col_idx] - np.sum(X[:, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
-            assert diff.sum() == 0.0
+            expected = summ_X[..., sum_col_idx]
+            if ndim == 2:
+                actual = np.sum(X[:, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
+            else:
+                # here we compute the expected result naively ...
+                actual = []
+                for j in range(X.shape[0]):
+                    tmp = np.sum(X[j, :, start_idx[i]:start_idx[i] + feat_enc_dim[i]], axis=1)
+                    res = []
+                    tmp_idx = 0
+                    for s, nelem in zip(start_idx, feat_enc_dim):
+                        res.extend(tuple(tmp[tmp_idx:s]))
+                        res.append(np.sum(tmp[s:s + nelem]))
+                        tmp_idx += (s - tmp_idx + nelem)
+                    if tmp_idx < len(tmp):
+                        res += list(tmp[tmp_idx:])
+                    res = np.array(res)
+                    actual.append(res)
 
+                actual = np.stack(actual)
+                assert actual.shape == expected.shape
+            diff = expected - actual
+            assert np.isclose(diff.sum(), 0.0)
+
+# Tests for KernelShap
 
 # each tuple in group_settings controls whether the
 # group_names, groups or weights arguments are passed to
 # KernelShap._get_data. The data is generated randomly
 # as a function of `n_features` and `n_samples` by functions
 # defined above
+
 
 group_settings = [
     (False, False, False),
@@ -341,12 +440,12 @@ n_classes = [(5, 'identity'), ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('data_type', SUPPORTED_BACKGROUND_DATA_TYPES, ids='data_type={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
-def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings, input_settings):
+def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_settings, input_settings):
     """
     Tests the _get_data method of the wrapper.
     """
@@ -365,7 +464,7 @@ def test__get_data(mock_ks_explainer, data_dimension, data_type, group_settings,
         group_names = ['group_{}'.format(i) for i in range(len(groups))]
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = False
 
@@ -438,11 +537,11 @@ input_settings = [
     {'correct': True, 'error_type': None},
 ]
 n_classes = [(5, 'identity'), ]
-data_dimensions = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (1, 49)]
+data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (55, 49), (1, 49)]
 summarise_background = [True, False]
 
 
-def uncollect_if_test_check_inputs(**kwargs):
+def uncollect_if_test_check_inputs_kernel(**kwargs):
     error_type = kwargs['input_settings']['error_type']
     group_settings = kwargs['group_settings']
     summarise_background = kwargs['summarise_background']
@@ -473,21 +572,21 @@ def uncollect_if_test_check_inputs(**kwargs):
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs_kernel)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
-def test__check_inputs(caplog,
-                       mock_ks_explainer,
-                       data_type,
-                       data_dimension,
-                       group_settings,
-                       input_settings,
-                       summarise_background,
-                       ):
+def test__check_inputs_kernel(caplog,
+                              mock_kernel_shap_explainer,
+                              data_type,
+                              data_dimension,
+                              group_settings,
+                              input_settings,
+                              summarise_background,
+                              ):
     """
     Tests that the _check_inputs method logs the expected warnings and info messages.
     """
@@ -509,7 +608,7 @@ def test__check_inputs(caplog,
     _, error_type = input_settings['correct'], input_settings['error_type']
 
     # initialise a KernelShap with a mock predictor
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.use_groups = use_groups
     explainer.summarise_background = summarise_background
     explainer._check_inputs(data, group_names, groups, weights)
@@ -526,7 +625,7 @@ def test__check_inputs(caplog,
     # if shap.common.Data is passed, expect no warnings
     if data_type == 'data':
         if summarise_background:
-            if data.data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+            if data.data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
                 msg_start = 'Large datasets can cause slow runtimes for shap.'
                 assert_message_in_logs(msg_start, records)
         else:
@@ -545,7 +644,7 @@ def test__check_inputs(caplog,
                 assert not explainer.use_groups
             assert not explainer.transposed
     else:
-        if data.shape[0] > BACKGROUND_WARNING_THRESHOLD:
+        if data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
             msg_start = 'Large datasets can cause slow runtimes for shap.'
             assert_message_in_logs(msg_start, records)
 
@@ -585,18 +684,24 @@ def test__check_inputs(caplog,
 
 data_types = copy(SUPPORTED_BACKGROUND_DATA_TYPES)
 n_classes = [(5, 'identity'), ]  # second element refers to the predictor link function
-data_dimension = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), ]
+data_dimension = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), ]
 use_groups = [True, False]
 categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
-def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_type, use_groups, categorical_names):
+def test__summarise_background_kernel(caplog,
+                                      mock_kernel_shap_explainer,
+                                      data_dimension,
+                                      data_type,
+                                      use_groups,
+                                      categorical_names):
+
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -604,7 +709,7 @@ def test__summarise_background(mock_ks_explainer, caplog, data_dimension, data_t
     background_data = get_data(data_type, n_rows=n_samples, n_cols=n_features)
 
     # initialise explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer.categorical_names = categorical_names
     explainer.use_groups = use_groups
     summary_data = explainer._summarise_background(background_data, n_bckg_samples)
@@ -652,11 +757,11 @@ input_settings = [
     {'correct': True, 'error_type': None},
     {'correct': False, 'error_type': 'weights_dim_mismatch'},
 ]
-data_dimensions = [(BACKGROUND_WARNING_THRESHOLD + 5, 49), (49, 49), ]
+data_dimensions = [(KERNEL_SHAP_BACKGROUND_THRESHOLD + 5, 49), (49, 49), ]
 n_classes = [(5, 'identity'), (1, 'identity'), ]
 
 
-def uncollect_if_test_fit(**kwargs):
+def uncollect_if_test_fit_kernel(**kwargs):
     _, _, b_weights = kwargs['group_settings']
     error_type = kwargs['input_settings']['error_type']
     summarise_background = kwargs['summarise_background']
@@ -670,21 +775,21 @@ def uncollect_if_test_fit(**kwargs):
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_fit)
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.uncollect_if(func=uncollect_if_test_fit_kernel)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', [True, False, 'auto'], ids='summarise={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
-def test_fit(caplog,
-             monkeypatch,
-             mock_ks_explainer,
-             data_type,
-             summarise_background,
-             data_dimension,
-             group_settings,
-             input_settings):
+def test_fit_kernel(caplog,
+                    monkeypatch,
+                    mock_kernel_shap_explainer,
+                    data_type,
+                    summarise_background,
+                    data_dimension,
+                    group_settings,
+                    input_settings):
     """
     This is an integration test where we check that the _check_inputs, _get_data and _summarise_background
     methods work well together.
@@ -710,11 +815,11 @@ def test_fit(caplog,
     else:
         if b_weights:
             if summarise_background == 'auto':
-                weights = weights[:BACKGROUND_WARNING_THRESHOLD]
+                weights = weights[:KERNEL_SHAP_BACKGROUND_THRESHOLD]
             elif summarise_background:
                 weights = weights[:n_background_examples]
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     # replace kmeans with a mock object so we don't run actual kmeans a zillion times
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     # check weights are not set
@@ -727,7 +832,7 @@ def test_fit(caplog,
         weights=weights,
     )
     records = caplog.records
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
 
     n_outs = explainer.predictor.out_dim
     if n_outs == 1:
@@ -780,8 +885,8 @@ def test_fit(caplog,
 
                 # check dimensions are reduced
                 if isinstance(summarise_background, str):
-                    if n_samples > BACKGROUND_WARNING_THRESHOLD:
-                        assert background_data.shape[0] == BACKGROUND_WARNING_THRESHOLD
+                    if n_samples > KERNEL_SHAP_BACKGROUND_THRESHOLD:
+                        assert background_data.shape[0] == KERNEL_SHAP_BACKGROUND_THRESHOLD
                     else:
                         assert background_data.shape[0] == data.shape[0]
                 elif summarise_background:
@@ -810,11 +915,11 @@ summarise_result = [True, False]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
-def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, data_type):
+def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, summarise_result, data_type):
     """
     Integration tests, runs .explain method to check output dimensions are as expected.
     """
@@ -861,7 +966,7 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
         cat_vars_start_idx, cat_vars_enc_dim = None, None
 
     # initialise and fit explainer
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     monkeypatch.setattr(shap, "kmeans", KMeansMock())
     explainer.use_groups = use_groups
     explainer.fit(background_data, group_names=group_names, groups=groups)
@@ -876,8 +981,8 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
     )
 
     # check that explanation metadata and data keys are as expected
-    assert explanation.meta.keys() == DEFAULT_META_SHAP.keys()
-    assert explanation.data.keys() == DEFAULT_DATA_SHAP.keys()
+    assert explanation.meta.keys() == DEFAULT_META_KERNEL_SHAP.keys()
+    assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim
@@ -905,73 +1010,14 @@ def test_explain(monkeypatch, mock_ks_explainer, use_groups, summarise_result, d
             assert n_feats in shap_dims
 
 
-n_classes = [(5, 'identity'), ]
-data_dimensions = [(100, 50), ]
-
-
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
-def test_rank_by_importance(mock_ks_explainer, data_dimension):
-    """
-    Tests the feature effects ranking function.
-    """
-
-    def get_column_ranks(X, ascending=False):
-        """
-        Ranks the columns of X according to the average magnitude value
-        and returns an array of ranking indices and a an array of
-        sorted values according to the ranking.
-        """
-
-        avg_mag = np.mean(np.abs(X), axis=0)
-        rank = np.argsort(avg_mag)
-        if ascending:
-            return rank, avg_mag[rank]
-        else:
-            return rank[::-1], avg_mag[rank][::-1]
-
-    # setup explainer
-    n_samples, n_features = data_dimension
-    explainer = mock_ks_explainer
-    explainer.feature_names = gen_group_names(n_features)
-
-    # create inputs
-    n_outs = explainer.predictor.out_dim
-    shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
-
-    # compute desired values
-    exp_ranked_effects_class = {}
-    expected_feat_names_order = {}
-    ranks_and_vals = [get_column_ranks(class_shap_vals) for class_shap_vals in shap_values]
-    ranks, vals = list(zip(*ranks_and_vals))
-    for i, values in enumerate(vals):
-        exp_ranked_effects_class[str(i)] = vals[i]
-        expected_feat_names_order[str(i)] = [explainer.feature_names[k] for k in ranks[i]]
-    aggregate_shap = np.sum(shap_values, axis=0)
-    exp_aggregate_rank, exp_ranked_effects_aggregate = get_column_ranks(aggregate_shap)
-    exp_aggregate_names = [explainer.feature_names[k] for k in exp_aggregate_rank]
-
-    # check results
-    importances = explainer.rank_by_importance(shap_values)
-    assert len(importances.keys()) == n_outs + 1
-    for key in importances:
-        if key != 'aggregated':
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_class[key])
-            assert importances[key]['names'] == expected_feat_names_order[key]
-        else:
-            assert_allclose(importances[key]['ranked_effect'], exp_ranked_effects_aggregate)
-            assert importances[key]['names'] == exp_aggregate_names
-
-
-# pytest.mark.skip
-@pytest.mark.parametrize('mock_ks_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata(mock_ks_explainer):
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_update_metadata_kernel(mock_kernel_shap_explainer):
     """
     Test that the metadata updates are correct.
     """
 
-    explainer = mock_ks_explainer
+    explainer = mock_kernel_shap_explainer
     explainer._update_metadata({'wrong_arg': None, 'link': 'logit'}, params=True)
     explainer._update_metadata({'random_arg': 0}, params=False)
     metadata = explainer.meta
@@ -979,3 +1025,33 @@ def test_update_metadata(mock_ks_explainer):
     assert 'wrong_arg' not in metadata['params']
     assert metadata['params']['link'] == 'logit'
     assert metadata['random_arg'] == 0
+    assert metadata['task']
+
+
+task = ['classification', 'regression']
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('task', task, ids='task={}'.format)
+@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
+    """
+    Test that response is correct for both classification and regression.
+    """
+
+    n_instances, n_feats = 50, 12
+    explainer = mock_kernel_shap_explainer
+    explainer.task = task
+    background_data = get_random_matrix(n_rows=100, n_cols=n_feats)
+    explainer.fit(background_data)
+    n_outs = explainer.predictor.out_dim
+    X = get_random_matrix(n_rows=n_instances, n_cols=n_feats)
+    shap_values = [get_random_matrix(n_rows=n_instances, n_cols=n_feats) for _ in range(n_outs)]
+    expected_value = [np.random.random() for _ in range(n_outs)]
+    response = explainer.build_explanation(X, shap_values, expected_value)
+
+    if task == 'regression':
+        assert not response.data['raw']['prediction']
+    else:
+        assert len(response.data['raw']['prediction'].shape) == 1
+        assert len(response.data['raw']['prediction']) == n_instances

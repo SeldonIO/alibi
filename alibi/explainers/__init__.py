@@ -8,7 +8,7 @@ from .anchor_image import AnchorImage
 from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
-from .shap_wrappers_combined import KernelShap, TreeShap
+from .shap_wrappers import KernelShap, TreeShap
 
 
 __all__ = ["AnchorTabular",

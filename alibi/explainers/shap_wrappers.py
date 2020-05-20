@@ -42,16 +42,26 @@ def rank_by_importance(shap_values: List[np.ndarray],
         to each model output.
     feature_names
         Each element is the name of the column with the corresponding index in each of the
-        arrays in the shap_values list.
+        arrays in the `shap_values` list.
 
     Returns
     -------
     importances
-        A dictionary containing a key for each model output ('0', '1', ...) and a key for
-        aggregated model output ('aggregated'). Each value is a dictionary containing a 'ranked_effect' field,
-        populated with an array of values representing the average magnitude for each shap value,
-        ordered from highest (most important) to the lowest (least important) feature. The 'names'
-        field contains the corresponding feature names.
+        A dictionary of the form::
+
+            {
+                '0': {'ranked_effect': array([0.2, 0.5, ...]), 'names': ['feat_3', 'feat_5', ...]},
+                '1': {'ranked_effect': array([0.3, 0.2, ...]), 'names': ['feat_6', 'feat_1', ...]},
+                ...
+                'aggregated': {'ranked_effect': array([0.9, 0.7, ...]), 'names': ['feat_3', 'feat_6', ...]}
+            }
+
+        The keys of the first level represent the index of the model output. The feature effects in
+        `ranked_effect` and the corresponding feature names in `names` are sorted from highest (most
+        important) to lowest (least important). The values in the `aggregated` field are obtained by
+        summing the shap values for all the model outputs and then computing the effects. Given an
+        output, the effects are defined as the average magnitude of the shap values across the instances
+        to be explained.
     """
 
     if len(shap_values[0].shape) == 1:
@@ -124,7 +134,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     Returns
     -------
     new_values
-        An array whose columns have been summed according to the entries in start_idx and enc_feat_dim.
+        An array whose columns have been summed according to the entries in `start_idx` and `enc_feat_dim`.
     """
 
     if start_idx is None or enc_feat_dim is None:
@@ -147,7 +157,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         """
         Given start indices, encoding dimensions and the array trailing shape, this function returns
         an array where contiguous numbers are slices. This array is used to reduce along an axis
-        only the slices `slice(start[i], start[i]+dim[i], 1)` from a tensor and leave all other slices
+        only the slices `slice(start[i], start[i] + dim[i], 1)` from a tensor and leave all other slices
         unchanged.
         """
 
@@ -203,44 +213,45 @@ class KernelShap(Explainer, FitMixin):
                  task: str = 'classification',
                  seed: int = None):
         """
-        A wrapper around the shap.KernelExplainer class. This extends the current shap library functionality
-        by allowing the user to specify variable groups in order to deal with one-hot encoded categorical
-        variables. The user can also specify whether to aggregate the shap values estimate for the encoded levels
-        of categorical variables during the explain call.
+        A wrapper around the `shap.KernelExplainer` class. It extends the current `shap` library functionality
+        by allowing the user to specify variable groups in order to treat one-hot encoded categorical as one during
+        sampling. The user can also specify whether to aggregate the `shap` values estimate for the encoded levels
+        of categorical variables as an optional argument to `explain`, if grouping arguments are not passed to `fit`.
 
         Parameters
         ----------
         predictor
             A callable that takes as an input a samples x features array and outputs a samples x n_outputs
-            outputs. The n_outputs should represent model output in margin space. If the model outputs
+            model outputs. The n_outputs should represent model output in margin space. If the model outputs
             probabilities, then the link should be set to 'logit' to ensure correct force plots.
         link
-            Valid values are 'identity' or 'logit'. A generalized linear model link to connect the feature
-            importance values to the model output. Since the feature importance values, phi, sum up to the
+            Valid values are `'identity'` or `'logit'`. A generalized linear model link to connect the feature
+            importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the
             model output, it often makes sense to connect them to the ouput with a link function where
-            link(output) = sum(phi). If the model output is a probability then the LogitLink link function
-            makes the feature importance values have log-odds units. Therefore, for a model which outputs
-            probabilities, link='logit' makes the feature effects have log-odds (evidence) units where
-            link='identity' means that the feature effects have probability units. Please see
-            https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
-            for an in-depth discussion about the semantics of explaining the model in the probability vs the
-            margin space.
+            :math:`link(output - expected_value) = sum(\phi)`. Therefore, for a model which outputs probabilities,
+            `link='logit'` makes the feature effects have log-odds (evidence) units and `link='identity'` means that the
+            feature effects have probability units. Please see this `example`_ for an in-depth discussion about the
+            semantics of explaining the model in the probability or margin space.
+
+            .. _example:
+               https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
+
         feature_names
             Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit`
-            is not specified, assuming it has the same len as `groups` argument of `fit` method. It is also used to
-            compute the `names` field, which appears as a key in each of the values of the `importances` sub-field of
-            the response `raw` field.
+            is not specified, assuming it has the same length as the `groups` argument of `fit` method. It is also used
+            to compute the `names` field, which appears as a key in each of the values of
+            `explanation.data['raw']['importances']`.
         categorical_names
             Keys are feature column indices in the `background_data` matrix (see `fit`). Each value contains strings
             with the names of the categories for the feature. Used to select the method for background data
-            summarisation (if specified, subsampling is performed as opposed to kmeans clustering). In the future it
+            summarisation (if specified, subsampling is performed as opposed to k-means clustering). In the future it
             may be used for visualisation.
         task
-            Can have values 'classification' and 'regression'. It is only used to set the contents of the `prediction`
-            field in the `data['raw']` response field.
+            Can have values `'classification'` and `'regression'`. It is only used to set the contents of
+            `explanation.data['raw']['prediction']`
         seed
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
-        """
+        """ # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))
 
@@ -407,14 +418,14 @@ class KernelShap(Explainer, FitMixin):
             Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost. If the
-        background data is a shap.common.Data object, no summarisation is performed.
+        background data is a `shap.common.Data object`, no summarisation is performed.
 
         Returns
         -------
             If the user has specified grouping, then the input object is subsampled and an object of the same
-            type is returned. Otherwise, a shap.common.Data object containing the result of a kmeans algorithm
-            is wrapped in a shap.common.DenseData object and returned. The samples are weighted according to the
-            frequency of the occurence of the clusters in the original data.
+            type is returned. Otherwise, a `shap.common.Data` object containing the result of a k-means algorithm
+            is wrapped in a `shap.common.DenseData` object and returned. The samples are weighted according to the
+            frequency of the occurrence of the clusters in the original data.
         """
 
         if isinstance(background_data, shap.common.Data):
@@ -459,11 +470,13 @@ class KernelShap(Explainer, FitMixin):
     @_get_data.register(shap.common.Data)
     def _(self, background_data, *args, **kwargs) -> shap.common.Data:
         """
-        Initialises background data if user passes a shap.common.Data object as input.
-        Input  is returned as this is a native object to shap.
+        Initialises background data if the user passes a `shap.common.Data` object as input.
 
-        Note: If self.summarise_background = True, then a shap.common.Data object is
-        returned if the user passed a shap.common.data object to fit or didn't specify groups.
+        Notes
+        _____
+
+        If `self.summarise_background = True`, then a `shap.common.Data` object is
+        returned if the user passed a `shap.common.Data` object to `fit` or didn't specify groups.
         """
 
         group_names, groups, weights = args
@@ -480,11 +493,11 @@ class KernelShap(Explainer, FitMixin):
     @_get_data.register(np.ndarray)  # type: ignore
     def _(self, background_data, *args, **kwargs) -> Union[np.ndarray, shap.common.Data]:
         """
-        Initialises background data if the user passes a numpy array as input.
-        If the user specifies feature grouping then a shap.common.DenseData object
+        Initialises background data if the user passes an `np.ndarray` object as input.
+        If the user specifies feature grouping then a `shap.common.DenseData` object
         is returned. Weights are handled separately to avoid triggering assertion
-        correct inside shap library. Otherwise, the original data is returned and
-        is handled by the shap library internally.
+        correct inside `shap` library. Otherwise, the original data is returned and
+        is handled by the `shap` library internally.
         """
 
         group_names, groups, weights = args
@@ -497,9 +510,9 @@ class KernelShap(Explainer, FitMixin):
     @_get_data.register(sparse.spmatrix)  # type: ignore
     def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, sparse.spmatrix]:
         """
-        Initialises background data if user passes a sparse matrix as input. If the
+        Initialises background data if the user passes a sparse matrix as input. If the
         user specifies feature grouping, then the sparse array is converted to a dense
-        array. Otherwise, the original array is returned and handled internally by shap
+        array. Otherwise, the original array is returned and handled internally by `shap`
         library.
         """
 
@@ -522,10 +535,10 @@ class KernelShap(Explainer, FitMixin):
     @_get_data.register(pd.core.frame.DataFrame)  # type: ignore
     def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, pd.core.frame.DataFrame]:
         """
-        Initialises background data if user passes a pandas.core.frame.DataFrames as input.
-        If the user has specified groups and given a data frame, initialise shap.common.DenseData
-        explicitly as this is not handled by shap library internally. Otherwise, data initialisation,
-        is left to the shap library.
+        Initialises background data if the user passes a `pandas.core.frame.DataFrame` as input.
+        If the user has specified groups and given a data frame, it initialises a `shap.common.DenseData`
+        object explicitly as this is not handled by `shap` library internally. Otherwise, data initialisation,
+        is left to the `shap` library.
         """
 
         _, groups, weights = args
@@ -553,9 +566,9 @@ class KernelShap(Explainer, FitMixin):
     @_get_data.register(pd.core.frame.Series)  # type: ignore
     def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, pd.core.frame.Series]:
         """
-        Initialises background data if user passes a pandas Series object as input.
-        Original object is returned as this is initialised internally by shap is there
-        is no group structure specified. Otherwise the a shap.common.DenseData object
+        Initialises background data if the user passes a `pandas.Series` object as input.
+        Original object is returned as this is initialised internally by `shap` is there
+        is no group structure specified. Otherwise, a `shap.common.DenseData` object
         is initialised.
         """
 
@@ -572,16 +585,16 @@ class KernelShap(Explainer, FitMixin):
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
         This function updates the metadata of the explainer using the data from
-        the data_dict. If the params option is specified, then each key-value
-        pair is added to the metadata 'params' dictionary only if the key is
-        included in KERNEL_SHAP_PARAMS.
+        the `data_dict`. If the params option is specified, then each key-value
+        pair is added to the metadata `'params'` dictionary only if the key is
+        included in `KERNEL_SHAP_PARAMS`.
 
         Parameters
         ----------
         data_dict
             Dictionary containing the data to be stored in the metadata.
         params
-            If True, the method updates the 'params' attribute of the metatadata.
+            If True, the method updates the `'params'` attribute of the metatadata.
         """
 
         if params:
@@ -603,13 +616,13 @@ class KernelShap(Explainer, FitMixin):
             **kwargs) -> "KernelShap":
         """
         This takes a background dataset (usually a subsample of the training set) as an input along with several
-        user specified options and initialises a KernelShap explainer. The runtime of the algorithm depends on the
+        user specified options and initialises a `KernelShap` explainer. The runtime of the algorithm depends on the
         number of samples in this dataset and on the number of features in the dataset. To reduce the size of the
-        dataset, the summarise_background option and n_background_samples should be used. To reduce the feature
+        dataset, the `summarise_background` option and `n_background_samples` should be used. To reduce the feature
         dimensionality, encoded categorical variables can be treated as one during the feature perturbation process;
         this decreases the effective feature dimensionality, can reduce the variance of the shap values estimation and
         reduces slightly the number of calls to the predictor. Further runtime savings can be achieved by changing the
-        nsamples parameter in the call to explain. Runtime reduction comes with an accuracy tradeoff, so it is better
+        `nsamples` parameter in the call to explain. Runtime reduction comes with an accuracy trade-off, so it is better
         to experiment with a runtime reduction method and understand results stability before using the system.
 
         Parameters
@@ -619,24 +632,24 @@ class KernelShap(Explainer, FitMixin):
             background data should represent samples and the columns features.
         summarise_background
             A large background dataset impacts the runtime and memory footprint of the algorithm. By setting
-            this argument to True, only n_background_samples from the provided data are selected. If group_names or
+            this argument to `True`, only `n_background_samples` from the provided data are selected. If group_names or
             groups arguments are specified, the algorithm assumes that the data contains categorical variables so
-            the records are selected uniformly at random. Otherwise, shap.kmeans (a wrapper around sklearn kmeans
-            implementation) is used for selection. If set to 'auto', a default of BACKGROUND_WARNING_THRESHOLD
-            samples is selected.
+            the records are selected uniformly at random. Otherwise, `shap.kmeans` (a wrapper around `sklearn` k-means
+            implementation) is used for selection. If set to `'auto'`, a default of
+            `KERNEL_SHAP_BACKGROUND_THRESHOLD` samples is selected.
         n_background_samples
-            The number of samples to keep in the background dataset if summarise_background=True.
+            The number of samples to keep in the background dataset if `summarise_background=True`.
         groups:
-            A list containing sublists specifying the indices of features belonging to the same group.
+            A list containing sub-lists specifying the indices of features belonging to the same group.
         group_names:
             If specified, this array is used to treat groups of features as one during feature perturbation.
             This feature can be useful, for example, to treat encoded categorical variables as one and can
-            result in computational savings (this may require adjusting the nsamples parameter).
+            result in computational savings (this may require adjusting the `nsamples` parameter).
         weights:
             A sequence or array of weights. This is used only if grouping is specified and assigns a weight
             to each point in the dataset.
         kwargs:
-            Expected keyword arguments include "keep_index" and should be used if a data frame containing an
+            Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
 
@@ -703,7 +716,7 @@ class KernelShap(Explainer, FitMixin):
                 cat_vars_enc_dim: Sequence[int] = None,
                 **kwargs) -> Explanation:
         """
-        Explains the instances in the array X.
+        Explains the instances in the array `X`.
 
         Parameters
         ----------
@@ -715,29 +728,32 @@ class KernelShap(Explainer, FitMixin):
             the categorical variables (`cat_vars_start_idx`) and the encoding dimensions (`cat_vars_enc_dim`)
             have to be specified
         cat_vars_start_idx
-            The start indices of the categorical variables. If specified, cat_vars_enc_dim should also be specified.
+            The start indices of the categorical variables. If specified, `cat_vars_enc_dim` should also be specified.
         cat_vars_enc_dim
-            The length of the encoding dimension for each categorical variable.
+            The length of the encoding dimension for each categorical variable. If specified `cat_vars_start_idx` should
+            also be specified.
         kwargs
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
-                -`nsamples`: controls the number of predictor calls and therefore runtime.
-                -`l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will
-                first run a feature selection algorithm to select the top features, provided the fraction of sampled
-                sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information
-                Criterion is used in this case. See our examples for more details about available settings for this
-                parameter. Note that by first running a feature selection step, the shapley values of the remainder of
+                - `nsamples`: controls the number of predictor calls and therefore runtime.
+
+                - `l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will \
+                first run a feature selection algorithm to select the top features, provided the fraction of sampled \
+                sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information \
+                Criterion is used in this case. See our examples for more details about available settings for this \
+                parameter. Note that by first running a feature selection step, the shapley values of the remainder of \
                 the features will be different to those estimated from the entire set.
 
-            For more details, please see the shap library documentation_ .
+                For more details, please see the shap library `documentation`_ .
 
-            .. _documentation https://shap.readthedocs.io/en/latest/.
+                .. _documentation:
+                   https://shap.readthedocs.io/en/latest/.
 
         Returns
         -------
         explanation
             An explanation object containing the algorithm results.
-        """
+        """ # noqa W605
 
         if not self._fitted:
             raise TypeError(
@@ -785,15 +801,20 @@ class KernelShap(Explainer, FitMixin):
         shap_values
             Each entry is a n_instances x n_features array, and the length of the list equals the dimensionality
             of the predictor output. The rows of each array correspond to the shap values for the instances with
-            the corresponding row index in X. The length of the list equals the number of model outputs.
+            the corresponding row index in `X`. The length of the list equals the number of model outputs.
         expected_value
             A list containing the expected value of the prediction for each class. Its length should be equal to that of
             `shap_values`.
 
         Returns
         -------
+        explanation
             An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
-            field containing additional data. See usage examples in the method overview for details.
+            field containing additional data. See usage `examples`_ for details.
+
+            .. _examples:
+               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
+
         """
 
         # TODO: DEFINE COMPLETE SCHEMA FOR THE METADATA (ONGOING)
@@ -827,7 +848,7 @@ class KernelShap(Explainer, FitMixin):
         data = copy.deepcopy(DEFAULT_DATA_KERNEL_SHAP)
         data.update(
             shap_values=shap_values,
-            expected_value=expected_value,
+            expected_value=np.ndarray(expected_value),
             link=self.link,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names

@@ -20,7 +20,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Counterfactual Instances](../methods/CF.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|black-box|✔|✔|✔|✘|✘|✔|
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|whitebox|✔|✔|✔|✘|✘|Optional| 
+|[Tree SHAP](../methods/TreeSHAP.ipynb)|white-box|✔|✔|✔|✘|✘|Optional| 
 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),

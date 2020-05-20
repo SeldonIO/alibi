@@ -10,7 +10,7 @@ def readme():
 exec(open('alibi/version.py').read())
 
 extras_require = {
-    'examples': ['seaborn', 'Keras', 'xgboost']
+    'examples': ['seaborn', 'xgboost']
 }
 
 setup(name='alibi',
@@ -24,7 +24,7 @@ setup(name='alibi',
       license='Apache 2.0',
       packages=find_packages(),
       include_package_data=True,
-      python_requires='>3.5.1',
+      python_requires='>=3.6,<3.8',
       setup_requires=[
           'pytest-runner'
       ],

@@ -1432,7 +1432,7 @@ class TreeShap(Explainer, FitMixin):
         # NB: raw output of a regression or classification task will not work for pyspark (predict not implemented)
         if self.model_output == 'log_loss':
             loss = self._explainer.model.predict(X, y, tree_limit=self.tree_limit)
-            raw_predictions = []
+            raw_predictions = []  # type: Union[List, np.ndarray]
         else:
             loss = []
             raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)

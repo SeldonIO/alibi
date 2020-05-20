@@ -20,6 +20,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Counterfactual Instances](../methods/CF.ipynb)|black-box, TF/Keras|✔|✘|✔|✘|✔|No|
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|black-box|✔|✔|✔|✘|✘|✔|
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|black-box, TF/Keras|✔|✔|✔|✘|✔|Optional|
+|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|✔|✔|✔|✔|✔|For classification|
 
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -40,6 +41,8 @@ instance that would result in a different prediction). [Documentation](../method
 **Kernel Shapley Additive Explanation (SHAP)**: attribute the change of a model output with respect to a given baseline (e.g., average over a training set) to each of the model features. This is achieved for each feature in turn, by averaging the difference in the model output observed when excluding a feature from the input. The exclusion of a feature is achieved by replacing it with values from the background dataset. [Documentation](../methods/KernelSHAP.ipynb), [continuous data](../examples/kernel_shap_wine_intro.ipynb), [more continous_data](../examples/kernel_shap_wine_lr.ipynb), [categorical data](../examples/kernel_shap_adult_lr.ipynb).
 
 **Prototype Counterfactuals**: generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb), [image classification](../examples/cfproto_mnist.ipynb).
+
+**Integrated Gradients**:  [Documentation](../methods/IntegratedGradients.ipynb), [image classification](../examples/integrated_gradients_mnist.ipynb) , [text example](../examples/integrated_gradients_imdb.nblink).
 
 
 ## Model Confidence

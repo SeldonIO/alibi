@@ -24,7 +24,8 @@ alibi.explainers.__all__
  'CEM',
  'CounterFactual',
  'CounterFactualProto'
- 'KernelShap'] 
+ 'KernelShap'
+ 'IntegratedGradients'] 
 ```
 
 For gauging model confidence:
@@ -46,6 +47,7 @@ For detailed information on the methods:
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
+    * [IntegratedGradients](../methods/IntegratedGradients.ipynb)
     * [Linearity Measure](../examples/linearity_measure_iris.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 

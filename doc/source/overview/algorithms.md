@@ -13,6 +13,7 @@ The following table summarizes the capabilities of the current algorithms:
 
 |Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔|
 |[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular|
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
@@ -27,6 +28,11 @@ Key:
  - **Global** - explains the model with respect to a set of instances
  - **Cat. data** - support for categorical features
  - **Train** - whether a training set is required to fit the explainer
+
+**Accumulated Local Effects (ALE)**: calculates first-order feature effects of a model with
+respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
+[Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.nblink),
+[classification example](../examples/ale_classification.nblink).
  
 **Anchor explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),

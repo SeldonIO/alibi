@@ -67,7 +67,8 @@ The following tables summarize the possible use cases for each method.
 ### Model Explanations
 |Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔||✔|✔|✔|✔|For Tabular|
+|[ALE](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔|
+|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular|
 |[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
@@ -92,6 +93,12 @@ Key:
  - **(2)** -  may require dimensionality reduction
 
 ## References and Examples
+ - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)
+   - Examples:
+     [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/ale_regression_boston.html),
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/ale_classification.html)
+
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
    - Examples:

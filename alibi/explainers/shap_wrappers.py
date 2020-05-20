@@ -228,7 +228,7 @@ class KernelShap(Explainer, FitMixin):
             Valid values are `'identity'` or `'logit'`. A generalized linear model link to connect the feature
             importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the
             model output, it often makes sense to connect them to the ouput with a link function where
-            :math:`link(output - expected_value) = sum(\phi)`. Therefore, for a model which outputs probabilities,
+            :math:`link(output - expected\_value) = sum(\phi)`. Therefore, for a model which outputs probabilities,
             `link='logit'` makes the feature effects have log-odds (evidence) units and `link='identity'` means that the
             feature effects have probability units. Please see this `example`_ for an in-depth discussion about the
             semantics of explaining the model in the probability or margin space.

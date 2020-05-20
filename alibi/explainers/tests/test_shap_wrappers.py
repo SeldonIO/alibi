@@ -1394,7 +1394,7 @@ n_classes = [(1, 'raw'), ]
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 def test_update_metadata_tree(mock_tree_shap_explainer):
     """
-    Test that the metadata updates are correct.
+    Test that response is correct for both classification and regression.
     """
 
     explainer = mock_tree_shap_explainer

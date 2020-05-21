@@ -1110,10 +1110,11 @@ class TreeShap(Explainer, FitMixin):
 
         self.scalar_output = False
         if self._explainer.model.num_outputs == 1:
-            logger.warning(
-                "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
-                "as opposed to a classification label!"
-            )
+            if self.task == 'classification':
+                logger.warning(
+                    "Predictor returned a scalar value. Ensure the output represents a probability or decision score "
+                    "as opposed to a classification label!"
+                )
             self.scalar_output = True
 
         # update metadata

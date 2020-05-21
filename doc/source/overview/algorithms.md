@@ -6,8 +6,8 @@ in Alibi.
 ## Model Explanations
 These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
 predictions. Given a single instance and a model prediction they aim to answer the question "Why did
-my model make this prediction?" The following algorithms all work with **black-box** models meaning that the
-only requirement is to have acces to a prediction function (which could be an API endpoint for a model in production).
+my model make this prediction?" Most of the following algorithms work with **black-box** models meaning that the
+only requirement is to have access to a prediction function (which could be an API endpoint for a model in production).
 
 The following table summarizes the capabilities of the current algorithms:
 
@@ -18,18 +18,18 @@ The following table summarizes the capabilities of the current algorithms:
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔|✘|✘|✔|Optional| 
+|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| 
 
 
 Key:
  - **BB** - black-box (only require a prediction function)
  - **BB\*** - black-box but assume model is differentiable
+ - **WB** - requires white-box model access. There may be limitations on models supported
  - **TF/Keras** - TensorFlow models via the Keras API
  - **Local** - instance specific explanation, why was this prediction made?
  - **Global** - explains the model with respect to a set of instances
  - **Cat. data** - support for categorical features
  - **Train** - whether a training set is required to fit the explainer
- - **WB** - requires whitebox model access. There may be limitations on models supported
  
 **Anchor Explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -45,13 +45,13 @@ minimally and necessarily absent to maintain the original prediction (a PN acts 
 instance that would result in a different prediction). [Documentation](../methods/CEM.ipynb),
 [tabular example](../examples/cem_iris.ipynb), [image classification](../examples/cem_mnist.ipynb).
 
-**Counterfactual Instances**: generate counterfactual examples using a simple loss function. [Documentation](../methods/CF.ipynb), [image classification](../examples/cf_mnist.ipynb).
+**Counterfactual Explanations**: generate counterfactual examples using a simple loss function. [Documentation](../methods/CF.ipynb), [image classification](../examples/cf_mnist.ipynb).
 
-**Prototype Counterfactuals**: generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb), [image classification](../examples/cfproto_mnist.ipynb).
+**Counterfactual Explanations Guided by Prototypes**: generate counterfactuals guided by nearest class prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees to define the prototypes. This method can speed up the search, especially for black box models, and create interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb), [tabular example](../examples/cfproto_housing.nblink), [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb), [image classification](../examples/cfproto_mnist.ipynb).
 
-**Kernel Shapley Additive Explanation (Kernel SHAP)**: attribute the change of a model output with respect to a given baseline (e.g., average over a reference set) to each of the input features. This is achieved for each feature in turn, by averaging the difference in the model output observed when the feature whose contribution is to be estimated is part of a group of "present" input features and the value observed when the feature is excluded from said group. The features that are not "present" (i.e., are missing) are replaced with values from a background dataset. This algorithm can be used to explain regression models. [Documentation](../methods/KernelSHAP.ipynb), [continuous data](../examples/kernel_shap_wine_intro.ipynb), [more continuous data](../examples/kernel_shap_wine_lr.ipynb), [categorical data](../examples/kernel_shap_adult_lr.ipynb).
+**Kernel Shapley Additive Explanations (Kernel SHAP)**: attribute the change of a model output with respect to a given baseline (e.g., average over a reference set) to each of the input features. This is achieved for each feature in turn, by averaging the difference in the model output observed when the feature whose contribution is to be estimated is part of a group of "present" input features and the value observed when the feature is excluded from said group. The features that are not "present" (i.e., are missing) are replaced with values from a background dataset. This algorithm can be used to explain regression models. [Documentation](../methods/KernelSHAP.ipynb), [continuous data](../examples/kernel_shap_wine_intro.ipynb), [more continuous data](../examples/kernel_shap_wine_lr.ipynb), [categorical data](../examples/kernel_shap_adult_lr.ipynb).
 
-**Tree Shapley Additive Explanation (Tree SHAP)**: attribute the change of a model output with respect to a baseline (e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP, the shap value of each feature is computed by averaging the difference of the model output observed when the feature is part of a group of "present" features and when the feature is excluded from said group, over all possible subsets of "present" features. Different estimation procedures for the effect of selecting different subsets of present features on the model output give rise to the interventional feature perturbation and the path-dependent feature perturbation variants of Tree SHAP. This algorithm can be used to explain regression models. [Documentation](../methods/TreeSHAP.ipynb), [interventional feature perturbation Tree SHAP](interventional_tree_shap_adult_xgb.ipynb), [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
+**Tree Shapley Additive Explanations (Tree SHAP)**: attribute the change of a model output with respect to a baseline (e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP, the shap value of each feature is computed by averaging the difference of the model output observed when the feature is part of a group of "present" features and when the feature is excluded from said group, over all possible subsets of "present" features. Different estimation procedures for the effect of selecting different subsets of present features on the model output give rise to the interventional feature perturbation and the path-dependent feature perturbation variants of Tree SHAP. This algorithm can be used to explain regression models. [Documentation](../methods/TreeSHAP.ipynb), [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb), [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
 
 
 ## Model Confidence

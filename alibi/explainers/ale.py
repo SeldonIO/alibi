@@ -40,9 +40,7 @@ class ALE(Explainer):
         self.feature_names = feature_names
         self.target_names = target_names
 
-    def explain(self,
-                X: np.ndarray,
-                min_bin_points: int = 4) -> Explanation:
+    def explain(self, X: np.ndarray, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset X.
 

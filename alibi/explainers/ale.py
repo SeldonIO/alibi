@@ -353,6 +353,17 @@ def plot_ale(exp: Explanation,
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
 
+    # line_kw and fig_kw values
+    default_line_kw = {'markersize': 3, 'marker': 'o', 'label': None}
+    if line_kw is None:
+        line_kw = {}
+    line_kw = {**default_line_kw, **line_kw}
+
+    default_fig_kw = {'tight_layout': 'tight'}
+    if fig_kw is None:
+        fig_kw = {}
+    fig_kw = {**default_fig_kw, **fig_kw}
+
     if features == 'all':
         features = range(0, len(exp.feature_names))
     else:
@@ -414,10 +425,6 @@ def plot_ale(exp: Explanation,
         fig = axes_ravel[0].figure
 
     # make plots
-    if line_kw is None:
-        line_kw = {}
-    default_line_kw = {'markersize': 3, 'marker': 'o', 'label': None}
-    line_kw = {**default_line_kw, **line_kw}
     for ix, feature, ax_ravel in \
             zip(count(), features, axes_ravel):
         _ = _plot_one_ale_num(exp=exp,
@@ -432,10 +439,6 @@ def plot_ale(exp: Explanation,
     if line_kw['label'] is not None:
         axes_ravel[0].legend()
 
-    default_fig_kw = {'tight_layout': 'tight'}
-    if fig_kw is None:
-        fig_kw = {}
-    fig_kw = {**default_fig_kw, **fig_kw}
     fig.set(**fig_kw)
     # TODO: should we return just axes or ax + axes
     return axes

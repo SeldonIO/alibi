@@ -20,7 +20,9 @@ def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):
 
     for feature in range(X.shape[1]):
         q, ale, _ = ale_num(lr.predict, X, feature=feature, min_bin_points=min_bin_points)
-        assert_allclose((ale[-1] - ale[0]) / (X[:, feature].max() - X[:, feature].min()), lr.coef_[feature])
+        alediff = ale[-1] - ale[0]
+        xdiff = X[:, feature].max() - X[:, feature].min()
+        assert_allclose(alediff / xdiff, lr.coef_[feature])
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])

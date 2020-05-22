@@ -27,7 +27,7 @@ class ALE(Explainer):
         ----------
         predictor
             A callable that takes in an NxF array as input and outputs an NxT array (N - number of
-            data points, F - number of features, T - number of outputs/targets, e.g. 1 for ordinary
+            data points, F - number of features, T - number of outputs/targets (e.g. 1 for single output
             regression, >=2 for classification).
         feature_names
             A list of feature names used for displaying results.

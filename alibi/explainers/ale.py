@@ -241,7 +241,7 @@ def ale_num(
     predictor
         Model prediction function.
     X
-        Dataset used to calculate the ALE curves.
+        Dataset for which ALE curves are computed.
     feature
         Index of the numerical feature for which to calculate ALE.
     min_bin_points

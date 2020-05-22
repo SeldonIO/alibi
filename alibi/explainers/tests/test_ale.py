@@ -1,7 +1,8 @@
+import pytest
 import numpy as np
+from numpy.testing import assert_allclose
 from sklearn.datasets import load_boston, load_iris
 from sklearn.linear_model import LinearRegression, LogisticRegression
-import pytest
 from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles
 from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
@@ -15,7 +16,7 @@ def test_ale_num_linear_regression(min_bin_points):
     lr = LinearRegression().fit(X, y)
     for feature in range(X.shape[1]):
         q, ale, _ = ale_num(lr.predict, X, feature=feature, min_bin_points=min_bin_points)
-        assert np.allclose((ale[-1] - ale[0]) / (X[:, feature].max() - X[:, feature].min()), lr.coef_[feature])
+        assert_allclose((ale[-1] - ale[0]) / (X[:, feature].max() - X[:, feature].min()), lr.coef_[feature])
 
 
 @pytest.mark.parametrize("min_bin_points", [1, 4, 10])
@@ -29,7 +30,7 @@ def test_ale_num_logistic_regression(min_bin_points):
         q, ale, _ = ale_num(lr.decision_function, X, feature=feature, min_bin_points=min_bin_points)
         alediff = ale[-1, :] - ale[0, :]
         xdiff = X[:, feature].max() - X[:, feature].min()
-        assert np.allclose(alediff / xdiff, lr.coef_[:, feature])
+        assert_allclose(alediff / xdiff, lr.coef_[:, feature])
 
 
 @pytest.mark.parametrize('input_dim', (1, 10), ids='input_dim={}'.format)

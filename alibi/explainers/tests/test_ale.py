@@ -1,31 +1,41 @@
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
-from sklearn.datasets import load_boston, load_iris
-from sklearn.linear_model import LinearRegression, LogisticRegression
 from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles
 from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
-@pytest.mark.parametrize("min_bin_points", [1, 4, 10])
-def test_ale_num_linear_regression(min_bin_points):
+@pytest.mark.parametrize('min_bin_points', [1, 4, 10])
+@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('get_boston_dataset')])
+@pytest.mark.parametrize('lr_regressor',
+                         [pytest.lazy_fixture('get_boston_dataset')],
+                         indirect=True,
+                         ids='reg=lr_{}'.format)
+def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):
     """
     The slope of the ALE of linear regression should equal the learnt coefficients
     """
-    X, y = load_boston(return_X_y=True)
-    lr = LinearRegression().fit(X, y)
+    lr, _ = lr_regressor
+    X = dataset['X_train']
+
     for feature in range(X.shape[1]):
         q, ale, _ = ale_num(lr.predict, X, feature=feature, min_bin_points=min_bin_points)
         assert_allclose((ale[-1] - ale[0]) / (X[:, feature].max() - X[:, feature].min()), lr.coef_[feature])
 
 
-@pytest.mark.parametrize("min_bin_points", [1, 4, 10])
-def test_ale_num_logistic_regression(min_bin_points):
+@pytest.mark.parametrize('min_bin_points', [1, 4, 10])
+@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('get_iris_dataset')])
+@pytest.mark.parametrize('lr_classifier',
+                         [pytest.lazy_fixture('get_iris_dataset')],
+                         indirect=True,
+                         ids='clf=lr_{}'.format)
+def test_ale_num_logistic_regression(min_bin_points, lr_classifier, dataset):
     """
     The slope of the ALE curves performed in the logit space should equal the learnt coefficients.
     """
-    X, y = load_iris(return_X_y=True)
-    lr = LogisticRegression(max_iter=200).fit(X, y)
+    lr, _ = lr_classifier
+    X = dataset['X_train']
+
     for feature in range(X.shape[1]):
         q, ale, _ = ale_num(lr.decision_function, X, feature=feature, min_bin_points=min_bin_points)
         alediff = ale[-1, :] - ale[0, :]

@@ -2,12 +2,12 @@ import pytest
 import logging
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
@@ -31,6 +31,15 @@ def get_iris_dataset():
     objects returned first.
     """
     return iris_dataset()
+
+
+@pytest.fixture(scope='module')
+def get_boston_dataset():
+    """
+    This fixture can be passed to a regressor fixture to return a
+    trained regressor on the Boston housing Dataset.
+    """
+    return boston_dataset()
 
 
 @pytest.fixture(scope='module')
@@ -111,6 +120,29 @@ def lr_classifier(request):
         clf.fit(data['X_train'], data['y_train'])
 
     return clf, preprocessor
+
+
+@pytest.fixture(scope='module')
+def lr_regressor(request):
+    """
+    Trains a linear regression model.
+    """
+    is_preprocessor = False
+    preprocessor = False
+
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    model = LinearRegression()
+
+    if is_preprocessor:
+        model.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        model.fit(data['X_train'], data['y_train'])
+
+    return model, preprocessor
 
 
 # Following fixtures are related to Anchor explainers testing

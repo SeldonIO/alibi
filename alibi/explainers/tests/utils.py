@@ -6,7 +6,7 @@ import numpy as np
 
 from tensorflow.keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import load_iris
+from sklearn.datasets import load_iris, load_boston
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
@@ -121,6 +121,28 @@ def iris_dataset():
     }
 
 
+def boston_dataset():
+    """
+    Load the Boston housing dataset.
+    """
+    dataset = load_boston()
+    data = dataset.data
+    labels = dataset.target
+    feature_names = dataset.feature_names
+    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=.2, random_state=0)
+
+    return {
+        'X_train': X_train,
+        'y_train': y_train,
+        'X_test': X_test,
+        'y_test': y_test,
+        'preprocessor': None,
+        'metadata': {
+            'feature_names': feature_names,
+            'name': 'boston'}
+    }
+
+
 def movie_sentiment_dataset():
     """
     Load and prepare movie sentiment data.
@@ -195,9 +217,9 @@ def get_random_matrix(*, n_rows=500, n_cols=100):
     """
 
     if n_rows == 0:
-        sz = (n_cols, )
+        sz = (n_cols,)
     elif n_cols == 0:
-        sz = (n_rows, )
+        sz = (n_rows,)
     else:
         sz = (n_rows, n_cols)
 

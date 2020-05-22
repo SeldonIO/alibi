@@ -17,8 +17,8 @@ class ALE(Explainer):
 
     def __init__(self,
                  predictor: Callable,
-                 feature_names: List[str] = None,
-                 target_names: List[str] = None) -> None:
+                 feature_names: Optional[List[str]] = None,
+                 target_names: Optional[List[str]] = None) -> None:
         """
         Accumulated Local Effects for tabular datasets. Current implementation supports first order
         feature effects of numerical features.

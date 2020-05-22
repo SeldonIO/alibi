@@ -1,9 +1,9 @@
 # flake8: noqa E131
 import copy
 import math
-from itertools import count
 import numpy as np
 import pandas as pd
+from itertools import count
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
 from alibi.api.interfaces import Explainer, Explanation

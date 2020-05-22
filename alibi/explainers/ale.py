@@ -42,12 +42,12 @@ class ALE(Explainer):
 
     def explain(self, X: np.ndarray, min_bin_points: int = 4) -> Explanation:
         """
-        Calculate the ALE curves for each feature with respect to the dataset X.
+        Calculate the ALE curves for each feature with respect to the dataset `X`.
 
         Parameters
         ----------
         X
-            An NxF tabular dataset used to calculate the ALE curves, this is typically the training dataset
+            An NxF tabular dataset used to calculate the ALE curves. This is typically the training dataset
             or a representative sample.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
@@ -186,11 +186,6 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
     Find the optimal number of points to subdivide the feature range into
     so that each bin has at least `min_bin_points`. Uses bisection.
 
-    Note: This is a heuristic procedure since the bisection algorithm is applied
-    to a function which is not monotonic. This will not necessarily find the
-    maximum number of quantiles the interval can be subdivided into to satisfy
-    the minimum number of points in each resulting bin.
-
     Parameters
     ----------
     values
@@ -205,6 +200,13 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
         Unique quantiles.
     num_points
         Number of non-unique points the feature array was subdivided into.
+
+    Notes
+    -----
+    This is a heuristic procedure since the bisection algorithm is applied
+    to a function which is not monotonic. This will not necessarily find the
+    maximum number of quantiles the interval can be subdivided into to satisfy
+    the minimum number of points in each resulting bin.
     """
 
     def minimum_satisfied(n: int) -> int:

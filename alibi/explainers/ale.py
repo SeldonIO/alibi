@@ -84,7 +84,7 @@ class ALE(Explainer):
                                  X=X,
                                  feature=feature,
                                  min_bin_points=min_bin_points)
-            deciles = get_quantiles(X[:, feature])
+            deciles = get_quantiles(X[:, feature], num_points=11)
 
             feature_values.append(q)
             ale_values.append(ale)

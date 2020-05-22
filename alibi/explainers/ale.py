@@ -290,8 +290,8 @@ def ale_num(
     accum_p_deltas = np.insert(accum_p_deltas, 0, zeros, axis=0)
 
     # mean effect, R's `ALEPlot` and `iml` version (approximation per interval)
-    ale0 = (((accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) / 2) * interval_n[1:, np.newaxis]) \
-               .sum(axis=0) / interval_n.sum()
+    ale0 = (0.5 * (accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) * interval_n[1:, np.newaxis]).sum(axis=0)
+    ale0 = ale0 / interval_n.sum()
 
     # crude approximation (assume datapoints on interval endpoints)
     # ale0 = accum_p_deltas.mean(axis=0)
@@ -334,12 +334,12 @@ def plot_ale(exp: Explanation,
         Number of columns to organize the resulting plot into.
     sharey
         A parameter specifying whether the y-axis of the ALE curves should be on the same scale
-        for several features. Possible values are 'all', 'row', None.
+        for several features. Possible values are `all`, `row`, `None`.
     constant
         A parameter specifying whether the constant zeroth order effects should be added to the
         ALE first order effects.
     ax
-        A matplotlib axes or a numpy array of matpotlib axes to plot on.
+        A `matplotlib` axes object or a numpy array of `matplotlib` axes to plot on.
     line_kw
         Keyword arguments passed to the `plt.plot` function.
     fig_kw

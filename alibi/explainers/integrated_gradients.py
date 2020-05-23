@@ -1,13 +1,13 @@
 import tensorflow as tf
 import numpy as np
-from typing import Callable, Tuple, Union, TYPE_CHECKING
-
-from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
-import logging
-from alibi.utils.approximation_methods import approximation_parameters
-from alibi.api.interfaces import Explainer, Explanation
 import copy
 import string
+import logging
+
+from typing import Callable, Union, TYPE_CHECKING
+from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
+from alibi.utils.approximation_methods import approximation_parameters
+from alibi.api.interfaces import Explainer, Explanation
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -16,40 +16,40 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 
-def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                                attributions: np.ndarray,
                                start_point: np.ndarray,
                                end_point: np.ndarray,
-                               target: Union[np.ndarray, list]) -> np.ndarray:
+                               target: Union[None, np.ndarray, list]) -> np.ndarray:
     """
-    Conputes convergence deltas for each datapoint. Convergence delta measures how close the sum of all attribution
-    is to the difference of the model outputs at the baseline and the model output at the data point.
+    Computes convergence deltas for each datapoint. Convergence delta measures how close the sum of all attributions
+    is to the difference between the model output at the baseline and the model output at the data point.
 
     Parameters
     ----------
-    forward_function
-        Tensorflow or keras model
+    model
+        Tensorflow or keras model.
     attributions
-        Attribution assigned by the integrated gradients method to each feature
+        Attributions assigned by the integrated gradients method to each feature.
     start_point
-        Baselines
+        Baselines.
     end_point
-        Data points
+        Data points.
     target
-        Target class for which the gradients are calculated in case of classification models
+        For classification models, target class for which the gradients are calculated.
 
     Returns
     -------
-        Covergence  deltas for each datapoint
+        Covergence  deltas for each data point.
     """
 
-    assert end_point.shape[0] == attributions.shape[0], (
-        "Attributions and end_point must match on the first"
-        " dimension but found attributions: {} and end_point: {}".format(
-            attributions.shape[0], end_point.shape[0]))
+    if end_point.shape[0] != attributions.shape[0]:
+        raise ValueError("Attributions and end_point must match on the first dimension "
+                         "but found attributions: {} and end_point: {}".format(attributions.shape[0],
+                                                                               end_point.shape[0]))
 
-    start_point = tf.convert_to_tensor(start_point, dtype=forward_function.input.dtype)
-    end_point = tf.convert_to_tensor(end_point, dtype=forward_function.input.dtype)
+    start_point = tf.convert_to_tensor(start_point, dtype=model.input.dtype)
+    end_point = tf.convert_to_tensor(end_point, dtype=model.input.dtype)
 
     def _sum_rows(inp):
 
@@ -62,8 +62,18 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
             raise NotImplementedError('input must be a tf tensor or a np array')
         return sums
 
-    start_out_sum = _sum_rows(_run_forward(forward_function, start_point, target))
-    end_out_sum = _sum_rows(_run_forward(forward_function, end_point, target))
+    start_out = _run_forward(model, start_point, target)
+    end_out = _run_forward(model, end_point, target)
+    if model.output_shape[1] == 1 and target is not None:
+        target_tensor = tf.cast(target, dtype=start_out.dtype)
+        sign = 2 * target_tensor - 1
+        target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
+
+        start_out = target_tensor + sign * start_out
+        end_out = target_tensor + sign * end_out
+
+    start_out_sum = _sum_rows(start_out)
+    end_out_sum = _sum_rows(end_out)
 
     attr_sum = _sum_rows(attributions)
 
@@ -72,24 +82,24 @@ def _compute_convergence_delta(forward_function: Union[tf.keras.models.Model, 'k
     return _deltas
 
 
-def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                  x: Union[tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
-    Returns the output of the forward function after target selection if the target is not None
+    Returns the output of the model. If the target is not None, only the output for the selected target is returned.
 
     Parameters
     ----------
-    forward_function
-        Tensorflow or keras model
+    model
+        Tensorflow or keras model.
     x
-        Input data point
+        Input data point.
     target
-        Target for which the gradients are calculated
+        Target for which the gradients are calculated for classification models.
 
     Returns
     -------
-        Model output after target selection
+        Model output or model output after target selection for classification models.
 
     """
     def _select_target(ps, ts):
@@ -102,69 +112,69 @@ def _run_forward(forward_function: Union[tf.keras.models.Model, 'keras.models.Mo
             raise ValueError("target cannot be None if forwar_function output dimensions > 1")
         return ps
 
-    preds = forward_function(x)
-    if forward_function.output_shape[1] > 1:
+    preds = model(x)
+    if model.output_shape[1] > 1:
         preds = _select_target(preds, target)
 
     return preds
 
 
-def _gradients_input(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
-    Calculate the gradients of the target class output (or the output if the model returns a scalar)
-    with respect of each input feature
+    Calculates the gradients of the target class output (or the output if the output's dimension is equal to 1)
+    with respect of each input feature.
 
     Parameters
     ----------
-    forward_function
-        Tensorflwo or keras model
+    model
+        Tensorflow or keras model.
     x
-        Input data point
+        Input data point.
     target
-        Target for which the gradients are calculated
+        Target for which the gradients are calculated if the output's dimension is higher than 1.
 
     Returns
     -------
-        Gradients for each input feature
+        Gradients for each input feature.
 
     """
     with tf.GradientTape() as tape:
         tape.watch(x)
-        preds = _run_forward(forward_function, x, target)
+        preds = _run_forward(model, x, target)
 
     grads = tape.gradient(preds, x)
 
     return grads
 
 
-def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                      layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
                      orig_call: Callable,
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
-    Calculate the gradients of the target class output (or the output if the model returns a scalar)
-    with respect of each input feature
+    Calculates the gradients of the target class output (or the output if the output's dimension is equal to 1)
+    with respect of each element of layer.
 
     Parameters
     ----------
-    forward_function
-        Tensorflwo or keras model
+    model
+        Tensorflow or keras model.
     layer
-        Layer of the model respect to which the gradients are calculated
+        Layer of the model respect to which the gradients are calculated.
     orig_call
         Original `call` method of the layer. This is necessary since the call method is modifyed by the function
-        in order to make the layer output 'visible' to the GradientTape
+        in order to make the layer output 'visible' to the GradientTape.
     x
-        Input data point
+        Input data point.
     target
-        Target for which the gradients are calculated
+        Target for which the gradients are calculated if the output's dimension is higher than 1.
 
     Returns
     -------
-        Gradients for each element of layer
+        Gradients for each element of layer.
 
     """
     def watch_layer(layer, tape):
@@ -193,7 +203,7 @@ def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.model
 
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
-        preds = _run_forward(forward_function, x, target)
+        preds = _run_forward(model, x, target)
 
     grads = tape.gradient(preds, layer.result)
 
@@ -206,18 +216,18 @@ def _gradients_layer(forward_function: Union[tf.keras.models.Model, 'keras.model
 def _sum_integral_terms(step_sizes: list,
                         grads: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
     """
-    Sums the terms in the path integral with weights `step_sizes`
+    Sums the terms in the path integral with weights `step_sizes`.
 
     Parameters
     ----------
     step_sizes
-        Weights in the path integral sum
+        Weights in the path integral sum.
     grads
-        Gradients to for each feature
+        Gradients to for each feature.
 
     Returns
     -------
-        Sums of the gradients along the chosen path
+        Sums of the gradients along the chosen path.
 
     """
     input_str = string.ascii_lowercase[1: len(grads.shape)]
@@ -234,20 +244,20 @@ def _sum_integral_terms(step_sizes: list,
 
 
 def _format_input_baseline(X: np.ndarray,
-                           baselines: Union[None, int, float, np.ndarray]) -> Union[Tuple, np.ndarray]:
+                           baselines: Union[None, int, float, np.ndarray]) -> np.ndarray:
     """
-    Formats inputs and baselines
+    Formats baselines.
 
     Parameters
     ----------
     X
-        Input data points
+        Input data points.
     baselines
-        Baselines
+        Baselines.
 
     Returns
     -------
-        Formatted inputs and baselines
+        Formatted baselines.
 
     """
     if baselines is None:
@@ -257,26 +267,24 @@ def _format_input_baseline(X: np.ndarray,
     else:
         raise ValueError('baselines must be int, float, np.ndarray or None. Found {}'.format(type(baselines)))
 
-    assert len(X) == len(bls)
-
-    return X, bls
+    return bls
 
 
 def _format_target(target: Union[None, int, list, np.ndarray],
                    nb_samples: int) -> list:
     """
-    Formats targets
+    Formats targets.
 
     Parameters
     ----------
     target
-        Original target
+        Original target.
     nb_samples
-        Number of samples in the batch
+        Number of samples in the batch.
 
     Returns
     -------
-        Formatted target
+        Formatted target.
 
     """
     if target is not None:
@@ -292,77 +300,82 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 
 class IntegratedGradients(Explainer):
 
-    def __init__(self, forward_function: Union[tf.keras.Model, 'keras.Model'],
+    def __init__(self,
+                 model: Union[tf.keras.Model, 'keras.Model'],
                  layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
                  n_steps: int = 50,
-                 method: str = "gausslegendre",
-                 return_convergence_delta: bool = False,
-                 return_predictions: bool = False):
+                 method: str = "gausslegendre"):
         """
         The class IntegratedGradients provide an implementation of the integrated gradients method
-        for Tensorflow and Keras models
+        for Tensorflow and Keras models.
 
         For details about the integrated gradients method see the original paper:
-        https://arxiv.org/abs/1703.01365
+        https://arxiv.org/abs/1703.01365 .
 
 
         Parameters
         ----------
-        forward_function
-            Tensorflow or Keras model
+        model
+            Tensorflow or Keras model.
         layer
             Layer respect to which the gradients are calculated.
-            If not provided, the gradients are calculated respect to the input
+            If not provided, the gradients are calculated respect to the input.
         n_steps
-            Number of step in the path integral approximation from the baseline to the input instance
+            Number of step in the path integral approximation from the baseline to the input instance.
         method
             Method for the integral approximation. Methods available:
-            "riemann_left", "riemann_right", "riemann_middle", "riemann_trapezoid", "gausslegendre"
-        return_convergence_delta
-            If set to True, convergence deltas for all examples are returned in the Explanation object
-        return_predictions
-            If set to true, the original predictions for all examples are returned in the Explanation object
+            "riemann_left", "riemann_right", "riemann_middle", "riemann_trapezoid", "gausslegendre".
 
         """
+
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
         params = locals()
-        remove = ['self', 'forward_function', '__class__', 'layer']
+        remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
         self.meta['params'].update(params)
 
-        self.forward_function = forward_function
-        self.input_dtype = self.forward_function.input.dtype
+        self.model = model
+        self.input_dtype = self.model.input.dtype
         self.layer = layer
         self.n_steps = n_steps
         self.method = method
-        self.return_convergence_delta = return_convergence_delta
-        self.return_predictions = return_predictions
 
     def explain(self, X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
                 features_names: Union[list, None] = None,
                 target: Union[None, int, list, np.ndarray] = None,
-                internal_batch_size: Union[None, int] = 100) -> Explanation:
-        """
+                internal_batch_size: Union[None, int] = 100,
+                return_convergence_delta: bool = False,
+                return_predictions: bool = False
+                ) -> Explanation:
+        """Calculates the attributions for each input feature or element of layer and
+        returns an Explanation object.
 
         Parameters
         ----------
         X
-            Instance for which integrated gradients attribution are computed
+            Instance for which integrated gradients attribution are computed.
         baselines
-            Baselines (start point of the path integral) for each instance. Must have the same shape of X.
-            If not provided, all features values for the baselines are set to 0
+            Baselines (start point of the path integral) for each instance.
+            If the passed value is an np.ndarray must have the same shape of X.
+            If not provided, all features values for the baselines are set to 0.
         features_names
-            Names of each features (optional)
+            Names of each features (optional).
         target
-            Target class for which the gradients are computed. It must be provided if the model output
-            dimension is higher than 1. For regressions model, target should not be provided
+            Element of the model's output for which the gradients are computed.
+            It must be provided if the model's output dimension is higher than 1.
+            For regression models whose output is a scalar, target should not be provided.
+            For classification models target can be either the true classe or the classe predicted by the model.
         internal_batch_size
-            Bach size for the internal batching
+            Bach size for the internal batching.
+        return_convergence_delta
+            If set to True, convergence deltas for all examples are returned in the Explanation object.
+        return_predictions
+            If set to true, the original predictions for all examples are returned in the Explanation object.
 
         Returns
         -------
-            Explanation object including meta data and integrated gradients attributions for each feature
+            Explanation object including meta data and integrated gradients attributions for each feature.
 
         """
         if not tf.executing_eagerly():
@@ -374,10 +387,8 @@ class IntegratedGradients(Explainer):
         nb_samples = len(X)
 
         # format and check inputs and targets
-        X, baselines = _format_input_baseline(X, baselines)
+        baselines = _format_input_baseline(X, baselines)
         target = _format_target(target, nb_samples)
-        if target is not None:
-            assert len(target) == nb_samples
 
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
@@ -408,10 +419,10 @@ class IntegratedGradients(Explainer):
                 paths_b, target_b = path, None
 
             if self.layer is not None:
-                grads_b = _gradients_layer(self.forward_function, self.layer, orig_call,
+                grads_b = _gradients_layer(self.model, self.layer, orig_call,
                                            tf.dtypes.cast(paths_b, self.input_dtype), target_b)
             else:
-                grads_b = _gradients_input(self.forward_function,
+                grads_b = _gradients_input(self.model,
                                            tf.dtypes.cast(paths_b, self.input_dtype), target_b)
 
             batches.append(grads_b)
@@ -421,7 +432,7 @@ class IntegratedGradients(Explainer):
         shape = grads.shape[1:]
 
         # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-        if self.forward_function.output_shape[1] == 1 and target is not None:
+        if self.model.output_shape[1] == 1 and target is not None:
             sign = 2 * target_paths - 1
             grads = np.array([s * g for s, g in zip(sign, grads)])
 
@@ -437,17 +448,17 @@ class IntegratedGradients(Explainer):
 
         # Build explanation
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
-        data['X'] = X
-        data['baselines'] = baselines
-        data['attributions'] = attr
-        data['features_names'] = features_names
+        data.update(X=X,
+                    baselines=baselines,
+                    attributions=attr,
+                    features_names=features_names)
 
-        if self.return_predictions:
-            predictions = self.forward_function(X).numpy()
-            data['predictions'] = predictions
+        if return_predictions:
+            predictions = self.model(X).numpy()
+            data.update(predictions=predictions)
 
-        if self.return_convergence_delta:
-            deltas = _compute_convergence_delta(self.forward_function, attr, baselines, X, target)
-            data['deltas'] = deltas
+        if return_convergence_delta:
+            deltas = _compute_convergence_delta(self.model, attr, baselines, X, target)
+            data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

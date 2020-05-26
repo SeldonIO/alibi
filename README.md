@@ -169,6 +169,7 @@ Key:
   shap
   spacy
   tensorflow<2.0
+  typing-extensions
 ```
 
 ## Sample Outputs

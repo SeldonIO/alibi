@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from itertools import count
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing_extensions import Literal
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
@@ -315,8 +316,8 @@ def ale_num(
 
 @no_type_check
 def plot_ale(exp: Explanation,
-             features: Union[List[Union[int, str]], str] = 'all',
-             targets: Union[List[Union[int, str]], str] = 'all',
+             features: Union[List[Union[int, str]], Literal['all']] = 'all',
+             targets: Union[List[Union[int, str]], Literal['all']] = 'all',
              n_cols: int = 3,
              sharey: str = 'all',
              constant: bool = False,

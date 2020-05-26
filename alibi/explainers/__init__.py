@@ -9,7 +9,7 @@ from .anchor_image import AnchorImage
 from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
-from .kernel_shap import KernelShap
+from .shap_wrappers import KernelShap, TreeShap
 
 __all__ = ["ALE",
            "AnchorTabular",
@@ -20,5 +20,6 @@ __all__ = ["ALE",
            "CounterFactual",
            "CounterFactualProto",
            "KernelShap",
+           "TreeShap",
            "plot_ale"
            ]

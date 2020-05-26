@@ -73,7 +73,8 @@ The following tables summarize the possible use cases for each method.
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|
- 
+|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| 
+
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
 particular prediction.
@@ -86,6 +87,7 @@ particular prediction.
 Key:
  - **BB** - black-box (only require a prediction function)
  - **BB\*** - black-box but assume model is differentiable
+ - **WB** - requires white-box model access. There may be limitations on models supported
  - **TF/Keras** - TensorFlow models via the Keras API
  - **Local** - instance specific explanation, why was this prediction made?
  - **Global** - explains the model with respect to a set of instances
@@ -119,14 +121,7 @@ Key:
   - Examples: 
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cf_mnist.html)
 
-- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)
-  - Examples:
-    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_intro.html),
-    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_lr.html),
-    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_adult_lr.html)
-    
-- Counterfactual Explanations Guided by Prototypes ([Van Looveren et al., 2019](https://arxiv.org/abs/1907.02584))
+- Counterfactual Explanations Guided by Prototypes ([Van Looveren and Klaise, 2019](https://arxiv.org/abs/1907.02584))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_mnist.html),
@@ -134,11 +129,25 @@ Key:
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ord.html)
 
+- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)
+  - Examples:
+    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_intro.html),
+    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_lr.html),
+    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_adult_lr.html)
+    
+- Tree Shapley Additive Explanations ([Lundberg et al., 2020](https://www.nature.com/articles/s42256-019-0138-9))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)
+  - Examples:
+    [Interventional (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/latest/examples/interventional_tree_shap_adult_xgb.html),
+    [Path-dependent (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/latest/examples/path_dependent_tree_shap_adult_xgb.html)
+    
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html),
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html)
+
 - Linearity Measure
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/LinearityMeasure.html)
   - Examples:

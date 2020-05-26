@@ -89,9 +89,10 @@ Default counterfactual prototype metadata.
 """
 
 # KernelSHAP
-DEFAULT_META_SHAP = {
+DEFAULT_META_KERNEL_SHAP = {
     "name": None,
     "type": ["blackbox"],
+    "task": None,
     "explanations": ["local", "global"],
     "params": {}
 }  # type: dict
@@ -99,12 +100,12 @@ DEFAULT_META_SHAP = {
 Default KernelSHAP metadata.
 """
 
-DEFAULT_DATA_SHAP = {
+DEFAULT_DATA_KERNEL_SHAP = {
     "shap_values": [],
     "expected_value": [],
     "link": 'identity',
-    "categorical_names": None,
-    "feature_names": None,
+    "categorical_names": {},
+    "feature_names": [],
     "raw": {
         "raw_prediction": None,
         "prediction": None,
@@ -138,4 +139,36 @@ DEFAULT_DATA_ALE = {
 }  # type: dict
 """
 Default ALE data.
+"""
+
+# TreeShap
+DEFAULT_META_TREE_SHAP = {
+    "name": None,
+    "type": ["whitebox"],
+    "task": None,  # updates with 'classification' or 'regression'
+    "explanations": ["local", "global"],
+    "params": {}
+}  # type: dict
+"""
+Default TreeSHAP metadata.
+"""
+
+DEFAULT_DATA_TREE_SHAP = {
+    "shap_values": [],
+    "shap_interaction_values": [],
+    "expected_value": [],
+    "model_output": None,  # see TreeShap __init__ for possible values
+    "categorical_names": {},
+    "feature_names": [],
+    "raw": {
+        "raw_prediction": None,
+        "loss": None,
+        "prediction": None,
+        "instances": None,
+        "labels": None,
+        "importances": {},
+    }
+}  # type: dict
+"""
+Default TreeSHAP data.
 """

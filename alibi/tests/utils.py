@@ -2,8 +2,7 @@ import numpy as np
 
 from contextlib import contextmanager
 
-
-OUT_TYPES = ['proba', 'class', 'continuous']
+OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'probability_doubled', 'log_loss', 'continuous']
 
 
 class MockPredictor:
@@ -12,8 +11,11 @@ class MockPredictor:
     allow testing of functionality that depends on it without
     inference overhead.
     """
-    def __init__(self, out_dim: int,
+
+    def __init__(self,
+                 out_dim: int,
                  out_type: str = 'proba',
+                 model_type: str = None,
                  seed: int = None,
                  ) -> None:
         """
@@ -24,12 +26,15 @@ class MockPredictor:
             out_type
                 Indicates if probabilities, class predictions or continuous outputs
                 are generated.
+
         """
 
         np.random.seed(seed)
 
         self.out_dim = out_dim
+        self.num_outputs = out_dim
         self.out_type = out_type
+        self.model_type = model_type
         if out_type not in OUT_TYPES:
             raise ValueError("Unknown output type. Accepted values are {}".format(OUT_TYPES))
 
@@ -41,12 +46,14 @@ class MockPredictor:
         else:
             raise ValueError("Predictor expects the input to have attribute .shape!")
 
-        if self.out_type == 'proba':
+        if self.out_type == 'proba' or self.out_type == 'probability':
             return self._generate_probas(sz, *args, **kwargs)
+
         elif self.out_type == 'class':
             return self._generate_labels(sz, *args, **kwargs)
-        else:
-            return self._generate_continuous(sz, *args, **kwargs)
+
+        elif self.out_type == 'raw' or self.out_type == 'log_loss' or self.out_type == 'continuous':
+            return self._generate_logits(sz, *args, **kwargs)
 
     def _generate_probas(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """
@@ -61,30 +68,25 @@ class MockPredictor:
             Output dimension: [N, B] where N is number of batches and B is batch size.
         """
 
+        if self.out_dim == 1:
+            return np.random.uniform(size=sz)
+
         # set distribution parameters
         alpha = kwargs.get('alpha', np.ones(self.out_dim))
 
         if isinstance(alpha, np.ndarray):
-            if self.out_dim > 1:
-                (dim,) = alpha.squeeze().shape
-            else:
-                dim = 1
+            (dim,) = alpha.squeeze().shape
         elif isinstance(alpha, list):
             dim = len(alpha)
         else:
-            raise TypeError("Expected alpha to be of type list or np.ndarray!")
+            raise TypeError("Expected Dirichlet parameters to be of type list or np.ndarray!")
 
-        try:
-            assert dim == self.out_dim
-        except AssertionError:
+        if dim != self.out_dim:
             raise ValueError("The dimension of the Dirichlet distribution parameters"
                              "must match output dimension. Got alpha dim={} and "
                              "out_dim={} ".format(dim, self.out_dim))
 
-        if self.out_dim == 1:
-            return np.random.dirichlet(alpha, size=sz).squeeze()
-        else:
-            return np.random.dirichlet(alpha, size=sz)
+        return np.random.dirichlet(alpha, size=sz)
 
     def _generate_labels(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """
@@ -94,13 +96,16 @@ class MockPredictor:
             sz += (self.out_dim,)
         return np.random.randint(0, self.out_dim + 1, size=sz)
 
-    def _generate_continuous(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+    def _generate_logits(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """
-        Generate continuous output by sampling from a standard normal distribution.
+        Generates fake logit values by sampling from the standard normal
         """
         if sz:
             sz += (self.out_dim,)
         return np.random.normal(size=sz)
+
+    def predict(self, *args, **kwargs):
+        return self.__call__(*args, **kwargs)
 
 
 def issorted(arr, reverse=False):

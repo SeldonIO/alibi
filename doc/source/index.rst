@@ -25,6 +25,7 @@
    methods/KernelSHAP.ipynb
    methods/LinearityMeasure.ipynb
    methods/TrustScores.ipynb
+   methods/TreeSHAP.ipynb
 
 .. toctree::
    :maxdepth: 1
@@ -52,6 +53,8 @@
    examples/linearity_measure_fashion_mnist
    examples/trustscore_iris
    examples/trustscore_mnist
+   examples/interventional_tree_shap_adult_xgb
+   examples/path_dependent_tree_shap_adult_xgb
 
 .. toctree::
    :maxdepth: 1

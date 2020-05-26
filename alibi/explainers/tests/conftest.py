@@ -1,18 +1,18 @@
 import pytest
 import logging
+import shap
 
 import numpy as np
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
-from alibi.explainers import KernelShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset
+from alibi.explainers import KernelShap, TreeShap
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, MockTreeExplainer
+from alibi.tests.utils import MockPredictor
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
-
-from alibi.tests.utils import MockPredictor
 
 
 # A file containing fixtures that can be used across tests
@@ -213,7 +213,7 @@ def at_adult_explainer(get_adult_dataset, rf_classifier, request):
 
 
 @pytest.fixture
-def mock_ks_explainer(request):
+def mock_kernel_shap_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """
@@ -232,6 +232,28 @@ def mock_ale_explainer(request):
     out_dim, out_type = request.param
     predictor = MockPredictor(out_dim=out_dim, out_type=out_type, seed=0)
     explainer = ALE(predictor)
+
+    return explainer
+
+
+@pytest.fixture
+def mock_tree_shap_explainer(monkeypatch, request):
+    """
+    Instantiates a TreeShap explainer where both the `_explainer` and `model` atttributes
+    are mocked
+
+    Parameters
+    ----------
+    request:
+        Tuple containing number of outputs and model_output string (see TreeShap constructor).
+    """
+
+    n_outs, model_output = request.param
+    seed = 0
+    predictor = MockPredictor(out_dim=n_outs, out_type=model_output, seed=seed)
+    tree_explainer = MockTreeExplainer(predictor, seed=seed)
+    monkeypatch.setattr(shap, "TreeExplainer", tree_explainer)
+    explainer = TreeShap(predictor, model_output=model_output)
 
     return explainer
 

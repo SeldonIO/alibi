@@ -314,6 +314,9 @@ def ale_num(
     return q, ale, ale0
 
 
+# no_type_check is needed because exp is a generic explanation and so mypy doesn't know that the
+# attributes actually exist... As a side effect the type information does not show up in the static
+# docs. Will need to re-think this.
 @no_type_check
 def plot_ale(exp: Explanation,
              features: Union[List[Union[int, str]], Literal['all']] = 'all',

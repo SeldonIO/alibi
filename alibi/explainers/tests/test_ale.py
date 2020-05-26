@@ -50,7 +50,7 @@ def test_ale_num_logistic_regression(min_bin_points, lr_classifier, dataset):
 @pytest.mark.parametrize('num_points', (6, 11, 101), ids='num_points={}'.format)
 def test_get_quantiles(input_dim, batch_size, num_points):
     X = np.random.rand(batch_size, input_dim)
-    q = get_quantiles(X, num_points=num_points)
+    q = get_quantiles(X, num_quantiles=num_points)
     assert q.shape == (num_points, input_dim)
 
 

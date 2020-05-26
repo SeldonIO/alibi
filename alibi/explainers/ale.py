@@ -86,7 +86,7 @@ class ALE(Explainer):
                 feature=feature,
                 min_bin_points=min_bin_points
             )
-            deciles = get_quantiles(X[:, feature], num_points=11)
+            deciles = get_quantiles(X[:, feature], num_quantiles=11)
 
             feature_values.append(q)
             ale_values.append(ale)
@@ -133,7 +133,7 @@ class ALE(Explainer):
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
 
-def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linear') -> np.ndarray:
+def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='linear') -> np.ndarray:
     """
     Calculate quantiles of values in an array.
 
@@ -141,7 +141,7 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     ----------
     values
         Array of values.
-    num_points
+    num_quantiles
         Number of quantiles to calculate.
 
     Returns
@@ -149,7 +149,7 @@ def get_quantiles(values: np.ndarray, num_points: int = 11, interpolation='linea
     Array of quantiles of the input values.
 
     """
-    percentiles = np.linspace(0, 100, num=num_points)
+    percentiles = np.linspace(0, 100, num=num_quantiles)
     quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)
     return quantiles
 
@@ -189,8 +189,8 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
 
 def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarray, int]:
     """
-    Find the optimal number of points to subdivide the feature range into
-    so that each bin has at least `min_bin_points`. Uses bisection.
+    Find the optimal number of quantiles for the range of values so that each resulting bin
+    contains at least `min_bin_points`. Uses bisection.
 
     Parameters
     ----------
@@ -204,34 +204,34 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
     -------
     q
         Unique quantiles.
-    num_points
-        Number of non-unique points the feature array was subdivided into.
+    num_quantiles
+        Number of non-unique quantiles the feature array was subdivided into.
 
     Notes
     -----
     This is a heuristic procedure since the bisection algorithm is applied
     to a function which is not monotonic. This will not necessarily find the
-    maximum number of quantiles the interval can be subdivided into to satisfy
+    maximum number of bins the interval can be subdivided into to satisfy
     the minimum number of points in each resulting bin.
     """
 
     def minimum_satisfied(n: int) -> int:
         """
-        Calculates whether the partition into n quantiles has the minimum number
-        of points in each resulting bin.
+        Calculates whether the partition into bins induced by n quantiles
+        has the minimum number of points in each resulting bin.
         """
-        q = np.unique(get_quantiles(values, num_points=n))
+        q = np.unique(get_quantiles(values, num_quantiles=n))
         indices = np.searchsorted(q, values, side='left')
         indices[indices == 0] = 1
         interval_n = np.bincount(indices)
         return int(np.all(interval_n[1:] > min_bin_points))
 
     # bisect
-    num_points = bisect_fun(fun=lambda n: 1 - minimum_satisfied(n), target=0.5, lo=0, hi=len(values)) - 1
-    assert minimum_satisfied(num_points)
-    q = np.unique(get_quantiles(values, num_points=num_points))
+    num_quantiles = bisect_fun(fun=lambda n: 1 - minimum_satisfied(n), target=0.5, lo=0, hi=len(values)) - 1
+    assert minimum_satisfied(num_quantiles)
+    q = np.unique(get_quantiles(values, num_quantiles=num_quantiles))
 
-    return q, num_points
+    return q, num_quantiles
 
 
 def ale_num(

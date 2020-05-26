@@ -80,10 +80,12 @@ class ALE(Explainer):
 
         # TODO: use joblib to paralelise?
         for feature in range(n_features):
-            q, ale, a0 = ale_num(self.predictor,
-                                 X=X,
-                                 feature=feature,
-                                 min_bin_points=min_bin_points)
+            q, ale, a0 = ale_num(
+                self.predictor,
+                X=X,
+                feature=feature,
+                min_bin_points=min_bin_points
+            )
             deciles = get_quantiles(X[:, feature], num_points=11)
 
             feature_values.append(q)
@@ -96,11 +98,13 @@ class ALE(Explainer):
         # I've replaced this with feature deciles which is coarser but has constant space complexity
         # as opposed to a rugplot. Alternatively, could consider subsampling to produce a rug with some
         # maximum number of points.
-        return self.build_explanation(ale_values=ale_values,
-                                      ale0=ale0,
-                                      constant_value=constant_value,
-                                      feature_values=feature_values,
-                                      feature_deciles=feature_deciles)
+        return self.build_explanation(
+            ale_values=ale_values,
+            ale0=ale0,
+            constant_value=constant_value,
+            feature_values=feature_values,
+            feature_deciles=feature_deciles
+        )
 
     def build_explanation(self,
                           ale_values: List[np.ndarray],
@@ -116,13 +120,15 @@ class ALE(Explainer):
         # this is different from e.g. SHAP but arguably more convenient for ALE.
 
         data = copy.deepcopy(DEFAULT_DATA_ALE)
-        data.update(ale_values=ale_values,
-                    ale0=ale0,
-                    constant_value=constant_value,
-                    feature_values=feature_values,
-                    feature_names=self.feature_names,
-                    target_names=self.target_names,
-                    feature_deciles=feature_deciles)
+        data.update(
+            ale_values=ale_values,
+            ale0=ale0,
+            constant_value=constant_value,
+            feature_values=feature_values,
+            feature_names=self.feature_names,
+            target_names=self.target_names,
+            feature_deciles=feature_deciles
+        )
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
@@ -464,8 +470,11 @@ def _plot_one_ale_num(exp: Explanation,
     # add zero baseline
     ax.axhline(0, color='grey')
 
-    lines = ax.plot(exp.feature_values[feature], exp.ale_values[feature][:, targets] + \
-                    constant * exp.constant_value, **line_kw)
+    lines = ax.plot(
+        exp.feature_values[feature],
+        exp.ale_values[feature][:, targets] + constant * exp.constant_value,
+        **line_kw
+    )
 
     # add decile markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)

@@ -264,6 +264,8 @@ def _format_input_baseline(X: np.ndarray,
         bls = np.zeros(X.shape)
     elif isinstance(baselines, int) or isinstance(baselines, float):
         bls = np.full(X.shape, baselines)
+    elif isinstance(baselines, np.ndarray):
+        bls = baselines
     else:
         raise ValueError('baselines must be int, float, np.ndarray or None. Found {}'.format(type(baselines)))
 

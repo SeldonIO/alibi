@@ -26,7 +26,7 @@
    methods/LinearityMeasure.ipynb
    methods/TrustScores.ipynb
    methods/TreeSHAP.ipynb
-   mrthods/IntegratedGradients.ipynb
+   methods/IntegratedGradients.ipynb
 
 .. toctree::
    :maxdepth: 1

@@ -334,11 +334,13 @@ def plot_ale(exp: Explanation,
     exp
         An `Explanation` object produced by a call to the `ALE.explain` method.
     features
-        A list of features for which to plot the ALE curves. Can be a mix of integers denoting
-        feature index or strings denoting entries in `exp.feature_names`. Defaults to 'all'.
+        A list of features for which to plot the ALE curves or `all` for all features.
+        Can be a mix of integers denoting feature index or strings denoting entries in
+        `exp.feature_names`. Defaults to 'all'.
     targets
-        A list of targets for which to plot the ALE curves. Can be a mix of integers denoting
-        target index or strings denoting entries in `exp.target_names`. Defaults to 'all'.
+        A list of targets for which to plot the ALE curves or `all` for all targets.
+        Can be a mix of integers denoting target index or strings denoting entries in
+        `exp.target_names`. Defaults to 'all'.
     n_cols
         Number of columns to organize the resulting plot into.
     sharey

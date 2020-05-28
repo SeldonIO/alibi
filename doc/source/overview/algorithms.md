@@ -32,7 +32,7 @@ Key:
  - **Cat. data** - support for categorical features
  - **Train** - whether a training set is required to fit the explainer
 
-**Accumulated Local Effects (ALE)**: calculates first-order feature effects of a model with
+**Accumulated Local Effects (ALE)**: calculates first-order feature effects on the model with
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
 [Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.nblink),
 [classification example](../examples/ale_classification.nblink).

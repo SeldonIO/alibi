@@ -1,7 +1,7 @@
 import pytest
 import numpy as np
 from numpy.testing import assert_allclose
-from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles
+from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles, minimum_satisfied
 from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
@@ -61,10 +61,7 @@ def test_adaptive_grid(batch_size, min_bin_points):
     q, num_points = adaptive_grid(X, min_bin_points=min_bin_points)
 
     # check that each bin has >= min_bin_points
-    indices = np.searchsorted(q, X, side='left')  # assign points to bins
-    indices[indices == 0] = 1  # zeroth bin should be empty
-    interval_n = np.bincount(indices)  # count points
-    assert np.all(interval_n[1:] > min_bin_points)
+    assert minimum_satisfied(X, min_bin_points, num_points)
 
 
 out_dim_out_type = [(1, 'continuous'), (3, 'proba')]

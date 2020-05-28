@@ -4,6 +4,7 @@ import math
 import numpy as np
 import pandas as pd
 from itertools import count
+from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 from typing_extensions import Literal
 
@@ -188,6 +189,31 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
     return lo
 
 
+def minimum_satisfied(values: np.ndarray, min_bin_points: int, n: int) -> int:
+    """
+    Calculates whether the partition into bins induced by n quantiles
+    has the minimum number of points in each resulting bin.
+
+    Parameters
+    ----------
+    values
+        Array of feature values.
+    min_bin_points
+        Minimum number of points each discretized interval needs to contain.
+    n
+        Number of quantiles.
+
+    Returns
+    -------
+        Integer encoded boolean with 1 - each bin has at least `min_bin_points` and 0 otherwise.
+    """
+    q = np.unique(get_quantiles(values, num_quantiles=n))
+    indices = np.searchsorted(q, values, side='left')
+    indices[indices == 0] = 1
+    interval_n = np.bincount(indices)
+    return int(np.all(interval_n[1:] > min_bin_points))
+
+
 def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarray, int]:
     """
     Find the optimal number of quantiles for the range of values so that each resulting bin
@@ -216,19 +242,17 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
     the minimum number of points in each resulting bin.
     """
 
-    def minimum_satisfied(n: int) -> int:
+    # function to bisect
+    def minimum_not_satisfied(values: np.ndarray, min_bin_points: int, n: int) -> int:
         """
-        Calculates whether the partition into bins induced by n quantiles
-        has the minimum number of points in each resulting bin.
+        Logical not of `minimum_satisfied`, see function for parameter information.
         """
-        q = np.unique(get_quantiles(values, num_quantiles=n))
-        indices = np.searchsorted(q, values, side='left')
-        indices[indices == 0] = 1
-        interval_n = np.bincount(indices)
-        return int(np.all(interval_n[1:] > min_bin_points))
+        return 1 - minimum_satisfied(values, min_bin_points, n)
+
+    fun = partial(minimum_not_satisfied, values, min_bin_points)
 
     # bisect
-    num_quantiles = bisect_fun(fun=lambda n: 1 - minimum_satisfied(n), target=0.5, lo=0, hi=len(values)) - 1
+    num_quantiles = bisect_fun(fun=fun, target=0.5, lo=0, hi=len(values)) - 1
     q = np.unique(get_quantiles(values, num_quantiles=num_quantiles))
 
     return q, num_quantiles

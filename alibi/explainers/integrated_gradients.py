@@ -364,10 +364,12 @@ class IntegratedGradients(Explainer):
         features_names
             Names of each features (optional).
         target
-            Element of the model's output for which the gradients are computed.
+            Defines which element of the model's output is considered to compute the gradients.
+            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
+            for the same element of the output for all datapoints.
             It must be provided if the model's output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
-            For classification models target can be either the true classe or the classe predicted by the model.
+            For classification models target can be either the true classes or the classes predicted by the model.
         internal_batch_size
             Bach size for the internal batching.
         return_convergence_delta
@@ -385,6 +387,13 @@ class IntegratedGradients(Explainer):
             To enable eager execution, add the following lines at the beginning of your script:
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
+
+        if self.model.output_shape[1] == 1 and target is None:
+            logger.warning("It looks like you are passing a model with a scalar output and target is set to None."
+                           "If your model is a regression model this will produce correct attributions. If your model "
+                           "is a classification model targets for each datapoint must be defined. "
+                           "Not defining the target may lead to uncorrect values for the attributions."
+                           "Targets can be either the true classes or the classes predicted by the model.")
 
         nb_samples = len(X)
 

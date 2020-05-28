@@ -229,7 +229,6 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
 
     # bisect
     num_quantiles = bisect_fun(fun=lambda n: 1 - minimum_satisfied(n), target=0.5, lo=0, hi=len(values)) - 1
-    assert minimum_satisfied(num_quantiles)
     q = np.unique(get_quantiles(values, num_quantiles=num_quantiles))
 
     return q, num_quantiles

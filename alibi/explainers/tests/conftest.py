@@ -3,15 +3,16 @@ import logging
 import shap
 
 import numpy as np
+from sklearn.linear_model import LogisticRegression, LinearRegression
 
+from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, MockTreeExplainer
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 
 
 # A file containing fixtures that can be used across tests
@@ -30,6 +31,15 @@ def get_iris_dataset():
     objects returned first.
     """
     return iris_dataset()
+
+
+@pytest.fixture(scope='module')
+def get_boston_dataset():
+    """
+    This fixture can be passed to a regressor fixture to return a
+    trained regressor on the Boston housing Dataset.
+    """
+    return boston_dataset()
 
 
 @pytest.fixture(scope='module')
@@ -112,6 +122,29 @@ def lr_classifier(request):
     return clf, preprocessor
 
 
+@pytest.fixture(scope='module')
+def lr_regressor(request):
+    """
+    Trains a linear regression model.
+    """
+    is_preprocessor = False
+    preprocessor = False
+
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    model = LinearRegression()
+
+    if is_preprocessor:
+        model.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        model.fit(data['X_train'], data['y_train'])
+
+    return model, preprocessor
+
+
 # Following fixtures are related to Anchor explainers testing
 
 
@@ -192,6 +225,18 @@ def mock_kernel_shap_explainer(request):
 
 
 @pytest.fixture
+def mock_ale_explainer(request):
+    """
+    Instantiates an ALE explainer with a mock predictor.
+    """
+    out_dim, out_type = request.param
+    predictor = MockPredictor(out_dim=out_dim, out_type=out_type, seed=0)
+    explainer = ALE(predictor)
+
+    return explainer
+
+
+@pytest.fixture
 def mock_tree_shap_explainer(monkeypatch, request):
     """
     Instantiates a TreeShap explainer where both the `_explainer` and `model` atttributes
@@ -225,7 +270,6 @@ def conv_net(request):
     x_train, y_train = data['X_train'], data['y_train']
 
     def model():
-
         x_in = Input(shape=(28, 28, 1))
         x = Conv2D(filters=8, kernel_size=2, padding='same', activation='relu')(x_in)
         x = MaxPooling2D(pool_size=2)(x)

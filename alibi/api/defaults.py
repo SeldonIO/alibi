@@ -117,6 +117,29 @@ DEFAULT_DATA_KERNEL_SHAP = {
 Default KernelSHAP data.
 """
 
+# ALE
+DEFAULT_META_ALE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {}
+}  # type: dict
+"""
+Default ALE metadata.
+"""
+
+DEFAULT_DATA_ALE = {
+    "ale_values": [],
+    "constant_value": None,
+    "ale0": [],
+    "feature_values": [],
+    "feature_names": None,
+    "target_names": None,
+    "feature_deciles": None
+}  # type: dict
+"""
+Default ALE data.
+"""
 
 # TreeShap
 DEFAULT_META_TREE_SHAP = {

@@ -21,13 +21,15 @@ import alibi
 alibi.explainers.__all__
 ```
 ```
-['AnchorTabular',
+['ALE',
+ 'AnchorTabular',
  'AnchorText',
  'AnchorImage',
  'CEM',
  'CounterFactual',
  'CounterFactualProto'
- 'KernelShap'] 
+ 'KernelShap',
+ 'plot_ale'] 
 ```
 
 For gauging model confidence:
@@ -44,6 +46,7 @@ alibi.confidence.__all__
 
 For detailed information on the methods:
 *  [Overview of available methods](../overview/algorithms.md)
+    * [Accumulated Local Effects](../methods/ALE.ipynb)
     * [Anchor explanations](../methods/Anchors.ipynb)
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
     * [Counterfactual Instances](../methods/CF.ipynb)

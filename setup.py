@@ -31,6 +31,7 @@ setup(name='alibi',
       install_requires=[
           'attrs',
           'beautifulsoup4',
+          'matplotlib',
           'numpy',
           'Pillow',
           'pandas',
@@ -41,7 +42,8 @@ setup(name='alibi',
           'scikit-image<0.17',
           'tensorflow<2.0',
           'shap',
-          'scipy'
+          'scipy',
+          'typing-extensions'
       ],
       tests_require=[
           'pytest',

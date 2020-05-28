@@ -2,16 +2,16 @@ import numpy as np
 
 from contextlib import contextmanager
 
-
-OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'probability_doubled', 'log_loss']
+OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'probability_doubled', 'log_loss', 'continuous']
 
 
 class MockPredictor:
     """
-    A class the mimicks the output of a classifier to
+    A class the mimicks the output of a classifier or regressor to
     allow testing of functionality that depends on it without
     inference overhead.
     """
+
     def __init__(self,
                  out_dim: int,
                  out_type: str = 'proba',
@@ -24,7 +24,9 @@ class MockPredictor:
             out_dim
                 The number of output classes.
             out_type
-                Indicates if probabilities or class label predictions are generated.
+                Indicates if probabilities, class predictions or continuous outputs
+                are generated.
+
         """
 
         np.random.seed(seed)
@@ -42,14 +44,16 @@ class MockPredictor:
         if hasattr(args[0], 'shape'):
             sz = args[0].shape[:-1]
         else:
-            raise ValueError("Classifier expects the input to have attribute .shape!")
+            raise ValueError("Predictor expects the input to have attribute .shape!")
 
         if self.out_type == 'proba' or self.out_type == 'probability':
             return self._generate_probas(sz, *args, **kwargs)
-        elif self.out_type == 'raw' or self.out_type == 'log_loss':
-            return self._generate_logits(sz, *args, **kwargs)
-        else:
+
+        elif self.out_type == 'class':
             return self._generate_labels(sz, *args, **kwargs)
+
+        elif self.out_type == 'raw' or self.out_type == 'log_loss' or self.out_type == 'continuous':
+            return self._generate_logits(sz, *args, **kwargs)
 
     def _generate_probas(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
         """

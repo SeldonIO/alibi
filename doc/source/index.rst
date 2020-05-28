@@ -17,6 +17,7 @@
    :maxdepth: 1
    :caption: Methods
 
+   methods/ALE.ipynb
    methods/Anchors.ipynb
    methods/CEM.ipynb
    methods/CF.ipynb
@@ -30,6 +31,8 @@
    :maxdepth: 1
    :caption: Examples
 
+   examples/ale_regression_boston
+   examples/ale_classification
    examples/anchor_tabular_adult
    examples/anchor_tabular_iris
    examples/anchor_text_movie

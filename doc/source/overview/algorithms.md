@@ -20,6 +20,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| 
+|[Integrated gradients](../methods/IntegratedGradients.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|Optional|
 
 
 Key:
@@ -82,6 +83,14 @@ dataset. This algorithm can be used to explain regression models. [Documentation
  [Documentation](../methods/TreeSHAP.ipynb),
  [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
  [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
+
+
+**Integrated gradients**: attribute an importance score to each element of the input or an internal layer of the the model  
+with respect to a given baseline. The attributions are calculated as the path integral of the model's gradients along a 
+straight line from the baseline to the input.
+ [Documentation](../methods/IntegratedGradients.ipynb),
+ [Imagenet example](../examples/integrated_gradients_imagenet.nblink),
+ [Imdb example](../examples/integrated_gradients_imdb.nblink).
 
 
 ## Model Confidence

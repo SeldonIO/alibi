@@ -52,6 +52,7 @@ For detailed information on the methods:
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
+    * [Integrated gradients](../methods/IntegratedGradients.ipynb)
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 

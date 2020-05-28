@@ -172,3 +172,27 @@ DEFAULT_DATA_TREE_SHAP = {
 """
 Default TreeSHAP data.
 """
+
+# Integrated gradients
+DEFAULT_META_INTGRAD = {
+    "name": None,
+    "type": ["whitebox"],
+    "task": None,
+    "explanations": ["local"],
+    "params": {}
+}  # type: dict
+"""
+Default IntegratedGradients metadata.
+"""
+
+DEFAULT_DATA_INT_GRAD = {
+    "attributions": None,
+    "X": None,
+    "baselines": None,
+    "feature_names": None,
+    "predictions": None,
+    "deltas": None
+}  # type: dict
+"""
+Default IntegratedGradients data.
+"""

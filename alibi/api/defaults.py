@@ -185,7 +185,7 @@ DEFAULT_META_INTGRAD = {
 Default IntegratedGradients metadata.
 """
 
-DEFAULT_DATA_INT_GRAD = {
+DEFAULT_DATA_INTGRAD = {
     "attributions": None,
     "X": None,
     "baselines": None,

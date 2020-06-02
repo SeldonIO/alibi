@@ -2,15 +2,17 @@ import numpy as np
 import tensorflow as tf
 import warnings
 
+from enum import Enum
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import figure, axis
 from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numpy import ndarray
-from enum import Enum
+from typing import Union, Tuple, TYPE_CHECKING
 
-from typing import Union, Tuple
+if TYPE_CHECKING:  # pragma: no cover
+    import keras  # noqa
 
 
 def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],

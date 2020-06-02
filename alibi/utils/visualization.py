@@ -20,38 +20,42 @@ except ImportError:
     HAS_IPYTHON = False
 
 
-def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],
+def plot_attributions(model,
                       data: np.ndarray,
-                      labels: Union[list, np.ndarray],
+                      labels,
                       attrs: np.ndarray,
                       label_idx_to_class_names: dict,
+                      idx: list = [0, 1, 9],
+                      nrows: int = 3,
                       figsize: tuple = (20, 15),
                       scale_attrs: bool = True,
                       cmap: str = 'gray') -> None:
 
     def magnify_attrs(attrs):
-        return 3 * (attrs / attrs.max())
+        return 30 * attrs
 
+    assert len(idx) == nrows
     ncols = 4
-    nrows = 3
+
     fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
 
     n_subplot = 1
 
-    for i in [0, 1, 9]:
+    for i in idx:
         X_i = data[i]
-        # X_i = (X_i / 255).astype('float32')
         attrs_i = attrs[i]
         attrs_plus_i = attrs_i.copy()
-        attrs_minus_i = -attrs_i.copy()
+        attrs_minus_i = attrs_i.copy()
         attrs_plus_i[attrs_plus_i < 0] = 0
-        attrs_minus_i[attrs_minus_i < 0] = 0
+        attrs_minus_i[attrs_minus_i > 0] = 0
 
         if scale_attrs:
             attrs_i = magnify_attrs(attrs_i)
             attrs_minus_i = magnify_attrs(attrs_minus_i)
             attrs_plus_i = magnify_attrs(attrs_plus_i)
-
+        attrs_i = np.clip(attrs_i, -1, 1)
+        attrs_minus_i = np.clip(attrs_minus_i, -1, 0)
+        attrs_plus_i = np.clip(attrs_plus_i, 0, 1)
         label = labels[i]
         label_name = label_idx_to_class_names[label]
         pred = np.argmax(model(X_i.reshape((1,) + X_i.shape)).numpy(), axis=1)
@@ -70,26 +74,28 @@ def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],
         # all attributions
         plt.subplot(nrows, ncols, n_subplot)
         if i == 0:
-            plt.title('All Attributions')
-        plt.imshow(np.squeeze(attrs_i), cmap=cmap)
+            plt.title('Attributions')
+        raw = plt.imshow(np.squeeze(attrs_i), cmap=cmap)
+        plt.colorbar(raw, orientation="vertical")
         n_subplot += 1
 
         # positive attributions
         plt.subplot(nrows, ncols, n_subplot)
         if i == 0:
-            plt.title('Positive Attributions')
-        plt.imshow(np.squeeze(attrs_plus_i), cmap=cmap)
+            plt.title('Positive attributions')
+        pos = plt.imshow(np.squeeze(attrs_plus_i), cmap=cmap)
         n_subplot += 1
+        plt.colorbar(pos, orientation="vertical")
 
         # negative attributions
         plt.subplot(nrows, ncols, n_subplot)
         if i == 0:
-            plt.title('Negative Attributions')
-        plt.imshow(np.squeeze(attrs_minus_i), cmap=cmap)
+            plt.title('Negative attributions')
+        neg = plt.imshow(np.squeeze(attrs_minus_i), cmap=cmap)
+        plt.colorbar(neg, orientation="vertical")
         n_subplot += 1
 
     plt.show()
-
 
 # the following code was borrowed from the captum library in
 # https://github.com/pytorch/captum/blob/master/captum/attr/_utils/visualization.py

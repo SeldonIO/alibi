@@ -88,7 +88,7 @@ def riemann_builders(
         else:
             raise AssertionError("Provided Reimann approximation method is not valid.")
         # This is not a standard riemann method but in many cases it
-        # leades to faster approaximation. Test cases for small number of steps
+        # leads to faster approximation. Test cases for small number of steps
         # do not make sense but for larger number of steps the approximation is
         # better therefore leaving this option available
         # if method == 'riemann_include_endpoints':

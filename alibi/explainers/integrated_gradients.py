@@ -1,13 +1,14 @@
-import tensorflow as tf
-import numpy as np
 import copy
-import string
 import logging
+import numpy as np
+import string
+import tensorflow as tf
 
-from typing import Callable, Union, TYPE_CHECKING
-from alibi.api.defaults import DEFAULT_META_INTGRAD, DEFAULT_DATA_INTGRAD
+from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
+
+from typing import Callable, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -113,7 +114,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         return ps
 
     preds = model(x)
-    if model.output_shape[1] > 1:
+    if len(model.output_shape) > 1 and model.output_shape[1] > 1:
         preds = _select_target(preds, target)
 
     return preds
@@ -261,11 +262,11 @@ def _format_input_baseline(X: np.ndarray,
 
     """
     if baselines is None:
-        bls = np.zeros(X.shape)
+        bls = np.zeros(X.shape).astype(X.dtype)
     elif isinstance(baselines, int) or isinstance(baselines, float):
-        bls = np.full(X.shape, baselines)
+        bls = np.full(X.shape, baselines).astype(X.dtype)
     elif isinstance(baselines, np.ndarray):
-        bls = baselines
+        bls = baselines.astype(X.dtype)
     else:
         raise ValueError('baselines must be int, float, np.ndarray or None. Found {}'.format(type(baselines)))
 
@@ -305,8 +306,9 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
                  layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 feature_names: Union[list, None] = None,
                  n_steps: int = 50,
-                 method: str = "gausslegendre"):
+                 method: str = "gausslegendre") -> None:
         """
         The class IntegratedGradients provide an implementation of the integrated gradients method
         for Tensorflow and Keras models.
@@ -322,6 +324,8 @@ class IntegratedGradients(Explainer):
         layer
             Layer respect to which the gradients are calculated.
             If not provided, the gradients are calculated respect to the input.
+        feature_names
+            Names of each features (optional).
         n_steps
             Number of step in the path integral approximation from the baseline to the input instance.
         method
@@ -339,12 +343,13 @@ class IntegratedGradients(Explainer):
         self.model = model
         self.input_dtype = self.model.input.dtype
         self.layer = layer
+        self.feature_names = feature_names
         self.n_steps = n_steps
         self.method = method
 
-    def explain(self, X: np.ndarray,
+    def explain(self,
+                X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
-                features_names: Union[list, None] = None,
                 target: Union[None, int, list, np.ndarray] = None,
                 internal_batch_size: Union[None, int] = 100,
                 return_convergence_delta: bool = False,
@@ -361,8 +366,6 @@ class IntegratedGradients(Explainer):
             Baselines (start point of the path integral) for each instance.
             If the passed value is an np.ndarray must have the same shape of X.
             If not provided, all features values for the baselines are set to 0.
-        features_names
-            Names of each features (optional).
         target
             Defines which element of the model's output is considered to compute the gradients.
             It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
@@ -388,7 +391,7 @@ class IntegratedGradients(Explainer):
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
 
-        if self.model.output_shape[1] == 1 and target is None:
+        if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to None."
                            "If your model is a regression model this will produce correct attributions. If your model "
                            "is a classification model targets for each datapoint must be defined. "
@@ -443,7 +446,8 @@ class IntegratedGradients(Explainer):
         shape = grads.shape[1:]
 
         # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-        if self.model.output_shape[1] == 1 and target is not None:
+        if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
+            print('800B')
             sign = 2 * target_paths - 1
             grads = np.array([s * g for s, g in zip(sign, grads)])
 
@@ -461,8 +465,7 @@ class IntegratedGradients(Explainer):
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
-                    attributions=attr,
-                    features_names=features_names)
+                    attributions=attr)
 
         if return_predictions:
             predictions = self.model(X).numpy()

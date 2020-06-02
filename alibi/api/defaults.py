@@ -169,6 +169,7 @@ DEFAULT_DATA_TREE_SHAP = {
         "importances": {},
     }
 }  # type: dict
+
 """
 Default TreeSHAP data.
 """
@@ -178,6 +179,7 @@ DEFAULT_META_INTGRAD = {
     "name": None,
     "type": ["whitebox"],
     "task": None,
+    "feature_names": None,
     "explanations": ["local"],
     "params": {}
 }  # type: dict
@@ -189,7 +191,6 @@ DEFAULT_DATA_INTGRAD = {
     "attributions": None,
     "X": None,
     "baselines": None,
-    "feature_names": None,
     "predictions": None,
     "deltas": None
 }  # type: dict

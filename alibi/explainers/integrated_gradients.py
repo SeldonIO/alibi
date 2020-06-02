@@ -65,7 +65,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
 
     start_out = _run_forward(model, start_point, target)
     end_out = _run_forward(model, end_point, target)
-    if model.output_shape[1] == 1 and target is not None:
+    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
         sign = 2 * target_tensor - 1
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])

@@ -12,17 +12,10 @@ from enum import Enum
 
 from typing import Union, Tuple
 
-try:
-    from IPython.core.display import display, HTML
 
-    HAS_IPYTHON = True
-except ImportError:
-    HAS_IPYTHON = False
-
-
-def plot_attributions(model,
+def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],
                       data: np.ndarray,
-                      labels,
+                      labels: list,
                       attrs: np.ndarray,
                       label_idx_to_class_names: dict,
                       idx: list = [0, 1, 9],
@@ -96,6 +89,7 @@ def plot_attributions(model,
         n_subplot += 1
 
     plt.show()
+
 
 # the following code was borrowed from the captum library in
 # https://github.com/pytorch/captum/blob/master/captum/attr/_utils/visualization.py

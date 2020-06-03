@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 import warnings
 
@@ -9,10 +10,50 @@ from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numpy import ndarray
+from termcolor import colored
 from typing import Union, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
+
+
+def show_ig_text_attrs(x: np.ndarray,
+                       attrs: np.ndarray,
+                       top_bottom: str,  # "top" or "bottom"
+                       color: str,
+                       reverse_index: dict,
+                       nb_words=5,
+                       title='Integrated gradients attributions'):
+
+    def decode_sentence(x):
+        return " ".join([reverse_index.get(i - 3, '#') for i in x])
+
+    words = decode_sentence(x).split(' ')
+    attrs = attrs.tolist()
+    df = pd.DataFrame({'words': words, 'attributions': attrs})
+    df_sorted = df.sort_values('attributions')
+
+    if top_bottom == 'top':
+        selected = df_sorted.iloc[-nb_words:]
+    elif top_bottom == 'bottom':
+        selected = df_sorted.iloc[:nb_words]
+    selected_idx = selected.index.tolist()
+
+    formattedtext = []
+    for j in range(len(words)):
+        t = words[j]
+        if j in selected_idx:
+            formattedtext.append(colored(t, 'white', 'on_{}'.format(color)))
+        else:
+            formattedtext.append(t)
+    print(" ".join(formattedtext))
+    if color == 'blue':
+        selected.set_index('words').plot(kind='barh', figsize=(15, 5), title=title)
+    else:
+        selected.set_index('words').plot(kind='barh', figsize=(15, 5), color=color, title=title)
+
+    plt.yticks(fontsize=20)
+    plt.ylabel('', fontsize=20)
 
 
 def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],

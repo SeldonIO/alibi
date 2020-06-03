@@ -73,15 +73,15 @@ dataset. This algorithm can be used to explain regression models. [Documentation
 [categorical data](../examples/kernel_shap_adult_lr.ipynb).
 
 **Tree Shapley Additive Explanations (Tree SHAP)**: attribute the change of a model output with respect to a baseline
- (e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP,
- the shap value of each feature is computed by averaging the difference of the model output observed when the feature
- is part of a group of "present" features and when the feature is excluded from said group, over all possible subsets
- of "present" features. Different estimation procedures for the effect of selecting different subsets of "present"
- features on the model output give rise to the interventional feature perturbation and the path-dependent feature
- perturbation variants of Tree SHAP. This algorithm can be used to explain regression models.
- [Documentation](../methods/TreeSHAP.ipynb),
- [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
- [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
+(e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP,
+the shap value of each feature is computed by averaging the difference of the model output observed when the feature
+is part of a group of "present" features and when the feature is excluded from said group, over all possible subsets
+of "present" features. Different estimation procedures for the effect of selecting different subsets of "present"
+features on the model output give rise to the interventional feature perturbation and the path-dependent feature
+perturbation variants of Tree SHAP. This algorithm can be used to explain regression models.
+[Documentation](../methods/TreeSHAP.ipynb),
+[interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
+[path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
 
 
 ## Model Confidence

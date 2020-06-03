@@ -19,7 +19,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 def decode_sentence(x, reverse_index):
     return " ".join([reverse_index.get(i - 3, 'UNK') for i in x])
-    
+
 
 def show_ig_text_attrs(x: np.ndarray,
                        attrs: np.ndarray,

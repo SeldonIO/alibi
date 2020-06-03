@@ -123,11 +123,12 @@ def hacky_reg():
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 def test_integratedgradients(hacky_class, method, rcd, rp, fn):
     model = hacky_class
-    ig = IntegratedGradients(model, n_steps=50, method=method, feature_names=fn)
+    ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_c,
                               baselines=None,
                               target=test_labels,
+                              features_names=fn,
                               return_convergence_delta=rcd,
                               return_predictions=rp)
 
@@ -151,11 +152,12 @@ def test_integratedgradients(hacky_class, method, rcd, rp, fn):
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 def test_integratedgradients_2(hacky_class_2, method, rcd, rp, fn):
     model = hacky_class_2
-    ig = IntegratedGradients(model, n_steps=50, method=method, feature_names=fn)
+    ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_c,
                               baselines=None,
                               target=test_labels,
+                              features_names=fn,
                               return_convergence_delta=rcd,
                               return_predictions=rp)
 
@@ -179,11 +181,12 @@ def test_integratedgradients_2(hacky_class_2, method, rcd, rp, fn):
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 def test_integratedgradients_3(hacky_class_3, method, rcd, rp, fn):
     model = hacky_class_3
-    ig = IntegratedGradients(model, n_steps=50, method=method, feature_names=fn)
+    ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_c,
                               baselines=None,
                               target=test_labels,
+                              features_names=fn,
                               return_convergence_delta=rcd,
                               return_predictions=rp)
 
@@ -215,11 +218,12 @@ def test_layer_integratedgradients(hacky_class, method, rcd, rp, fn, layer_nb):
         layer = None
 
     ig = IntegratedGradients(model, layer=layer,
-                             n_steps=50, method=method, feature_names=fn)
+                             n_steps=50, method=method)
 
     explanations = ig.explain(X_test_c,
                               baselines=None,
                               target=test_labels,
+                              features_names=fn,
                               return_convergence_delta=rcd,
                               return_predictions=rp)
 
@@ -247,11 +251,12 @@ def test_layer_integratedgradients(hacky_class, method, rcd, rp, fn, layer_nb):
 @pytest.mark.parametrize('fn', (None, ['feat_{}'.format(i) for i in range(4)]))
 def test_integratedgradients_reg(hacky_reg, method, rcd, rp, fn):
     model = hacky_reg
-    ig = IntegratedGradients(model, n_steps=50, method=method, feature_names=fn)
+    ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_r,
                               baselines=None,
                               target=None,
+                              features_names=fn,
                               return_convergence_delta=rcd,
                               return_predictions=rp)
 

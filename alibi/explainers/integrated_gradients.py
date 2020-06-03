@@ -306,7 +306,6 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
                  layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
-                 feature_names: Union[list, None] = None,
                  n_steps: int = 50,
                  method: str = "gausslegendre") -> None:
         """
@@ -324,8 +323,6 @@ class IntegratedGradients(Explainer):
         layer
             Layer respect to which the gradients are calculated.
             If not provided, the gradients are calculated respect to the input.
-        feature_names
-            Names of each features (optional).
         n_steps
             Number of step in the path integral approximation from the baseline to the input instance.
         method
@@ -343,7 +340,6 @@ class IntegratedGradients(Explainer):
         self.model = model
         self.input_dtype = self.model.input.dtype
         self.layer = layer
-        self.feature_names = feature_names
         self.n_steps = n_steps
         self.method = method
 
@@ -351,6 +347,7 @@ class IntegratedGradients(Explainer):
                 X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
                 target: Union[None, int, list, np.ndarray] = None,
+                features_names: Union[list, None] = None,
                 internal_batch_size: Union[None, int] = 100,
                 return_convergence_delta: bool = False,
                 return_predictions: bool = False
@@ -373,6 +370,8 @@ class IntegratedGradients(Explainer):
             It must be provided if the model's output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models target can be either the true classes or the classes predicted by the model.
+        features_names
+            Names of each features (optional).
         internal_batch_size
             Bach size for the internal batching.
         return_convergence_delta
@@ -462,6 +461,7 @@ class IntegratedGradients(Explainer):
         attr = norm * sum_int
 
         # Build explanation
+        self.meta.update(features_names=features_names)
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,

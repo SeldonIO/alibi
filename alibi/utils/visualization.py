@@ -17,6 +17,10 @@ if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
 
+def decode_sentence(x, reverse_index):
+    return " ".join([reverse_index.get(i - 3, 'UNK') for i in x])
+    
+
 def show_ig_text_attrs(x: np.ndarray,
                        attrs: np.ndarray,
                        top_bottom: str,  # "top" or "bottom"
@@ -25,10 +29,7 @@ def show_ig_text_attrs(x: np.ndarray,
                        nb_words=5,
                        title='Integrated gradients attributions'):
 
-    def decode_sentence(x):
-        return " ".join([reverse_index.get(i - 3, '#') for i in x])
-
-    words = decode_sentence(x).split(' ')
+    words = decode_sentence(x, reverse_index).split(' ')
     attrs = attrs.tolist()
     df = pd.DataFrame({'words': words, 'attributions': attrs})
     df_sorted = df.sort_values('attributions')

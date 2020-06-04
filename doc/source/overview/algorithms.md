@@ -88,9 +88,10 @@ dataset. This algorithm can be used to explain regression models. [Documentation
 **Integrated gradients**: attribute an importance score to each element of the input or an internal layer of the the model  
 with respect to a given baseline. The attributions are calculated as the path integral of the model's gradients along a 
 straight line from the baseline to the input.
- [Documentation](../methods/IntegratedGradients.ipynb),
- [Imagenet example](../examples/integrated_gradients_imagenet.nblink),
- [Imdb example](../examples/integrated_gradients_imdb.nblink).
+[Documentation](../methods/IntegratedGradients.ipynb),
+[MNIST example](../examples/integrated_gradients_mnist.nblink),
+[Imagenet example](../examples/integrated_gradients_imagenet.nblink),
+[Imdb example](../examples/integrated_gradients_imdb.nblink).
 
 
 ## Model Confidence

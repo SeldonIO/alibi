@@ -13,7 +13,6 @@ from typing import Callable, TYPE_CHECKING, Union
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
-# tf.compat.v1.enable_eager_execution()
 logger = logging.getLogger(__name__)
 
 
@@ -442,7 +441,6 @@ class IntegratedGradients(Explainer):
 
         # invert sign of gradients for target 0 examples if classifier returns only positive class probability
         if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
-            print('800B')
             sign = 2 * target_paths - 1
             grads = np.array([s * g for s, g in zip(sign, grads)])
 

@@ -307,8 +307,10 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
                  layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 method: str = "gausslegendre",
                  n_steps: int = 50,
-                 method: str = "gausslegendre") -> None:
+                 internal_batch_size: Union[None, int] = 100
+                 ) -> None:
         """
         The class IntegratedGradients provide an implementation of the integrated gradients method
         for Tensorflow and Keras models.
@@ -324,12 +326,13 @@ class IntegratedGradients(Explainer):
         layer
             Layer respect to which the gradients are calculated.
             If not provided, the gradients are calculated respect to the input.
-        n_steps
-            Number of step in the path integral approximation from the baseline to the input instance.
         method
             Method for the integral approximation. Methods available:
             "riemann_left", "riemann_right", "riemann_middle", "riemann_trapezoid", "gausslegendre".
-
+        n_steps
+            Number of step in the path integral approximation from the baseline to the input instance.
+        internal_batch_size
+            Bach size for the internal batching.
         """
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
@@ -343,13 +346,12 @@ class IntegratedGradients(Explainer):
         self.layer = layer
         self.n_steps = n_steps
         self.method = method
+        self.internal_batch_size = internal_batch_size
 
     def explain(self,
                 X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
-                target: Union[None, int, list, np.ndarray] = None,
-                internal_batch_size: Union[None, int] = 100
-                ) -> Explanation:
+                target: Union[None, int, list, np.ndarray] = None) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
 
@@ -368,8 +370,6 @@ class IntegratedGradients(Explainer):
             It must be provided if the model's output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models target can be either the true classes or the classes predicted by the model.
-        internal_batch_size
-            Bach size for the internal batching.
 
         Returns
         -------
@@ -403,9 +403,9 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
         if target is not None:
             target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
-            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(internal_batch_size)
+            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
         else:
-            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(internal_batch_size)
+            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         # fix orginal call method for layer

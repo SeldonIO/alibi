@@ -22,7 +22,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
                                end_point: np.ndarray,
                                target: Union[None, np.ndarray, list]) -> np.ndarray:
     """
-    Computes convergence deltas for each datapoint. Convergence delta measures how close the sum of all attributions
+    Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
     is to the difference between the model output at the baseline and the model output at the data point.
 
     Parameters
@@ -36,17 +36,17 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     end_point
         Data points.
     target
-        For classification models, target class for which the gradients are calculated.
+        Target for which the gradients are calculated for classification models.
 
     Returns
     -------
-        Covergence  deltas for each data point.
+        Convergence deltas for each data point.
     """
 
     if end_point.shape[0] != attributions.shape[0]:
-        raise ValueError("Attributions and end_point must match on the first dimension "
-                         "but found attributions: {} and end_point: {}".format(attributions.shape[0],
-                                                                               end_point.shape[0]))
+        raise ValueError("`attributions` and `end_point` must match on the first dimension "
+                         "but found `attributions`: {} and `end_point`: {}".format(attributions.shape[0],
+                                                                                   end_point.shape[0]))
 
     start_point = tf.convert_to_tensor(start_point, dtype=model.input.dtype)
     end_point = tf.convert_to_tensor(end_point, dtype=model.input.dtype)
@@ -59,7 +59,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         elif isinstance(inp, np.ndarray):
             sums = np.einsum('a{}->a'.format(input_str), inp)
         else:
-            raise NotImplementedError('input must be a tf tensor or a np array')
+            raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
     start_out = _run_forward(model, start_point, target)
@@ -86,7 +86,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                  x: Union[tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
-    Returns the output of the model. If the target is not None, only the output for the selected target is returned.
+    Returns the output of the model. If the target is not `None`, only the output for the selected target is returned.
 
     Parameters
     ----------
@@ -110,7 +110,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
             else:
                 raise NotImplementedError
         else:
-            raise ValueError("target cannot be None if forwar_function output dimensions > 1")
+            raise ValueError("target cannot be `None` if `model` output dimensions > 1")
         return ps
 
     preds = model(x)
@@ -124,8 +124,8 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
-    Calculates the gradients of the target class output (or the output if the output's dimension is equal to 1)
-    with respect of each input feature.
+    Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
+    with respect to each input feature.
 
     Parameters
     ----------
@@ -134,7 +134,7 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
     x
         Input data point.
     target
-        Target for which the gradients are calculated if the output's dimension is higher than 1.
+        Target for which the gradients are calculated if the output dimension is higher than 1.
 
     Returns
     -------
@@ -156,22 +156,22 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                      x: tf.Tensor,
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
-    Calculates the gradients of the target class output (or the output if the output's dimension is equal to 1)
-    with respect of each element of layer.
+    Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
+    with respect to each element of `layer`.
 
     Parameters
     ----------
     model
         Tensorflow or keras model.
     layer
-        Layer of the model respect to which the gradients are calculated.
+        Layer of the model with respect to which the gradients are calculated.
     orig_call
-        Original `call` method of the layer. This is necessary since the call method is modifyed by the function
-        in order to make the layer output 'visible' to the GradientTape.
+        Original `call` method of the layer. This is necessary since the call method is modified by the function
+        in order to make the layer output visible to the GradientTape.
     x
         Input data point.
     target
-        Target for which the gradients are calculated if the output's dimension is higher than 1.
+        Target for which the gradients are calculated if the output dimension is higher than 1.
 
     Returns
     -------
@@ -225,7 +225,7 @@ def _sum_integral_terms(step_sizes: list,
     step_sizes
         Weights in the path integral sum.
     grads
-        Gradients to for each feature.
+        Gradients to sum for each feature.
 
     Returns
     -------
@@ -241,14 +241,14 @@ def _sum_integral_terms(step_sizes: list,
         einstr = 'a,a{}->{}'.format(input_str, input_str)
         sums = np.einsum(einstr, step_sizes, grads)
     else:
-        raise NotImplementedError('input must be a tf tensor or a np array')
+        raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
     return sums
 
 
 def _format_input_baseline(X: np.ndarray,
                            baselines: Union[None, int, float, np.ndarray]) -> np.ndarray:
     """
-    Formats baselines.
+    Formats baselines to return a numpy array.
 
     Parameters
     ----------
@@ -259,7 +259,7 @@ def _format_input_baseline(X: np.ndarray,
 
     Returns
     -------
-        Formatted baselines.
+        Formatted baselines as a numpy array.
 
     """
     if baselines is None:
@@ -269,7 +269,7 @@ def _format_input_baseline(X: np.ndarray,
     elif isinstance(baselines, np.ndarray):
         bls = baselines.astype(X.dtype)
     else:
-        raise ValueError('baselines must be int, float, np.ndarray or None. Found {}'.format(type(baselines)))
+        raise ValueError('baselines must be `int`, `float`, `np.ndarray` or `None`. Found {}'.format(type(baselines)))
 
     return bls
 
@@ -277,7 +277,7 @@ def _format_input_baseline(X: np.ndarray,
 def _format_target(target: Union[None, int, list, np.ndarray],
                    nb_samples: int) -> list:
     """
-    Formats targets.
+    Formats target to return a list.
 
     Parameters
     ----------
@@ -288,7 +288,7 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 
     Returns
     -------
-        Formatted target.
+        Formatted target as a list.
 
     """
     if target is not None:
@@ -312,20 +312,18 @@ class IntegratedGradients(Explainer):
                  internal_batch_size: Union[None, int] = 100
                  ) -> None:
         """
-        The class IntegratedGradients provide an implementation of the integrated gradients method
-        for Tensorflow and Keras models.
+        An mplementation of the integrated gradients method for Tensorflow and Keras models.
 
-        For details about the integrated gradients method see the original paper:
+        For details of the method see the original paper:
         https://arxiv.org/abs/1703.01365 .
-
 
         Parameters
         ----------
         model
             Tensorflow or Keras model.
         layer
-            Layer respect to which the gradients are calculated.
-            If not provided, the gradients are calculated respect to the input.
+            Layer with respect to which the gradients are calculated.
+            If not provided, the gradients are calculated with respect to the input.
         method
             Method for the integral approximation. Methods available:
             "riemann_left", "riemann_right", "riemann_middle", "riemann_trapezoid", "gausslegendre".
@@ -360,33 +358,34 @@ class IntegratedGradients(Explainer):
         X
             Instance for which integrated gradients attribution are computed.
         baselines
-            Baselines (start point of the path integral) for each instance.
-            If the passed value is an np.ndarray must have the same shape of X.
+            Baselines (starting point of the path integral) for each instance.
+            If the passed value is an np.ndarray must have the same shape as X.
             If not provided, all features values for the baselines are set to 0.
         target
-            Defines which element of the model's output is considered to compute the gradients.
+            Defines which element of the model output is considered to compute the gradients.
             It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
-            for the same element of the output for all datapoints.
-            It must be provided if the model's output dimension is higher than 1.
+            for the same element of the output for all data points.
+            It must be provided if the model output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
-            For classification models target can be either the true classes or the classes predicted by the model.
+            For classification models `target` can be either the true classes or the classes predicted by the model.
 
         Returns
         -------
-            Explanation object including meta data and integrated gradients attributions for each feature.
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+            for each feature.
 
         """
         if not tf.executing_eagerly():
-            raise RuntimeError("""To run IntegratedGradients tensorflow must be executed eagerly.
+            raise RuntimeError("""To run IntegratedGradients Tensorflow must be executed eagerly.
             To enable eager execution, add the following lines at the beginning of your script:
             `import tensorflow as tf`
             `tf.compat.v1.enable_eager_execution()` """)
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is None:
-            logger.warning("It looks like you are passing a model with a scalar output and target is set to None."
+            logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
                            "If your model is a regression model this will produce correct attributions. If your model "
-                           "is a classification model targets for each datapoint must be defined. "
-                           "Not defining the target may lead to uncorrect values for the attributions."
+                           "is a classification model, targets for each datapoint must be defined. "
+                           "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
         nb_samples = len(X)

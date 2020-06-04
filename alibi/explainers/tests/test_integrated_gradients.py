@@ -57,29 +57,24 @@ def ffn_model(request):
                                          'X_train': X_train,
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
-@pytest.mark.parametrize('return_convergence_delta', (True, False))
-@pytest.mark.parametrize('return_predictions', (True, False))
 @pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification(ffn_model, method, return_convergence_delta,
-                                                    return_predictions, features_names):
+def test_integrated_gradients_binary_classification(ffn_model, method, features_names):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
                               target=test_labels,
-                              features_names=features_names,
-                              return_convergence_delta=return_convergence_delta,
-                              return_predictions=return_predictions)
+                              features_names=features_names)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
-    if return_convergence_delta:
-        assert 'deltas' in explanations['data'].keys()
-        assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
-    if return_predictions:
-        assert 'predictions' in explanations['data'].keys()
-        assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
     if features_names is not None:
         assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
@@ -91,30 +86,24 @@ def test_integrated_gradients_binary_classification(ffn_model, method, return_co
                                          'X_train': X_train,
                                          'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('return_convergence_delta', (True, False))
-@pytest.mark.parametrize('return_predictions', (True, False))
 @pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification_single_output(ffn_model, method,
-                                                                  return_convergence_delta, return_predictions,
-                                                                  features_names):
+def test_integrated_gradients_binary_classification_single_output(ffn_model, method, features_names):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
                               target=test_labels,
-                              features_names=features_names,
-                              return_convergence_delta=return_convergence_delta,
-                              return_predictions=return_predictions)
+                              features_names=features_names)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
-    if return_convergence_delta:
-        assert 'deltas' in explanations['data'].keys()
-        assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
-    if return_predictions:
-        assert 'predictions' in explanations['data'].keys()
-        assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
     if features_names is not None:
         assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
@@ -127,30 +116,24 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
                                          'y_train': y_train_classification_ordinal,
                                          'squash_output': True})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('return_convergence_delta', (True, False))
-@pytest.mark.parametrize('return_predictions', (True, False))
 @pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method,
-                                                                                return_convergence_delta,
-                                                                                return_predictions, features_names):
+def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method, features_names):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
                               target=test_labels,
-                              features_names=features_names,
-                              return_convergence_delta=return_convergence_delta,
-                              return_predictions=return_predictions)
+                              features_names=features_names)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
-    if return_convergence_delta:
-        assert 'deltas' in explanations['data'].keys()
-        assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
-    if return_predictions:
-        assert 'predictions' in explanations['data'].keys()
-        assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
     if features_names is not None:
         assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
@@ -162,12 +145,9 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
                                          'X_train': X_train,
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('return_convergence_delta', (True, False))
-@pytest.mark.parametrize('return_predictions', (True, False))
 @pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
 @pytest.mark.parametrize('layer_nb', (None, 1))
-def test_integrated_gradients_binary_classification_layer(ffn_model, method, return_convergence_delta,
-                                                          return_predictions, features_names, layer_nb):
+def test_integrated_gradients_binary_classification_layer(ffn_model, method, features_names, layer_nb):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
@@ -180,9 +160,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, ret
     explanations = ig.explain(X_test,
                               baselines=None,
                               target=test_labels,
-                              features_names=features_names,
-                              return_convergence_delta=return_convergence_delta,
-                              return_predictions=return_predictions)
+                              features_names=features_names)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:
@@ -190,12 +168,12 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, ret
         assert explanations['data']['attributions'].shape == layer_out.shape
     else:
         assert explanations['data']['attributions'].shape == X_test.shape
-    if return_convergence_delta:
-        assert 'deltas' in explanations['data'].keys()
-        assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
-    if return_predictions:
-        assert 'predictions' in explanations['data'].keys()
-        assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
     if features_names is not None:
         assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
@@ -207,28 +185,23 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, ret
                                          'X_train': X_train,
                                          'y_train': y_train_regression})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('return_convergence_delta', (True, False))
-@pytest.mark.parametrize('return_predictions', (True, False))
 @pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_regression(ffn_model, method, return_convergence_delta, return_predictions,
-                                         features_names):
+def test_integrated_gradients_regression(ffn_model, method, features_names):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
                               target=None,
-                              features_names=features_names,
-                              return_convergence_delta=return_convergence_delta,
-                              return_predictions=return_predictions)
+                              features_names=features_names)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
-    if return_convergence_delta:
-        assert 'deltas' in explanations['data'].keys()
-        assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
-    if return_predictions:
-        assert 'predictions' in explanations['data'].keys()
-        assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
     if features_names is not None:
         assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]

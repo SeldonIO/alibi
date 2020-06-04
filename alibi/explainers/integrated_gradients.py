@@ -350,9 +350,7 @@ class IntegratedGradients(Explainer):
                 baselines: Union[None, int, float, np.ndarray] = None,
                 target: Union[None, int, list, np.ndarray] = None,
                 features_names: Union[list, None] = None,
-                internal_batch_size: Union[None, int] = 100,
-                return_convergence_delta: bool = False,
-                return_predictions: bool = False
+                internal_batch_size: Union[None, int] = 100
                 ) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
@@ -376,10 +374,6 @@ class IntegratedGradients(Explainer):
             Names of each features (optional).
         internal_batch_size
             Bach size for the internal batching.
-        return_convergence_delta
-            If set to True, convergence deltas for all examples are returned in the Explanation object.
-        return_predictions
-            If set to true, the original predictions for all examples are returned in the Explanation object.
 
         Returns
         -------
@@ -467,9 +461,7 @@ class IntegratedGradients(Explainer):
             baselines=baselines,
             target=target,
             features_names=features_names,
-            attributions=attributions,
-            return_predictions=return_predictions,
-            return_convergence_delta=return_convergence_delta
+            attributions=attributions
         )
 
     def build_explanation(self,
@@ -477,22 +469,19 @@ class IntegratedGradients(Explainer):
                           baselines: np.ndarray,
                           target: list,
                           features_names: Union[list, None],
-                          attributions: np.ndarray,
-                          return_predictions: bool,
-                          return_convergence_delta: bool) -> Explanation:
-        # Build explanation
+                          attributions: np.ndarray) -> Explanation:
         self.meta.update(features_names=features_names)
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
                     attributions=attributions)
 
-        if return_predictions:
-            predictions = self.model(X).numpy()
-            data.update(predictions=predictions)
+        # calculate predictions
+        predictions = self.model(X).numpy()
+        data.update(predictions=predictions)
 
-        if return_convergence_delta:
-            deltas = _compute_convergence_delta(self.model, attributions, baselines, X, target)
-            data.update(deltas=deltas)
+        # calculate convergence deltas
+        deltas = _compute_convergence_delta(self.model, attributions, baselines, X, target)
+        data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

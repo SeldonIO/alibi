@@ -178,7 +178,6 @@ Default TreeSHAP data.
 DEFAULT_META_INTGRAD = {
     "name": None,
     "type": ["whitebox"],
-    "task": None,
     "explanations": ["local"],
     "params": {}
 }  # type: dict

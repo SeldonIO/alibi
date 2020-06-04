@@ -465,6 +465,7 @@ class IntegratedGradients(Explainer):
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
+                    target=target,
                     attributions=attributions)
 
         # calculate predictions

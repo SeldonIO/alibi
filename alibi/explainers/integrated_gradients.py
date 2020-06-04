@@ -103,6 +103,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Model output or model output after target selection for classification models.
 
     """
+
     def _select_target(ps, ts):
         if ts is not None:
             if isinstance(ps, tf.Tensor):
@@ -178,6 +179,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
+
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -458,21 +460,39 @@ class IntegratedGradients(Explainer):
             norm = (self.layer(X) - self.layer(baselines)).numpy()
         else:
             norm = X - baselines
-        attr = norm * sum_int
+        attributions = norm * sum_int
 
+        return self.build_explanation(
+            X=X,
+            baselines=baselines,
+            target=target,
+            features_names=features_names,
+            attributions=attributions,
+            return_predictions=return_predictions,
+            return_convergence_delta=return_convergence_delta
+        )
+
+    def build_explanation(self,
+                          X: np.ndarray,
+                          baselines: np.ndarray,
+                          target: list,
+                          features_names: Union[list, None],
+                          attributions: np.ndarray,
+                          return_predictions: bool,
+                          return_convergence_delta: bool) -> Explanation:
         # Build explanation
         self.meta.update(features_names=features_names)
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
-                    attributions=attr)
+                    attributions=attributions)
 
         if return_predictions:
             predictions = self.model(X).numpy()
             data.update(predictions=predictions)
 
         if return_convergence_delta:
-            deltas = _compute_convergence_delta(self.model, attr, baselines, X, target)
+            deltas = _compute_convergence_delta(self.model, attributions, baselines, X, target)
             data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

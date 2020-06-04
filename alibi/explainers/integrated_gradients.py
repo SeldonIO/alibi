@@ -348,7 +348,6 @@ class IntegratedGradients(Explainer):
                 X: np.ndarray,
                 baselines: Union[None, int, float, np.ndarray] = None,
                 target: Union[None, int, list, np.ndarray] = None,
-                features_names: Union[list, None] = None,
                 internal_batch_size: Union[None, int] = 100
                 ) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
@@ -369,8 +368,6 @@ class IntegratedGradients(Explainer):
             It must be provided if the model's output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models target can be either the true classes or the classes predicted by the model.
-        features_names
-            Names of each features (optional).
         internal_batch_size
             Bach size for the internal batching.
 
@@ -458,7 +455,6 @@ class IntegratedGradients(Explainer):
             X=X,
             baselines=baselines,
             target=target,
-            features_names=features_names,
             attributions=attributions
         )
 
@@ -466,9 +462,7 @@ class IntegratedGradients(Explainer):
                           X: np.ndarray,
                           baselines: np.ndarray,
                           target: list,
-                          features_names: Union[list, None],
                           attributions: np.ndarray) -> Explanation:
-        self.meta.update(features_names=features_names)
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,

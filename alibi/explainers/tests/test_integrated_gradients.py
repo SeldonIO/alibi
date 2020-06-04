@@ -57,15 +57,13 @@ def ffn_model(request):
                                          'X_train': X_train,
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
-@pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification(ffn_model, method, features_names):
+def test_integrated_gradients_binary_classification(ffn_model, method):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
-                              target=test_labels,
-                              features_names=features_names)
+                              target=test_labels)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
@@ -75,8 +73,6 @@ def test_integrated_gradients_binary_classification(ffn_model, method, features_
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
-    if features_names is not None:
-        assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
 @pytest.mark.eager
@@ -86,15 +82,13 @@ def test_integrated_gradients_binary_classification(ffn_model, method, features_
                                          'X_train': X_train,
                                          'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification_single_output(ffn_model, method, features_names):
+def test_integrated_gradients_binary_classification_single_output(ffn_model, method):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
-                              target=test_labels,
-                              features_names=features_names)
+                              target=test_labels)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
@@ -104,8 +98,6 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
-    if features_names is not None:
-        assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
 @pytest.mark.eager
@@ -116,15 +108,13 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
                                          'y_train': y_train_classification_ordinal,
                                          'squash_output': True})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method, features_names):
+def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
-                              target=test_labels,
-                              features_names=features_names)
+                              target=test_labels)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
@@ -134,8 +124,6 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
-    if features_names is not None:
-        assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
 @pytest.mark.eager
@@ -145,9 +133,8 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
                                          'X_train': X_train,
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
 @pytest.mark.parametrize('layer_nb', (None, 1))
-def test_integrated_gradients_binary_classification_layer(ffn_model, method, features_names, layer_nb):
+def test_integrated_gradients_binary_classification_layer(ffn_model, method, layer_nb):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
@@ -159,8 +146,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, fea
 
     explanations = ig.explain(X_test,
                               baselines=None,
-                              target=test_labels,
-                              features_names=features_names)
+                              target=test_labels)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:
@@ -174,8 +160,6 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, fea
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
-    if features_names is not None:
-        assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]
 
 
 @pytest.mark.eager
@@ -185,15 +169,13 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, fea
                                          'X_train': X_train,
                                          'y_train': y_train_regression})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-@pytest.mark.parametrize('features_names', (None, ['feat_{}'.format(i) for i in range(4)]))
-def test_integrated_gradients_regression(ffn_model, method, features_names):
+def test_integrated_gradients_regression(ffn_model, method):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=None,
-                              target=None,
-                              features_names=features_names)
+                              target=None)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'].shape == X_test.shape
@@ -203,5 +185,3 @@ def test_integrated_gradients_regression(ffn_model, method, features_names):
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
-    if features_names is not None:
-        assert len(features_names) == X_test.reshape(X_test.shape[0], -1).shape[1]

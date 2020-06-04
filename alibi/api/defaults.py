@@ -179,7 +179,6 @@ DEFAULT_META_INTGRAD = {
     "name": None,
     "type": ["whitebox"],
     "task": None,
-    "features_names": None,
     "explanations": ["local"],
     "params": {}
 }  # type: dict

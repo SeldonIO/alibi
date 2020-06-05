@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 import warnings
 
 from enum import Enum
@@ -11,10 +10,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numpy import ndarray
 from termcolor import colored
-from typing import Union, Tuple, TYPE_CHECKING
-
-if TYPE_CHECKING:  # pragma: no cover
-    import keras  # noqa
+from typing import Union, Tuple
 
 
 def decode_sentence(x, reverse_index):
@@ -28,7 +24,6 @@ def show_ig_text_attrs(x: np.ndarray,
                        reverse_index: dict,
                        nb_words=5,
                        title='Integrated gradients attributions'):
-
     words = decode_sentence(x, reverse_index).split(' ')
     attrs = attrs.tolist()
     df = pd.DataFrame({'words': words, 'attributions': attrs})
@@ -55,84 +50,6 @@ def show_ig_text_attrs(x: np.ndarray,
 
     plt.yticks(fontsize=20)
     plt.ylabel('', fontsize=20)
-
-
-def plot_attributions(model: Union[tf.keras.Model, 'keras.Model'],
-                      data: np.ndarray,
-                      labels: list,
-                      attrs: np.ndarray,
-                      label_idx_to_class_names: dict,
-                      idx: list = [0, 1, 9],
-                      nrows: int = 3,
-                      figsize: tuple = (20, 15),
-                      scale_attrs: bool = True,
-                      cmap: str = 'gray') -> None:
-
-    def magnify_attrs(attrs):
-        return 30 * attrs
-
-    assert len(idx) == nrows
-    ncols = 4
-
-    fig, ax = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize)
-
-    n_subplot = 1
-
-    for i in idx:
-        X_i = data[i]
-        attrs_i = attrs[i]
-        attrs_plus_i = attrs_i.copy()
-        attrs_minus_i = attrs_i.copy()
-        attrs_plus_i[attrs_plus_i < 0] = 0
-        attrs_minus_i[attrs_minus_i > 0] = 0
-
-        if scale_attrs:
-            attrs_i = magnify_attrs(attrs_i)
-            attrs_minus_i = magnify_attrs(attrs_minus_i)
-            attrs_plus_i = magnify_attrs(attrs_plus_i)
-        attrs_i = np.clip(attrs_i, -1, 1)
-        attrs_minus_i = np.clip(attrs_minus_i, -1, 0)
-        attrs_plus_i = np.clip(attrs_plus_i, 0, 1)
-        label = labels[i]
-        label_name = label_idx_to_class_names[label]
-        pred = np.argmax(model(X_i.reshape((1,) + X_i.shape)).numpy(), axis=1)
-        pred_name = label_idx_to_class_names[pred[0]]
-
-        # original image
-        plt.subplot(nrows, ncols, n_subplot)
-        if i == 0:
-            plt.title('Original image. \n True label: {}. \n Model prediction: {}'.format(label_name, pred_name))
-        else:
-            plt.title('True label: {}. \n Model prediction: {}'.format(label_name, pred_name))
-
-        plt.imshow(np.squeeze(X_i), cmap=cmap)
-        n_subplot += 1
-
-        # all attributions
-        plt.subplot(nrows, ncols, n_subplot)
-        if i == 0:
-            plt.title('Attributions')
-        raw = plt.imshow(np.squeeze(attrs_i), cmap=cmap)
-        plt.colorbar(raw, orientation="vertical")
-        n_subplot += 1
-
-        # positive attributions
-        plt.subplot(nrows, ncols, n_subplot)
-        if i == 0:
-            plt.title('Positive attributions')
-        pos = plt.imshow(np.squeeze(attrs_plus_i), cmap=cmap)
-        n_subplot += 1
-        plt.colorbar(pos, orientation="vertical")
-
-        # negative attributions
-        plt.subplot(nrows, ncols, n_subplot)
-        if i == 0:
-            plt.title('Negative attributions')
-        neg = plt.imshow(np.squeeze(attrs_minus_i), cmap=cmap)
-        plt.colorbar(neg, orientation="vertical")
-        n_subplot += 1
-
-    plt.show()
 
 
 # the following code was borrowed from the captum library in
@@ -179,7 +96,7 @@ def _cumulative_sum_threshold(values: ndarray, percentile: Union[int, float]):
 
 
 def _normalize_image_attr(
-    attr: ndarray, sign: str, outlier_perc: Union[int, float] = 2
+        attr: ndarray, sign: str, outlier_perc: Union[int, float] = 2
 ):
     attr_combined = np.sum(attr, axis=2)
     # Choose appropriate signed values and rescale, removing given outlier percentage.
@@ -202,18 +119,18 @@ def _normalize_image_attr(
 
 
 def visualize_image_attr(
-    attr: ndarray,
-    original_image: Union[None, ndarray] = None,
-    method: str = "heat_map",
-    sign: str = "absolute_value",
-    plt_fig_axis: Union[None, Tuple[figure, axis]] = None,
-    outlier_perc: Union[int, float] = 2,
-    cmap: Union[None, str] = None,
-    alpha_overlay: float = 0.5,
-    show_colorbar: bool = False,
-    title: Union[None, str] = None,
-    fig_size: Tuple[int, int] = (6, 6),
-    use_pyplot: bool = True,
+        attr: ndarray,
+        original_image: Union[None, ndarray] = None,
+        method: str = "heat_map",
+        sign: str = "absolute_value",
+        plt_fig_axis: Union[None, Tuple[figure, axis]] = None,
+        outlier_perc: Union[int, float] = 2,
+        cmap: Union[None, str] = None,
+        alpha_overlay: float = 0.5,
+        show_colorbar: bool = False,
+        title: Union[None, str] = None,
+        fig_size: Tuple[int, int] = (6, 6),
+        use_pyplot: bool = True,
 ):
     r"""
         Visualizes attribution for a given image by normalizing attribution values
@@ -332,7 +249,7 @@ def visualize_image_attr(
             original_image = _prepare_image(original_image * 255)
     else:
         assert (
-            ImageVisualizationMethod[method] == ImageVisualizationMethod.heat_map
+                ImageVisualizationMethod[method] == ImageVisualizationMethod.heat_map
         ), "Original Image must be provided for any visualization other than heatmap."
 
     # Remove ticks and tick labels from plot.
@@ -372,8 +289,8 @@ def visualize_image_attr(
         if ImageVisualizationMethod[method] == ImageVisualizationMethod.heat_map:
             heat_map = plt_axis.imshow(norm_attr, cmap=cmap, vmin=vmin, vmax=vmax)
         elif (
-            ImageVisualizationMethod[method]
-            == ImageVisualizationMethod.blended_heat_map
+                ImageVisualizationMethod[method]
+                == ImageVisualizationMethod.blended_heat_map
         ):
             plt_axis.imshow(np.mean(original_image, axis=2), cmap="gray")
             heat_map = plt_axis.imshow(

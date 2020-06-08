@@ -22,11 +22,11 @@
    methods/CEM.ipynb
    methods/CF.ipynb
    methods/CFProto.ipynb
+   methods/IntegratedGradients.ipynb
    methods/KernelSHAP.ipynb
    methods/LinearityMeasure.ipynb
    methods/TrustScores.ipynb
    methods/TreeSHAP.ipynb
-   methods/IntegratedGradients.ipynb
 
 .. toctree::
    :maxdepth: 1

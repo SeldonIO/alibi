@@ -337,6 +337,11 @@ class IntegratedGradients(Explainer):
         params = locals()
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
+        if layer is None:
+            layer_num = 0
+        else:
+            layer_num = model.layers.index(layer)
+        params['layer'] = layer_num
         self.meta['params'].update(params)
 
         self.model = model

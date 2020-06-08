@@ -330,7 +330,7 @@ class IntegratedGradients(Explainer):
         n_steps
             Number of step in the path integral approximation from the baseline to the input instance.
         internal_batch_size
-            Bach size for the internal batching.
+            Batch size for the internal batching.
         """
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
@@ -364,7 +364,7 @@ class IntegratedGradients(Explainer):
             Instance for which integrated gradients attribution are computed.
         baselines
             Baselines (starting point of the path integral) for each instance.
-            If the passed value is an np.ndarray must have the same shape as X.
+            If the passed value is an `np.ndarray` must have the same shape as X.
             If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.

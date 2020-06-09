@@ -18,8 +18,10 @@ The following table summarizes the capabilities of the current algorithms:
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
+|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional|
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| 
+
 
 
 Key:
@@ -62,6 +64,14 @@ interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb),
 [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb),
 [image classification](../examples/cfproto_mnist.ipynb).
 
+**Integrated gradients**: attribute an importance score to each element of the input or an internal layer of the the model  
+with respect to a given baseline. The attributions are calculated as the path integral of the model gradients along a 
+straight line from the baseline to the input.
+[Documentation](../methods/IntegratedGradients.ipynb),
+[MNIST example](../examples/integrated_gradients_mnist.nblink),
+[Imagenet example](../examples/integrated_gradients_imagenet.nblink),
+[IMDB example](../examples/integrated_gradients_imdb.nblink).
+
 **Kernel Shapley Additive Explanations (Kernel SHAP)**: attribute the change of a model output with respect
 to a given baseline (e.g., average over a reference set) to each of the input features. This is achieved for
 each feature in turn, by averaging the difference in the model output observed when the feature whose contribution
@@ -82,7 +92,6 @@ perturbation variants of Tree SHAP. This algorithm can be used to explain regres
 [Documentation](../methods/TreeSHAP.ipynb),
 [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
 [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
-
 
 ## Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

@@ -17,6 +17,49 @@ explanation methods for classification and regression models.
 
 If you're interested in outlier detection, concept drift or adversarial instance detection, check out our sister project [alibi-detect](https://github.com/SeldonIO/alibi-detect).
 
+<table>
+  <tr valign="top">
+    <td width="50%" >
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/examples/anchor_image_imagenet.html">
+            <br>
+            <b>Anchor explanations for images</b>
+            <br>
+            <br>
+            <img src="examples/anchor_image.png">
+        </a>
+    </td>
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_imdb.html">
+            <br>
+            <b>Integrated Gradients for text</b>
+            <br>
+            <br>
+            <img src="examples/ig_text.png">
+        </a>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html">
+            <br>
+            <b>Counterfactual examples</b>
+            <br>
+            <br>
+            <img src="examples/cf.png">
+        </a>
+    </td>
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html">
+            <br>
+            <b>Accumulated Local Effects</b>
+            <br>
+            <br>
+            <img src="examples/ale.png">
+        </a>
+    </td>
+  </tr>
+</table>
+
 ## Table of Contents
 
 * [Installation and Usage](#installation-and-usage)
@@ -25,7 +68,6 @@ If you're interested in outlier detection, concept drift or adversarial instance
   * [Model Confidence](#model-confidence)
   * [References and Examples](#references-and-examples)
 * [Dependencies](#dependencies)
-* [Sample Outputs](#sample-outputs)
 * [Citations](#citations)
 
 ## Installation and Usage
@@ -179,24 +221,6 @@ Key:
   tensorflow<2.0
   typing-extensions
 ```
-
-## Sample Outputs
-
-[**Anchor method applied to the InceptionV3 model trained on ImageNet:**](examples/anchor_image_imagenet.ipynb)
-
-Prediction: Persian Cat             | Anchor explanation
-:-------------------------:|:------------------:
-![Persian Cat](doc/source/methods/persiancat.png)| ![Persian Cat Anchor](doc/source/methods/persiancatanchor.png)
-
-[**Contrastive Explanation method applied to a CNN trained on MNIST:**](examples/cem_mnist.ipynb)
-
-Prediction: 4             |  Pertinent Negative: 9               | Pertinent Positive: 4
-:-------------------------:|:-------------------:|:------------------:
-![mnist_orig](doc/source/methods/mnist_orig.png)  | ![mnsit_pn](doc/source/methods/mnist_pn.png) | ![mnist_pp](doc/source/methods/mnist_pp.png)
-
-[**Trust scores applied to a softmax classifier trained on MNIST:**](examples/trustscore_mnist.ipynb)
-
-![trust_mnist](doc/source/_static/trustscores.png)
 
 ## Citations
 If you use alibi in your research, please consider citing it.

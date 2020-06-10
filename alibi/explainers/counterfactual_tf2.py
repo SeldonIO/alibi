@@ -1,5 +1,6 @@
 import copy
 import logging
+
 import os
 
 import numpy as np
@@ -9,10 +10,11 @@ from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.utils.wrappers import methdispatch
 from copy import deepcopy
-from functools import partial, singledispatch
+from functools import partial
+from inspect import signature
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
-from typing import Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, TYPE_CHECKING
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -20,10 +22,10 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger(__name__)
 
-
 # TODO: ALEX: This is a simple draft to get the CF code to work. More generally, we would
 #  define an object/series of functions to check if PyTorch/TF/both are installed and import
 #  appropriate casting function. I think there might be a nice way to do this via decorators
+
 
 def to_numpy_arr(X: Union[tf.Tensor, tf.Variable, np.ndarray]):
     """
@@ -66,9 +68,9 @@ the explainer constructor or when calling `explain`. If the same subset of argum
 
 Examples
 --------
-To override the `max_lam_steps` parameters at explain time `explain` should be called with::
+To override the `max_lam_steps` parameters at explain time, call `explain` with they keyword argument::
 
-    lam_opts = { 'max_lam_steps': 50}.
+    lam_opts = {'max_lam_steps': 50}.
 """ # noqa W605
 
 
@@ -76,62 +78,65 @@ CF_SEARCH_OPTS_DEFAULT = {
     'max_iter': 1000,
     'early_stop': 50,
 }
-"""dict: The default values governing the search process. See `explain` method for a detailed descriptions of each 
+"""dict: The default values governing the search process. See `explain` method for a detailed descriptions of each
 parameter.
 
-Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
-the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both 
-`explain` and the constructor, the `explain` options will override the constructor options.
+Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to the
+explainer constructor or when calling `explain`. If the same subset of arguments is specified in both `explain` and the
+constructor, the `explain` options will override the constructor options.
 
 Examples
 --------
-To override the `early_stop` parameter at explain time, then `explain` should be called with::
+To override the `early_stop` parameter at explain time, call `explain` with the keyword argument::
 
     search_opts = {'early_stop': 100}.
 """
-CF_ATTRIBUTES = set(CF_SEARCH_OPTS_DEFAULT.keys()) | set(CF_LAM_OPTS_DEFAULT.keys())
+CF_LOGGING_OPTS_DEFAULT = {
+    'verbose': False,
+    'log_traces': True,
+    'trace_dir': None,
+    'summary_freq': 1,
+    'image_summary_freq': 10,
+}
+"""
+dict: The default values for logging options. See `explain` method for a detailed descriptions of each parameter.
+
+Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys when calling
+`explain`
+
+Examples
+--------
+To specify a the name logging directory for TensorFlow event files and a new frequency for logging images call `explain`
+with the following key-word arguments::
+
+    logging_opts = {'trace_dir': 'experiments/cf', 'image_summary_freq': 5}
+"""
+CF_ATTRIBUTES = set(CF_SEARCH_OPTS_DEFAULT.keys()) | set(CF_LAM_OPTS_DEFAULT.keys()) | set(CF_LOGGING_OPTS_DEFAULT)
 
 
-def counterfactual_loss(instance: tf.Tensor,
-                        cf: tf.Variable,
-                        lam: float,
-                        feature_scale: tf.Tensor,
-                        pred_probas: Optional[tf.Variable] = None,
-                        target_probas: Optional[tf.Tensor] = None,
-                        distance_fcn: str = 'l1',
-                        ) -> tf.Tensor:
-
-    # TODO: ALEX: TBD: TO SUPPORT BLACK-BOX, PYTORCH WE NEED A SIMILAR FUNCTION AND A HIGHER LEVEL ROUTINE TO
-    #  "DISPATCH" AMONG THESE FUNCTIONS
-
-    # TODO: ALEX: DOCSTRING
-
-    distance = lam * distance_loss(instance, cf, feature_scale, distance_fcn=distance_fcn)
-    if pred_probas is None or target_probas is None:
-        return distance
-    pred = pred_loss(pred_probas, target_probas)
-    return distance + pred
-
-
-def distance_loss(instance: tf.Tensor,
-                  cf: tf.Variable,
-                  feature_scale: tf.Tensor,
-                  distance_fcn: str = 'l1') -> tf.Tensor:
+def watcher_loss(distance: tf.Tensor, lam: float, pred: tf.Tensor) -> tf.Tensor:
 
     # TODO: ALEX: DOCSTRING
 
-    if distance_fcn not in CF_SUPPORTED_DISTANCE_FUNCTIONS:
-        raise NotImplementedError(f"Distance function {distance_fcn} is not supported!")
+    return lam * distance + pred
+
+
+def scaled_l1_loss(instance: tf.Tensor, cf: tf.Variable, feature_scale: Optional[tf.Tensor] = None) -> tf.Tensor:
+
+    # TODO: ALEX: DOCSTRING
+    # TODO: ALEX: TBD: USE TF BUILTINS
 
     ax_sum = tuple(np.arange(1, len(instance.shape)))
+    if feature_scale is None:
+        return tf.reduce_sum(tf.abs(cf - instance), axis=ax_sum, name='l1')
 
     return tf.reduce_sum(tf.abs(cf - instance) / feature_scale, axis=ax_sum, name='l1')
 
 
-def pred_loss(pred_probas: tf.Variable, target_probas: tf.Tensor) -> tf.Tensor:
+def squared_loss(pred_probas: tf.Variable, target_probas: tf.Tensor) -> tf.Tensor:
 
     # TODO: ALEX: DOCSTRING
-
+    # TODO: ALEX: TBD: THERE SHOULD BE A KERAS BUILT IN ?
     return tf.square(pred_probas - target_probas)
 
 
@@ -176,8 +181,11 @@ class Counterfactual(Explainer):
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
                  shape: Tuple[int, ...],
-                 tol: float = 0.5,
-                 distance_fn: str = 'l1',
+                 distance_fn: Optional[Callable] = None,
+                 distance_fn_kwargs: Optional[dict] = None,
+                 pred_fn: Optional[Callable] = None,
+                 pred_fn_kwargs: Optional[dict] = None,
+                 tol: float = 0.05,
                  feature_range: Tuple[Union[float, np.ndarray], Union[float, np.ndarray]] = (-1e10, 1e10),
                  **kwargs) -> None:
         """
@@ -201,9 +209,6 @@ class Counterfactual(Explainer):
         shape
             Shape of input data. It is assumed of the form `(1, ...)` where the ellipsis replaces the dimensions of a
             data point. 
-        distance_fn
-            Distance function according to which the distance between the instance whose counterfactual is to be found
-            and the current solution is computed. 
         feature_range
             Tuple with upper and lower bounds for feature values of the counterfactual. The upper and lower bounds can
             be floats or numpy arrays with dimension :math:`(N, )` where `N` is the number of features, as might be the
@@ -219,6 +224,8 @@ class Counterfactual(Explainer):
     
         """  # noqa W605
 
+        # TODO: ALEX: UPDATE DOCSTRING WITH LOSS ARGUMENTS
+
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
         # get params for storage in meta
         params = locals()
@@ -231,8 +238,8 @@ class Counterfactual(Explainer):
         self.predictor = predictor
         if shape[0] != 1:
             logger.warning(
-                f"shape argument passed to the constructor was {shape[0]} but expected value is 1. Batch explanation is "
-                f"not supported by this explainer! Ensure only one example is passed at each explain call.",
+                f"shape argument passed to the constructor was {shape[0]} but expected value is 1. Batch explanation "
+                f"is not supported by this explainer! Ensure only one example is passed at each explain call.",
             )
 
         # create attribute and set them with default values
@@ -245,17 +252,38 @@ class Counterfactual(Explainer):
         self._set_default_optimizer()
         # used to reset the optimiser
         self._optimizer_copy = deepcopy(self.optimizer)
+        # set default logging options
+        self._set_attributes(CF_LOGGING_OPTS_DEFAULT)
+        # check shape of data for logging purposes
+        self._log_image = False
+        if len(shape) == 4:
+            self._log_image = True
 
         # feature scale updated in fit if a dataset is passed
         self.feature_scale = tf.identity(1.0)
         self.feature_scale_numpy = 1.0
-        self.loss = partial(
-            counterfactual_loss,
-            feature_scale=self.feature_scale,
-            distance_fcn=distance_fn,
-        )
-        self.distance_fn = distance_fn
 
+        # TODO: ALEX: TBD: NOT SO NICE BUT WE'LL LIVE
+        # self.distance_fn = None  # type Union[Callable, partial]
+        if distance_fn is not None:
+            if distance_fn_kwargs:
+                distance_fn = partial(distance_fn, **distance_fn_kwargs)
+            self.distance_fn = distance_fn
+        else:
+            self.distance_fn = scaled_l1_loss
+
+        if pred_fn is not None:
+            if pred_fn_kwargs:
+                pred_fn = partial(pred_fn, **pred_fn_kwargs)
+        else:
+            self.pred_fn = squared_loss
+
+        self._current_loss = {'distance': 0.0, 'prediction': 0.0,  'combined': 0.0}
+
+        # TODO: ALEX: TBD: IN PRINCIPLE, WE CAN APPLY SAME PRINCIPLE AS ABOVE
+        #  AND ALLOW PASSING A FUNCTION WITH KWARGS NOT TO BE OPTIMISED HERE TOO.
+        #  THE CONSTRAINT WOULD BE TO HAVE DISTANCE AND PRED AS ARGS ...
+        self.loss_fcn = watcher_loss
         self.tol = tol
 
         # init. at explain time
@@ -267,7 +295,6 @@ class Counterfactual(Explainer):
         self.cf_constraint = partial(range_constraint, low=feature_range[0], high=feature_range[1])
 
         # scheduler and optimizer initialised at explain time
-        self.optimizer = None
         self.step = 0
         self.lam_step = 0
 
@@ -275,12 +302,12 @@ class Counterfactual(Explainer):
         self._initialise_response()
         self._num_explain_calls = 0
 
-        # check shape of data for logging purposes
-        self._log_image = False
-        if len(shape) == 4:
-            self._log_image = True
+    def __setattr__(self, key: str, value: Any):
+        super().__setattr__(key, value)
 
-    def _set_attributes(self, attrs: Union[dict, None]) -> None:
+    def __getattr__(self, key: Any) -> Any: ...
+
+    def _set_attributes(self, attrs: Union[Dict[str, Any], None]) -> None:
         """
         Sets the attributes of the explainer using the (key, value) pairs in attributes. Ignores attributes that
         are not specified in CF_ATTRIBUTES.
@@ -294,7 +321,7 @@ class Counterfactual(Explainer):
             if key not in CF_ATTRIBUTES:
                 logger.warning(f"Attribute {key} unknown. Ignoring ...")
                 continue
-            setattr(self, key, value)
+            self.__setattr__(key, value)
 
     def _initialise_response(self) -> None:
         """
@@ -366,9 +393,10 @@ class Counterfactual(Explainer):
                 self.cf_constraint.keywords['high'] = feat_max
 
         self.fitted = True
-
+        scaling_method = 'mad' if self.scale else 'N/A'
         params = {
             'scale_loss': self.scale,
+            'scaling_method': scaling_method,
             'constrain_features': constrain_features,
             'fitted': self.fitted,
         }
@@ -389,31 +417,41 @@ class Counterfactual(Explainer):
         feat_median = np.median(X, axis=0)
         mad = np.median(np.abs(X - feat_median), axis=0)
         self.feature_scale = tf.identity(mad)
-        self.loss.keywords['feature_scale'] = self.feature_scale
+        self.distance_fn = partial(self.distance_fn, self.feature_scale)
         self.feature_scale_numpy = mad
 
     def _check_scale(self, scale: Union[bool, str]) -> None:
         """
         Checks whether scaling should be performed depending on user input.
-
         Parameters
         ----------
         scale
             User options for scaling.
         """
 
-        self.scale = False
+        scale_ = False  # type: bool
         if isinstance(scale, str):
             if scale not in CF_VALID_SCALING:
                 logger.warning(f"Received unrecognised option {scale} for scale. No scaling will take place. "
                                f"Recognised scaling methods are: {CF_VALID_SCALING}.")
             else:
-                self.scale = True
+                scale_ = True
 
         if isinstance(scale, bool):
             if scale:
                 logger.info(f"Defaulting to median absolute deviation scaling!")
-                self.scale = True
+                scale_ = True
+
+        if scale_:
+            loss_params = signature(self.distance_fn).parameters
+            if 'feature_scale' not in loss_params:
+                logger.warning(
+                    f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
+                    f"Scaling will not be applied!"
+                )
+                scale_ = False
+
+        self.scale = scale_  # type: bool
 
     def explain(self,
                 X: np.ndarray,
@@ -423,11 +461,7 @@ class Counterfactual(Explainer):
                 search_opts: Optional[dict] = None,
                 lam_opts: Optional[dict] = None,
                 feature_whitelist: Union[str, np.ndarray] = 'all',
-                verbose: bool = False,
-                log_traces: bool = True,
-                trace_dir: str = None,
-                summary_freq: int = 1,
-                image_summary_freq: int = 10,
+                logging_opts: Optional[dict] = None,
                 ) -> Explanation:
         """
         Returns :math:`X'`, a counterfactual of `X` and information about the search process. The counterfactual is 
@@ -479,7 +513,8 @@ class Counterfactual(Explainer):
             described in the `CF_SEARCH_DEFAULT` documentation. This argument can be used to adjust the optimizer if
             the default one fails to converge to an appropriate solution.
         search_opts
-            A dictionary that controls the options for the optimisation process, with the following structure::
+            A dictionary that specifies changes to the default settings for the optimisation process specified in 
+            the `CF_SEARCH_OPTS_DEFAULT` dictionary, with the following structure::
             
                 {
                     'max_iter': 1000,
@@ -494,11 +529,13 @@ class Counterfactual(Explainer):
                 - 'early_stop': the inner loop will terminate after this number of iterations if either no solutions \
                 satisfying the constraint on the prediction are found or if a solution is found at every step for this \
                 amount of steps.                
+                
         lam_opts
-            A dictionary that controls the optimisation process for :math:`\lambda`, with the following structure::
+            A dictionary that contains changes to the default settings for the :math:`\lambda` optimisation process, 
+             specified in `CF_LAM_OPTS_DEFAULT`, with the following structure::
             
                 {
-                   'lam_init': 0.1,
+                    'lam_init': 0.1,
                     'lams': None,
                     'lam_cf_threshold': 5,
                     'lam_multiplier': 10,
@@ -539,29 +576,43 @@ class Counterfactual(Explainer):
             meaning that all feature will be optimised. A numpy array of the same shape as `X` (i.e., with a leading 
             dimension of 1) containing `1` for the features to be optimised and `0` for the features that keep their 
             original values.
-        verbose
-            If `False` the logger will be set to ``INFO`` level. 
-        log_traces
-            If `True`, data about the optimisation process will be logged with a frequency specified by `summary_freq`
-            input. Such data include the learning rate, loss function terms, total loss and the information about 
-            :math:`\lambda`. The algorithm will also log images if `X` is a 4-dimensional tensor (corresponding to a 
-            leading dimension of 1 and `(H, W, C)` dimensions), to show the path followed by the optimiser from the 
-            initial condition to the final solution. The images are logged with a frequency specified by 
-            `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` is created and 
-            {} is replaced by the run number. To see the logs run the command in the `trace_dir` directory 
-            
-                ``tensorboard --logdir trace_dir``
+        logging_opts
+            A dictionary that specifies any changes to the default logging options specified in 
+            `CF_LOGGING_OPTS_DEFAULT`, with the following structure::
                 
-            replacing ``trace_dir`` with your own path. Then run ``localhost:6006`` in your browser to see the traces.
-            The traces can be visualised as the optimisation proceeds and can provide useful information on how to
-            adjust the optimisation in cases of non-convergence.
-        trace_dir
-            The directory where the optimisation infromation is logged. If not specified when `log_traces=True`, then
-            the logs are saved under `logs/cf`. 
-        summary_freq
-            Logging frequency for optimisation information.
-        image_summary_freq
-            Logging frequency for intermediate counterfactuals (for image data).
+                {
+                    'verbose': False,
+                    'log_traces': True,
+                    'trace_dir': None,
+                    'summary_freq': 1,
+                    'image_summary_freq': 10,
+                }
+            
+            The default value for the dictionary is document in the `CF_LOGGING_OPTS_DEFAULT` documentation. The keys  
+            represent:
+            
+                - 'verbose': if `False` the logger will be set to ``INFO`` level 
+                
+                - 'log_traces': if `True`, data about the optimisation process will be logged with a frequency specified \
+                by `summary_freq` input. Such data include the learning rate, loss function terms, total loss and the \
+                information about :math:`\lambda`. The algorithm will also log images if `X` is a 4-dimensional tensor \
+                (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions), to show the path followed by the \
+                optimiser from the initial condition to the final solution. The images are logged with a frequency \
+                specified by `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` \
+                is created and  {} is replaced by the run number. To see the logs run the command in the `trace_dir` \
+                directory:: 
+            
+                    ``tensorboard --logdir trace_dir``
+                 replacing ``trace_dir`` with your own path. Then run ``localhost:6006`` in your browser to see the \
+                traces. The traces can be visualised as the optimisation proceeds and can provide useful information \
+                on how to adjust the optimisation in cases of non-convergence.
+                
+                - 'trace_dir': the directory where the optimisation infromation is logged. If not specified when \
+                `log_traces=True`, then the logs are saved under `logs/cf`. 
+                
+                - 'summary_freq': logging frequency for optimisation information.
+                
+                - 'image_summary_freq': logging frequency for intermediate counterfactuals (for image data).
             
         Returns
         -------
@@ -587,20 +638,17 @@ class Counterfactual(Explainer):
         # override default settings with user settings
         self._set_attributes(search_opts)
         self._set_attributes(lam_opts)
+        self._set_attributes(logging_opts)
 
-        # TODO: ALEX: CHECK THIS WORKS
         # set verbosity
-        if not verbose:
-            logger.setLevel(logging.WARNING)
+        if self.verbose:
+            logging.basicConfig(level=logging.DEBUG)
 
         # select features to optimise
         self._create_gradient_mask(X, feature_whitelist)
 
         # setup Tensorboard
-        self._setup_tb(log_traces, trace_dir, summary_freq=summary_freq, image_summary_freq=image_summary_freq)
-
-        self.instance_numpy = X
-        self.target_proba_numpy = np.array([target_proba])[:, np.newaxis]
+        self._setup_tb()
 
         if optimizer is not None:
             self._reset_optimizer(optimizer)
@@ -611,13 +659,12 @@ class Counterfactual(Explainer):
         instance_proba = to_numpy_arr(Y[:, instance_class])
 
         # helper function to return the model output given the target class
-        self.get_cf_prediction = partial(self._get_cf_prediction, instance_class=instance_class)
+        self._get_cf_prediction = partial(self._get_cf_prediction, instance_class=instance_class)
         # initialize optimised variables, targets and loss weight
         self._initialise_variables(X, target_class, target_proba)
-        lam_dict = self._initialise_lam(lams=self.lams, decay_steps=self.decay_steps, common_ratio=self.common_ratio)
 
         # search for a counterfactual by optimising loss starting from the original solution
-        result = self._search(init_cf=X, init_lam=lam_dict['midpoint'], init_lb=lam_dict['lb'], init_ub=lam_dict['ub'])
+        result = self._search(init_cf=X)
         self._reset_step()
 
         return self._build_explanation(X, result, instance_class, instance_proba)
@@ -633,7 +680,7 @@ class Counterfactual(Explainer):
         """
 
         if isinstance(feature_whitelist, str):
-            self._mask = np.ones(X.shape)
+            self._mask = np.ones(X.shape, dtype=X.dtype)
 
         if isinstance(feature_whitelist, np.ndarray):
             expected = X.shape
@@ -645,32 +692,21 @@ class Counterfactual(Explainer):
                 )
             self._mask = feature_whitelist
 
-    def _setup_tb(self, log_traces: bool, trace_dir: str, summary_freq: int = 1, image_summary_freq: int = 10) -> None:
+    def _setup_tb(self) -> None:
         """
         Creates a summary file writer for the current explain call. Sets `_logging` attribute.
-
-        Parameters
-        ----------
-        log_traces
-            Whether information about the optimisation should be stored.
-        trace_dir
-            The root directory where sub-directories containing event files are saved.
-        summary_freq
-            Scalar logging frequency.
-        image_summary_freq
-            Image logging frequency.
         """
 
         self._num_explain_calls += 1
         self._logging = False
-        if log_traces:
+        trace_dir = self.trace_dir  # type: ignore
+        if self.log_traces:
             self._logging = True
             if not trace_dir:
                 trace_dir = 'logs/cf'
             trace_dir = os.path.join(trace_dir, f"run_{self._num_explain_calls}")
             self.writer = tf.summary.create_file_writer(trace_dir)
-            self.summary_freq = summary_freq
-            self.image_summary_freq = image_summary_freq
+            self.trace_dir = trace_dir
 
     def _make_prediction(self, X: Union[np.ndarray, tf.Variable, tf.Tensor]) -> tf.Tensor:
         """
@@ -787,7 +823,7 @@ class Counterfactual(Explainer):
             cf_prediction = prediction[:, indices[0][0].numpy()]
         return cf_prediction
 
-    @_get_cf_prediction.register
+    @_get_cf_prediction.register  # type: ignore
     def _(self, target_class: int, cf: tf.Tensor, instance_class: int) -> tf.Tensor:
         """
         Returns the slice from the model output indicated by `target_class`.
@@ -795,7 +831,7 @@ class Counterfactual(Explainer):
 
         return self.predictor(cf, training=False)[:, target_class]
 
-    def _initialise_variables(self, X: np.ndarray, target_class: int, target_proba: float) -> None:
+    def _initialise_variables(self, X: np.ndarray, target_class: Union[int, str], target_proba: float) -> None:
         """
         Initialises optimisation variables so that the TensorFlow auto-differentiation framework
         can be used for counterfactual search.
@@ -834,31 +870,35 @@ class Counterfactual(Explainer):
             constraint=self.cf_constraint,
         )
 
-    def _search(self, *, init_cf: np.ndarray, init_lam: float, init_lb: float, init_ub: float) -> dict:
+    def _search(self, *, init_cf: np.ndarray) -> dict:
         """
         Searches a counterfactual given an initial condition for the counterfactual. The search has two loops:
-        
-            - An outer loop, where :math:`\lambda` (the weight of the distance between the current counterfactual
-            and the input `X` to explain in the loss term) is optimised using bisection
-        
-            - An inner loop, where for constant `lambda` the current counterfactual is updated using the gradient 
-            of the counterfactual loss function. 
-            
+
+            - An outer loop, where :math:`\lambda` (the weight of the distance between the current counterfactual and \
+            the input `X` to explain in the loss term) is optimised using bisection
+
+            - An inner loop, where for constant `lambda` the current counterfactual is updated using the gradient of \
+            the counterfactual loss function.
+
         Parameters
         ----------
         init_cf
             Initial condition for the optimisation.
-        init_lam
-            Initial value for :math:`\lambda`.
-        init_lb
-            Initial value for :math:`\lambda` lower bound.
-        init_ub
-            Initial value for :math:`\lambda` upper bound.
-        
+
         Returns
         -------
         A dictionary containing the search results, as defined in `alibi.api.defaults`.
         """  # noqa: W605
+
+        # find a range to optimise lambda in and an initial value
+        lam_dict = self._initialise_lam(lams=self.lams, decay_steps=self.decay_steps, common_ratio=self.common_ratio)
+        init_lam,  init_lb, init_ub = lam_dict['midpoint'], lam_dict['lb'], lam_dict['ub']
+        self._bisect_lambda = partial(
+            self._bisect_lam,
+            lam_cf_threshold=self.lam_cf_threshold,
+            lam_multiplier=self.lam_multiplier,
+            lam_divider=self.lam_divider,
+        )
 
         summary_freq = self.summary_freq
         cf_found = np.zeros((self.max_lam_steps, ), dtype=np.uint16)
@@ -866,18 +906,17 @@ class Counterfactual(Explainer):
         self._initialise_cf(init_cf)
         lam, lam_lb, lam_ub = init_lam, init_lb, init_ub
         for lam_step in range(self.max_lam_steps):
+            self.lam = lam
             # re-set learning rate
             self._reset_optimizer(self._optimizer_copy)
             found, not_found = 0, 0
             for gd_step in range(self.max_iter):
-                self._cf_step(lam)
+                self._cf_step()
                 constraint_satisfied = self._check_constraint(self.cf, self.target_proba, self.tol)
                 cf_prediction = self._make_prediction(self.cf)
 
                 # save and optionally display results of current gradient descent step
-                # TODO: ALEX: TBD: We could make `lam` AND `step` object properties and not have to pass this
-                #  current state to the functions, but maybe it is a bit clearer what happens?
-                current_state = (self.step, lam, to_numpy_arr(self.cf), to_numpy_arr(cf_prediction))
+                current_state = (self.step, to_numpy_arr(self.cf), to_numpy_arr(cf_prediction))
                 write_summary = self.step % summary_freq == 0 and self._logging
                 if constraint_satisfied:
                     cf_found[lam_step] += 1
@@ -891,7 +930,7 @@ class Counterfactual(Explainer):
                         self._collect_step_data(*current_state)
 
                 if write_summary:
-                    self._write_tb(self.step, lam, lam_lb, lam_ub, cf_found, prefix='counterfactual_search/')
+                    self._write_tb(self.step, self.lam, lam_lb, lam_ub, cf_found, prefix='counterfactual_search/')
                 self.step += 1
 
                 # early stopping criterion - if no solutions or enough solutions found, change lambda
@@ -901,12 +940,9 @@ class Counterfactual(Explainer):
             lam, lam_lb, lam_ub = self._bisect_lambda(
                 cf_found,
                 lam_step,
-                lam,
+                self.lam,
                 lam_lb,
                 lam_ub,
-                lam_cf_threshold=self.lam_cf_theshold,
-                lam_multiplier=self.lam_multiplier,
-                lam_divider=self.lam_divider,
             )
             self.lam_step += 1
 
@@ -944,7 +980,7 @@ class Counterfactual(Explainer):
                     self.instance,
                     step=0,
                     description="Instance for which a counterfactual is to be found."
-            )
+                )
 
         self.writer.flush()
 
@@ -993,15 +1029,16 @@ class Counterfactual(Explainer):
         for lam_step, lam in enumerate(lams):
             # optimiser is re-created so that lr schedule is reset for every lam
             self._reset_optimizer(self._optimizer_copy)
+            self.lam = lam
             for gd_step in range(n_steps):
                 # update cf with loss gradient for a fixed lambda
-                self._cf_step(lam)
+                self._cf_step()
                 constraint_satisfied = self._check_constraint(self.cf, self.target_proba, self.tol)
                 cf_prediction = self._make_prediction(self.cf)
 
                 # save search results and log to TensorBoard
                 write_summary = self._logging and self.step % self.summary_freq == 0
-                current_state = (self.step, lam, to_numpy_arr(self.cf), to_numpy_arr(cf_prediction))
+                current_state = (self.step, to_numpy_arr(self.cf), to_numpy_arr(cf_prediction))
                 if constraint_satisfied:
                     cf_found[lam_step] += 1
                     self._update_search_result(*current_state)
@@ -1010,7 +1047,7 @@ class Counterfactual(Explainer):
                         self._collect_step_data(*current_state)
 
                 if write_summary:
-                    self._write_tb(self.step, lam, 0, 0, cf_found, prefix='lambda_sweep/')
+                    self._write_tb(self.step, self.lam, 0, 0, cf_found, prefix='lambda_sweep/')
                 self.step += 1
             self.lam_step += 1
 
@@ -1046,43 +1083,49 @@ class Counterfactual(Explainer):
 
         return {'lb': lam_lb, 'ub': lam_ub, 'midpoint': 0.5*(lam_ub + lam_lb)}
 
-    def _cf_step(self, lam: float) -> None:
+    def _cf_step(self) -> None:
         """
         Runs a gradient descent step and updates current solution.
-
-        Parameters
-        ----------
-        lam
-            A weight that biases the optimisation procedure towards finding counterfactuals that are as close as
-            possible to the instance whose counterfactuals are to be found.
         """
 
-        gradients = self._get_autodiff_gradients(lam)
+        gradients = self._get_autodiff_gradients()
         self._apply_gradients(gradients)
 
-    def _get_autodiff_gradients(self, lam: float) -> List[tf.Tensor]:
+    def _get_autodiff_gradients(self) -> List[tf.Tensor]:
         """
-        Calculates the gradients of the loss function (specified in self.loss) with respect to the input (aka the
-        counterfactual) at the current point in time.
-
-        Parameters
-        ----------
-        lam
-            See _cf_step method.
+        Calculates the gradients of the loss function with respect to the input (aka the counterfactual) at the current
+        iteration.
         """
 
         with tf.GradientTape() as tape:
-            prediction = self.get_cf_prediction(self.target_class, self.cf)
-            loss = self.loss(
-                instance=self.instance,
-                cf=self.cf,
-                lam=lam,
-                pred_probas=prediction,
-                target_probas=self.target_proba,
-            )
+            loss = self._get_loss()
         gradients = tape.gradient(loss, [self.cf])
 
         return gradients
+
+    def _get_loss(self) -> tf.Tensor:
+        """
+        Computes:
+            - the prediction of the model to be explained given a target class and a counterfactual
+            - the loss of the model prediction given a target prediction
+            - the distance between the instance whose counterfactual is searched and the current solution.
+
+        Returns
+        -------
+        A scalar representing the combined prediction and distance losses according to the function specified by the
+        `loss_fcn` attribute.
+        """
+
+        prediction = self._get_cf_prediction(self.target_class, self.cf)
+        pred_loss = self.pred_fn(prediction, self.target_proba)
+        dist_loss = self.distance_fn(self.instance, self.cf)
+        combined_loss = self.loss_fcn(dist_loss, self.lam, pred_loss)
+
+        self._current_loss['distance'] = to_numpy_arr(dist_loss).item()
+        self._current_loss['prediction'] = to_numpy_arr(pred_loss).item()
+        self._current_loss['combined'] = to_numpy_arr(pred_loss).item()
+
+        return combined_loss
 
     def _apply_gradients(self, gradients: List[tf.Tensor]) -> None:
         """
@@ -1118,12 +1161,11 @@ class Counterfactual(Explainer):
         """
 
         return tf.reduce_all(
-            tf.math.abs(self.get_cf_prediction(self.target_class, cf) - target_proba) <= tol,
+            tf.math.abs(self._get_cf_prediction(self.target_class, cf) - target_proba) <= tol,
         ).numpy()
 
     def _update_search_result(self,
                               step: int,
-                              lam: float,
                               current_cf: np.ndarray,
                               current_cf_pred: np.ndarray,
                               ) -> None:
@@ -1136,8 +1178,6 @@ class Counterfactual(Explainer):
         ----------
         step
             Current optimisation step.
-        lam
-            The current value of the distance term weight.
         current_cf
             The current solution, :math:`X'`.
         current_cf_pred
@@ -1146,7 +1186,7 @@ class Counterfactual(Explainer):
         """ # noqa W605
 
         # perform necessary calculations and update `self.instance_dict`
-        self._collect_step_data(step, lam, current_cf, current_cf_pred)
+        self._collect_step_data(step, current_cf, current_cf_pred)
         self.search_results['all'][self.lam_step].append(deepcopy(self.this_result))
 
         # update best CF if it has a smaller distance
@@ -1157,7 +1197,7 @@ class Counterfactual(Explainer):
 
         logger.debug(f"CF found at step {step}.")
 
-    def _collect_step_data(self, step: int, lam: float, current_cf: np.ndarray, current_cf_pred: np.ndarray):
+    def _collect_step_data(self, step: int, current_cf: np.ndarray, current_cf_pred: np.ndarray):
         """
         Collects data from the current optimisation step. This data is part of the response only if the current
         optimisation step yields a solution that satisfies the constraint imposed on target output (see `explain` doc).
@@ -1168,29 +1208,17 @@ class Counterfactual(Explainer):
         See ``_update_search_result`` method.
         """
 
-        instance = self.instance_numpy
-
-        # compute loss terms for current counterfactual
-        # TODO: ALEX: TBD: Depending on how we implement the loss of the black-box, we could leverage that here
-        #  as opposed to hardcoding the calculation
-        ax_sum = tuple(np.arange(1, len(instance.shape)))
-        if self.distance_fn == 'l1':
-            dist_loss = np.sum(np.abs(current_cf - instance) / self.feature_scale_numpy, axis=ax_sum)
-        else:
-            dist_loss = np.nan
-
         pred_class = self._get_label(current_cf_pred)
         pred_proba = current_cf_pred[:, pred_class]
-        pred_loss = (pred_proba - self.target_proba_numpy) ** 2
         # populate the return dict
         self.this_result['X'] = current_cf
-        self.this_result['lambda'] = lam
+        self.this_result['lambda'] = self.lam
         self.this_result['step'] = step
         self.this_result['class'] = pred_class
         self.this_result['proba'] = pred_proba.item()
-        self.this_result['distance_loss'] = dist_loss.item()
-        self.this_result['prediction_loss'] = pred_loss.item()
-        self.this_result['total_loss'] = (pred_loss + lam * dist_loss).item()
+        self.this_result['distance_loss'] = self._current_loss['distance']
+        self.this_result['prediction_loss'] = self._current_loss['prediction']
+        self.this_result['total_loss'] = self._current_loss['combined']
 
     def _write_tb(self,
                   step: int,
@@ -1220,10 +1248,14 @@ class Counterfactual(Explainer):
             main optimisation loop) are displayed separately.
         """
 
-        # TODO: ALEX: TBD: I don't quite like how we take a random set of arguments here. Would be nice to have
-        #  a cleaner interface something that maybe takes step as pos, a dict with other things you might want to
-        #  pass it but mostly takes what is in a dictionary that saves the algo state (in this case, `instance_dict`)
-        #  and outputs that.
+        # TODO: ALEX: TBD: The only way we can "save" ourselves from rewriting this is to basically create a state
+        #  an list containing data of all the variables we want to log at every step. We'd create something like a
+        #  A record object (could use a dataclass or something) that has "type" (e.g., "scalar", "image", "histogram")
+        #  attribute, tag, value and description attributes. Every time it is called, the function would go through
+        #  the list and write all the records to the board. The downside is that there would be some code in the
+        #  revant functions (_search) to create the records but even so there is quite a lot of crap there to update
+        #  the current state and the response. In an ideal world, the collect_step_data method would read the same
+        #  records and prepare the response with a subset of them.
 
         found = kwargs.get('found', 0)
         not_found = kwargs.get('not_found', 0)
@@ -1340,14 +1372,14 @@ class Counterfactual(Explainer):
         return self.optimizer._decayed_lr(tf.float32)
 
     @staticmethod
-    def _bisect_lambda(cf_found: np.ndarray,
-                       lam_step: int,
-                       lam: float,
-                       lam_lb: float,
-                       lam_ub: float,
-                       lam_cf_threshold: int = 5,
-                       lam_multiplier: int = 10,
-                       lam_divider: int = 10) -> Tuple[float, float, float]:
+    def _bisect_lam(cf_found: np.ndarray,
+                    lam_step: int,
+                    lam: float,
+                    lam_lb: float,
+                    lam_ub: float,
+                    lam_cf_threshold: int = 5,
+                    lam_multiplier: int = 10,
+                    lam_divider: int = 10) -> Tuple[float, float, float]:
         """
         Runs a bisection algorithm to optimise :math:`lambda`, which is adjust according to the following algorithm.
         See `explain` method documentation for details about the algorithm and parameters.
@@ -1380,7 +1412,11 @@ class Counterfactual(Explainer):
 
         return lam, lam_lb, lam_ub
 
-    def _build_explanation(self, X: np.ndarray, result: dict, instance_class: int, instance_proba: float) -> Explanation:
+    def _build_explanation(self,
+                           X: np.ndarray,
+                           result: dict,
+                           instance_class: int,
+                           instance_proba: float) -> Explanation:
         """
         Creates an explanation object and re-initialises the response to allow calling `explain` multiple times on
         the same explainer.
@@ -1390,6 +1426,10 @@ class Counterfactual(Explainer):
         result['instance'] = X
         result['instance_class'] = instance_class
         result['instance_proba'] = instance_proba
+        result['status'] = {'converged': True}
+        if not result['cf']:
+            result['status']['converged'] = False
+
         explanation = Explanation(meta=copy.deepcopy(self.meta), data=result)
         # reset response
         self._initialise_response()
@@ -1419,6 +1459,5 @@ class Counterfactual(Explainer):
                     self.meta['params'].update([(key, data_dict[key])])
         else:
             self.meta.update(data_dict)
-
 
 # TODO: ALEX: Test that the constrains are appropriate when calling fit with a dataset

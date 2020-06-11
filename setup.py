@@ -43,7 +43,7 @@ setup(name='alibi',
           'tensorflow<2.0',
           'shap',
           'scipy',
-          'typing-extensions'
+          'typing-extensions>=3.7.2'
       ],
       tests_require=[
           'pytest',

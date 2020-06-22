@@ -69,8 +69,7 @@ DEFAULT_DATA_CF = {
     "lambda_sweep": {'all': [], 'cf': {}},
     "orig_class": None,
     "orig_proba": None,
-# TODO: ALEX: TBD: WE EITHER REMOVE OR STANDARDISE THIS
-    # "success": None,
+    "status": {'converged': None},
 }  # type: dict
 """
 Default counterfactual data.

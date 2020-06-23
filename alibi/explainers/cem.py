@@ -5,11 +5,11 @@ import copy
 import logging
 import numpy as np
 import sys
-import tensorflow as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
-from alibi.utils.tf import _check_keras_or_tf
+from alibi.utils.imports import assert_tensorflow_installed
 
 if TYPE_CHECKING:  # pragma: no cover
+    import tensorflow as tf
     import keras
 
 logger = logging.getLogger(__name__)
@@ -18,14 +18,14 @@ logger = logging.getLogger(__name__)
 class CEM(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict: Union[Callable, 'tf.keras.Model', 'keras.Model'],
                  mode: str,
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 ae_model: Union['tf.keras.Model', 'keras.Model'] = None,
                  learning_rate_init: float = 1e-2,
                  max_iterations: int = 1000,
                  c_init: float = 10.,
@@ -35,7 +35,7 @@ class CEM(Explainer, FitMixin):
                  update_num_grad: int = 1,
                  no_info_val: Union[float, np.ndarray] = None,
                  write_dir: str = None,
-                 sess: tf.compat.v1.Session = None) -> None:
+                 sess: 'tf.compat.v1.Session' = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
@@ -84,6 +84,10 @@ class CEM(Explainer, FitMixin):
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        assert_tensorflow_installed()
+        from alibi.utils.tf import _check_keras_or_tf
+        import tensorflow as tf
+
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CEM))
         # get params for storage in meta
         params = locals()

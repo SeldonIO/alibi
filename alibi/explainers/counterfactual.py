@@ -1,15 +1,15 @@
 import copy
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
-import tensorflow as tf
 import logging
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.utils.gradients import num_grad_batch
-from alibi.utils.tf import _check_keras_or_tf
+from alibi.utils.imports import assert_tensorflow_installed
 
 if TYPE_CHECKING:  # pragma: no cover
+    import tensorflow as tf
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ def _define_func(predict_fn: Callable,
 class CounterFactual(Explainer):
 
     def __init__(self,
-                 predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict_fn: Union[Callable, 'tf.keras.Model', 'keras.Model'],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -84,7 +84,7 @@ class CounterFactual(Explainer):
                  decay: bool = True,
                  write_dir: str = None,
                  debug: bool = False,
-                 sess: tf.compat.v1.Session = None) -> None:
+                 sess: 'tf.compat.v1.Session' = None) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 
@@ -130,6 +130,10 @@ class CounterFactual(Explainer):
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        assert_tensorflow_installed()
+        from alibi.utils.tf import _check_keras_or_tf
+        import tensorflow as tf
+
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
         # get params for storage in meta
         params = locals()
@@ -382,6 +386,8 @@ class CounterFactual(Explainer):
         logger.debug('CF found at step %s', l_step * self.max_iter + i)
 
     def _write_tb(self, lam, lam_lb, lam_ub, cf_found, X_current, **kwargs):
+        import tensorflow as tf
+
         if self.model:
             scalars_tf = [self.global_step, self.learning_rate, self.dist[0],
                           self.loss_pred[0], self.loss_opt[0], self.pred_proba_class[0]]

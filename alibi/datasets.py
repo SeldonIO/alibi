@@ -14,8 +14,6 @@ from typing import Tuple, Union
 import logging
 from alibi.utils.data import Bunch
 
-import tensorflow.keras as keras
-
 logger = logging.getLogger(__name__)
 
 __all__ = ['fetch_adult',
@@ -315,7 +313,9 @@ def fetch_fashion_mnist(return_X_y: bool = False):
     If return_X_y is False, a Bunch object with fields 'data', 'targets' and 'target_names'
     is returned. Otherwise an array with data points and an array of labels is returned.
     """
-
+    import tensorflow.keras as keras
+    # TODO: assert_tensorflow_installed()
+    # TODO: fetch dataset without TF dependency
     target_names = {
         0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
         5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',

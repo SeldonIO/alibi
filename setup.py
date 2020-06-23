@@ -9,8 +9,12 @@ def readme():
 # read version file
 exec(open('alibi/version.py').read())
 
+# read tensorflow required version
+exec(open('alibi/utils/imports.py').read())
+
 extras_require = {
-    'examples': ['seaborn', 'xgboost']
+    'examples': ['seaborn', 'xgboost'],
+    'tensorflow': [tf_required]  # type: ignore # noqa F821
 }
 
 setup(name='alibi',
@@ -40,7 +44,6 @@ setup(name='alibi',
           'scikit-learn',
           'spacy',
           'scikit-image<0.17',
-          'tensorflow<2.0',
           'shap',
           'scipy',
           'typing-extensions'

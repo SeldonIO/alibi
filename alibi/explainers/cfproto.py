@@ -4,7 +4,6 @@ import copy
 import logging
 import numpy as np
 import sys
-import tensorflow as tf
 from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -14,9 +13,11 @@ from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
 from alibi.utils.gradients import perturb
 from alibi.utils.mapping import ohe_to_ord_shape, ord_to_num, num_to_ord, ohe_to_ord, ord_to_ohe
-from alibi.utils.tf import _check_keras_or_tf, argmax_grad, argmin_grad, one_hot_grad, round_grad
+
+from alibi.utils.imports import assert_tensorflow_installed
 
 if TYPE_CHECKING:  # pragma: no cover
+    import tensorflow as tf
     import keras
 
 logger = logging.getLogger(__name__)
@@ -25,14 +26,14 @@ logger = logging.getLogger(__name__)
 class CounterFactualProto(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict: Union[Callable, 'tf.keras.Model', 'keras.Model'],
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
-                 enc_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 ae_model: Union['tf.keras.Model', 'keras.Model'] = None,
+                 enc_model: Union['tf.keras.Model', 'keras.Model'] = None,
                  theta: float = 0.,
                  cat_vars: dict = None,
                  ohe: bool = False,
@@ -45,7 +46,7 @@ class CounterFactualProto(Explainer, FitMixin):
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
                  write_dir: str = None,
-                 sess: tf.compat.v1.Session = None) -> None:
+                 sess: 'tf.compat.v1.Session' = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -101,6 +102,10 @@ class CounterFactualProto(Explainer, FitMixin):
         sess
             Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
         """
+        assert_tensorflow_installed()
+        from alibi.utils.tf import _check_keras_or_tf, argmax_grad, argmin_grad, one_hot_grad, round_grad
+        import tensorflow as tf
+
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CFP))
         params = locals()
         remove = ['self', 'predict', 'ae_model', 'enc_model', 'sess', '__class__']
@@ -967,6 +972,7 @@ class CounterFactualProto(Explainer, FitMixin):
         -------
         Overall best attack and gradients for that attack.
         """
+        import tensorflow as tf
 
         # make sure nb of instances in X equals batch size
         assert self.batch_size == X.shape[0]

@@ -2,21 +2,23 @@ import copy
 import logging
 import numpy as np
 import string
-import tensorflow as tf
 
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 
+from alibi.utils.imports import assert_tensorflow_installed
+
 from typing import Callable, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover
+    import tensorflow as tf
     import keras  # noqa
 
 logger = logging.getLogger(__name__)
 
 
-def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _compute_convergence_delta(model: Union['tf.keras.models.Model', 'keras.models.Model'],
                                attributions: np.ndarray,
                                start_point: np.ndarray,
                                end_point: np.ndarray,
@@ -42,6 +44,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     -------
         Convergence deltas for each data point.
     """
+    import tensorflow as tf
 
     if end_point.shape[0] != attributions.shape[0]:
         raise ValueError("`attributions` and `end_point` must match on the first dimension "
@@ -82,9 +85,9 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     return _deltas
 
 
-def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                 x: Union[tf.Tensor, np.ndarray],
-                 target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
+def _run_forward(model: Union['tf.keras.models.Model', 'keras.models.Model'],
+                 x: Union['tf.Tensor', np.ndarray],
+                 target: Union[None, 'tf.Tensor', np.ndarray, list]) -> 'tf.Tensor':
     """
     Returns the output of the model. If the target is not `None`, only the output for the selected target is returned.
 
@@ -102,6 +105,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Model output or model output after target selection for classification models.
 
     """
+    import tensorflow as tf
 
     def _select_target(ps, ts):
         if ts is not None:
@@ -120,9 +124,9 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
     return preds
 
 
-def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                     x: tf.Tensor,
-                     target: Union[None, tf.Tensor]) -> tf.Tensor:
+def _gradients_input(model: Union['tf.keras.models.Model', 'keras.models.Model'],
+                     x: 'tf.Tensor',
+                     target: Union[None, 'tf.Tensor']) -> 'tf.Tensor':
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
     with respect to each input feature.
@@ -141,6 +145,8 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each input feature.
 
     """
+    import tensorflow as tf
+
     with tf.GradientTape() as tape:
         tape.watch(x)
         preds = _run_forward(model, x, target)
@@ -150,11 +156,11 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
     return grads
 
 
-def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                     layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
+def _gradients_layer(model: Union['tf.keras.models.Model', 'keras.models.Model'],
+                     layer: Union['tf.keras.layers.Layer', 'keras.layers.Layer'],
                      orig_call: Callable,
-                     x: tf.Tensor,
-                     target: Union[None, tf.Tensor]) -> tf.Tensor:
+                     x: 'tf.Tensor',
+                     target: Union[None, 'tf.Tensor']) -> 'tf.Tensor':
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
     with respect to each element of `layer`.
@@ -178,6 +184,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
+    import tensorflow as tf
 
     def watch_layer(layer, tape):
         """
@@ -216,7 +223,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
 
 
 def _sum_integral_terms(step_sizes: list,
-                        grads: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
+                        grads: Union['tf.Tensor', np.ndarray]) -> Union['tf.Tensor', np.ndarray]:
     """
     Sums the terms in the path integral with weights `step_sizes`.
 
@@ -232,6 +239,8 @@ def _sum_integral_terms(step_sizes: list,
         Sums of the gradients along the chosen path.
 
     """
+    import tensorflow as tf
+
     input_str = string.ascii_lowercase[1: len(grads.shape)]
     if isinstance(grads, tf.Tensor):
         step_sizes = tf.convert_to_tensor(step_sizes)
@@ -305,8 +314,8 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 class IntegratedGradients(Explainer):
 
     def __init__(self,
-                 model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 model: Union['tf.keras.Model', 'keras.Model'],
+                 layer: Union[None, 'tf.keras.layers.Layer', 'keras.layers.Layer'] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: Union[None, int] = 100
@@ -332,6 +341,7 @@ class IntegratedGradients(Explainer):
         internal_batch_size
             Batch size for the internal batching.
         """
+        assert_tensorflow_installed()
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_INTGRAD))
         params = locals()
@@ -380,6 +390,8 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
+        import tensorflow as tf
+
         if not tf.executing_eagerly():
             raise RuntimeError("""To run IntegratedGradients Tensorflow must be executed eagerly.
             To enable eager execution, add the following lines at the beginning of your script:

@@ -33,9 +33,16 @@ class Neighbors(object):
         """
 
         self.nlp = nlp_obj
+        # spacy 2.3.0 moved lexeme_prob into a different package `spacy_lookups_data`
+        # https://github.com/explosion/spaCy/issues/5638
+        try:
+            self.nlp.vocab.lookups_extra.remove_table('lexeme_prob')
+        except AttributeError:
+            pass
+
         self.w_prob = w_prob
         # list with spaCy lexemes in vocabulary
-        self.to_check = [w for w in self.nlp.vocab if w.prob >= self.w_prob and w.has_vector]
+        self.to_check = [self.nlp.vocab[w] for w in self.nlp.vocab.vectors if self.nlp.vocab[w].prob >= self.w_prob]
         self.n_similar = n_similar
 
     def neighbors(self, word: str, tag: str, top_n: int) -> dict:

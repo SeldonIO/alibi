@@ -218,7 +218,7 @@ Key:
   scipy
   shap
   spacy
-  tensorflow<2.0
+  tensorflow>=2.0
   typing-extensions
 ```
 

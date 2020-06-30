@@ -40,7 +40,7 @@ setup(name='alibi',
           'scikit-learn',
           'spacy[lookups]',
           'scikit-image<0.17',
-          'tensorflow<2.0',
+          'tensorflow>=2.0',
           'shap',
           'scipy',
           'typing-extensions>=3.7.2'

@@ -5,7 +5,7 @@ import copy
 import logging
 import numpy as np
 import sys
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from typing import Callable, Tuple, Union, TYPE_CHECKING
 from alibi.utils.tf import _check_keras_or_tf
 
@@ -35,7 +35,7 @@ class CEM(Explainer, FitMixin):
                  update_num_grad: int = 1,
                  no_info_val: Union[float, np.ndarray] = None,
                  write_dir: str = None,
-                 sess: tf.compat.v1.Session = None) -> None:
+                 sess: tf.Session = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
@@ -101,7 +101,7 @@ class CEM(Explainer, FitMixin):
                                    is_ae_keras=is_ae_keras)
 
         # if session provided, use it
-        if isinstance(sess, tf.compat.v1.Session):
+        if isinstance(sess, tf.Session):
             self.sess = sess
         else:
             self.sess = model_sess

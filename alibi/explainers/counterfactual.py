@@ -1,7 +1,7 @@
 import copy
 import numpy as np
 from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import logging
 
 from alibi.api.interfaces import Explainer, Explanation

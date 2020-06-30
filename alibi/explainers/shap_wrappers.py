@@ -770,12 +770,13 @@ class KernelShap(Explainer, FitMixin):
             X = X.toarray()
 
         shap_values = self._explainer.shap_values(X, **kwargs)
+        self.expected_value = self._explainer.expected_value
         expected_value = self.expected_value
         # for scalar model outputs a single numpy array is returned
         if isinstance(shap_values, np.ndarray):
             shap_values = [shap_values]
         if isinstance(expected_value, float):
-            expected_value = [self.expected_value]
+            expected_value = [expected_value]
 
         explanation = self.build_explanation(
             X,
@@ -1246,11 +1247,12 @@ class TreeShap(Explainer, FitMixin):
                 approximate=self.approximate,
                 check_additivity=check_additivity,
             )
+        self.expected_value = self._explainer.expected_value
         expected_value = self.expected_value
         if isinstance(shap_output, np.ndarray):
             shap_output = [shap_output]
         if isinstance(expected_value, float):
-            expected_value = [self.expected_value]
+            expected_value = [expected_value]
 
         explanation = self.build_explanation(
             X,

@@ -1,5 +1,31 @@
 # Change Log
 
+## [v0.5.0](https://github.com/SeldonIO/alibi/tree/v0.5.0) (2020-06-10)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.4.0...v0.5.0)
+
+This version supports Python 3.6 and 3.7 as support for Python 3.5 is dropped.
+
+### Added
+- **New feature** `TreeSHAP` explainer for white-box, tree based model SHAP value computation
+- **New feature** `ALE` explainer for computing feature effects for black-box, tabular data models
+- **New feature** `IntegratedGradients` explainer for computing feature attributions for TensorFlow and Keras models
+- Experimental `utils.visualization` module currently containing visualization functions for `IntegratedGradients` on image datasets.The location, implementation and content of the module and functions therein are subject to change.
+- Extend `datasets.fetch_imagenet` to work with any class
+- Extend `utils.data.gen_category_map` to take a list of strings of column names
+
+### Changed
+- Internal refactoring of `KernelSHAP` to reuse functionality for `TreeSHAP`. Both SHAP wrappers
+are now under `explainers.shap_wrappers`
+- Tests are now split into two runs, one with TensorFlow in eager mode which is necessary for using `IntegratedGradients`
+- Added `typing-extensions` library as a requirement to take advantage of more precise types
+- Pinned `scikit-image<0.17` due to a regression upstream
+- Pinned `Sphinx<3.0` for documentation builds due to some issues with the `m2r` plugin
+
+### Fixed
+- Various improvements to documentation
+- Some tests were importing old `keras` functions instead of `tensorflow.keras`
+
+
 ## [v0.4.0](https://github.com/SeldonIO/alibi/tree/v0.4.0) (2020-03-20)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.2...v0.4.0)
 

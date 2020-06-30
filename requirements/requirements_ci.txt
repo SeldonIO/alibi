@@ -17,4 +17,4 @@ codecov>=2.0.15
 pre-commit>=1.20.0
 shap>=0.35.0
 catboost>=0.23
-
+Keras>=2.2.4,<2.4.0

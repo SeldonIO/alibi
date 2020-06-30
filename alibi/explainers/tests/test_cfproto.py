@@ -11,6 +11,8 @@ from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
 
+tf.compat.v1.disable_v2_behavior()
+
 
 @pytest.fixture
 def tf_keras_iris_model(request):
@@ -69,7 +71,7 @@ def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
 
     # set random seed
     np.random.seed(1)
-    tf.set_random_seed(1)
+    tf.random.set_seed(1)
 
     model = tf_keras_iris_model
     model.fit(X_train, y_train, batch_size=128, epochs=500, verbose=0)
@@ -97,6 +99,7 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
     yield X_train, model, cf_explainer
 
 
+@pytest.mark.tf1
 @pytest.mark.parametrize('tf_keras_iris_explainer,use_kdtree,k', [
     ((False, 0., 1), False, None),
     ((False, 1., 3), False, None),
@@ -200,7 +203,7 @@ def tf_keras_adult(tf_keras_adult_model):
 
     # set random seed
     np.random.seed(1)
-    tf.set_random_seed(1)
+    tf.random.set_seed(1)
 
     model = tf_keras_adult_model
     model.fit(X_train, to_categorical(y_train), batch_size=128, epochs=5, verbose=0)
@@ -227,6 +230,7 @@ def tf_keras_adult_explainer(request, tf_keras_adult):
     yield X_train, model, cf_explainer
 
 
+@pytest.mark.tf1
 @pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
     ((False, 1., 3), False, None, 'mvdm'),
     ((True, 1., 3), True, 2, 'mvdm'),

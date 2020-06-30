@@ -10,6 +10,8 @@ from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
 
+tf.compat.v1.disable_v2_behavior()
+
 
 @pytest.fixture
 def logistic_iris():
@@ -78,6 +80,7 @@ def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     tf.keras.backend.clear_session()
 
 
+@pytest.mark.tf1
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
 def test_define_func(logistic_iris, target_class):
     X, y, model = logistic_iris
@@ -102,7 +105,7 @@ def test_define_func(logistic_iris, target_class):
         ix2 = np.argsort(-probas)[:, 1]
         assert func(x) == probas[:, ix2]
 
-
+@pytest.mark.tf1
 @pytest.mark.parametrize('cf_iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
 def test_cf_explainer_iris(cf_iris_explainer):
     X, y, lr, cf = cf_iris_explainer

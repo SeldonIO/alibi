@@ -5,8 +5,12 @@ from alibi.explainers import CEM
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
+import tensorflow as tf
+import pytest
 
+tf.compat.v1.disable_v2_behavior()
 
+@pytest.mark.tf1
 def test_cem():
     # load iris dataset
     dataset = load_iris()

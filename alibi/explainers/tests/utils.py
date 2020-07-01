@@ -1,6 +1,7 @@
 # flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
 import numpy as np
+import tensorflow as tf
 import tensorflow.keras as keras
 
 from tensorflow.keras.utils import to_categorical
@@ -13,7 +14,6 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
-
 
 SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'iris', 'movie_sentiment']
 
@@ -282,3 +282,16 @@ class MockTreeExplainer:
     def _check_input(self, X):
         if not hasattr(X, 'shape'):
             raise TypeError("Input X has no attribute shape!")
+
+
+def disable_tf2(func):
+    """
+    A decorator used to disable TF2.x functionality for test functions which
+    rely on TF1.x style code (CounterFactual, CEM, CFProto).
+    """
+
+    def wrapper(*args, **kwargs):
+        tf.compat.v1.disable_v2_behavior()
+        func(*args, **kwargs)
+
+    return wrapper

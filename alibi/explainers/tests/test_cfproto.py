@@ -10,8 +10,7 @@ from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
-
-tf.compat.v1.disable_v2_behavior()
+from alibi.explainers.tests.utils import disable_tf2
 
 
 @pytest.fixture
@@ -100,6 +99,7 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
 
 
 @pytest.mark.tf1
+@disable_tf2
 @pytest.mark.parametrize('tf_keras_iris_explainer,use_kdtree,k', [
     ((False, 0., 1), False, None),
     ((False, 1., 3), False, None),
@@ -231,6 +231,7 @@ def tf_keras_adult_explainer(request, tf_keras_adult):
 
 
 @pytest.mark.tf1
+@disable_tf2
 @pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
     ((False, 1., 3), False, None, 'mvdm'),
     ((True, 1., 3), True, 2, 'mvdm'),

@@ -9,7 +9,6 @@ import keras
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
 from alibi.explainers import CounterFactual
-from alibi.explainers.tests.utils import disable_tf2
 
 
 @pytest.fixture
@@ -79,8 +78,6 @@ def keras_mnist_cf_explainer(request, keras_logistic_mnist):
     tf.keras.backend.clear_session()
 
 
-@pytest.mark.tf1
-@disable_tf2
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
 def test_define_func(logistic_iris, target_class):
     X, y, model = logistic_iris
@@ -107,9 +104,8 @@ def test_define_func(logistic_iris, target_class):
 
 
 @pytest.mark.tf1
-@disable_tf2
 @pytest.mark.parametrize('cf_iris_explainer', ['other', 'same', 0, 1, 2], indirect=True)
-def test_cf_explainer_iris(cf_iris_explainer):
+def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
     X, y, lr, cf = cf_iris_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
@@ -147,10 +143,9 @@ def test_cf_explainer_iris(cf_iris_explainer):
 
 
 @pytest.mark.tf1
-@disable_tf2
 @pytest.mark.parametrize('keras_logistic_mnist', ['keras', 'tf'], indirect=True)
 @pytest.mark.parametrize('keras_mnist_cf_explainer', ['other', 'same', 4, 9], indirect=True)
-def test_keras_logistic_mnist_explainer(keras_logistic_mnist, keras_mnist_cf_explainer):
+def test_keras_logistic_mnist_explainer(disable_tf2, keras_logistic_mnist, keras_mnist_cf_explainer):
     X, y, model, cf = keras_mnist_cf_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)

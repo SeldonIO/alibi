@@ -10,7 +10,6 @@ from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
-from alibi.explainers.tests.utils import disable_tf2
 
 
 @pytest.fixture
@@ -99,7 +98,6 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
 
 
 @pytest.mark.tf1
-@disable_tf2
 @pytest.mark.parametrize('tf_keras_iris_explainer,use_kdtree,k', [
     ((False, 0., 1), False, None),
     ((False, 1., 3), False, None),
@@ -112,7 +110,7 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
 ], indirect=['tf_keras_iris_explainer'])
 @pytest.mark.parametrize('tf_keras_iris_model,tf_keras_iris_ae', [('tf', 'tf'), ('keras', 'keras')],
                          indirect=True)
-def test_tf_keras_iris_explainer(tf_keras_iris_explainer, use_kdtree, k):
+def test_tf_keras_iris_explainer(disable_tf2, tf_keras_iris_explainer, use_kdtree, k):
     X_train, model, cf = tf_keras_iris_explainer
 
     # instance to be explained
@@ -231,14 +229,13 @@ def tf_keras_adult_explainer(request, tf_keras_adult):
 
 
 @pytest.mark.tf1
-@disable_tf2
 @pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
     ((False, 1., 3), False, None, 'mvdm'),
     ((True, 1., 3), True, 2, 'mvdm'),
     ((True, 1., 3), True, 2, 'abdm'),
 ], indirect=['tf_keras_adult_explainer'])
 @pytest.mark.parametrize('tf_keras_adult_model', ['tf', 'keras'], indirect=True)
-def test_tf_keras_adult_explainer(tf_keras_adult_explainer, use_kdtree, k, d_type):
+def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
     X_train, model, cf = tf_keras_adult_explainer
 
     # instance to be explained

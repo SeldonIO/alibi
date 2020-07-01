@@ -2,7 +2,6 @@
 
 from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 from alibi.explainers import CEM
-from alibi.explainers.tests.utils import disable_tf2
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
@@ -10,8 +9,7 @@ import pytest
 
 
 @pytest.mark.tf1
-@disable_tf2
-def test_cem():
+def test_cem(disable_tf2):
     # load iris dataset
     dataset = load_iris()
 

@@ -282,16 +282,3 @@ class MockTreeExplainer:
     def _check_input(self, X):
         if not hasattr(X, 'shape'):
             raise TypeError("Input X has no attribute shape!")
-
-
-def disable_tf2(func):
-    """
-    A decorator used to disable TF2.x functionality for test functions which
-    rely on TF1.x style code (CounterFactual, CEM, CFProto).
-    """
-
-    def wrapper(*args, **kwargs):
-        tf.compat.v1.disable_v2_behavior()
-        func(*args, **kwargs)
-
-    return wrapper

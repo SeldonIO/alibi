@@ -10,6 +10,7 @@ from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
+import tensorflow as tf
 from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
 from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
@@ -333,3 +334,17 @@ def pytest_collection_modifyitems(config, items):
     if removed:
         config.hook.pytest_deselected(items=removed)
         items[:] = kept
+
+
+@pytest.fixture
+def disable_tf2():
+    """
+    Fixture for disabling TF2.x functionality for test functions which
+    rely on TF1.x style code (CounterFactual, CEM, CFProto).
+
+    Because of restrictions in TF, the teardown does not contain code
+    to enable v2 behaviour back. Instead, we need to run two sets of
+    tests - one with marker "tf1" and another with marker "not tf1".
+    """
+    tf.compat.v1.disable_v2_behavior()
+    yield

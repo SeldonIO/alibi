@@ -265,9 +265,6 @@ def conv_net(request):
     module scoped fixture, so if you need to modify the state of the objects
     returned, copy the objects first.
     """
-    import tensorflow as tf
-    if tf.executing_eagerly():
-        tf.compat.v1.disable_eager_execution()
     data = request.param
     x_train, y_train = data['X_train'], data['y_train']
 

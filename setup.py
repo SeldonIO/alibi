@@ -42,11 +42,11 @@ setup(name='alibi',
           'prettyprinter',
           'requests',
           'scikit-learn',
-          'spacy',
+          'spacy[lookups]',
           'scikit-image<0.17',
           'shap',
           'scipy',
-          'typing-extensions'
+          'typing-extensions>=3.7.2'
       ],
       tests_require=[
           'pytest',

@@ -380,11 +380,6 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
-        if not tf.executing_eagerly():
-            raise RuntimeError("""To run IntegratedGradients Tensorflow must be executed eagerly.
-            To enable eager execution, add the following lines at the beginning of your script:
-            `import tensorflow as tf`
-            `tf.compat.v1.enable_eager_execution()` """)
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."

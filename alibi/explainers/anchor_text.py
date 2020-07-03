@@ -87,10 +87,9 @@ class Neighbors(object):
                 texts.append(token.text)
                 similarities.append(word_vocab.similarity(lexeme))
 
-        return {
-            'words': np.array(texts),
-            'similarities': np.array(similarities),
-        }
+        words = np.array(texts) if texts else np.array(texts, dtype='<U')
+
+        return {'words': words, 'similarities': np.array(similarities)}
 
 
 class AnchorText(Explainer):
@@ -121,12 +120,12 @@ class AnchorText(Explainer):
         else:
             self.predictor = ArgmaxTransformer(predictor)
 
-        self.neighbors = Neighbors(self.nlp)
+        self._synonyms_generator = Neighbors(self.nlp)
         self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
-        self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
         # the method used to generate samples
-        self.perturbation = None  # type: Callable
+        self.perturbation = None  # type: Union[Callable, None]
 
     def set_words_and_pos(self, text: str) -> None:
         """
@@ -333,7 +332,7 @@ class AnchorText(Explainer):
                          forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset(['PRP$']),
                          forbidden_words: frozenset = frozenset(['be']), temperature: float = 1.,
                          pos: frozenset = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+                         use_similarity_proba: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -382,7 +381,7 @@ class AnchorText(Explainer):
             if (t.text not in forbidden_words and t.pos_ in pos and
                     t.lemma_ not in forbidden and t.tag_ not in forbidden_tags):
 
-                t_neighbors = self.neighbours[t.text]['words']
+                t_neighbors = self.synonyms[t.text]['words']
                 # no neighbours with the same tag or word not in spaCy vocabulary
                 if t_neighbors.size == 0:
                     continue
@@ -391,7 +390,7 @@ class AnchorText(Explainer):
                 changed = np.random.choice(n, n_changed, replace=False)
 
                 if use_similarity_proba:  # use similarity scores to sample changed tokens
-                    weights = self.neighbours[t.text]['similarities']
+                    weights = self.synonyms[t.text]['similarities']
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
@@ -413,11 +412,11 @@ class AnchorText(Explainer):
         """
 
         for word, token in zip(self.words, self.tokens):
-            if word not in self.neighbours:
-                self.neighbours[word] = self.neighbors.neighbors(word,
-                                                                 token.tag_,
-                                                                 self.perturb_opts['top_n'],
-                                                                 )
+            if word not in self.synonyms:
+                self.synonyms[word] = self._synonyms_generator.neighbors(word,
+                                                                         token.tag_,
+                                                                         self.perturb_opts['top_n'],
+                                                                         )
 
     def set_data_type(self, use_unk: bool) -> None:
         """
@@ -440,7 +439,7 @@ class AnchorText(Explainer):
             max_sent_len = len(self.words) * max_len + len(self.UNK) * len(self.punctuation) + 1
         else:
             for word in self.words:
-                similar_words = self.neighbours[word]['words']
+                similar_words = self.synonyms[word]['words']
                 max_len = max(max_len, int(similar_words.dtype.itemsize /
                                            np.dtype(similar_words.dtype.char + '1').itemsize))
                 max_sent_len += max_len

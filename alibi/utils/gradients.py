@@ -3,12 +3,19 @@ import tensorflow as tf
 
 from typing import Callable, Dict, Optional, Union, Tuple
 
+# TODO: TBD: THESE DECORATORS SHOULD LIVE IN ALIBI.UTILS SO WE CAN USE THEM VIA IMPORTS?
 numerical_gradients = []
 
 
-def numerical_gradient(func):
-    numerical_gradients.append(func)
-    return func
+def numerical_gradient(framework='tensorflow'):
+    """
+    A decorator factory used to create a parametrized `numerical_gradient` decorator.
+     """
+    def decorate_numerical_gradient(func):
+        func.optimizer = framework
+        numerical_gradients.append(func)
+        return func
+    return decorate_numerical_gradient
 
 
 def perturb(X: np.ndarray,
@@ -114,7 +121,7 @@ def perturb_tensorflow(X: tf.Tensor, eps: Union[float, np.ndarray] = 1e-08) -> T
     return X_pert_pos, X_pert_neg
 
 
-@numerical_gradient
+@numerical_gradient(framework='tensorflow')
 def num_grad_batch_tensorflow(func: Callable,
                               X: tf.Tensor,
                               eps: Union[float, np.ndarray] = 1e-08,
@@ -172,6 +179,4 @@ def num_grad_batch_tensorflow(func: Callable,
     return grad
 
 
-
-
-
+num_grad_batch_tensorflow.framework = 'tensorflow'

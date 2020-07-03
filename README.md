@@ -217,7 +217,7 @@ Key:
   scikit-image<0.17
   scipy
   shap
-  spacy
+  spacy<2.3.0
   tensorflow<2.0
   typing-extensions
 ```

@@ -35,6 +35,8 @@ class Neighbors(object):
         self.nlp = nlp_obj
         # spacy 2.3.0 moved lexeme_prob into a different package `spacy_lookups_data`
         # https://github.com/explosion/spaCy/issues/5638
+        # UPDATE: removed support for spacy>2.3.0 due to different behaviour of POS tagging
+        # causing the algorithm to crash (no similar words found)
         try:
             self.nlp.vocab.lookups_extra.remove_table('lexeme_prob')
         except AttributeError:

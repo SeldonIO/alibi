@@ -206,7 +206,7 @@ class AnchorText(Explainer):
 
         return self.predictor(samples.tolist()) == self.instance_label
 
-    def set_sampler_perturbation(self, use_unk: bool, perturb_opts: dict) -> None:
+    def set_sampler_perturbation(self, use_unk: bool, perturb_opts: dict, top_n: int) -> None:
         """
         Initialises the explainer by setting the perturbation function and
         parameters necessary to sample according to the perturbation method.
@@ -215,7 +215,7 @@ class AnchorText(Explainer):
         ----------
         use_unk
             see explain method
-        perturb_opts:
+        perturb_opts
             A dict with keys:
                 'top_n': the max number of alternatives to sample from for replacement
                 'use_similarity_proba': if True the probability of selecting a replacement
@@ -225,15 +225,19 @@ class AnchorText(Explainer):
                     perturbed
                 'temperature': a tempature used to callibrate the softmax distribution over the
                     sampling weights.
+        top_n
+            Number of similar words to sample for perturbations, only used if `use_unk=False`.
         """
 
         if use_unk and perturb_opts['use_similarity_proba']:
-            logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
-                           'Defaulting to "use_unk" behaviour.')
+            logger.warning(
+                '"use_unk" and "use_similarity_proba" args should not both be True. Defaulting to "use_unk" behaviour.'
+            )
 
         # Set object properties used by both samplers
         self.perturb_opts = perturb_opts
         self.sample_proba = perturb_opts['sample_proba']
+        self.top_n = top_n
 
         if use_unk:
             self.perturbation = self._unk
@@ -353,8 +357,7 @@ class AnchorText(Explainer):
         pos
             POS that can be changed during perturbation.
         use_similarity_proba
-            Bool whether to sample according to a similarity score with the
-            corpus embeddings.
+            Bool whether to sample according to a similarity score with the corpus embeddings.
         temperature
             Sample weight hyperparameter if use_similarity_proba equals True.
 
@@ -415,7 +418,7 @@ class AnchorText(Explainer):
             if word not in self.synonyms:
                 self.synonyms[word] = self._synonyms_generator.neighbors(word,
                                                                          token.tag_,
-                                                                         self.perturb_opts['top_n'],
+                                                                         self.top_n,
                                                                          )
 
     def set_data_type(self, use_unk: bool) -> None:
@@ -543,10 +546,9 @@ class AnchorText(Explainer):
             'use_similarity_proba': use_similarity_proba,
             'sample_proba': sample_proba,
             'temperature': temperature,
-            'top_n': top_n,
         }
         perturb_opts.update(kwargs)
-        self.set_sampler_perturbation(use_unk, perturb_opts)
+        self.set_sampler_perturbation(use_unk, perturb_opts, top_n)
         self.set_data_type(use_unk)
 
         # get anchors and add metadata

@@ -60,11 +60,10 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
         'use_similarity_proba': use_similarity_proba,
         'sample_proba': sample_proba,
         'temperature': temperature,
-        'top_n': top_n,
     }
     explainer.n_covered_ex = n_covered_ex
     explainer.set_words_and_pos(text)
-    explainer.set_sampler_perturbation(use_unk, perturb_opts)
+    explainer.set_sampler_perturbation(use_unk, perturb_opts, top_n)
     explainer.set_data_type(use_unk)
     if predict_type == 'proba':
         label = np.argmax(predictor([text])[0])

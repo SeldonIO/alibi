@@ -486,7 +486,7 @@ class AnchorText(Explainer):
         sample_proba
             Sample probability if use_similarity_proba is False.
         top_n
-            Number of similar words to sample for perturbations, only used if use_similarity_proba=True.
+            Number of similar words to sample for perturbations, only used if use_unk=False.
         temperature
             Sample weight hyperparameter if use_similarity_proba equals True.
         threshold

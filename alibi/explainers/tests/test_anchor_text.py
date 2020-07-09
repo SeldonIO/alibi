@@ -93,7 +93,7 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
         text,
         use_unk=use_unk,
         threshold=threshold,
-        use_proba=use_similarity_proba,
+        use_similarity_proba=use_similarity_proba,
     )
     assert explanation.precision >= threshold
     assert explanation.raw['prediction'] == label

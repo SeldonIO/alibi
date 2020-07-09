@@ -99,7 +99,7 @@ def test_anchor_text(lr_classifier, text, n_punctuation_marks, n_unique_words,
             for example in example_dict[k]:
                 # check that we have perturbed the sentences
                 if use_unk:
-                    assert 'UNK' in example or example == text
+                    assert 'UNK' in example or example.replace(' ', '') == text.replace(' ', '')
                 else:
                     assert 'UNK' not in example
                 assert example[-1] in ['.', 'K']

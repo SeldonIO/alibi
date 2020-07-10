@@ -1,5 +1,19 @@
 # Change Log
 
+## [v0.5.1](https://github.com/SeldonIO/alibi/tree/v0.5.1) (2020-07-10)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.0...v0.5.1)
+
+This is a bug fix release.
+
+### Fixed
+- Fix an issue with `AnchorText` not working on text instances with commas due to not checking for empty synonym lists
+- Enable correct behaviour of `AnchorText` with `spacy>=2.3.0`, this now requires installing `spacy[lookups]` as an additional dependency which contains model probability tables
+- Update the `expected_value` attribute of `TreeSHAP` which is internally updated after a call to `explain`
+- Fix some links in Integrated Gradients examples
+- Coverage after running tests on Travis is now correctly reported as the reports are merged for different `pytest` runs
+- Old `Keras` tests now require `Keras<2.4.0` as the new release requires `tensorflow>=2.2`
+- Bump `typing_extensions>=3.7.2` which includes the type `Literal`
+
 ## [v0.5.0](https://github.com/SeldonIO/alibi/tree/v0.5.0) (2020-06-10)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.4.0...v0.5.0)
 

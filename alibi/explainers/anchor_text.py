@@ -87,10 +87,9 @@ class Neighbors(object):
                 texts.append(token.text)
                 similarities.append(word_vocab.similarity(lexeme))
 
-        return {
-            'words': np.array(texts),
-            'similarities': np.array(similarities),
-        }
+        words = np.array(texts) if texts else np.array(texts, dtype='<U')
+
+        return {'words': words, 'similarities': np.array(similarities)}
 
 
 class AnchorText(Explainer):
@@ -121,12 +120,12 @@ class AnchorText(Explainer):
         else:
             self.predictor = ArgmaxTransformer(predictor)
 
-        self.neighbors = Neighbors(self.nlp)
+        self._synonyms_generator = Neighbors(self.nlp)
         self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
-        self.neighbours = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
         # the method used to generate samples
-        self.perturbation = None  # type: Callable
+        self.perturbation = None  # type: Union[Callable, None]
 
     def set_words_and_pos(self, text: str) -> None:
         """
@@ -207,7 +206,7 @@ class AnchorText(Explainer):
 
         return self.predictor(samples.tolist()) == self.instance_label
 
-    def set_sampler_perturbation(self, use_unk: bool, perturb_opts: dict) -> None:
+    def set_sampler_perturbation(self, use_unk: bool, perturb_opts: dict, top_n: int) -> None:
         """
         Initialises the explainer by setting the perturbation function and
         parameters necessary to sample according to the perturbation method.
@@ -216,7 +215,7 @@ class AnchorText(Explainer):
         ----------
         use_unk
             see explain method
-        perturb_opts:
+        perturb_opts
             A dict with keys:
                 'top_n': the max number of alternatives to sample from for replacement
                 'use_similarity_proba': if True the probability of selecting a replacement
@@ -226,15 +225,19 @@ class AnchorText(Explainer):
                     perturbed
                 'temperature': a tempature used to callibrate the softmax distribution over the
                     sampling weights.
+        top_n
+            Number of similar words to sample for perturbations, only used if `use_unk=False`.
         """
 
         if use_unk and perturb_opts['use_similarity_proba']:
-            logger.warning('"use_unk" and "use_similarity_proba" args should not both be True. '
-                           'Defaulting to "use_unk" behaviour.')
+            logger.warning(
+                '"use_unk" and "use_similarity_proba" args should not both be True. Defaulting to "use_unk" behaviour.'
+            )
 
         # Set object properties used by both samplers
         self.perturb_opts = perturb_opts
         self.sample_proba = perturb_opts['sample_proba']
+        self.top_n = top_n
 
         if use_unk:
             self.perturbation = self._unk
@@ -333,7 +336,7 @@ class AnchorText(Explainer):
                          forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset(['PRP$']),
                          forbidden_words: frozenset = frozenset(['be']), temperature: float = 1.,
                          pos: frozenset = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                         use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+                         use_similarity_proba: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -354,8 +357,7 @@ class AnchorText(Explainer):
         pos
             POS that can be changed during perturbation.
         use_similarity_proba
-            Bool whether to sample according to a similarity score with the
-            corpus embeddings.
+            Bool whether to sample according to a similarity score with the corpus embeddings.
         temperature
             Sample weight hyperparameter if use_similarity_proba equals True.
 
@@ -382,7 +384,7 @@ class AnchorText(Explainer):
             if (t.text not in forbidden_words and t.pos_ in pos and
                     t.lemma_ not in forbidden and t.tag_ not in forbidden_tags):
 
-                t_neighbors = self.neighbours[t.text]['words']
+                t_neighbors = self.synonyms[t.text]['words']
                 # no neighbours with the same tag or word not in spaCy vocabulary
                 if t_neighbors.size == 0:
                     continue
@@ -391,7 +393,7 @@ class AnchorText(Explainer):
                 changed = np.random.choice(n, n_changed, replace=False)
 
                 if use_similarity_proba:  # use similarity scores to sample changed tokens
-                    weights = self.neighbours[t.text]['similarities']
+                    weights = self.synonyms[t.text]['similarities']
                     weights = weights ** (1. / temperature)  # weighting by temperature
                     weights = weights / sum(weights)
                 else:
@@ -413,11 +415,11 @@ class AnchorText(Explainer):
         """
 
         for word, token in zip(self.words, self.tokens):
-            if word not in self.neighbours:
-                self.neighbours[word] = self.neighbors.neighbors(word,
-                                                                 token.tag_,
-                                                                 self.perturb_opts['top_n'],
-                                                                 )
+            if word not in self.synonyms:
+                self.synonyms[word] = self._synonyms_generator.neighbors(word,
+                                                                         token.tag_,
+                                                                         self.top_n,
+                                                                         )
 
     def set_data_type(self, use_unk: bool) -> None:
         """
@@ -440,7 +442,7 @@ class AnchorText(Explainer):
             max_sent_len = len(self.words) * max_len + len(self.UNK) * len(self.punctuation) + 1
         else:
             for word in self.words:
-                similar_words = self.neighbours[word]['words']
+                similar_words = self.synonyms[word]['words']
                 max_len = max(max_len, int(similar_words.dtype.itemsize /
                                            np.dtype(similar_words.dtype.char + '1').itemsize))
                 max_sent_len += max_len
@@ -484,7 +486,7 @@ class AnchorText(Explainer):
         sample_proba
             Sample probability if use_similarity_proba is False.
         top_n
-            Number of similar words to sample for perturbations, only used if use_proba=True.
+            Number of similar words to sample for perturbations, only used if use_unk=False.
         temperature
             Sample weight hyperparameter if use_similarity_proba equals True.
         threshold
@@ -544,10 +546,9 @@ class AnchorText(Explainer):
             'use_similarity_proba': use_similarity_proba,
             'sample_proba': sample_proba,
             'temperature': temperature,
-            'top_n': top_n,
         }
         perturb_opts.update(kwargs)
-        self.set_sampler_perturbation(use_unk, perturb_opts)
+        self.set_sampler_perturbation(use_unk, perturb_opts, top_n)
         self.set_data_type(use_unk)
 
         # get anchors and add metadata

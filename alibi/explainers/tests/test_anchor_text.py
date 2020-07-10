@@ -18,16 +18,9 @@ spacy_model(model=model)
 nlp = spacy.load(model)
 
 
-def find_punctuation(text: str) -> int:
-    """
-    Returns nb of punctuation marks in a string.
-    """
-
-    punctuation = set([s for s in string.punctuation])
-    tokens = set(text.split())
-
-    return len(tokens & punctuation)
-
+@pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
+                         [('This is a good book.', 1, 6),
+                          ('I, for one, hate it.', 3, 7)])
 @pytest.mark.parametrize('lr_classifier', ((get_dataset('movie_sentiment')),), indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
@@ -36,11 +29,9 @@ def find_punctuation(text: str) -> int:
     ('class', (), True, False, 0.95),
     ('class', (3,), True, False, 0.95),
 ])
-def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, use_unk, threshold):
-
+def test_anchor_text(lr_classifier, text, n_punctuation_marks, n_unique_words,
+                     predict_type, anchor, use_similarity_proba, use_unk, threshold):
     # test parameters
-    text = 'This is a good book .'
-    n_punctuation_marks = find_punctuation(text)
     num_samples = 100
     sample_proba = .5
     top_n = 500
@@ -60,11 +51,10 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
         'use_similarity_proba': use_similarity_proba,
         'sample_proba': sample_proba,
         'temperature': temperature,
-        'top_n': top_n,
     }
     explainer.n_covered_ex = n_covered_ex
     explainer.set_words_and_pos(text)
-    explainer.set_sampler_perturbation(use_unk, perturb_opts)
+    explainer.set_sampler_perturbation(use_unk, perturb_opts, top_n)
     explainer.set_data_type(use_unk)
     if predict_type == 'proba':
         label = np.argmax(predictor([text])[0])
@@ -87,14 +77,14 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
         # get list of unique words
         all_words = explainer.words
         # unique words = words in text + UNK
-        assert len(np.unique(all_words)) == len(text.split())
+        assert len(np.unique(all_words)) == n_unique_words
 
     # test explanation
     explanation = explainer.explain(
         text,
         use_unk=use_unk,
         threshold=threshold,
-        use_proba=use_similarity_proba,
+        use_similarity_proba=use_similarity_proba,
     )
     assert explanation.precision >= threshold
     assert explanation.raw['prediction'] == label
@@ -109,14 +99,13 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
             for example in example_dict[k]:
                 # check that we have perturbed the sentences
                 if use_unk:
-                    assert 'UNK' in example or example == text
+                    assert 'UNK' in example or example.replace(' ', '') == text.replace(' ', '')
                 else:
                     assert 'UNK' not in example
                 assert example[-1] in ['.', 'K']
 
 
 def test_neighbors():
-
     # test inputs
     w_prob = -15.
     tag = 'NN'

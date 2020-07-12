@@ -5,15 +5,30 @@ from alibi.explainers.base import explainer_registry
 
 
 def get_implementation(explainer_type: str, method: Optional[str] = None):
+    """
+    Returns a class that implements an explainer from the explainer registry.
 
-    # TODO: ALEX: DOCSTRING
+    Paramters
+    --------
+    explainer_type
+        The explanation algorithm type.
+    method
+        Indicates a specific implementation of an explainer type.
+    """
     if explainer_type == 'counterfactual':
         return get_counterfactual_implementation(method)
 
 
 def get_counterfactual_implementation(method: str):
+    """
+    Returns a counterfactual implementation from the explainer registry.
 
-    # TODO: ALEX: DOCSTRING
+    Parameters
+    ----------
+    method
+        Indicates which counterfactual method should be returned.
+    """
+
     # import statement has the effect of updating the registry
     import alibi.explainers.base.counterfactuals
     if method == 'wachter':

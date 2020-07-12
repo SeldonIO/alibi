@@ -7,7 +7,7 @@ import pandas as pd
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
-from alibi.utils.wrappers import methdispatch
+from alibi.utils.decorators import methdispatch
 from functools import partial
 from scipy import sparse
 from shap.common import DenseData, DenseDataWithIndex

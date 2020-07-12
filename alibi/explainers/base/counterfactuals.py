@@ -15,7 +15,7 @@ from typing import Union, Callable, Optional, Dict, Tuple, Any, Set
 
 
 # define variable tracked for TensorBoard display by specifing tag, data type and description
-CF_WACHTER_TAGS_DEFAULT = [
+_CF_WACHTER_TAGS_DEFAULT = [
     'lr',
     'losses/distance_loss',
     'losses/prediction_loss',
@@ -30,8 +30,21 @@ CF_WACHTER_TAGS_DEFAULT = [
     'counterfactuals/total_counterfactuals',
     'counterfactuals/current_solution',
 ]
-CF_WACHTER_DATA_TYPES_DEFAULT = ['scalar'] * len(CF_WACHTER_TAGS_DEFAULT[:-1]) + ['image']
-CF_WACHTER_DESCRIPTIONS_DEFAULT = [
+"""list: This list should be specify the tags under which the variables should be logged. Note that all tags can be 
+prefixed at recording time. The code where the variables are created should add the variable name (e.g., delta, lb, ub)
+to the data store to write to TensorBoard.
+"""
+_CF_WACHTER_DATA_TYPES_DEFAULT = ['scalar'] * len(_CF_WACHTER_TAGS_DEFAULT[:-1]) + ['image']
+"""list: A list of the data types corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. The following types are 
+defined:
+
+    - audio
+    - histogram
+    - image
+    - scalar
+    - text
+"""
+_CF_WACHTER_DESCRIPTIONS_DEFAULT = [
     'Gradient descent optimizer learning rate',
     'Distance between current solution and instance.',
     'Loss between prediction on the current solution and target,',
@@ -46,21 +59,26 @@ CF_WACHTER_DESCRIPTIONS_DEFAULT = [
     '',
     ''
 ]
-WACHTER_CF_TRACKED_VARIABLES_DEFAULT = {
-    'tags': CF_WACHTER_TAGS_DEFAULT,
-    'data_types': CF_WACHTER_DATA_TYPES_DEFAULT,
-    'descriptions': CF_WACHTER_DESCRIPTIONS_DEFAULT
+"""
+list: A list of descriptions corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. A description can be omitted using
+''.
+"""
+_WACHTER_CF_TRACKED_VARIABLES_DEFAULT = {
+    'tags': _CF_WACHTER_TAGS_DEFAULT,
+    'data_types': _CF_WACHTER_DATA_TYPES_DEFAULT,
+    'descriptions': _CF_WACHTER_DESCRIPTIONS_DEFAULT
 }
-WACHTER_CF_LOGGING_OPTS_DEFAULT = {
+"""
+dict: A description of the variables to be recorded to TensorBoard for the WachterCounterfactual class. \
+"""
+_WACHTER_CF_LOGGING_OPTS_DEFAULT = {
     'verbose': False,
     'log_traces': True,
     'trace_dir': 'logs/cf',
     'summary_freq': 1,
     'image_summary_freq': 10,
-    'tracked_variables': WACHTER_CF_TRACKED_VARIABLES_DEFAULT
+    'tracked_variables': _WACHTER_CF_TRACKED_VARIABLES_DEFAULT
 }
-# TODO: DOCUMENT LOGGING OPTIONS
-# TODO: UPDATE DOCUMENTATION
 """
 dict: The default values for logging options. See `explain` method for a detailed descriptions of each parameter.
 
@@ -76,13 +94,11 @@ with the following key-word arguments::
 """
 WACHTER_LAM_OPTS_DEFAULT = {
     'lam_init': 0.1,
-    'lams': None,  # TODO: Mention this is should be sorted high to low
-    'nb_lams': 2,  # TODO: DOCUMENT THIS PARAMETER
+    'lams': None,
+    'nb_lams': 2,
     'lam_exploration_steps': 20,  # TODO: DOCUMENT THIS PARAM
     'instance_proba_delta': 0.001,  # TODO: DOCUMENT THIS PARAM
     'lam_perc_error': 0.5,  # TODO: DOCUMENT THIS PARAM
-    # the model output evaluated at the original instance should decrease by at least this value in
-    # lam_exploration_steps to warrant continuation of sweep
     'lam_cf_threshold': 5,
     'lam_multiplier': 10,
     'lam_divider': 10,
@@ -91,10 +107,61 @@ WACHTER_LAM_OPTS_DEFAULT = {
     'max_lam_steps': 10,
 
 }
-"""dict: The counterfactual search process depends on the hyperparameter :math:`\lambda`, as described in the `explain`
-documentation below. The explainer will first try to determine a suitable range for :math:`\lambda` and find 
-:math:`\lambda` using a bisection algorithm. This dictionary contains the default settings for these methods. 
-See `explain` method documentation for an explanation of these parameters.
+"""dict: The counterfactual search process for the ``'wachter'`` method is guided by the loss 
+ 
+    .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
+     
+     which depends on the hyperparameter :math:`\lambda`. The explainer will first try to determine a suitable range for 
+     :math:`\lambda` and optimize :math:`\lambda` using a bisection algorithm. This dictionary contains the default 
+     settings for these methods. These parameters are as follows:
+
+    - `lam_init`: the weight of :math:`L_{dist}`
+    - `lams`: counterfactuals exist in restricted regions of the optimisation space, and finding these  regions depends \
+    on the :math:`\lambda` paramter. The algorithm first runs an optimisation loop to determine if counterfactuals \
+    exist for a given :math:`\lambda`. The default sequence of :math:`\lambda` s is:: 
+            
+                        lams = np.array([lam_init / common_ratio ** i for i in range(decay_steps)]) 
+    This sequence can be overriden by passing lams directly. For each :math:`\lambda` step, ``max_iter // decay_steps`` \
+    iterations of gradient descent updates are performed. The `lams` array should be sorted from high to low.
+    - `nb_lams`: Indicates how many values from `lams` need to yield valid counterfactual before the initial search \
+    stops. Defaults to 2, which allows finding the tightest optimisation interval for :math:`\lambda`
+    - `lam_exploration_steps`: for given values of :math:`\lambda` counterfactuals may not exist. This parameters \
+    allows breaking of an optimisation loop early if the probability of the current solution for the maximum probability \
+    class predicted on the inititial solution does not change by more than `instance_proba_delta` in \
+    `lam_exploration_steps` consecutive iteration. The computational time is reduced as a result.
+    - `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
+    the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
+    optimisation for a given :math:`\lambda` in the initial search loop
+    - `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `Watcher counterfactual`
+    - `common_ration`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
+    described above
+    - 'max_lam_steps': maximum number of times to adjust the regularization constant before terminating the search \
+    (number of outer loops).
+""" # noqa W605
+
+WACHTER_SEARCH_OPTS_DEFAULT = {
+    'max_iter': 1000,
+    'early_stop': 50,
+}
+"""dict: The default values governing the gradient descent search process for the counterfactual, defined as:
+
+    - 'max_iter': Maximum number of iterations to run the gradient descent for (number of gradient descent loops for \
+    each :math:`\lambda` value)
+    - 'early_stop': the inner loop will terminate after this number of iterations if either no solutions satisfying \
+    the constraint on the prediction are found or if a solution is found at every step for this amount of steps.                
+"""  # noqa: W605
+WACHTER_METHOD_OPTS = {
+    'tol': 0.01,
+    'search_opts': WACHTER_SEARCH_OPTS_DEFAULT,
+    'lam_opts': WACHTER_LAM_OPTS_DEFAULT,
+}
+"""dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
+ 
+ - `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
+ :math:`t`th output of the `predictor` on a proposed counterfactual `X'` and `p_t` is a target for said output, \
+ specified as `target_proba` when  calling explain.  
+- `search_opts`: define termination conditions for the gradient descent process
+- `lam_opts`: define the hyperparameters that govern the optimisation for :math:`\lambda`
 
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
 the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both 
@@ -102,36 +169,14 @@ the explainer constructor or when calling `explain`. If the same subset of argum
 
 Examples
 --------
-To override the `max_lam_steps` parameters at explain time, call `explain` with they keyword argument::
+To override the `max_lam_steps` parameters at explain time, call `explain` with the keyword argument::
 
-    lam_opts = {'max_lam_steps': 50}.
-""" # noqa W605
-# TODO: UPDATE DOCSTRING
+    method_opts = {'lam_opts':{'max_lam_steps': 50}}.
 
-WACHTER_SEARCH_OPTS_DEFAULT = {
-    'max_iter': 1000,
-    'early_stop': 50,
-}
-"""dict: The default values governing the search process. See `explain` method for a detailed descriptions of each
-parameter.
-
-Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to the
-explainer constructor or when calling `explain`. If the same subset of arguments is specified in both `explain` and the
-constructor, the `explain` options will override the constructor options.
-
-Examples
---------
-To override the `early_stop` parameter at explain time, call `explain` with the keyword argument::
-
-    search_opts = {'early_stop': 100}.
+Similarly, to change the early stopping call `explain` with the keyword argument::
+    
+    method_opts = {'search_opts':{'early_stops': 50}}.
 """
-# TODO: UPDATE DOCSTRING
-WACHTER_METHOD_OPTS = {
-    'tol': 0.01,
-    'search_opts': WACHTER_SEARCH_OPTS_DEFAULT,
-    'lam_opts': WACHTER_LAM_OPTS_DEFAULT,
-}
-# TODO: ALEX: THESE SHOULD BE MAPPING PROXIES SO THAT THE USER COPIES THEN AND THEN MODIFIES THEM?
 
 
 def _convert_to_label(Y: np.ndarray, threshold: float = 0.5) -> int:
@@ -160,7 +205,8 @@ def _convert_to_label(Y: np.ndarray, threshold: float = 0.5) -> int:
         return np.argmax(Y)
 
 
-class WachterCounterfactualBase:
+@register_explainer(explainer_type='counterfactual', method='wachter')
+class WachterCounterfactual:
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -172,42 +218,33 @@ class WachterCounterfactualBase:
                  logger: logging.Logger = None,
                  **kwargs) -> None:
         """
-        Counterfactual explanation method based on `Wachter et al. (2017)`_ (pp. 854).
+        Counterfactual explanation method based on `Wachter et al. (2017)`_ (pp. 854). The role and usage of arguments 
+        not specified is detailed in the `wrapper`_ class.
+        
+        .. _wrapper: file:///C:/Users/alexc/dev/alibi/doc/_build/html/api/alibi.explainers.experimental.counterfactuals.html
 
         .. _Wachter et al. (2017): 
            https://jolt.law.harvard.edu/assets/articlePDFs/v31/Counterfactual-Explanations-without-Opening-the-Black-Box-Sandra-Wachter-et-al.pdf
 
         Parameters
         ----------
-        predictor
-            Keras or TensorFlow model, assumed to return a tf.Tensor object that contains class probabilities. The object 
-            returned should always be two-dimensional. For example, a single-output classification model operating on a 
-            single input instance should return a tensor or array with shape  `(1, 1)`. In the future this explainer may 
-            be extended to work with regression models.
-        tol
-            tolerance for the counterfactual target probability. THe algorithm will aim to ensure 
-            :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the :math:`t`th output of the `predictor`
-            on a proposed counterfactual `X'` and `p_t` is a target for said output, specified as `target_proba` when
-            calling explain.
-        shape
-            Shape of input data. It is assumed of the form `(1, ...)` where the ellipsis replaces the dimensions of a
-            data point. 
-        feature_range
-            Tuple with upper and lower bounds for feature values of the counterfactual. The upper and lower bounds can
-            be floats or numpy arrays with dimension :math:`(N, )` where `N` is the number of features, as might be the
-            case for a tabular data application. For images, a tensor of the same shape as the input data can be applied
-            for pixel-wise constraints. If `fit` is called with argument `X`, then  feature_range is automatically
-            updated as `(X.min(axis=0), X.max(axis=0))`.
+        method_opts
+            Paramaters that control the optimisation process. See documentation for `WATCHER_METHOD_OPTS` above for 
+            detailed information about the role of each parameter. 
+        loss_spec
+            Check the `pytorch`_ or `tensorflow`_ loss specification for detailed explanation of the assumptions of the 
+            loss function.
+            
+            .. _pytorch: file:///C:/Users/alexc/dev/alibi/doc/_build/html/api/alibi.explainers.experimental.counterfactuals.html
+            .. _tensorflow: file:///C:/Users/alexc/dev/alibi/doc/_build/html/api/alibi.explainers.backend.tensorflow.counterfactuals.html
+        logger
+            A logger passed by the wrapper class in order to collect debugging messages.
         kwargs
-            Accepted keyword arguments are `search_opts` and `lam_opts`, which can contain any subset of the keys of
-            `CF_SEARCH_OPTS_DEFAULT` and `CF_LAM_OPTS_DEFAULT`, respectively. These should be used if the user whishes
-            to override the default explainer settings upon initialisation. This may be employed, for instance, if the
-            user has knowledge of good optimisation settings for their problem. The default settings can also be 
-            overridden at `explain` time so it is not necessary to pass the settings to the constructor.  
-
+            Valid kwargs include:
+                - `model_device`: used to pass a model device so that cpu/gpu computation can be supported for PyTorch
+                - blackbox_wrapper: a decorator that the wrapper passes to the algorithm so that the I/O of the \
+                black-box model can be converted to `np.ndarray` or framework specific tensors.         
         """  # noqa W605
-
-        # TODO: ALEX: UPDATE DOCSTRINGS
 
         self.fitted = False
 
@@ -222,7 +259,7 @@ class WachterCounterfactualBase:
         # create attributes and set them with default values
         search_opts = WACHTER_METHOD_OPTS['search_opts']
         lam_opts = WACHTER_METHOD_OPTS['lam_opts']
-        logging_opts = WACHTER_CF_LOGGING_OPTS_DEFAULT
+        logging_opts = _WACHTER_CF_LOGGING_OPTS_DEFAULT
         self._attr_setter(search_opts)
         self._attr_setter(lam_opts)
         self._attr_setter({'tol': WACHTER_METHOD_OPTS['tol']})
@@ -292,37 +329,99 @@ class WachterCounterfactualBase:
             if hasattr(self.optimizer, key):
                 self.optimizer.__setattr__(key, value)
 
-    def initialise_response(self) -> None:
+    def counterfactual(self,
+                       instance: np.ndarray,
+                       optimised_features: np.ndarray,
+                       target_class: Union[str, int] = 'other',
+                       target_proba: float = 1.0,
+                       optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+                       optimizer_opts: Optional[Dict] = None):
         """
-        Initialises the templates that will form the body of the `explanation.data` field.
+        Search for a counterfactual given a starting point (`instance`), the target probability and the target class
+        of the counterfactual.
+
+        Parameters
+        ----------
+        instance
+            Search starting point
+        optimised_features
+            Binary mask. A 1 indicates that the corresponding feature can be changed during search.
+        optimizer, optimizer_opts
+            See wrapper documentation
         """
 
-        self.step_data = [
-            'X',
-            'distance_loss',
-            'prediction_loss',
-            'total_loss',
-            'lambda',
-            'step',
-            'target_class_proba',
-            'target_class',
-            'original_class_proba'
-        ]
+        # TODO: ADD HYPERLINK TO WRAPPER
 
-        self.search_results = copy.deepcopy(DEFAULT_DATA_CF)
-        self.search_results['all'] = defaultdict(list)
-        self.search_results['lambda_sweep'] = {}
+        # check inputs
+        if instance.shape[0] != 1:
+            raise CounterfactualError(
+               f"Only single instance explanations supported (leading dim = 1). Got leading dim = {instance.shape[0]}",
+            )
+
+        y = self.optimizer.make_prediction(self.optimizer.to_tensor(instance))
+        y = self.optimizer.to_numpy_arr(y)
+        instance_class = _convert_to_label(y)
+        instance_proba = y[:, instance_class].item()
+        self.optimizer._get_cf_prediction = partial(self.optimizer.cf_prediction_fcn, src_idx=instance_class)
+
+        self.initialise_variables(
+            instance,
+            optimised_features,
+            target_class,
+            instance_class,
+            instance_proba,
+            target_proba
+        )
+        self.optimizer.set_optimizer(optimizer, optimizer_opts)
+        self._setup_tensorboard()
+        result = self.optimize(init_cf=instance)
+        result['instance_class'] = instance_class
+        result['instance_proba'] = instance_proba
+        self.optimizer.reset_optimizer()
+        self._reset_step()
+
+        return result
+
+    def initialise_variables(self,   # type: ignore
+                             X: np.ndarray,
+                             optimised_features: np.ndarray,
+                             target_class: Union[int, str],
+                             instance_class: int,
+                             instance_proba: float,
+                             target_proba: float) -> None:
+
+        """
+        Initializes the optimizer variables and sets properties used by the base class for evaluating stopping
+        conditions.
+
+        Parameters
+        ----------
+        X
+            Initial condition for the optimization.
+        optimised_features, target_proba, target_class
+            See`counterfactual` method.
+        instance_class, instance_proba
+            The class and probability of the prediction for the initial condition.
+        """
+
+        self.optimizer.initialise_variables(X, optimised_features, target_class, target_proba, instance_class,
+                                            instance_proba)
+        self.target_class = target_class
+        self.instance = X
+        self.instance_class = instance_class
+        self.instance_proba = instance_proba
 
     def optimize(self, *, init_cf: np.ndarray) -> dict:
         """
         Searches a counterfactual given an initial condition for the counterfactual. The search has two loops:
 
             - An outer loop, where :math:`\lambda` (the weight of the distance between the current counterfactual and \
-            the input `X` to explain in the loss term) is optimised using bisection
+            the input `X` to explain in the loss term) is optimised using bisection. See `bisect_lam` method for
+            details.
 
             - An inner loop, where for constant `lambda` the current counterfactual is updated using the gradient of \
             the counterfactual loss function.
-
+        
         Parameters
         ----------
         init_cf
@@ -344,7 +443,7 @@ class WachterCounterfactualBase:
         )
         init_lb, init_ub = lam_lb, lam_ub
         self._bisect_lambda = partial(
-            self._bisect_lam,
+            self.bisect_lam,
             lam_cf_threshold=self.lam_cf_threshold,
             lam_multiplier=self.lam_multiplier,
             lam_divider=self.lam_divider,
@@ -359,7 +458,7 @@ class WachterCounterfactualBase:
             self.lam = lam
             self.lam_step += 1
             # re-set learning rate
-            self.optimizer._reset_optimizer()
+            self.optimizer.reset_optimizer()
             found, not_found = 0, 0
             for gd_step in range(self.max_iter):
                 self.optimizer.cf_step(self.lam)
@@ -457,7 +556,7 @@ class WachterCounterfactualBase:
         for lam_step, lam in enumerate(lams):
             explored_steps = 0
             # optimiser is re-created so that lr schedule is reset for every lam
-            self.optimizer._reset_optimizer()
+            self.optimizer.reset_optimizer()
             self.lam = lam
             self.data_store['lambda'] = lam
             self.lam_step += 1
@@ -523,8 +622,28 @@ class WachterCounterfactualBase:
         return lam_bounds
 
     def compute_lam_bounds(self, cf_found: np.ndarray, lams: np.ndarray):  # type: ignore
+        """
+        Determine an upper and lower bound for :math:`\lambda`.
 
-        # TODO: DOCSTRING
+        Parameters
+        ----------
+        cf_found
+            A binary 1D-array, where each position corresponds to a :math:`\lambda` value. A `1` indicates that a
+            counterfactual was found for that values of :math:`\lambda`
+        lams
+            An array of the same shape as `cf_found`, containing the :math:`\lambda` values for which counterfactuals
+            were searched.
+
+        Returns
+        -------
+        bounds
+            A a named tuple with fields:
+
+                - 'lb': lower bound for lambda
+                - 'ub': upper bound for lambda
+                - 'midpoint': the midpoint of the interval :math:`[lb, ub]`
+
+        """  # noqa W605
 
         self.logger.debug(f"Counterfactuals found: {cf_found}")
         lam_bounds = namedtuple('lam_bounds', 'lb midpoint ub')
@@ -567,24 +686,66 @@ class WachterCounterfactualBase:
 
         return bounds
 
-    def _bisect_lam(self,
-                    cf_found: np.ndarray,
-                    lam_step: int,
-                    lam: float,
-                    lam_lb: float,
-                    lam_ub: float,
-                    lam_cf_threshold: int = 5,
-                    lam_multiplier: int = 10,
-                    lam_divider: int = 10) -> Tuple[float, float, float]:
+    def initialise_response(self) -> None:
         """
-        Runs a bisection algorithm to optimise :math:`lambda`, which is adjust according to the following algorithm.
-        See `explain` method documentation for details about the algorithm and parameters.
+        Initialises the templates that will form the body of the `explanation.data` field.
+        """
+
+        self.step_data = [
+            'X',
+            'distance_loss',
+            'prediction_loss',
+            'total_loss',
+            'lambda',
+            'step',
+            'target_class_proba',
+            'target_class',
+            'original_class_proba'
+        ]
+
+        self.search_results = copy.deepcopy(DEFAULT_DATA_CF)
+        self.search_results['all'] = defaultdict(list)
+        self.search_results['lambda_sweep'] = {}
+
+    def bisect_lam(self,
+                   cf_found: np.ndarray,
+                   lam_step: int,
+                   lam: float,
+                   lam_lb: float,
+                   lam_ub: float,
+                   lam_cf_threshold: int = 5,
+                   lam_multiplier: int = 10,
+                   lam_divider: int = 10) -> Tuple[float, float, float]:
+        """
+        Runs a bisection algorithm to optimise :math:`lambda`, which is adjust according to the following algorithm:
+        
+            - if the number of counterfactuals exceeds `lam_cf_threshold`, then:
+                * the :math:`\lambda` lower bound, :math:`\lambda_{lb}`, is set to :math:`\max(\lambda, \lambda_{lb})`
+                * if :math:`\lambda < 10^9` then :math:`\lambda \gets 0.5*(\lambda_{lb}, \lambda_{ub})`
+                * else :math:`\lambda` is mutiplied by `lambda_multiplier`
+            - if the number of counterfactuals is below `lam_cf_threshold`, then:
+                * the :math:`\lambda` upper bound, :math:`\lambda_{ub}`, is set to :math:`\min(\lambda, \lambda_{ub})`
+                * if :math:`\lambda > 0` then :math:`\lambda \gets 0.5*(\lambda_{lb}, \lambda_{ub})`
+                * else :math:`\lambda` is divided by `lambda_divider`
+                
+            See `WACHTER_METHOD_OPTS` for details parameters defaults.
+            
+        Parameters
+        ----------
+        cf_found
+            Array containing the number of counterfactuals found for a given value of :math:`\lambda` in each position.
+        lam_step
+            The current optimisation step for :math:`\lambda`.
+        lam_lb, lam_ub
+            The lower and upper bounds for the :math:`\lambda`.
+        lam_cf_threshold, lam_divider, lam_multiplier
+            Parameters that control the bisection algorithm as described above.
 
         Returns
         -------
+        lam, lam_lb, lam_ub
+            Updated values for :math:`\lambda` and its lower and upper bound.
         """  # noqa W605
-
-        # TODO: UPDATE DOCSTRING
 
         # lam_cf_threshold: minimum number of CF instances to warrant increasing lambda
         if cf_found[lam_step] >= lam_cf_threshold:
@@ -620,11 +781,12 @@ class WachterCounterfactualBase:
 
         Parameters
         ----------
-        See ``_update_search_result`` method.
+        current_cf, current_cf_pred
+            See ``_update_response`` method.
         """
-        # TODO: UPDATE DOCSTRING
+
         # collect optimizer state from the framework
-        # important that the framework state matches the variable names we want to log
+        # important that the optimizer state dict keys match the variable names the logger knows about
         opt_state = self.optimizer.collect_step_data()
         self.data_store.update(opt_state)
         # compute other state from information available to this function
@@ -651,7 +813,9 @@ class WachterCounterfactualBase:
 
         """  # noqa W605
 
+        # collect data from the optimizer
         opt_data = self.optimizer._get_current_state()
+        # augment the data and update the response
         pred_class = _convert_to_label(current_cf_pred)
         target_pred_proba = current_cf_pred[:, pred_class].item()
         instance_class_proba = current_cf_pred[:, self.instance_class].item()
@@ -687,19 +851,11 @@ class WachterCounterfactualBase:
         self.step = -1
         self.lam_step = -1
 
-    def initialise_variables(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Subclass must implement variable initialisation method! This method should call the framework "
-            "initialisation with appropriate arguments and set properties needed by the base class to perform the"
-            " optimisation"
-        )
-
     def _setup_tensorboard(self):
         """
-        Initialises the TensorBoard writing utility.
+        Initialises the TensorBoard writer.
         """
 
-        # TODO: DOCSTRING
         self._set_attributes(self.logging_opts)
         if self.log_traces:
             self.tensorboard = self.tensorboard().setup(self.logging_opts)
@@ -710,6 +866,7 @@ class WachterCounterfactualBase:
         data only.
         """
 
+        # only for images and when logging to TensorbBoard is active
         if not self.log_traces or len(self.instance.shape) != 4:
             return
 
@@ -731,87 +888,3 @@ class WachterCounterfactualBase:
             data_type='image',
             description='Original instance'
         )
-
-
-@register_explainer(explainer_type='counterfactual', method='wachter')
-class WachterCounterfactual(WachterCounterfactualBase):
-
-    def __init__(self,
-                 predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 predictor_type: str = 'blackbox',
-                 loss_spec: Optional[Dict] = None,
-                 method_opts: Optional[Dict] = None,
-                 feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
-                 framework: str = 'tensorflow',
-                 logger: logging.Logger = None,
-                 **kwargs
-                 ):
-        super().__init__(predictor, predictor_type, loss_spec, method_opts, feature_range, framework, logger, **kwargs)
-
-    def counterfactual(self,
-                       instance: np.ndarray,
-                       optimised_features: np.ndarray,
-                       target_class: Union[str, int] = 'other',
-                       target_proba: float = 1.0,
-                       optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
-                       optimizer_opts: Optional[Dict] = None):
-        """
-        Parameters
-        ----------
-        optimised_features
-            Binary mask. A 1 indicates that the corresponding feature can be changed during search.
-        """
-
-        # TODO: DOCSTRING
-
-        # check inputs
-        if instance.shape[0] != 1:
-            raise CounterfactualError(
-               f"Only single instance explanations supported (leading dim = 1). Got leading dim = {instance.shape[0]}",
-            )
-
-        y = self.optimizer.make_prediction(self.optimizer.to_tensor(instance))
-        y = self.optimizer.to_numpy_arr(y)
-        instance_class = _convert_to_label(y)
-        instance_proba = y[:, instance_class].item()
-        self.optimizer._get_cf_prediction = partial(self.optimizer.cf_prediction_fcn, src_idx=instance_class)
-
-        self.initialise_variables(
-            instance,
-            optimised_features,
-            target_class,
-            instance_class,
-            instance_proba,
-            target_proba
-        )
-        self.optimizer.set_optimizer(optimizer, optimizer_opts)
-        self._setup_tensorboard()
-        result = self.optimize(init_cf=instance)
-        result['instance_class'] = instance_class
-        result['instance_proba'] = instance_proba
-        self.optimizer._reset_optimizer()
-        self._reset_step()
-
-        return result
-
-    def initialise_variables(self,   # type: ignore
-                             X: np.ndarray,
-                             optimised_features: np.ndarray,
-                             target_class: Union[int, str],
-                             instance_class: int,
-                             instance_proba: float,
-                             target_proba: float) -> None:
-
-        # TODO: DOCSTRING
-        self.optimizer.initialise_variables(
-            X,
-            optimised_features,
-            target_class,
-            instance_class,
-            instance_proba,
-            target_proba
-        )
-        self.target_class = target_class
-        self.instance = X
-        self.instance_class = instance_class
-        self.instance_proba = instance_proba

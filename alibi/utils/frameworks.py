@@ -19,7 +19,7 @@ except ImportError:
 tf_required = "tensorflow<2.0.0"
 tf_upgrade = "tensorflow>2.0.0"
 has_tensorflow = True
-tf_version = tf.__version__
+tf_version: str = tf.__version__
 
 
 def tensorflow_installed() -> bool:

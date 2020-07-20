@@ -439,6 +439,7 @@ class IntegratedGradients(Explainer):
         # tf concatatation
         grads = tf.concat(batches, 0)
         shape = grads.shape[1:]
+        print(type(shape))
         if type(shape) == tf.TensorShape:
             shape = tuple([shape[i].value for i in range(len(shape))])
 

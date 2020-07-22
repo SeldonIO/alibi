@@ -223,10 +223,9 @@ class KernelExplainerWrapper(KernelExplainer):
         - passing a batch index to the explainer so that a parallel explainer pool can return batches in arbitrary order
     """
     def __init__(self, *args, **kwargs):
-        seed = None
         if 'seed' in kwargs:
             seed = kwargs.pop('seed')
-        np.random.seed(seed)
+            np.random.seed(seed)
         super().__init__(*args, **kwargs)
 
     def get_explanation(self, X: Union[Tuple[int, np.ndarray], np.ndarray], **kwargs) -> Tuple[int, np.ndarray]:

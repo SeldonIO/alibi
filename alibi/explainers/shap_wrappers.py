@@ -330,7 +330,7 @@ class KernelShap(Explainer, FitMixin):
         Raises
         ------
         ModuleNotFoundError
-            If the `ray` library is not installed.
+            If the `ray` library is not installed and `n_cpus` is set in `distributed_opts`. 
          
         """  # noqa W605
 

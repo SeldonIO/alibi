@@ -418,6 +418,8 @@ class DistributedExplainer:
         A numpy array where the the batches ordered according to their batch id are concatenated in a single array.
         """
 
+        # TODO: THIS DOES NOT LEVERAGE THE FACT THAT THE RESULTS ARE RETURNED AS AVAILABLE. ISSUE TO BE RAISED.
+
         result_order, results = list(zip(*[(idx, res) for idx, res in unordered_result]))
         orig_order = invert_permutation(list(result_order))
         ordered_result = [results[idx] for idx in orig_order]

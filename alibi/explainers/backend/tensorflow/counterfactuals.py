@@ -259,6 +259,10 @@ class TFWachterCounterfactualOptimizer:
 
             - Setting the terms in the `WACHTER_LOSS_SPEC_WHITEBOX` as object attributes
             - Setting placeholders for optimizer, optimization variables and solution constraints
+
+        Parameters
+        ----------
+        # TODO: ADD DOCS HERE. DOCUMENT KWARGS AS WELL
         """
 
         self.predictor = predictor

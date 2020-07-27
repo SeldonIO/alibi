@@ -6,11 +6,11 @@ from typing import Dict, Union, Any
 import numpy as np
 import tensorflow as tf
 
-from alibi.utils.logging import tensorboard_logger, TensorboardWriter
+from alibi.utils.logging import tensorboard_logger, TensorboardWriterBase
 
 
 @tensorboard_logger
-class TFTensorboardWriter(TensorboardWriter):
+class TFTensorboardWriter(TensorboardWriterBase):
 
     framework = 'tensorflow'
 

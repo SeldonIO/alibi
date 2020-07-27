@@ -26,7 +26,7 @@ def _get_var_name(tag: str) -> str:
     return tag
 
 
-class TensorboardWriter:
+class TensorboardWriterBase:
 
     def __init__(self):
 

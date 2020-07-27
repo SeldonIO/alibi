@@ -20,16 +20,12 @@ def blackbox_wrapper(framework: str = 'tensorflow') -> Callable:
     """
 
     def register_wrapper(func):
-        func.framework = framework
-        try:
-            blackbox_wrappers[framework] = func
-        except AttributeError:
-            raise AttributeError("Decorated function needs to have a framework attribute.")
         if framework not in ['pytorch', 'tensorflow']:
             raise ValueError(
-                f"Unknown value {framework} for decorated function attribute. Framework needs to be either 'tensorflow'"
-                f" or 'pytorch'."
+                f"Unknown value {framework} for framework. Black-box model wrappers are only registered for 'pytorch' "
+                f"and 'tensorflow' frameworks!"
             )
+        blackbox_wrappers[framework] = func
         return func
     return register_wrapper
 

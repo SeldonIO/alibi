@@ -6,7 +6,7 @@ import tensorflow as tf
 from inspect import signature
 
 from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
-from alibi.api.interfaces import Explanation, Explainer
+from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from alibi.explainers.backend.common import load_backend
 from alibi.explainers.exceptions import CounterfactualError
 from alibi.utils.frameworks import infer_device, _check_tf_or_pytorch
@@ -17,7 +17,8 @@ from alibi.utils.wrappers import get_blackbox_wrapper
 
 from collections import defaultdict, namedtuple
 from functools import partial
-from typing import Union, Callable, Optional, Dict, Tuple, Any, Set, TYPE_CHECKING
+from typing import Any, Callable, Optional, Dict, Set, Tuple, Union, TYPE_CHECKING
+from typing_extensions import Literal
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -25,7 +26,7 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger(__name__)
 
 WACTHER_CF_VALID_SCALING = ['median']
-WACHTER_CF_PARAMS = ['scale_loss', 'constrain_features', 'feature_whitelist']
+WACHTER_CF_PARAMS = ['scale_loss', 'scaling_method' 'constrain_features', 'feature_whitelist', 'fitted']
 
 # define variable tracked for TensorBoard display by specifing tag, data type and description
 _CF_WACHTER_TAGS_DEFAULT = [
@@ -217,6 +218,10 @@ def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
         - If the numerical gradient computation function specified is not in the `numerical_gradients` registry. 
     """  # noqa W605
 
+    # the user does not modify the default loss spec
+    if not loss_spec:
+        return
+
     # TODO: ALEX: TBD: SHOULD WE ENFORCE KWARGS IN SPEC?
     available_num_grad_fcns = set([list(numerical_gradients[key]) for key in numerical_gradients.keys()])
 
@@ -286,7 +291,7 @@ def _convert_to_label(Y: np.ndarray, threshold: float = 0.5) -> int:
         return np.argmax(Y)
 
 
-def _select_features(X: np.ndarray, feature_whitelist: Union[str, np.ndarray]) -> np.ndarray:
+def _select_features(X: np.ndarray, feature_whitelist: Union[Literal['all'], np.ndarray]) -> np.ndarray:
     """
     Creates a mask that is used to select the input features to be optimised.
 
@@ -312,7 +317,7 @@ def _select_features(X: np.ndarray, feature_whitelist: Union[str, np.ndarray]) -
 
 class _WachterCounterfactual:
     """This is a private class that implements the optimization process as described in the `paper`_ by Wachter et al. 
-    (2017). The alibi API is implemented in a public class  
+    (2017). The alibi API is implemented in a public class.  
 
     .. paper: 
        https://jolt.law.harvard.edu/assets/articlePDFs/v31/Counterfactual-Explanations-without-Opening-the-Black-Box-Sandra-Wachter-et-al.pdf
@@ -330,12 +335,9 @@ class _WachterCounterfactual:
         See public class documentation.
         """
 
-        if not _check_tf_or_pytorch(framework):
-            raise ValueError(
-                "Unknown framework specified for framework not installed. Please check spelling and/or install the "
-                "framework in order to run this explainer."
-            )
+        _check_tf_or_pytorch(framework)
         self.fitted = False
+        self.params = {}  # used by public class to update metadata
         model_device = kwargs.get('device', None)
         if not model_device:
             self.model_device = infer_device(predictor, predictor_type, framework)
@@ -431,7 +433,7 @@ class _WachterCounterfactual:
     def counterfactual(self,
                        instance: np.ndarray,
                        optimised_features: np.ndarray,
-                       target_class: Union[str, int] = 'other',
+                       target_class: Union[Literal['same', 'other'], int] = 'other',
                        target_proba: float = 1.0,
                        optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
                        optimizer_opts: Optional[Dict] = None):
@@ -446,10 +448,8 @@ class _WachterCounterfactual:
         optimised_features
             Binary mask. A 1 indicates that the corresponding feature can be changed during search.
         optimizer, optimizer_opts
-            See wrapper documentation
+            See public class `explain` documentation.
         """
-
-        # TODO: ADD HYPERLINK TO WRAPPER
 
         # check inputs
         if instance.shape[0] != 1:
@@ -484,7 +484,7 @@ class _WachterCounterfactual:
     def initialise_variables(self,  # type: ignore
                              X: np.ndarray,
                              optimised_features: np.ndarray,
-                             target_class: Union[int, str],
+                             target_class: Union[Literal['same', 'other'], int],
                              instance_class: int,
                              instance_proba: float,
                              target_proba: float) -> None:
@@ -989,8 +989,83 @@ class _WachterCounterfactual:
             description='Original instance'
         )
 
+    def fit(self,
+            X: Optional[np.ndarray] = None,
+            scale: Union[Literal['median'], bool] = False,
+            constrain_features: bool = True) -> "_WachterCounterfactual":
+        """
+        See public class documentation
+        """
 
-class WachterCounterfactual(Explainer):
+        # TODO: A decorator-based soln similar to the numerical gradients can be implemented for scaling
+
+        self._check_scale(scale)
+
+        if X is not None:
+
+            if self.scale:
+                # infer median absolute deviation (MAD) and update loss
+                if scale == 'median' or isinstance(scale, bool):
+                    scaling_factor = median_abs_deviation(X)
+                    self.optimizer.distance_fcn.keywords['feature_scale'] = scaling_factor
+
+            if constrain_features:
+                # infer feature ranges and update counterfactual constraints
+                feat_min, feat_max = np.min(X, axis=0), np.max(X, axis=0)
+                self.optimizer.cf_constraint = [feat_min, feat_max]
+
+        self.fitted = True
+        scaling_method = 'median' if self.scale else 'N/A'
+        self.params = {
+            'scale_loss': self.scale,
+            'scaling_method': scaling_method,
+            'constrain_features': constrain_features,
+            'fitted': self.fitted,
+        }
+
+        return self
+
+    def _check_scale(self, scale: Union[Literal['median'], bool]) -> None:
+        """
+        Checks whether scaling should be performed depending on user input.
+
+        Parameters
+        ----------
+        scale
+            User options for scaling.
+        """
+
+        scale_ = False  # type: bool
+        if isinstance(scale, str):
+            if scale not in WACTHER_CF_VALID_SCALING:
+                logger.warning(f"Received unrecognised option {scale} for scale. No scaling will take place. "
+                               f"Recognised scaling methods are: {WACTHER_CF_VALID_SCALING}.")
+            else:
+                scale_ = True
+
+        if isinstance(scale, bool):
+            if scale:
+                logger.info(f"Defaulting to median absolute deviation scaling!")
+                scale_ = True
+
+        if scale_:
+            loss_params = signature(self.optimizer.loss_spec['distance']).parameters
+            if 'feature_scale' not in loss_params:
+                logger.warning(
+                    f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
+                    f"Scaling will not be applied!"
+                )
+                scale_ = False
+
+        self.scale = scale_  # type: bool
+
+
+class WachterCounterfactual(Explainer, FitMixin):
+
+    # TODO: ALEX: TBD: AS WE IMPLEMENT COUNTERFACTUALS, WE MAY REALISE THIS IS COMMON AND WOULD DO THE FOLLOWING:
+    #  - MAKE THIS A SUPERCLASS (e.g., CounterfactualAPI). The public classes (e.g., WachterCounterfactual) inherit from
+    #  it to show the docs specific to the method and potentially override some behaviour (eg. fit might have other
+    #  set of arguments, etc)
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
                  predictor_type: str = 'blackbox',
@@ -1050,7 +1125,7 @@ class WachterCounterfactual(Explainer):
             The framework in which the model is implemented for ``'whitebox'`` predictors, or the framework used to run
             the optimization for ``'blackbox'`` predictors. PyTorch and TensorFlow are optional dependencies so they
             must be installed before running this algorithm. PyTorch support will be available in future releases, only 
-            ``'tensorfllow'`` is a valid version for the current release.
+            ``'tensorflow'`` is a valid version for the current release.
 
         kwargs
             Valid kwargs include:
@@ -1069,11 +1144,11 @@ class WachterCounterfactual(Explainer):
             'feature_range': feature_range,
             'framework': framework,
         }
-        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, kwargs)
+        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, **kwargs)
 
     def fit(self,
             X: Optional[np.ndarray] = None,
-            scale: Union[bool, str] = False,
+            scale: Union[Literal['median'], bool] = False,
             constrain_features: bool = True) -> "WachterCounterfactual":
         """
         Calling this method with an array of :math:`N` data points, assumed to be the leading dimension of `X`, has the
@@ -1081,7 +1156,7 @@ class WachterCounterfactual(Explainer):
 
             - If `constrain_features=True`, the minimum and maximum of the array along the leading dimension constrain \
             the minimum and the maximum of the counterfactual
-            - If the `scale` argument is set to `True` or `MAD`, then the distance between the input and the \
+            - If the `scale` argument is set to `True` or `median`, then the distance between the input and the \
             counterfactual is scaled, feature-wise at each optimisiation step by the feature-wise median absolute \
             deviation (MAD) calculated from `X` as detailed in the notes. Other options might be supported in the \
             future (raise a feature request).
@@ -1110,76 +1185,18 @@ class WachterCounterfactual(Explainer):
 
         # TODO: ALEX: TBD: Should fit be part of the private class? We could also defer the call.
         # TODO: A decorator-based soln similar to the numerical gradients can be implemented for scaling
-
-        self._check_scale(scale)
-
-        if X is not None:
-
-            if self.scale:
-                # infer median absolute deviation (MAD) and update loss
-                if scale == 'median' or isinstance(scale, bool):
-                    scaling_factor = median_abs_deviation(X)
-                    self._explainer.optimizer.distance_fcn.keywords['feature_scale'] = scaling_factor
-
-            if constrain_features:
-                # infer feature ranges and update counterfactual constraints
-                feat_min, feat_max = np.min(X, axis=0), np.max(X, axis=0)
-                self._explainer.optimizer.cf_constraint = [feat_min, feat_max]
-
-        self.fitted = True
-        scaling_method = 'mad' if self.scale else 'N/A'
-        params = {
-            'scale_loss': self.scale,
-            'scaling_method': scaling_method,
-            'constrain_features': constrain_features,
-            'fitted': self.fitted,
-        }
-
-        self._update_metadata(params, params=True)
+        self._explainer.fit(X=X, scale=scale, constrain_features=constrain_features)
+        self._update_metadata(self._explainer.params, params=True, allowed=set(WACHTER_CF_PARAMS))
 
         return self
 
-    def _check_scale(self, scale: Union[bool, str]) -> None:
-        """
-        Checks whether scaling should be performed depending on user input.
-
-        Parameters
-        ----------
-        scale
-            User options for scaling.
-        """
-
-        scale_ = False  # type: bool
-        if isinstance(scale, str):
-            if scale not in WACTHER_CF_VALID_SCALING:
-                logger.warning(f"Received unrecognised option {scale} for scale. No scaling will take place. "
-                               f"Recognised scaling methods are: {WACTHER_CF_VALID_SCALING}.")
-            else:
-                scale_ = True
-
-        if isinstance(scale, bool):
-            if scale:
-                logger.info(f"Defaulting to median absolute deviation scaling!")
-                scale_ = True
-
-        if scale_:
-            loss_params = signature(self._explainer.loss_spec['distance']).parameters
-            if 'feature_scale' not in loss_params:
-                logger.warning(
-                    f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
-                    f"Scaling will not be applied!"
-                )
-                scale_ = False
-
-        self.scale = scale_  # type: bool
-
     def explain(self,
                 X: np.ndarray,
-                target_class: Union[str, int] = 'other',
+                target_class: Union[Literal['same', 'other'], int] = 'other',
                 target_proba: float = 1.0,
                 optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
                 optimizer_opts: Optional[Dict] = None,
-                feature_whitelist: Union[str, np.ndarray] = 'all',
+                feature_whitelist: Union[Literal['all'], np.ndarray] = 'all',
                 logging_opts: Optional[Dict] = None,
                 method_opts: Optional[Dict] = None) -> "Explanation":
         """
@@ -1231,19 +1248,18 @@ class WachterCounterfactual(Explainer):
             original values.
         logging_opts
             A dictionary that specifies any changes to the default logging options specified in 
-            `CF_LOGGING_OPTS_DEFAULT`, with the following structure::
+            ``, with the following structure::
 
                 {
                     'verbose': False,
                     'log_traces': True,
-                    'trace_dir': None,
+                    'trace_dir': 'logs/cf',
                     'summary_freq': 1,
                     'image_summary_freq': 10,
                     'tracked_variables': {'tags': [], 'data_types': [], 'descriptions': []},
                 }
 
-            The default value for the dictionary is documented in the `WACHTER_CF_LOGGING_OPTS_DEFAULT` documentation
-            `here_`.
+                Default values for `verbose` and `log_traces` are as shown above.
 
                 - 'verbose': if `False` the logger will be set to ``INFO`` level 
 
@@ -1271,6 +1287,8 @@ class WachterCounterfactual(Explainer):
             This contains the hyperparameters specific to the method used to search for the counterfactual. These are 
             documented in the base implementations for the specific algorithms and can be found `here`_.
         """  # noqa W605
+
+        # TODO: UPDATE DOCS
 
         # override default method settings with user input
         if method_opts:
@@ -1305,7 +1323,7 @@ class WachterCounterfactual(Explainer):
         """
         This function updates the metadata of the explainer using the data from the `data_dict`. If the params option
         is specified, then each key-value pair is added to the metadata `'params'` dictionary only if the key is
-        included in `CF_PARAMS`.
+        specified in the `allowed` dictionary
 
         Parameters
         ----------

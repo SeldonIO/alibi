@@ -1,5 +1,4 @@
 import numpy as np
-import tensorflow as tf
 
 from typing import Callable, Union, Tuple
 
@@ -18,7 +17,6 @@ def numerical_gradient(framework='tensorflow'):
     A decorator used to register a function as a numerical gradient implementation.
     """
     def decorate_numerical_gradient(func):
-        func.optimizer = framework
         numerical_gradients[framework].append(func)
         return func
     return decorate_numerical_gradient
@@ -90,12 +88,9 @@ def num_grad_batch(func: Callable,
     batch_size = X.shape[0]
     data_shape = X[0].shape
     preds = func(X, *args)
-    preds = tf.reshape(preds, (-1, 1))
     X_pert_pos, X_pert_neg = perturb(X, eps)  # (N*F)x(shape of X[0])
     X_pert = np.concatenate([X_pert_pos, X_pert_neg], axis=0)
     preds_concat = func(X_pert, *args)  # make predictions
-    preds_concat = preds_concat.numpy()
-    preds_concat = preds_concat.reshape(-1, 1)
     n_pert = X_pert_pos.shape[0]
 
     grad_numerator = preds_concat[:n_pert] - preds_concat[n_pert:]  # (N*F)*P

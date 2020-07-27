@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import tensorflow as tf
 
+from alibi.explainers.backend import register_backend
 from alibi.utils.gradients import numerical_gradients
 from collections import defaultdict
 from copy import deepcopy
@@ -10,7 +11,7 @@ from functools import partial
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
-from alibi.explainers.backend import register_backend
+from typing_extensions import Literal
 
 
 def scaled_l1_loss(instance: tf.Tensor, cf: tf.Variable, feature_scale: Optional[tf.Tensor] = None) -> tf.Tensor:
@@ -96,9 +97,9 @@ and its kwargs under the ``'kwargs'``. If there are no kwargs, an empty dictiona
 arguments are assumed to be the model prediction for the specified class and the target for the said prediction, 
 specified as an input to `explain`, respectively.
 
-Similarly, :math:`L_{dist}` is specified in the ``'distance'`` field of the specification. The kwargs of the callable 
-are assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current
-iteration :math:`X'`, respectively.
+Similarly, :math:`L_{dist}` is specified in the ``'distance'`` field of the specification. The args of the callable are
+assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current iteration 
+:math:`X'`, respectively.
 
 The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'`` 
 field) along with its kwargs.
@@ -197,7 +198,10 @@ def slice_prediction(prediction: tf.Tensor, target_idx: Union[int, str], src_idx
     """
 
     if isinstance(target_idx, int) or target_idx == 'same':
+        if isinstance(target_idx, str):
+            return prediction[:, src_idx]
         return prediction[:, target_idx]
+
     if target_idx != 'other':
         raise ValueError("The only allowed values for output slices are {'same','other'}")
 
@@ -243,8 +247,8 @@ class TFWachterCounterfactualOptimizer:
 
         .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
 
-    in the case where the optimizer has access to the parameters of the predictor ("blackbox" predictor type).
-    The differentiation is perfomed by the Tensorflow autograd library.
+    in the case where the optimizer has access to the parameters of the predictor ("whitebox" predictor type). The 
+    differentiation is perfomed by the Tensorflow autograd library.
     """  # noqa W605
     framework_name = 'tensorflow'
 
@@ -377,7 +381,7 @@ class TFWachterCounterfactualOptimizer:
     def initialise_variables(self,
                              X: np.ndarray,
                              optimised_features: np.ndarray,
-                             target_class: Union[int, str],
+                             target_class: Union[Literal['same', 'other'], int],
                              target_proba: float,
                              instance_class: int,
                              instance_proba: float) -> None:
@@ -619,7 +623,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
                 else:
                     self.__setattr__(f"{term}_grad_fcn", loss_spec[term]['grad_fcn'])
                 available_grad_methods = [fcn for fcn in numerical_gradients[self.framework_name]]
-                available_grad_methods_names = [fcn.__name__ for fcn in numerical_gradients[self.framework_name]]
+                available_grad_methods_names = [fcn.__name__ for fcn in available_grad_methods]
                 grad_method_name = loss_spec[term]['gradient_method']['name']
                 grad_method_kwargs = loss_spec[term]['gradient_method']['kwargs']
                 grad_method_idx = available_grad_methods_names.index(grad_method_name)

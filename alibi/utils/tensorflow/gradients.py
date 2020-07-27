@@ -8,7 +8,7 @@ from alibi.utils.gradients import numerical_gradient
 
 def perturb_tensorflow(X: tf.Tensor, eps: Union[float, np.ndarray] = 1e-08) -> Tuple[tf.Tensor, tf.Tensor]:
     """
-    An implementation of `perturb` for TensorFlow 2.x. See perturb for details. This function does not support
+    An implementation of `utils.gradients.perturb` for TensorFlow 2.x. See perturb for details. This function does not support
     the `proba` kwarg.
     """
     batch_size, *datapoint_shape = X.shape

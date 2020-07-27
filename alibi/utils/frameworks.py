@@ -6,19 +6,19 @@ from typing import Union
 
 try:
     import tensorflow as tf
-
+    has_tensorflow = True
 except ImportError:
     has_tensorflow = False
 
 
 try:
     import torch
+    has_pytorch = True
 except ImportError:
     has_pytorch = False
 
 tf_required = "tensorflow<2.0.0"
 tf_upgrade = "tensorflow>2.0.0"
-has_tensorflow = True
 tf_version: str = tf.__version__
 
 
@@ -76,13 +76,13 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, 
     return default_model_device
 
 
-def _check_tf_or_pytorch(package: str) -> bool:
+def _check_tf_or_pytorch(framework: str) -> bool:
     """
     Checks if PyTorch or TensorFlow is installed.
 
     Parameters
     ---------
-    package: {'pytorch', 'tensorflow'}
+    framework: {'pytorch', 'tensorflow'}
 
     Raises
     ------
@@ -90,9 +90,12 @@ def _check_tf_or_pytorch(package: str) -> bool:
         If the value of `package` is not 'pytorch' or 'tensorflow'.
     """
 
-    if package == 'tensorflow':
+    if framework == 'tensorflow':
         return has_tensorflow
-    elif package == 'pytorch':
+    elif framework == 'pytorch':
         return has_pytorch
     else:
-        raise ValueError("This function only checks if PyTorch or TensorFlow are installed!")
+        raise ValueError(
+                "Unknown framework specified or framework not installed. Please check spelling and/or install the "
+                "framework in order to run this explainer."
+            )

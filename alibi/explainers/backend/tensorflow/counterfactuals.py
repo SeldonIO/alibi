@@ -248,8 +248,7 @@ class TFCounterfactualOptimizer:
 
         - setting the loss terms as optimizer attributes
         - TensorFlow optimizer setter
-        - basic variables initialisation
-        - `cf_step` a method that differentiates the loss function specified and updates the solution
+        - `step`, a method that differentiates the loss function specified and updates the solution
         - methods that copy or convert to/from tf.Tensor objects, that can be used by calling objects to implement \
         framework-independent functionality
         - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
@@ -326,14 +325,14 @@ class TFCounterfactualOptimizer:
         self.target_proba = None  # type: Union[tf.Tensor, None]
         self.instance = None  # type: Union[tf.Tensor, None]
         self.instance_class = None  # type: Union[int, None]
-        self.cf = None  # type: Union[tf.Variable, None]
+        self.solution = None  # type: Union[tf.Variable, None]
         # updated at explain time since user can override. Defines default LR schedule.
         self.max_iter = None
 
         # initialisation method and constraints for counterfactual
-        self.cf_constraint = None
+        self.solution_constraint = None
         if feature_range is not None:
-            self.cf_constraint = [feature_range[0], feature_range[1]]
+            self.solution_constraint = [feature_range[0], feature_range[1]]
 
         # for convenience, to avoid if/else depending on framework in calling context
         self.device = None
@@ -390,52 +389,17 @@ class TFCounterfactualOptimizer:
 
         self._optimizer_copy = deepcopy(self.optimizer)
 
-    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs):
+    def initialise_variables(self, *args, **kwargs):
         """
-        This method initializes:
-            - a tensor that stores the value of the initial condition, `X`
-            - a tensor that stores the counterfactual as the optimisation proceedes, `cf`
-            - a tensor that tracks the optimized features, `mask`
-
-        Sub-classes extending this method should:
-            - call the super-class method to perform the aforementioned
-            - pass the additional arguments via kwargs
-
-        Parameters
-        ----------
-        X
-            The instance whose counterfactual is to be searched.
-        optimized_features
-            A boolean mask, the same shape as `X`. A ``1`` indicates that a feature will be optimized whereas ``0``
-            indicates the contrary
+        This method should be used to set the variables that are needed to compute the loss function as properties of
+        the optimizer. See `TFWachterCounterfactualOptimizer` for a concrete implemenentation of an example where a
+        counterfactual is found by optimizing an initial condition using the loss function gradients. At a minimum,
+        the implementation should initialise a `tf.Variable` called `solution`, which is going to be updated using the
+        loss gradients when `step()` is called.
         """
+        raise NotImplementedError("Concrete implementations should implement variables initialisation!")
 
-        # tf.identity is the same as constant but does not always create tensors on CPU
-        self.instance = tf.identity(X, name='instance')
-        self.initialise_cf(X)
-        self.mask = tf.identity(optimized_features, name='gradient mask')
-
-    def initialise_cf(self, X: np.ndarray) -> None:
-        """
-        Initializes the counterfactual to the data point `X` applies constraints on the feature value.
-
-        Parameters
-        ----------
-        X
-            Instance whose counterfactual is to be found.
-        """
-
-        constraint_fcn = None
-        if self.cf_constraint is not None:
-            constraint_fcn = partial(range_constraint, low=self.cf_constraint[0], high=self.cf_constraint[1])
-        self.cf = tf.Variable(
-            initial_value=X,
-            trainable=True,
-            name='counterfactual',
-            constraint=constraint_fcn,
-        )
-
-    def cf_step(self) -> None:
+    def step(self) -> None:
         """
         Runs a gradient descent step and updates current solution.
         """
@@ -451,7 +415,7 @@ class TFCounterfactualOptimizer:
 
         with tf.GradientTape() as tape:
             loss = self.autograd_loss()
-        gradients = tape.gradient(loss, [self.cf])
+        gradients = tape.gradient(loss, [self.solution])
 
         return gradients
 
@@ -474,7 +438,7 @@ class TFCounterfactualOptimizer:
 
         autograd_grads = gradients[0]
         gradients = [self.mask * autograd_grads]
-        self.optimizer.apply_gradients(zip(gradients, [self.cf]))
+        self.optimizer.apply_gradients(zip(gradients, [self.solution]))
 
     def make_prediction(self, X: Union[np.ndarray, tf.Variable, tf.Tensor]) -> tf.Tensor:
         """
@@ -601,12 +565,34 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
             See calling object `counterfactual` method for more information.
         """  # noqa W605
 
-        super().initialise_variables(X, optimized_features)
+        self.instance = tf.identity(X, name='instance')
+        self.initialise_solution(X)
+        self.mask = tf.identity(optimized_features, name='gradient mask')
         # tf.identity is the same as constant but does not always create tensors on CPU
         self.target_proba = tf.identity(kwargs.get('target_proba') * np.ones(1, dtype=X.dtype), name='target_proba')
         self.target_class = kwargs.get('target_class')
         self.instance_class = kwargs.get('instance_class')
         self.instance_proba = kwargs.get('instance_proba')
+
+    def initialise_solution(self, X: np.ndarray) -> None:
+        """
+        Initializes the counterfactual to the data point `X` applies constraints on the feature value.
+
+        Parameters
+        ----------
+        X
+            Instance whose counterfactual is to be found.
+        """
+
+        constraint_fn = None
+        if self.solution_constraint is not None:
+            constraint_fn = partial(range_constraint, low=self.solution_constraint[0], high=self.solution_constraint[1])
+        self.solution = tf.Variable(
+            initial_value=X,
+            trainable=True,
+            name='counterfactual',
+            constraint=constraint_fn,
+        )
 
     def autograd_loss(self) -> tf.Tensor:
         """
@@ -626,8 +612,8 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
         `loss_fcn` attribute.
         """   # noqa W605
 
-        dist_loss = self.distance_fcn(self.instance, self.cf)
-        model_output = self.make_prediction(self.cf)
+        dist_loss = self.distance_fcn(self.instance, self.solution)
+        model_output = self.make_prediction(self.solution)
         prediction = self._get_cf_prediction(model_output, self.target_class)
         pred_loss = self.prediction_fcn(prediction, self.target_proba)
         total_loss = self.loss_fcn(dist_loss, self.lam, pred_loss)
@@ -752,7 +738,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         -------
         A scalar represting the value of :math:`L_{dist}`
         """
-        dist_loss = self.distance_fcn(self.instance, self.cf)
+        dist_loss = self.distance_fcn(self.instance, self.solution)
 
         return dist_loss
 
@@ -790,16 +776,16 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         blackbox_wrap_fcn_args = (self.predictor, self.target_class, self.instance_class)
         prediction_gradient = self.num_grad_fcn(
             self.blackbox_eval_fcn,
-            self.copy(self.cf),
+            self.copy(self.solution),
             fcn_args=blackbox_wrap_fcn_args,
         )
 
         # see docstring to understand the slice
         prediction_gradient = prediction_gradient[:, 0, ...]
-        pred = self.blackbox_eval_fcn(self.cf, self.predictor, self.target_class, self.instance_class)
+        pred = self.blackbox_eval_fcn(self.solution, self.predictor, self.target_class, self.instance_class)
         numerical_gradient = prediction_gradient * self.prediction_grad_fcn(pred, self.target_proba)
 
-        assert numerical_gradient.shape == self.cf.shape
+        assert numerical_gradient.shape == self.solution.shape
 
         return numerical_gradient
 
@@ -816,7 +802,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         autograd_grads = gradients[0]
         numerical_grads = self.get_numerical_gradients()
         gradients = [self.mask * (autograd_grads*self.lam + numerical_grads)]
-        self.optimizer.apply_gradients(zip(gradients, [self.cf]))
+        self.optimizer.apply_gradients(zip(gradients, [self.solution]))
 
     def update_state(self):
         """
@@ -824,11 +810,11 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         """
         # cannot call black-box predictor under the gradient tape, so the losses have to
         # be computed outside this context unlike the whitebox case
-        model_output = self.make_prediction(self.cf)
+        model_output = self.make_prediction(self.solution)
         prediction = self._get_cf_prediction(model_output, self.target_class)
         pred_loss = self.prediction_fcn(prediction, self.target_proba)
         # require to re-evaluate the distance loss to account for the contrib of the numerical gradient
-        dist_loss = self.distance_fcn(self.instance, self.cf)
+        dist_loss = self.distance_fcn(self.instance, self.solution)
         combined_loss = self.loss_fcn(dist_loss, self.lam, pred_loss)
 
         self.state['distance_loss'] = self.to_numpy_arr(dist_loss).item()

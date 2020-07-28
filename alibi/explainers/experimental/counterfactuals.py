@@ -557,7 +557,7 @@ class _WachterCounterfactual:
         summary_freq = self.summary_freq
         cf_found = np.zeros((self.max_lam_steps,), dtype=np.uint16)
         # re-init. cf as initial lambda sweep changed the initial condition
-        self.optimizer.initialise_cf(init_cf)
+        self.optimizer.initialise_solution(init_cf)
 
         for lam_step in range(self.max_lam_steps):
             self.lam = lam
@@ -567,18 +567,18 @@ class _WachterCounterfactual:
             self.optimizer.reset_optimizer()
             found, not_found = 0, 0
             for gd_step in range(self.max_iter):
-                self.optimizer.cf_step()
+                self.optimizer.step()
                 self.step += 1
                 constraint_satisfied = self.optimizer.check_constraint(
-                    self.optimizer.cf,
+                    self.optimizer.solution,
                     self.optimizer.target_proba,
                     self.tol
                 )
-                cf_prediction = self.optimizer.make_prediction(self.optimizer.cf)
+                cf_prediction = self.optimizer.make_prediction(self.optimizer.solution)
 
                 # save and optionally display results of current gradient descent step
                 current_state = (
-                    self.optimizer.to_numpy_arr(self.optimizer.cf),
+                    self.optimizer.to_numpy_arr(self.optimizer.solution),
                     self.optimizer.to_numpy_arr(cf_prediction)
                 )
                 write_summary = self.log_traces and self.step % summary_freq == 0
@@ -669,21 +669,21 @@ class _WachterCounterfactual:
             self.lam_step += 1
             for gd_step in range(n_steps):
                 # update cf with loss gradient for a fixed lambda
-                self.optimizer.cf_step()
+                self.optimizer.step()
                 self.step += 1
                 # NB: a bit of a weird pattern but kept it like this for clarity
                 constraint_satisfied = self.optimizer.check_constraint(
-                    self.optimizer.cf,
+                    self.optimizer.solution,
                     self.optimizer.target_proba,
                     self.tol
                 )
-                cf_prediction = self.optimizer.make_prediction(self.optimizer.cf)
+                cf_prediction = self.optimizer.make_prediction(self.optimizer.solution)
                 instance_class_pred = self.optimizer.to_numpy_arr(cf_prediction[:, self.instance_class]).item()
 
                 # update response and log data to TensorBoard
                 write_summary = self.log_traces and self.step % self.summary_freq == 0
                 current_state = (
-                    self.optimizer.to_numpy_arr(self.optimizer.cf),
+                    self.optimizer.to_numpy_arr(self.optimizer.solution),
                     self.optimizer.to_numpy_arr(cf_prediction)
                 )
 
@@ -1020,7 +1020,7 @@ class _WachterCounterfactual:
             if constrain_features:
                 # infer feature ranges and update counterfactual constraints
                 feat_min, feat_max = np.min(X, axis=0), np.max(X, axis=0)
-                self.optimizer.cf_constraint = [feat_min, feat_max]
+                self.optimizer.solution_constraint = [feat_min, feat_max]
 
         self.fitted = True
         scaling_method = 'median' if self.scale else 'N/A'

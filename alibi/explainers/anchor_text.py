@@ -42,7 +42,10 @@ class Neighbors(object):
 
         self.w_prob = w_prob
         # list with spaCy lexemes in vocabulary
-        self.to_check = [self.nlp.vocab[w] for w in self.nlp.vocab.vectors if self.nlp.vocab[w].prob >= self.w_prob]
+        # first if statement is a workaround due to some missing keys in models:
+        # https://github.com/SeldonIO/alibi/issues/275#issuecomment-665017691
+        self.to_check = [self.nlp.vocab[w] for w in self.nlp.vocab.vectors if
+                         int(w) in self.nlp.vocab.strings and self.nlp.vocab[w].prob >= self.w_prob]
         self.n_similar = n_similar
 
     def neighbors(self, word: str, tag: str, top_n: int) -> dict:

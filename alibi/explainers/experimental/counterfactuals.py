@@ -503,8 +503,14 @@ class _WachterCounterfactual:
             The class and probability of the prediction for the initial condition.
         """
 
-        self.optimizer.initialise_variables(X, optimised_features, target_class, target_proba, instance_class,
-                                            instance_proba)
+        self.optimizer.initialise_variables(
+            X,
+            optimised_features,
+            target_class=target_class,
+            target_proba=target_proba,
+            instance_class=instance_class,
+            instance_proba=instance_proba,
+        )
         self.target_class = target_class
         self.instance = X
         self.instance_class = instance_class
@@ -555,12 +561,13 @@ class _WachterCounterfactual:
 
         for lam_step in range(self.max_lam_steps):
             self.lam = lam
+            self.optimizer.lam = lam
             self.lam_step += 1
             # re-set learning rate
             self.optimizer.reset_optimizer()
             found, not_found = 0, 0
             for gd_step in range(self.max_iter):
-                self.optimizer.cf_step(self.lam)
+                self.optimizer.cf_step()
                 self.step += 1
                 constraint_satisfied = self.optimizer.check_constraint(
                     self.optimizer.cf,
@@ -656,12 +663,13 @@ class _WachterCounterfactual:
             explored_steps = 0
             # optimiser is re-created so that lr schedule is reset for every lam
             self.optimizer.reset_optimizer()
+            self.optimizer.lam = lam
             self.lam = lam
             self.data_store['lambda'] = lam
             self.lam_step += 1
             for gd_step in range(n_steps):
                 # update cf with loss gradient for a fixed lambda
-                self.optimizer.cf_step(self.lam)
+                self.optimizer.cf_step()
                 self.step += 1
                 # NB: a bit of a weird pattern but kept it like this for clarity
                 constraint_satisfied = self.optimizer.check_constraint(
@@ -913,7 +921,7 @@ class _WachterCounterfactual:
         """  # noqa W605
 
         # collect data from the optimizer
-        opt_data = self.optimizer._get_current_state()
+        optimizer_state = self.optimizer.collect_step_data()
         # augment the data and update the response
         pred_class = _convert_to_label(current_cf_pred)
         target_pred_proba = current_cf_pred[:, pred_class].item()
@@ -922,9 +930,9 @@ class _WachterCounterfactual:
         this_result = dict.fromkeys(self.step_data)
         this_result.update(
             {
-                'distance_loss': opt_data['distance_loss'],
-                'prediction_loss': opt_data['prediction_loss'],
-                'total_loss': opt_data['total_loss'],
+                'distance_loss': optimizer_state['distance_loss'],
+                'prediction_loss': optimizer_state['prediction_loss'],
+                'total_loss': optimizer_state['total_loss'],
                 'lambda': self.lam,
                 'target_class': pred_class,
                 'target_class_proba': target_pred_proba,
@@ -1063,7 +1071,7 @@ class _WachterCounterfactual:
 class WachterCounterfactual(Explainer, FitMixin):
 
     # TODO: ALEX: TBD: AS WE IMPLEMENT COUNTERFACTUALS, WE MAY REALISE THIS IS COMMON AND WOULD DO THE FOLLOWING:
-    #  - MAKE THIS A SUPERCLASS (e.g., CounterfactualAPI). The public classes (e.g., WachterCounterfactual) inherit from
+    #  - make this a superclass (e.g., CounterfactualAPI). The public classes (e.g., WachterCounterfactual) inherit from
     #  it to show the docs specific to the method and potentially override some behaviour (eg. fit might have other
     #  set of arguments, etc)
     def __init__(self,

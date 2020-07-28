@@ -10,8 +10,10 @@ from copy import deepcopy
 from functools import partial
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
-from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union
-from typing_extensions import Literal
+from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import keras
 
 
 def scaled_l1_loss(instance: tf.Tensor, cf: tf.Variable, feature_scale: Optional[tf.Tensor] = None) -> tf.Tensor:
@@ -86,7 +88,7 @@ dict: A specification that allows customising the Wachter loss, defined as:
 
 .. math:: L_{pred} + \lambda L_{dist}.
 
-See our documeentation for `details`_.
+See our documentation for `details`_.
 
 .. _details: https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
 
@@ -240,42 +242,70 @@ def wachter_blackbox_wrapper(X: Union[tf.Tensor, tf.Variable],
     return pred_target
 
 
-@register_backend(explainer_type='counterfactual', predictor_type='whitebox', method='wachter')
-class TFWachterCounterfactualOptimizer:
+class TFCounterfactualOptimizer:
+    """A base class from which all optimizers used to search for counterfactuals should inherit. It implements basic
+    functionality such as:
+
+        - setting the loss terms as optimizer attributes
+        - TensorFlow optimizer setter
+        - basic variables initialisation
+        - `cf_step` a method that differentiates the loss function specified and updates the solution
+        - methods that copy or convert to/from tf.Tensor objects, that can be used by calling objects to implement \
+        framework-independent functionality
+        - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
     """
-    A TensorFlow helper class that differentiates the loss function:
 
-        .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
-
-    in the case where the optimizer has access to the parameters of the predictor ("whitebox" predictor type). The 
-    differentiation is perfomed by the Tensorflow autograd library.
-    """  # noqa W605
     framework_name = 'tensorflow'
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 loss_spec: Optional[Dict] = None,
+                 loss_spec: Optional[Dict[str, Dict[str, Union[Callable, Dict]]]] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  **kwargs):
 
         """
         Initializes the optimizer by:
 
-            - Setting the terms in the `WACHTER_LOSS_SPEC_WHITEBOX` as object attributes
-            - Setting placeholders for optimizer, optimization variables and solution constraints
+            - Setting the callables in the `loss_spec` as object attributes, so that they can be accessed in methods \
+            which compute the loss function
+            - Setting placeholders for quantities that all algorithms need (e.g., counterfactual, target probability, \
+            instance and its class, optimizer and its copy, counterfactual constraints, device)
 
         Parameters
         ----------
-        # TODO: ADD DOCS HERE. DOCUMENT KWARGS AS WELL
-        """
+        predictor
+            A predictor which will be queried in order to find a counterfactual for a given instance. See documentation
+            for specific implementations (e.g., alibi.explainers.experimental.counterfactuals.WatcherCounterfactual) for
+            more details about the predictor requirements.
+        loss_spec
+            A dictionary with the structure::
+            
+                {
+                'loss_term_name_1': {'fcn': Callable, 'kwargs': {'eps': 0.01}}
+                'loss_term_name_2': {'fcn': Callable, 'kwargs': {}}
+                'loss':  {'fcn': Callable, 'kwargs': {'alpha': 0.1, 'beta': 0.5} 
+                }
+        
+            Each key in the dictionary is the name of a term of the loss to be implemented (e.g., `loss_term_name_1` in
+            the example above). The mapping of each term is expected to  have a ``'fcn'`` key where a callable 
+            implementing the loss term is stored and a ``'kwargs'`` entry where keyword arguments for the said callable 
+            are passed. If no kwargs are needed, then the latter should be set to {}. Partial functions obtained from the 
+            callables (or the callables themselves when there are no kwargs  specified) as object attributes under 
+            the name `*_fcn` where the * is substituted by the name of the term. For the example above, the object will 
+            have attributes `loss_term_name_1`, `loss_term_name_2` and `loss`.
+            
+            The object will also contain a `state` property, a mapping where the values of the loss terms can be stored
+            as they are computed in order to be logged to TensorBoard automatically.
+        feature_range
+            Used to constrain the range of the counterfactual features. It should be specified such that it can be
+            compared element-wise with a counterfactual. See documentation for specific counterfactual implementations 
+            (e.g., alibi.explainers.experimental.counterfactuals.WatcherCounterfactual) for more details about feature 
+            range constraints.
+        """  # noqa W605
 
         self.predictor = predictor
-        self._expected_attributes = set(WACHTER_LOSS_SPEC_WHITEBOX)
 
-        if loss_spec is None:
-            loss_spec = WACHTER_LOSS_SPEC_WHITEBOX
-
-        # further loss spec properties (for black-box functions) are set in sub-classes
+        # further loss spec properties (for black-box functions or more advanced functionality) are set in sub-classes
         for term in loss_spec:
             this_term_kwargs = loss_spec[term]['kwargs']  # type: ignore
             if this_term_kwargs:
@@ -284,23 +314,20 @@ class TFWachterCounterfactualOptimizer:
             else:
                 self.__setattr__(f"{term}_fcn", loss_spec[term]['fcn'])
 
+        # the algorithm state is by default each loss term specified
+        # add scalars to be logged to TensorBoard to this dictionary
         self.state = defaultdict(lambda: None, dict.fromkeys(loss_spec.keys(), 0.0))
-        self.state.update([('total_loss', 0.0)])
 
         # updated at explain time
         self.optimizer = None  # type: Union[tf.keras.optimizers.Optimizer, None]
         self._optimizer_copy = None
-        # returns an index from the prediction that depends on the instance and counterfactual class
-        self.cf_prediction_fcn = slice_prediction
-        # fixes specified arguments of self._cf_prediction, set at explain time
-        self._get_cf_prediction = None  # type: Union[None, Callable]
 
         # problem variables: init. at explain time
         self.target_proba = None  # type: Union[tf.Tensor, None]
         self.instance = None  # type: Union[tf.Tensor, None]
         self.instance_class = None  # type: Union[int, None]
         self.cf = None  # type: Union[tf.Variable, None]
-        # updated at explain time since user can override
+        # updated at explain time since user can override. Defines default LR schedule.
         self.max_iter = None
 
         # initialisation method and constraints for counterfactual
@@ -308,10 +335,7 @@ class TFWachterCounterfactualOptimizer:
         if feature_range is not None:
             self.cf_constraint = [feature_range[0], feature_range[1]]
 
-        # updated by the optimisation outer loop
-        self.lam = None  # type: Union[float, None]
-
-        # for convenience, to avoid if/else in wrapper
+        # for convenience, to avoid if/else depending on framework in calling context
         self.device = None
         # below would need to be done for a PyTorchHelper with GPU support
         # subclasses provide PyTorch support, set by wrapper
@@ -325,26 +349,14 @@ class TFWachterCounterfactualOptimizer:
 
     def set_default_optimizer(self) -> None:
         """
-        Initialises the explainer with a default optimizer. The default optimizer is ADAM with linear decay from 0.1
-        over a number of iterations specified in `method_opts['search_opts']['max_iter']` where `method_opts` are those
-        of the class initializing this object.
+        Initialises a default optimizer used for counterfactual search. This is the ADAM algorithm with linear learning
+        rate decay from ``0.1`` to ``0.002`` over a number of iterations specified in
+        `method_opts['search_opts']['max_iter']`. `method_opts` should be passed to the class where this object is
+        instantiated.
         """
 
         self.lr_schedule = PolynomialDecay(0.1, self.max_iter, end_learning_rate=0.002, power=1)
         self.optimizer = Adam(learning_rate=self.lr_schedule)
-
-    def reset_optimizer(self) -> None:
-        """
-        Resets the default optimizer. It is used to set the optimizer specified by the user as well as reset the 
-        optimizer at each :math:`\lambda` optimisation cycle.
-
-        Parametrs
-        ---------
-        optimizer
-            This is either the opimizer passed by the user (first call) or a copy of it (during `_search`).
-        """  # noqa W605
-
-        self.optimizer = deepcopy(self._optimizer_copy)
 
     def set_optimizer(self, optimizer: tf.keras.optimizers.Optimizer, optimizer_opts: Dict[str, Any]) -> None:
         """
@@ -378,38 +390,56 @@ class TFWachterCounterfactualOptimizer:
 
         self._optimizer_copy = deepcopy(self.optimizer)
 
-    def initialise_variables(self,
-                             X: np.ndarray,
-                             optimised_features: np.ndarray,
-                             target_class: Union[Literal['same', 'other'], int],
-                             target_proba: float,
-                             instance_class: int,
-                             instance_proba: float) -> None:
+    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs):
         """
-        Initialises optimisation variables so that the TensorFlow auto-differentiation framework can be used for
-        counterfactual search.
+        This method initializes:
+            - a tensor that stores the value of the initial condition, `X`
+            - a tensor that stores the counterfactual as the optimisation proceedes, `cf`
+            - a tensor that tracks the optimized features, `mask`
+
+        Sub-classes extending this method should:
+            - call the super-class method to perform the aforementioned
+            - pass the additional arguments via kwargs
 
         Parameters
         ----------
-        X, optimised_features, target_class, target_proba, instance_proba, instance_class
-            See calling object `counterfactual` method.
+        X
+            The instance whose counterfactual is to be searched.
+        optimized_features
+            A boolean mask, the same shape as `X`. A ``1`` indicates that a feature will be optimized whereas ``0``
+            indicates the contrary
         """
 
         # tf.identity is the same as constant but does not always create tensors on CPU
-        self.target_proba = tf.identity(target_proba * np.ones(1, dtype=X.dtype), name='target_proba')
-        self.target_class = target_class
         self.instance = tf.identity(X, name='instance')
-        self.instance_class = instance_class
-        self.instance_proba = instance_proba
         self.initialise_cf(X)
-        self._mask = tf.identity(optimised_features, name='gradient mask')
+        self.mask = tf.identity(optimized_features, name='gradient mask')
 
-    def cf_step(self, lam: float) -> None:
+    def initialise_cf(self, X: np.ndarray) -> None:
         """
-        Runs a gradient descent step and updates current solution for a given value of `lam`.
+        Initializes the counterfactual to the data point `X` applies constraints on the feature value.
+
+        Parameters
+        ----------
+        X
+            Instance whose counterfactual is to be found.
         """
 
-        self.lam = lam
+        constraint_fcn = None
+        if self.cf_constraint is not None:
+            constraint_fcn = partial(range_constraint, low=self.cf_constraint[0], high=self.cf_constraint[1])
+        self.cf = tf.Variable(
+            initial_value=X,
+            trainable=True,
+            name='counterfactual',
+            constraint=constraint_fcn,
+        )
+
+    def cf_step(self) -> None:
+        """
+        Runs a gradient descent step and updates current solution.
+        """
+
         gradients = self.get_autodiff_gradients()
         self.apply_gradients(gradients)
 
@@ -425,6 +455,13 @@ class TFWachterCounterfactualOptimizer:
 
         return gradients
 
+    def autograd_loss(self) -> tf.Tensor:
+        """
+        This function should be implemented by a sub-class in order to implement a specific loss function for
+        counterfactual search. See 'TFWachterCounterfactualOptimizer' for a concrete implementation.
+        """
+        raise NotImplementedError("Loss should be implemented by sub-class!")
+
     def apply_gradients(self, gradients: List[tf.Tensor]) -> None:
         """
         Updates the current solution with the gradients of the loss.
@@ -436,8 +473,140 @@ class TFWachterCounterfactualOptimizer:
         """
 
         autograd_grads = gradients[0]
-        gradients = [self._mask * autograd_grads]
+        gradients = [self.mask * autograd_grads]
         self.optimizer.apply_gradients(zip(gradients, [self.cf]))
+
+    def make_prediction(self, X: Union[np.ndarray, tf.Variable, tf.Tensor]) -> tf.Tensor:
+        """
+        Makes a prediction for data points in `X`.
+
+        Parameters
+        ----------
+        X
+            A tensor or array for which predictions are requested.
+        """
+
+        return self.predictor(X, training=False)
+
+    @staticmethod
+    def to_numpy_arr(X: Union[tf.Tensor, tf.Variable, np.ndarray], **kwargs) -> np.ndarray:
+        """
+        Casts an array-like object tf.Tensor and tf.Variable objects to a `np.array` object.
+        """
+
+        if isinstance(X, tf.Tensor) or isinstance(X, tf.Variable):
+            return X.numpy()
+        return X
+
+    @staticmethod
+    def to_tensor(X: np.ndarray, **kwargs) -> tf.Tensor:
+        """
+        Casts a numpy array object to tf.Tensor.
+        """
+        return tf.identity(X)
+
+    @staticmethod
+    def copy(X: tf.Variable, **kwargs) -> tf.Tensor:
+        """
+        Copies the value of the variable X into a new tensor
+        """
+        return tf.identity(X)
+
+    def _get_learning_rate(self) -> tf.Tensor:
+        """
+        Returns the learning rate of the optimizer for visualisation purposes.
+        """
+        return self.optimizer._decayed_lr(tf.float32)
+
+    def collect_step_data(self):
+        """
+        This function is used by the calling object in order to obtain the current state that is subsequently written to
+        TensorBoard. As the state might require additional computation which is not necessary for steps where data is
+        not logged, this method defers the functionality to `_get_current_state` where the state is computed.
+        """
+        return self.update_state()
+
+    def update_state(self):
+        """
+        Computes quantities used solely for logging purposes. Called when data needs to be written to TensorBoard.
+        If the logging requires expensive quantities that don't need to be computed at each iteration, they should be
+        computed here and added to the state dictionary, which is collected by the calling object.
+        """
+        raise NotImplementedError("Sub-class should implemented method for updating state.")
+
+
+@register_backend(explainer_type='counterfactual', predictor_type='whitebox', method='wachter')
+class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
+    """
+    A TensorFlow helper class that differentiates the loss function:
+
+        .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
+
+    in the case where the optimizer has access to the parameters of the predictor ("whitebox" predictor type). The 
+    differentiation is perfomed by the Tensorflow autograd library.
+    """  # noqa W605
+
+    def __init__(self,
+                 predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 loss_spec: Optional[Dict] = None,
+                 feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
+                 **kwargs):
+
+        self._expected_attributes = set(WACHTER_LOSS_SPEC_WHITEBOX)
+
+        # pass loss specification to the superclass
+        if loss_spec is None:
+            loss_spec = WACHTER_LOSS_SPEC_WHITEBOX
+        super().__init__(predictor, loss_spec, feature_range, **kwargs)
+
+        # track the total loss
+        self.state.update([('total_loss', 0.0)])
+
+        # updated by the calling context in the optimisation loop
+        self.lam = None  # type: Union[float, None]
+
+        # TODO: ALEX: TBD: DESIGN ALTERNATIVES WRT TO WHAT PREDICTOR RETURNS
+        # a function used to slice predictor output so that it returns the target class output only.
+        # Used by the calling context to slice predictor outputs
+        self.cf_prediction_fcn = slice_prediction
+        # fixes specified arguments of self._cf_prediction, set at explain time
+        self._get_cf_prediction = None  # type: Union[None, Callable]
+
+    def reset_optimizer(self) -> None:
+        """
+        Resets the default optimizer. It is used to set the optimizer specified by the user as well as reset the 
+        optimizer at each :math:`\lambda` optimisation cycle.
+
+        Parametrs
+        ---------
+        optimizer
+            This is either the opimizer passed by the user (first call) or a copy of it (during `_search`).
+        """  # noqa W605
+
+        self.optimizer = deepcopy(self._optimizer_copy)
+
+    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs) -> None:
+        """
+        Initialises optimisation variables so that the TensorFlow auto-differentiation framework can be used for
+        counterfactual search.
+
+        Parameters
+        ----------
+        X, optimized_features
+            See calling object `counterfactual` method
+        kwargs
+            Valid kwargs are:
+                - `target_class` Union[Literal['same', 'other'], int], `target_proba` (float), `instance_proba` (float), \
+                `instance_class` (int)
+            See calling object `counterfactual` method for more information.
+        """  # noqa W605
+
+        super().initialise_variables(X, optimized_features)
+        # tf.identity is the same as constant but does not always create tensors on CPU
+        self.target_proba = tf.identity(kwargs.get('target_proba') * np.ones(1, dtype=X.dtype), name='target_proba')
+        self.target_class = kwargs.get('target_class')
+        self.instance_class = kwargs.get('instance_class')
+        self.instance_proba = kwargs.get('instance_proba')
 
     def autograd_loss(self) -> tf.Tensor:
         """
@@ -469,39 +638,6 @@ class TFWachterCounterfactualOptimizer:
 
         return total_loss
 
-    def make_prediction(self, X: Union[np.ndarray, tf.Variable, tf.Tensor]) -> tf.Tensor:
-        """
-        Makes a prediction for data points in `X`.
-
-        Parameters
-        ----------
-        X
-            A tensor or array for which predictions are requested.
-        """
-
-        return self.predictor(X, training=False)
-
-    def initialise_cf(self, X: np.ndarray) -> None:
-        """
-        Initializes the counterfactual to the data point `X` applies constraints on the feature value.
-
-        Parameters
-        ----------
-        X
-            Instance whose counterfactual is to be found.
-        """
-
-
-        constraint_fcn = None
-        if self.cf_constraint is not None:
-            constraint_fcn = partial(range_constraint, low=self.cf_constraint[0], high=self.cf_constraint[1])
-        self.cf = tf.Variable(
-            initial_value=X,
-            trainable=True,
-            name='counterfactual',
-            constraint=constraint_fcn,
-        )
-
     def check_constraint(self, cf: tf.Variable, target_proba: tf.Tensor, tol: float) -> bool:
         """
         Checks if the constraint |f(cf) - target_proba| < self.tol holds where f is the model
@@ -526,52 +662,13 @@ class TFWachterCounterfactualOptimizer:
             tf.math.abs(self._get_cf_prediction(prediction, self.target_class) - target_proba) <= tol,
         ).numpy()
 
-    @staticmethod
-    def to_numpy_arr(X: Union[tf.Tensor, tf.Variable, np.ndarray], **kwargs) -> np.ndarray:
+    def update_state(self):
         """
-        Casts an array-like object tf.Tensor and tf.Variable objects to a `np.array` object.
+        See superclass documentation.
         """
-
-        if isinstance(X, tf.Tensor) or isinstance(X, tf.Variable):
-            return X.numpy()
-        return X
-
-    @staticmethod
-    def to_tensor(X: np.ndarray, **kwargs) -> tf.Tensor:
-        """
-        Casts a numpy array object to tf.Tensor.
-        """
-        return tf.identity(X)
-
-    @staticmethod
-    def copy(X: tf.Variable, **kwargs) -> tf.Tensor:
-        """
-        Copies the value of the variable X into a new tensor
-        """
-        return tf.identity(X)
-
-    def _get_current_state(self):
-        """
-        Computes quantities used solely for logging purposes. Called when data needs to be written to TensorBoard.
-        """
-
-        # state precomputed as it just involves casting values to numpy arrays
+        # state precomputed as it just involves casting values to floats
         self.state['lr'] = self._get_learning_rate()
         return self.state
-
-    def _get_learning_rate(self) -> tf.Tensor:
-        """
-        Returns the learning rate of the optimizer for visualisation purposes.
-        """
-        return self.optimizer._decayed_lr(tf.float32)
-
-    def collect_step_data(self):
-        """
-        This function is used by the calling object in order to obtain the current state that is subsequently written to
-        TensorBoard. As the state might require additional computation which is not necessary for steps where data is
-        not logged, this method defers the functionality to `_get_current_state` where the state is computed.
-        """
-        return self._get_current_state()
 
 
 @register_backend(explainer_type='counterfactual', predictor_type='blackbox', method='wachter')
@@ -607,11 +704,11 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         """  # noqa W605
         super().__init__(predictor, loss_spec, feature_range, **kwargs)
 
+        # TODO: ALEX: TBD: THIS PRACTICALLY MEANS ATTRS NOT IN THE SCHEMA WILL NOT BE SET
         expected_attributes = set(WACHTER_LOSS_SPEC_BLACKBOX) | {'prediction_grad_fcn', '_num_grads_fn'}
         self._expected_attributes = expected_attributes
         if loss_spec is None:
             loss_spec = WACHTER_LOSS_SPEC_BLACKBOX
-        # TODO: ALEX: TBD: THIS PRACTICALLY MEANS ATTRS NOT IN THE SCHEMA WILL NOT BE DEFINED
         # set numerical gradients method and gradient fcns of nonlinear transformation wrt model output
         self.num_grad_fcn = None  # type: Union[Callable, None]
         for term in loss_spec:
@@ -686,7 +783,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         
             - `self.predictor` returns a scalar 
             - The shape of the prediction gradient is `self.cf.shape[0] (batch) x P (n_outputs) x self.cf.shape[1:] \
-            # (data point shape)` 0-index slice below is due to the assumption that `self.predictor` returns a scalar
+            (data point shape)`. 0-index slice below is due to the assumption that `self.predictor` returns a scalar. 
         """  # noqa W605
 
         # shape of `prediction_gradient` is
@@ -718,10 +815,10 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
 
         autograd_grads = gradients[0]
         numerical_grads = self.get_numerical_gradients()
-        gradients = [self._mask * (autograd_grads*self.lam + numerical_grads)]
+        gradients = [self.mask * (autograd_grads*self.lam + numerical_grads)]
         self.optimizer.apply_gradients(zip(gradients, [self.cf]))
 
-    def _get_current_state(self):
+    def update_state(self):
         """
         See superclass documentation.
         """

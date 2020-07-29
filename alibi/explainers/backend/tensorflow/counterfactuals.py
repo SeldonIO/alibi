@@ -254,7 +254,7 @@ class TFCounterfactualOptimizer:
         - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
     """
 
-    framework_name = 'tensorflow'
+    framework = 'tensorflow'
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -334,6 +334,8 @@ class TFCounterfactualOptimizer:
         if feature_range is not None:
             self.solution_constraint = [feature_range[0], feature_range[1]]
 
+        # used for user attribute setting validation
+        self._expected_attributes = set()
         # for convenience, to avoid if/else depending on framework in calling context
         self.device = None
         # below would need to be done for a PyTorchHelper with GPU support
@@ -436,6 +438,9 @@ class TFCounterfactualOptimizer:
             A list containing the gradients of the differentiable part of the loss.
         """
 
+        # TODO: ALEX: TBD: SHOULD SELF.SOLUTION BE A LIST? I
+        # TODO: ALEX: TBD: THIS MASK IS NOT TOO GENERIC? WE COULD IF ELSE ON IT?
+
         autograd_grads = gradients[0]
         gradients = [self.mask * autograd_grads]
         self.optimizer.apply_gradients(zip(gradients, [self.solution]))
@@ -499,7 +504,7 @@ class TFCounterfactualOptimizer:
         raise NotImplementedError("Sub-class should implemented method for updating state.")
 
 
-@register_backend(explainer_type='counterfactual', predictor_type='whitebox', method='wachter')
+@register_backend(consumer_class='_WachterCounterfactual')
 class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
     """
     A TensorFlow helper class that differentiates the loss function:
@@ -657,7 +662,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
         return self.state
 
 
-@register_backend(explainer_type='counterfactual', predictor_type='blackbox', method='wachter')
+@register_backend(consumer_class='_WachterCounterfactual', predictor_type='blackbox')
 class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
     """
     A TensorFlow helper class that differentiates the loss function:
@@ -705,7 +710,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
                     self.__setattr__(f"{term}_grad_fcn", this_term_grad_fcn)
                 else:
                     self.__setattr__(f"{term}_grad_fcn", loss_spec[term]['grad_fcn'])
-                available_grad_methods = [fcn for fcn in numerical_gradients[self.framework_name]]
+                available_grad_methods = [fcn for fcn in numerical_gradients[self.framework]]
                 available_grad_methods_names = [fcn.__name__ for fcn in available_grad_methods]
                 grad_method_name = loss_spec[term]['gradient_method']['name']
                 grad_method_kwargs = loss_spec[term]['gradient_method']['kwargs']

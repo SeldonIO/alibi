@@ -72,7 +72,7 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, 
         return
 
     default_model_device = next(predictor.parameters()).device
-    logging.warning(f"No device specified for the model. Search will take place on {default_model_device}")
+    logging.warning(f"No device specified for the predictor. Inferred {default_model_device}")
     return default_model_device
 
 

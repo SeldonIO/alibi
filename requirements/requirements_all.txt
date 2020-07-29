@@ -33,3 +33,4 @@ scipy>=1.3.1
 matplotlib>=3.1.2
 catboost>=0.23
 typing-extensions>=3.7.2
+git+git://github.com/SeldonIO/alibi_test_models@master#egg=alibi-test-models

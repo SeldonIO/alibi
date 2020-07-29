@@ -11,15 +11,24 @@ from alibi.explainers import KernelShap, TreeShap
 from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
-from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
-from tensorflow.keras.models import Model
 from sklearn.ensemble import RandomForestClassifier
+
+import alibi_test_models
 
 
 # A file containing fixtures that can be used across tests
 
 # Fixtures that return datasets can be combined with classifier
 # fixtures to generate models for testing.
+
+@pytest.fixture
+def model(request):
+    """
+    This fixture loads a pre-trained test model by name from the
+    alibi-test-models helper package.
+    """
+    name = request.param
+    return alibi_test_models.load(name)
 
 
 @pytest.fixture(scope='module')
@@ -257,34 +266,6 @@ def mock_tree_shap_explainer(monkeypatch, request):
     explainer = TreeShap(predictor, model_output=model_output)
 
     return explainer
-
-
-@pytest.fixture(scope='module')
-def conv_net(request):
-    """
-    Creates a simple CNN classifier on the data in the request. This is a
-    module scoped fixture, so if you need to modify the state of the objects
-    returned, copy the objects first.
-    """
-    data = request.param
-    x_train, y_train = data['X_train'], data['y_train']
-
-    def model():
-        x_in = Input(shape=(28, 28, 1))
-        x = Conv2D(filters=8, kernel_size=2, padding='same', activation='relu')(x_in)
-        x = MaxPooling2D(pool_size=2)(x)
-        x = Dropout(0.3)(x)
-        x = Flatten()(x)
-        x_out = Dense(10, activation='softmax')(x)
-        cnn = Model(inputs=x_in, outputs=x_out)
-        cnn.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-        return cnn
-
-    cnn = model()
-    cnn.fit(x_train, y_train, batch_size=256, epochs=1)
-
-    return cnn
 
 
 # High level fixtures that help us check if the code logs any warnings/correct

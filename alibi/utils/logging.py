@@ -1,6 +1,71 @@
 from collections import namedtuple
 from typing import Dict, Any, List
 
+DEFAULT_LOGGING_OPTS = {
+    'verbose': False,
+    'log_traces': True,
+    'trace_dir': 'tb_logs/',
+    'summary_freq': 1,
+    'image_summary_freq': 10,
+    'tracked_variables':  {'tags': [], 'data_types': [], 'descriptions': []},
+}
+"""
+dict: The default values for logging options.
+
+
+    - 'verbose': if `True` the logger (a `logging.Loggger` instance) will be set to ``DEBUG`` level. 
+
+    - 'log_traces': if `True`, data about the optimisation process will be logged to TensorBoard with a frequency \
+    specified  by `summary_freq` input. The algorithm will also log images if `X` is a 4-dimensional tensor \
+    (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions) with a frequency specified by 
+    `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` is created and  {} is \
+    replaced by the run number. To see the logs run the command in the `trace_dir` \
+    directory:: 
+
+        ``tensorboard --logdir tb_logs``
+     replacing ``trace_dir`` with your own path. Then run ``localhost:6006`` in your browser to see the traces. The \
+     traces can be visualised as the optimisation proceeds and can provide useful information on how to adjust the \
+     optimisation in cases of non-convergence of fitting or explainers.
+
+    - 'trace_dir': the directory where the optimisation infromation is logged. 
+
+    - 'summary_freq': logging frequency for optimisation information.
+
+    - 'image_summary_freq': logging frequency for intermediate for image data
+    
+    - 'tracked_variables': This should be used to specify what will be logged:
+    
+            * 'tags': a list of tags with variable names (e.g., ``['training/loss', 'training'/accuracy]``). To log \
+            these quantities to TensorBoard, one should do the following::
+                    
+                    self.data_store['loss'] = loss_val
+                    self.data_store['accuracy'] = accuracy
+                    self.tensorboard.record(self.step, self.data_store)
+                    
+            Note that the quantities will not be logged unless the string after the last / in the tag name matches the \
+            key of `self.data_store`. 
+ 
+            * 'data_types': a list of data types for logged quantities. For the above example, the list would be \
+            ``['scalar', 'scalar']``. Other supported data types are 'audio', 'image', 'text' and 'histogram'.
+            
+            * 'descriptions': A list of optional descriptions. To skip a descriptions, for the above example the list \
+            would be ``['', '']`` and to add a description for the first variable it would be ``['my first var', '']``. 
+
+See the documentation for `alibi.utils.logging.TensorboardWriterBase` and 
+`alibi.utils.tensorflow.logging.TFTensorboardWriter` for more details about the logs. 
+
+Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys when calling
+`explain` method. 
+
+
+Examples
+--------
+To specify a the name logging directory for TensorFlow event files and a new frequency for logging images call `explain`
+with the following key-word arguments::
+
+    logging_opts = {'trace_dir': 'experiments/cf', 'image_summary_freq': 5}
+"""
+
 tensorboard_loggers = {'pytorch': None, 'tensorflow': None}
 """
 dict: A registry that contains TensorBoard writers for PyTorch and TensorFlow. This registry can be imported and used to
@@ -48,8 +113,13 @@ class TensorboardWriterBase:
         raise NotImplementedError("Subclass must define summary operations!")
 
     def setup(self, logging_opts: Dict[str, Any]):
+        """
+        Sets up the writer by:
 
-        # TODO: DOCSTRING
+            - Creating a `SummaryFileWriter` object that writes data to event file
+            - Creating a mapping from the variable tag and type to the callable to the summary function that can write \
+            it to the event file
+        """
 
         self.logging_opts = logging_opts
         if self.logging_opts['log_traces']:

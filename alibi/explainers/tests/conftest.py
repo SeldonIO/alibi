@@ -8,7 +8,8 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, MockTreeExplainer
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, mnist_dataset, \
+    MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
@@ -29,6 +30,11 @@ def model(request):
     """
     name = request.param
     return alibi_test_models.load(name)
+
+
+@pytest.fixture(scope='module')
+def get_mnist_dataset():
+    return mnist_dataset()
 
 
 @pytest.fixture(scope='module')

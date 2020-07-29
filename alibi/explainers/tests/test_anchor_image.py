@@ -4,10 +4,10 @@ import pytest
 import numpy as np
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
-from alibi.explainers.tests.utils import fashion_mnist_dataset
+from alibi.explainers.tests.utils import mnist_dataset
 
 # Data preparation
-data = fashion_mnist_dataset()
+data = mnist_dataset()
 x_train = data['X_train']
 y_train = data['y_train']
 

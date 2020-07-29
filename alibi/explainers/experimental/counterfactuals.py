@@ -2,31 +2,30 @@ import copy
 import logging
 
 import numpy as np
-import tensorflow as tf
-from inspect import signature
-
-from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
-from alibi.api.interfaces import Explanation, Explainer, FitMixin
-from alibi.explainers.backend.common import load_backend
-from alibi.explainers.exceptions import CounterfactualError
-from alibi.utils.frameworks import infer_device, _check_tf_or_pytorch
-from alibi.utils.gradients import numerical_gradients
-from alibi.utils.logging import tensorboard_loggers
-from alibi.utils.stats import median_abs_deviation
-from alibi.utils.wrappers import get_blackbox_wrapper
 
 from collections import defaultdict, namedtuple
 from functools import partial
-from typing import Any, Callable, Optional, Dict, Set, Tuple, Union, TYPE_CHECKING
+from inspect import signature
+from typing import Callable, Optional, Dict, Tuple, Union, TYPE_CHECKING
 from typing_extensions import Literal
 
+from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
+from alibi.api.interfaces import Explanation, Explainer, FitMixin
+from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
+from alibi.explainers.exceptions import CounterfactualError
+from alibi.utils.gradients import numerical_gradients
+from alibi.utils.logging import DEFAULT_LOGGING_OPTS
+from alibi.utils.stats import median_abs_deviation
+from alibi.utils.wrappers import get_blackbox_wrapper
+
+
+# TODO: ALEX: TBD: THIS DOESN'T FEEL RIGHT AT ALL?!
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
-
-logger = logging.getLogger(__name__)
+    import tensorflow as tf
 
 WACTHER_CF_VALID_SCALING = ['median']
-WACHTER_CF_PARAMS = ['scale_loss', 'scaling_method' 'constrain_features', 'feature_whitelist', 'fitted']
+WACHTER_CF_PARAMS = ['scale_loss', 'scaling_method', 'constrain_features', 'feature_whitelist', 'fitted']
 
 # define variable tracked for TensorBoard display by specifing tag, data type and description
 _CF_WACHTER_TAGS_DEFAULT = [
@@ -85,34 +84,21 @@ _WACHTER_CF_TRACKED_VARIABLES_DEFAULT = {
 """
 dict: A description of the variables to be recorded to TensorBoard for the WachterCounterfactual class. \
 """
-_WACHTER_CF_LOGGING_OPTS_DEFAULT = {
-    'verbose': False,
-    'log_traces': True,
+_WACHTER_CF_LOGGING_OPTS_DEFAULT = copy.deepcopy(DEFAULT_LOGGING_OPTS)
+_WACHTER_CF_LOGGING_OPTS_DEFAULT.update({
     'trace_dir': 'logs/cf',
-    'summary_freq': 1,
-    'image_summary_freq': 10,
     'tracked_variables': _WACHTER_CF_TRACKED_VARIABLES_DEFAULT
-}
+})
 """
-dict: The default values for logging options. See `explain` method for a detailed descriptions of each parameter.
-
-Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys when calling
-`explain`
-
-Examples
---------
-To specify a the name logging directory for TensorFlow event files and a new frequency for logging images call `explain`
-with the following key-word arguments::
-
-    logging_opts = {'trace_dir': 'experiments/cf', 'image_summary_freq': 5}
+See alibi.utils.logging for documentation.
 """
 WACHTER_LAM_OPTS_DEFAULT = {
     'lam_init': 0.1,
     'lams': None,
     'nb_lams': 2,
-    'lam_exploration_steps': 20,  # TODO: DOCUMENT THIS PARAM
-    'instance_proba_delta': 0.001,  # TODO: DOCUMENT THIS PARAM
-    'lam_perc_error': 0.5,  # TODO: DOCUMENT THIS PARAM
+    'lam_exploration_steps': 20,
+    'instance_proba_delta': 0.001,
+    'lam_perc_error': 0.5,
     'lam_cf_threshold': 5,
     'lam_multiplier': 10,
     'lam_divider': 10,
@@ -315,7 +301,7 @@ def _select_features(X: np.ndarray, feature_whitelist: Union[Literal['all'], np.
         return feature_whitelist
 
 
-class _WachterCounterfactual:
+class _WachterCounterfactual(CounterfactualBase):
     """This is a private class that implements the optimization process as described in the `paper`_ by Wachter et al. 
     (2017). The alibi API is implemented in a public class.  
 
@@ -324,118 +310,64 @@ class _WachterCounterfactual:
     """  # noqa
 
     def __init__(self,
-                 predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 predictor_type: str = 'blackbox',
+                 predictor: Union[Callable, 'tf.keras.Model', 'keras.Model'],
+                 framework: Literal['pytorch', 'tensorflow'] = 'tensorflow',
+                 predictor_type: Literal['blackbox', 'whitebox'] = 'blackbox',
                  loss_spec: Optional[dict] = None,
                  method_opts: Optional[dict] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
-                 framework: str = 'tensorflow',
                  **kwargs) -> None:
         """
-        See public class documentation.
-        """
+        See public class documentation for information about the inputs. This method should always:
 
-        _check_tf_or_pytorch(framework)
-        self.fitted = False
-        self.params = {}  # used by public class to update metadata
-        model_device = kwargs.get('device', None)
-        if not model_device:
-            self.model_device = infer_device(predictor, predictor_type, framework)
-        else:
-            self.model_device = model_device
+            - Initialise the superclass, passing its default hyperparameters, overrides for the default loss spec, \
+            valid feature ranges
+            - Specifies the type of predictor for which counterfactuals will be searched ('blackbox' vs 'whitebox') 
+            - Override method options (aka hyperparameters) with user input
+            - Set the default logging properties (see this implementation for an example on how use the `alibi` logging \
+            tools) 
+            - Inialise its response template
+        """  # noqa
 
-        optimizer = load_backend(
-            explainer_type='counterfactual',
-            framework=framework,
-            predictor_type=predictor_type,
-            method='wachter',
-        )
         _validate_wachter_loss_spec(loss_spec, predictor_type)
         blackbox_wrapper = get_blackbox_wrapper(framework) if predictor_type == 'blackbox' else None
-        kwargs['blackbox_wrapper'] = blackbox_wrapper
-        self.optimizer = optimizer(predictor, loss_spec, feature_range, **kwargs)
-        # TODO: DISCUSS HOW THIS SHOULD WORK? CAN THE EXPLAINER SHARE THE GPU WITH THE MODEL?
-        self.optimizer.device = self.model_device
 
-        # create attributes and set them with default values
-        search_opts = WACHTER_METHOD_OPTS['search_opts']
-        lam_opts = WACHTER_METHOD_OPTS['lam_opts']
-        logging_opts = _WACHTER_CF_LOGGING_OPTS_DEFAULT
-        self._attr_setter(search_opts)
-        self._attr_setter(lam_opts)
-        self._attr_setter({'tol': WACHTER_METHOD_OPTS['tol']})
-        # TODO: ALEX: TBD: ATTRS "POLICE"
-        expected_attributes = set(search_opts) | set(lam_opts) | set(logging_opts) | {'tol'}
-        expected_attributes |= self.optimizer._expected_attributes
-        self.expected_attributes = expected_attributes
-        self._set_attributes = partial(self._attr_setter, expected=self.expected_attributes)
-        # override defaults with user specification
-        if method_opts:
-            for key in method_opts:
-                if isinstance(method_opts[key], dict):
-                    self._set_attributes(method_opts[key])
-                else:
-                    self._set_attributes({key: method_opts[key]})
+        super().__init__(
+            predictor,
+            framework,
+            loss_spec,
+            WACHTER_METHOD_OPTS,
+            feature_range,
+            predictor_type=predictor_type,
+            # can pass additional kwargs for backend initialization like this
+            backend_kwargs={'blackbox_wrapper': blackbox_wrapper},
+            predictor_device=kwargs.get("predictor_device", None)
+        )
 
-        # set default options for logging (can override from wrapper @ explain time)
-        self.logging_opts = copy.deepcopy(logging_opts)
+        # TODO: ALEX: TBD: DISCUSS HOW SHOULD THIS WORK? CAN THE EXPLAINER SHARE THE GPU WITH THE MODEL? PROBS NOT?
+        # self.optimizer.device = self.model_device
+        self.backend.device = None
+
+        # override defaults with user input
+        self.set_attributes(method_opts)
+
+        # set default options for logging (updated from the API class)
+        self.logging_opts = copy.deepcopy(_WACHTER_CF_LOGGING_OPTS_DEFAULT)
         self.log_traces = self.logging_opts['log_traces']
-        # logging opts can be overridden so initialisation deferred to explain time
-        self.tensorboard = tensorboard_loggers[self.optimizer.framework_name]
-        # container for the data logged to tensorboard at every step
-        self.data_store = defaultdict(lambda: None)  # type: defaultdict
-        self.logger = logger
 
-        # init. at explain time
+        # init. at runtime time
         self.instance_class = None  # type: Union[int, None]
         self.instance_proba = None  # type: Union[float, None]
 
-        self.step = -1
-        self.lam_step = -1
         # return templates
         self.initialise_response()
-
-    def __setattr__(self, key: str, value: Any):
-        super().__setattr__(key, value)
-
-    def __getattr__(self, key: Any) -> Any:
-        return self.__getattribute__(key)
-
-    def _attr_setter(self, attrs: Union[Dict[str, Any], None], expected: Optional[Set[str]] = None) -> None:
-        """
-        Sets the attributes of the explainer using the (key, value) pairs in attributes. Ignores attributes that
-        are not in `expected` if the latter is specified.
-
-        Parameters
-        ----------
-        attrs
-            key-value pairs represent attribute names and values to be set.
-        expected
-            A dictionary indicating which attributes can be set for the object.
-        """
-
-        # TODO: SETATTRIBUTE SHOULD TAKE AN ITERABLE OF KEY-VALUE PAIRS ALSO
-
-        # called with None if the attributes are not overridden
-        if not attrs:
-            return
-
-        for key, value in attrs.items():
-            if expected and key not in expected:
-                self.logger.warning(f"Attribute {key} unknown. Attribute will not be set.")
-                continue
-            self.__setattr__(key, value)
-            # sync. setting of variables between base implementation and framework specific functions. Thus, the
-            # framework object must explicitly state the attributes that can be overridden at explain time
-            if hasattr(self.optimizer, key):
-                self.optimizer.__setattr__(key, value)
 
     def counterfactual(self,
                        instance: np.ndarray,
                        optimised_features: np.ndarray,
                        target_class: Union[Literal['same', 'other'], int] = 'other',
                        target_proba: float = 1.0,
-                       optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+                       optimizer: Optional['tf.keras.optimizers.Optimizer'] = None,
                        optimizer_opts: Optional[Dict] = None):
         """
         Search for a counterfactual given a starting point (`instance`), the target probability and the target class
@@ -457,11 +389,11 @@ class _WachterCounterfactual:
                 f"Only single instance explanations supported (leading dim = 1). Got leading dim = {instance.shape[0]}",
             )
 
-        y = self.optimizer.make_prediction(self.optimizer.to_tensor(instance))
-        y = self.optimizer.to_numpy_arr(y)
+        y = self.backend.make_prediction(self.backend.to_tensor(instance))
+        y = self.backend.to_numpy_arr(y)
         instance_class = _convert_to_label(y)
         instance_proba = y[:, instance_class].item()
-        self.optimizer._get_cf_prediction = partial(self.optimizer.cf_prediction_fcn, src_idx=instance_class)
+        self.backend._get_cf_prediction = partial(self.backend.cf_prediction_fcn, src_idx=instance_class)
 
         self.initialise_variables(
             instance,
@@ -471,13 +403,15 @@ class _WachterCounterfactual:
             instance_proba,
             target_proba
         )
-        self.optimizer.set_optimizer(optimizer, optimizer_opts)
-        self._setup_tensorboard()
+        self.backend.set_optimizer(optimizer, optimizer_opts)
+        self.setup_tensorboard()
+        if self.logging_opts['verbose']:
+            logging.basicConfig(level=logging.DEBUG)
         result = self.search(init_cf=instance)
         result['instance_class'] = instance_class
         result['instance_proba'] = instance_proba
-        self.optimizer.reset_optimizer()
-        self._reset_step()
+        self.backend.reset_optimizer()
+        self.reset_step()
 
         return result
 
@@ -490,20 +424,19 @@ class _WachterCounterfactual:
                              target_proba: float) -> None:
 
         """
-        Initializes the optimizer variables and sets properties used by the base class for evaluating stopping
-        conditions.
+        Initializes the optimizer variables and sets properties necessary evaluating stopping conditions.
 
         Parameters
         ----------
         X
             Initial condition for the optimization.
         optimised_features, target_proba, target_class
-            See`counterfactual` method.
+            See`counterfactual` method documentation.
         instance_class, instance_proba
             The class and probability of the prediction for the initial condition.
         """
 
-        self.optimizer.initialise_variables(
+        self.backend.initialise_variables(
             X,
             optimised_features,
             target_class=target_class,
@@ -557,35 +490,35 @@ class _WachterCounterfactual:
         summary_freq = self.summary_freq
         cf_found = np.zeros((self.max_lam_steps,), dtype=np.uint16)
         # re-init. cf as initial lambda sweep changed the initial condition
-        self.optimizer.initialise_solution(init_cf)
+        self.backend.initialise_solution(init_cf)
 
         for lam_step in range(self.max_lam_steps):
             self.lam = lam
-            self.optimizer.lam = lam
+            self.backend.lam = lam
             self.lam_step += 1
             # re-set learning rate
-            self.optimizer.reset_optimizer()
+            self.backend.reset_optimizer()
             found, not_found = 0, 0
             for gd_step in range(self.max_iter):
-                self.optimizer.step()
+                self.backend.step()
                 self.step += 1
-                constraint_satisfied = self.optimizer.check_constraint(
-                    self.optimizer.solution,
-                    self.optimizer.target_proba,
+                constraint_satisfied = self.backend.check_constraint(
+                    self.backend.solution,
+                    self.backend.target_proba,
                     self.tol
                 )
-                cf_prediction = self.optimizer.make_prediction(self.optimizer.solution)
+                cf_prediction = self.backend.make_prediction(self.backend.solution)
 
                 # save and optionally display results of current gradient descent step
                 current_state = (
-                    self.optimizer.to_numpy_arr(self.optimizer.solution),
-                    self.optimizer.to_numpy_arr(cf_prediction)
+                    self.backend.to_numpy_arr(self.backend.solution),
+                    self.backend.to_numpy_arr(cf_prediction)
                 )
                 write_summary = self.log_traces and self.step % summary_freq == 0
 
                 if constraint_satisfied:
                     cf_found[lam_step] += 1
-                    self._update_response(*current_state)
+                    self.update_response(*current_state)
                     found += 1
                     not_found = 0
                 else:
@@ -662,29 +595,29 @@ class _WachterCounterfactual:
         for lam_step, lam in enumerate(lams):
             explored_steps = 0
             # optimiser is re-created so that lr schedule is reset for every lam
-            self.optimizer.reset_optimizer()
-            self.optimizer.lam = lam
+            self.backend.reset_optimizer()
+            self.backend.lam = lam
             self.lam = lam
             self.data_store['lambda'] = lam
             self.lam_step += 1
             for gd_step in range(n_steps):
                 # update cf with loss gradient for a fixed lambda
-                self.optimizer.step()
+                self.backend.step()
                 self.step += 1
                 # NB: a bit of a weird pattern but kept it like this for clarity
-                constraint_satisfied = self.optimizer.check_constraint(
-                    self.optimizer.solution,
-                    self.optimizer.target_proba,
+                constraint_satisfied = self.backend.check_constraint(
+                    self.backend.solution,
+                    self.backend.target_proba,
                     self.tol
                 )
-                cf_prediction = self.optimizer.make_prediction(self.optimizer.solution)
-                instance_class_pred = self.optimizer.to_numpy_arr(cf_prediction[:, self.instance_class]).item()
+                cf_prediction = self.backend.make_prediction(self.backend.solution)
+                instance_class_pred = self.backend.to_numpy_arr(cf_prediction[:, self.instance_class]).item()
 
                 # update response and log data to TensorBoard
                 write_summary = self.log_traces and self.step % self.summary_freq == 0
                 current_state = (
-                    self.optimizer.to_numpy_arr(self.optimizer.solution),
-                    self.optimizer.to_numpy_arr(cf_prediction)
+                    self.backend.to_numpy_arr(self.backend.solution),
+                    self.backend.to_numpy_arr(cf_prediction)
                 )
 
                 if write_summary:
@@ -695,7 +628,7 @@ class _WachterCounterfactual:
 
                 if constraint_satisfied:
                     cf_found[lam_step] += 1
-                    self._update_response(*current_state)
+                    self.update_response(*current_state)
                     # sufficient to find a counterfactual for a given lambda in order to consider that lambda valid
                     break
 
@@ -721,14 +654,15 @@ class _WachterCounterfactual:
         self.initialise_response()
         self.search_results['lambda_sweep']['all'] = sweep_results['all']
         self.search_results['lambda_sweep']['cf'] = sweep_results['cf']
-        self._reset_step()
+        self.reset_step()
         self.data_store['lb'] = lam_bounds.lb
         self.data_store['lambda'] = lam_bounds.midpoint
         self.data_store['ub'] = lam_bounds.ub
 
         return lam_bounds
 
-    def compute_lam_bounds(self, cf_found: np.ndarray, lams: np.ndarray):  # type: ignore
+    @staticmethod
+    def compute_lam_bounds(cf_found: np.ndarray, lams: np.ndarray):  # type: ignore
         """
         Determine an upper and lower bound for :math:`\lambda`.
 
@@ -752,7 +686,7 @@ class _WachterCounterfactual:
 
         """  # noqa W605
 
-        self.logger.debug(f"Counterfactuals found: {cf_found}")
+        logger.debug(f"Counterfactuals found: {cf_found}")
         lam_bounds = namedtuple('lam_bounds', 'lb midpoint ub')
         if cf_found.sum() == 0:
             raise CounterfactualError(
@@ -789,13 +723,13 @@ class _WachterCounterfactual:
             ub = lams[lam_ub_idx]
             bounds = lam_bounds(lb=lb, midpoint=0.5 * (lb + ub), ub=ub)
 
-        self.logger.debug(f"Found upper and lower bounds for lambda: {bounds.ub}, {bounds.lb}")
+        logger.debug(f"Found upper and lower bounds for lambda: {bounds.ub}, {bounds.lb}")
 
         return bounds
 
     def initialise_response(self) -> None:
         """
-        Initialises the templates that will form the body of the `explanation.data` field.
+        See base class documentation.
         """
 
         self.step_data = [
@@ -857,21 +791,21 @@ class _WachterCounterfactual:
         # lam_cf_threshold: minimum number of CF instances to warrant increasing lambda
         if cf_found[lam_step] >= lam_cf_threshold:
             lam_lb = max(lam, lam_lb)
-            self.logger.debug(f"Lambda bounds: ({lam_lb}, {lam_ub})")
+            logger.debug(f"Lambda bounds: ({lam_lb}, {lam_ub})")
             if lam_ub < 1e9:
                 lam = (lam_lb + lam_ub) / 2
             else:
                 lam *= lam_multiplier
-                self.logger.debug(f"Changed lambda to {lam}")
+                logger.debug(f"Changed lambda to {lam}")
 
         elif cf_found[lam_step] < lam_cf_threshold:
             # if not enough solutions found so far, decrease lambda by a factor of 10,
             # otherwise bisect up to the last known successful lambda
             lam_ub = min(lam_ub, lam)
-            self.logger.debug(f"Lambda bounds: ({lam_lb}, {lam_ub})")
+            logger.debug(f"Lambda bounds: ({lam_lb}, {lam_ub})")
             if lam_lb > 0:
                 lam = (lam_lb + lam_ub) / 2
-                self.logger.debug(f"Changed lambda to {lam}")
+                logger.debug(f"Changed lambda to {lam}")
             else:
                 lam /= lam_divider
 
@@ -894,7 +828,7 @@ class _WachterCounterfactual:
 
         # collect optimizer state from the framework
         # important that the optimizer state dict keys match the variable names the logger knows about
-        opt_state = self.optimizer.collect_step_data()
+        opt_state = self.backend.collect_step_data()
         self.data_store.update(opt_state)
         # compute other state from information available to this function
         pred_class = _convert_to_label(current_cf_pred)
@@ -905,7 +839,7 @@ class _WachterCounterfactual:
         self.data_store['instance_class_proba'] = instance_class_proba
         self.data_store['current_solution'] = current_cf
 
-    def _update_response(self, current_cf: np.ndarray, current_cf_pred: np.ndarray) -> None:
+    def update_response(self, current_cf: np.ndarray, current_cf_pred: np.ndarray) -> None:
         """
         Updates the model response. Called only if current solution, :math:`X'` satisfies 
         :math:`|f_t(X') - p_t| < \mathtt{tol}`. Here :math:`f_t` is the model output and `p_t` is the target model 
@@ -921,7 +855,7 @@ class _WachterCounterfactual:
         """  # noqa W605
 
         # collect data from the optimizer
-        optimizer_state = self.optimizer.collect_step_data()
+        optimizer_state = self.backend.collect_step_data()
         # augment the data and update the response
         pred_class = _convert_to_label(current_cf_pred)
         target_pred_proba = current_cf_pred[:, pred_class].item()
@@ -949,23 +883,7 @@ class _WachterCounterfactual:
         elif this_result['distance_loss'] < self.search_results['cf']['distance_loss']:
             self.search_results['cf'] = this_result
 
-        self.logger.debug(f"CF found at step {self.step}.")
-
-    def _reset_step(self):
-        """
-        Resets the optimisation step for gradient descent and for the weight optimisation step (`lam_step`).
-        """
-        self.step = -1
-        self.lam_step = -1
-
-    def _setup_tensorboard(self):
-        """
-        Initialises the TensorBoard writer.
-        """
-
-        self._set_attributes(self.logging_opts)
-        if self.log_traces:
-            self.tensorboard = self.tensorboard().setup(self.logging_opts)
+        logger.debug(f"CF found at step {self.step}.")
 
     def _display_solution(self) -> None:
         """
@@ -1015,12 +933,12 @@ class _WachterCounterfactual:
                 # infer median absolute deviation (MAD) and update loss
                 if scale == 'median' or isinstance(scale, bool):
                     scaling_factor = median_abs_deviation(X)
-                    self.optimizer.distance_fcn.keywords['feature_scale'] = scaling_factor
+                    self.backend.distance_fcn.keywords['feature_scale'] = scaling_factor
 
             if constrain_features:
                 # infer feature ranges and update counterfactual constraints
                 feat_min, feat_max = np.min(X, axis=0), np.max(X, axis=0)
-                self.optimizer.solution_constraint = [feat_min, feat_max]
+                self.backend.solution_constraint = [feat_min, feat_max]
 
         self.fitted = True
         scaling_method = 'median' if self.scale else 'N/A'
@@ -1057,7 +975,7 @@ class _WachterCounterfactual:
                 scale_ = True
 
         if scale_:
-            loss_params = signature(self.optimizer.loss_spec['distance']).parameters
+            loss_params = signature(self.backend.loss_spec['distance']).parameters
             if 'feature_scale' not in loss_params:
                 logger.warning(
                     f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
@@ -1075,12 +993,12 @@ class WachterCounterfactual(Explainer, FitMixin):
     #  it to show the docs specific to the method and potentially override some behaviour (eg. fit might have other
     #  set of arguments, etc)
     def __init__(self,
-                 predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 predictor_type: str = 'blackbox',
+                 predictor: Union[Callable, 'tf.keras.Model', 'keras.Model'],
+                 predictor_type: Literal['blackbox', 'whitebox'] = 'blackbox',
                  loss_spec: Optional[dict] = None,
                  method_opts: Optional[dict] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
-                 framework: str = 'tensorflow',
+                 framework: Literal['pytorch', 'tensorflow'] = 'tensorflow',
                  **kwargs) -> None:
         """
         Counterfactual explanation method based on `Wachter et al. (2017)`_ (pp. 854). 
@@ -1096,7 +1014,8 @@ class WachterCounterfactual(Explainer, FitMixin):
             tensor) should always be two-dimensional. For example, a single-output classification model operating on a 
             single input instance should return a tensor or array with shape  `(1, 1)`. The explainer assumes the 
             `predictor` returns probabilities. In the future this explainer may be extended to work with regression 
-            models.
+            models. If `predictor_type` is set to `blackbox` then the `predictor` should be a callable that inputs/outputs
+            `np.ndarray` objects.
          predictor_type: {'blackbox', 'whitebox'}
 
             - 'blackbox' indicates that the algorithm does not have access to the model parameters (e.g., the predictor \
@@ -1137,8 +1056,10 @@ class WachterCounterfactual(Explainer, FitMixin):
 
         kwargs
             Valid kwargs include:
-                - `model_device`: used to pass a model device so that cpu/gpu computation can be supported for PyTorch     
-        """  # noqa W605
+                - `predictor_device`: used to pass a device so that cpu/gpu computation can be supported for PyTorch     
+        """  # noqa
+
+        # TODO: ALEX: TBD: DISCUSS DEVICE HANDLING
 
         # TODO: UPDATE LOSS SPEC HYPERLINKS TO POINT TO THE READTHEDOCS PART OF THE ADDRESS
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
@@ -1191,7 +1112,6 @@ class WachterCounterfactual(Explainer, FitMixin):
             MAD_{j} = \mathtt{median}_{i \in \{1, ..., n\}}(|x_{i,j} - \mathtt{median}_{l \in \{1,...,n\}}(x_{l,j})|)
         """  # noqa W605
 
-        # TODO: ALEX: TBD: Should fit be part of the private class? We could also defer the call.
         # TODO: A decorator-based soln similar to the numerical gradients can be implemented for scaling
         self._explainer.fit(X=X, scale=scale, constrain_features=constrain_features)
         self._update_metadata(self._explainer.params, params=True, allowed=set(WACHTER_CF_PARAMS))
@@ -1202,7 +1122,7 @@ class WachterCounterfactual(Explainer, FitMixin):
                 X: np.ndarray,
                 target_class: Union[Literal['same', 'other'], int] = 'other',
                 target_proba: float = 1.0,
-                optimizer: Optional[tf.keras.optimizers.Optimizer] = None,
+                optimizer: Optional['tf.keras.optimizers.Optimizer'] = None,
                 optimizer_opts: Optional[Dict] = None,
                 feature_whitelist: Union[Literal['all'], np.ndarray] = 'all',
                 logging_opts: Optional[Dict] = None,
@@ -1255,45 +1175,10 @@ class WachterCounterfactual(Explainer, FitMixin):
             dimension of 1) containing `1` for the features to be optimised and `0` for the features that keep their 
             original values.
         logging_opts
-            A dictionary that specifies any changes to the default logging options specified in 
-            ``, with the following structure::
-
-                {
-                    'verbose': False,
-                    'log_traces': True,
-                    'trace_dir': 'logs/cf',
-                    'summary_freq': 1,
-                    'image_summary_freq': 10,
-                    'tracked_variables': {'tags': [], 'data_types': [], 'descriptions': []},
-                }
-
-                Default values for `verbose` and `log_traces` are as shown above.
-
-                - 'verbose': if `False` the logger will be set to ``INFO`` level 
-
-                - 'log_traces': if `True`, data about the optimisation process will be logged with a frequency specified \
-                by `summary_freq` input. Such data include the learning rate, loss function terms, total loss and the \
-                information about :math:`\lambda`. The algorithm will also log images if `X` is a 4-dimensional tensor \
-                (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions), to show the path followed by the \
-                optimiser from the initial condition to the final solution. The images are logged with a frequency \
-                specified by `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` \
-                is created and  {} is replaced by the run number. To see the logs run the command in the `trace_dir` \
-                directory:: 
-
-                    ``tensorboard --logdir trace_dir``
-                 replacing ``trace_dir`` with your own path. Then run ``localhost:6006`` in your browser to see the \
-                traces. The traces can be visualised as the optimisation proceeds and can provide useful information \
-                on how to adjust the optimisation in cases of non-convergence.
-
-                - 'trace_dir': the directory where the optimisation infromation is logged. If not specified when \
-                `log_traces=True`, then the logs are saved under `logs/cf`. 
-
-                - 'summary_freq': logging frequency for optimisation information.
-
-                - 'image_summary_freq': logging frequency for intermediate counterfactuals (for image data).
+            See `alibi.utils.logging` for information about the logging options and how to log quantities to
+            TensorBoard automatically. 
         method_opts
-            This contains the hyperparameters specific to the method used to search for the counterfactual. These are 
-            documented in the base implementations for the specific algorithms and can be found `here`_.
+            Use this argument to pass overrides for the defaults specified in the `WATCHER_METHOD_OPTS`.
         """  # noqa W605
 
         # TODO: UPDATE DOCS
@@ -1302,15 +1187,12 @@ class WachterCounterfactual(Explainer, FitMixin):
         if method_opts:
             for key in method_opts:
                 if isinstance(method_opts[key], Dict):
-                    self._explainer._set_attributes(method_opts[key])
+                    self._explainer.set_attributes(method_opts[key])
                 else:
-                    self._explainer._set_attributes({key: method_opts[key]})
+                    self._explainer.set_attributes({key: method_opts[key]})
 
         if logging_opts:
             self._explainer.logging_opts.update(logging_opts)
-
-        if self._explainer.logging_opts['verbose']:
-            logging.basicConfig(level=logging.DEBUG)
 
         # select features to optimize
         optimized_features = _select_features(X, feature_whitelist)

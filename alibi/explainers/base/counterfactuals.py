@@ -13,7 +13,7 @@ from typing_extensions import Literal
 logger = logging.getLogger(__name__)
 
 
-class CounterfactuaBase:
+class CounterfactualBase:
     """
     A base class from which all counterfactual implementations should inherit. The class implements the following
     functionality:

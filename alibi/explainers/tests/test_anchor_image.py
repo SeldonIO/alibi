@@ -13,7 +13,7 @@ y_train = data['y_train']
 
 
 @pytest.mark.parametrize('model',
-                         ['mnist-cnn-tf2.2.0', 'mnist-cnn-tf1.15.0.h5'],
+                         ['mnist-cnn-tf2.2.0', 'mnist-cnn-tf1.15.2.h5'],
                          ids='model={}'.format,
                          indirect=True)
 def test_anchor_image(model):

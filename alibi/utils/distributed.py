@@ -313,6 +313,8 @@ class DistributedExplainer:
             raise ModuleNotFoundError("Module requires ray to be installed. pip install alibi[ray] ")
 
         self.n_jobs = distributed_opts['n_cpus']
+        self.n_actors = int(distributed_opts['n_cpus'] // distributed_opts['actor_cpu_fraction'])
+        self.actor_cpu_frac = distributed_opts['actor_cpu_fraction']
         self.batch_size = distributed_opts['batch_size']
         self.algorithm = distributed_opts['algorithm']
         self.target_fn = globals()[f"{distributed_opts['algorithm']}_target_fn"]
@@ -326,7 +328,8 @@ class DistributedExplainer:
         self.explainer_kwargs = init_kwargs
 
         if not DistributedExplainer.ray.is_initialized():
-            DistributedExplainer.ray.init()
+            print(f"Initialising ray on {distributed_opts['n_cpus']} cpus!")
+            DistributedExplainer.ray.init(num_cpus=distributed_opts['n_cpus'])
 
         self.pool = self.create_parallel_pool()
 
@@ -335,16 +338,20 @@ class DistributedExplainer:
         Access to actor attributes. Should be used to retrieve only state that is shared by all actors in the pool.
         """
         actor = self.pool._idle_actors[0]
-        return actor.return_attribute.remote(item)
+        return self.ray.get(actor.return_attribute.remote(item))
 
     def create_parallel_pool(self):
         """
-        Creates a pool of actors that can execute explanations in parallel.
+        Creates a pool of actors (aka proceses containing explainers) that can execute explanations in parallel.
         """
 
-        handles = [DistributedExplainer.ray.remote(self.explainer) for _ in range(self.n_jobs)]
-        workers = [handle.remote(*self.explainer_args, **self.explainer_kwargs) for handle in handles]
-        return DistributedExplainer.ray.util.ActorPool(workers)
+        actor_handles = [
+            DistributedExplainer.ray.remote(self.explainer).options(num_cpus=self.actor_cpu_frac)
+            for _ in range(self.n_actors)
+        ]
+
+        actors = [handle.remote(*self.explainer_args, **self.explainer_kwargs) for handle in actor_handles]
+        return DistributedExplainer.ray.util.ActorPool(actors)
 
     def batch(self, X: np.ndarray) -> enumerate:
         """

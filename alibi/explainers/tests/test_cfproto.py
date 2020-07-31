@@ -1,7 +1,6 @@
 # flake8: noqa E731
 import numpy as np
 import pytest
-from sklearn.datasets import load_iris
 import tensorflow as tf
 import keras
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
@@ -9,81 +8,13 @@ from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
 
-from alibi_test_models.data import adult_data
+from alibi_test_models.data import adult_data, iris_data
 
 
 @pytest.fixture
-def tf_keras_iris_model(request):
-    if request.param == 'keras':
-        k = keras
-    elif request.param == 'tf':
-        k = tf.keras
-    else:
-        raise ValueError('Unknown parameter')
-
-    x_in = k.layers.Input(shape=(4,))
-    x = k.layers.Dense(10, activation='relu')(x_in)
-    x_out = k.layers.Dense(3, activation='softmax')(x)
-    model = k.models.Model(inputs=x_in, outputs=x_out)
-    model.compile(loss='sparse_categorical_crossentropy', optimizer='sgd', metrics=['accuracy'])
-    return model
-
-
-@pytest.fixture
-def tf_keras_iris_ae(request):
-    if request.param == 'keras':
-        k = keras
-    elif request.param == 'tf':
-        k = tf.keras
-    else:
-        raise ValueError('Unknown parameter')
-
-    # encoder
-    x_in = k.layers.Input(shape=(4,))
-    x = k.layers.Dense(5, activation='relu')(x_in)
-    encoded = k.layers.Dense(2, activation=None)(x)
-    encoder = k.models.Model(x_in, encoded)
-
-    # decoder
-    dec_in = k.layers.Input(shape=(2,))
-    x = k.layers.Dense(5, activation='relu')(dec_in)
-    decoded = k.layers.Dense(4, activation=None)(x)
-    decoder = k.models.Model(dec_in, decoded)
-
-    # autoencoder = encoder + decoder
-    x_out = decoder(encoder(x_in))
-    autoencoder = k.models.Model(x_in, x_out)
-    autoencoder.compile(optimizer='adam', loss='mse')
-
-    return autoencoder, encoder, decoder
-
-
-@pytest.fixture
-def tf_keras_iris(tf_keras_iris_model, tf_keras_iris_ae):
-    X, y = load_iris(return_X_y=True)
-    X = (X - X.mean(axis=0)) / X.std(axis=0)  # scale dataset
-
-    idx = 145
-    X_train, y_train = X[:idx, :], y[:idx]
-    # y_train = to_categorical(y_train) # TODO: fine to leave as is?
-
-    # set random seed
-    np.random.seed(1)
-    tf.random.set_seed(1)
-
-    model = tf_keras_iris_model
-    model.fit(X_train, y_train, batch_size=128, epochs=500, verbose=0)
-
-    ae, enc, _ = tf_keras_iris_ae
-    ae.fit(X_train, X_train, batch_size=32, epochs=100, verbose=0)
-
-    return X_train, model, ae, enc
-
-
-@pytest.fixture
-def tf_keras_iris_explainer(request, tf_keras_iris):
-    X_train, model, ae, enc = tf_keras_iris
-
+def tf_keras_iris_explainer(request, models, get_iris_dataset):
+    (X_train, _), (_, _) = iris_data()
+    model, ae, enc = models
     if request.param[0]:  # use k-d trees
         ae = None
         enc = None
@@ -94,24 +25,30 @@ def tf_keras_iris_explainer(request, tf_keras_iris):
                                        max_iterations=1000, c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(X_train.min(axis=0).reshape(shape),
                                                       X_train.max(axis=0).reshape(shape)))
-    yield X_train, model, cf_explainer
+    yield model, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
 
+# TODO: old Keras model missing
 @pytest.mark.tf1
-@pytest.mark.parametrize('tf_keras_iris_explainer,use_kdtree,k', [
-    ((False, 0., 1), False, None),
-    ((False, 1., 3), False, None),
-    ((False, 0., 1), False, 2),
-    ((False, 1., 3), False, 2),
-    ((True, 0., 1), True, None),
-    ((True, 1., 3), True, None),
-    ((True, 0., 1), True, 2),
-    ((True, 1., 3), True, 2)
-], indirect=['tf_keras_iris_explainer'])
-@pytest.mark.parametrize('tf_keras_iris_model,tf_keras_iris_ae', [('tf', 'tf'), ('keras', 'keras')],
+@pytest.mark.parametrize('tf_keras_iris_explainer, use_kdtree, k',
+                         [((False, 0., 1), False, None),
+                          ((False, 1., 3), False, None),
+                          ((False, 0., 1), False, 2),
+                          ((False, 1., 3), False, 2),
+                          ((True, 0., 1), True, None),
+                          ((True, 1., 3), True, None),
+                          ((True, 0., 1), True, 2),
+                          ((True, 1., 3), True, 2)],
+                         indirect=['tf_keras_iris_explainer'])
+@pytest.mark.parametrize('models',
+                         [('iris-ffn-tf2.2.0', 'iris-ae-tf2.2.0', 'iris-enc-tf2.2.0'),
+                          ('iris-ffn-tf1.15.2.h5', 'iris-ae-tf1.15.2.h5', 'iris-enc-tf1.15.2.h5')],
                          indirect=True)
 def test_tf_keras_iris_explainer(disable_tf2, tf_keras_iris_explainer, use_kdtree, k):
-    X_train, model, cf = tf_keras_iris_explainer
+    model, cf = tf_keras_iris_explainer
+    (X_train, _), (_, _) = iris_data()
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)
@@ -178,13 +115,14 @@ def tf_keras_adult_explainer(request, model, adult_cat_vars_ohe):
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
-#TODO: old Keras model missing
+
+# TODO: old Keras model missing
 @pytest.mark.tf1
-@pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
-    ((False, 1., 3), False, None, 'mvdm'),
-    ((True, 1., 3), True, 2, 'mvdm'),
-    ((True, 1., 3), True, 2, 'abdm'),
-], indirect=['tf_keras_adult_explainer'])
+@pytest.mark.parametrize('tf_keras_adult_explainer, use_kdtree, k, d_type',
+                         [((False, 1., 3), False, None, 'mvdm'),
+                          ((True, 1., 3), True, 2, 'mvdm'),
+                          ((True, 1., 3), True, 2, 'abdm')],
+                         indirect=['tf_keras_adult_explainer'])
 @pytest.mark.parametrize('model',
                          ['adult-ffn-tf2.2.0', 'adult-ffn-tf1.15.2'],
                          ids='model={}'.format,

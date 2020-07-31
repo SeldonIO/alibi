@@ -32,6 +32,18 @@ def model(request):
     return alibi_test_models.load(name)
 
 
+@pytest.fixture
+def models(request):
+    """
+    This fixture loads multiple pre-trained test-models by name from the
+    alibi-test-models helper package.
+    """
+    models = []
+    for name in request.param:
+        models.append(alibi_test_models.load(name))
+    return models
+
+
 @pytest.fixture(scope='module')
 def get_mnist_dataset():
     return mnist_dataset()

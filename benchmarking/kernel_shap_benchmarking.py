@@ -204,7 +204,6 @@ def run_parallel_experiment(batch_sizes: List[int],
     logging.info(f"n_runs: {n_runs}")
     logging.info(f"Actor cpu fraction: {actor_cpu_frac}")
     distributed_opts = {'n_cpus': n_cpu, 'actor_cpu_fraction': actor_cpu_frac}
-    result = {'t_elapsed': [], 'explanations': []}
     explainer = fit_kernel_shap_explainer(
         predictor,
         background_data,
@@ -214,6 +213,7 @@ def run_parallel_experiment(batch_sizes: List[int],
     )
 
     for batch_size in batch_sizes:
+        result = {'t_elapsed': [], 'explanations': []}
         if hasattr(explainer._explainer, "batch_size"):
             explainer._explainer.batch_size = batch_size
             distributed_opts['batch_size'] = batch_size

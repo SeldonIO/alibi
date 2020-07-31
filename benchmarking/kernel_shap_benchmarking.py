@@ -4,10 +4,9 @@ import os
 import pickle
 
 import numpy as np
-from functools import partial
 
 from alibi.datasets import fetch_adult
-from alibi.explainers.shap_wrappers import KernelShap
+from alibi.explainers.shap_wrappers import KernelShap, DISTRIBUTED_OPTS
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
@@ -16,9 +15,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from timeit import default_timer as timer
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 logging.basicConfig(level=logging.INFO)
+
+import ray
 
 
 def load_adult_dataset():
@@ -131,8 +132,6 @@ def group_adult_dataset(preprocessed_dataset: Dict):
     feat_enc_dim = [len(cat_enc) - 1 for cat_enc in ohe.categories_]
     num_feats_names = [feature_names[i] for i in numerical_feats_idx]
     cat_feats_names = [feature_names[i] for i in categorical_feats_idx]
-    print(num_feats_names)
-    print(cat_feats_names)
 
     group_names = num_feats_names + cat_feats_names
     groups = []
@@ -149,7 +148,11 @@ def group_adult_dataset(preprocessed_dataset: Dict):
     return group_names, groups
 
 
-def fit_kernel_shap_explainer(clf, background_data, groups, group_names, distributed_opts):
+def fit_kernel_shap_explainer(clf,
+                              background_data: np.ndarray,
+                              groups: List[List[int]],
+                              group_names: [List[str]],
+                              distributed_opts: Dict[str, Any] = None):
     """Returns an a fitted explainer for the classifier `clf`"""
 
     pred_fcn = clf.predict_proba
@@ -174,9 +177,85 @@ def sparse2ndarray(mat, examples=None):
 def get_filename(distributed_opts: dict):
     """Creates a filename for an experiment given `distributed_opts`."""
 
-    if distributed_opts['n_cpus']:
-        return f"results/ray_ncpu_{distributed_opts['n_cpus']}_bsize_{distributed_opts['batch_size']}.pkl"
+    ncpus = distributed_opts['n_cpus']
+    if ncpus:
+        batch_size = distributed_opts['batch_size']
+        cpu_fraction = distributed_opts['actor_cpu_fraction']
+        return f"results/ray_ncpu_{ncpus}_bsize_{batch_size}_actorfr_{cpu_fraction}.pkl"
     return "results/sequential.pkl"
+
+
+def run_parallel_experiment(batch_sizes: List[int],
+                            n_cpu: int,
+                            n_runs: int,
+                            actor_cpu_frac: float,
+                            X_explain: np.ndarray,
+                            predictor: Any,
+                            background_data: np.ndarray,
+                            groups: List[List[int]],
+                            group_names: List[str]):
+    """
+    Explanations for `X_explain` are computed in parallel. For a given `n_cpu`, `X_explain` is split into batches of
+    sizes included in `batch_sizes`. For each batch size, `X_explain` is explained `n_runs` times. `actor_cpu_frac`
+    indicates what fraction of a CPU an actor process is allowed to use. 
+    """
+
+    logging.info(f"n_cpu: {n_cpu}")
+    logging.info(f"n_runs: {n_runs}")
+    logging.info(f"Actor cpu fraction: {actor_cpu_frac}")
+    distributed_opts = {'n_cpus': n_cpu, 'actor_cpu_fraction': actor_cpu_frac}
+    result = {'t_elapsed': [], 'explanations': []}
+    explainer = fit_kernel_shap_explainer(
+        predictor,
+        background_data,
+        groups,
+        group_names,
+        distributed_opts=distributed_opts
+    )
+
+    for batch_size in batch_sizes:
+        if hasattr(explainer._explainer, "batch_size"):
+            explainer._explainer.batch_size = batch_size
+            distributed_opts['batch_size'] = batch_size
+            logging.info(f"Explainer batch_size: {explainer._explainer.batch_size}")
+        for run in range(n_runs):
+            logging.info(f"run: {run}")
+            # fit explainer
+            t_start = timer()
+            explanation = explainer.explain(X_explain)
+            t_elapsed = timer() - t_start
+            logging.info(f"Time elapsed: {t_elapsed}")
+            result['t_elapsed'].append(t_elapsed)
+            result['explanations'].append(explanation)
+        with open(get_filename(distributed_opts), 'wb') as f:
+            pickle.dump(result, f)
+
+
+def run_sequential_experiment(
+        n_runs: int,
+        X_explain: np.ndarray,
+        predictor: Any,
+        background_data: np.ndarray,
+        groups: List[List[int]],
+        group_names: List[str]):
+    """
+    Explains the instances in `X_explain` in a sequential fashion.
+    """
+
+    logging.info(f"n_runs: {n_runs}")
+    result = {'t_elapsed': [], 'explanations': []}
+    explainer = fit_kernel_shap_explainer(predictor, background_data, groups, group_names)
+    for run in range(n_runs):
+        logging.info(f"run: {run}")
+        # fit explainer
+        t_start = timer()
+        explanation = explainer.explain(X_explain)
+        t_elapsed = timer() - t_start
+        logging.info(f"Time elapsed: {t_elapsed}")
+        result['t_elapsed'].append(t_elapsed)
+        result['explanations'].append(explanation)
+    with open(get_filename(DISTRIBUTED_OPTS), 'wb') as f:
+        pickle.dump(result, f)
 
 
 def main():
@@ -204,47 +283,28 @@ def main():
                                          fraction_explained,
                                          )
         X_explain_proc = sparse2ndarray(preprocessor.transform(X_explain))
-    experiment = partial(
-        run_experiment,
-        X_explain=X_explain_proc,
-        predictor=lr,
-        background_data=background_data,
-        groups=groups,
-        group_names=group_names,
-    )
-    if args.sequential:
+
+    if args.sequential == 1:
         logging.info("Running sequential mode")
-        experiment(batch_size=None, n_cpu=None, n_runs=args.nruns)
+        run_sequential_experiment(args.nruns, X_explain_proc, lr, background_data, groups, group_names)
     else:
         logging.info("Running in parallel mode")
         batch_sizes = [10, 20, 40, 80]
-        for batch_size in batch_sizes:
-            for n_cpu in range(2, args.ncpu_max):
-                experiment(batch_size=batch_size, n_cpu=n_cpu, n_runs=args.nruns)
-
-
-def run_experiment(batch_size, n_cpu, n_runs, X_explain, predictor, background_data, groups, group_names):
-    """
-    Runs an experiment for a certain batch size, number of CPUs combination. Each cobination is run `n_runs` times.
-    """
-    logging.info(f"Batch_size: {batch_size}")
-    logging.info(f"n_cpu: {n_cpu}")
-    logging.info(f"n_runs: {n_runs}")
-    distributed_opts = {'batch_size': batch_size, 'n_cpus': n_cpu}
-    result = {'t_elapsed': [], 'explanations': []}
-
-    for run in range(n_runs):
-        logging.info(f"run: {run}")
-        # fit explainer
-        explainer = fit_kernel_shap_explainer(predictor, background_data, groups, group_names, distributed_opts)
-        t_start = timer()
-        explanation = explainer.explain(X_explain)
-        t_elapsed = timer() - t_start
-        logging.info(f"Time elapsed: {t_elapsed}")
-        result['t_elapsed'].append(t_elapsed)
-        result['explanations'].append(explanation)
-    with open(get_filename(distributed_opts), 'wb') as f:
-        pickle.dump(result, f)
+        for ncpu in range(2, args.ncpu_range + 1):
+            run_parallel_experiment(
+                batch_sizes,
+                ncpu,
+                args.nruns,
+                args.actor_cpu_frac,
+                X_explain_proc,
+                lr,  # predictor
+                background_data,
+                groups,
+                group_names
+            )
+            # Terminate ray to clean up after an experiment
+            if ray.is_initialized():
+                ray.shutdown()
 
 
 if __name__ == "__main__":
@@ -253,8 +313,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-n_background_samples', type=int, default=100, help="Background set size.")
     parser.add_argument('-fraction_explained', type=float, default=1.0, help="Fraction of test set explained.")
-    parser.add_argument('-ncpu_max', type=int, default=3, help="Number of cores to run the computation on.")
-    parser.add_argument('-nruns', type=int, default=5, help="Number of runs per batch/ncpu setting.")
-    parser.add_argument('-sequential', type=bool, default=False, help="Run sequential mode")
+    parser.add_argument('-ncpu-range', type=int, default=3, help="Max number of (physical) cores available to ray.")
+    parser.add_argument('-actor_cpu_frac', type=float, default=1.0, help="Fraction of CPU available to actor process.")
+    parser.add_argument('-nruns', type=int, default=2, help="Number of runs per batch/ncpu setting.")
+    parser.add_argument('-sequential', type=int, default=0, help="Run sequential mode")
     args = parser.parse_args()
     main()

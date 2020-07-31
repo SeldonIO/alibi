@@ -124,7 +124,7 @@ def tf_keras_adult_explainer(request, model, adult_cat_vars_ohe):
                           ((True, 1., 3), True, 2, 'abdm')],
                          indirect=['tf_keras_adult_explainer'])
 @pytest.mark.parametrize('model',
-                         ['adult-ffn-tf2.2.0', 'adult-ffn-tf1.15.2'],
+                         ['adult-ffn-tf2.2.0', 'adult-ffn-tf1.15.2.h5'],
                          ids='model={}'.format,
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):

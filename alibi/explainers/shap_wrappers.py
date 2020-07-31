@@ -212,6 +212,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
 DISTRIBUTED_OPTS = {
     'n_cpus': None,
     'batch_size': None,
+    'actor_cpu_fraction': 1.0,
 }
 
 
@@ -358,9 +359,9 @@ class KernelShap(Explainer, FitMixin):
         self.summarise_background = False
         # checks if it has been fitted:
         self._fitted = False
-        self.distributed_opts = DISTRIBUTED_OPTS if not distributed_opts else distributed_opts
-        if 'batch_size' not in self.distributed_opts:
-            self.distributed_opts['batch_size'] = None
+        self.distributed_opts = copy.deepcopy(DISTRIBUTED_OPTS)
+        if distributed_opts:
+            self.distributed_opts.update(distributed_opts)
         self.distributed_opts['algorithm'] = 'kernel_shap'
         self.distribute = True if self.distributed_opts['n_cpus'] else False
 

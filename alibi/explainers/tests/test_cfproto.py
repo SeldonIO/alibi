@@ -2,14 +2,14 @@
 import numpy as np
 import pytest
 from sklearn.datasets import load_iris
-from sklearn.preprocessing import OneHotEncoder
 import tensorflow as tf
-from tensorflow.keras.utils import to_categorical
 import keras
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
+
+from alibi_test_models.data import adult_data
 
 
 @pytest.fixture
@@ -153,58 +153,9 @@ def test_tf_keras_iris_explainer(disable_tf2, tf_keras_iris_explainer, use_kdtre
 
 
 @pytest.fixture
-def tf_keras_adult_model(request):
-    if request.param == 'keras':
-        k = keras
-    elif request.param == 'tf':
-        k = tf.keras
-    else:
-        raise ValueError('Unknown parameter')
-
-    x_in = k.layers.Input(shape=(57,))
-    x = k.layers.Dense(60, activation='relu')(x_in)
-    x = k.layers.Dense(60, activation='relu')(x)
-    x_out = k.layers.Dense(2, activation='softmax')(x)
-    model = k.models.Model(inputs=x_in, outputs=x_out)
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    return model
-
-
-@pytest.fixture
-def tf_keras_adult(tf_keras_adult_model):
-    # fetch data
-    adult = fetch_adult()
-    X = adult.data
+def adult_cat_vars_ohe():
+    X, y = fetch_adult(return_X_y=True)
     X_ord = np.c_[X[:, 1:8], X[:, 11], X[:, 0], X[:, 8:11]]
-    y = adult.target
-
-    # scale numerical features
-    X_num = X_ord[:, -4:].astype(np.float32, copy=False)
-    xmin, xmax = X_num.min(axis=0), X_num.max(axis=0)
-    rng = (-1., 1.)
-    X_num_scaled = (X_num - xmin) / (xmax - xmin) * (rng[1] - rng[0]) + rng[0]
-
-    # OHE categorical features
-    X_cat = X_ord[:, :-4].copy()
-    ohe = OneHotEncoder()
-    ohe.fit(X_cat)
-    X_cat_ohe = ohe.transform(X_cat)
-
-    # combine categorical and numerical data
-    X_comb = np.c_[X_cat_ohe.todense(), X_num_scaled].astype(np.float32, copy=False)
-
-    # split in train and test set
-    idx = 30000
-    X_train, y_train = X_comb[:idx, :], y[:idx]
-
-    assert X_train.shape[1] == 57
-
-    # set random seed
-    np.random.seed(1)
-    tf.random.set_seed(1)
-
-    model = tf_keras_adult_model
-    model.fit(X_train, to_categorical(y_train), batch_size=128, epochs=5, verbose=0)
 
     # create categorical variable dict
     cat_vars_ord = {}
@@ -213,30 +164,34 @@ def tf_keras_adult(tf_keras_adult_model):
         cat_vars_ord[i] = len(np.unique(X_ord[:, i]))
     cat_vars_ohe = ord_to_ohe(X_ord, cat_vars_ord)[1]
 
-    return X_train, model, cat_vars_ohe
+    return cat_vars_ohe
 
 
 @pytest.fixture
-def tf_keras_adult_explainer(request, tf_keras_adult):
-    X_train, model, cat_vars_ohe = tf_keras_adult
-
+def tf_keras_adult_explainer(request, model, adult_cat_vars_ohe):
     shape = (1, 57)
-    cf_explainer = CounterFactualProto(model, shape, beta=.01, cat_vars=cat_vars_ohe, ohe=True,
+    cf_explainer = CounterFactualProto(model, shape, beta=.01, cat_vars=adult_cat_vars_ohe, ohe=True,
                                        use_kdtree=request.param[0], max_iterations=1000,
                                        c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))
-    yield X_train, model, cf_explainer
+    yield model, cf_explainer
+    keras.backend.clear_session()
+    tf.keras.backend.clear_session()
 
-
+#TODO: old Keras model missing
 @pytest.mark.tf1
 @pytest.mark.parametrize('tf_keras_adult_explainer,use_kdtree,k,d_type', [
     ((False, 1., 3), False, None, 'mvdm'),
     ((True, 1., 3), True, 2, 'mvdm'),
     ((True, 1., 3), True, 2, 'abdm'),
 ], indirect=['tf_keras_adult_explainer'])
-@pytest.mark.parametrize('tf_keras_adult_model', ['tf', 'keras'], indirect=True)
+@pytest.mark.parametrize('model',
+                         ['adult-ffn-tf2.2.0', 'adult-ffn-tf1.15.2'],
+                         ids='model={}'.format,
+                         indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
-    X_train, model, cf = tf_keras_adult_explainer
+    model, cf = tf_keras_adult_explainer
+    (X_train, _), (_, _) = adult_data()
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)

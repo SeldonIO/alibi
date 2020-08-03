@@ -60,8 +60,8 @@ Any subset of these options can be overridden by passing a dictionary with the c
 
 Examples
 --------
-To specify a the name logging directory for TensorFlow event files and a new frequency for logging images call `explain`
-with the following key-word arguments::
+To specify a logging directory for TensorFlow event files and a new frequency for logging images call `explain` with the
+following key-word arguments::
 
     logging_opts = {'trace_dir': 'experiments/cf', 'image_summary_freq': 5}
 """

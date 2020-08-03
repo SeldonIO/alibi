@@ -209,7 +209,6 @@ def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
         return
 
     # TODO: ALEX: TBD: SHOULD WE ENFORCE KWARGS IN SPEC?
-    available_num_grad_fcns = set([list(numerical_gradients[key]) for key in numerical_gradients.keys()])
 
     if 'distance' not in loss_spec:
         raise CounterfactualError(f"Expected loss_spec to have key 'distance'. Found keys {loss_spec.keys}!")
@@ -221,34 +220,26 @@ def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
                 "If your function does not need keyword arguments, then set 'kwargs' : {}."
             )
     if predictor_type == 'blackbox':
-        correct, grad_method = False, False
-        grad_method_name = ''
+        correct = False
         for term in loss_spec:
-            if 'gradient_method' in term:
-                grad_method = True
-                grad_method_name = term['gradient_fcn']
             if 'grad_fn' in term and 'grad_fn_kwargs' in term:
                 correct = True
                 break
         if not correct:
             raise CounterfactualError(
                 "When one of the loss terms that depends on the predictor cannot be differentiated, the loss "
-                "specification must contain a term that has a key 'grad_fn' and a key 'grad_fn_kwargs'. grad_fn should"
-                "be a callable that takes the same arguments as the corresponding 'fcn', and represents the derivative"
-                "of the loss term with respect to the predictor. If the function takes no kwargs, then set "
-                "'grad_fn_kwargs': {}"
+                "specification must contain a prediction term that has a key 'pred_out_grad_fcn' and a key "
+                "'pred_out_grad_fcn_kwargs'. `pred_out_grad_fcn` should be a callable that takes the same arguments as "
+                "the corresponding 'fcn', and represents the derivative of the loss term with respect to the predictor "
+                "output. If the function takes no kwargs, then set 'pred_out_grad_fcn_kwargs': {}"
             )
-        if not grad_method:
+        if 'numerical_diff_scheme' not in loss_spec:
             raise CounterfactualError(
-                "For non-differentiable predictors, a 'gradient_method' must be specified in the loss specification. "
-                "Available numerical differentiation methods are 'num_grad_batch'."
+                "Missing key 'numerical_diff_scheme' in loss specification. For non-differentiable predictors, "
+                "a numerical differentiation scheme must be specified. Use the 'name' field to specify the name of the "
+                "function and the 'kwargs' field to specify its kwargs. To register your function, use the "
+                "`numerical_gradients` decorator in `alibi.utils.gradients`."
             )
-        else:
-            if grad_method_name not in available_num_grad_fcns:
-                raise CounterfactualError(
-                    f"Undefined numerical gradients calculation method. Avaialble methods are "
-                    f"{available_num_grad_fcns}"
-                )
 
 
 def _convert_to_label(Y: np.ndarray, threshold: float = 0.5) -> int:
@@ -349,7 +340,7 @@ class _WachterCounterfactual(CounterfactualBase):
         self.backend.device = None
 
         # override defaults with user input
-        self.set_attributes(method_opts)
+        self.set_expected_attributes(method_opts)
 
         # set default options for logging (updated from the API class)
         self.logging_opts = copy.deepcopy(_WACHTER_CF_LOGGING_OPTS_DEFAULT)
@@ -1081,7 +1072,7 @@ class WachterCounterfactual(Explainer, FitMixin):
             constrain_features: bool = True) -> "WachterCounterfactual":
         """
         Calling this method with an array of :math:`N` data points, assumed to be the leading dimension of `X`, has the
-        following functions:
+        following effect:
 
             - If `constrain_features=True`, the minimum and maximum of the array along the leading dimension constrain \
             the minimum and the maximum of the counterfactual
@@ -1187,9 +1178,9 @@ class WachterCounterfactual(Explainer, FitMixin):
         if method_opts:
             for key in method_opts:
                 if isinstance(method_opts[key], Dict):
-                    self._explainer.set_attributes(method_opts[key])
+                    self._explainer.set_expected_attributes(method_opts[key])
                 else:
-                    self._explainer.set_attributes({key: method_opts[key]})
+                    self._explainer.set_expected_attributes({key: method_opts[key]})
 
         if logging_opts:
             self._explainer.logging_opts.update(logging_opts)

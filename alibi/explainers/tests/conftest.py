@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, boston_dataset, MockTreeExplainer
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
@@ -50,15 +50,6 @@ def iris_data():
     objects returned first.
     """
     return get_iris_data()
-
-
-@pytest.fixture(scope='module')
-def get_boston_dataset():
-    """
-    This fixture can be passed to a regressor fixture to return a
-    trained regressor on the Boston housing Dataset.
-    """
-    return boston_dataset()
 
 
 @pytest.fixture(scope='module')

@@ -95,28 +95,6 @@ def fashion_mnist_dataset():
     }
 
 
-def boston_dataset():
-    """
-    Load the Boston housing dataset.
-    """
-    dataset = load_boston()
-    data = dataset.data
-    labels = dataset.target
-    feature_names = dataset.feature_names
-    X_train, X_test, y_train, y_test = train_test_split(data, labels, test_size=.2, random_state=0)
-
-    return {
-        'X_train': X_train,
-        'y_train': y_train,
-        'X_test': X_test,
-        'y_test': y_test,
-        'preprocessor': None,
-        'metadata': {
-            'feature_names': feature_names,
-            'name': 'boston'}
-    }
-
-
 def movie_sentiment_dataset():
     """
     Load and prepare movie sentiment data.

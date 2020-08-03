@@ -1,5 +1,6 @@
 import numpy as np
 
+from alibi.utils.frameworks import FRAMEWORKS
 from typing import Callable, Union, Tuple
 
 
@@ -16,6 +17,12 @@ def numerical_gradient(framework='tensorflow'):
     """
     A decorator used to register a function as a numerical gradient implementation.
     """
+
+    if framework not in FRAMEWORKS:
+        raise ValueError(
+            f"Framework must be 'pytorch' or 'tensorflow' but got {framework}"
+        )
+
     def decorate_numerical_gradient(func):
         numerical_gradients[framework].append(func)
         return func

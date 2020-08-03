@@ -8,7 +8,7 @@ from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
 
-from alibi_test_models.data import adult_data, iris_data
+from alibi_test_models.data import get_adult_data
 
 
 @pytest.fixture
@@ -45,9 +45,9 @@ def tf_keras_iris_explainer(request, models, iris_data):
                          [('iris-ffn-tf2.2.0', 'iris-ae-tf2.2.0', 'iris-enc-tf2.2.0'),
                           ('iris-ffn-tf1.15.2.h5', 'iris-ae-tf1.15.2.h5', 'iris-enc-tf1.15.2.h5')],
                          indirect=True)
-def test_tf_keras_iris_explainer(disable_tf2, tf_keras_iris_explainer, use_kdtree, k):
+def test_tf_keras_iris_explainer(disable_tf2, iris_data, tf_keras_iris_explainer, use_kdtree, k):
     model, cf = tf_keras_iris_explainer
-    (X_train, _), (_, _) = iris_data()
+    X_train = iris_data['X_train']
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)
@@ -127,7 +127,7 @@ def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
     model, cf = tf_keras_adult_explainer
-    (X_train, _), (_, _) = adult_data()
+    (X_train, _), (_, _) = get_adult_data()
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)

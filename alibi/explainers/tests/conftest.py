@@ -22,20 +22,11 @@ import alibi_test_models
 # Fixtures that return datasets can be combined with classifier
 # fixtures to generate models for testing.
 
-@pytest.fixture
-def model(request):
-    """
-    This fixture loads a pre-trained test model by name from the
-    alibi-test-models helper package.
-    """
-    name = request.param
-    return alibi_test_models.load(name)
-
 
 @pytest.fixture
 def models(request):
     """
-    This fixture loads multiple pre-trained test-models by name from the
+    This fixture loads a list of pre-trained test-models by name from the
     alibi-test-models helper package.
     """
     models = []

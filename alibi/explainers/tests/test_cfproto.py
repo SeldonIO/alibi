@@ -105,13 +105,13 @@ def adult_cat_vars_ohe():
 
 
 @pytest.fixture
-def tf_keras_adult_explainer(request, model, adult_cat_vars_ohe):
+def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
     shape = (1, 57)
-    cf_explainer = CounterFactualProto(model, shape, beta=.01, cat_vars=adult_cat_vars_ohe, ohe=True,
+    cf_explainer = CounterFactualProto(models[0], shape, beta=.01, cat_vars=adult_cat_vars_ohe, ohe=True,
                                        use_kdtree=request.param[0], max_iterations=1000,
                                        c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))
-    yield model, cf_explainer
+    yield models[0], cf_explainer
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
@@ -123,8 +123,8 @@ def tf_keras_adult_explainer(request, model, adult_cat_vars_ohe):
                           ((True, 1., 3), True, 2, 'mvdm'),
                           ((True, 1., 3), True, 2, 'abdm')],
                          indirect=['tf_keras_adult_explainer'])
-@pytest.mark.parametrize('model',
-                         ['adult-ffn-tf2.2.0', 'adult-ffn-tf1.15.2.h5'],
+@pytest.mark.parametrize('models',
+                         [('adult-ffn-tf2.2.0',), ('adult-ffn-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):

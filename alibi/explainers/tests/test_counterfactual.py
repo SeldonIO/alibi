@@ -32,11 +32,11 @@ def cf_iris_explainer(request, logistic_iris):
 
 
 @pytest.fixture
-def keras_mnist_cf_explainer(request, model):
-    cf_explainer = CounterFactual(predict_fn=model, shape=(1, 28, 28, 1),
+def keras_mnist_cf_explainer(request, models):
+    cf_explainer = CounterFactual(predict_fn=models[0], shape=(1, 28, 28, 1),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
-    yield model, cf_explainer
+    yield models[0], cf_explainer
     keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
@@ -108,14 +108,14 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 
-#TODO: old Keras model missing
+# TODO: old Keras model missing
 @pytest.mark.tf1
 @pytest.mark.parametrize('keras_mnist_cf_explainer',
                          ['other', 'same', 4, 9],
                          ids='target={}'.format,
                          indirect=True)
-@pytest.mark.parametrize('model',
-                         ['mnist-logistic-tf2.2.0', 'mnist-logistic-tf1.15.2.h5'],
+@pytest.mark.parametrize('models',
+                         [('mnist-logistic-tf2.2.0',), ('mnist-logistic-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
 def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, get_mnist_dataset):

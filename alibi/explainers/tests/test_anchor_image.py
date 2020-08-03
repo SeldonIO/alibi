@@ -10,7 +10,7 @@ from alibi.explainers import AnchorImage
                          [('mnist-cnn-tf2.2.0',), ('mnist-cnn-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
-def test_anchor_image(model, mnist_data):
+def test_anchor_image(models, mnist_data):
     x_train = mnist_data['X_train']
     segmentation_fn = 'slic'
     segmentation_kwargs = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
@@ -26,7 +26,7 @@ def test_anchor_image(model, mnist_data):
 
     # define and train model
     # model = conv_net
-    predict_fn = lambda x: model.predict(x)
+    predict_fn = lambda x: models[0].predict(x)
 
     explainer = AnchorImage(
         predict_fn,

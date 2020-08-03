@@ -12,8 +12,8 @@ from alibi_test_models.data import adult_data, iris_data
 
 
 @pytest.fixture
-def tf_keras_iris_explainer(request, models, get_iris_dataset):
-    (X_train, _), (_, _) = iris_data()
+def tf_keras_iris_explainer(request, models, iris_data):
+    X_train = iris_data['X_train']
     model, ae, enc = models
     if request.param[0]:  # use k-d trees
         ae = None

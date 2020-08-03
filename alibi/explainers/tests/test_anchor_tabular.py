@@ -97,7 +97,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
 def test_distributed_anchor_tabular(ncpu,
                                     predict_type,
                                     at_defaults,
-                                    get_iris_dataset,
+                                    iris_data,
                                     rf_classifier,
                                     test_instance_idx,
                                     ):
@@ -113,7 +113,7 @@ def test_distributed_anchor_tabular(ncpu,
         n_anchors_to_sample = 6  # for testing sampling function
 
         # prepare the classifier and explainer
-        data = get_iris_dataset
+        data = iris_data
         X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
         clf, preprocessor = rf_classifier
         predictor = predict_fcn(predict_type, clf)

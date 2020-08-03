@@ -115,31 +115,6 @@ def mnist_dataset():
     }
 
 
-def iris_dataset():
-    """
-    Loads the Iris dataset.
-    """
-
-    dataset = load_iris()
-    feature_names = dataset.feature_names
-    # define train and test set
-    idx = 145
-    X_train, Y_train = dataset.data[:idx, :], dataset.target[:idx]
-    X_test, Y_test = dataset.data[idx + 1:, :], dataset.target[idx + 1:]  # noqa F841
-
-    return {
-        'X_test': X_test,
-        'X_train': X_train,
-        'y_train': Y_train,
-        'y_test': Y_test,
-        'preprocessor': None,
-        'metadata': {
-            'feature_names': feature_names,
-            'name': 'iris'
-        }
-    }
-
-
 def boston_dataset():
     """
     Load the Boston housing dataset.

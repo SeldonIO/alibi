@@ -8,13 +8,14 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset, boston_dataset, mnist_dataset, \
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, boston_dataset, mnist_dataset, \
     MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
 import alibi_test_models
+from alibi_test_models.data import get_iris_data
 
 
 # A file containing fixtures that can be used across tests
@@ -41,7 +42,7 @@ def get_mnist_dataset():
 
 
 @pytest.fixture(scope='module')
-def get_iris_dataset():
+def iris_data():
     """
     This fixture can be passed to a classifier fixture to return
     a trained classifier on the Iris dataset. Because it is scoped
@@ -49,7 +50,7 @@ def get_iris_dataset():
     mutated during testing - if you need to do so, please copy the
     objects returned first.
     """
-    return iris_dataset()
+    return get_iris_data()
 
 
 @pytest.fixture(scope='module')
@@ -191,13 +192,13 @@ def at_defaults(request):
 
 
 @pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
-def at_iris_explainer(get_iris_dataset, rf_classifier, request):
+def at_iris_explainer(iris_data, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Iris dataset.
     """
 
     predict_type = request.param
-    data = get_iris_dataset
+    data = iris_data
     clf, _ = rf_classifier  # preprocessor not necessary
 
     # instantiate and fit explainer

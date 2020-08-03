@@ -13,7 +13,6 @@ from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
 from alibi.explainers.exceptions import CounterfactualError
-from alibi.utils.gradients import numerical_gradients
 from alibi.utils.logging import DEFAULT_LOGGING_OPTS
 from alibi.utils.stats import median_abs_deviation
 from alibi.utils.wrappers import get_blackbox_wrapper

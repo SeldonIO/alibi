@@ -1,9 +1,8 @@
-import logging
-
 import numpy as np
 import tensorflow as tf
 
 from alibi.explainers.backend import register_backend
+from alibi.explainers.exceptions import CounterfactualError
 from alibi.utils.gradients import numerical_gradients
 from collections import defaultdict
 from copy import deepcopy
@@ -11,6 +10,7 @@ from functools import partial
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     import keras
@@ -111,12 +111,12 @@ WACHTER_LOSS_SPEC_BLACKBOX = {
     'prediction': {
         'fcn': squared_loss,
         'kwargs': {},
-        'grad_fcn': squared_loss_grad,
-        'grad_fcn_kwargs': {},
-        'gradient_method': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
+        'pred_out_grad_fcn': squared_loss_grad,
+        'pred_out_grad_fcn_kwargs': {},
     },
     'distance': {'fcn': scaled_l1_loss, 'kwargs': {'feature_scale': None}},
     'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
+    'numerical_diff_scheme': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
 }  # type: Dict[str, Mapping[str, Any]]
 """dict: 
 
@@ -181,7 +181,9 @@ def range_constraint(
     return tf.clip_by_value(X, clip_value_min=low, clip_value_max=high)
 
 
-def slice_prediction(prediction: tf.Tensor, target_idx: Union[int, str], src_idx: int) -> tf.Tensor:
+def slice_prediction(prediction: tf.Tensor,
+                     target_idx: Union[int, Literal['same', 'other']],
+                     src_idx: int) -> tf.Tensor:
     """
     Returns a slice from `prediction` depending on the value of the `target_idx`.
 
@@ -221,11 +223,10 @@ def wachter_blackbox_wrapper(X: Union[tf.Tensor, tf.Variable],
                              src_idx: int) -> tf.Tensor:
 
     """
-    A wrapper that modifies a predictor that returns a vector output when queried with input :math:`X` predictor that
-    returns a vector to return a scalar. The scalar depends on the `target_idx` and `src_idx`. The predictor (and the
-    input) should be two-dimensional. Therefore, if a record of dimension :math:`D` is input, it should be passed as a
-    tensor of shape `(1, D)`. A single-output classification model operating on this  instance should return a tensor
-    or array with shape  `(1, 1)`.
+    A wrapper that slices a vector-valued predictor, turning it to a scalar-valued predictor. The scalar depends on the
+    `target_idx` and `src_idx`. The predictor (and the input) should be two-dimensional. Therefore, if a record of
+    dimension :math:`D` is input, it should be passed as a tensor of shape `(1, D)`. A single-output classification
+    model operating on this  instance should return a tensor or array with shape  `(1, 1)`.
 
     Parameters
     ----------
@@ -306,6 +307,9 @@ class TFCounterfactualOptimizer:
 
         # further loss spec properties (for black-box functions or more advanced functionality) are set in sub-classes
         for term in loss_spec:
+            # defer setting non-differetiable terms properties to sub-classes
+            if 'numerical_diff_scheme' in term:
+                continue
             this_term_kwargs = loss_spec[term]['kwargs']  # type: ignore
             if this_term_kwargs:
                 this_term_fcn = partial(loss_spec[term]['fcn'], **this_term_kwargs)
@@ -702,31 +706,33 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
             loss_spec = WACHTER_LOSS_SPEC_BLACKBOX
         # set numerical gradients method and gradient fcns of nonlinear transformation wrt model output
         self.num_grad_fcn = None  # type: Union[Callable, None]
+        # set numerical differentiation scheme callable
+        available_grad_methods = [fcn for fcn in numerical_gradients[self.framework]]
+        available_grad_methods_names = [fcn.__name__ for fcn in available_grad_methods]
+        numerical_diff_scheme = loss_spec['numerical_diff_scheme']['name']
+        numerical_diff_scheme_kwargs = loss_spec['numerical_diff_scheme']['kwargs']
+        try:
+            grad_method_idx = available_grad_methods_names.index(numerical_diff_scheme)
+        except IndexError:
+            raise CounterfactualError(f"Undefined numerical differentiation scheme: {numerical_diff_scheme}!")
+
+        if numerical_diff_scheme_kwargs:
+            self.__setattr__(
+                'num_grad_fcn', partial(available_grad_methods[grad_method_idx], **numerical_diff_scheme_kwargs)
+            )
+        else:
+            self.__setattr__('num_grads_fcn', available_grad_methods[grad_method_idx])
+
         for term in loss_spec:
-            if 'grad_fcn' in loss_spec[term]:
-                this_term_grad_fcn_kwargs = loss_spec[term]['grad_fcn_kwargs']
+            # set fcn to calculate the prediction term gradient wrt to predictor output
+            if 'pred_out_grad_fcn' in loss_spec[term]:
+                this_term_grad_fcn_kwargs = loss_spec[term]['pred_out_grad_fcn_kwargs']
                 if this_term_grad_fcn_kwargs:
-                    this_term_grad_fcn = partial(loss_spec[term]['grad_fcn'], this_term_grad_fcn_kwargs)
+                    this_term_grad_fcn = partial(loss_spec[term]['pred_out_grad_fcn'], this_term_grad_fcn_kwargs)
                     self.__setattr__(f"{term}_grad_fcn", this_term_grad_fcn)
                 else:
-                    self.__setattr__(f"{term}_grad_fcn", loss_spec[term]['grad_fcn'])
-                available_grad_methods = [fcn for fcn in numerical_gradients[self.framework]]
-                available_grad_methods_names = [fcn.__name__ for fcn in available_grad_methods]
-                grad_method_name = loss_spec[term]['gradient_method']['name']
-                grad_method_kwargs = loss_spec[term]['gradient_method']['kwargs']
-                grad_method_idx = available_grad_methods_names.index(grad_method_name)
-                if self.num_grad_fcn is None:
-                    if grad_method_kwargs:
-                        self.__setattr__(
-                            'num_grad_fcn', partial(available_grad_methods[grad_method_idx], **grad_method_kwargs)
-                        )
-                    else:
-                        self.__setattr__('num_grads_fcn', available_grad_methods[grad_method_idx])
-                else:
-                    logging.warning(
-                        f"Only one gradient computation method can be specified. Raise an issue if you wish to modify "
-                        f"this behaviour. Method {loss_spec['term']['gradient_method']['name']} was ignored!"
-                    )
+                    self.__setattr__(f"{term}_grad_fcn", loss_spec[term]['pred_out_grad_fcn'])
+
         self.loss_spec = loss_spec
         self.blackbox_eval_fcn = wachter_blackbox_wrapper
         # wrap in a decorator that casts the input to np.ndarray and the output to tensor

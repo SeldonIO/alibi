@@ -14,7 +14,7 @@ import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
 import alibi_test_models
-from alibi_test_models.data import get_iris_data, get_mnist_data
+from alibi_test_models.data import get_iris_data, get_mnist_data, get_movie_sentiment_data
 
 
 # A file containing fixtures that can be used across tests
@@ -62,6 +62,11 @@ def adult_data():
     objects returned first.
     """
     return get_adult_data()
+
+
+@pytest.fixture(scope='module')
+def movie_sentiment_data():
+    return get_movie_sentiment_data()
 
 
 # The classifier fixtures accept a dictionary that

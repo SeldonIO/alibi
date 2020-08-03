@@ -8,7 +8,6 @@ import numpy as np
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
-from alibi.explainers.tests.utils import get_dataset
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.download import spacy_model
 
@@ -28,7 +27,10 @@ def find_punctuation(text: str) -> int:
 
     return len(tokens & punctuation)
 
-@pytest.mark.parametrize('lr_classifier', ((get_dataset('movie_sentiment')),), indirect=True)
+
+@pytest.mark.parametrize('lr_classifier',
+                         [pytest.lazy_fixture('movie_sentiment_data')],
+                         indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
     ('class', (), False, True, 0.95),
@@ -37,7 +39,6 @@ def find_punctuation(text: str) -> int:
     ('class', (3,), True, False, 0.95),
 ])
 def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, use_unk, threshold):
-
     # test parameters
     text = 'This is a good book .'
     n_punctuation_marks = find_punctuation(text)
@@ -116,7 +117,6 @@ def test_anchor_text(lr_classifier, predict_type, anchor, use_similarity_proba, 
 
 
 def test_neighbors():
-
     # test inputs
     w_prob = -15.
     tag = 'NN'

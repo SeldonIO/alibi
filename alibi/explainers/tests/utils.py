@@ -1,25 +1,15 @@
 # flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
 import numpy as np
-import tensorflow.keras as keras
 
-from tensorflow.keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import load_boston
-from sklearn.feature_extraction.text import CountVectorizer
+
 from sklearn.impute import SimpleImputer
-from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
-from alibi.datasets import fetch_movie_sentiment, fetch_adult
+from alibi.datasets import fetch_adult
 
-SUPPORTED_DATASETS = ['adult', 'movie_sentiment']
-
-
-# When registring a dataset, add the dataset name in ['metadata']['name'] and
-# add its name to SUPPORTED_DATASETS. Follow the convention for the naming
-# of the function and the output as shown below
 
 def get_adult_data():
     """
@@ -73,44 +63,6 @@ def get_adult_data():
             'name': 'adult'
         }
     }
-
-
-def movie_sentiment_dataset():
-    """
-    Load and prepare movie sentiment data.
-    """
-
-    movies = fetch_movie_sentiment()
-    data = movies.data
-    labels = movies.target
-    train, test, train_labels, test_labels = train_test_split(data, labels, test_size=.2, random_state=0)
-    train_labels = np.array(train_labels)
-    vectorizer = CountVectorizer(min_df=1)
-    vectorizer.fit(train)
-
-    return {
-        'X_train': train,
-        'y_train': train_labels,
-        'X_test': test,
-        'y_test': test_labels,
-        'preprocessor': vectorizer,
-        'metadata': {'name': 'movie_sentiment'},
-    }
-
-
-def get_dataset(name):
-    """
-    Returns a dataset given the name, which must be a member of
-    SUPPORTED_DATASETS.
-    """
-
-    if name == 'adult':
-        return get_adult_data()
-    elif name == 'movie_sentiment':
-        return movie_sentiment_dataset()
-    else:
-        fmt = "Value of name parameters is {}. Supported datasets are {}!"
-        raise ValueError(fmt.format(name, SUPPORTED_DATASETS))
 
 
 def predict_fcn(predict_type, clf, preproc=None):

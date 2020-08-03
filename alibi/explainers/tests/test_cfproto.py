@@ -127,7 +127,7 @@ def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
     model, cf = tf_keras_adult_explainer
-    (X_train, _), (_, _) = get_adult_data()
+    X_train = get_adult_data()['X_train']
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)

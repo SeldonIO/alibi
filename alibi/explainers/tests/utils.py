@@ -2,68 +2,6 @@
 # A file containing functions that can be used by multiple tests
 import numpy as np
 
-from sklearn.compose import ColumnTransformer
-
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler, OneHotEncoder
-
-from alibi.datasets import fetch_adult
-
-
-def get_adult_data():
-    """
-    Loads and preprocesses Adult dataset.
-    """
-
-    # load raw data
-    adult = fetch_adult()
-    data = adult.data
-    target = adult.target
-    feature_names = adult.feature_names
-    category_map = adult.category_map
-
-    # split it
-    idx = 30000
-    X_train, Y_train = data[:idx, :], target[:idx]
-    X_test, Y_test = data[idx + 1:, :], target[idx + 1:]
-
-    # Create feature transformation pipeline
-    ordinal_features = [x for x in range(len(feature_names)) if x not in list(category_map.keys())]
-    ordinal_transformer = Pipeline(
-        steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('scaler', StandardScaler())
-        ]
-    )
-
-    categorical_features = list(category_map.keys())
-    categorical_transformer = Pipeline(
-        steps=[
-            ('imputer', SimpleImputer(strategy='median')),
-            ('onehot', OneHotEncoder(handle_unknown='ignore'))
-        ]
-    )
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ('num', ordinal_transformer, ordinal_features),
-            ('cat', categorical_transformer, categorical_features)]
-    )
-    preprocessor.fit(X_train)
-
-    return {
-        'X_train': X_train,
-        'y_train': Y_train,
-        'X_test': X_test,
-        'y_test': Y_test,
-        'preprocessor': preprocessor,
-        'metadata': {
-            'feature_names': feature_names,
-            'category_map': category_map,
-            'name': 'adult'
-        }
-    }
-
 
 def predict_fcn(predict_type, clf, preproc=None):
     """

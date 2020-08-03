@@ -89,24 +89,10 @@ def test_tf_keras_iris_explainer(disable_tf2, iris_data, tf_keras_iris_explainer
 
 
 @pytest.fixture
-def adult_cat_vars_ohe():
-    X, y = fetch_adult(return_X_y=True)
-    X_ord = np.c_[X[:, 1:8], X[:, 11], X[:, 0], X[:, 8:11]]
-
-    # create categorical variable dict
-    cat_vars_ord = {}
-    n_categories = 8
-    for i in range(n_categories):
-        cat_vars_ord[i] = len(np.unique(X_ord[:, i]))
-    cat_vars_ohe = ord_to_ohe(X_ord, cat_vars_ord)[1]
-
-    return cat_vars_ohe
-
-
-@pytest.fixture
-def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
+def tf_keras_adult_explainer(request, models, adult_data):
     shape = (1, 57)
-    cf_explainer = CounterFactualProto(models[0], shape, beta=.01, cat_vars=adult_cat_vars_ohe, ohe=True,
+    cat_vars_ohe = adult_data['metadata']['cat_vars_ohe']
+    cf_explainer = CounterFactualProto(models[0], shape, beta=.01, cat_vars=cat_vars_ohe, ohe=True,
                                        use_kdtree=request.param[0], max_iterations=1000,
                                        c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))
@@ -127,7 +113,8 @@ def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
     model, cf = tf_keras_adult_explainer
-    X_train = get_adult_data()['X_train']
+    data = get_adult_data
+    X_train = data['preprocessor'].transform(data['X_train'])
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)

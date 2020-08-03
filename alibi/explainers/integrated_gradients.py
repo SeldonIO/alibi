@@ -434,6 +434,8 @@ class IntegratedGradients(Explainer):
         # tf concatatation
         grads = tf.concat(batches, 0)
         shape = grads.shape[1:]
+        if isinstance(shape, tf.TensorShape):
+            shape = tuple(shape.as_list())
 
         # invert sign of gradients for target 0 examples if classifier returns only positive class probability
         if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:

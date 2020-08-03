@@ -4,19 +4,14 @@ import pytest
 import numpy as np
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
-from alibi.explainers.tests.utils import mnist_dataset
-
-# Data preparation
-data = mnist_dataset()
-x_train = data['X_train']
-y_train = data['y_train']
 
 
-@pytest.mark.parametrize('model',
-                         ['mnist-cnn-tf2.2.0', 'mnist-cnn-tf1.15.2.h5'],
+@pytest.mark.parametrize('models',
+                         [('mnist-cnn-tf2.2.0',), ('mnist-cnn-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
-def test_anchor_image(model):
+def test_anchor_image(model, mnist_data):
+    x_train = mnist_data['X_train']
     segmentation_fn = 'slic'
     segmentation_kwargs = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
     image_shape = (28, 28, 1)

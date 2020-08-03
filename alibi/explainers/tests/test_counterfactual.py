@@ -117,9 +117,9 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
                          [('mnist-logistic-tf2.2.0',), ('mnist-logistic-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
-def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, get_mnist_dataset):
+def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, mnist_data):
     model, cf = keras_mnist_cf_explainer
-    X = get_mnist_dataset['X_train']
+    X = mnist_data['X_train']
 
     x = X[0:1]
     probas = cf.predict_fn(x)

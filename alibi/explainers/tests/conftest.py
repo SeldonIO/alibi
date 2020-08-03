@@ -8,14 +8,13 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, boston_dataset, mnist_dataset, \
-    MockTreeExplainer
+from alibi.explainers.tests.utils import predict_fcn, adult_dataset, boston_dataset, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
 import alibi_test_models
-from alibi_test_models.data import get_iris_data
+from alibi_test_models.data import get_iris_data, get_mnist_data
 
 
 # A file containing fixtures that can be used across tests
@@ -37,8 +36,8 @@ def models(request):
 
 
 @pytest.fixture(scope='module')
-def get_mnist_dataset():
-    return mnist_dataset()
+def mnist_data():
+    return get_mnist_data()
 
 
 @pytest.fixture(scope='module')

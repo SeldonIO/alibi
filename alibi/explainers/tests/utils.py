@@ -95,25 +95,6 @@ def fashion_mnist_dataset():
     }
 
 
-def mnist_dataset():
-    """
-    Load and prepare MNIST dataset.
-    """
-    (x_train, y_train), (x_test, y_test) = keras.datasets.mnist.load_data()
-    x_train = x_train.astype('float32') / 255
-    x_train = np.reshape(x_train, x_train.shape + (1,))
-    y_train = to_categorical(y_train)
-
-    return {
-        'X_train': x_train,
-        'y_train': y_train,
-        'X_test': x_test,
-        'y_test': y_test,
-        'preprocessor': None,
-        'metadata': {'name': 'mnist'},
-    }
-
-
 def boston_dataset():
     """
     Load the Boston housing dataset.

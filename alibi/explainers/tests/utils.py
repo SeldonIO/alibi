@@ -21,7 +21,7 @@ SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'mnist', 'movie_sentiment']
 # add its name to SUPPORTED_DATASETS. Follow the convention for the naming
 # of the function and the output as shown below
 
-def adult_dataset():
+def get_adult_data():
     """
     Loads and preprocesses Adult dataset.
     """
@@ -125,7 +125,7 @@ def get_dataset(name):
     """
 
     if name == 'adult':
-        return adult_dataset()
+        return get_adult_data()
     elif name == 'movie_sentiment':
         return movie_sentiment_dataset()
     elif name == 'fashion_mnist':

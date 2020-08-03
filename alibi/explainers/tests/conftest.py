@@ -8,7 +8,7 @@ from sklearn.linear_model import LogisticRegression, LinearRegression
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, MockTreeExplainer
+from alibi.explainers.tests.utils import predict_fcn, get_adult_data, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
@@ -53,7 +53,7 @@ def iris_data():
 
 
 @pytest.fixture(scope='module')
-def get_adult_dataset():
+def adult_data():
     """
     This fixture can be passed to a classifier fixture to return
     a trained classifier on the Adult dataset. Because it is scoped
@@ -61,7 +61,7 @@ def get_adult_dataset():
     mutated during testing - if you need to do so, please copy the
     objects returned first.
     """
-    return adult_dataset()
+    return get_adult_data()
 
 
 # The classifier fixtures accept a dictionary that
@@ -200,14 +200,14 @@ def at_iris_explainer(iris_data, rf_classifier, request):
 
 
 @pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
-def at_adult_explainer(get_adult_dataset, rf_classifier, request):
+def at_adult_explainer(adult_data, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Adult dataset.
     """
 
     # fit random forest classifier
     predict_type = request.param
-    data = get_adult_dataset
+    data = adult_data
     clf, preprocessor = rf_classifier
 
     # instantiate and fit explainer

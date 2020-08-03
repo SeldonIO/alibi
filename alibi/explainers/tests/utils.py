@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
 
-SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'mnist', 'movie_sentiment']
+SUPPORTED_DATASETS = ['adult', 'movie_sentiment']
 
 
 # When registring a dataset, add the dataset name in ['metadata']['name'] and
@@ -75,26 +75,6 @@ def get_adult_data():
     }
 
 
-def fashion_mnist_dataset():
-    """
-    Load and prepare Fashion MNIST dataset.
-    """
-
-    (x_train, y_train), (x_test, y_test) = keras.datasets.fashion_mnist.load_data()
-    x_train = x_train.astype('float32') / 255
-    x_train = np.reshape(x_train, x_train.shape + (1,))
-    y_train = to_categorical(y_train)
-
-    return {
-        'X_train': x_train,
-        'y_train': y_train,
-        'X_test': x_test,
-        'y_test': y_test,
-        'preprocessor': None,
-        'metadata': {'name': 'fashion_mnist'},
-    }
-
-
 def movie_sentiment_dataset():
     """
     Load and prepare movie sentiment data.
@@ -128,8 +108,6 @@ def get_dataset(name):
         return get_adult_data()
     elif name == 'movie_sentiment':
         return movie_sentiment_dataset()
-    elif name == 'fashion_mnist':
-        return fashion_mnist_dataset()
     else:
         fmt = "Value of name parameters is {}. Supported datasets are {}!"
         raise ValueError(fmt.format(name, SUPPORTED_DATASETS))

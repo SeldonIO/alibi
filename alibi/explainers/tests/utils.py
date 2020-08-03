@@ -1,12 +1,11 @@
 # flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
 import numpy as np
-import tensorflow as tf
 import tensorflow.keras as keras
 
 from tensorflow.keras.utils import to_categorical
 from sklearn.compose import ColumnTransformer
-from sklearn.datasets import load_iris, load_boston
+from sklearn.datasets import load_boston
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.impute import SimpleImputer
 from sklearn.model_selection import train_test_split
@@ -15,7 +14,7 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 from alibi.datasets import fetch_movie_sentiment, fetch_adult
 
-SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'mnist', 'iris', 'movie_sentiment']
+SUPPORTED_DATASETS = ['adult', 'fashion_mnist', 'mnist', 'movie_sentiment']
 
 
 # When registring a dataset, add the dataset name in ['metadata']['name'] and

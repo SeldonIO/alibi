@@ -52,7 +52,7 @@ class CounterfactualBase:
             to customize terms of the original loss specification, with the assumption that the terms will have the same 
             positional arguments as the default specification.
         method_opts
-            The default hyperparamters of the method. Thes can be overriden by the user by specifying the `method_opts`
+            The default hyperparamters of the method. These can be overriden by the user by specifying the `method_opts`
             arguments to the subclass. 
         feature_range
             The min and the max of the valid counterfactual range. If `np.ndarray`, it should have the same shape as the
@@ -88,17 +88,17 @@ class CounterfactualBase:
         backend = load_backend(
             class_name=self.__class__.__name__,
             framework=framework,
-            predictor_type=kwargs.get("predictor_type", "whitebox")
+            predictor_type=kwargs.get("predictor_type", predictor_type)
         )
         backend_kwargs = kwargs.get("backend_kwargs", {})
         self.backend = backend(predictor, loss_spec, feature_range, **backend_kwargs)
         # track attributes set
         self._expected_attributes = set()
         # create attributes and set them with default values, passed by sub-class
-        self.attribute_setter(method_opts)
+        self.set_attributes(method_opts)
         # TODO: ALEX: TBD: ATTRS "POLICE"
         self._expected_attributes |= self.backend._expected_attributes
-        self.set_attributes = partial(self.attribute_setter, expected=self._expected_attributes)
+        self.set_expected_attributes = partial(self.set_attributes, expected=self._expected_attributes)
 
         # placeholders for options passed at runtime.
         self.log_traces = True
@@ -117,7 +117,7 @@ class CounterfactualBase:
     def __getattr__(self, key: Any) -> Any:
         return self.__getattribute__(key)
 
-    def attribute_setter(self, attrs: Union[Mapping[str, Any], None], expected: Optional[Set[str]] = None) -> None:
+    def set_attributes(self, attrs: Union[Mapping[str, Any], None], expected: Optional[Set[str]] = None) -> None:
         """
         Sets the attributes of the explainer using the (key, value) pairs in attributes. Ignores attributes that
         are not in `expected` if the latter is specified.
@@ -137,7 +137,7 @@ class CounterfactualBase:
         for key, value in attrs.items():
             if isinstance(value, Mapping):
                 # recurse to set properties in nested dictionaries
-                self.attribute_setter(value, expected)
+                self.set_attributes(value, expected)
             else:
                 # TODO: SHOULD TAKE AN ITERABLE OF KEY-VALUE PAIRS ALSO
                 # only set those attributes in the _DEFAULT configuration
@@ -146,7 +146,7 @@ class CounterfactualBase:
                     continue
                 self.__setattr__(key, value)
                 self._expected_attributes.add(key)
-                # when user calls __init__ with `method_opts`, we need to ensure that the optimizer default options are
+                # when user calls __init__ with `method_opts`, we need to ensure that the backend default options are
                 # also overridden. The way to do so is to set them explicitly in optimizer __init__.
                 if hasattr(self.backend, key):
                     self.backend.__setattr__(key, value)
@@ -202,4 +202,4 @@ class CounterfactualBase:
             self.tensorboard = self.tensorboard().setup(self.logging_opts)
         # tracked variables are only relevant for the writer, not the calling object
         self.logging_opts.pop("tracked_variables")
-        self.attribute_setter(self.logging_opts)
+        self.set_attributes(self.logging_opts)

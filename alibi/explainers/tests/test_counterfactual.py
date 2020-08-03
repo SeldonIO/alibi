@@ -108,7 +108,6 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
         assert np.abs(pred_class_fn(x_cf) - target_proba) <= tol
 
 
-# TODO: old Keras model missing
 @pytest.mark.tf1
 @pytest.mark.parametrize('keras_mnist_cf_explainer',
                          ['other', 'same', 4, 9],

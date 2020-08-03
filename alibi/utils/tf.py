@@ -33,7 +33,8 @@ def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'
         sys.stderr = stderr
 
         # ksess = keras.backend.get_session() # had to remove this because this doesn't exist with TF2.x (error raised)
-        ksess = tf.keras.backend.get_session()  # TODO: does this actually get the old Keras session?
+        # TODO: does the following get the old Keras session? as we are deprecating old Keras this does not matter...
+        ksess = tf.keras.backend.get_session()
         is_model = isinstance(predict_fn, keras.Model)
         if is_model:
             #  keras model, return keras session

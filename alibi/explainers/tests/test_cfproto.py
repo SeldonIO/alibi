@@ -30,7 +30,6 @@ def tf_keras_iris_explainer(request, models, get_iris_dataset):
     tf.keras.backend.clear_session()
 
 
-# TODO: old Keras model missing
 @pytest.mark.tf1
 @pytest.mark.parametrize('tf_keras_iris_explainer, use_kdtree, k',
                          [((False, 0., 1), False, None),
@@ -116,7 +115,6 @@ def tf_keras_adult_explainer(request, models, adult_cat_vars_ohe):
     tf.keras.backend.clear_session()
 
 
-# TODO: old Keras model missing
 @pytest.mark.tf1
 @pytest.mark.parametrize('tf_keras_adult_explainer, use_kdtree, k, d_type',
                          [((False, 1., 3), False, None, 'mvdm'),

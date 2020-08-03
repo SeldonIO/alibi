@@ -1,8 +1,10 @@
 # flake8: noqa: F401
 import logging
 import warnings
-from typing import Union
+from typing import List, Union
+from typing_extensions import Literal
 
+FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch'], Literal['tensorflow']]
 
 try:
     import tensorflow as tf

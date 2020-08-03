@@ -1,5 +1,4 @@
 import functools
-import os
 from functools import partial
 from typing import Dict, Union, Any
 
@@ -44,7 +43,7 @@ class TFTensorboardWriter(TensorboardWriterBase):
         See superclass documentation.
         """
 
-        trace_dir = os.path.join(self.logging_opts['trace_dir'], f"run_{self.run}")
+        trace_dir = f"{self.logging_opts['trace_dir']}/run_{self.run}"
         self.writer = tf.summary.create_file_writer(trace_dir)
         self.run += 1
 
@@ -65,7 +64,7 @@ class TFTensorboardWriter(TensorboardWriterBase):
                     tag, var_type, description = self._vars_mapping[variable]
                     if var_type == 'image' and step % self.image_summary_freq > 0:
                         continue
-                    prefixed_tag = os.path.join(prefix, tag)
+                    prefixed_tag = f"{prefix}/{tag}"
                     self._summary_functions[var_type](name=prefixed_tag, data=data_store[variable], step=step)
         self.writer.flush()
 

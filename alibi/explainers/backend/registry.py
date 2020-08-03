@@ -1,5 +1,7 @@
 import importlib
 import inspect
+
+from alibi.utils.frameworks import FRAMEWORKS
 from collections import defaultdict
 from typing_extensions import Literal
 """
@@ -11,8 +13,6 @@ The registry is updated by decorating the backend classes with the `register_bac
 The registry should be used to return the backend class to calling objects using the 
 `alibi.explainers.backend.registry.load_backend` function.
 """ # noqa W605
-
-FRAMEWORKS = ['pytorch', 'tensorflow']
 
 
 def framework_factory():
@@ -46,7 +46,7 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
     A parametrized decorator that can be used to register a class that contains PyTorch or TensorFlow backend
     implementations for explainers. The decorator is used to access the implementations in various modules in the
     `alibi.explainers.backend` package via the `load_backend` function. This decorator expects the registered class to
-    have an attribute `framework_name`, set to either 'tensorflow' or 'pytorch'.
+    have an attribute `framework`, set to either 'tensorflow' or 'pytorch'.
 
     Parameters
     ----------
@@ -69,8 +69,8 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
     ------
     ValueError
         - If the predictor type value is not correct
-        - If the object registred does not have a `framework_name` class attribute
-        - If the `framework_name` is not correctly set
+        - If the object registred does not have a `framework` class attribute
+        - If the `framework` is not correctly set
     """
 
     if predictor_type not in ['blackbox', 'whitebox']:
@@ -79,7 +79,7 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
     def register(obj):
         if not hasattr(obj, 'framework'):
             raise ValueError(
-                f"To register a backend, the class should have an attribute 'framework_name' with one of the following "
+                f"To register a backend, the class should have an attribute 'framework' with one of the following "
                 f"values: {FRAMEWORKS}"
             )
         framework = obj.framework

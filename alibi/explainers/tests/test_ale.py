@@ -6,9 +6,9 @@ from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('get_boston_dataset')])
+@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('boston_data')])
 @pytest.mark.parametrize('lr_regressor',
-                         [pytest.lazy_fixture('get_boston_dataset')],
+                         [pytest.lazy_fixture('boston_data')],
                          indirect=True,
                          ids='reg=lr_{}'.format)
 def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):

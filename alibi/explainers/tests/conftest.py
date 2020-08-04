@@ -14,7 +14,8 @@ import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
 import alibi_test_models
-from alibi_test_models.data import get_adult_data, get_iris_data, get_mnist_data, get_movie_sentiment_data
+from alibi_test_models.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
+    get_movie_sentiment_data
 
 
 # A file containing fixtures that can be used across tests
@@ -38,6 +39,11 @@ def models(request):
 @pytest.fixture(scope='module')
 def mnist_data():
     return get_mnist_data()
+
+
+@pytest.fixture(scope='module')
+def boston_data():
+    return get_boston_data()
 
 
 @pytest.fixture(scope='module')

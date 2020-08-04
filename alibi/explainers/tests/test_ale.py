@@ -26,9 +26,9 @@ def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('get_iris_dataset')])
+@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('iris_data')])
 @pytest.mark.parametrize('lr_classifier',
-                         [pytest.lazy_fixture('get_iris_dataset')],
+                         [pytest.lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=lr_{}'.format)
 def test_ale_num_logistic_regression(min_bin_points, lr_classifier, dataset):

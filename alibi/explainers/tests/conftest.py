@@ -13,8 +13,8 @@ from alibi.tests.utils import MockPredictor
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
-import alibi_test_models
-from alibi_test_models.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
+import alibi_testing
+from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
     get_movie_sentiment_data
 
 
@@ -28,11 +28,11 @@ from alibi_test_models.data import get_adult_data, get_iris_data, get_boston_dat
 def models(request):
     """
     This fixture loads a list of pre-trained test-models by name from the
-    alibi-test-models helper package.
+    alibi-testing helper package.
     """
     models = []
     for name in request.param:
-        models.append(alibi_test_models.load(name))
+        models.append(alibi_testing.load(name))
     return models
 
 

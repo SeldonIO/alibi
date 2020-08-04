@@ -4,11 +4,8 @@ import pytest
 import tensorflow as tf
 import keras
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
-from alibi.datasets import fetch_adult
 from alibi.explainers import CounterFactualProto
-from alibi.utils.mapping import ord_to_ohe, ohe_to_ord, ord_to_num
-
-from alibi_test_models.data import get_adult_data
+from alibi.utils.mapping import ohe_to_ord, ord_to_num
 
 
 @pytest.fixture
@@ -111,10 +108,9 @@ def tf_keras_adult_explainer(request, models, adult_data):
                          [('adult-ffn-tf2.2.0',), ('adult-ffn-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
-def test_tf_keras_adult_explainer(disable_tf2, tf_keras_adult_explainer, use_kdtree, k, d_type):
+def test_tf_keras_adult_explainer(disable_tf2, adult_data, tf_keras_adult_explainer, use_kdtree, k, d_type):
     model, cf = tf_keras_adult_explainer
-    data = get_adult_data
-    X_train = data['preprocessor'].transform(data['X_train'])
+    X_train = adult_data['preprocessor'].transform(adult_data['X_train']).toarray()
 
     # instance to be explained
     x = X_train[0].reshape(1, -1)

@@ -39,7 +39,7 @@ setup(name='alibi',
           'requests',
           'scikit-learn',
           'spacy[lookups]',
-          'scikit-image<0.17',
+          'scikit-image!=0.17.1',  # https://github.com/SeldonIO/alibi/issues/215
           'tensorflow>=2.0',
           'shap',
           'scipy',

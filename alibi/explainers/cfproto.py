@@ -4,7 +4,7 @@ import copy
 import logging
 import numpy as np
 import sys
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -45,7 +45,7 @@ class CounterFactualProto(Explainer, FitMixin):
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
                  write_dir: str = None,
-                 sess: tf.compat.v1.Session = None) -> None:
+                 sess: tf.Session = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -121,7 +121,7 @@ class CounterFactualProto(Explainer, FitMixin):
         # TODO: check ae, enc and model are all compatible
 
         # if session provided, use it
-        if isinstance(sess, tf.compat.v1.Session):
+        if isinstance(sess, tf.Session):
             self.sess = sess
         else:
             self.sess = model_sess

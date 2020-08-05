@@ -1,14 +1,12 @@
 # flake8: noqa E731
 import pytest
 import spacy
-import string
 
 import numpy as np
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors
-from alibi.explainers.tests.utils import get_dataset
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.download import spacy_model
 
@@ -21,7 +19,7 @@ nlp = spacy.load(model)
 @pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
                          [('This is a good book.', 1, 6),
                           ('I, for one, hate it.', 3, 7)])
-@pytest.mark.parametrize('lr_classifier', ((get_dataset('movie_sentiment')),), indirect=True)
+@pytest.mark.parametrize('lr_classifier', [pytest.lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
     ('class', (), False, True, 0.95),

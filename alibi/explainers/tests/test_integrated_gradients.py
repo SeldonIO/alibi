@@ -4,8 +4,6 @@ from alibi.explainers import IntegratedGradients
 from alibi.api.interfaces import Explanation
 import tensorflow as tf
 
-tf.compat.v1.enable_eager_execution()
-
 # generate some dummy data
 N = 100
 N_TRAIN = 90
@@ -50,7 +48,6 @@ def ffn_model(request):
     return model
 
 
-@pytest.mark.eager
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 2,
                                          'activation': 'softmax',
                                          'loss': 'categorical_crossentropy',
@@ -75,7 +72,6 @@ def test_integrated_gradients_binary_classification(ffn_model, method):
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-@pytest.mark.eager
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 1,
                                          'activation': 'sigmoid',
                                          'loss': 'binary_crossentropy',
@@ -100,7 +96,6 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-@pytest.mark.eager
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 1,
                                          'activation': 'sigmoid',
                                          'loss': 'binary_crossentropy',
@@ -126,7 +121,6 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-@pytest.mark.eager
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 2,
                                          'activation': 'softmax',
                                          'loss': 'categorical_crossentropy',
@@ -162,7 +156,6 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, lay
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-@pytest.mark.eager
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 1,
                                          'activation': 'linear',
                                          'loss': 'mean_squared_error',

@@ -1,5 +1,25 @@
 # Change Log
 
+## [v0.5.2](https://github.com/SeldonIO/alibi/tree/v0.5.2) (2020-08-05)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.1...v0.5.2)
+
+This release changes the required TensorFlow version from <2.0 to >=2.0. This means that `alibi` code depends on TenorFlow>=2.0, however the explainer algorithms are compatible for models trained with both TF1.x and TF2.x.
+
+The `alibi` code that depends on TensorFlow itself has not been fully migrated in the sense that the code is still not idiomatic TF2.x code just that we now use the `tf.compat.v1` package provided by TF2.x internally. This does mean that for the time being to run algorithms which depend on TensorFlow (`CounterFactual`, `CEM` and `CounterFactualProto`) require disabling TF2.x behaviour by running `tf.compat.v1.disable_v2_behavior()`. This is documented in the example notebooks. Work is underway to re-write the TensorFlow dependent components in idiomatic TF2.x code so that this will not be necessary in a future release.
+
+The upgrade to TensorFlow 2.x also enables this to be the first release with Python 3.8 support.
+
+Finally, white-box explainers are now tested with pre-trained models from both TF1.x and TF2.x. The binaries for the models along with loading functionality and datasets used to train these are available in the `alibi-testing` helper package which is now a requirement for running tests.
+
+### Changed
+- Minimum required TensorFlow version is now 2.0
+- Tests depending on trained models are now run using pre-trained models hosted under the `alibi-testing` helper package
+
+### Fixed
+- A bug in `AnchorText` resulting from missing string hash entries in some spacy models (https://github.com/SeldonIO/alibi/pull/276)
+- Explicitly import `lazy_fixture` in tests instead of relying on the deprecated usage of `pytest` namespace (https://github.com/SeldonIO/alibi/pull/281)
+- A few bugs in example notebooks
+
 ## [v0.5.1](https://github.com/SeldonIO/alibi/tree/v0.5.1) (2020-07-10)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.0...v0.5.1)
 

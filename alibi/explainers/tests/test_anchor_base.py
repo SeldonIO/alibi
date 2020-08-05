@@ -1,4 +1,5 @@
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 import numpy as np
 
@@ -6,7 +7,7 @@ from copy import deepcopy
 
 
 @pytest.mark.parametrize('rf_classifier',
-                         [pytest.lazy_fixture('iris_data')],
+                         [lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=rf_{}'.format,
                          )

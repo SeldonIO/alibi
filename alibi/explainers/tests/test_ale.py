@@ -1,4 +1,5 @@
 import pytest
+from pytest_lazyfixture import lazy_fixture
 import numpy as np
 from numpy.testing import assert_allclose
 from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles, minimum_satisfied
@@ -6,9 +7,9 @@ from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('boston_data')])
+@pytest.mark.parametrize('dataset', [lazy_fixture('boston_data')])
 @pytest.mark.parametrize('lr_regressor',
-                         [pytest.lazy_fixture('boston_data')],
+                         [lazy_fixture('boston_data')],
                          indirect=True,
                          ids='reg=lr_{}'.format)
 def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):
@@ -26,9 +27,9 @@ def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('iris_data')])
+@pytest.mark.parametrize('dataset', [lazy_fixture('iris_data')])
 @pytest.mark.parametrize('lr_classifier',
-                         [pytest.lazy_fixture('iris_data')],
+                         [lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=lr_{}'.format)
 def test_ale_num_logistic_regression(min_bin_points, lr_classifier, dataset):

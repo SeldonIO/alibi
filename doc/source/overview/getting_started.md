@@ -1,7 +1,7 @@
 # Getting Started
 
 ## Installation
-Alibi works with Python 3.6-3.7 and can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi works with Python 3.6+ and can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```

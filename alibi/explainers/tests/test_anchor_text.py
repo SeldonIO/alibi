@@ -1,5 +1,6 @@
 # flake8: noqa E731
 import pytest
+from pytest_lazyfixture import lazy_fixture
 import spacy
 
 import numpy as np
@@ -19,7 +20,7 @@ nlp = spacy.load(model)
 @pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
                          [('This is a good book.', 1, 6),
                           ('I, for one, hate it.', 3, 7)])
-@pytest.mark.parametrize('lr_classifier', [pytest.lazy_fixture('movie_sentiment_data')], indirect=True)
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize("predict_type, anchor, use_similarity_proba, use_unk, threshold", [
     ('proba', (), False, True, 0.95),
     ('class', (), False, True, 0.95),

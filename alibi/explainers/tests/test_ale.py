@@ -7,7 +7,7 @@ from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [pytest.lazy_fixture('boston_data')])
+@pytest.mark.parametrize('dataset', [lazy_fixture('boston_data')])
 @pytest.mark.parametrize('lr_regressor',
                          [lazy_fixture('boston_data')],
                          indirect=True,

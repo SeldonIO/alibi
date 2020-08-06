@@ -7,7 +7,7 @@ import tensorflow as tf
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-
+from tensorflow.keras.models import Model
 from typing import Callable, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -447,7 +447,9 @@ class IntegratedGradients(Explainer):
         # sum integral terms and scale attributions
         sum_int = _sum_integral_terms(step_sizes, grads.numpy())
         if self.layer is not None:
-            norm = (self.layer(X) - self.layer(baselines)).numpy()
+            layer_output = self.layer.output
+            model_layer = Model(self.model.input, outputs=layer_output)
+            norm = (model_layer(X) - model_layer(baselines)).numpy()
         else:
             norm = X - baselines
         attributions = norm * sum_int

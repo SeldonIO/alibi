@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import pytest
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -7,6 +8,10 @@ valid_data = {"anchor": [], "precision": [], "coverage": []}  # type: dict
 
 invalid_meta = []  # type: list
 invalid_data = {}  # type: dict
+
+data_dict = {'b': 2, 'c': 3, 'd': 4}
+allowed_data = {'b': 2, 'c': 3}
+allowed_keys = {'b', 'c'}
 
 
 class IncompleteExplainer(Explainer):
@@ -91,3 +96,19 @@ def test_serialize_deserialize_explanation():
     jrep = exp.to_json()
     exp2 = Explanation.from_json(jrep)
     assert exp == exp2
+
+
+def test__update_metadata():
+    exp = SimpleExplainerWithInit()
+    meta_init = copy.deepcopy(exp.meta)
+    exp._update_metadata(data_dict)
+    assert exp.meta == {**meta_init, **data_dict}
+
+
+def test__update_metatada_params(caplog):
+    exp = SimpleExplainerWithInit()
+    params_init = copy.deepcopy(exp.meta['params'])
+    exp._update_metadata(data_dict, params=True, allowed=allowed_keys)
+
+    assert 'Parameter d not recognised, ignoring.' in caplog.text
+    assert exp.meta['params'] == {**params_init, **allowed_data}

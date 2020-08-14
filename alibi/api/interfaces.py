@@ -1,8 +1,7 @@
 import abc
-import copy
 import json
 from collections import ChainMap
-from typing import Any
+from typing import Any, Optional
 import logging
 
 import attr
@@ -12,13 +11,15 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 # default metadata
-DEFAULT_META = {
-    "name": None,
-    "type": [],
-    "explanations": [],
-    "params": {},
-}  # type: dict
+def default_meta() -> dict:
+    return {
+        "name": None,
+        "type": [],
+        "explanations": [],
+        "params": {},
+    }
 
 
 @attr.s
@@ -27,7 +28,7 @@ class Explainer(abc.ABC):
     Base class for explainer algorithms
     """
 
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META), repr=pretty_repr)  # type: dict
+    meta = attr.ib(default=attr.Factory(default_meta), repr=pretty_repr)  # type: dict
 
     def __attrs_post_init__(self):
         # add a name to the metadata dictionary
@@ -40,6 +41,34 @@ class Explainer(abc.ABC):
     @abc.abstractmethod
     def explain(self, X: Any) -> "Explanation":
         pass
+
+    def _update_metadata(self, data_dict: dict, params: bool = False, allowed: Optional[set] = None) -> None:
+        """
+        This method updates the metadata of the explainer using the data from the `data_dict`. If the params option
+        is specified, then each key-value pair is added to the metadata `'params'` dictionary only if the key is
+        specified in the `allowed` dictionary
+
+        Parameters
+        ----------
+        data_dict
+            Dictionary containing the data to be stored in the metadata.
+        params
+            If True, the method updates the `'params'` attribute of the metatadata.
+        allowed
+            Set containing the parameters allowed in the update.
+        """
+
+        if params:
+            for key in data_dict.keys():
+                if key not in allowed:
+                    logger.warning(
+                        f"Parameter {key} not recognised, ignoring."
+                    )
+                    continue
+                else:
+                    self.meta['params'].update([(key, data_dict[key])])
+        else:
+            self.meta.update(data_dict)
 
 
 class FitMixin(abc.ABC):

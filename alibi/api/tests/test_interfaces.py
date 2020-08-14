@@ -11,7 +11,7 @@ invalid_data = {}  # type: dict
 
 data_dict = {'b': 2, 'c': 3, 'd': 4}
 allowed_data = {'b': 2, 'c': 3}
-allowed_keys = {'b', 'c'}
+allowed_keys = ['b', 'c']
 
 
 class IncompleteExplainer(Explainer):

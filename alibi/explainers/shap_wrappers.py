@@ -586,30 +586,6 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
-    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
-        """
-        This function updates the metadata of the explainer using the data from
-        the `data_dict`. If the params option is specified, then each key-value
-        pair is added to the metadata `'params'` dictionary only if the key is
-        included in `KERNEL_SHAP_PARAMS`.
-
-        Parameters
-        ----------
-        data_dict
-            Dictionary containing the data to be stored in the metadata.
-        params
-            If True, the method updates the `'params'` attribute of the metatadata.
-        """
-
-        if params:
-            for key in data_dict.keys():
-                if key not in KERNEL_SHAP_PARAMS:
-                    continue
-                else:
-                    self.meta['params'].update([(key, data_dict[key])])
-        else:
-            self.meta.update(data_dict)
-
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap.common.Data],
             summarise_background: Union[bool, str] = False,
@@ -709,7 +685,7 @@ class KernelShap(Explainer, FitMixin):
             'grouped': self.use_groups,
             'transpose': self.transposed,
         }
-        self._update_metadata(params, params=True)
+        self._update_metadata(params, params=True, allowed=KERNEL_SHAP_PARAMS)
 
         return self
 
@@ -865,7 +841,7 @@ class KernelShap(Explainer, FitMixin):
             instances=X,
             importances=importances
         )
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True, allowed=KERNEL_SHAP_PARAMS)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
@@ -1020,30 +996,6 @@ class TreeShap(Explainer, FitMixin):
 
         self._update_metadata({"task": self.task})
 
-    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
-        """
-        This function updates the metadata of the explainer using the data from
-        the `data_dict`. If `params=True`, then each key-value pair is added
-        to the metadata `params` dictionary only if the key is included in
-        `TREE_SHAP_PARAMS`.
-
-        Parameters
-        ----------
-        data_dict
-            Dictionary containing the data to be stored in the metadata.
-        params
-            If `True`, the method updates the `['params']` attribute of the metadata.
-        """
-
-        if params:
-            for key in data_dict.keys():
-                if key not in TREE_SHAP_PARAMS:
-                    continue
-                else:
-                    self.meta['params'].update([(key, data_dict[key])])
-        else:
-            self.meta.update(data_dict)
-
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
@@ -1124,7 +1076,7 @@ class TreeShap(Explainer, FitMixin):
             'algorithm': perturbation,
             'kwargs': kwargs,
         }
-        self._update_metadata(params, params=True)
+        self._update_metadata(params, params=True, allowed=TREE_SHAP_PARAMS)
 
         return self
 
@@ -1269,6 +1221,7 @@ class TreeShap(Explainer, FitMixin):
              'approximate': self.approximate,
              },
             params=True,
+            allowed=TREE_SHAP_PARAMS
         )
 
         return explanation
@@ -1503,7 +1456,7 @@ class TreeShap(Explainer, FitMixin):
             importances=importances,
         )
 
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True, allowed=TREE_SHAP_PARAMS)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 

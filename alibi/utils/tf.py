@@ -6,6 +6,8 @@ from typing import Callable, Tuple, Union, TYPE_CHECKING
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
 
+# TODO: THESE SHOULD MOVE UNDER alibi.utils.tensorflow.*
+
 
 def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model']) -> \
         Tuple[bool, bool, tf.Session]:

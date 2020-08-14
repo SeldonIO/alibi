@@ -60,11 +60,17 @@ DEFAULT_META_CF = {"name": None,
 Default counterfactual metadata.
 """
 
-DEFAULT_DATA_CF = {"cf": None,
-                   "all": [],
-                   "orig_class": None,
-                   "orig_proba": None,
-                   "success": None}  # type: dict
+# TODO: ALEX: TBD: instance_proba and instance_class to be renamed as decided in API review? They exist in other expl
+#  (e.g., shap)
+
+DEFAULT_DATA_CF = {
+    "cf": {},
+    "all": [],
+    "lambda_sweep": {'all': [], 'cf': {}},
+    "orig_class": None,
+    "orig_proba": None,
+    "status": {'converged': None},
+}  # type: dict
 """
 Default counterfactual data.
 """

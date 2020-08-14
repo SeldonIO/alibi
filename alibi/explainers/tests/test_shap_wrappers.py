@@ -1,24 +1,29 @@
 # type: ignore
+import catboost
 import itertools
 import logging
-
 import pandas
 import pytest
 import scipy.sparse
 import shap
+import unittest
 
 import numpy as np
 import pandas as pd
 import sklearn
-
-from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP
-from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, KERNEL_SHAP_BACKGROUND_THRESHOLD
+from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
+    DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
+from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
+from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
-from alibi.tests.utils import assert_message_in_logs
+from alibi.tests.utils import assert_message_in_logs, not_raises
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
 from shap.common import DenseData
+from scipy.special import expit
+from unittest.mock import MagicMock
+from typing import Any
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 
@@ -120,12 +125,10 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
     of testing grouping functionality of the wrapper.
     """
 
-    np.random.seed(seed)
+    if kind == 'none':
+        return
 
-    if kind not in SUPPORTED_BACKGROUND_DATA_TYPES:
-        msg = "Selected data type, {}, is not an allowed type. " \
-              "Allowed types are {}"
-        raise ValueError(msg.format(kind, SUPPORTED_BACKGROUND_DATA_TYPES))
+    np.random.seed(seed)
 
     X = get_random_matrix(n_rows=n_rows, n_cols=n_cols)
 
@@ -147,8 +150,19 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
         else:
             group_names = fnames
         return DenseData(X, group_names)
+    elif kind == 'catboost.Pool':
+        return catboost.Pool(X)
     else:
         return 0
+
+
+def get_labels(n_rows=15, seed=None):
+    """
+    Generates a random vector of labels.
+    """
+
+    np.random.seed(seed)
+    return np.random.randint(0, 2, size=(n_rows, ))
 
 
 def generate_test_data(dimensions,
@@ -186,7 +200,7 @@ def generate_test_data(dimensions,
         (n_features, n_samples),
         b_group_names,
         b_groups,
-        b_weights
+        b_weights,
     )
 
     # we modify the data or the groups so that the input is
@@ -442,7 +456,7 @@ n_classes = [(5, 'identity'), ]
 # @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
-@pytest.mark.parametrize('data_type', SUPPORTED_BACKGROUND_DATA_TYPES, ids='data_type={}'.format)
+@pytest.mark.parametrize('data_type', data_type, ids='data_type={}'.format)
 @pytest.mark.parametrize('group_settings', group_settings, ids='group_names, groups, weights={}'.format)
 @pytest.mark.parametrize('input_settings', input_settings, ids='input={}'.format)
 def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_settings, input_settings):
@@ -923,6 +937,7 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     """
     Integration tests, runs .explain method to check output dimensions are as expected.
     """
+
     # create fake data and records to explain
     seed = 0
     n_feats, n_samples, n_instances = 15, 20, 2
@@ -1055,3 +1070,547 @@ def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
     else:
         assert len(response.data['raw']['prediction'].shape) == 1
         assert len(response.data['raw']['prediction']) == n_instances
+
+# TreeShap tests start here
+
+
+n_classes = [(5, 'raw'), ]
+data_dimensions = [(TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (1, 49)]
+data_types = ['array', 'frame']
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+def test__check_inputs_tree(caplog, mock_tree_shap_explainer, data_dimension, data_type):
+    """
+    Tests warnings are raised when background dataset exceeds preset limit.
+    """
+
+    caplog.set_level(logging.WARNING)
+
+    explainer = mock_tree_shap_explainer
+    background_data = get_data(kind=data_type, n_rows=data_dimension[0], n_cols=data_dimension[1])
+    explainer._check_inputs(background_data)
+    records = caplog.records
+    if background_data.shape[0] > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+        assert records
+    else:
+        assert not records
+
+
+n_classes = [(5, 'raw'), ]  # second element refers to the model output type
+data_dimension = [
+    (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49),
+    (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD - 12, 49),
+    (1, 49)
+]
+data_types = ['array', 'frame']
+categorical_names = [{}, {0: ['a', 'b', 'c']}]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
+def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, data_type, categorical_names):
+    """
+    Test background data summarisation.
+    """
+
+    explainer = mock_tree_shap_explainer
+    n_instances = data_dimension[0]
+    background_data = get_data(kind=data_type, n_rows=n_instances, n_cols=data_dimension[1])
+    explainer.categorical_names = categorical_names
+    n_background_samples = max(1, n_instances - 15)
+
+    summary_data = explainer._summarise_background(background_data, n_background_samples)
+    assert explainer.summarise_background
+    if n_background_samples > n_instances:
+        if categorical_names:
+            assert type(background_data) == type(summary_data)
+        else:
+            assert isinstance(summary_data, shap.common.Data)
+            assert summary_data.data.shape == background_data.shape
+    else:
+        if categorical_names:
+            assert summary_data.shape[0] == n_background_samples
+            assert type(background_data) == type(summary_data)
+        else:
+            assert summary_data.data.shape[0] == n_background_samples
+            assert isinstance(summary_data, shap.common.Data)
+
+
+data_types = ['frame', 'array', 'none']
+summarise_background = [True, False, 'auto']
+data_dimension = [
+    (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49),
+    (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD - 12, 49),
+    (1, 49)
+]
+n_classes = [(5, 'raw'), (1, 'raw'), ]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
+@pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
+def test_fit_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, summarise_background, data_dimension):
+    """
+    Test fit method.
+    """
+
+    caplog.set_level(logging.WARNING)
+    # don't test shap kmeans function
+    monkeypatch.setattr(shap, "kmeans", KMeansMock())
+    explainer = mock_tree_shap_explainer
+    n_outs = explainer.predictor.out_dim
+    n_instances = data_dimension[0]
+    background_data = get_data(kind=data_type, n_rows=n_instances, n_cols=data_dimension[1])
+    n_background_samples = n_instances - np.random.randint(0, max(1, n_instances - 10))
+    records = caplog.records
+
+    explainer.fit(background_data, summarise_background=summarise_background, n_background_samples=n_background_samples)
+
+    # check object properties are set
+    assert explainer._explainer
+    assert explainer._fitted
+    assert explainer.expected_value
+
+    # check features are set
+    if data_type == 'frame':
+        assert isinstance(explainer.feature_names, list)
+        assert explainer.feature_names == background_data.columns.values.tolist()
+    else:
+        assert not explainer.feature_names
+
+    # check summarisation called properly
+    if not summarise_background:
+
+        assert not explainer.summarise_background
+        assert not explainer.meta['params']['summarise_background']
+
+        if data_type != 'none':
+            if n_instances > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+                assert_message_in_logs('slow', records)
+    else:
+        if data_type == 'none':
+            assert not explainer.summarise_background
+            assert not explainer.meta['params']['summarise_background']
+
+        else:
+            if isinstance(summarise_background, str):
+                if n_instances > TREE_SHAP_BACKGROUND_WARNING_THRESHOLD:
+                    assert explainer.background_data.data.shape[0] == TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
+                    assert explainer.meta['params']['summarise_background']
+                else:
+                    assert not explainer.summarise_background
+                    assert not explainer.meta['params']['summarise_background']
+                    assert explainer.background_data is background_data
+            else:
+                if n_instances > n_background_samples:
+                    assert explainer.background_data.data.shape[0] == n_background_samples
+                    assert explainer.meta['params']['summarise_background']
+
+                else:
+                    assert not explainer.summarise_background
+                    assert not explainer.meta['params']['summarise_background']
+                    assert explainer.background_data is background_data
+
+    # scalar warnings are raised
+    if n_outs == 1:
+        assert_message_in_logs('scalar', records)
+
+
+n_classes = [(5, 'raw'), (1, 'raw'), ]
+data_types = ['frame', 'array', 'none', 'catboost.Pool']
+summarise_result = [False, True]
+interactions = [False, True]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
+@pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
+def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, summarise_result, interactions):
+    """
+    Test explain method.
+    """
+
+    caplog.set_level(logging.WARNING)
+    # create fake data and records to explain
+    seed = 0
+    n_feats, n_samples, n_instances = 15, 20, 2
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    if data_type != 'none':
+        instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed + 1)
+    else:
+        instances = get_data('array', n_rows=n_instances, n_cols=n_feats)
+
+    cat_vars_start_idx, cat_vars_enc_dim = None, None
+    if summarise_result:
+        cat_vars_start_idx, cat_vars_enc_dim = [0, n_feats - 3], [2, 3]
+
+    # initialise and fit explainer
+    explainer = mock_tree_shap_explainer
+    monkeypatch.setattr(shap, "kmeans", KMeansMock())
+    explainer.use_groups = use_groups
+    explainer.fit(background_data)
+
+    # patch _check_* methods to make testing easier: the point is to test explain
+    with unittest.mock.patch.object(explainer, '_check_interactions'):
+        with unittest.mock.patch.object(explainer, '_check_explainer_setup'):
+            with unittest.mock.patch.object(explainer, 'build_explanation'):
+
+                # explain some instances
+                explainer.explain(
+                    instances,
+                    interactions=interactions,
+                    summarise_result=summarise_result,
+                    cat_vars_enc_dim=cat_vars_enc_dim,
+                    cat_vars_start_idx=cat_vars_start_idx,
+                )
+
+                if interactions:
+                    explainer._check_explainer_setup.assert_not_called()
+                    explainer._check_interactions.assert_called_with(False, background_data, None)
+                else:
+                    explainer._check_interactions.asert_not_called()
+                    explainer._check_explainer_setup.assert_called_with(background_data, explainer.model_output, None)
+
+                explainer.build_explanation.assert_called_once()
+                build_args = explainer.build_explanation.call_args
+                # check shap values and expected value are of the correct data type for all dimensions
+                assert isinstance(build_args[0][1], list)
+                assert isinstance(build_args[0][2], list)
+                assert isinstance(build_args[0][1][0], np.ndarray)
+                assert isinstance(build_args[0][2][0], float)
+
+                assert explainer.meta['params']['interactions'] == interactions
+                assert not explainer.meta['params']['approximate']
+                assert not explainer.meta['params']['explain_loss']
+
+
+n_classes = [(1, 'raw'), ]
+data_types = ['frame', 'array', 'none', 'catboost.Pool']
+approximate = [True, False]
+labels = [True, False]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('approximate', approximate, ids='approximate={}'.format)
+@pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
+def test__check_interactions(caplog, mock_tree_shap_explainer, data_type, approximate, labels):
+    """
+    Test _check_interactions raises errors as expected.
+    """
+
+    caplog.set_level(logging.WARNING)
+    seed = 0
+    n_samples, n_feats = 3, 40
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    y = None
+    if labels:
+        y = get_labels(n_samples, seed=seed)
+    explainer = mock_tree_shap_explainer
+    records = caplog.records
+
+    if background_data is not None:
+        with pytest.raises(NotImplementedError):
+            explainer._check_interactions(approximate, background_data, y)
+
+    if labels:
+        with pytest.raises(NotImplementedError):
+            explainer._check_interactions(approximate, background_data, y)
+
+    if background_data is None and not labels:
+        with not_raises(NotImplementedError):
+            explainer._check_interactions(approximate, background_data, y)
+
+    # should throw a warning to requests to calculate interactions for Sabaas values
+    if approximate:
+        assert records
+    else:
+        assert not records
+
+
+n_classes = [(1, 'raw'), (1, 'probability'), (1, 'probability_doubled'), (1, 'log_loss')]
+data_types = ['frame', 'array', 'none', 'catboost.Pool']
+labels = [True, False]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
+def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
+    """
+    Tests TreeShap._check_explainer_setup raises errors as expected.
+    """
+
+    seed = 0
+    n_samples, n_feats = 3, 40
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    y = None
+    if labels:
+        y = get_labels(n_samples, seed=seed)
+    explainer = mock_tree_shap_explainer
+    model_output = explainer.model_output
+
+    if labels:
+        if model_output == 'log_loss':
+            if background_data is None:
+                with pytest.raises(NotImplementedError):
+                    explainer._check_explainer_setup(background_data, model_output, y)
+            else:
+                with not_raises(NotImplementedError):
+                    explainer._check_explainer_setup(background_data, model_output, y)
+        else:
+            if background_data is None:
+                with pytest.raises((NotImplementedError, ValueError)):
+                    explainer._check_explainer_setup(background_data, model_output, y)
+            else:
+                with pytest.raises(ValueError):
+                    explainer._check_explainer_setup(background_data, model_output, y)
+    else:
+        if background_data is None and model_output != 'raw':
+            with pytest.raises(NotImplementedError):
+                explainer._check_explainer_setup(background_data, model_output, y)
+        else:
+            with not_raises(NotImplementedError):
+                explainer._check_explainer_setup(background_data, model_output, y)
+
+
+n_classes = [(1, 'raw'), ]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+def test_update_metadata_tree(mock_tree_shap_explainer):
+    """
+    Test that response is correct for both classification and regression.
+    """
+
+    explainer = mock_tree_shap_explainer
+    explainer._update_metadata({'wrong_arg': None, 'model_output': 'raw'}, params=True)
+    explainer._update_metadata({'random_arg': 0}, params=False)
+    metadata = explainer.meta
+
+    assert 'wrong_arg' not in metadata['params']
+    assert metadata['params']['model_output'] == 'raw'
+    assert metadata['random_arg'] == 0
+    assert metadata['task']
+
+
+n_classes = [
+    (5, 'raw'),
+    (1, 'raw'),
+    (1, 'probability'),
+    (5, 'probability'),
+    (5, 'log_loss'),
+]
+data_types = ['frame', 'array', 'none', 'catboost.Pool']
+summarise_result = [True, False]
+interactions = [False, True]
+labels = [True, False]
+task = ['regression', 'classification']
+
+
+def uncollect_if_test_build_explanation_tree(**kwargs):
+
+    model_output = kwargs['mock_tree_shap_explainer'][1]
+    labels = kwargs['labels']
+
+    # exclude this as the code would raise a value error before calling build_explanation
+    conditions = [
+        labels and model_output != 'log_loss',
+    ]
+
+    return any(conditions)
+
+
+# @pytest.mark.skip
+@pytest.mark.uncollect_if(func=uncollect_if_test_build_explanation_tree)
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
+@pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
+@pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
+@pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
+@pytest.mark.parametrize('task', task, ids='task={}'.format)
+def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_result, labels, interactions, task):
+    """
+    Tests the response has the correct data.
+    """
+
+    def setter(obj: object, attr: str, val: Any):
+        """
+        Sets the attr property of obj to val.
+        """
+        setattr(obj, attr, val)
+
+    # generate data
+    seed = 0
+    n_samples, n_feats, n_instances = 3, 40, 2
+    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    y = None
+    if labels:
+        y = get_labels(n_samples, seed=seed)
+    if data_type != 'none':
+        instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed + 1)
+    else:
+        instances = get_data('array', n_rows=n_instances, n_cols=n_feats)
+
+    # simulate summarisation
+    cat_vars_start_idx, cat_vars_enc_dim = None, None
+    if summarise_result:
+        cat_vars_start_idx, cat_vars_enc_dim = [0, n_feats - 3], [2, 3]
+
+    # simulate shap values
+    explainer = mock_tree_shap_explainer
+    explainer.fit(background_data)
+    explainer.tree_limit = 1
+    explainer.task = task
+    if data_type == 'catboost.Pool':
+        explainer.predictor.model_type = 'catboost'
+    if interactions:
+        shap_output = explainer._explainer.shap_interaction_values(instances)
+    else:
+        shap_output = explainer._explainer.shap_values(instances)
+
+    # these would be executed in explain
+    if isinstance(shap_output, np.ndarray):
+        shap_output = [shap_output]
+    if len(shap_output) == 1:
+        explainer.expected_value = [explainer.expected_value]
+
+    with unittest.mock.patch.object(
+            explainer, '_check_result_summarisation',
+            new=MagicMock(side_effect=setter(explainer, 'summarise_result', summarise_result))
+    ):
+
+        explanation = explainer.build_explanation(
+            instances,
+            shap_output,
+            explainer.expected_value,
+            summarise_result=summarise_result,
+            cat_vars_start_idx=cat_vars_start_idx,
+            cat_vars_enc_dim=cat_vars_enc_dim,
+            y=y,
+        )
+        data = explanation.data
+        raw_data = data['raw']
+
+        if interactions:
+            assert isinstance(data['shap_values'][0], np.ndarray)
+            assert data['shap_values'][0].size > 0
+            assert data['shap_interaction_values'][0].size > 0
+        else:
+            assert isinstance(data['shap_interaction_values'][0], np.ndarray)
+            assert data['shap_interaction_values'][0].size == 0
+
+        if summarise_result:
+            explainer._check_result_summarisation.assert_called_with(
+                summarise_result,
+                cat_vars_start_idx,
+                cat_vars_enc_dim,
+            )
+            assert data['shap_values'][0].shape[1] < n_feats
+            if interactions:
+                assert data['shap_interaction_values'][0].shape[1] < n_feats
+                assert data['shap_interaction_values'][0].shape[2] < n_feats
+        else:
+            explainer._check_result_summarisation.assert_not_called()
+            assert data['shap_values'][0].shape[1] == n_feats
+            if interactions:
+                assert data['shap_interaction_values'][0].shape[1] == n_feats
+                assert data['shap_interaction_values'][0].shape[2] == n_feats
+
+        if explainer.model_output == 'log_loss':
+            assert isinstance(raw_data['raw_prediction'], list)
+            assert not raw_data['raw_prediction']
+            assert isinstance(raw_data['loss'], np.ndarray)
+            assert raw_data['loss'].size > 0
+        else:
+            assert isinstance(raw_data['loss'], list)
+            assert not raw_data['loss']
+            assert isinstance(raw_data['raw_prediction'], np.ndarray)
+            assert raw_data['raw_prediction'].size > 0
+
+        if labels:
+            assert raw_data['labels'].size > 0
+        else:
+            assert raw_data['labels'].size == 0
+
+        if task == 'regression':
+            assert isinstance(raw_data['prediction'], list)
+            assert not raw_data['prediction']
+        else:
+            if explainer.model_output != 'log_loss':
+                assert isinstance(raw_data['raw_prediction'], np.ndarray)
+                assert isinstance(raw_data['prediction'], np.ndarray)
+
+                if explainer.predictor.num_outputs == 1:
+                    assert raw_data['prediction'].ndim == 1
+                    if explainer.model_output == 'probability':
+                        class_1_idx = raw_data['raw_prediction'] > 0.5
+                    else:
+                        class_1_idx = expit(raw_data['raw_prediction']) > 0.5
+                    assert class_1_idx.sum() == raw_data['prediction'].sum()
+                else:
+                    assert len(raw_data['prediction']) == n_instances
+            else:
+                assert isinstance(raw_data['prediction'], list)
+                assert not raw_data['prediction']
+
+        assert isinstance(data['expected_value'], list)
+        assert len(data['expected_value']) == explainer.predictor.num_outputs
+        assert isinstance(raw_data['instances'], np.ndarray)
+        assert raw_data['instances'].shape == instances.shape
+        assert isinstance(raw_data['importances'], dict)
+        assert explainer.meta['params']['summarise_result'] == explainer.summarise_result
+
+        assert explanation.meta.keys() == DEFAULT_META_TREE_SHAP.keys()
+        assert explanation.data.keys() == DEFAULT_DATA_TREE_SHAP.keys()
+
+
+n_classes = [(1, 'raw'), ]
+vars_start_enc_dim = [
+    ([0, 4], [2, 6]),
+    ([0, 4], None),
+    (None, [2, 6]),
+]
+
+
+# @pytest.mark.skip
+@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('cat_vars_start_enc_dim', vars_start_enc_dim, ids='start_dim={}'.format)
+def test__check_result_summarisation(caplog, mock_tree_shap_explainer, cat_vars_start_enc_dim):
+    """
+    Test results summarisation checking function behaves correctly.
+    """
+
+    caplog.set_level(logging.WARNING)
+
+    explainer = mock_tree_shap_explainer
+
+    cat_vars_start_idx, cat_vars_enc_dim = cat_vars_start_enc_dim
+
+    explainer._check_result_summarisation(
+        True,
+        cat_vars_start_idx=cat_vars_start_idx,
+        cat_vars_enc_dim=cat_vars_enc_dim,
+    )
+    records = caplog.records
+
+    if cat_vars_enc_dim is not None and cat_vars_start_idx is not None:
+        assert explainer.summarise_result
+        assert not records
+    else:
+        assert not explainer.summarise_result
+        assert records

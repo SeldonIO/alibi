@@ -1,4 +1,5 @@
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 import numpy as np
 
@@ -6,13 +7,12 @@ from copy import deepcopy
 
 
 @pytest.mark.parametrize('rf_classifier',
-                         [pytest.lazy_fixture('get_iris_dataset')],
+                         [lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=rf_{}'.format,
                          )
 @pytest.mark.parametrize('at_defaults', (0.9, 0.95), indirect=True)
 def test_anchor_base_beam(rf_classifier, at_defaults, at_iris_explainer):
-
     # inputs
     n_anchors_to_sample = 6
     coverage_samples = 500
@@ -58,7 +58,7 @@ def test_anchor_base_beam(rf_classifier, at_defaults, at_iris_explainer):
     len_1_anchors_set = anchor_beam.propose_anchors([])
     assert len(len_1_anchors_set) == anchor_max_len
     len_2_anchors_set = anchor_beam.propose_anchors(len_1_anchors_set)
-    assert len(len_2_anchors_set) == anchor_max_len*(anchor_max_len - 1)/2
+    assert len(len_2_anchors_set) == anchor_max_len * (anchor_max_len - 1) / 2
 
     # test coverage data sampling
     cov_data = anchor_beam._get_coverage_samples(coverage_samples)

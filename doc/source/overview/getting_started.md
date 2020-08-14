@@ -1,7 +1,7 @@
 # Getting Started
 
 ## Installation
-Alibi works with Python 3.6-3.7 and can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi works with Python 3.6+ and can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```
@@ -21,13 +21,15 @@ import alibi
 alibi.explainers.__all__
 ```
 ```
-['AnchorTabular',
+['ALE',
+ 'AnchorTabular',
  'AnchorText',
  'AnchorImage',
  'CEM',
  'CounterFactual',
  'CounterFactualProto'
- 'KernelShap'] 
+ 'KernelShap',
+ 'plot_ale'] 
 ```
 
 For gauging model confidence:
@@ -44,11 +46,13 @@ alibi.confidence.__all__
 
 For detailed information on the methods:
 *  [Overview of available methods](../overview/algorithms.md)
+    * [Accumulated Local Effects](../methods/ALE.ipynb)
     * [Anchor explanations](../methods/Anchors.ipynb)
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
+    * [Integrated gradients](../methods/IntegratedGradients.ipynb)
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 

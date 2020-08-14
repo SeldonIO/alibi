@@ -24,6 +24,10 @@ errors, the commit will fail and you will see the changes that need to be made.
 We use `pytest` to run tests. To run all tests just call `pytest` from the root of the project.
 Test files live together with the library files under `tests` folders.
 
+Some tests use pre-trained models to test method convergence. These models and the dataset loading
+functions used to train them live in the https://github.com/SeldonIO/alibi-testing repo which is
+one of the requirements for running the test suite.
+
 ## Linter
 We use `flake8` for linting adhering to PEP8 with exceptions defined in `setup.cfg`.
 

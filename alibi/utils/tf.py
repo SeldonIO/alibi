@@ -1,4 +1,4 @@
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import sys
 import os
 from typing import Callable, Tuple, Union, TYPE_CHECKING
@@ -10,7 +10,7 @@ if TYPE_CHECKING:  # pragma: no cover
 
 
 def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model']) -> \
-        Tuple[bool, bool, tf.compat.v1.Session]:
+        Tuple[bool, bool, tf.Session]:
     """
     Test if the prediction function is a tf.keras or keras model and return the associated TF session.
 
@@ -34,7 +34,9 @@ def _check_keras_or_tf(predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'
         import keras  # noqa
         sys.stderr = stderr
 
-        ksess = keras.backend.get_session()
+        # ksess = keras.backend.get_session() # had to remove this because this doesn't exist with TF2.x (error raised)
+        # TODO: does the following get the old Keras session? as we are deprecating old Keras this does not matter...
+        ksess = tf.keras.backend.get_session()
         is_model = isinstance(predict_fn, keras.Model)
         if is_model:
             #  keras model, return keras session

@@ -15,7 +15,9 @@ To build the documentation, first we need to install Python requirements:
 We also need `pandoc` for parsing Jupyter notebooks, the easiest way
 to install this is using conda:
 
-`conda install -c conda-forge pandoc=1.19`
+`conda install -c conda-forge pandoc=1.16.0.2`
+
+Note: the older version of pandoc is used because this is available on `readthedocs.org` where we host our docs, the newer version fixes a lot of bugs, but using a newer version locally is misleading as to whether the docs will render properly on RTD, also see [gotchas](#gotchas-when-writing-notebooks-as-examples).
 
 Finally install the `alibi` package:
 
@@ -50,12 +52,14 @@ All examples are Jupyter notebooks and live in the top level `examples` director
 From here on you can link and refer to the `notebook.ipynb` elsewhere in the documentation as if it lived under `doc/source/examples`.
 
 ## Gotchas when writing notebooks as examples
-We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:
+We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin, which in turn invokes `pandoc` for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:
 * When using a bullet-point list, leave a blank line before the preceding paragraph, otherwise it will fail to render
 * Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math
 * Leave a blank line before and after any display math
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
 * Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.
-* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==1.16.0.2` used both on Travis and ReadTheDocs machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
+* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==1.16.0.2` used both on Travis and `readthedocs.org` machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
+* Avoid using underscores in alternative text for images, e.g. instead of `![my_pic](my_pic.png)` use `![my-pic](my_pic.png)`, this is due to the old version of `pandoc==1.16.0.2` used on `reathedocs.org`.
 * Avoid nesting markdown markups, e.g. italicising a hyperlink, this might not render
+* To add a static image to an example, use the syntax `![my-image.png](attachment:my_image.png)`. Ensure the image is located in the `examples/` folder. This will embed the actual binary image into the example notebook so that the notebook is self-contained and renders properly on the static docs.

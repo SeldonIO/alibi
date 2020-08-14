@@ -3,6 +3,7 @@ from collections import OrderedDict
 
 import numpy as np
 import pytest
+from pytest_lazyfixture import lazy_fixture
 
 from collections import defaultdict
 from copy import deepcopy
@@ -45,12 +46,12 @@ def uncollect_if_test_explainer(**kwargs):
 @pytest.mark.parametrize('n_explainer_runs', [10], ids='n_exp_runs={}'.format)
 @pytest.mark.parametrize('at_defaults', [0.9, 0.95], ids='threshold={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
-                         [pytest.lazy_fixture('get_iris_dataset'), pytest.lazy_fixture('get_adult_dataset')],
+                         [lazy_fixture('iris_dataset'), lazy_fixture('adult_data')],
                          indirect=True,
                          ids='clf=rf_{}'.format,
                          )
 @pytest.mark.parametrize('explainer',
-                         [pytest.lazy_fixture('at_iris_explainer'), pytest.lazy_fixture('at_adult_explainer')],
+                         [lazy_fixture('at_iris_explainer'), lazy_fixture('at_adult_explainer')],
                          ids='exp={}'.format,
                          )
 @pytest.mark.parametrize('test_instance_idx', [0], ids='test_instance_idx={}'.format)
@@ -89,7 +90,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
 @pytest.mark.parametrize('predict_type', ('proba', 'class'), ids='predict_type={}'.format)
 @pytest.mark.parametrize('at_defaults', [0.95], ids='threshold={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
-                         [pytest.lazy_fixture('get_iris_dataset')],
+                         [lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=rf_{}'.format,
                          )
@@ -97,11 +98,10 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
 def test_distributed_anchor_tabular(ncpu,
                                     predict_type,
                                     at_defaults,
-                                    get_iris_dataset,
+                                    iris_data,
                                     rf_classifier,
                                     test_instance_idx,
                                     ):
-
     if RAY_INSTALLED:
         import ray
 
@@ -113,7 +113,7 @@ def test_distributed_anchor_tabular(ncpu,
         n_anchors_to_sample = 6  # for testing sampling function
 
         # prepare the classifier and explainer
-        data = get_iris_dataset
+        data = iris_data
         X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
         clf, preprocessor = rf_classifier
         predictor = predict_fcn(predict_type, clf)
@@ -166,7 +166,6 @@ def test_distributed_anchor_tabular(ncpu,
 
 
 def uncollect_if_test_sampler(**kwargs):
-
     clf_dataset = kwargs['rf_classifier'].name
     exp_dataset = kwargs['explainer'].name
     dataset = kwargs['dataset'].name
@@ -184,18 +183,18 @@ def uncollect_if_test_sampler(**kwargs):
 @pytest.mark.uncollect_if(func=uncollect_if_test_sampler)
 @pytest.mark.parametrize('test_instance_idx', [0], ids='test_instance_idx={}'.format)
 @pytest.mark.parametrize('nb_samples', [100], ids='nb_samples={}'.format)
-@pytest.mark.parametrize('anchors', [((2, ), (10, ),  (11, ), (7, 10, 11), (3, 11))], ids='anchors={}'.format)
+@pytest.mark.parametrize('anchors', [((2,), (10,), (11,), (7, 10, 11), (3, 11))], ids='anchors={}'.format)
 @pytest.mark.parametrize('dataset',
-                         [pytest.lazy_fixture('get_adult_dataset'),  pytest.lazy_fixture('get_iris_dataset')],
+                         [lazy_fixture('adult_data'), lazy_fixture('iris_data')],
                          ids='dataset={}'.format,
                          )
 @pytest.mark.parametrize('rf_classifier',
-                         [pytest.lazy_fixture('get_adult_dataset'),  pytest.lazy_fixture('get_iris_dataset')],
+                         [lazy_fixture('adult_data'), lazy_fixture('iris_data')],
                          indirect=True,
                          ids='clf=rf_{}'.format,
                          )
 @pytest.mark.parametrize('explainer',
-                         [pytest.lazy_fixture('at_iris_explainer'), pytest.lazy_fixture('at_adult_explainer')],
+                         [lazy_fixture('at_iris_explainer'), lazy_fixture('at_adult_explainer')],
                          ids='exp={}'.format,
                          )
 def test_sampler(test_instance_idx, anchors, nb_samples, dataset, rf_classifier, explainer):
@@ -233,7 +232,7 @@ def test_sampler(test_instance_idx, anchors, nb_samples, dataset, rf_classifier,
     # test sampling function end2end
     train_data = sampler.train_data
     train_data_mean = np.mean(train_data, axis=0)[sampler.numerical_features]
-    train_data_3std = 3*np.std(train_data, axis=0)[sampler.numerical_features]
+    train_data_3std = 3 * np.std(train_data, axis=0)[sampler.numerical_features]
     sampler.build_lookups(X_test[test_instance_idx, :])
     n_covered_ex = sampler.n_covered_ex
 

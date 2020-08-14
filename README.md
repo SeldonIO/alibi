@@ -5,7 +5,7 @@
 [![Build Status](https://travis-ci.com/SeldonIO/alibi.svg?branch=master)](https://travis-ci.com/SeldonIO/alibi)
 [![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)](https://docs.seldon.io/projects/alibi/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/SeldonIO/alibi/branch/master/graph/badge.svg)](https://codecov.io/gh/SeldonIO/alibi)
-![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7-blue.svg)
+![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8-blue.svg)
 [![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
 ![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)
 [![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](http://seldondev.slack.com/messages/alibi)
@@ -17,6 +17,49 @@ explanation methods for classification and regression models.
 
 If you're interested in outlier detection, concept drift or adversarial instance detection, check out our sister project [alibi-detect](https://github.com/SeldonIO/alibi-detect).
 
+<table>
+  <tr valign="top">
+    <td width="50%" >
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/examples/anchor_image_imagenet.html">
+            <br>
+            <b>Anchor explanations for images</b>
+            <br>
+            <br>
+            <img src="examples/anchor_image.png">
+        </a>
+    </td>
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_imdb.html">
+            <br>
+            <b>Integrated Gradients for text</b>
+            <br>
+            <br>
+            <img src="examples/ig_text.png">
+        </a>
+    </td>
+  </tr>
+  <tr valign="top">
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html">
+            <br>
+            <b>Counterfactual examples</b>
+            <br>
+            <br>
+            <img src="examples/cf.png">
+        </a>
+    </td>
+    <td width="50%">
+        <a href="https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html">
+            <br>
+            <b>Accumulated Local Effects</b>
+            <br>
+            <br>
+            <img src="examples/ale.png">
+        </a>
+    </td>
+  </tr>
+</table>
+
 ## Table of Contents
 
 * [Installation and Usage](#installation-and-usage)
@@ -25,7 +68,6 @@ If you're interested in outlier detection, concept drift or adversarial instance
   * [Model Confidence](#model-confidence)
   * [References and Examples](#references-and-examples)
 * [Dependencies](#dependencies)
-* [Sample Outputs](#sample-outputs)
 * [Citations](#citations)
 
 ## Installation and Usage
@@ -67,12 +109,15 @@ The following tables summarize the possible use cases for each method.
 ### Model Explanations
 |Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔||✔|✔|✔|✔|For Tabular|
+|[ALE](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔|
+|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular|
 |[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
+|[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional|
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|
- 
+|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| 
+
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
 particular prediction.
@@ -85,6 +130,7 @@ particular prediction.
 Key:
  - **BB** - black-box (only require a prediction function)
  - **BB\*** - black-box but assume model is differentiable
+ - **WB** - requires white-box model access. There may be limitations on models supported
  - **TF/Keras** - TensorFlow models via the Keras API
  - **Local** - instance specific explanation, why was this prediction made?
  - **Global** - explains the model with respect to a set of instances
@@ -92,6 +138,12 @@ Key:
  - **(2)** -  may require dimensionality reduction
 
 ## References and Examples
+ - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)
+   - Examples:
+     [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/ale_regression_boston.html),
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/ale_classification.html)
+
  - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
    - Examples:
@@ -112,14 +164,7 @@ Key:
   - Examples: 
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cf_mnist.html)
 
-- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)
-  - Examples:
-    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_intro.html),
-    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_lr.html),
-    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_adult_lr.html)
-    
-- Counterfactual Explanations Guided by Prototypes ([Van Looveren et al., 2019](https://arxiv.org/abs/1907.02584))
+- Counterfactual Explanations Guided by Prototypes ([Van Looveren and Klaise, 2019](https://arxiv.org/abs/1907.02584))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_mnist.html),
@@ -127,11 +172,32 @@ Key:
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ord.html)
 
+- Integrated Gradients ([Sundararajan et al., 2017](https://arxiv.org/abs/1703.01365))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html),
+  - Examples:
+    [MNIST example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_mnist.html),
+    [Imagenet example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_imagenet.html),
+    [IMDB example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_imdb.html).
+
+- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)
+  - Examples:
+    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_intro.html),
+    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_wine_lr.html),
+    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/latest/examples/kernel_shap_adult_lr.html)
+    
+- Tree Shapley Additive Explanations ([Lundberg et al., 2020](https://www.nature.com/articles/s42256-019-0138-9))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)
+  - Examples:
+    [Interventional (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/latest/examples/interventional_tree_shap_adult_xgb.html),
+    [Path-dependent (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/latest/examples/path_dependent_tree_shap_adult_xgb.html)
+    
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/TrustScores.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html),
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/trustscore_mnist.html)
+
 - Linearity Measure
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/LinearityMeasure.html)
   - Examples:
@@ -152,26 +218,9 @@ Key:
   scipy
   shap
   spacy
-  tensorflow<2.0
+  tensorflow>=2.0
+  typing-extensions
 ```
-
-## Sample Outputs
-
-[**Anchor method applied to the InceptionV3 model trained on ImageNet:**](examples/anchor_image_imagenet.ipynb)
-
-Prediction: Persian Cat             | Anchor explanation
-:-------------------------:|:------------------:
-![Persian Cat](doc/source/methods/persiancat.png)| ![Persian Cat Anchor](doc/source/methods/persiancatanchor.png)
-
-[**Contrastive Explanation method applied to a CNN trained on MNIST:**](examples/cem_mnist.ipynb)
-
-Prediction: 4             |  Pertinent Negative: 9               | Pertinent Positive: 4
-:-------------------------:|:-------------------:|:------------------:
-![mnist_orig](doc/source/methods/mnist_orig.png)  | ![mnsit_pn](doc/source/methods/mnist_pn.png) | ![mnist_pp](doc/source/methods/mnist_pp.png)
-
-[**Trust scores applied to a softmax classifier trained on MNIST:**](examples/trustscore_mnist.ipynb)
-
-![trust_mnist](doc/source/_static/trustscores.png)
 
 ## Citations
 If you use alibi in your research, please consider citing it.
@@ -183,7 +232,7 @@ BibTeX entry:
   title = {Alibi: Algorithms for monitoring and explaining machine learning models},
   author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru},
   url = {https://github.com/SeldonIO/alibi},
-  version = {0.4.0},
-  date = {2020-03-20},
+  version = {0.5.2},
+  date = {2020-08-05},
 }
 ```

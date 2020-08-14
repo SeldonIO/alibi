@@ -4,18 +4,14 @@ import pytest
 import numpy as np
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
-from alibi.explainers.tests.utils import fashion_mnist_dataset
 
 
-# Data preparation
-data = fashion_mnist_dataset()
-x_train = data['X_train']
-y_train = data['y_train']
-
-
-@pytest.mark.parametrize('conv_net', (data,), indirect=True)
-def test_anchor_image(conv_net):
-
+@pytest.mark.parametrize('models',
+                         [('mnist-cnn-tf2.2.0',), ('mnist-cnn-tf1.15.2.h5',)],
+                         ids='model={}'.format,
+                         indirect=True)
+def test_anchor_image(models, mnist_data):
+    x_train = mnist_data['X_train']
     segmentation_fn = 'slic'
     segmentation_kwargs = {'n_segments': 10, 'compactness': 10, 'sigma': .5}
     image_shape = (28, 28, 1)
@@ -29,8 +25,8 @@ def test_anchor_image(conv_net):
     n_covered_ex = 3  # nb of examples where the anchor applies that are saved
 
     # define and train model
-    clf = conv_net
-    predict_fn = lambda x: clf.predict(x)
+    # model = conv_net
+    predict_fn = lambda x: models[0].predict(x)
 
     explainer = AnchorImage(
         predict_fn,
@@ -74,8 +70,8 @@ def test_anchor_image(conv_net):
     explanation = explainer.explain(image, threshold=threshold)
 
     if explanation.raw['feature']:
-        assert explanation.raw['examples'][-1]['covered_true'].shape[0] <= explainer.n_covered_ex
-        assert explanation.raw['examples'][-1]['covered_false'].shape[0] <= explainer.n_covered_ex
+        assert len(explanation.raw['examples'][-1]['covered_true']) <= explainer.n_covered_ex
+        assert len(explanation.raw['examples'][-1]['covered_false']) <= explainer.n_covered_ex
     else:
         assert not explanation.raw['examples']
     assert explanation.anchor.shape == image_shape

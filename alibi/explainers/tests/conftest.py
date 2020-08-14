@@ -1,17 +1,22 @@
 import pytest
 import logging
+import shap
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, LinearRegression
 
+from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
-from alibi.explainers import KernelShap
-from alibi.explainers.tests.utils import predict_fcn, adult_dataset, iris_dataset
-from tensorflow.keras.layers import Conv2D, Dense, Dropout, Flatten, MaxPooling2D, Input
-from tensorflow.keras.models import Model
+from alibi.explainers import KernelShap, TreeShap
+from alibi.explainers.tests.utils import predict_fcn, MockTreeExplainer
+from alibi.tests.utils import MockPredictor
+import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
-from alibi.tests.utils import MockPredictor
+import alibi_testing
+from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
+    get_movie_sentiment_data
+
 
 # A file containing fixtures that can be used across tests
 
@@ -19,8 +24,30 @@ from alibi.tests.utils import MockPredictor
 # fixtures to generate models for testing.
 
 
+@pytest.fixture
+def models(request):
+    """
+    This fixture loads a list of pre-trained test-models by name from the
+    alibi-testing helper package.
+    """
+    models = []
+    for name in request.param:
+        models.append(alibi_testing.load(name))
+    return models
+
+
 @pytest.fixture(scope='module')
-def get_iris_dataset():
+def mnist_data():
+    return get_mnist_data()
+
+
+@pytest.fixture(scope='module')
+def boston_data():
+    return get_boston_data()
+
+
+@pytest.fixture(scope='module')
+def iris_data():
     """
     This fixture can be passed to a classifier fixture to return
     a trained classifier on the Iris dataset. Because it is scoped
@@ -28,11 +55,11 @@ def get_iris_dataset():
     mutated during testing - if you need to do so, please copy the
     objects returned first.
     """
-    return iris_dataset()
+    return get_iris_data()
 
 
 @pytest.fixture(scope='module')
-def get_adult_dataset():
+def adult_data():
     """
     This fixture can be passed to a classifier fixture to return
     a trained classifier on the Adult dataset. Because it is scoped
@@ -40,7 +67,12 @@ def get_adult_dataset():
     mutated during testing - if you need to do so, please copy the
     objects returned first.
     """
-    return adult_dataset()
+    return get_adult_data()
+
+
+@pytest.fixture(scope='module')
+def movie_sentiment_data():
+    return get_movie_sentiment_data()
 
 
 # The classifier fixtures accept a dictionary that
@@ -111,6 +143,29 @@ def lr_classifier(request):
     return clf, preprocessor
 
 
+@pytest.fixture(scope='module')
+def lr_regressor(request):
+    """
+    Trains a linear regression model.
+    """
+    is_preprocessor = False
+    preprocessor = False
+
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    model = LinearRegression()
+
+    if is_preprocessor:
+        model.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        model.fit(data['X_train'], data['y_train'])
+
+    return model, preprocessor
+
+
 # Following fixtures are related to Anchor explainers testing
 
 
@@ -138,13 +193,13 @@ def at_defaults(request):
 
 
 @pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
-def at_iris_explainer(get_iris_dataset, rf_classifier, request):
+def at_iris_explainer(iris_data, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Iris dataset.
     """
 
     predict_type = request.param
-    data = get_iris_dataset
+    data = iris_data
     clf, _ = rf_classifier  # preprocessor not necessary
 
     # instantiate and fit explainer
@@ -156,14 +211,14 @@ def at_iris_explainer(get_iris_dataset, rf_classifier, request):
 
 
 @pytest.fixture(params=['proba', 'class'], ids='predictor_type={}'.format)
-def at_adult_explainer(get_adult_dataset, rf_classifier, request):
+def at_adult_explainer(adult_data, rf_classifier, request):
     """
     Instantiates and fits an AnchorTabular explainer for the Adult dataset.
     """
 
     # fit random forest classifier
     predict_type = request.param
-    data = get_adult_dataset
+    data = adult_data
     clf, preprocessor = rf_classifier
 
     # instantiate and fit explainer
@@ -190,34 +245,38 @@ def mock_kernel_shap_explainer(request):
     return explainer
 
 
-@pytest.fixture(scope='module')
-def conv_net(request):
+@pytest.fixture
+def mock_ale_explainer(request):
     """
-    Creates a simple CNN classifier on the data in the request. This is a
-    module scoped fixture, so if you need to modify the state of the objects
-    returned, copy the objects first.
+    Instantiates an ALE explainer with a mock predictor.
+    """
+    out_dim, out_type = request.param
+    predictor = MockPredictor(out_dim=out_dim, out_type=out_type, seed=0)
+    explainer = ALE(predictor)
+
+    return explainer
+
+
+@pytest.fixture
+def mock_tree_shap_explainer(monkeypatch, request):
+    """
+    Instantiates a TreeShap explainer where both the `_explainer` and `model` atttributes
+    are mocked
+
+    Parameters
+    ----------
+    request:
+        Tuple containing number of outputs and model_output string (see TreeShap constructor).
     """
 
-    data = request.param
-    x_train, y_train = data['X_train'], data['y_train']
+    n_outs, model_output = request.param
+    seed = 0
+    predictor = MockPredictor(out_dim=n_outs, out_type=model_output, seed=seed)
+    tree_explainer = MockTreeExplainer(predictor, seed=seed)
+    monkeypatch.setattr(shap, "TreeExplainer", tree_explainer)
+    explainer = TreeShap(predictor, model_output=model_output)
 
-    def model():
-
-        x_in = Input(shape=(28, 28, 1))
-        x = Conv2D(filters=8, kernel_size=2, padding='same', activation='relu')(x_in)
-        x = MaxPooling2D(pool_size=2)(x)
-        x = Dropout(0.3)(x)
-        x = Flatten()(x)
-        x_out = Dense(10, activation='softmax')(x)
-        cnn = Model(inputs=x_in, outputs=x_out)
-        cnn.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-
-        return cnn
-
-    cnn = model()
-    cnn.fit(x_train, y_train, batch_size=256, epochs=1)
-
-    return cnn
+    return explainer
 
 
 # High level fixtures that help us check if the code logs any warnings/correct
@@ -267,3 +326,17 @@ def pytest_collection_modifyitems(config, items):
     if removed:
         config.hook.pytest_deselected(items=removed)
         items[:] = kept
+
+
+@pytest.fixture
+def disable_tf2():
+    """
+    Fixture for disabling TF2.x functionality for test functions which
+    rely on TF1.x style code (CounterFactual, CEM, CFProto).
+
+    Because of restrictions in TF, the teardown does not contain code
+    to enable v2 behaviour back. Instead, we need to run two sets of
+    tests - one with marker "tf1" and another with marker "not tf1".
+    """
+    tf.compat.v1.disable_v2_behavior()
+    yield

@@ -1,5 +1,65 @@
 # Change Log
 
+## [v0.5.2](https://github.com/SeldonIO/alibi/tree/v0.5.2) (2020-08-05)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.1...v0.5.2)
+
+This release changes the required TensorFlow version from <2.0 to >=2.0. This means that `alibi` code depends on TenorFlow>=2.0, however the explainer algorithms are compatible for models trained with both TF1.x and TF2.x.
+
+The `alibi` code that depends on TensorFlow itself has not been fully migrated in the sense that the code is still not idiomatic TF2.x code just that we now use the `tf.compat.v1` package provided by TF2.x internally. This does mean that for the time being to run algorithms which depend on TensorFlow (`CounterFactual`, `CEM` and `CounterFactualProto`) require disabling TF2.x behaviour by running `tf.compat.v1.disable_v2_behavior()`. This is documented in the example notebooks. Work is underway to re-write the TensorFlow dependent components in idiomatic TF2.x code so that this will not be necessary in a future release.
+
+The upgrade to TensorFlow 2.x also enables this to be the first release with Python 3.8 support.
+
+Finally, white-box explainers are now tested with pre-trained models from both TF1.x and TF2.x. The binaries for the models along with loading functionality and datasets used to train these are available in the `alibi-testing` helper package which is now a requirement for running tests.
+
+### Changed
+- Minimum required TensorFlow version is now 2.0
+- Tests depending on trained models are now run using pre-trained models hosted under the `alibi-testing` helper package
+
+### Fixed
+- A bug in `AnchorText` resulting from missing string hash entries in some spacy models (https://github.com/SeldonIO/alibi/pull/276)
+- Explicitly import `lazy_fixture` in tests instead of relying on the deprecated usage of `pytest` namespace (https://github.com/SeldonIO/alibi/pull/281)
+- A few bugs in example notebooks
+
+## [v0.5.1](https://github.com/SeldonIO/alibi/tree/v0.5.1) (2020-07-10)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.0...v0.5.1)
+
+This is a bug fix release.
+
+### Fixed
+- Fix an issue with `AnchorText` not working on text instances with commas due to not checking for empty synonym lists
+- Enable correct behaviour of `AnchorText` with `spacy>=2.3.0`, this now requires installing `spacy[lookups]` as an additional dependency which contains model probability tables
+- Update the `expected_value` attribute of `TreeSHAP` which is internally updated after a call to `explain`
+- Fix some links in Integrated Gradients examples
+- Coverage after running tests on Travis is now correctly reported as the reports are merged for different `pytest` runs
+- Old `Keras` tests now require `Keras<2.4.0` as the new release requires `tensorflow>=2.2`
+- Bump `typing_extensions>=3.7.2` which includes the type `Literal`
+
+## [v0.5.0](https://github.com/SeldonIO/alibi/tree/v0.5.0) (2020-06-10)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.4.0...v0.5.0)
+
+This version supports Python 3.6 and 3.7 as support for Python 3.5 is dropped.
+
+### Added
+- **New feature** `TreeSHAP` explainer for white-box, tree based model SHAP value computation
+- **New feature** `ALE` explainer for computing feature effects for black-box, tabular data models
+- **New feature** `IntegratedGradients` explainer for computing feature attributions for TensorFlow and Keras models
+- Experimental `utils.visualization` module currently containing visualization functions for `IntegratedGradients` on image datasets.The location, implementation and content of the module and functions therein are subject to change.
+- Extend `datasets.fetch_imagenet` to work with any class
+- Extend `utils.data.gen_category_map` to take a list of strings of column names
+
+### Changed
+- Internal refactoring of `KernelSHAP` to reuse functionality for `TreeSHAP`. Both SHAP wrappers
+are now under `explainers.shap_wrappers`
+- Tests are now split into two runs, one with TensorFlow in eager mode which is necessary for using `IntegratedGradients`
+- Added `typing-extensions` library as a requirement to take advantage of more precise types
+- Pinned `scikit-image<0.17` due to a regression upstream
+- Pinned `Sphinx<3.0` for documentation builds due to some issues with the `m2r` plugin
+
+### Fixed
+- Various improvements to documentation
+- Some tests were importing old `keras` functions instead of `tensorflow.keras`
+
+
 ## [v0.4.0](https://github.com/SeldonIO/alibi/tree/v0.4.0) (2020-03-20)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.3.2...v0.4.0)
 

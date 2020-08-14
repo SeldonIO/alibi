@@ -3,6 +3,7 @@ language: python
 python:
   - "3.6"
   - "3.7"
+  - "3.8"
 before_install:
   - sudo apt-get install pandoc
   - pip install --upgrade pip
@@ -14,7 +15,8 @@ install:
 script:
   - flake8 alibi
   - mypy alibi
-  - travis_wait pytest
+  - travis_wait 30 pytest -m tf1
+  - travis_wait 30 pytest -m "not tf1"
   - make build_pypi
   - make build_docs
 after_success:

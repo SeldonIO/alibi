@@ -24,24 +24,26 @@ setup(name='alibi',
       license='Apache 2.0',
       packages=find_packages(),
       include_package_data=True,
-      python_requires='>=3.6,<3.8',
+      python_requires='>=3.6',
       setup_requires=[
           'pytest-runner'
       ],
       install_requires=[
           'attrs',
           'beautifulsoup4',
+          'matplotlib',
           'numpy',
           'Pillow',
           'pandas',
           'prettyprinter',
           'requests',
           'scikit-learn',
-          'spacy',
-          'scikit-image<0.17',
-          'tensorflow<2.0',
+          'spacy[lookups]',
+          'scikit-image!=0.17.1',  # https://github.com/SeldonIO/alibi/issues/215
+          'tensorflow>=2.0',
           'shap',
-          'scipy'
+          'scipy',
+          'typing-extensions>=3.7.2'
       ],
       tests_require=[
           'pytest',

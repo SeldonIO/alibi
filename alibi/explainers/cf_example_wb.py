@@ -1,3 +1,4 @@
+# flake8 noqa
 import tensorflow as tf
 import logging
 
@@ -46,7 +47,6 @@ max_lam_steps = 10
 learning_rate_init = 0.1
 feature_range = (x_train.min(), x_train.max())
 
-
 # method_opts = {'tol': 0.35}  # want counterfactuals with p(class)>0.99
 
 # TESTS TO DO: PASS OPTIMIZER IN VARIOUS WAYS, VARIOUS METHOD OPTS
@@ -55,7 +55,7 @@ optimizer = Adam
 optimizer_opts = {'learning_rate': 0.1}
 # method_opts = {'lam_opts': {'max_lam_steps': 2}}
 
-cf = WachterCounterfactual(cnn, predictor_type='whitebox')#, method_opts=method_opts)
+cf = WachterCounterfactual(cnn, predictor_type='whitebox')  # , method_opts=method_opts)
 logging_opts = {'log_traces': True, 'trace_dir': 'logs/wb_watcher_public_class_final'}
 t_start = timer()
 cf.explain(X, target_class, optimizer=optimizer, optimizer_opts=optimizer_opts, logging_opts=logging_opts)

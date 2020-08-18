@@ -1,3 +1,4 @@
+# flake8 noqa
 import tensorflow as tf
 import logging
 
@@ -8,6 +9,7 @@ from alibi.explainers.experimental.counterfactuals import WachterCounterfactual
 from timeit import default_timer as timer
 
 import pickle
+
 # Load and prepare data
 
 (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
@@ -45,7 +47,6 @@ max_lam_steps = 10
 learning_rate_init = 0.1
 feature_range = (x_train.min(), x_train.max())
 
-
 # method_opts = {'tol': 0.35}  # want counterfactuals with p(class)>0.99
 
 # TESTS TO DO: PASS OPTIMIZER IN VARIOUS WAYS, VARIOUS METHOD OPTS
@@ -54,7 +55,7 @@ feature_range = (x_train.min(), x_train.max())
 # optimizer_opts = {'learning_rate': 0.1}
 # method_opts = {'lam_opts': {'max_lam_steps': 2}}
 predictor = cnn.predict
-cf = WachterCounterfactual(predictor, predictor_type='blackbox')#, method_opts=method_opts)
+cf = WachterCounterfactual(predictor, predictor_type='blackbox')  # , method_opts=method_opts)
 logging_opts = {'log_traces': True, 'trace_dir': 'logs/bb_wachter_public_class_final'}
 explantions = []
 times = []
@@ -63,7 +64,8 @@ data = {'expln': explantions, 'times': times}
 for _ in range(1):
     # cf._search_algorithm._num_calls = _
     t_start = timer()
-    explanation = cf.explain(X, target_class, logging_opts=logging_opts)#, optimizer=optimizer, optimizer_opts=optimizer_opts)
+    explanation = cf.explain(X, target_class,
+                             logging_opts=logging_opts)  # , optimizer=optimizer, optimizer_opts=optimizer_opts)
     t_elapsed = timer() - t_start
     times.append(t_elapsed)
     explantions.append(explanation)

@@ -15,6 +15,7 @@ from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHA
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
+from alibi.explainers.shap_wrappers import KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
 from copy import copy
@@ -162,7 +163,7 @@ def get_labels(n_rows=15, seed=None):
     """
 
     np.random.seed(seed)
-    return np.random.randint(0, 2, size=(n_rows, ))
+    return np.random.randint(0, 2, size=(n_rows,))
 
 
 def generate_test_data(dimensions,
@@ -288,7 +289,6 @@ n_outputs = [(5,), (1,), ]
 data_dimensions = [(100, 50), ]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
 def test_rank_by_importance(n_outputs, data_dimension):
@@ -315,7 +315,7 @@ def test_rank_by_importance(n_outputs, data_dimension):
     feature_names = gen_group_names(n_features)
 
     # create inputs
-    (n_outs, ) = n_outputs
+    (n_outs,) = n_outputs
     shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
 
     # compute desired values
@@ -345,11 +345,11 @@ def test_rank_by_importance(n_outputs, data_dimension):
 sum_categories_inputs = [
     (50, 2, [3, 6, 4, 4], None),
     (50, 2, None, [0, 6, 5, 12]),
-    (100, 2,  [3, 6, 4, 4], [0, 6, 15, 22]),
-    (100, 3,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 2, [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 3, [3, 6, 4, 4], [0, 6, 15, 22]),
     (5, 2, [3, 2, 4], [0, 5, 9]),
-    (10, 2,  [3, 3, 4], [0, 3, 6]),
-    (10, 3,  [3, 3, 4], [0, 3, 6]),
+    (10, 2, [3, 3, 4], [0, 3, 6]),
+    (10, 3, [3, 3, 4], [0, 3, 6]),
     (8, 2, [2, 3], [0, 2]),
     (8, 3, [2, 3], [0, 2]),
     (8, 2, [3], [5]),
@@ -363,7 +363,6 @@ sum_categories_inputs = [
 ]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('n_feats, ndim, feat_enc_dim, start_idx', sum_categories_inputs)
 def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     """
@@ -428,6 +427,7 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
             diff = expected - actual
             assert np.isclose(diff.sum(), 0.0)
 
+
 # Tests for KernelShap
 
 # each tuple in group_settings controls whether the
@@ -453,7 +453,6 @@ data_type.append('int')
 n_classes = [(5, 'identity'), ]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('data_type', data_type, ids='data_type={}'.format)
@@ -585,7 +584,6 @@ def uncollect_if_test_check_inputs_kernel(**kwargs):
     return any(conditions)
 
 
-# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs_kernel)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -703,7 +701,6 @@ use_groups = [True, False]
 categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
@@ -715,7 +712,6 @@ def test__summarise_background_kernel(caplog,
                                       data_type,
                                       use_groups,
                                       categorical_names):
-
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -788,7 +784,6 @@ def uncollect_if_test_fit_kernel(**kwargs):
     return any(conditions)
 
 
-# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_fit_kernel)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -928,7 +923,6 @@ use_groups = [True, False]
 summarise_result = [True, False]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -999,6 +993,9 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     assert explanation.meta.keys() == DEFAULT_META_KERNEL_SHAP.keys()
     assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
+    # parameter keys
+    assert set(explanation.meta['params']) <= set(KERNEL_SHAP_PARAMS)
+
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim
     shap_values = [val for val in explanation['shap_values']]
@@ -1025,28 +1022,9 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
             assert n_feats in shap_dims
 
 
-# @pytest.mark.skip
-@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata_kernel(mock_kernel_shap_explainer):
-    """
-    Test that the metadata updates are correct.
-    """
-
-    explainer = mock_kernel_shap_explainer
-    explainer._update_metadata({'wrong_arg': None, 'link': 'logit'}, params=True)
-    explainer._update_metadata({'random_arg': 0}, params=False)
-    metadata = explainer.meta
-
-    assert 'wrong_arg' not in metadata['params']
-    assert metadata['params']['link'] == 'logit'
-    assert metadata['random_arg'] == 0
-    assert metadata['task']
-
-
 task = ['classification', 'regression']
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
@@ -1071,6 +1049,7 @@ def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
         assert len(response.data['raw']['prediction'].shape) == 1
         assert len(response.data['raw']['prediction']) == n_instances
 
+
 # TreeShap tests start here
 
 
@@ -1079,7 +1058,6 @@ data_dimensions = [(TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (
 data_types = ['array', 'frame']
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -1110,7 +1088,6 @@ data_types = ['array', 'frame']
 categorical_names = [{}, {0: ['a', 'b', 'c']}]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -1153,7 +1130,6 @@ data_dimension = [
 n_classes = [(5, 'raw'), (1, 'raw'), ]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
@@ -1231,7 +1207,6 @@ summarise_result = [False, True]
 interactions = [False, True]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1301,7 +1276,6 @@ approximate = [True, False]
 labels = [True, False]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('approximate', approximate, ids='approximate={}'.format)
@@ -1345,7 +1319,6 @@ data_types = ['frame', 'array', 'none', 'catboost.Pool']
 labels = [True, False]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
@@ -1389,25 +1362,6 @@ def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
 
 n_classes = [(1, 'raw'), ]
 
-
-# @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata_tree(mock_tree_shap_explainer):
-    """
-    Test that response is correct for both classification and regression.
-    """
-
-    explainer = mock_tree_shap_explainer
-    explainer._update_metadata({'wrong_arg': None, 'model_output': 'raw'}, params=True)
-    explainer._update_metadata({'random_arg': 0}, params=False)
-    metadata = explainer.meta
-
-    assert 'wrong_arg' not in metadata['params']
-    assert metadata['params']['model_output'] == 'raw'
-    assert metadata['random_arg'] == 0
-    assert metadata['task']
-
-
 n_classes = [
     (5, 'raw'),
     (1, 'raw'),
@@ -1423,7 +1377,6 @@ task = ['regression', 'classification']
 
 
 def uncollect_if_test_build_explanation_tree(**kwargs):
-
     model_output = kwargs['mock_tree_shap_explainer'][1]
     labels = kwargs['labels']
 
@@ -1435,7 +1388,6 @@ def uncollect_if_test_build_explanation_tree(**kwargs):
     return any(conditions)
 
 
-# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_build_explanation_tree)
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1443,7 +1395,7 @@ def uncollect_if_test_build_explanation_tree(**kwargs):
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
 @pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_result, labels, interactions, task):
+def test_build_explanation_tree(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task):
     """
     Tests the response has the correct data.
     """
@@ -1578,6 +1530,9 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_
         assert explanation.meta.keys() == DEFAULT_META_TREE_SHAP.keys()
         assert explanation.data.keys() == DEFAULT_DATA_TREE_SHAP.keys()
 
+        # parameter keys
+        assert set(explanation.meta['params']) <= set(TREE_SHAP_PARAMS)
+
 
 n_classes = [(1, 'raw'), ]
 vars_start_enc_dim = [
@@ -1587,7 +1542,6 @@ vars_start_enc_dim = [
 ]
 
 
-# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('cat_vars_start_enc_dim', vars_start_enc_dim, ids='start_dim={}'.format)
 def test__check_result_summarisation(caplog, mock_tree_shap_explainer, cat_vars_start_enc_dim):

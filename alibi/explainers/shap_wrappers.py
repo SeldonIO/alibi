@@ -23,10 +23,12 @@ logger = logging.getLogger(__name__)
 KERNEL_SHAP_PARAMS = [
     'link',
     'group_names',
+    'grouped',
     'groups',
     'weights',
     'summarise_background',
     'summarise_result',
+    'transpose',
     'kwargs',
 ]
 

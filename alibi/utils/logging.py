@@ -7,55 +7,56 @@ DEFAULT_LOGGING_OPTS = {
     'trace_dir': 'tb_logs/',
     'summary_freq': 1,
     'image_summary_freq': 10,
-    'tracked_variables':  {'tags': [], 'data_types': [], 'descriptions': []},
+    'tracked_variables': {'tags': [], 'data_types': [], 'descriptions': []},
 }
 """
 dict: The default values for logging options.
 
 
-    - 'verbose': if `True` the logger (a `logging.Loggger` instance) will be set to ``DEBUG`` level. 
+    - 'verbose': if `True` the logger (a `logging.Loggger` instance) will be set to ``DEBUG`` level.
 
     - 'log_traces': if `True`, data about the optimisation process will be logged to TensorBoard with a frequency \
     specified  by `summary_freq` input. The algorithm will also log images if `X` is a 4-dimensional tensor \
-    (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions) with a frequency specified by 
+    (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions) with a frequency specified by \
     `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` is created and  {} is \
     replaced by the run number. To see the logs run the command in the `trace_dir` \
-    directory:: 
+    directory::
 
-        ``tensorboard --logdir tb_logs``
+        tensorboard --logdir trace_dir
+
      replacing ``trace_dir`` with your own path. Then run ``localhost:6006`` in your browser to see the traces. The \
      traces can be visualised as the optimisation proceeds and can provide useful information on how to adjust the \
      optimisation in cases of non-convergence of fitting or explainers.
 
-    - 'trace_dir': the directory where the optimisation infromation is logged. 
+    - 'trace_dir': the directory where the optimisation infromation is logged.
 
     - 'summary_freq': logging frequency for optimisation information.
 
     - 'image_summary_freq': logging frequency for intermediate for image data
-    
+
     - 'tracked_variables': This should be used to specify what will be logged:
-    
+
             * 'tags': a list of tags with variable names (e.g., ``['training/loss', 'training'/accuracy]``). To log \
             these quantities to TensorBoard, one should do the following::
-                    
+
                     self.data_store['loss'] = loss_val
                     self.data_store['accuracy'] = accuracy
                     self.tensorboard.record(self.step, self.data_store)
-                    
+
             Note that the quantities will not be logged unless the string after the last / in the tag name matches the \
-            key of `self.data_store`. 
- 
+            key of `self.data_store`.
+
             * 'data_types': a list of data types for logged quantities. For the above example, the list would be \
             ``['scalar', 'scalar']``. Other supported data types are 'audio', 'image', 'text' and 'histogram'.
-            
-            * 'descriptions': A list of optional descriptions. To skip a descriptions, for the above example the list \
-            would be ``['', '']`` and to add a description for the first variable it would be ``['my first var', '']``. 
 
-See the documentation for `alibi.utils.logging.TensorboardWriterBase` and 
-`alibi.utils.tensorflow.logging.TFTensorboardWriter` for more details about the logs. 
+            * 'descriptions': A list of optional descriptions. To skip a descriptions, for the above example the list \
+            would be ``['', '']`` and to add a description for the first variable it would be ``['my first var', '']``.
+
+See the documentation for `alibi.utils.logging.TensorboardWriterBase` and
+`alibi.utils.tensorflow.logging.TFTensorboardWriter` for more details about the logs.
 
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys when calling
-`explain` method. 
+`explain` method.
 
 
 Examples

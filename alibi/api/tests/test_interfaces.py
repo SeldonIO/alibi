@@ -10,8 +10,6 @@ invalid_meta = []  # type: list
 invalid_data = {}  # type: dict
 
 data_dict = {'b': 2, 'c': 3, 'd': 4}
-allowed_data = {'b': 2, 'c': 3}
-allowed_keys = ['b', 'c']
 
 
 class IncompleteExplainer(Explainer):
@@ -105,10 +103,9 @@ def test__update_metadata():
     assert exp.meta == {**meta_init, **data_dict}
 
 
-def test__update_metatada_params(caplog):
+def test__update_metatada_params():
     exp = SimpleExplainerWithInit()
     params_init = copy.deepcopy(exp.meta['params'])
-    exp._update_metadata(data_dict, params=True, allowed=allowed_keys)
+    exp._update_metadata(data_dict, params=True)
 
-    assert 'Parameter d not recognised, ignoring.' in caplog.text
-    assert exp.meta['params'] == {**params_init, **allowed_data}
+    assert exp.meta['params'] == {**params_init, **data_dict}

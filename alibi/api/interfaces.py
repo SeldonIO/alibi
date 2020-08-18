@@ -1,7 +1,7 @@
 import abc
 import json
 from collections import ChainMap
-from typing import Any, Optional, List
+from typing import Any
 import logging
 
 import attr
@@ -42,11 +42,10 @@ class Explainer(abc.ABC):
     def explain(self, X: Any) -> "Explanation":
         pass
 
-    def _update_metadata(self, data_dict: dict, params: bool = False, allowed: Optional[List[str]] = None) -> None:
+    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
         This method updates the metadata of the explainer using the data from the `data_dict`. If the params option
-        is specified, then each key-value pair is added to the metadata `'params'` dictionary only if the key is
-        specified in the `allowed` dictionary
+        is specified, then each key-value pair is added to the metadata `'params'` dictionary.
 
         Parameters
         ----------
@@ -54,19 +53,11 @@ class Explainer(abc.ABC):
             Dictionary containing the data to be stored in the metadata.
         params
             If True, the method updates the `'params'` attribute of the metatadata.
-        allowed
-            Set containing the parameters allowed in the update.
         """
 
         if params:
             for key in data_dict.keys():
-                if key not in allowed:
-                    logger.warning(
-                        f"Parameter {key} not recognised, ignoring."
-                    )
-                    continue
-                else:
-                    self.meta['params'].update([(key, data_dict[key])])
+                self.meta['params'].update([(key, data_dict[key])])
         else:
             self.meta.update(data_dict)
 

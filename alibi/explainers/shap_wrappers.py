@@ -685,7 +685,7 @@ class KernelShap(Explainer, FitMixin):
             'grouped': self.use_groups,
             'transpose': self.transposed,
         }
-        self._update_metadata(params, params=True, allowed=KERNEL_SHAP_PARAMS)
+        self._update_metadata(params, params=True)
 
         return self
 
@@ -841,7 +841,7 @@ class KernelShap(Explainer, FitMixin):
             instances=X,
             importances=importances
         )
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True, allowed=KERNEL_SHAP_PARAMS)
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
@@ -1076,7 +1076,7 @@ class TreeShap(Explainer, FitMixin):
             'algorithm': perturbation,
             'kwargs': kwargs,
         }
-        self._update_metadata(params, params=True, allowed=TREE_SHAP_PARAMS)
+        self._update_metadata(params, params=True)
 
         return self
 
@@ -1220,8 +1220,7 @@ class TreeShap(Explainer, FitMixin):
              'explain_loss': True if y is not None else False,
              'approximate': self.approximate,
              },
-            params=True,
-            allowed=TREE_SHAP_PARAMS
+            params=True
         )
 
         return explanation
@@ -1456,7 +1455,7 @@ class TreeShap(Explainer, FitMixin):
             importances=importances,
         )
 
-        self._update_metadata({"summarise_result": self.summarise_result}, params=True, allowed=TREE_SHAP_PARAMS)
+        self._update_metadata({"summarise_result": self.summarise_result}, params=True)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 

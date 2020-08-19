@@ -3,7 +3,8 @@ import torch  # noqa: F401
 
 
 @tensorboard_logger
-class TensorboardWriter(TensorboardWriterBase):
-
+class PTTensorboardWriter(TensorboardWriterBase):
     framework = 'pytorch'
-    raise NotImplementedError("TensorBoard display for PyTorch is not supported at the moment!")
+
+    def __init__(self):
+        raise NotImplementedError("TensorBoard display for PyTorch is not supported at the moment!")

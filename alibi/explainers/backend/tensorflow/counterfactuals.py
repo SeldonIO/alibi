@@ -83,7 +83,7 @@ WACHTER_LOSS_SPEC_WHITEBOX = {
     'distance': {'fcn': scaled_l1_loss, 'kwargs': {'feature_scale': None}},
     'loss': {'fcn': wachter_loss,  'kwargs': {}},  # function that combines the prediction and distance
 }  # type: Dict[str, Mapping[str, Any]]
-"""
+r"""
 dict: A specification that allows customising the Wachter loss, defined as:
 
 .. math:: L_{pred} + \lambda L_{dist}.
@@ -95,15 +95,15 @@ See our documentation for `details`_.
 This specification assumes that the search algorithm has access to the parameters of the predictor.
 
 To specify :math:`L_{pred}`, the ``'prediction'`` field of the specification should have a callable under the ``'fcn'``
-and its kwargs under the ``'kwargs'``. If there are no kwargs, an empty dictionary should be specified. The callable 
-arguments are assumed to be the model prediction for the specified class and the target for the said prediction, 
+and its kwargs under the ``'kwargs'``. If there are no kwargs, an empty dictionary should be specified. The callable
+arguments are assumed to be the model prediction for the specified class and the target for the said prediction,
 specified as an input to `explain`, respectively.
 
 Similarly, :math:`L_{dist}` is specified in the ``'distance'`` field of the specification. The args of the callable are
-assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current iteration 
+assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current iteration
 :math:`X'`, respectively.
 
-The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'`` 
+The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'``
 field) along with its kwargs.
 
 """
@@ -118,7 +118,7 @@ WACHTER_LOSS_SPEC_BLACKBOX = {
     'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
     'numerical_diff_scheme': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
 }  # type: Dict[str, Mapping[str, Any]]
-"""dict: 
+r"""dict:
 
 A specification that allows customising the Wachter loss, defined as:
 
@@ -129,19 +129,19 @@ See our `documeentation`_ for details.
 .. _documentation: https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
 
 
-This specification assumes that the term specified in the ``'prediction'`` field cannot be differentiated using 
-automatic differentiation frameworks. Consequently, this term requires additional information in the following fields: 
+This specification assumes that the term specified in the ``'prediction'`` field cannot be differentiated using
+automatic differentiation frameworks. Consequently, this term requires additional information in the following fields:
 
     - ``'gradient_method'``. The ``'name'`` sub-field specifies a function that can compute numerical gradients given \
     a black-box function and an input tensor :math:`X`. See `alibi.utils.tensorflow.gradients` for an example and \
-    interface description and `alibi.explainers.backend.tensorflow.counterfactuals` `get_numerical_gradients` method for \
-    an integration example. The kwargs of this function should be specified in the ``'kwargs'`` field
+    interface description and `alibi.explainers.backend.tensorflow.counterfactuals` `get_numerical_gradients` method \
+    for an integration example. The kwargs of this function should be specified in the ``'kwargs'`` field
 
-    - ``'grad_fcn'`` should be a callable taking the same inputs as ``'fcn'``. Represents the gradient of the prediction \
-    term wrt model output. The output of this function is multiplied by the numerical gradient to give the gradient of \
-    the non-diferentiable wrt to the input
-   
-    - ``'grad_fcn_kwargs'`` specify the kwargs of ``'grad_fcn'``. 
+    - ``'grad_fcn'`` should be a callable taking the same inputs as ``'fcn'``. Represents the gradient of the \
+    prediction term wrt model output. The output of this function is multiplied by the numerical gradient to give \
+    the gradient of the non-diferentiable wrt to the input
+
+    - ``'grad_fcn_kwargs'`` specify the kwargs of ``'grad_fcn'``.
 """
 
 

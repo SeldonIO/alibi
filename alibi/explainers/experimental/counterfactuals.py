@@ -17,7 +17,6 @@ from alibi.utils.logging import DEFAULT_LOGGING_OPTS
 from alibi.utils.stats import median_abs_deviation
 from alibi.utils.wrappers import get_blackbox_wrapper
 
-
 # TODO: ALEX: TBD: THIS DOESN'T FEEL RIGHT AT ALL?!
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -42,12 +41,12 @@ _CF_WACHTER_TAGS_DEFAULT = [
     'counterfactuals/total_counterfactuals',
     'counterfactuals/current_solution',
 ]
-"""list: This list should be specify the tags under which the variables should be logged. Note that all tags can be 
+"""list: This list should be specify the tags under which the variables should be logged. Note that all tags can be
 prefixed at recording time. The code where the variables are created should add the variable name (e.g., delta, lb, ub)
 to the data store to write to TensorBoard.
 """
 _CF_WACHTER_DATA_TYPES_DEFAULT = ['scalar'] * len(_CF_WACHTER_TAGS_DEFAULT[:-1]) + ['image']
-"""list: A list of the data types corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. The following types are 
+"""list: A list of the data types corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. The following types are
 defined:
 
     - audio
@@ -147,23 +146,23 @@ WACHTER_SEARCH_OPTS_DEFAULT = {
     - 'max_iter': Maximum number of iterations to run the gradient descent for (number of gradient descent loops for \
     each :math:`\lambda` value)
     - 'early_stop': the inner loop will terminate after this number of iterations if either no solutions satisfying \
-    the constraint on the prediction are found or if a solution is found at every step for this amount of steps.                
+    the constraint on the prediction are found or if a solution is found at every step for this amount of steps.
 """  # noqa: W605
 WACHTER_METHOD_OPTS = {
     'tol': 0.01,
     'search_opts': WACHTER_SEARCH_OPTS_DEFAULT,
     'lam_opts': WACHTER_LAM_OPTS_DEFAULT,
 }
-"""dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
+r"""dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
 
  - `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
  :math:`t`th output of the `predictor` on a proposed counterfactual `X'` and `p_t` is a target for said output, \
- specified as `target_proba` when  calling explain.  
+ specified as `target_proba` when  calling explain.
 - `search_opts`: define termination conditions for the gradient descent process
 - `lam_opts`: define the hyperparameters that govern the optimisation for :math:`\lambda`
 
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
-the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both 
+the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both
 `explain` and the constructor, the `explain` options will override the constructor options. See the documentation for
 `WACHTER_SEARCH_OPTS_DEFAULT` and `WACHTER_LAM_OPTS_DEFAULT` to understand algorithm hyperparameters.
 
@@ -961,15 +960,15 @@ class _WachterCounterfactual(CounterfactualBase):
 
         if isinstance(scale, bool):
             if scale:
-                logger.info(f"Defaulting to median absolute deviation scaling!")
+                logger.info("Defaulting to median absolute deviation scaling!")
                 scale_ = True
 
         if scale_:
             loss_params = signature(self.backend.loss_spec['distance']).parameters
             if 'feature_scale' not in loss_params:
                 logger.warning(
-                    f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
-                    f"Scaling will not be applied!"
+                    "Scaling option specified but the loss specified did not have a parameter named 'feature_scale'."
+                    "Scaling will not be applied!"
                 )
                 scale_ = False
 

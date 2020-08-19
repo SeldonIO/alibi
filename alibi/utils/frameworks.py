@@ -8,13 +8,14 @@ FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch'], Literal
 
 try:
     import tensorflow as tf
+
     has_tensorflow = True
 except ImportError:
     has_tensorflow = False
 
-
 try:
     import torch
+
     has_pytorch = True
 except ImportError:
     has_pytorch = False
@@ -35,13 +36,13 @@ def tensorflow_installed() -> bool:
     # TODO: ALEX: TBD: This should return False, and the error should be raised in files that req. TF.
     if not has_tensorflow:
         raise ImportError(template.format(pkg=tf_required))
-    if int(tf_version[0]) > 1:
-        template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
-        warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
-    if int(tf_version[0]) < 2:
-        template = "Detected tensorflow={pkg1} in the environment." \
-                   "In the near future some functionality will require {pkg2}"
-        warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
+    # if int(tf_version[0]) > 1:
+    #    template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
+    #    warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
+    # if int(tf_version[0]) < 2:
+    #    template = "Detected tensorflow={pkg1} in the environment." \
+    #               "In the near future some functionality will require {pkg2}"
+    #    warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
     return True
 
 
@@ -98,6 +99,6 @@ def _check_tf_or_pytorch(framework: str) -> bool:
         return has_pytorch
     else:
         raise ValueError(
-                "Unknown framework specified or framework not installed. Please check spelling and/or install the "
-                "framework in order to run this explainer."
-            )
+            "Unknown framework specified or framework not installed. Please check spelling and/or install the "
+            "framework in order to run this explainer."
+        )

@@ -34,8 +34,8 @@ The backends registry is a dictionary, structured as follows::
     'pytorch': {'BackendClass': {'blackbox': None, 'whitebox': None}, ...}
     'tensorflow': {'BackendClass': {'blackbox': None, 'whitebox': None}, ...}
     }
-    
-    Here `BackendClass` and the framework name are specified by the user using the `register_backend` decorator. Each 
+
+    Here `BackendClass` and the framework name are specified by the user using the `register_backend` decorator. Each
     backend class can optionally have a predictor type, `whitebox` and `blackbox`. If not specified, the predictor type
     is assumed to be `whitebox`. See `register_backend` documentation for more details.
 """

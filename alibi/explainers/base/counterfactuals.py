@@ -74,7 +74,7 @@ class CounterfactualBase:
 
         _check_tf_or_pytorch(framework)
         self.fitted = False
-        self.params = {}  # use by API classes to update metadata
+        self.params = {}  # type: Dict[str, Any] # used by API classes to update metadata
         predictor_device = kwargs.get('predictor_device', None)
         predictor_type = kwargs.get('predictor_type', None)
         if not predictor_type:
@@ -102,7 +102,7 @@ class CounterfactualBase:
 
         # placeholders for options passed at runtime.
         self.log_traces = True
-        self.logging_opts = {}
+        self.logging_opts = {}  # type: Dict[str, Any]
         self.tensorboard = tensorboard_loggers[self.backend.framework]
         # container for the data logged to tensorboard at every step
         self.data_store = defaultdict(lambda: None)  # type: defaultdict

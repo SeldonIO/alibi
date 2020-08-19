@@ -7,6 +7,7 @@ from tensorflow.keras.models import load_model
 import numpy as np
 from alibi.explainers.experimental.counterfactuals import WachterCounterfactual
 from timeit import default_timer as timer
+from typing_extensions import Final
 
 import pickle
 
@@ -40,7 +41,7 @@ X = x_test[0].reshape((1,) + x_test[0].shape)
 logger = logging.getLogger(__name__)
 shape = (1,) + x_train.shape[1:]
 target_proba = 1.0
-target_class = 'other'  # any class other than 7 will do
+target_class = 'other'  # type: Final  # any class other than 7 will do
 max_iter = 1000
 lam_init = 1e-1
 max_lam_steps = 10
@@ -57,9 +58,9 @@ feature_range = (x_train.min(), x_train.max())
 predictor = cnn.predict
 cf = WachterCounterfactual(predictor, predictor_type='blackbox')  # , method_opts=method_opts)
 logging_opts = {'log_traces': True, 'trace_dir': 'logs/bb_wachter_public_class_final'}
-explantions = []
-times = []
-data = {'expln': explantions, 'times': times}
+explantions = []  # type: list
+times = []  # type: list
+data = {'expln': explantions, 'times': times}  # type: dict
 # target_class = 1
 for _ in range(1):
     # cf._search_algorithm._num_calls = _

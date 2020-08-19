@@ -1,10 +1,10 @@
 # flake8: noqa: F401
 import logging
 import warnings
-from typing import List, Union
+from typing import List, Optional
 from typing_extensions import Literal
 
-FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch'], Literal['tensorflow']]
+FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch', 'tensorflow']]
 
 try:
     import tensorflow as tf
@@ -36,13 +36,13 @@ def tensorflow_installed() -> bool:
     # TODO: ALEX: TBD: This should return False, and the error should be raised in files that req. TF.
     if not has_tensorflow:
         raise ImportError(template.format(pkg=tf_required))
-    # if int(tf_version[0]) > 1:
-    #    template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
-    #    warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
-    # if int(tf_version[0]) < 2:
-    #    template = "Detected tensorflow={pkg1} in the environment." \
-    #               "In the near future some functionality will require {pkg2}"
-    #    warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
+    if int(tf_version[0]) > 1:
+       template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
+       warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
+    if int(tf_version[0]) < 2:
+       template = "Detected tensorflow={pkg1} in the environment." \
+                  "In the near future some functionality will require {pkg2}"
+       warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
     return True
 
 
@@ -53,7 +53,7 @@ def pytorch_installed() -> bool:
     return has_pytorch
 
 
-def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, str]:
+def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str]:
     """
     A function that returns the device on which a predictor.
 
@@ -70,9 +70,9 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, 
     """
 
     if framework == 'tensorflow':
-        return  # type: ignore
+        return None
     if predictor_type == 'blackbox':
-        return
+        return None
 
     default_model_device = next(predictor.parameters()).device
     logging.warning(f"No device specified for the predictor. Inferred {default_model_device}")

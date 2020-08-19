@@ -6,6 +6,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import load_model
 import numpy as np
 from alibi.explainers.experimental.counterfactuals import WachterCounterfactual
+from typing_extensions import Final
 
 from timeit import default_timer as timer
 from tensorflow.keras.optimizers import Adam
@@ -40,7 +41,7 @@ X = x_test[0].reshape((1,) + x_test[0].shape)
 logger = logging.getLogger(__name__)
 shape = (1,) + x_train.shape[1:]
 target_proba = 1.0
-target_class = 'other'  # any class other than 7 will do
+target_class = 'other'  # type: Final  # any class other than 7 will do
 max_iter = 1000
 lam_init = 1e-1
 max_lam_steps = 10

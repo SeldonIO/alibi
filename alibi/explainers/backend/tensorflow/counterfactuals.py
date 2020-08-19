@@ -10,7 +10,7 @@ from functools import partial
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
-from typing_extensions import Literal
+from typing_extensions import Final, Literal
 
 if TYPE_CHECKING:
     import keras
@@ -217,7 +217,7 @@ def slice_prediction(prediction: tf.Tensor,
 
 def wachter_blackbox_wrapper(X: Union[tf.Tensor, tf.Variable],
                              predictor: Callable,
-                             target_idx: Union[str, int],
+                             target_idx: Union[int, Literal['same', 'other']],
                              src_idx: int) -> tf.Tensor:
     """
     A wrapper that slices a vector-valued predictor, turning it to a scalar-valued predictor. The scalar depends on the
@@ -252,11 +252,11 @@ class TFCounterfactualOptimizer:
         - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
     """
 
-    framework = 'tensorflow'
+    framework = 'tensorflow'  # type: Final
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 loss_spec: Optional[Dict[str, Dict[str, Union[Callable, Dict]]]] = None,
+                 loss_spec: Dict[str, Mapping[str, Any]] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  **kwargs):
 
@@ -307,7 +307,8 @@ class TFCounterfactualOptimizer:
             # defer setting non-differetiable terms properties to sub-classes
             if 'numerical_diff_scheme' in term:
                 continue
-            this_term_kwargs = loss_spec[term]['kwargs']  # type: ignore
+            this_term_kwargs = loss_spec[term]['kwargs']
+            assert isinstance(this_term_kwargs, dict)
             if this_term_kwargs:
                 this_term_fcn = partial(loss_spec[term]['fcn'], **this_term_kwargs)
                 self.__setattr__(f"{term}_fcn", this_term_fcn)
@@ -336,7 +337,7 @@ class TFCounterfactualOptimizer:
             self.solution_constraint = [feature_range[0], feature_range[1]]
 
         # used for user attribute setting validation
-        self._expected_attributes = set()
+        self._expected_attributes = set()  # type: set
         # for convenience, to avoid if/else depending on framework in calling context
         self.device = None
         # below would need to be done for a PyTorchHelper with GPU support
@@ -518,7 +519,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 loss_spec: Optional[Dict] = None,
+                 loss_spec: Dict[str, Mapping[str, Any]] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  **kwargs):
 
@@ -555,7 +556,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
 
         self.optimizer = deepcopy(self._optimizer_copy)
 
-    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs) -> None:
+    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs) -> None:  # type: ignore
         """
         Initialises optimisation variables so that the TensorFlow auto-differentiation framework can be used for
         counterfactual search.

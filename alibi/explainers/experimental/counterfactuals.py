@@ -351,13 +351,13 @@ class _WachterCounterfactual(CounterfactualBase):
         # return templates
         self.initialise_response()
 
-    def counterfactual(self,
+    def counterfactual(self,  # type:ignore
                        instance: np.ndarray,
                        optimised_features: np.ndarray,
                        target_class: Union[Literal['same', 'other'], int] = 'other',
                        target_proba: float = 1.0,
                        optimizer: Optional['tf.keras.optimizers.Optimizer'] = None,
-                       optimizer_opts: Optional[Dict] = None):
+                       optimizer_opts: Optional[Dict] = None) -> Dict:
         """
         Search for a counterfactual given a starting point (`instance`), the target probability and the target class
         of the counterfactual.
@@ -904,7 +904,7 @@ class _WachterCounterfactual(CounterfactualBase):
             description='Original instance'
         )
 
-    def fit(self,
+    def fit(self,  # type: ignore
             X: Optional[np.ndarray] = None,
             scale: Union[Literal['median'], bool] = False,
             constrain_features: bool = True) -> "_WachterCounterfactual":
@@ -1061,8 +1061,8 @@ class WachterCounterfactual(Explainer, FitMixin):
             'method_opts': method_opts,
             'feature_range': feature_range,
             'framework': framework,
-        }
-        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, **kwargs)
+        }  # type: Dict
+        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, **kwargs)  # type: ignore
 
     def fit(self,
             X: Optional[np.ndarray] = None,

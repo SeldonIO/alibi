@@ -67,7 +67,7 @@ following key-word arguments::
     logging_opts = {'trace_dir': 'experiments/cf', 'image_summary_freq': 5}
 """
 
-tensorboard_loggers = {'pytorch': None, 'tensorflow': None}
+tensorboard_loggers = {'pytorch': None, 'tensorflow': None}  # type: Dict
 """
 dict: A registry that contains TensorBoard writers for PyTorch and TensorFlow. This registry can be imported and used to
 return a TensorboardWriter object for the desired framework.

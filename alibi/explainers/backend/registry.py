@@ -3,7 +3,9 @@ import inspect
 
 from alibi.utils.frameworks import FRAMEWORKS
 from collections import defaultdict
+from typing import Dict
 from typing_extensions import Literal
+
 """
 A module that implements a registry containing framework-specific explainer implementaions along with a decorator to 
 update it. 
@@ -12,7 +14,7 @@ The registry is updated by decorating the backend classes with the `register_bac
     
 The registry should be used to return the backend class to calling objects using the 
 `alibi.explainers.backend.registry.load_backend` function.
-""" # noqa W605
+"""  # noqa W605
 
 
 def framework_factory():
@@ -26,7 +28,7 @@ def framework_factory():
 backends_registry = {
     'pytorch': defaultdict(framework_factory),
     'tensorflow': defaultdict(framework_factory),
-}
+}  # type: Dict[Literal['pytorch', 'tensorflow'], Dict]
 """
 The backends registry is a dictionary, structured as follows::
 
@@ -89,6 +91,7 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
             )
         backends_registry[framework][consumer_class][predictor_type] = obj
         return obj
+
     return register
 
 

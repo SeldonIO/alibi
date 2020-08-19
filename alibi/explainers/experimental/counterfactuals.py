@@ -109,32 +109,32 @@ WACHTER_LAM_OPTS_DEFAULT = {
 
     .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
 
-     which depends on the hyperparameter :math:`\lambda`. The explainer will first try to determine a suitable range for 
-     :math:`\lambda` and optimize :math:`\lambda` using a bisection algorithm. This dictionary contains the default 
-     settings for these methods. These parameters are as follows:
+ which depends on the hyperparameter :math:`\lambda`. The explainer will first try to determine a suitable range for 
+ :math:`\lambda` and optimize :math:`\lambda` using a bisection algorithm. This dictionary contains the default 
+ settings for these methods. These parameters are as follows:
 
-    - `lam_init`: the weight of :math:`L_{dist}`
-    - `lams`: counterfactuals exist in restricted regions of the optimisation space, and finding these  regions depends \
-    on the :math:`\lambda` paramter. The algorithm first runs an optimisation loop to determine if counterfactuals \
-    exist for a given :math:`\lambda`. The default sequence of :math:`\lambda` s is:: 
+- `lam_init`: the weight of :math:`L_{dist}`
+- `lams`: counterfactuals exist in restricted regions of the optimisation space, and finding these  regions depends \
+on the :math:`\lambda` paramter. The algorithm first runs an optimisation loop to determine if counterfactuals \
+exist for a given :math:`\lambda`. The default sequence of :math:`\lambda` s is:: 
 
-                        lams = np.array([lam_init / common_ratio ** i for i in range(decay_steps)]) 
-    This sequence can be overriden by passing lams directly. For each :math:`\lambda` step, ``max_iter // decay_steps`` \
-    iterations of gradient descent updates are performed. The `lams` array should be sorted from high to low.
-    - `nb_lams`: Indicates how many values from `lams` need to yield valid counterfactual before the initial search \
-    stops. Defaults to 2, which allows finding the tightest optimisation interval for :math:`\lambda`
-    - `lam_exploration_steps`: for given values of :math:`\lambda` counterfactuals may not exist. This parameters \
-    allows breaking of an optimisation loop early if the probability of the current solution for the maximum probability \
-    class predicted on the inititial solution does not change by more than `instance_proba_delta` in \
-    `lam_exploration_steps` consecutive iteration. The computational time is reduced as a result.
-    - `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
-    the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
-    optimisation for a given :math:`\lambda` in the initial search loop
-    - `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `Watcher counterfactual`
-    - `common_ration`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
-    described above
-    - 'max_lam_steps': maximum number of times to adjust the regularization constant before terminating the search \
-    (number of outer loops).
+                    lams = np.array([lam_init / common_ratio ** i for i in range(decay_steps)]) 
+This sequence can be overriden by passing lams directly. For each :math:`\lambda` step, ``max_iter // decay_steps`` \
+iterations of gradient descent updates are performed. The `lams` array should be sorted from high to low.
+- `nb_lams`: Indicates how many values from `lams` need to yield valid counterfactual before the initial search \
+stops. Defaults to 2, which allows finding the tightest optimisation interval for :math:`\lambda`
+- `lam_exploration_steps`: for given values of :math:`\lambda` counterfactuals may not exist. This parameters \
+allows breaking of an optimisation loop early if the probability of the current solution for the maximum probability \
+class predicted on the inititial solution does not change by more than `instance_proba_delta` in \
+`lam_exploration_steps` consecutive iteration. The computational time is reduced as a result.
+- `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
+the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
+optimisation for a given :math:`\lambda` in the initial search loop
+- `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `Watcher counterfactual`
+- `common_ration`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
+described above
+- 'max_lam_steps': maximum number of times to adjust the regularization constant before terminating the search \
+(number of outer loops).
 """  # noqa W605
 
 WACHTER_SEARCH_OPTS_DEFAULT = {
@@ -153,9 +153,9 @@ WACHTER_METHOD_OPTS = {
     'search_opts': WACHTER_SEARCH_OPTS_DEFAULT,
     'lam_opts': WACHTER_LAM_OPTS_DEFAULT,
 }
-r"""dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
+"""dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
 
- - `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
+- `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
  :math:`t`th output of the `predictor` on a proposed counterfactual `X'` and `p_t` is a target for said output, \
  specified as `target_proba` when  calling explain.
 - `search_opts`: define termination conditions for the gradient descent process
@@ -175,7 +175,7 @@ To override the `max_lam_steps` parameters at explain time, call `explain` with 
 Similarly, to change the early stopping call `explain` with the keyword argument::
 
     method_opts = {'search_opts':{'early_stops': 50}}.
-"""
+"""  # noqa: W605
 
 
 def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:

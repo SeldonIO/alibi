@@ -59,7 +59,7 @@ def squared_loss_grad(pred_probas: tf.Variable, target_probas: tf.Tensor) -> tf.
     pred_probas, target_probas
         See `squared_loss` documentation.
     """
-    return 2*(pred_probas - target_probas)
+    return 2 * (pred_probas - target_probas)
 
 
 def wachter_loss(distance: tf.Tensor, lam: float, pred: tf.Tensor) -> tf.Tensor:
@@ -81,9 +81,9 @@ def wachter_loss(distance: tf.Tensor, lam: float, pred: tf.Tensor) -> tf.Tensor:
 WACHTER_LOSS_SPEC_WHITEBOX = {
     'prediction': {'fcn': squared_loss, 'kwargs': {}},
     'distance': {'fcn': scaled_l1_loss, 'kwargs': {'feature_scale': None}},
-    'loss': {'fcn': wachter_loss,  'kwargs': {}},  # function that combines the prediction and distance
+    'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
 }  # type: Dict[str, Mapping[str, Any]]
-r"""
+"""
 dict: A specification that allows customising the Wachter loss, defined as:
 
 .. math:: L_{pred} + \lambda L_{dist}.
@@ -106,7 +106,7 @@ assumed to be :math:`X` the instance whose counterfactual is searched and the co
 The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'``
 field) along with its kwargs.
 
-"""
+"""  # noqa: W605
 WACHTER_LOSS_SPEC_BLACKBOX = {
     'prediction': {
         'fcn': squared_loss,
@@ -118,13 +118,11 @@ WACHTER_LOSS_SPEC_BLACKBOX = {
     'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
     'numerical_diff_scheme': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
 }  # type: Dict[str, Mapping[str, Any]]
-r"""dict:
-
-A specification that allows customising the Wachter loss, defined as:
+"""dict: A specification that allows customising the Wachter loss, defined as:
 
 .. math:: L_{pred} + \lambda L_{dist}
 
-See our `documeentation`_ for details.
+See our `documentation`_ for details.
 
 .. _documentation: https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
 
@@ -142,7 +140,7 @@ automatic differentiation frameworks. Consequently, this term requires additiona
     the gradient of the non-diferentiable wrt to the input
 
     - ``'grad_fcn_kwargs'`` specify the kwargs of ``'grad_fcn'``.
-"""
+"""  # noqa: W605
 
 
 def range_constraint(
@@ -167,7 +165,7 @@ def range_constraint(
 
     Raises
     ------
-    ValueError:
+    ValueError
         If `low` > `high`.
     """
 
@@ -221,7 +219,6 @@ def wachter_blackbox_wrapper(X: Union[tf.Tensor, tf.Variable],
                              predictor: Callable,
                              target_idx: Union[str, int],
                              src_idx: int) -> tf.Tensor:
-
     """
     A wrapper that slices a vector-valued predictor, turning it to a scalar-valued predictor. The scalar depends on the
     `target_idx` and `src_idx`. The predictor (and the input) should be two-dimensional. Therefore, if a record of
@@ -619,7 +616,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
         -------
         A scalar representing the combined prediction and distance losses according to the function specified by the
         `loss_fcn` attribute.
-        """   # noqa W605
+        """  # noqa W605
 
         dist_loss = self.distance_fcn(self.instance, self.solution)
         model_output = self.make_prediction(self.solution)
@@ -812,7 +809,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
 
         autograd_grads = gradients[0]
         numerical_grads = self.get_numerical_gradients()
-        gradients = [self.mask * (autograd_grads*self.lam + numerical_grads)]
+        gradients = [self.mask * (autograd_grads * self.lam + numerical_grads)]
         self.optimizer.apply_gradients(zip(gradients, [self.solution]))
 
     def update_state(self):

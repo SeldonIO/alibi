@@ -9,7 +9,7 @@ from inspect import signature
 from typing import Callable, Optional, Dict, Tuple, Union, TYPE_CHECKING
 from typing_extensions import Literal
 
-from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
+from alibi.api.defaults import DEFAULT_DATA_CF_NEW, DEFAULT_META_CF
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
 from alibi.explainers.exceptions import CounterfactualError
@@ -733,7 +733,7 @@ class _WachterCounterfactual(CounterfactualBase):
             'original_class_proba'
         ]
 
-        self.search_results = copy.deepcopy(DEFAULT_DATA_CF)
+        self.search_results = copy.deepcopy(DEFAULT_DATA_CF_NEW)
         self.search_results['all'] = defaultdict(list)
         self.search_results['lambda_sweep'] = {}
 

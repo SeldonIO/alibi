@@ -1,5 +1,16 @@
 # Change Log
 
+## [v0.5.3](https://github.com/SeldonIO/alibi/tree/v0.5.3) (2020-09-01)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.2...v0.5.3)
+
+### Changed
+- Updated roadmap 
+
+### Fixed
+- Bug in integrated gradients where incorrect layer handling led to output shape mismatch when explaining layer outputs
+- Remove tf.logging calls in example notebooks as TF 2.x API no longer supports tf.logging
+- Pin shap to 0.35.0, pending shap 0.36.0 patch release to support shap API updates/library refactoring
+
 ## [v0.5.2](https://github.com/SeldonIO/alibi/tree/v0.5.2) (2020-08-05)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.1...v0.5.2)
 

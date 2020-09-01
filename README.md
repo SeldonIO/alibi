@@ -216,7 +216,7 @@ Key:
   scikit-learn
   scikit-image<0.17
   scipy
-  shap
+  shap==0.35
   spacy
   tensorflow>=2.0
   typing-extensions
@@ -232,7 +232,7 @@ BibTeX entry:
   title = {Alibi: Algorithms for monitoring and explaining machine learning models},
   author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru},
   url = {https://github.com/SeldonIO/alibi},
-  version = {0.5.2},
-  date = {2020-08-05},
+  version = {0.5.3},
+  date = {2020-09-01},
 }
 ```

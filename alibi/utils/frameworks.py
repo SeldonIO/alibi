@@ -24,6 +24,11 @@ tf_required = "tensorflow<2.0.0"
 tf_upgrade = "tensorflow>2.0.0"
 tf_version: str = tf.__version__
 
+# HACK: when building docs, tf is mocked so tf_version can fail to be a string
+# here we just set it to an arbitrary string value so the docs build can complete
+if not isinstance(tf_version, str):
+    tf_version = '2.0.0'
+
 
 def tensorflow_installed() -> bool:
     """
@@ -37,12 +42,12 @@ def tensorflow_installed() -> bool:
     if not has_tensorflow:
         raise ImportError(template.format(pkg=tf_required))
     if int(tf_version[0]) > 1:
-       template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
-       warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
+        template = "Detected tensorflow={pkg1} in the environment. Some functionality requires {pkg2}."
+        warnings.warn(template.format(pkg1=tf_version, pkg2=tf_required))
     if int(tf_version[0]) < 2:
-       template = "Detected tensorflow={pkg1} in the environment." \
-                  "In the near future some functionality will require {pkg2}"
-       warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
+        template = "Detected tensorflow={pkg1} in the environment." \
+                   "In the near future some functionality will require {pkg2}"
+        warnings.warn(template.format(pkg1=tf_version, pkg2=tf_upgrade))
     return True
 
 
@@ -70,9 +75,9 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str
     """
 
     if framework == 'tensorflow':
-        return None
+        return  # type: ignore
     if predictor_type == 'blackbox':
-        return None
+        return  # type: ignore
 
     default_model_device = next(predictor.parameters()).device
     logging.warning(f"No device specified for the predictor. Inferred {default_model_device}")

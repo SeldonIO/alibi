@@ -289,6 +289,7 @@ n_outputs = [(5,), (1,), ]
 data_dimensions = [(100, 50), ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('n_outputs', n_outputs, ids='n_outputs={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
 def test_rank_by_importance(n_outputs, data_dimension):
@@ -363,6 +364,7 @@ sum_categories_inputs = [
 ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('n_feats, ndim, feat_enc_dim, start_idx', sum_categories_inputs)
 def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
     """
@@ -453,6 +455,7 @@ data_type.append('int')
 n_classes = [(5, 'identity'), ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', ((15, 49),), ids='n_samples_feats={}'.format)
 @pytest.mark.parametrize('data_type', data_type, ids='data_type={}'.format)
@@ -584,6 +587,7 @@ def uncollect_if_test_check_inputs_kernel(**kwargs):
     return any(conditions)
 
 
+# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_check_inputs_kernel)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -701,6 +705,7 @@ use_groups = [True, False]
 categorical_names = [{}, {1: ['a', 'b', 'c']}]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_outs, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
@@ -784,6 +789,7 @@ def uncollect_if_test_fit_kernel(**kwargs):
     return any(conditions)
 
 
+# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_fit_kernel)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -923,6 +929,7 @@ use_groups = [True, False]
 summarise_result = [True, False]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1025,6 +1032,7 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
 task = ['classification', 'regression']
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
 @pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
@@ -1058,6 +1066,7 @@ data_dimensions = [(TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (
 data_types = ['array', 'frame']
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -1088,6 +1097,7 @@ data_types = ['array', 'frame']
 categorical_names = [{}, {0: ['a', 'b', 'c']}]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
@@ -1130,6 +1140,7 @@ data_dimension = [
 n_classes = [(5, 'raw'), (1, 'raw'), ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
@@ -1207,6 +1218,7 @@ summarise_result = [False, True]
 interactions = [False, True]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1276,6 +1288,7 @@ approximate = [True, False]
 labels = [True, False]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('approximate', approximate, ids='approximate={}'.format)
@@ -1319,6 +1332,7 @@ data_types = ['frame', 'array', 'none', 'catboost.Pool']
 labels = [True, False]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
@@ -1388,6 +1402,7 @@ def uncollect_if_test_build_explanation_tree(**kwargs):
     return any(conditions)
 
 
+# @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_build_explanation_tree)
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1542,6 +1557,7 @@ vars_start_enc_dim = [
 ]
 
 
+# @pytest.mark.skip
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('cat_vars_start_enc_dim', vars_start_enc_dim, ids='start_dim={}'.format)
 def test__check_result_summarisation(caplog, mock_tree_shap_explainer, cat_vars_start_enc_dim):

@@ -44,13 +44,13 @@ class Explainer(abc.ABC):
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
-        This method updates the metadata of the explainer using the data from the `data_dict`. If the params option
+        Updates the metadata of the explainer using the data from the `data_dict`. If the params option
         is specified, then each key-value pair is added to the metadata `'params'` dictionary.
 
         Parameters
         ----------
         data_dict
-            Dictionary containing the data to be stored in the metadata.
+            Contains the data to be stored in the metadata.
         params
             If True, the method updates the `'params'` attribute of the metatadata.
         """

@@ -1001,7 +1001,7 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
     # parameter keys
-    assert set(explanation.meta['params']) <= set(KERNEL_SHAP_PARAMS)
+    assert set(explanation.meta['params']) == set(KERNEL_SHAP_PARAMS)
 
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim

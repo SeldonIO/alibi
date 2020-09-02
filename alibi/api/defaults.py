@@ -94,7 +94,9 @@ DEFAULT_META_KERNEL_SHAP = {
     "type": ["blackbox"],
     "task": None,
     "explanations": ["local", "global"],
-    "params": {}
+    "params": {
+        "link": "identity"
+    }
 }  # type: dict
 """
 Default KernelSHAP metadata.
@@ -103,7 +105,6 @@ Default KernelSHAP metadata.
 DEFAULT_DATA_KERNEL_SHAP = {
     "shap_values": [],
     "expected_value": [],
-    "link": 'identity',
     "categorical_names": {},
     "feature_names": [],
     "raw": {

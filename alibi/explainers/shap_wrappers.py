@@ -268,6 +268,7 @@ class KernelShap(Explainer, FitMixin):
         self.task = task
         self.seed = seed
         self._update_metadata({"task": self.task})
+        self._update_metadata({"link": self.link}, params=True)
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -833,7 +834,6 @@ class KernelShap(Explainer, FitMixin):
         data.update(
             shap_values=shap_values,
             expected_value=np.array(expected_value),
-            link=self.link,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names
         )

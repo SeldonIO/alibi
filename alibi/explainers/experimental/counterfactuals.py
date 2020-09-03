@@ -9,14 +9,13 @@ from inspect import signature
 from typing import Callable, Optional, Dict, Tuple, Union, TYPE_CHECKING
 from typing_extensions import Literal
 
-from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
+from alibi.api.defaults import DEFAULT_DATA_CF_NEW, DEFAULT_META_CF
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
 from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
 from alibi.explainers.exceptions import CounterfactualError
 from alibi.utils.logging import DEFAULT_LOGGING_OPTS
 from alibi.utils.stats import median_abs_deviation
 from alibi.utils.wrappers import get_blackbox_wrapper
-
 
 # TODO: ALEX: TBD: THIS DOESN'T FEEL RIGHT AT ALL?!
 if TYPE_CHECKING:  # pragma: no cover
@@ -42,12 +41,12 @@ _CF_WACHTER_TAGS_DEFAULT = [
     'counterfactuals/total_counterfactuals',
     'counterfactuals/current_solution',
 ]
-"""list: This list should be specify the tags under which the variables should be logged. Note that all tags can be 
+"""list: This list should be specify the tags under which the variables should be logged. Note that all tags can be
 prefixed at recording time. The code where the variables are created should add the variable name (e.g., delta, lb, ub)
 to the data store to write to TensorBoard.
 """
 _CF_WACHTER_DATA_TYPES_DEFAULT = ['scalar'] * len(_CF_WACHTER_TAGS_DEFAULT[:-1]) + ['image']
-"""list: A list of the data types corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. The following types are 
+"""list: A list of the data types corresponding to the tags in `_CF_WACHTER_TAGS_DEFAULT`. The following types are
 defined:
 
     - audio
@@ -110,32 +109,32 @@ WACHTER_LAM_OPTS_DEFAULT = {
 
     .. math:: \ell(X', X, \lambda) = L_{pred} + \lambda L_{dist}
 
-     which depends on the hyperparameter :math:`\lambda`. The explainer will first try to determine a suitable range for 
-     :math:`\lambda` and optimize :math:`\lambda` using a bisection algorithm. This dictionary contains the default 
-     settings for these methods. These parameters are as follows:
+ which depends on the hyperparameter :math:`\lambda`. The explainer will first try to determine a suitable range for 
+ :math:`\lambda` and optimize :math:`\lambda` using a bisection algorithm. This dictionary contains the default 
+ settings for these methods. These parameters are as follows:
 
-    - `lam_init`: the weight of :math:`L_{dist}`
-    - `lams`: counterfactuals exist in restricted regions of the optimisation space, and finding these  regions depends \
-    on the :math:`\lambda` paramter. The algorithm first runs an optimisation loop to determine if counterfactuals \
-    exist for a given :math:`\lambda`. The default sequence of :math:`\lambda` s is:: 
+- `lam_init`: the weight of :math:`L_{dist}`
+- `lams`: counterfactuals exist in restricted regions of the optimisation space, and finding these  regions depends \
+on the :math:`\lambda` paramter. The algorithm first runs an optimisation loop to determine if counterfactuals \
+exist for a given :math:`\lambda`. The default sequence of :math:`\lambda` s is:: 
 
-                        lams = np.array([lam_init / common_ratio ** i for i in range(decay_steps)]) 
-    This sequence can be overriden by passing lams directly. For each :math:`\lambda` step, ``max_iter // decay_steps`` \
-    iterations of gradient descent updates are performed. The `lams` array should be sorted from high to low.
-    - `nb_lams`: Indicates how many values from `lams` need to yield valid counterfactual before the initial search \
-    stops. Defaults to 2, which allows finding the tightest optimisation interval for :math:`\lambda`
-    - `lam_exploration_steps`: for given values of :math:`\lambda` counterfactuals may not exist. This parameters \
-    allows breaking of an optimisation loop early if the probability of the current solution for the maximum probability \
-    class predicted on the inititial solution does not change by more than `instance_proba_delta` in \
-    `lam_exploration_steps` consecutive iteration. The computational time is reduced as a result.
-    - `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
-    the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
-    optimisation for a given :math:`\lambda` in the initial search loop
-    - `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `Watcher counterfactual`
-    - `common_ration`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
-    described above
-    - 'max_lam_steps': maximum number of times to adjust the regularization constant before terminating the search \
-    (number of outer loops).
+                    lams = np.array([lam_init / common_ratio ** i for i in range(decay_steps)]) 
+This sequence can be overriden by passing lams directly. For each :math:`\lambda` step, ``max_iter // decay_steps`` \
+iterations of gradient descent updates are performed. The `lams` array should be sorted from high to low.
+- `nb_lams`: Indicates how many values from `lams` need to yield valid counterfactual before the initial search \
+stops. Defaults to 2, which allows finding the tightest optimisation interval for :math:`\lambda`
+- `lam_exploration_steps`: for given values of :math:`\lambda` counterfactuals may not exist. This parameters \
+allows breaking of an optimisation loop early if the probability of the current solution for the maximum probability \
+class predicted on the inititial solution does not change by more than `instance_proba_delta` in \
+`lam_exploration_steps` consecutive iteration. The computational time is reduced as a result.
+- `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
+the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
+optimisation for a given :math:`\lambda` in the initial search loop
+- `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `Watcher counterfactual`
+- `common_ration`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
+described above
+- 'max_lam_steps': maximum number of times to adjust the regularization constant before terminating the search \
+(number of outer loops).
 """  # noqa W605
 
 WACHTER_SEARCH_OPTS_DEFAULT = {
@@ -147,7 +146,7 @@ WACHTER_SEARCH_OPTS_DEFAULT = {
     - 'max_iter': Maximum number of iterations to run the gradient descent for (number of gradient descent loops for \
     each :math:`\lambda` value)
     - 'early_stop': the inner loop will terminate after this number of iterations if either no solutions satisfying \
-    the constraint on the prediction are found or if a solution is found at every step for this amount of steps.                
+    the constraint on the prediction are found or if a solution is found at every step for this amount of steps.
 """  # noqa: W605
 WACHTER_METHOD_OPTS = {
     'tol': 0.01,
@@ -156,14 +155,14 @@ WACHTER_METHOD_OPTS = {
 }
 """dict: Contains the hyperparameters for the counterfactual search. The following keys are defined:
 
- - `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
+- `tol`: The algorithm will aim to ensure  :math:`|f_t(X') - p_t| \leq \mathtt{tol}`. Here :math:`f_t(X')` is the \
  :math:`t`th output of the `predictor` on a proposed counterfactual `X'` and `p_t` is a target for said output, \
- specified as `target_proba` when  calling explain.  
+ specified as `target_proba` when  calling explain.
 - `search_opts`: define termination conditions for the gradient descent process
 - `lam_opts`: define the hyperparameters that govern the optimisation for :math:`\lambda`
 
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
-the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both 
+the explainer constructor or when calling `explain`. If the same subset of arguments is specified in both
 `explain` and the constructor, the `explain` options will override the constructor options. See the documentation for
 `WACHTER_SEARCH_OPTS_DEFAULT` and `WACHTER_LAM_OPTS_DEFAULT` to understand algorithm hyperparameters.
 
@@ -176,7 +175,7 @@ To override the `max_lam_steps` parameters at explain time, call `explain` with 
 Similarly, to change the early stopping call `explain` with the keyword argument::
 
     method_opts = {'search_opts':{'early_stops': 50}}.
-"""
+"""  # noqa: W605
 
 
 def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
@@ -352,13 +351,13 @@ class _WachterCounterfactual(CounterfactualBase):
         # return templates
         self.initialise_response()
 
-    def counterfactual(self,
+    def counterfactual(self,  # type:ignore
                        instance: np.ndarray,
                        optimised_features: np.ndarray,
                        target_class: Union[Literal['same', 'other'], int] = 'other',
                        target_proba: float = 1.0,
                        optimizer: Optional['tf.keras.optimizers.Optimizer'] = None,
-                       optimizer_opts: Optional[Dict] = None):
+                       optimizer_opts: Optional[Dict] = None) -> Dict:
         """
         Search for a counterfactual given a starting point (`instance`), the target probability and the target class
         of the counterfactual.
@@ -734,7 +733,7 @@ class _WachterCounterfactual(CounterfactualBase):
             'original_class_proba'
         ]
 
-        self.search_results = copy.deepcopy(DEFAULT_DATA_CF)
+        self.search_results = copy.deepcopy(DEFAULT_DATA_CF_NEW)
         self.search_results['all'] = defaultdict(list)
         self.search_results['lambda_sweep'] = {}
 
@@ -905,7 +904,7 @@ class _WachterCounterfactual(CounterfactualBase):
             description='Original instance'
         )
 
-    def fit(self,
+    def fit(self,  # type: ignore
             X: Optional[np.ndarray] = None,
             scale: Union[Literal['median'], bool] = False,
             constrain_features: bool = True) -> "_WachterCounterfactual":
@@ -961,15 +960,15 @@ class _WachterCounterfactual(CounterfactualBase):
 
         if isinstance(scale, bool):
             if scale:
-                logger.info(f"Defaulting to median absolute deviation scaling!")
+                logger.info("Defaulting to median absolute deviation scaling!")
                 scale_ = True
 
         if scale_:
             loss_params = signature(self.backend.loss_spec['distance']).parameters
             if 'feature_scale' not in loss_params:
                 logger.warning(
-                    f"Scaling option specified but the loss specified did not have a parameter named 'feature_scale'. "
-                    f"Scaling will not be applied!"
+                    "Scaling option specified but the loss specified did not have a parameter named 'feature_scale'."
+                    "Scaling will not be applied!"
                 )
                 scale_ = False
 
@@ -1062,8 +1061,8 @@ class WachterCounterfactual(Explainer, FitMixin):
             'method_opts': method_opts,
             'feature_range': feature_range,
             'framework': framework,
-        }
-        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, **kwargs)
+        }  # type: Dict
+        self._explainer = self._explainer_type(*explainer_args, **explainer_kwargs, **kwargs)  # type: ignore
 
     def fit(self,
             X: Optional[np.ndarray] = None,

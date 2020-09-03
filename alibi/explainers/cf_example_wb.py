@@ -1,3 +1,4 @@
+# flake8 noqa
 import tensorflow as tf
 import logging
 
@@ -5,6 +6,7 @@ from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.models import load_model
 import numpy as np
 from alibi.explainers.experimental.counterfactuals import WachterCounterfactual
+from typing_extensions import Final
 
 from timeit import default_timer as timer
 from tensorflow.keras.optimizers import Adam
@@ -39,13 +41,12 @@ X = x_test[0].reshape((1,) + x_test[0].shape)
 logger = logging.getLogger(__name__)
 shape = (1,) + x_train.shape[1:]
 target_proba = 1.0
-target_class = 'other'  # any class other than 7 will do
+target_class = 'other'  # type: Final  # any class other than 7 will do
 max_iter = 1000
 lam_init = 1e-1
 max_lam_steps = 10
 learning_rate_init = 0.1
 feature_range = (x_train.min(), x_train.max())
-
 
 # method_opts = {'tol': 0.35}  # want counterfactuals with p(class)>0.99
 
@@ -55,7 +56,7 @@ optimizer = Adam
 optimizer_opts = {'learning_rate': 0.1}
 # method_opts = {'lam_opts': {'max_lam_steps': 2}}
 
-cf = WachterCounterfactual(cnn, predictor_type='whitebox')#, method_opts=method_opts)
+cf = WachterCounterfactual(cnn, predictor_type='whitebox')  # , method_opts=method_opts)
 logging_opts = {'log_traces': True, 'trace_dir': 'logs/wb_watcher_public_class_final'}
 t_start = timer()
 cf.explain(X, target_class, optimizer=optimizer, optimizer_opts=optimizer_opts, logging_opts=logging_opts)

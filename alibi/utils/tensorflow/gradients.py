@@ -8,15 +8,15 @@ from alibi.utils.gradients import numerical_gradient
 
 def perturb_tensorflow(X: tf.Tensor, eps: Union[float, np.ndarray] = 1e-08) -> Tuple[tf.Tensor, tf.Tensor]:
     """
-    An implementation of `utils.gradients.perturb` for TensorFlow 2.x. See perturb for details. This function does not support
-    the `proba` kwarg.
+    An implementation of `utils.gradients.perturb` for TensorFlow 2.x. See perturb for details.
+    This function does not support the `proba` kwarg.
     """
     batch_size, *datapoint_shape = X.shape
     # flatten datapoint
     X = tf.reshape(X, (batch_size, -1))  # N x F
     n_features = X.shape[1]
     # create perturbation for each  F features
-    pert = tf.tile(tf.eye(n_features, dtype=X.dtype)*eps, (batch_size, 1))
+    pert = tf.tile(tf.eye(n_features, dtype=X.dtype) * eps, (batch_size, 1))
     # create F pertrubed copies of X. Only one feature is pertrubed in each copy.
     X_pert_pos, X_pert_neg = X + pert, X - pert
     shape = (n_features * batch_size, *datapoint_shape)

@@ -10,7 +10,7 @@ from functools import partial
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.optimizers.schedules import PolynomialDecay
 from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, TYPE_CHECKING
-from typing_extensions import Literal
+from typing_extensions import Final, Literal
 
 if TYPE_CHECKING:
     import keras
@@ -59,7 +59,7 @@ def squared_loss_grad(pred_probas: tf.Variable, target_probas: tf.Tensor) -> tf.
     pred_probas, target_probas
         See `squared_loss` documentation.
     """
-    return 2*(pred_probas - target_probas)
+    return 2 * (pred_probas - target_probas)
 
 
 def wachter_loss(distance: tf.Tensor, lam: float, pred: tf.Tensor) -> tf.Tensor:
@@ -81,7 +81,7 @@ def wachter_loss(distance: tf.Tensor, lam: float, pred: tf.Tensor) -> tf.Tensor:
 WACHTER_LOSS_SPEC_WHITEBOX = {
     'prediction': {'fcn': squared_loss, 'kwargs': {}},
     'distance': {'fcn': scaled_l1_loss, 'kwargs': {'feature_scale': None}},
-    'loss': {'fcn': wachter_loss,  'kwargs': {}},  # function that combines the prediction and distance
+    'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
 }  # type: Dict[str, Mapping[str, Any]]
 """
 dict: A specification that allows customising the Wachter loss, defined as:
@@ -95,18 +95,18 @@ See our documentation for `details`_.
 This specification assumes that the search algorithm has access to the parameters of the predictor.
 
 To specify :math:`L_{pred}`, the ``'prediction'`` field of the specification should have a callable under the ``'fcn'``
-and its kwargs under the ``'kwargs'``. If there are no kwargs, an empty dictionary should be specified. The callable 
-arguments are assumed to be the model prediction for the specified class and the target for the said prediction, 
+and its kwargs under the ``'kwargs'``. If there are no kwargs, an empty dictionary should be specified. The callable
+arguments are assumed to be the model prediction for the specified class and the target for the said prediction,
 specified as an input to `explain`, respectively.
 
 Similarly, :math:`L_{dist}` is specified in the ``'distance'`` field of the specification. The args of the callable are
-assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current iteration 
+assumed to be :math:`X` the instance whose counterfactual is searched and the counterfactual at the current iteration
 :math:`X'`, respectively.
 
-The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'`` 
+The ``'loss'`` field should be a function that combines the outputs of the prediction and distance parts (``'fcn'``
 field) along with its kwargs.
 
-"""
+"""  # noqa: W605
 WACHTER_LOSS_SPEC_BLACKBOX = {
     'prediction': {
         'fcn': squared_loss,
@@ -118,31 +118,29 @@ WACHTER_LOSS_SPEC_BLACKBOX = {
     'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
     'numerical_diff_scheme': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
 }  # type: Dict[str, Mapping[str, Any]]
-"""dict: 
-
-A specification that allows customising the Wachter loss, defined as:
+"""dict: A specification that allows customising the Wachter loss, defined as:
 
 .. math:: L_{pred} + \lambda L_{dist}
 
-See our `documeentation`_ for details.
+See our `documentation`_ for details.
 
 .. _documentation: https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
 
 
-This specification assumes that the term specified in the ``'prediction'`` field cannot be differentiated using 
-automatic differentiation frameworks. Consequently, this term requires additional information in the following fields: 
+This specification assumes that the term specified in the ``'prediction'`` field cannot be differentiated using
+automatic differentiation frameworks. Consequently, this term requires additional information in the following fields:
 
     - ``'gradient_method'``. The ``'name'`` sub-field specifies a function that can compute numerical gradients given \
     a black-box function and an input tensor :math:`X`. See `alibi.utils.tensorflow.gradients` for an example and \
-    interface description and `alibi.explainers.backend.tensorflow.counterfactuals` `get_numerical_gradients` method for \
-    an integration example. The kwargs of this function should be specified in the ``'kwargs'`` field
+    interface description and `alibi.explainers.backend.tensorflow.counterfactuals` `get_numerical_gradients` method \
+    for an integration example. The kwargs of this function should be specified in the ``'kwargs'`` field
 
-    - ``'grad_fcn'`` should be a callable taking the same inputs as ``'fcn'``. Represents the gradient of the prediction \
-    term wrt model output. The output of this function is multiplied by the numerical gradient to give the gradient of \
-    the non-diferentiable wrt to the input
-   
-    - ``'grad_fcn_kwargs'`` specify the kwargs of ``'grad_fcn'``. 
-"""
+    - ``'grad_fcn'`` should be a callable taking the same inputs as ``'fcn'``. Represents the gradient of the \
+    prediction term wrt model output. The output of this function is multiplied by the numerical gradient to give \
+    the gradient of the non-diferentiable wrt to the input
+
+    - ``'grad_fcn_kwargs'`` specify the kwargs of ``'grad_fcn'``.
+"""  # noqa: W605
 
 
 def range_constraint(
@@ -167,7 +165,7 @@ def range_constraint(
 
     Raises
     ------
-    ValueError:
+    ValueError
         If `low` > `high`.
     """
 
@@ -219,9 +217,8 @@ def slice_prediction(prediction: tf.Tensor,
 
 def wachter_blackbox_wrapper(X: Union[tf.Tensor, tf.Variable],
                              predictor: Callable,
-                             target_idx: Union[str, int],
+                             target_idx: Union[int, Literal['same', 'other']],
                              src_idx: int) -> tf.Tensor:
-
     """
     A wrapper that slices a vector-valued predictor, turning it to a scalar-valued predictor. The scalar depends on the
     `target_idx` and `src_idx`. The predictor (and the input) should be two-dimensional. Therefore, if a record of
@@ -255,11 +252,11 @@ class TFCounterfactualOptimizer:
         - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
     """
 
-    framework = 'tensorflow'
+    framework = 'tensorflow'  # type: Final
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 loss_spec: Optional[Dict[str, Dict[str, Union[Callable, Dict]]]] = None,
+                 loss_spec: Dict[str, Mapping[str, Any]] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  **kwargs):
 
@@ -310,7 +307,8 @@ class TFCounterfactualOptimizer:
             # defer setting non-differetiable terms properties to sub-classes
             if 'numerical_diff_scheme' in term:
                 continue
-            this_term_kwargs = loss_spec[term]['kwargs']  # type: ignore
+            this_term_kwargs = loss_spec[term]['kwargs']
+            assert isinstance(this_term_kwargs, dict)
             if this_term_kwargs:
                 this_term_fcn = partial(loss_spec[term]['fcn'], **this_term_kwargs)
                 self.__setattr__(f"{term}_fcn", this_term_fcn)
@@ -339,7 +337,7 @@ class TFCounterfactualOptimizer:
             self.solution_constraint = [feature_range[0], feature_range[1]]
 
         # used for user attribute setting validation
-        self._expected_attributes = set()
+        self._expected_attributes = set()  # type: set
         # for convenience, to avoid if/else depending on framework in calling context
         self.device = None
         # below would need to be done for a PyTorchHelper with GPU support
@@ -521,7 +519,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
-                 loss_spec: Optional[Dict] = None,
+                 loss_spec: Dict[str, Mapping[str, Any]] = None,
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  **kwargs):
 
@@ -558,7 +556,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
 
         self.optimizer = deepcopy(self._optimizer_copy)
 
-    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs) -> None:
+    def initialise_variables(self, X: np.ndarray, optimized_features: np.ndarray, **kwargs) -> None:  # type: ignore
         """
         Initialises optimisation variables so that the TensorFlow auto-differentiation framework can be used for
         counterfactual search.
@@ -619,7 +617,7 @@ class TFWachterCounterfactualOptimizer(TFCounterfactualOptimizer):
         -------
         A scalar representing the combined prediction and distance losses according to the function specified by the
         `loss_fcn` attribute.
-        """   # noqa W605
+        """  # noqa W605
 
         dist_loss = self.distance_fcn(self.instance, self.solution)
         model_output = self.make_prediction(self.solution)
@@ -812,7 +810,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
 
         autograd_grads = gradients[0]
         numerical_grads = self.get_numerical_gradients()
-        gradients = [self.mask * (autograd_grads*self.lam + numerical_grads)]
+        gradients = [self.mask * (autograd_grads * self.lam + numerical_grads)]
         self.optimizer.apply_gradients(zip(gradients, [self.solution]))
 
     def update_state(self):

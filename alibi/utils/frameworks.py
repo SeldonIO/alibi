@@ -1,20 +1,21 @@
 # flake8: noqa: F401
 import logging
 import warnings
-from typing import List, Union
+from typing import List, Optional
 from typing_extensions import Literal
 
-FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch'], Literal['tensorflow']]
+FRAMEWORKS = ['pytorch', 'tensorflow']  # type: List[Literal['pytorch', 'tensorflow']]
 
 try:
     import tensorflow as tf
+
     has_tensorflow = True
 except ImportError:
     has_tensorflow = False
 
-
 try:
     import torch
+
     has_pytorch = True
 except ImportError:
     has_pytorch = False
@@ -22,6 +23,11 @@ except ImportError:
 tf_required = "tensorflow<2.0.0"
 tf_upgrade = "tensorflow>2.0.0"
 tf_version: str = tf.__version__
+
+# HACK: when building docs, tf is mocked so tf_version can fail to be a string
+# here we just set it to an arbitrary string value so the docs build can complete
+if not isinstance(tf_version, str):
+    tf_version = '2.0.0'
 
 
 def tensorflow_installed() -> bool:
@@ -52,7 +58,7 @@ def pytorch_installed() -> bool:
     return has_pytorch
 
 
-def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, str]:
+def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str]:
     """
     A function that returns the device on which a predictor.
 
@@ -71,7 +77,7 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Union[None, 
     if framework == 'tensorflow':
         return  # type: ignore
     if predictor_type == 'blackbox':
-        return
+        return  # type: ignore
 
     default_model_device = next(predictor.parameters()).device
     logging.warning(f"No device specified for the predictor. Inferred {default_model_device}")
@@ -98,6 +104,6 @@ def _check_tf_or_pytorch(framework: str) -> bool:
         return has_pytorch
     else:
         raise ValueError(
-                "Unknown framework specified or framework not installed. Please check spelling and/or install the "
-                "framework in order to run this explainer."
-            )
+            "Unknown framework specified or framework not installed. Please check spelling and/or install the "
+            "framework in order to run this explainer."
+        )

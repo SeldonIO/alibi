@@ -551,7 +551,7 @@ class KernelShap(Explainer, FitMixin):
             logger.info("Group names are specified by column headers, group_names will be ignored!")
             keep_index = kwargs.get("keep_index", False)
             if keep_index:
-                return DenseDataWithIndex(
+                return shap_utils.DenseDataWithIndex(
                     background_data.values,
                     list(background_data.columns),
                     background_data.index.values,
@@ -559,7 +559,7 @@ class KernelShap(Explainer, FitMixin):
                     *new_args,
                 )
             else:
-                return DenseData(
+                return shap_utils.DenseData(
                     background_data.values,
                     list(background_data.columns),
                     *new_args,

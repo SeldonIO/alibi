@@ -20,16 +20,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-KERNEL_SHAP_PARAMS = [
-    'link',
-    'group_names',
-    'groups',
-    'weights',
-    'summarise_background',
-    'summarise_result',
-    'kwargs',
-]
-
 KERNEL_SHAP_BACKGROUND_THRESHOLD = 300
 
 
@@ -266,6 +256,7 @@ class KernelShap(Explainer, FitMixin):
         self.task = task
         self.seed = seed
         self._update_metadata({"task": self.task})
+        self._update_metadata({"link": self.link}, params=True)
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -586,30 +577,6 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
-    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
-        """
-        This function updates the metadata of the explainer using the data from
-        the `data_dict`. If the params option is specified, then each key-value
-        pair is added to the metadata `'params'` dictionary only if the key is
-        included in `KERNEL_SHAP_PARAMS`.
-
-        Parameters
-        ----------
-        data_dict
-            Dictionary containing the data to be stored in the metadata.
-        params
-            If True, the method updates the `'params'` attribute of the metatadata.
-        """
-
-        if params:
-            for key in data_dict.keys():
-                if key not in KERNEL_SHAP_PARAMS:
-                    continue
-                else:
-                    self.meta['params'].update([(key, data_dict[key])])
-        else:
-            self.meta.update(data_dict)
-
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap_utils.Data],
             summarise_background: Union[bool, str] = False,
@@ -855,7 +822,6 @@ class KernelShap(Explainer, FitMixin):
         data.update(
             shap_values=shap_values,
             expected_value=np.array(expected_value),
-            link=self.link,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names
         )
@@ -907,16 +873,6 @@ class KernelShap(Explainer, FitMixin):
 # TODO: Look into pyspark support requirements if requested
 # TODO: catboost.Pool not supported for fit stage (due to summarisation) but can do if there is a user need
 
-TREE_SHAP_PARAMS = [
-    'model_output',
-    'summarise_background',
-    'summarise_result',
-    'approximate',
-    'interactions',
-    'explain_loss',
-    'algorithm',
-    'kwargs'
-]
 TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 1000
 TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss']
 
@@ -1019,30 +975,7 @@ class TreeShap(Explainer, FitMixin):
         self._fitted = False
 
         self._update_metadata({"task": self.task})
-
-    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
-        """
-        This function updates the metadata of the explainer using the data from
-        the `data_dict`. If `params=True`, then each key-value pair is added
-        to the metadata `params` dictionary only if the key is included in
-        `TREE_SHAP_PARAMS`.
-
-        Parameters
-        ----------
-        data_dict
-            Dictionary containing the data to be stored in the metadata.
-        params
-            If `True`, the method updates the `['params']` attribute of the metadata.
-        """
-
-        if params:
-            for key in data_dict.keys():
-                if key not in TREE_SHAP_PARAMS:
-                    continue
-                else:
-                    self.meta['params'].update([(key, data_dict[key])])
-        else:
-            self.meta.update(data_dict)
+        self._update_metadata({"model_output": self.model_output}, params=True)
 
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
@@ -1254,21 +1187,22 @@ class TreeShap(Explainer, FitMixin):
         if isinstance(expected_value, float):
             expected_value = [expected_value]
 
-        explanation = self.build_explanation(
-            X,
-            shap_output,
-            expected_value,
-            summarise_result=summarise_result,
-            cat_vars_start_idx=cat_vars_start_idx,
-            cat_vars_enc_dim=cat_vars_enc_dim,
-        )
-
         self._update_metadata(
             {'interactions': self.interactions,
              'explain_loss': True if y is not None else False,
              'approximate': self.approximate,
              },
-            params=True,
+            params=True
+        )
+
+        explanation = self.build_explanation(
+            X,
+            shap_output,
+            expected_value,
+            y=y,
+            summarise_result=summarise_result,
+            cat_vars_start_idx=cat_vars_start_idx,
+            cat_vars_enc_dim=cat_vars_enc_dim,
         )
 
         return explanation
@@ -1490,7 +1424,6 @@ class TreeShap(Explainer, FitMixin):
             shap_values=shap_values,
             shap_interaction_values=shap_interaction_values,
             expected_value=expected_value,
-            model_output=self.model_output,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names,
         )

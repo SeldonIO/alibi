@@ -1,3 +1,4 @@
+import copy
 import numpy as np
 import pytest
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -7,6 +8,11 @@ valid_data = {"anchor": [], "precision": [], "coverage": []}  # type: dict
 
 invalid_meta = []  # type: list
 invalid_data = {}  # type: dict
+
+# testing dictionaries
+data_dicts = [
+    {'b': 2, 'c': 3, 'd': 4},
+]
 
 
 class IncompleteExplainer(Explainer):
@@ -91,3 +97,20 @@ def test_serialize_deserialize_explanation():
     jrep = exp.to_json()
     exp2 = Explanation.from_json(jrep)
     assert exp == exp2
+
+
+@pytest.mark.parametrize('data_dict', data_dicts)
+def test__update_metadata(data_dict):
+    exp = SimpleExplainerWithInit()
+    meta_init = copy.deepcopy(exp.meta)
+    exp._update_metadata(data_dict)
+    assert exp.meta == {**meta_init, **data_dict}
+
+
+@pytest.mark.parametrize('data_dict', data_dicts)
+def test__update_metatada_params(data_dict):
+    exp = SimpleExplainerWithInit()
+    params_init = copy.deepcopy(exp.meta['params'])
+    exp._update_metadata(data_dict, params=True)
+
+    assert exp.meta['params'] == {**params_init, **data_dict}

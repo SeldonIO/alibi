@@ -12,10 +12,9 @@ import numpy as np
 import pandas as pd
 import sklearn
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
-    DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
+    DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
-from alibi.explainers.shap_wrappers import KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
 from copy import copy

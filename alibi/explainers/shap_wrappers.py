@@ -20,18 +20,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-KERNEL_SHAP_PARAMS = [
-    'link',
-    'group_names',
-    'grouped',
-    'groups',
-    'weights',
-    'summarise_background',
-    'summarise_result',
-    'transpose',
-    'kwargs',
-]
-
 KERNEL_SHAP_BACKGROUND_THRESHOLD = 300
 
 
@@ -885,16 +873,6 @@ class KernelShap(Explainer, FitMixin):
 # TODO: Look into pyspark support requirements if requested
 # TODO: catboost.Pool not supported for fit stage (due to summarisation) but can do if there is a user need
 
-TREE_SHAP_PARAMS = [
-    'model_output',
-    'summarise_background',
-    'summarise_result',
-    'approximate',
-    'interactions',
-    'explain_loss',
-    'algorithm',
-    'kwargs'
-]
 TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 1000
 TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss']
 

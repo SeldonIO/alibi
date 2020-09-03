@@ -89,15 +89,30 @@ Default counterfactual prototype metadata.
 """
 
 # KernelSHAP
+KERNEL_SHAP_PARAMS = [
+    'link',
+    'group_names',
+    'grouped',
+    'groups',
+    'weights',
+    'summarise_background',
+    'summarise_result',
+    'transpose',
+    'kwargs',
+]
+"""
+KernelShap parameters updated and return in metadata['params'].
+"""
+
 DEFAULT_META_KERNEL_SHAP = {
     "name": None,
     "type": ["blackbox"],
     "task": None,
     "explanations": ["local", "global"],
-    "params": {}
+    "params": dict.fromkeys(KERNEL_SHAP_PARAMS)
 }  # type: dict
 """
-Default KernelSHAP metadata.
+Default KernelShap metadata.
 """
 
 DEFAULT_DATA_KERNEL_SHAP = {
@@ -113,7 +128,7 @@ DEFAULT_DATA_KERNEL_SHAP = {
     }
 }  # type: dict
 """
-Default KernelSHAP data.
+Default KernelShap data.
 """
 
 # ALE
@@ -141,15 +156,29 @@ Default ALE data.
 """
 
 # TreeShap
+TREE_SHAP_PARAMS = [
+    'model_output',
+    'summarise_background',
+    'summarise_result',
+    'approximate',
+    'interactions',
+    'explain_loss',
+    'algorithm',
+    'kwargs'
+]
+"""
+TreeShap parameters updated and return in metadata['params'].
+"""
+
 DEFAULT_META_TREE_SHAP = {
     "name": None,
     "type": ["whitebox"],
     "task": None,  # updates with 'classification' or 'regression'
     "explanations": ["local", "global"],
-    "params": {}
+    "params": dict.fromkeys(TREE_SHAP_PARAMS)
 }  # type: dict
 """
-Default TreeSHAP metadata.
+Default TreeShap metadata.
 """
 
 DEFAULT_DATA_TREE_SHAP = {
@@ -169,7 +198,7 @@ DEFAULT_DATA_TREE_SHAP = {
 }  # type: dict
 
 """
-Default TreeSHAP data.
+Default TreeShap data.
 """
 
 # Integrated gradients

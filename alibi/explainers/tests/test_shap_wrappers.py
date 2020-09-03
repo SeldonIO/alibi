@@ -6,11 +6,13 @@ import pandas
 import pytest
 import scipy.sparse
 import shap
+import sklearn
 import unittest
 
 import numpy as np
 import pandas as pd
-import sklearn
+import shap.utils._legacy as shap_utils
+
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
@@ -20,7 +22,6 @@ from alibi.tests.utils import assert_message_in_logs, not_raises
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
-from shap.common import DenseData
 from scipy.special import expit
 from unittest.mock import MagicMock
 from typing import Any
@@ -149,7 +150,7 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
             group_names = ['feature_{}'.format(i) for i in range(X.shape[-1])]
         else:
             group_names = fnames
-        return DenseData(X, group_names)
+        return shap_utils.DenseData(X, group_names)
     elif kind == 'catboost.Pool':
         return catboost.Pool(X)
     else:
@@ -250,7 +251,7 @@ def assert_groups(background_data, group_names, groups):
     Helper function to check grouping works as intended.
     """
 
-    assert isinstance(background_data, shap.common.Data)
+    assert isinstance(background_data, shap_utils.Data)
     assert background_data.group_names is not None
 
     for d, a in zip(background_data.group_names, group_names):
@@ -279,7 +280,7 @@ class KMeansMock:
         if isinstance(background_data, pandas.DataFrame):
             group_names = background_data.columns
 
-        return DenseData(sampled, group_names, None)
+        return shap_utils.DenseData(sampled, group_names, None)
 
 
 # Tests for functions used by both wrappers
@@ -490,9 +491,9 @@ def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_
     else:
         background_data = explainer._get_data(data, group_names, groups, weights)
 
-        # test behaviour when input is a shap.common.DenseData object
+        # test behaviour when input is a shap_utils.DenseData object
         if data_type == 'data':
-            assert isinstance(background_data, shap.common.Data)
+            assert isinstance(background_data, shap_utils.Data)
             assert background_data.group_names is not None
             if weights is not None:
                 assert len(np.unique(background_data.weights)) == 1
@@ -636,7 +637,7 @@ def test__check_inputs_kernel(caplog,
         'name_dim_mismatch',
     ]
 
-    # if shap.common.Data is passed, expect no warnings
+    # if shap_utils.Data is passed, expect no warnings
     if data_type == 'data':
         if summarise_background:
             if data.data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
@@ -730,7 +731,7 @@ def test__summarise_background_kernel(caplog,
 
     if data_type == 'data':
         msg = "Received option to summarise the data but the background_data object was an " \
-              "instance of shap.common.Data"
+              "instance of shap_utils.Data"
         assert_message_in_logs(msg, caplog.records)
         assert type(background_data) == type(summary_data)
     else:
@@ -746,7 +747,7 @@ def test__summarise_background_kernel(caplog,
             elif data_type == 'series':
                 assert summary_data.shape == background_data.shape
             else:
-                assert isinstance(summary_data, shap.common.DenseData)
+                assert isinstance(summary_data, shap_utils.DenseData)
                 assert summary_data.data.shape == (n_bckg_samples, n_features)
 
 
@@ -873,7 +874,7 @@ def test_fit_kernel(caplog,
             else:
                 if explainer.use_groups:
                     background_data = explainer.background_data
-                    assert isinstance(background_data, shap.common.Data)
+                    assert isinstance(background_data, shap_utils.Data)
 
                     # check properties of background data are correct
                     if b_group_names:
@@ -894,7 +895,7 @@ def test_fit_kernel(caplog,
                         background_data = explainer.background_data
                         assert isinstance(background_data, type(data))
                     else:
-                        assert isinstance(explainer.background_data, shap.common.Data)
+                        assert isinstance(explainer.background_data, shap_utils.Data)
                         background_data = explainer.background_data.data
 
                 # check dimensions are reduced
@@ -910,7 +911,7 @@ def test_fit_kernel(caplog,
             if not explainer.use_groups and data_type != 'data':
                 assert background_data.shape == data.shape
             else:
-                assert isinstance(background_data, shap.common.Data)
+                assert isinstance(background_data, shap_utils.Data)
                 if b_groups and not b_group_names:
                     # use columns/index for feat names for frame/series
                     # we don't check shap.commmon.Data objects
@@ -1132,7 +1133,7 @@ def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, da
         if categorical_names:
             assert type(background_data) == type(summary_data)
         else:
-            assert isinstance(summary_data, shap.common.Data)
+            assert isinstance(summary_data, shap_utils.Data)
             assert summary_data.data.shape == background_data.shape
     else:
         if categorical_names:
@@ -1140,7 +1141,7 @@ def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, da
             assert type(background_data) == type(summary_data)
         else:
             assert summary_data.data.shape[0] == n_background_samples
-            assert isinstance(summary_data, shap.common.Data)
+            assert isinstance(summary_data, shap_utils.Data)
 
 
 data_types = ['frame', 'array', 'none']

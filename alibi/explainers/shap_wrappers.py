@@ -997,6 +997,7 @@ class TreeShap(Explainer, FitMixin):
         self._fitted = False
 
         self._update_metadata({"task": self.task})
+        self._update_metadata({"model_output": self.model_output}, params=True)
 
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,

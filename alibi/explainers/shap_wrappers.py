@@ -12,7 +12,7 @@ from alibi.utils.wrappers import methdispatch
 from functools import partial
 from scipy import sparse
 from scipy.special import expit
-from shap.common import DenseData, DenseDataWithIndex
+import shap.utils._legacy as shap_utils
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -283,7 +283,7 @@ class KernelShap(Explainer, FitMixin):
         self._fitted = False
 
     def _check_inputs(self,
-                      background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
+                      background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                       group_names: Union[Tuple, List, None],
                       groups: Optional[List[Union[Tuple[int], List[int]]]],
                       weights: Union[Union[List[float], Tuple[float]], np.ndarray, None]) -> None:
@@ -292,7 +292,7 @@ class KernelShap(Explainer, FitMixin):
         them if the settings they put might not behave as expected.
         """
 
-        if isinstance(background_data, shap.common.Data):
+        if isinstance(background_data, shap_utils.Data):
             # don't provide checks for situations where the user passes
             # the data object directly
             if not self.summarise_background:
@@ -417,24 +417,24 @@ class KernelShap(Explainer, FitMixin):
                     self.ignore_weights = True
 
     def _summarise_background(self,
-                              background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
+                              background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                               n_background_samples: int) -> \
-            Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
+            Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost. If the
-        background data is a `shap.common.Data object`, no summarisation is performed.
+        background data is a `shap_utils.Data object`, no summarisation is performed.
 
         Returns
         -------
             If the user has specified grouping, then the input object is subsampled and an object of the same
-            type is returned. Otherwise, a `shap.common.Data` object containing the result of a k-means algorithm
-            is wrapped in a `shap.common.DenseData` object and returned. The samples are weighted according to the
+            type is returned. Otherwise, a `shap_utils.Data` object containing the result of a k-means algorithm
+            is wrapped in a `shap_utils.DenseData` object and returned. The samples are weighted according to the
             frequency of the occurrence of the clusters in the original data.
         """
 
-        if isinstance(background_data, shap.common.Data):
+        if isinstance(background_data, shap_utils.Data):
             msg = "Received option to summarise the data but the background_data object " \
-                  "was an instance of shap.common.Data. No summarisation will take place!"
+                  "was an instance of shap_utils.Data. No summarisation will take place!"
             logger.warning(msg)
             return background_data
 
@@ -459,28 +459,28 @@ class KernelShap(Explainer, FitMixin):
 
     @methdispatch
     def _get_data(self,
-                  background_data: Union[shap.common.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
+                  background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
                   group_names: Sequence,
                   groups: List[Sequence[int]],
                   weights: Sequence[Union[float, int]],
                   **kwargs):
         """
-        Groups the data if grouping options are specified, returning a shap.common.Data object in this
+        Groups the data if grouping options are specified, returning a shap_utils.Data object in this
         case. Otherwise, the original data is returned and handled internally by the shap library.
         """
 
         raise TypeError("Type {} is not supported for background data!".format(type(background_data)))
 
-    @_get_data.register(shap.common.Data)
-    def _(self, background_data, *args, **kwargs) -> shap.common.Data:
+    @_get_data.register(shap_utils.Data)
+    def _(self, background_data, *args, **kwargs) -> shap_utils.Data:
         """
-        Initialises background data if the user passes a `shap.common.Data` object as input.
+        Initialises background data if the user passes a `shap_utils.Data` object as input.
 
         Notes
         _____
 
-        If `self.summarise_background = True`, then a `shap.common.Data` object is
-        returned if the user passed a `shap.common.Data` object to `fit` or didn't specify groups.
+        If `self.summarise_background = True`, then a `shap_utils.Data` object is
+        returned if the user passed a `shap_utils.Data` object to `fit` or didn't specify groups.
         """
 
         group_names, groups, weights = args
@@ -495,10 +495,10 @@ class KernelShap(Explainer, FitMixin):
         return background_data
 
     @_get_data.register(np.ndarray)  # type: ignore
-    def _(self, background_data, *args, **kwargs) -> Union[np.ndarray, shap.common.Data]:
+    def _(self, background_data, *args, **kwargs) -> Union[np.ndarray, shap_utils.Data]:
         """
         Initialises background data if the user passes an `np.ndarray` object as input.
-        If the user specifies feature grouping then a `shap.common.DenseData` object
+        If the user specifies feature grouping then a `shap_utils.DenseData` object
         is returned. Weights are handled separately to avoid triggering assertion
         correct inside `shap` library. Otherwise, the original data is returned and
         is handled by the `shap` library internally.
@@ -507,12 +507,12 @@ class KernelShap(Explainer, FitMixin):
         group_names, groups, weights = args
         new_args = (group_names, groups, weights) if weights is not None else (group_names, groups)
         if self.use_groups:
-            return DenseData(background_data, *new_args)
+            return shap_utils.DenseData(background_data, *new_args)
         else:
             return background_data
 
     @_get_data.register(sparse.spmatrix)  # type: ignore
-    def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, sparse.spmatrix]:
+    def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, sparse.spmatrix]:
         """
         Initialises background data if the user passes a sparse matrix as input. If the
         user specifies feature grouping, then the sparse array is converted to a dense
@@ -529,7 +529,7 @@ class KernelShap(Explainer, FitMixin):
                 "Converting background data sparse array to dense matrix."
             )
             background_data = background_data.toarray()
-            return DenseData(
+            return shap_utils.DenseData(
                 background_data,
                 *new_args,
             )
@@ -537,10 +537,10 @@ class KernelShap(Explainer, FitMixin):
         return background_data
 
     @_get_data.register(pd.core.frame.DataFrame)  # type: ignore
-    def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, pd.core.frame.DataFrame]:
+    def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, pd.core.frame.DataFrame]:
         """
         Initialises background data if the user passes a `pandas.core.frame.DataFrame` as input.
-        If the user has specified groups and given a data frame, it initialises a `shap.common.DenseData`
+        If the user has specified groups and given a data frame, it initialises a `shap_utils.DenseData`
         object explicitly as this is not handled by `shap` library internally. Otherwise, data initialisation,
         is left to the `shap` library.
         """
@@ -568,17 +568,17 @@ class KernelShap(Explainer, FitMixin):
             return background_data
 
     @_get_data.register(pd.core.frame.Series)  # type: ignore
-    def _(self, background_data, *args, **kwargs) -> Union[shap.common.Data, pd.core.frame.Series]:
+    def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, pd.core.frame.Series]:
         """
         Initialises background data if the user passes a `pandas.Series` object as input.
         Original object is returned as this is initialised internally by `shap` is there
-        is no group structure specified. Otherwise, a `shap.common.DenseData` object
+        is no group structure specified. Otherwise, a `shap_utils.DenseData` object
         is initialised.
         """
 
         _, groups, _ = args
         if self.use_groups:
-            return DenseData(
+            return shap_utils.DenseData(
                 background_data.values.reshape(1, len(background_data)),
                 list(background_data.index),
                 groups,
@@ -611,7 +611,7 @@ class KernelShap(Explainer, FitMixin):
             self.meta.update(data_dict)
 
     def fit(self,  # type: ignore
-            background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap.common.Data],
+            background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap_utils.Data],
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = KERNEL_SHAP_BACKGROUND_THRESHOLD,
             group_names: Union[Tuple[str], List[str], None] = None,
@@ -666,7 +666,7 @@ class KernelShap(Explainer, FitMixin):
 
         if summarise_background:
             if isinstance(summarise_background, str):
-                if not isinstance(background_data, shap.common.Data):
+                if not isinstance(background_data, shap_utils.Data):
                     n_samples = background_data.shape[0]
                 else:
                     n_samples = background_data.data.shape[0]
@@ -1149,14 +1149,14 @@ class TreeShap(Explainer, FitMixin):
 
     def _summarise_background(self,
                               background_data: Union[pd.DataFrame, np.ndarray],
-                              n_background_samples: int) -> Union[np.ndarray, pd.DataFrame, shap.common.DenseData]:
+                              n_background_samples: int) -> Union[np.ndarray, pd.DataFrame, shap_utils.DenseData]:
         """
         Summarises the background data to n_background_samples in order to reduce the computational cost.
 
         Returns
         -------
             If the `categorical_names` argument to the constructor is specified, then an object of the same type as
-            input containing only `n_background_samples` is returned. Otherwise, a `shap.common.Data` containing an
+            input containing only `n_background_samples` is returned. Otherwise, a `shap_utils.Data` containing an
             `np.ndarray` object of `n_background_samples` in the `data` field is returned.
 
         """

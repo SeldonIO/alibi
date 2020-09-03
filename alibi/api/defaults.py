@@ -156,7 +156,6 @@ DEFAULT_DATA_TREE_SHAP = {
     "shap_values": [],
     "shap_interaction_values": [],
     "expected_value": [],
-    "model_output": None,  # see TreeShap __init__ for possible values
     "categorical_names": {},
     "feature_names": [],
     "raw": {

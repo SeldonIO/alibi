@@ -1209,21 +1209,22 @@ class TreeShap(Explainer, FitMixin):
         if isinstance(expected_value, float):
             expected_value = [expected_value]
 
-        explanation = self.build_explanation(
-            X,
-            shap_output,
-            expected_value,
-            summarise_result=summarise_result,
-            cat_vars_start_idx=cat_vars_start_idx,
-            cat_vars_enc_dim=cat_vars_enc_dim,
-        )
-
         self._update_metadata(
             {'interactions': self.interactions,
              'explain_loss': True if y is not None else False,
              'approximate': self.approximate,
              },
             params=True
+        )
+
+        explanation = self.build_explanation(
+            X,
+            shap_output,
+            expected_value,
+            y=y,
+            summarise_result=summarise_result,
+            cat_vars_start_idx=cat_vars_start_idx,
+            cat_vars_enc_dim=cat_vars_enc_dim,
         )
 
         return explanation
@@ -1445,7 +1446,6 @@ class TreeShap(Explainer, FitMixin):
             shap_values=shap_values,
             shap_interaction_values=shap_interaction_values,
             expected_value=expected_value,
-            model_output=self.model_output,
             categorical_names=self.categorical_names,
             feature_names=self.feature_names,
         )

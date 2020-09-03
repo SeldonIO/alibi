@@ -1374,8 +1374,6 @@ def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
                 explainer._check_explainer_setup(background_data, model_output, y)
 
 
-n_classes = [(1, 'raw'), ]
-
 n_classes = [
     (5, 'raw'),
     (1, 'raw'),
@@ -1390,27 +1388,32 @@ labels = [True, False]
 task = ['regression', 'classification']
 
 
-def uncollect_if_test_build_explanation_tree(**kwargs):
+def uncollect_if_test_tree_api(**kwargs):
     model_output = kwargs['mock_tree_shap_explainer'][1]
     labels = kwargs['labels']
+    data_type = kwargs['data_type']
+    interactions = kwargs['interactions']
 
     # exclude this as the code would raise a value error before calling build_explanation
     conditions = [
         labels and model_output != 'log_loss',
+        labels and data_type == 'none',
+        model_output != 'raw' and data_type == 'none',
+        interactions and data_type != 'none',
     ]
 
     return any(conditions)
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_build_explanation_tree)
+@pytest.mark.uncollect_if(func=uncollect_if_test_tree_api)
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
 @pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-def test_build_explanation_tree(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task):
+def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task):
     """
     Tests the response has the correct data.
     """
@@ -1445,31 +1448,22 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type, summarise_r
     explainer.task = task
     if data_type == 'catboost.Pool':
         explainer.predictor.model_type = 'catboost'
-    if interactions:
-        shap_output = explainer._explainer.shap_interaction_values(instances)
-    else:
-        shap_output = explainer._explainer.shap_values(instances)
-
-    # these would be executed in explain
-    if isinstance(shap_output, np.ndarray):
-        shap_output = [shap_output]
-    if len(shap_output) == 1:
-        explainer.expected_value = [explainer.expected_value]
 
     with unittest.mock.patch.object(
             explainer, '_check_result_summarisation',
             new=MagicMock(side_effect=setter(explainer, 'summarise_result', summarise_result))
     ):
 
-        explanation = explainer.build_explanation(
-            instances,
-            shap_output,
-            explainer.expected_value,
+        explanation = explainer.explain(
+            X=instances,
+            y=y,
+            interactions=interactions,
+            approximate=approximate,
             summarise_result=summarise_result,
             cat_vars_start_idx=cat_vars_start_idx,
             cat_vars_enc_dim=cat_vars_enc_dim,
-            y=y,
         )
+
         data = explanation.data
         raw_data = data['raw']
 
@@ -1546,7 +1540,7 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type, summarise_r
         assert explanation.data.keys() == DEFAULT_DATA_TREE_SHAP.keys()
 
         # parameter keys
-        assert set(explanation.meta['params']) <= set(TREE_SHAP_PARAMS)
+        assert set(explanation.meta['params']) == set(TREE_SHAP_PARAMS)
 
 
 n_classes = [(1, 'raw'), ]

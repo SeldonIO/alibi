@@ -1,5 +1,15 @@
 # Change Log
 
+## [v0.5.4](https://github.com/SeldonIO/alibi/tree/v0.5.4) (2020-09-03)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.3...v0.5.4)
+
+### Added
+- `update_metadata` method for any `Explainer` object to enable easy book-keeping for algorithm parameters
+
+### Fixed
+- Updated `KernelShap` wrapper to work with the newest `shap>=0.36` library
+- Fix some missing metadata parameters in `KernelShap` and `TreeShap`
+
 ## [v0.5.3](https://github.com/SeldonIO/alibi/tree/v0.5.3) (2020-09-01)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.2...v0.5.3)
 

@@ -6,13 +6,15 @@ import pandas
 import pytest
 import scipy.sparse
 import shap
+import sklearn
 import unittest
 
 import numpy as np
 import pandas as pd
-import sklearn
+import shap.utils._legacy as shap_utils
+
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
-    DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP
+    DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
@@ -20,7 +22,6 @@ from alibi.tests.utils import assert_message_in_logs, not_raises
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
-from shap.common import DenseData
 from scipy.special import expit
 from unittest.mock import MagicMock
 from typing import Any
@@ -149,7 +150,7 @@ def get_data(kind='array', n_rows=15, n_cols=49, fnames=None, seed=None):
             group_names = ['feature_{}'.format(i) for i in range(X.shape[-1])]
         else:
             group_names = fnames
-        return DenseData(X, group_names)
+        return shap_utils.DenseData(X, group_names)
     elif kind == 'catboost.Pool':
         return catboost.Pool(X)
     else:
@@ -162,7 +163,7 @@ def get_labels(n_rows=15, seed=None):
     """
 
     np.random.seed(seed)
-    return np.random.randint(0, 2, size=(n_rows, ))
+    return np.random.randint(0, 2, size=(n_rows,))
 
 
 def generate_test_data(dimensions,
@@ -250,7 +251,7 @@ def assert_groups(background_data, group_names, groups):
     Helper function to check grouping works as intended.
     """
 
-    assert isinstance(background_data, shap.common.Data)
+    assert isinstance(background_data, shap_utils.Data)
     assert background_data.group_names is not None
 
     for d, a in zip(background_data.group_names, group_names):
@@ -279,7 +280,7 @@ class KMeansMock:
         if isinstance(background_data, pandas.DataFrame):
             group_names = background_data.columns
 
-        return DenseData(sampled, group_names, None)
+        return shap_utils.DenseData(sampled, group_names, None)
 
 
 # Tests for functions used by both wrappers
@@ -315,7 +316,7 @@ def test_rank_by_importance(n_outputs, data_dimension):
     feature_names = gen_group_names(n_features)
 
     # create inputs
-    (n_outs, ) = n_outputs
+    (n_outs,) = n_outputs
     shap_values = [get_random_matrix(n_rows=n_samples, n_cols=n_features) for _ in range(n_outs)]
 
     # compute desired values
@@ -345,11 +346,11 @@ def test_rank_by_importance(n_outputs, data_dimension):
 sum_categories_inputs = [
     (50, 2, [3, 6, 4, 4], None),
     (50, 2, None, [0, 6, 5, 12]),
-    (100, 2,  [3, 6, 4, 4], [0, 6, 15, 22]),
-    (100, 3,  [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 2, [3, 6, 4, 4], [0, 6, 15, 22]),
+    (100, 3, [3, 6, 4, 4], [0, 6, 15, 22]),
     (5, 2, [3, 2, 4], [0, 5, 9]),
-    (10, 2,  [3, 3, 4], [0, 3, 6]),
-    (10, 3,  [3, 3, 4], [0, 3, 6]),
+    (10, 2, [3, 3, 4], [0, 3, 6]),
+    (10, 3, [3, 3, 4], [0, 3, 6]),
     (8, 2, [2, 3], [0, 2]),
     (8, 3, [2, 3], [0, 2]),
     (8, 2, [3], [5]),
@@ -428,6 +429,7 @@ def test_sum_categories(n_feats, ndim, feat_enc_dim, start_idx):
             diff = expected - actual
             assert np.isclose(diff.sum(), 0.0)
 
+
 # Tests for KernelShap
 
 # each tuple in group_settings controls whether the
@@ -490,9 +492,9 @@ def test__get_data(mock_kernel_shap_explainer, data_dimension, data_type, group_
     else:
         background_data = explainer._get_data(data, group_names, groups, weights)
 
-        # test behaviour when input is a shap.common.DenseData object
+        # test behaviour when input is a shap_utils.DenseData object
         if data_type == 'data':
-            assert isinstance(background_data, shap.common.Data)
+            assert isinstance(background_data, shap_utils.Data)
             assert background_data.group_names is not None
             if weights is not None:
                 assert len(np.unique(background_data.weights)) == 1
@@ -636,7 +638,7 @@ def test__check_inputs_kernel(caplog,
         'name_dim_mismatch',
     ]
 
-    # if shap.common.Data is passed, expect no warnings
+    # if shap_utils.Data is passed, expect no warnings
     if data_type == 'data':
         if summarise_background:
             if data.data.shape[0] > KERNEL_SHAP_BACKGROUND_THRESHOLD:
@@ -715,7 +717,6 @@ def test__summarise_background_kernel(caplog,
                                       data_type,
                                       use_groups,
                                       categorical_names):
-
     caplog.set_level(logging.INFO)
     # create testing inputs
     n_samples, n_features = data_dimension
@@ -730,7 +731,7 @@ def test__summarise_background_kernel(caplog,
 
     if data_type == 'data':
         msg = "Received option to summarise the data but the background_data object was an " \
-              "instance of shap.common.Data"
+              "instance of shap_utils.Data"
         assert_message_in_logs(msg, caplog.records)
         assert type(background_data) == type(summary_data)
     else:
@@ -746,7 +747,7 @@ def test__summarise_background_kernel(caplog,
             elif data_type == 'series':
                 assert summary_data.shape == background_data.shape
             else:
-                assert isinstance(summary_data, shap.common.DenseData)
+                assert isinstance(summary_data, shap_utils.DenseData)
                 assert summary_data.data.shape == (n_bckg_samples, n_features)
 
 
@@ -873,7 +874,7 @@ def test_fit_kernel(caplog,
             else:
                 if explainer.use_groups:
                     background_data = explainer.background_data
-                    assert isinstance(background_data, shap.common.Data)
+                    assert isinstance(background_data, shap_utils.Data)
 
                     # check properties of background data are correct
                     if b_group_names:
@@ -894,7 +895,7 @@ def test_fit_kernel(caplog,
                         background_data = explainer.background_data
                         assert isinstance(background_data, type(data))
                     else:
-                        assert isinstance(explainer.background_data, shap.common.Data)
+                        assert isinstance(explainer.background_data, shap_utils.Data)
                         background_data = explainer.background_data.data
 
                 # check dimensions are reduced
@@ -910,7 +911,7 @@ def test_fit_kernel(caplog,
             if not explainer.use_groups and data_type != 'data':
                 assert background_data.shape == data.shape
             else:
-                assert isinstance(background_data, shap.common.Data)
+                assert isinstance(background_data, shap_utils.Data)
                 if b_groups and not b_group_names:
                     # use columns/index for feat names for frame/series
                     # we don't check shap.commmon.Data objects
@@ -999,6 +1000,9 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     assert explanation.meta.keys() == DEFAULT_META_KERNEL_SHAP.keys()
     assert explanation.data.keys() == DEFAULT_DATA_KERNEL_SHAP.keys()
 
+    # parameter keys
+    assert set(explanation.meta['params']) == set(KERNEL_SHAP_PARAMS)
+
     # check the output has expected shapes given the inputs
     n_outs = explainer.predictor.out_dim
     shap_values = [val for val in explanation['shap_values']]
@@ -1023,24 +1027,6 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
             assert n_feats - sum(cat_vars_enc_dim) + len(cat_vars_start_idx) in shap_dims
         else:
             assert n_feats in shap_dims
-
-
-# @pytest.mark.skip
-@pytest.mark.parametrize('mock_kernel_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata_kernel(mock_kernel_shap_explainer):
-    """
-    Test that the metadata updates are correct.
-    """
-
-    explainer = mock_kernel_shap_explainer
-    explainer._update_metadata({'wrong_arg': None, 'link': 'logit'}, params=True)
-    explainer._update_metadata({'random_arg': 0}, params=False)
-    metadata = explainer.meta
-
-    assert 'wrong_arg' not in metadata['params']
-    assert metadata['params']['link'] == 'logit'
-    assert metadata['random_arg'] == 0
-    assert metadata['task']
 
 
 task = ['classification', 'regression']
@@ -1070,6 +1056,7 @@ def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
     else:
         assert len(response.data['raw']['prediction'].shape) == 1
         assert len(response.data['raw']['prediction']) == n_instances
+
 
 # TreeShap tests start here
 
@@ -1132,7 +1119,7 @@ def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, da
         if categorical_names:
             assert type(background_data) == type(summary_data)
         else:
-            assert isinstance(summary_data, shap.common.Data)
+            assert isinstance(summary_data, shap_utils.Data)
             assert summary_data.data.shape == background_data.shape
     else:
         if categorical_names:
@@ -1140,7 +1127,7 @@ def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, da
             assert type(background_data) == type(summary_data)
         else:
             assert summary_data.data.shape[0] == n_background_samples
-            assert isinstance(summary_data, shap.common.Data)
+            assert isinstance(summary_data, shap_utils.Data)
 
 
 data_types = ['frame', 'array', 'none']
@@ -1387,27 +1374,6 @@ def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
                 explainer._check_explainer_setup(background_data, model_output, y)
 
 
-n_classes = [(1, 'raw'), ]
-
-
-# @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
-def test_update_metadata_tree(mock_tree_shap_explainer):
-    """
-    Test that response is correct for both classification and regression.
-    """
-
-    explainer = mock_tree_shap_explainer
-    explainer._update_metadata({'wrong_arg': None, 'model_output': 'raw'}, params=True)
-    explainer._update_metadata({'random_arg': 0}, params=False)
-    metadata = explainer.meta
-
-    assert 'wrong_arg' not in metadata['params']
-    assert metadata['params']['model_output'] == 'raw'
-    assert metadata['random_arg'] == 0
-    assert metadata['task']
-
-
 n_classes = [
     (5, 'raw'),
     (1, 'raw'),
@@ -1422,28 +1388,32 @@ labels = [True, False]
 task = ['regression', 'classification']
 
 
-def uncollect_if_test_build_explanation_tree(**kwargs):
-
+def uncollect_if_test_tree_api(**kwargs):
     model_output = kwargs['mock_tree_shap_explainer'][1]
     labels = kwargs['labels']
+    data_type = kwargs['data_type']
+    interactions = kwargs['interactions']
 
     # exclude this as the code would raise a value error before calling build_explanation
     conditions = [
         labels and model_output != 'log_loss',
+        labels and data_type == 'none',
+        model_output != 'raw' and data_type == 'none',
+        interactions and data_type != 'none',
     ]
 
     return any(conditions)
 
 
 # @pytest.mark.skip
-@pytest.mark.uncollect_if(func=uncollect_if_test_build_explanation_tree)
+@pytest.mark.uncollect_if(func=uncollect_if_test_tree_api)
 @pytest.mark.parametrize('mock_tree_shap_explainer', n_classes, indirect=True, ids='n_classes, link={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
 @pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_result, labels, interactions, task):
+def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task):
     """
     Tests the response has the correct data.
     """
@@ -1478,31 +1448,22 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_
     explainer.task = task
     if data_type == 'catboost.Pool':
         explainer.predictor.model_type = 'catboost'
-    if interactions:
-        shap_output = explainer._explainer.shap_interaction_values(instances)
-    else:
-        shap_output = explainer._explainer.shap_values(instances)
-
-    # these would be executed in explain
-    if isinstance(shap_output, np.ndarray):
-        shap_output = [shap_output]
-    if len(shap_output) == 1:
-        explainer.expected_value = [explainer.expected_value]
 
     with unittest.mock.patch.object(
             explainer, '_check_result_summarisation',
             new=MagicMock(side_effect=setter(explainer, 'summarise_result', summarise_result))
     ):
 
-        explanation = explainer.build_explanation(
-            instances,
-            shap_output,
-            explainer.expected_value,
+        explanation = explainer.explain(
+            X=instances,
+            y=y,
+            interactions=interactions,
+            approximate=approximate,
             summarise_result=summarise_result,
             cat_vars_start_idx=cat_vars_start_idx,
             cat_vars_enc_dim=cat_vars_enc_dim,
-            y=y,
         )
+
         data = explanation.data
         raw_data = data['raw']
 
@@ -1577,6 +1538,9 @@ def test_build_explanation_tree(mock_tree_shap_explainer, data_type,  summarise_
 
         assert explanation.meta.keys() == DEFAULT_META_TREE_SHAP.keys()
         assert explanation.data.keys() == DEFAULT_DATA_TREE_SHAP.keys()
+
+        # parameter keys
+        assert set(explanation.meta['params']) == set(TREE_SHAP_PARAMS)
 
 
 n_classes = [(1, 'raw'), ]

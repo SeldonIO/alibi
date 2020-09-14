@@ -1,5 +1,4 @@
 import abc
-import copy
 import json
 from collections import ChainMap
 from typing import Any
@@ -12,13 +11,15 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+
 # default metadata
-DEFAULT_META = {
-    "name": None,
-    "type": [],
-    "explanations": [],
-    "params": {},
-}  # type: dict
+def default_meta() -> dict:
+    return {
+        "name": None,
+        "type": [],
+        "explanations": [],
+        "params": {},
+    }
 
 
 @attr.s
@@ -27,7 +28,7 @@ class Explainer(abc.ABC):
     Base class for explainer algorithms
     """
 
-    meta = attr.ib(default=copy.deepcopy(DEFAULT_META), repr=pretty_repr)  # type: dict
+    meta = attr.ib(default=attr.Factory(default_meta), repr=pretty_repr)  # type: dict
 
     def __attrs_post_init__(self):
         # add a name to the metadata dictionary
@@ -40,6 +41,25 @@ class Explainer(abc.ABC):
     @abc.abstractmethod
     def explain(self, X: Any) -> "Explanation":
         pass
+
+    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
+        """
+        Updates the metadata of the explainer using the data from the `data_dict`. If the params option
+        is specified, then each key-value pair is added to the metadata `'params'` dictionary.
+
+        Parameters
+        ----------
+        data_dict
+            Contains the data to be stored in the metadata.
+        params
+            If True, the method updates the `'params'` attribute of the metatadata.
+        """
+
+        if params:
+            for key in data_dict.keys():
+                self.meta['params'].update([(key, data_dict[key])])
+        else:
+            self.meta.update(data_dict)
 
 
 class FitMixin(abc.ABC):

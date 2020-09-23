@@ -34,3 +34,4 @@ matplotlib>=3.1.2
 catboost>=0.23
 typing-extensions>=3.7.2
 git+git://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing
+tox<4.0.0

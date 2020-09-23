@@ -35,3 +35,15 @@ push_pypi_test:
 .PHONY: push_pypi
 push_pypi:
 	twine upload dist/*
+
+.PHONY: licenses
+licenses:
+	# create a tox environment and pull in license information
+	tox --recreate -e licenses
+	cut -d, -f1,3 ./licenses/license_info.csv \
+					> ./licenses/license_info.no_versions.csv
+
+.PHONY: check_licenses
+	# check if there has been a change in license information, used in CI
+check_licenses:
+	git --no-pager diff --exit-code ./licenses/license_info.no_versions.csv

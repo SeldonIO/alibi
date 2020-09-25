@@ -5,7 +5,7 @@ import numpy as np
 
 from functools import partial
 from scipy import sparse
-from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 

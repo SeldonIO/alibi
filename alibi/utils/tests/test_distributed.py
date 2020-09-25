@@ -91,7 +91,7 @@ def data_generator_id(params: List) -> str:
     """
     Formatter to display data dimensions in test name.
     """
-    fmt='n_instances={}, n_features={}'
+    fmt = 'n_instances={}, n_features={}'
     return fmt.format(*params)
 
 
@@ -273,7 +273,7 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
                     MockExplainer,
                     expln_args,
                     expln_kwargs,
-            )
+                )
     elif ncpus == 1:
         if n_explainers == len(expln_kwargs):
             with pytest.raises(ResourceError):
@@ -282,7 +282,7 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
                     MockExplainer,
                     expln_args,
                     expln_kwargs,
-            )
+                )
     else:
         explainer_collection = PoolCollection(
             distributed_opts,

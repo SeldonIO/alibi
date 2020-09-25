@@ -5,7 +5,7 @@ import numpy as np
 
 from functools import partial
 from scipy import sparse
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ RAY_INSTALLED = check_ray()
 class ActorPool(object):
 
     # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, REMOVE THIS AND IMPORT ActorPool FROM ray.util
+    #  Also remember to remove the imports inside the class and the references to ray as  class variable
 
     if RAY_INSTALLED:
         import ray
@@ -108,7 +109,7 @@ class ActorPool(object):
             [6, 2, 4, 8]
         """
 
-        if chunksize:
+        if chunksize > 1:
             values = self._chunk(values, chunksize=chunksize)
 
         for v in values:
@@ -308,13 +309,15 @@ def default_target_fcn(actor: Any, instances: tuple, kwargs: Optional[Dict] = No
     return actor.get_explanation.remote(instances, **kwargs)
 
 
-def invert_permutation(p: list):
+def invert_permutation(p: list) -> np.ndarray:
     """
     Inverts a permutation.
+
     Parameters:
     -----------
     p
         Some permutation of 0, 1, ..., len(p)-1. Returns an array s, where s[i] gives the index of i in p.
+
     Returns
     -------
     s
@@ -324,6 +327,35 @@ def invert_permutation(p: list):
     s = np.empty_like(p)
     s[p] = np.arange(len(p))
     return s
+
+
+def order_result(unordered_result: Generator[Tuple[int, Any], None, None]):  # type: ignore
+    """
+    Re-orders the result of a distributed explainer so that the explanations follow the same order as the input to
+    the explainer. If no algorithm specific post-processing function is implemented in the global scope, then the
+    result is a list
+
+    Parameters
+    ----------
+    unordered_result
+        Each tuple contains the batch id as the first entry and the explanations for that batch as the second.
+
+    Returns
+    -------
+    If no post processing function is specified, then a list of numpy array is returned. Otherwise, the return
+    type depends on the output of the post processing function applied to a list of ordered results.
+
+
+    Notes
+    -----
+    This should not be used if one wants to take advantage of the results being returned as they  are calculated.
+    """
+
+    result_order, results = list(zip(*[(idx, res) for idx, res in unordered_result]))
+    orig_order = invert_permutation(list(result_order))
+    ordered_result = [results[idx] for idx in orig_order]
+
+    return ordered_result
 
 
 class ResourceError(Exception):
@@ -343,7 +375,7 @@ class DistributedExplainer:
                  explainer_type: Any,
                  explainer_init_args: Tuple,
                  explainer_init_kwargs: dict,
-                 keep_order: bool = True):
+                 return_generator: bool = False):
         """
         Creates a pool of actors (i.e., replicas of an instantiated `explainer_type` in a separate process) which can 
         explain batches of instances in parallel via calls to `get_explanation`. 
@@ -351,6 +383,7 @@ class DistributedExplainer:
         
         Parameters
         ----------
+        return_generator
         distributed_opts
             A dictionary with the following type minimal signature::
 
@@ -377,35 +410,38 @@ class DistributedExplainer:
             Positional argument to explainer constructor.
         explainer_init_kwargs
             Keyword arguments to explainer constructor.
-        keep_order
-            If `True`, the raw values (e.g., attributions, the counterfactual instance values) of the explanations 
-            returned follow the same same order as the instances, after the application of a custom post-processing 
-            function if the later is specified. Otherwise, a generator that returns the explanations as they are 
-            computed is returned. This is useful for returning results as they complete for heavy workloads, rather 
-            than waiting until a large number of instances are explained.
-        """ # noqa W605
+        return_generator
+            If `True` a generator that returns the results in the order the computation finishes is returned when
+            `get_explanation` is called. Otherwise, the order of the results is the same as the order of the minibatches.
+            
+        Notes
+        -----
+        When `return_generator=True`, the caller has to take elements from the generator (e.g., by calling `next`) in 
+        order to start computing the results (because the `ray` pool is implemented as a generator).
+        """  # noqa W605
 
+        # TODO: FINISH DOCSTRING
         # TODO: TBD: @JANIS - DO WE HAVE TO DO ANY SETUP FOR THIS COMMAND TO WORK?
         if not RAY_INSTALLED:
             raise ModuleNotFoundError("Module requires ray to be installed. pip install alibi[ray] ")
 
         self.n_processes = distributed_opts['n_cpus']
         self.batch_size = distributed_opts['batch_size']
-        self.keep_order = keep_order
+        self.return_generator = return_generator
         algorithm = distributed_opts.get('algorithm', 'default')
         if 'algorithm' == 'default':
             logger.warning(
                 "No algorithm specified in distributed option, default target function and postprocessing will be "
                 "selected."
             )
-        # TODO: TBD: @JANIS - THE POSTPROCESSING COULD BE HANDLED BY CALLER BUT THAT COULD BE A BIT MESSIER?
         self.target_fcn = default_target_fcn
+        # TODO: TBD: @JANIS - THE POSTPROCESSING COULD BE HANDLED BY CALLER? OR THE CALLER COULD PASS THE FUNCTION?
         self.post_process_fcn = None
         # check global scope for any specific target or result postprocessing function
-        if f"{algorithm}_target_fn" in globals():
-            self.target_fcn = globals()[f"{algorithm}_target_fn"]
-        if f"{algorithm}_postprocess_fn" in globals():
-            self.post_process_fcn = globals()[f"{algorithm}_postprocess_fn"]
+        if f"{algorithm}_target_fcn" in globals():
+            self.target_fcn = globals()[f"{algorithm}_target_fcn"]
+        if f"{algorithm}_postprocess_fcn" in globals():
+            self.post_process_fcn = globals()[f"{algorithm}_postprocess_fcn"]
 
         if not DistributedExplainer.ray.is_initialized():
             DistributedExplainer.ray.init(num_cpus=distributed_opts['n_cpus'])
@@ -416,17 +452,17 @@ class DistributedExplainer:
             explainer_init_args,
             explainer_init_kwargs
         )
+        # use to retrieve state from different actors
+        self._actor_index = 0
 
-    def __getattr__(self, item: str, actor_index: int = 0) -> Any:
+    def __getattr__(self, item: str) -> Any:
         """
         Accesses actor attributes. Use sparingly as this involves a remote call (that is, these attributes are of an
-        object in a different process). The intended use is for retrieving any common state across the actor at the end
-        of the computation in order to form the response.
+        object in a different process). *The intended use is for retrieving any common state across the actor at the end
+        of the computation in order to form the response (see notes 2 & 3)*.
 
         Parameters
         ----------
-        actor_index
-            The actor from which the state is to be retrieved.
         item
             The explainer attribute to be returned.
 
@@ -441,14 +477,53 @@ class DistributedExplainer:
 
         Notes
         -----
-        This method assumes that the actor implements a `return_attribute` method.
+            1. This method assumes that the actor implements a `return_attribute` method.
+            2. Note that we are indexing the idle actors. This means that if a pool was initialised with 5 actors and 3
+            are busy, indexing with index 2 will raise an IndexError.
+            3. The order of _idle_actors constantly changes - an actor is removed from it if there is a task to execute
+            and appended back when the task is complete. Therefore, indexing at the same position as computation
+            proceeds will result in retrieving state from different processes.
         """
 
-        if actor_index > self.n_processes - 1:
+        if self._actor_index > self.n_processes - 1:
             raise ValueError(f"Index of actor should be less than or equal to {self.n_processes - 1}!")
 
-        actor = self.pool._idle_actors[actor_index]  # noqa
-        return actor.return_attribute.remote(item)
+        actor = self.pool._idle_actors[self._actor_index]  # noqa
+        return DistributedExplainer.ray.get(actor.return_attribute.remote(item))
+
+    @property
+    def actor_index(self) -> int:
+        """
+        Returns the index of the actor for which state is returned.
+        """
+        return self._actor_index
+
+    @actor_index.setter
+    def actor_index(self, value: int):
+        """
+        Sets the actor index to allow retrieving state from a specific actor.
+        """
+        self._actor_index = value
+
+    def set_actor_index(self, value: int):
+        """
+        Sets actor index. This is used when the DistributedExplainer is in a separate process because `ray` does not
+        support calling property setters remotely
+        """
+        self._actor_index = value
+
+    def return_attribute(self, name: str) -> Any:
+        """
+        Returns an attribute specified by its name. Used in a distributed context where the properties cannot be
+        accessed using the dot syntax.
+        """
+
+        # if the attribute requested if of the PoolCollection object, return it
+        try:
+            return self.__getattribute__(name)
+        # else, it is an attribute of one of the actors
+        except AttributeError:
+            return self.__getattr__(name)
 
     def create_parallel_pool(self, explainer_type: Any, explainer_init_args: Tuple, explainer_init_kwargs: dict):
         """
@@ -464,7 +539,7 @@ class DistributedExplainer:
         return DistributedExplainer.ray.util.ActorPool(workers)
 
     def get_explanation(self, X: np.ndarray, **kwargs) -> \
-            Union[np.ndarray, List[np.ndarray], Iterator[Union[np.ndarray, List[np.ndarray]]]]:
+            Union[Generator[Tuple[int, Any], None, None], List[Any], List[Tuple[int, Any]], Any]:
         """
         Performs distributed explanations of instances in `X`.
 
@@ -477,46 +552,38 @@ class DistributedExplainer:
 
         Returns
         --------
-            An array of explanations.
+        The explanations are returned as:
+        
+            - a generator, if the `return_generator` option is specified. This is used so that the caller can access
+            the results as they are computed. This is the only case when this method is non-blocking and the caller \\
+            needs to call `next` on the generator to trigger the parallel computation
+            
+            
+            - a list of objects, whose type depends on the return type of the explainer. This is returned  if `\\
+            no custom preprocessing function is specified
+            
+            - an object, whose type depends on the return type of the post-processing function returns when called with \\
+            a list with the same order as the minibatches
         """  # noqa E501
 
         if kwargs is not None:
             self.target_fcn = partial(self.target_fcn, kwargs=kwargs)
         batched_instances = batch(X, self.batch_size, self.n_processes)
-        unordered_explanations = self.pool.map_unordered(self.target_fcn, batched_instances)
 
-        if self.keep_order:
-            return self.order_result(unordered_explanations)
-        return unordered_explanations
+        # non-blocking, as results finish
+        if self.return_generator:
+            # note: do not use this option inside a remote object generators cannot be pickled
+            return self.pool.map_unordered(self.target_fcn, enumerate(batched_instances))
 
-    def order_result(self, unordered_result: List[tuple]) -> Union[np.ndarray, List[np.ndarray]]:
-        """
-        Re-orders the result of a distributed explainer so that the explanations follow the same order as the input to
-        the explainer. If no algorithm specific post-processing function is implemented in the global scope, then the
-        result is a list
+        # blocking, submit order
+        explanations = self.pool.map(self.target_fcn, batched_instances)
+        results = [minibatch_explanation for minibatch_explanation in explanations]
 
-        Parameters
-        ----------
-        unordered_result
-            Each tuple contains the batch id as the first entry and the explanations for that batch as the second.
+        if self.post_process_fcn:
+            return self.post_process_fcn(results)
+        return results
 
-        Returns
-        -------
-        A numpy array where the the batches ordered according to their batch id are concatenated in a single array.
-
-        """
-
-        # TODO: THIS DOES NOT LEVERAGE THE FACT THAT THE RESULTS ARE RETURNED AS AVAILABLE. THIS CAN BE IMPROVED.
-        #  THE FACT THAT RAY GENERATES THE UNORDERED RESULT ONE BY ONE (AND DOES NOT WAIT FOR ALL TASKS TO FINISH)
-        #  CAN BE LEVERAGED TO POPULATE UI GRADUALLY. HERE I JUST WAIT FOR ALL RESULTS TO COMPLETE AND THEN PERMUTE THEM
-        #  AND RETURN ... TO ALLOW THIS TO WORK BETTER IN PROD, I ALLOW TO RETURN THE
-
-        result_order, results = list(zip(*[(idx, res) for idx, res in unordered_result]))
-        orig_order = invert_permutation(list(result_order))
-        ordered_result = [results[idx] for idx in orig_order]
-        if self.post_process_fcn is not None:
-            return self.post_process_fcn(ordered_result)
-        return ordered_result
+    # ignore the type as it depends on what the distributed object returns
 
 
 class PoolCollection:
@@ -533,7 +600,8 @@ class PoolCollection:
                  distributed_opts: Dict[str, Any],
                  explainer_type: Any,
                  explainer_init_args: List[Tuple],
-                 explainer_init_kwargs: List[Dict]):
+                 explainer_init_kwargs: List[Dict],
+                 **kwargs):
         """
         Initialises a list of *distinct* distributed explainers which can explain the same batch in parallel. It
         generalizes the `DistributedExplainer`, which contains replicas of one explainer object, speeding up the task
@@ -545,6 +613,8 @@ class PoolCollection:
             See DistributedExplainer constructor documentation for explanations. Each entry in the list is a
             different explainer configuration (e.g., CEM in PN vs PP mode, different background dataset sizes for SHAP,
             etc).
+        kwargs
+            Any other kwargs, passed to the DistributedExplainer objects.
 
         Raises
         ------
@@ -552,8 +622,7 @@ class PoolCollection:
             If the number of CPUs specified by the user is smaller than the number of distributed explainers.
         ValueError
             If the number of entries in the explainers args/kwargs list differ.
-        """
-
+        """ # noqa W605
 
         available_cpus = distributed_opts['n_cpus']
         if len(explainer_init_args) != len(explainer_init_kwargs):
@@ -577,28 +646,80 @@ class PoolCollection:
             PoolCollection.ray.init(num_cpus=distributed_opts['n_cpus'])
 
         opts = copy.deepcopy(distributed_opts)
-        opts.update(n_cpus=cpus_per_pool)
+        opts.update(n_cpus=int(cpus_per_pool))
         self.distributed_explainers = self.create_explainer_handles(
             opts,
             explainer_type,
             explainer_init_args,
             explainer_init_kwargs,
+            **kwargs,
         )
+
+        self._remote_explainer_index = 0
+
+    @property
+    def remote_explainer_index(self) -> int:
+        """
+        Returns the index of the actor for which state is returned.
+        """
+        return self._remote_explainer_index
+
+    @remote_explainer_index.setter
+    def remote_explainer_index(self, value: int):
+        """
+        Sets the actor index to allow retrieving state from a specific actor.
+        """
+        self._remote_explainer_index = value
+
+    def __getattr__(self, item: str) -> Any:
+        """
+        Access attributes of the distributed explainer or the distributed explainer contained.
+
+        """
+
+        if self._remote_explainer_index > len(self.distributed_explainers) - 1:
+            raise ValueError(
+                f"Index of explainer should be less than or equal to {len(self.distributed_explainers) - 1}!"
+            )
+
+        actor = self.distributed_explainers[self._remote_explainer_index]  # noqa
+        return PoolCollection.ray.get(actor.return_attribute.remote(item))
+
+    def __getitem__(self, item: int):
+
+        if item > len(self.distributed_explainers) - 1:
+            raise IndexError(
+                f"Pool collection contains only {len(self.distributed_explainers)} distributed explainers."
+            )
+
+        return self.distributed_explainers[item]
 
     @staticmethod
     def create_explainer_handles(distributed_opts: Dict[str, Any],
                                  explainer_type: Any,
                                  explainer_init_args: List[Tuple],
-                                 explainer_init_kwargs: List[Dict]):
+                                 explainer_init_kwargs: List[Dict],
+                                 **kwargs):
         """
         Creates multiple actors for DistributedExplainer so that tasks can be executed in parallel. The actors are
         initialised with different arguments, so they represent different explainers.
+
+        Parameters
+        ----------
+        distributed_opts, explainer_type, explainer_init_args, explainer_init_kwargs, kwargs
+            See constructor.
         """
 
         explainer_handles = [PoolCollection.ray.remote(DistributedExplainer) for _ in range(len(explainer_init_args))]
         distributed_explainers = []
         for handle, exp_args, exp_kwargs in zip(explainer_handles, explainer_init_args, explainer_init_kwargs):
-            distributed_explainers.append(handle.remote(distributed_opts, explainer_type, exp_args, exp_kwargs))
+            distributed_explainers.append(handle.remote(
+                distributed_opts,
+                explainer_type,
+                exp_args,
+                exp_kwargs,
+                **kwargs)
+            )
 
         return distributed_explainers
 
@@ -620,10 +741,14 @@ class PoolCollection:
         -----
         Note that the call to `ray.get` is blocking.
 
+        Raises
+        ------
+        TypeError
+            If the user sets `return_generator=True` for the DistributedExplainer. This is because generators cannot be
+            pickled so one cannot call `ray.get`.
+
         """
 
-        # TODO: Janis: I think that this can be improved for the case when the DistributedExample object returns
-        #  immediately (this might be as simple as returning the futures instead of calling ray.get)
         return PoolCollection.ray.get(
             [explainer.get_explanation.remote(X, **kwargs) for explainer in self.distributed_explainers]
         )

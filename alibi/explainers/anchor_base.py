@@ -829,10 +829,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
         super().__init__(samplers)
-        if 'chunksize' in kwargs:
-            self.chunksize = kwargs['chunksize']
-        else:
-            self.chunksize = 1
+        self.chunksize = kwargs.get('chunksize', 1)
         self.sample_fcn = lambda actor, anchor, n_samples, compute_labels=True:\
             actor.__call__.remote(anchor,
                                   n_samples,

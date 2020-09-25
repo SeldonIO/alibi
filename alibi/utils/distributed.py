@@ -20,7 +20,7 @@ def check_ray() -> bool:
     """
 
     import importlib
-    spec = importlib.util.find_spec('ray')
+    spec = importlib.util.find_spec('ray')  # type: ignore
     if spec:
         return True
     return False

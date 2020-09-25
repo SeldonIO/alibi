@@ -8,7 +8,7 @@ import numpy as np
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, RAY_INSTALLED, ResourceError, \
     invert_permutation
 from itertools import product
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 class MockExplainer:
@@ -19,8 +19,10 @@ class MockExplainer:
         self.proc_id = None  # type: Optional[int]
 
     def get_explanation(self, X: Union[Tuple[int, np.ndarray], np.ndarray], **kwargs):
+        """
+        Multiplies input by a constant and records process ID.
+        """
         self.proc_id = os.getpid()
-        print("proc_id", self.proc_id)
         time.sleep(self.sleep_time)
         if isinstance(X, tuple):
             batch_idx, X = X
@@ -28,7 +30,7 @@ class MockExplainer:
         else:
             return self.multiplier*X
 
-    def return_attribute(self, name: str) -> Any:
+    def return_attribute(self, name: str):
         """
         Returns an attribute specified by its name. Used in a distributed context where the actor properties cannot be
         accessed using the dot syntax.
@@ -46,7 +48,7 @@ def data_generator(request):
     return np.random.randint(1, 10, size=(n_rows, n_columns))
 
 
-def kwargs_factory(keys: List[str], values: List[List[Any]]) -> List[dict]:
+def kwargs_factory(keys: List[str], values: List[List[Any]]) -> List[Dict[str, Any]]:
     """
     Generates a list of dictionaries as follows:
 
@@ -55,14 +57,14 @@ def kwargs_factory(keys: List[str], values: List[List[Any]]) -> List[dict]:
 
     Parameters
     ----------
-    keys
+    keys:
         List of dict keys.
-    values
-        List of dict values.
+    values:
+        List of dict values. See examples for result.
 
     Returns
     -------
-        A list of dictionaries whith keys specified in `keys`. Each element has as keys one of the elements of the
+        A list of dictionaries with keys specified in `keys`. Each element has as keys one of the elements of the
         cartesian product of the elements of `values`.
 
     Examples
@@ -79,17 +81,26 @@ def kwargs_factory(keys: List[str], values: List[List[Any]]) -> List[dict]:
     return [dict(zip(keys, this_value)) for this_value in product(*values)]
 
 
-def distributed_opts_id(params: dict) -> str:
+def distributed_opts_id(params: dict):
     """
     Formatter to display distributed opts in test name.
+
+    Params
+    ------
+    A dictionary containing `batch_size`, `n_cpus` and `actor_cpu_fraction` as keys.
     """
     fmt = 'batch_size={} n_cpus={} actor_cpu_fraction={}'
     return fmt.format(*list(params.values()))
 
 
-def data_generator_id(params: List) -> str:
+def data_generator_id(params: List):
     """
     Formatter to display data dimensions in test name.
+
+    Parameters
+    ----------
+    params
+        Iterable with values for `n_instances` and `n_features`.
     """
     fmt = 'n_instances={}, n_features={}'
     return fmt.format(*params)
@@ -111,7 +122,7 @@ ncpus = [2]
 actor_cpu_fraction = [0.5]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
-distributed_opts = kwargs_factory(keys, values)
+distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 # MockExplainer args and kwargs
 explainer_init_args = [(0.05,), ]
@@ -149,7 +160,7 @@ ncpus = [2]
 actor_cpu_fraction = [0.5]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
-distributed_opts = kwargs_factory(keys, values)
+distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 
 # MockExplainer args and kwargs
@@ -241,15 +252,16 @@ def test_invert_permutation(permutation_generator):
     np.testing.assert_allclose(np.array(permutation_generator)[result], np.array(np.arange(result.shape[0])))
 
 
-explainer_init_args = [[(0.01,), (0.05, )], ]  # MockExplainer positional args
-explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], [{'multiplier': 2}, ]]
+# MockExplainer args and kwargs
+explainer_init_args = [[(0.01,), (0.05, )], ]   # type: ignore
+explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], [{'multiplier': 2}, ]]  # type: ignore
 
 batch_size = [2]
 ncpus = [1, len(explainer_init_kwargs[0])]  # that's so that we test the
 actor_cpu_fraction = [1.0, 0.5, None]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
-distributed_opts = kwargs_factory(keys, values)
+distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 
 @pytest.mark.uncollect_if(func=uncollect_ray)
@@ -302,15 +314,16 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
     ray.shutdown()
 
 
-explainer_init_args = [[(0.01,), (0.05, )], ]  # MockExplainer positional args
-explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], ]
+# MockExplainer positional args and kwargs
+explainer_init_args = [[(0.01,), (0.05, )], ]  # type: ignore
+explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], ]  # type: ignore
 
 batch_size = [2]
 ncpus = [len(explainer_init_kwargs[0])]  # that's so that we test the
 actor_cpu_fraction = [1.0]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
-distributed_opts = kwargs_factory(keys, values)
+distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 n_instances, n_features = 5, 6
 
@@ -322,6 +335,7 @@ n_instances, n_features = 5, 6
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwargs, distributed_opts):
 
+    import ray
     atol = 1e-5  # absolute tolerance for floating point comparisons
 
     ncpus = distributed_opts['n_cpus']
@@ -348,3 +362,5 @@ def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwarg
             pool_collection[idx].set_actor_index.remote(explainer_actor_idx)
             proc_ids.append(pool_collection.proc_id)
     assert len(set(proc_ids)) == ncpus
+
+    ray.shutdown()

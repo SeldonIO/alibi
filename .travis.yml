@@ -15,6 +15,8 @@ install:
 script:
   - flake8 alibi
   - mypy alibi
+  - make licenses
+  - make check_licenses
   - travis_wait 30 pytest -m tf1
   - travis_wait 30 pytest -m "not tf1"
   - make build_pypi

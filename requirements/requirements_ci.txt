@@ -19,3 +19,4 @@ shap>=0.36.0
 catboost>=0.23
 Keras>=2.2.4,<2.4.0
 git+git://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing
+tox<4.0.0

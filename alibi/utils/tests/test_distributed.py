@@ -5,8 +5,7 @@ import time
 
 import numpy as np
 
-from alibi.utils.distributed import DistributedExplainer, PoolCollection, RAY_INSTALLED, ResourceError, \
-    invert_permutation
+from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation
 from itertools import product
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -75,8 +74,11 @@ def kwargs_factory(keys: List[str], values: List[List[Any]]) -> List[Dict[str, A
         [{'a': 1, 'b': 1}, {'a': 1, 'b': 2}]
     """
 
-    if len(values) != len(keys):
-        raise ValueError("Each key in the returned dictionary ")
+    n_values, n_keys = len(values), len(keys)
+    if n_values != n_keys:
+        raise ValueError(
+            f"Missing value for a key. Specified {n_keys} keys, {n_values} values!"
+        )
 
     return [dict(zip(keys, this_value)) for this_value in product(*values)]
 
@@ -106,16 +108,6 @@ def data_generator_id(params: List):
     return fmt.format(*params)
 
 
-def uncollect_ray():
-    """
-    Uncollects distributed tests if ray is not installed.
-    """
-
-    if RAY_INSTALLED:
-        return False
-    return True
-
-
 # generate distributed_opts dictionaries
 batch_size = [1]
 ncpus = [2]
@@ -129,7 +121,6 @@ explainer_init_args = [(0.05,), ]
 explainer_init_kwargs = [{'multiplier': 2}, ]
 
 
-@pytest.mark.uncollect_if(func=uncollect_ray)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
@@ -145,7 +136,6 @@ def test_distributed_explainer_init(expln_args, expln_kwargs, distributed_opts):
     assert isinstance(distributed_explainer.pool, ray.util.ActorPool)
     assert len(distributed_explainer.pool._idle_actors) == distributed_opts['n_cpus']
 
-    # TODO: RAY.GET SHOULD BE APPLIED WHEN RETURNING ATTRIBUTES? NOT HERE?
     # test remote process is initialised properly
     for actor_idx in range(distributed_opts['n_cpus']):
         distributed_explainer.actor_index = actor_idx
@@ -171,7 +161,6 @@ n_instances, n_features = 5, 6
 return_generator = [False, True]  # whether a generator is returned or the results are computed and returned
 
 
-@pytest.mark.uncollect_if(func=uncollect_ray)
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
@@ -257,14 +246,13 @@ explainer_init_args = [[(0.01,), (0.05, )], ]   # type: ignore
 explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], [{'multiplier': 2}, ]]  # type: ignore
 
 batch_size = [2]
-ncpus = [1, len(explainer_init_kwargs[0])]  # that's so that we test the
+ncpus = [1, len(explainer_init_kwargs[0])]  # set so that both the error raising inputs and correct inputs are tested
 actor_cpu_fraction = [1.0, 0.5, None]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 
-@pytest.mark.uncollect_if(func=uncollect_ray)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
@@ -319,7 +307,7 @@ explainer_init_args = [[(0.01,), (0.05, )], ]  # type: ignore
 explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], ]  # type: ignore
 
 batch_size = [2]
-ncpus = [len(explainer_init_kwargs[0])]  # that's so that we test the
+ncpus = [len(explainer_init_kwargs[0])]  # test only correct inputs
 actor_cpu_fraction = [1.0]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
@@ -328,7 +316,6 @@ distributed_opts = kwargs_factory(keys, values)  # type: ignore
 n_instances, n_features = 5, 6
 
 
-@pytest.mark.uncollect_if(func=uncollect_ray)
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
@@ -354,7 +341,6 @@ def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwarg
         batched_result = np.concatenate(this_expln_result, axis=0).squeeze()
         assert np.isclose(np.unique(batched_result / X), this_expln_kwargs['multiplier'], atol=atol)
 
-    # retrieve process state. This requires setting
     proc_ids = []
     for idx in range(ncpus):
         pool_collection.remote_explainer_index = idx  # this is necessary to retrieve state from different processes

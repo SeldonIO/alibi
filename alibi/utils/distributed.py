@@ -249,7 +249,7 @@ def batch(X: np.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -
             might vary if the 0-th dimension of `X` is not divisible by `batch_size`. For an array of length `l`
             that should be split into `n` sections, it returns `l % n` sub-arrays of size `l//n + 1` and the rest of
             `size l//n`
-            - if `batch_size` is `None`, then `X` is split into `n_jobs` sub-arrays.
+            - if `batch_size` is `None`, then `X` is split into `n_batches` sub-arrays.
     n_batches
         Number of batches in which to split the sub-array. Only used if `batch_size = None`
 
@@ -383,19 +383,20 @@ class DistributedExplainer:
         
         Parameters
         ----------
-        return_generator
         distributed_opts
-            A dictionary with the following type minimal signature::
+            A dictionary with the following type (minimal signature)::
 
                 class DistributedOpts(TypedDict):
                     n_cpus: Optional[int]
                     batch_size: Optional[int]
+                    
             The dictionary may contain two additional keys:
                 
                 - ``'actor_cpu_frac'`` (float, <= 1.0, >0.0): This is used to create more than one process on one \\
                 CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when few physical \\ 
                 cores are available. In particular, this is highly useful when the user wants to share a GPU for \\
-                multiple tasks. See the ``ray`` documentation `here_` for details.
+                multiple tasks, with the caviat that the machine learning framework itself needs to support running \\ 
+                multiple replicas on the same GPU. See the ``ray`` documentation `here_` for details.
                 
                 .. _here:
                    https://docs.ray.io/en/stable/resources.html#fractional-resources
@@ -407,7 +408,7 @@ class DistributedExplainer:
         explainer_type
             Explainer class.
         explainer_init_args
-            Positional argument to explainer constructor.
+            Positional arguments to explainer constructor.
         explainer_init_kwargs
             Keyword arguments to explainer constructor.
         return_generator
@@ -420,8 +421,6 @@ class DistributedExplainer:
         order to start computing the results (because the `ray` pool is implemented as a generator).
         """  # noqa W605
 
-        # TODO: FINISH DOCSTRING
-        # TODO: TBD: @JANIS - DO WE HAVE TO DO ANY SETUP FOR THIS COMMAND TO WORK?
         if not RAY_INSTALLED:
             raise ModuleNotFoundError("Module requires ray to be installed. pip install alibi[ray] ")
 
@@ -435,7 +434,6 @@ class DistributedExplainer:
                 "selected."
             )
         self.target_fcn = default_target_fcn
-        # TODO: TBD: @JANIS - THE POSTPROCESSING COULD BE HANDLED BY CALLER? OR THE CALLER COULD PASS THE FUNCTION?
         self.post_process_fcn = None
         # check global scope for any specific target or result postprocessing function
         if f"{algorithm}_target_fcn" in globals():
@@ -518,7 +516,7 @@ class DistributedExplainer:
         accessed using the dot syntax.
         """
 
-        # if the attribute requested if of the PoolCollection object, return it
+        # if the attribute requested from PoolCollection object, return it
         try:
             return self.__getattribute__(name)
         # else, it is an attribute of one of the actors

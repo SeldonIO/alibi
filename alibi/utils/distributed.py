@@ -80,8 +80,7 @@ class ActorPool(object):
             [2, 4, 6, 8]
         """
 
-        if chunksize > 1:
-            values = self._chunk(values, chunksize=chunksize)
+        values = self._chunk(values, chunksize=chunksize)
 
         for v in values:
             self.submit(fn, v)
@@ -109,8 +108,7 @@ class ActorPool(object):
             [6, 2, 4, 8]
         """
 
-        if chunksize > 1:
-            values = self._chunk(values, chunksize=chunksize)
+        values = self._chunk(values, chunksize=chunksize)
 
         for v in values:
             self.submit(fn, v)
@@ -228,7 +226,7 @@ class ActorPool(object):
             self.submit(*self._pending_submits.pop(0))
 
     @staticmethod
-    def _chunk(values, chunksize):
+    def _chunk(values: list, chunksize: int) -> list:
         """Yield successive chunks of len=chunksize from values."""
         for i in range(0, len(values), chunksize):
             yield values[i:i + chunksize]

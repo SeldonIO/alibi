@@ -307,28 +307,24 @@ def default_target_fcn(actor: Any, instances: tuple, kwargs: Optional[Dict] = No
     return actor.get_explanation.remote(instances, **kwargs)
 
 
-def concatenate_minibatches(minibatch_results: List[np.ndarray]) -> np.ndarray:
+def concatenate_minibatches(minibatch_results: Union[List[np.ndarray], List[List[np.ndarray]]]) -> \
+        Union[np.ndarray, List[np.ndarray]]:
     """
     Merges the explanations computed on minibatches so that the distributed explainer returns the same output as the
-    sequential version.
+    sequential version. If the type returned by the explainer is not supported by the function, expand this function
+    by adding an appropriately named private function and use this function to check the input type and call it.
 
     Parameters
     ----------
     minibatch_results
-        By default, the explainer is assumed to return one numpy array per minibiatch explained. Other types should be
-        handled by registering a custom postprocessing function for the explainer return type.
-
+        Explanations for each minibatch.
     Returns
     -------
-        By default, a single numpy array obtained by concatenating `minibatch` results along the 0th axis.
-
-    Notes
-    -----
-        This postprocessing function is used when distributing the following algorithms:
-
-            - KernelSHAP, in the case where the predictor returns a scalar.
-
-    """
+        If the input is ``List[np.ndarray]``, a single numpy array obtained by concatenating `minibatch` results along 
+        the 0th axis. \\
+        If the input is ``List[List[np.ndarray]]`` A list of numpy arrays obtained by concatenating arrays in with the 
+        same position in the sublists along the 0th axis.
+    """  # noqa W605
 
     if isinstance(minibatch_results[0], np.ndarray):
         return np.concatenate(minibatch_results, axis=0)
@@ -342,9 +338,7 @@ def concatenate_minibatches(minibatch_results: List[np.ndarray]) -> np.ndarray:
 
 def _array_list_concatenator(minibatch_results: List[List[np.ndarray]]) -> List[np.ndarray]:
     """
-    Postprocessing function for:
-
-        - KernelSHAP when the number of classes is >1.
+    Concatenates the arrays with the same sublist index into a single array.
     """
     n_classes = len(minibatch_results[0])
     to_concatenate = [list(zip(*minibatch_results))[idx] for idx in range(n_classes)]
@@ -373,11 +367,10 @@ def invert_permutation(p: list) -> np.ndarray:
     return s
 
 
-def order_result(unordered_result: Generator[Tuple[int, Any], None, None]):  # type: ignore
+def order_result(unordered_result: Generator[Tuple[int, Any], None, None]) -> List:
     """
     Re-orders the result of a distributed explainer so that the explanations follow the same order as the input to
-    the explainer. If no algorithm specific post-processing function is implemented in the global scope, then the
-    result is a list
+    the explainer.
 
     Parameters
     ----------
@@ -386,8 +379,7 @@ def order_result(unordered_result: Generator[Tuple[int, Any], None, None]):  # t
 
     Returns
     -------
-    If no post processing function is specified, then a list of numpy array is returned. Otherwise, the return
-    type depends on the output of the post processing function applied to a list of ordered results.
+    A list with re-ordered results.
 
 
     Notes
@@ -419,6 +411,7 @@ class DistributedExplainer:
                  explainer_type: Any,
                  explainer_init_args: Tuple,
                  explainer_init_kwargs: dict,
+                 concatenate_results: bool = True,
                  return_generator: bool = False):
         """
         Creates a pool of actors (i.e., replicas of an instantiated `explainer_type` in a separate process) which can 
@@ -427,6 +420,7 @@ class DistributedExplainer:
         
         Parameters
         ----------
+        concatenate_results
         distributed_opts
             A dictionary with the following type (minimal signature)::
 
@@ -445,10 +439,10 @@ class DistributedExplainer:
                 .. _here:
                    https://docs.ray.io/en/stable/resources.html#fractional-resources
                 
-                - ``'algorithm'``: this is specified internally by the caller. It is used in order to register callbacks \\
-                for results postprocessing or target functions for the parallel pool. These should be implemented in the \\
-                global scope. If not specified, its value will be ``'default'``, meaning that the results will not be \\
-                post-processed and that the default target function will be used. 
+                - ``'algorithm'``: this is specified internally by the caller. It is used in order to register target 
+                function callbacks for the parallel pool These should be implemented in the global scope. 
+                If not specified, its value will be ``'default'``, which will select a default target function which
+                expects the actor has a `get_explanation` method. 
         explainer_type
             Explainer class.
         explainer_init_args
@@ -471,19 +465,19 @@ class DistributedExplainer:
         self.n_processes = distributed_opts['n_cpus']
         self.batch_size = distributed_opts['batch_size']
         self.return_generator = return_generator
+        self.concatenate_results = concatenate_results
         algorithm = distributed_opts.get('algorithm', 'default')
         if 'algorithm' == 'default':
             logger.warning(
-                "No algorithm specified in distributed option, default target function and postprocessing will be "
-                "selected."
+                "No algorithm specified in distributed option, default target function will be selected."
             )
         self.target_fcn = default_target_fcn
-        self.post_process_fcn = None
-        # check global scope for any specific target or result postprocessing function
+        self.concatenate = None
+        # check global scope for any specific target function
+        if concatenate_results:
+            self.concatenate = concatenate_minibatches
         if f"{algorithm}_target_fcn" in globals():
             self.target_fcn = globals()[f"{algorithm}_target_fcn"]
-        if f"{algorithm}_postprocess_fcn" in globals():
-            self.post_process_fcn = globals()[f"{algorithm}_postprocess_fcn"]
 
         if not DistributedExplainer.ray.is_initialized():
             DistributedExplainer.ray.init(num_cpus=distributed_opts['n_cpus'])
@@ -581,7 +575,7 @@ class DistributedExplainer:
         return DistributedExplainer.ray.util.ActorPool(workers)
 
     def get_explanation(self, X: np.ndarray, **kwargs) -> \
-            Union[Generator[Tuple[int, Any], None, None], List[Any], List[Tuple[int, Any]], Any]:
+            Union[Generator[Tuple[int, Any], None, None], List[Any], Any]:
         """
         Performs distributed explanations of instances in `X`.
 
@@ -604,8 +598,8 @@ class DistributedExplainer:
             - a list of objects, whose type depends on the return type of the explainer. This is returned  if `\\
             no custom preprocessing function is specified
             
-            - an object, whose type depends on the return type of the post-processing function returns when called with \\
-            a list with the same order as the minibatches
+            - an object, whose type depends on the return type of the concatenation function return when called with \\
+            a list of minibatch results with the same order as the minibatches
         """  # noqa E501
 
         if kwargs is not None:
@@ -621,11 +615,9 @@ class DistributedExplainer:
         explanations = self.pool.map(self.target_fcn, batched_instances)
         results = [minibatch_explanation for minibatch_explanation in explanations]
 
-        if self.post_process_fcn:
-            return self.post_process_fcn(results)
+        if self.concatenate_results:
+            return self.concatenate(results)
         return results
-
-    # ignore the type as it depends on what the distributed object returns
 
 
 class PoolCollection:

@@ -7,7 +7,7 @@ import numpy as np
 
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \
     concatenate_minibatches
-from itertools import chain, product
+from itertools import product
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 
@@ -118,7 +118,7 @@ values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 # MockExplainer args and kwargs
-explainer_init_args = [(0.05,), ]
+explainer_init_args = [(0.01,), ]
 explainer_init_kwargs = [{'multiplier': 2}, ]
 
 
@@ -132,7 +132,7 @@ def test_distributed_explainer_init(expln_args, expln_kwargs, distributed_opts):
     atol = 1e-5  # abs tolerance for floating point comparisons
     distributed_explainer = DistributedExplainer(distributed_opts, MockExplainer, expln_args, expln_kwargs)
     assert distributed_explainer.target_fcn.__name__ == 'default_target_fcn'
-    assert not distributed_explainer.post_process_fcn
+    assert distributed_explainer.concatenate
     assert ray.is_initialized()
     assert isinstance(distributed_explainer.pool, ray.util.ActorPool)
     assert len(distributed_explainer.pool._idle_actors) == distributed_opts['n_cpus']
@@ -155,11 +155,12 @@ distributed_opts = kwargs_factory(keys, values)  # type: ignore
 
 
 # MockExplainer args and kwargs
-explainer_init_args = [(0.05,), ]
+explainer_init_args = [(0.01,), ]
 explainer_init_kwargs = [{'multiplier': 2}, ]
 
 n_instances, n_features = 5, 6
 return_generator = [False, True]  # whether a generator is returned or the results are computed and returned
+concatenate_results = [False, True]
 
 
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
@@ -167,12 +168,14 @@ return_generator = [False, True]  # whether a generator is returned or the resul
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 @pytest.mark.parametrize('return_generator', return_generator, ids='return_generator={}'.format)
+@pytest.mark.parametrize('concatenate_results', concatenate_results, ids='concat_results={}'.format)
 def test_distributed_explainer_get_explanation(
         data_generator,
         expln_args,
         expln_kwargs,
         distributed_opts,
-        return_generator):
+        return_generator,
+        concatenate_results):
 
     import ray
     atol = 1e-5  # tolerance for numerical comparisons
@@ -184,7 +187,8 @@ def test_distributed_explainer_get_explanation(
         MockExplainer,
         expln_args,
         expln_kwargs,
-        return_generator=return_generator
+        return_generator=return_generator,
+        concatenate_results=concatenate_results,
     )
     X = data_generator
     result = distributed_explainer.get_explanation(X)
@@ -197,15 +201,20 @@ def test_distributed_explainer_get_explanation(
             assert isinstance(elem, tuple)
     else:
         # test batching
-        if batch_size is None:
-            assert len(result) == ncpus  # split batch evenly if not specified
-        elif X.shape[0] % batch_size == 0:
-            assert len(result) == X.shape[0] // batch_size
+        if concatenate_results:
+            assert isinstance(result, np.ndarray)
+            assert result.shape == X.shape
+
         else:
-            assert sum(res.shape[0] for res in result) == X.shape[0]
-        # result correctness
-        batched_result = np.concatenate(result, axis=0).squeeze()
-        assert np.isclose(np.unique(batched_result / X), expln_kwargs['multiplier'], atol=atol)
+            if batch_size is None:
+                assert len(result) == ncpus  # split batch evenly if not specified
+            elif X.shape[0] % batch_size == 0:
+                assert len(result) == X.shape[0] // batch_size
+            else:
+                assert sum(res.shape[0] for res in result) == X.shape[0]
+            # result correctness
+            result = np.concatenate(result, axis=0).squeeze()
+        assert np.isclose(np.unique(result / X), expln_kwargs['multiplier'], atol=atol)
 
     # test distributed execution
     proc_ids = []
@@ -252,12 +261,14 @@ actor_cpu_fraction = [1.0, 0.5, None]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
+concatenate_results = [False, True]
 
 
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
-def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
+@pytest.mark.parametrize('concatenate_results', concatenate_results, ids='concat_results={}'.format)
+def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts, concatenate_results):
 
     import ray
 
@@ -290,6 +301,7 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
             MockExplainer,
             expln_args,
             expln_kwargs,
+            concatenate_results=concatenate_results,
         )
 
         assert ray.is_initialized()
@@ -297,6 +309,7 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts):
         for idx in range(n_explainers):
             explainer_collection.remote_explainer_index = idx
             assert explainer_collection.batch_size == batch_size
+            assert explainer_collection.concatenate_results == concatenate_results
             if cpu_frac:
                 assert explainer_collection.n_processes == (ncpus // n_explainers) // cpu_frac
 
@@ -313,7 +326,6 @@ actor_cpu_fraction = [1.0]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
-
 n_instances, n_features = 5, 6
 
 
@@ -333,6 +345,7 @@ def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwarg
         expln_args,
         expln_kwargs,
         return_generator=False,  # just emphasizing this should always be the case, can't pickle generators
+        concatenate_results=False,  # tested if concatenate_results works correctly already
     )
 
     X = data_generator

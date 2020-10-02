@@ -226,7 +226,7 @@ class ActorPool(object):
             self.submit(*self._pending_submits.pop(0))
 
     @staticmethod
-    def _chunk(values: list, chunksize: int) -> list:
+    def _chunk(values: list, chunksize: int) -> Generator[List, None, None]:
         """Yield successive chunks of len=chunksize from values."""
         for i in range(0, len(values), chunksize):
             yield values[i:i + chunksize]

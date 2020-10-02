@@ -10,7 +10,8 @@ def readme():
 exec(open('alibi/version.py').read())
 
 extras_require = {
-    'examples': ['seaborn', 'xgboost']
+    'examples': ['seaborn', 'xgboost'],
+    'ray': ['ray'],
 }
 
 setup(name='alibi',

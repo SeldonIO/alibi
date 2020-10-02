@@ -86,7 +86,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
     assert sampler.n_covered_ex == n_covered_ex
 
 
-@pytest.mark.parametrize('ncpu', [2, 3], ids='ncpu={}'.format)
+@pytest.mark.parametrize('ncpu', [2], ids='ncpu={}'.format)
 @pytest.mark.parametrize('predict_type', ('proba', 'class'), ids='predict_type={}'.format)
 @pytest.mark.parametrize('at_defaults', [0.95], ids='threshold={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
@@ -117,7 +117,7 @@ def test_distributed_anchor_tabular(ncpu,
         X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
         clf, preprocessor = rf_classifier
         predictor = predict_fcn(predict_type, clf)
-        explainer = DistributedAnchorTabular(predictor, feature_names)
+        explainer = DistributedAnchorTabular(predictor, feature_names, seed=0)
         explainer.fit(X_train, ncpu=ncpu)
 
         # select instance to be explained
@@ -163,6 +163,8 @@ def test_distributed_anchor_tabular(ncpu,
         for p, t, anchor in zip(pos, total, to_sample):
             assert distrib_anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
             assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
+
+        ray.shutdown()
 
 
 def uncollect_if_test_sampler(**kwargs):

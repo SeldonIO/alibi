@@ -28,6 +28,7 @@
 "grpcio","Apache Software License"
 "h5py","BSD License"
 "idna","BSD License"
+"idna-ssl","MIT License"
 "imageio","BSD License"
 "importlib-metadata","Apache Software License"
 "joblib","BSD License"

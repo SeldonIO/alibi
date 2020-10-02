@@ -28,6 +28,7 @@
 "grpcio","1.32.0","Apache Software License"
 "h5py","2.10.0","BSD License"
 "idna","2.10","BSD License"
+"idna-ssl","1.1.0","MIT License"
 "imageio","2.9.0","BSD License"
 "importlib-metadata","2.0.0","Apache Software License"
 "joblib","0.16.0","BSD License"

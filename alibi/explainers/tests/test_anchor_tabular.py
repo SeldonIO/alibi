@@ -164,6 +164,8 @@ def test_distributed_anchor_tabular(ncpu,
             assert distrib_anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
             assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
 
+        ray.shutdown()
+
 
 def uncollect_if_test_sampler(**kwargs):
     clf_dataset = kwargs['rf_classifier'].name

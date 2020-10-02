@@ -5,8 +5,9 @@ import time
 
 import numpy as np
 
-from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation
-from itertools import product
+from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \
+    concatenate_minibatches
+from itertools import chain, product
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 
@@ -350,3 +351,44 @@ def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwarg
     assert len(set(proc_ids)) == ncpus
 
     ray.shutdown()
+
+
+# repetitions: how many lists with n_minibatches of size minibatch_size are fed to the function in one go
+n_minibatches, minibatch_size, repetitions, n_features = 3, 3, 3, 6
+n_instances = n_minibatches*minibatch_size*repetitions
+
+
+@pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
+@pytest.mark.parametrize('n_minibatches', [n_minibatches, ], ids='n_minibatches={}'.format)
+@pytest.mark.parametrize('repetitions', [repetitions, ], ids='repetitions={}'.format)
+@pytest.mark.parametrize('n_features', [n_features, ], ids='n_features={}'.format)
+def test_concatenate_minibatches(data_generator, n_minibatches, repetitions, n_features):
+    """
+    Tests the minibatch concatenation functions for all input types. Extend this test if you register new types.
+    """
+
+    X = data_generator
+
+    # List[np.ndarray] input
+    minibatches = np.split(X, n_minibatches)
+    concat_result = concatenate_minibatches(minibatches)
+    assert isinstance(concat_result, np.ndarray)
+    np.testing.assert_allclose(X, concat_result)
+
+    # List[List[np.ndarray]] input
+    split_arr = np.split(X, n_minibatches*repetitions)
+    minibatch_seq = [split_arr[i:i + n_minibatches] for i in range(0, len(split_arr), n_minibatches)]
+    concat_result = concatenate_minibatches(minibatch_seq)
+
+    # compute actual result
+    slices = [(i, i + minibatch_size) for i in range(0, X.shape[0], minibatch_size)]
+    grouped_slices = [slices[i::minibatch_size] for i in range(n_minibatches)]
+    expected_result = [
+        X[np.array([np.arange(*slc) for slc in grouped_slices[i]])].reshape(-1, n_features)
+        for i in range(len(grouped_slices))
+    ]
+
+    assert isinstance(concat_result, list)
+    assert len(concat_result) == len(minibatch_seq[0])
+    for actual, expected in zip(expected_result, concat_result):
+        np.testing.assert_allclose(actual, expected)

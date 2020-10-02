@@ -31,8 +31,8 @@ RAY_INSTALLED = check_ray()
 
 class ActorPool(object):
 
-    # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, REMOVE THIS AND IMPORT ActorPool FROM ray.util
-    #  Also remember to remove the imports inside the class and the references to ray as  class variable
+    # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, THEN THIS CLASS SHOULD INHERIT FROM
+    #  RAY.UTIL.ACTORPOOL, OVERRIDE MAP AND MAP_UNORDERED AND ADD _CHUNK STATIC METHOD.
 
     if RAY_INSTALLED:
         import ray
@@ -305,6 +305,52 @@ def default_target_fcn(actor: Any, instances: tuple, kwargs: Optional[Dict] = No
         kwargs = {}
 
     return actor.get_explanation.remote(instances, **kwargs)
+
+
+def concatenate_minibatches(minibatch_results: List[np.ndarray]) -> np.ndarray:
+    """
+    Merges the explanations computed on minibatches so that the distributed explainer returns the same output as the
+    sequential version.
+
+    Parameters
+    ----------
+    minibatch_results
+        By default, the explainer is assumed to return one numpy array per minibiatch explained. Other types should be
+        handled by registering a custom postprocessing function for the explainer return type.
+
+    Returns
+    -------
+        By default, a single numpy array obtained by concatenating `minibatch` results along the 0th axis.
+
+    Notes
+    -----
+        This postprocessing function is used when distributing the following algorithms:
+
+            - KernelSHAP, in the case where the predictor returns a scalar.
+
+    """
+
+    if isinstance(minibatch_results[0], np.ndarray):
+        return np.concatenate(minibatch_results, axis=0)
+    elif isinstance(minibatch_results[0], list) and isinstance(minibatch_results[0][0], np.ndarray):
+        return _array_list_concatenator(minibatch_results)
+    else:
+        raise TypeError(
+            "Minibatch concatenation function is defined only for List[np.ndarray] and List[List[np.ndarray]]"
+        )
+
+
+def _array_list_concatenator(minibatch_results: List[List[np.ndarray]]) -> List[np.ndarray]:
+    """
+    Postprocessing function for:
+
+        - KernelSHAP when the number of classes is >1.
+    """
+    n_classes = len(minibatch_results[0])
+    to_concatenate = [list(zip(*minibatch_results))[idx] for idx in range(n_classes)]
+    concatenated = [np.concatenate(arrays, axis=0) for arrays in to_concatenate]
+
+    return concatenated
 
 
 def invert_permutation(p: list) -> np.ndarray:

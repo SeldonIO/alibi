@@ -7,8 +7,9 @@ import tensorflow as tf
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.transformers import TextTransformer
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union
+from typing import Callable, List, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -312,7 +313,7 @@ class IntegratedGradients(Explainer):
                  internal_batch_size: Union[None, int] = 100
                  ) -> None:
         """
-        An mplementation of the integrated gradients method for Tensorflow and Keras models.
+        An implementation of the integrated gradients method for Tensorflow and Keras models.
 
         For details of the method see the original paper:
         https://arxiv.org/abs/1703.01365 .
@@ -428,6 +429,7 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_input(self.model,
                                            tf.dtypes.cast(paths_b, self.input_dtype), target_b)
+                # TODO: is casting the right thing to do? Will loose information if input types differ
 
             batches.append(grads_b)
 
@@ -481,3 +483,42 @@ class IntegratedGradients(Explainer):
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+
+class IntegratedGradientsText(Explainer):
+
+    def __init__(self,
+                 model: Union[tf.keras.Model, 'keras.Model'],
+                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 method: str = "gausslegendre",
+                 n_steps: int = 50,
+                 internal_batch_size: Union[None, int] = 100,
+                 text_transformer: TextTransformer = None,
+                 ) -> None:
+        self._explainer = IntegratedGradients(model=model,
+                                              layer=layer,
+                                              method=method,
+                                              n_steps=n_steps,
+                                              internal_batch_size=internal_batch_size)
+        self.text_transformer = text_transformer
+
+    def explain(self,
+                X: List[str],
+                baselines: Union[None, int, float, np.ndarray] = None,
+                target: Union[None, int, list, np.ndarray] = None) -> Explanation:
+        tokens = self.text_transformer.texts_to_tokens(X)
+        X = self.text_transformer.texts_to_array(X)
+
+        # TODO: baselines assumed to be wrt to the pre-processed X
+        explanation = self._explainer.explain(X=X, baselines=baselines, target=target)
+
+        # exctract data, augment, and create a new explanation object
+        # NB: we have to create a new object for attribute access to work for the new attributes
+        meta, data = explanation.meta, explanation.data
+        attrs = data['attributions'].sum(axis=-1)  # TODO: dangerous to assume these are for embeddings!?
+        attrs = self.text_transformer.array_to_ragged_array(attrs)
+        data.update(tokens=tokens, attrs=attrs)
+
+        explanation = Explanation(meta=meta, data=data)
+
+        return explanation

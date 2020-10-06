@@ -10,7 +10,7 @@ from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
 from .shap_wrappers import KernelShap, TreeShap
-from .integrated_gradients import IntegratedGradients
+from .integrated_gradients import IntegratedGradients, IntegratedGradientsText
 
 __all__ = ["ALE",
            "AnchorTabular",
@@ -23,5 +23,6 @@ __all__ = ["ALE",
            "KernelShap",
            "TreeShap",
            "plot_ale",
-           "IntegratedGradients"
+           "IntegratedGradients",
+           "IntegratedGradientsText"
            ]

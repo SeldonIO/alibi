@@ -480,7 +480,8 @@ class DistributedExplainer:
             self.target_fcn = globals()[f"{algorithm}_target_fcn"]
 
         if not DistributedExplainer.ray.is_initialized():
-            DistributedExplainer.ray.init(num_cpus=distributed_opts['n_cpus'])
+            logger.info(f"Initialising ray on {self.n_processes} processes!")
+            DistributedExplainer.ray.init(num_cpus=self.n_processes)
 
         # a pool is a collection of handles to different processes that can process data points in parallel
         self.pool = self.create_parallel_pool(
@@ -677,6 +678,7 @@ class PoolCollection:
                 cpus_per_pool /= actor_cpu_fraction
 
         if not PoolCollection.ray.is_initialized():
+            logger.info(f"Initialising ray on {distributed_opts['n_cpus']} CPUs")
             PoolCollection.ray.init(num_cpus=distributed_opts['n_cpus'])
 
         opts = copy.deepcopy(distributed_opts)

@@ -15,10 +15,11 @@ import shap.utils._legacy as shap_utils
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
-from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance
+from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, KernelExplainerWrapper
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
+from alibi.utils.distributed import DistributedExplainer
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
@@ -1071,15 +1072,44 @@ def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
         assert len(response.data['raw']['prediction']) == n_instances
 
 
-mock_ker_exp_params = [(5, 'identity', None), (5, 'identity', {'n_cpus': 2})]
+mock_ker_exp_params = [
+    ((5, 'identity', None), (5, 'identity', None)),
+    ((5, 'identity', {'n_cpus': 2}), (5, 'identity', {'n_cpus': 2}))
+]
+n_instances, n_features = 10, 10
 
 
-@pytest.mark.parametrize('mock_kernel_shap_explainer', mock_ker_exp_params, ids=mock_ker_expln_id, indirect=True)
-def test_distributed_execution(mock_kernel_shap_explainer):
+# example on how to send the same parameters to a fixture via indirection and the test. Screws up test ids.
+@pytest.mark.parametrize('mock_kernel_shap_explainer, mock_ker_exp_params',
+                         mock_ker_exp_params,
+                         indirect=["mock_kernel_shap_explainer"],
+                         ids=mock_ker_expln_id,
+                         )
+@pytest.mark.parametrize('n_instances', (n_instances,), ids='n_instances={}'.format)
+@pytest.mark.parametrize('n_features', (n_features,), ids='n_features={}'.format)
+def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_params, n_instances, n_features):
+
     import ray
-    
+
+    explainer = mock_kernel_shap_explainer
+    background_data = get_random_matrix(n_rows=n_instances, n_cols=n_features)
+    explainer.fit(background_data)
+    distributed_opts = mock_ker_exp_params[2]
+    assert isinstance(explainer.expected_value, np.ndarray)
+    assert hasattr(explainer, "distributed_opts")
+    if distributed_opts is None:
+        assert not explainer.distribute
+        assert isinstance(explainer._explainer, KernelExplainerWrapper)
+    else:
+        assert explainer.distribute
+        assert isinstance(explainer._explainer, DistributedExplainer)
+        assert explainer.distributed_opts['n_cpus'] == distributed_opts['n_cpus']
+        assert len(explainer._explainer.pool._idle_actors) == distributed_opts['n_cpus']
+
     if ray.is_initialized():
         ray.shutdown()
+
+
 # TreeShap tests start here
 
 

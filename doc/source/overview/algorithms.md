@@ -11,16 +11,16 @@ only requirement is to have access to a prediction function (which could be an A
 
 The following table summarizes the capabilities of the current algorithms:
 
-|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|
+|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Distributed|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔|
-|[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular|
-|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
-|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No|
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
-|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional|
-|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| 
+|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔||
+|[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular||
+|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional||
+|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No||
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional||
+|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional||
+|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
+|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional|| 
 
 
 
@@ -33,6 +33,7 @@ Key:
  - **Global** - explains the model with respect to a set of instances
  - **Cat. data** - support for categorical features
  - **Train** - whether a training set is required to fit the explainer
+ - **Distributed** - whether a batch of explanations can be executed in parallel
 
 **Accumulated Local Effects (ALE)**: calculates first-order feature effects on the model with
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
@@ -77,10 +78,11 @@ to a given baseline (e.g., average over a reference set) to each of the input fe
 each feature in turn, by averaging the difference in the model output observed when the feature whose contribution
 is to be estimated is part of a group of "present" input features and the value observed when the feature is excluded
 from said group. The features that are not "present" (i.e., are missing) are replaced with values from a background
-dataset. This algorithm can be used to explain regression models. [Documentation](../methods/KernelSHAP.ipynb),
+dataset. This algorithm can be used to explain regression models and it is optimised to distribute batches of explanations.[Documentation](../methods/KernelSHAP.ipynb),
 [continuous data](../examples/kernel_shap_wine_intro.ipynb),
 [more continuous data](../examples/kernel_shap_wine_lr.ipynb),
-[categorical data](../examples/kernel_shap_adult_lr.ipynb).
+[categorical data](../examples/kernel_shap_adult_lr.ipynb),
+[distributed_batch_explanations](../examples/distributed_kernel_shap_adult_lr.ipynb)
 
 **Tree Shapley Additive Explanations (Tree SHAP)**: attribute the change of a model output with respect to a baseline
 (e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP,

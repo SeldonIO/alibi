@@ -207,13 +207,13 @@ DISTRIBUTED_OPTS = {
 """
 Default distributed options for KernelShap:
 
-    - ``'ncpus'``: ``int``, number of available CPUs available to parallelize explanations. Performance is significantly \\
-    boosted when the number specified represents physical CPUs, but small (nonlinear) gains are observed when virtual \\
+    - ``'ncpus'``: ``int``, number of available CPUs available to parallelize explanations. Performance is significantly \
+    boosted when the number specified represents physical CPUs, but small (nonlinear) gains are observed when virtual \
     CPUs are specified. If set to `None`, the code will run sequentially.
     
-    - ``'batch_size'``: ``int``, how many instances are explained in the same remote process at once. The `shap` library \\
-     of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post_` for batch \\
-     size experiments results. If set to `None`, an input array is split in (roughly) equal parts and distributed across \\
+    - ``'batch_size'``: ``int``, how many instances are explained in the same remote process at once. The `shap` library \
+     of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post_` for batch \
+     size experiments results. If set to `None`, an input array is split in (roughly) equal parts and distributed across \
      the available CPUs.
     
     .. _post:

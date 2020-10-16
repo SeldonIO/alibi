@@ -40,7 +40,7 @@ def methdispatch(func):
     """
     A decorator that is used to support singledispatch style functionality
     for instance methods. By default, singledispatch selects a function to
-    call from registered based on the type of args[0]:
+    call from registered based on the type of args[0]::
 
         def wrapper(*args, **kw):
             return dispatch(args[0].__class__)(*args, **kw)

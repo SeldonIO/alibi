@@ -220,17 +220,17 @@ class AnchorText(Explainer):
             see explain method
         perturb_opts
             A dict with keys:
-                'top_n': the max number of alternatives to sample from for replacement
-                'use_similarity_proba': if True the probability of selecting a replacement
-                    word is prop. to the similarity between the word and the word to be replaced
-                'sample_proba': given a feature and n sentences, this parameters is the mean of a
-                    Bernoulli distribution used to decide how many sentences will have that feature
-                    perturbed
-                'temperature': a tempature used to callibrate the softmax distribution over the
-                    sampling weights.
+
+                - 'top_n': the max number of alternatives to sample from for replacement
+                - 'use_similarity_proba': if True the probability of selecting a replacement word is proportional to the \
+                similarity between the word and the word to be replaced
+                - 'sample_proba': given a feature and n sentences, this parameters is the mean of a Bernoulli \
+                distribution used to decide how many sentences will have that feature perturbed
+                - 'temperature': a tempature used to callibrate the softmax distribution over the sampling weights.
+                
         top_n
             Number of similar words to sample for perturbations, only used if `use_unk=False`.
-        """
+        """  # noqa W605
 
         if use_unk and perturb_opts['use_similarity_proba']:
             logger.warning(

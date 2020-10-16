@@ -243,7 +243,7 @@ class KernelExplainerWrapper(KernelExplainer):
         super().__init__(*args, **kwargs)
 
     def get_explanation(self, X: Union[Tuple[int, np.ndarray], np.ndarray], **kwargs) -> \
-            Union[Tuple[int, np.ndarray], np.ndarray]:
+            Union[Tuple[int, np.ndarray], Tuple[int, List[np.ndarray]], np.ndarray, List[np.ndarray]]:
         """
         Wrapper around `shap.KernelExplainer.shap_values` that allows calling the method with a tuple containing a
         batch index and a batch of instances.
@@ -359,6 +359,8 @@ class KernelShap(Explainer, FitMixin):
             self.distributed_opts.update(distributed_opts)
         self.distributed_opts['algorithm'] = 'kernel_shap'
         self.distribute = True if self.distributed_opts['n_cpus'] else False
+        # object that implements the explanation algorithm (set in fit)
+        self._explainer = None  # type: Union[KernelExplainerWrapper, DistributedExplainer]
 
     def _check_inputs(self,
                       background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
@@ -742,7 +744,7 @@ class KernelShap(Explainer, FitMixin):
         # perform grouping if requested by the user
         self.background_data = self._get_data(background_data, group_names, groups, weights, **kwargs)
         explainer_args = (self.predictor, self.background_data)
-        explainer_kwargs = {'link': self.link}
+        explainer_kwargs = {'link': self.link}  # type: Dict[str, Union[str, int]]
         # distribute computation
         if self.distribute:
             # set seed for each process
@@ -752,9 +754,9 @@ class KernelShap(Explainer, FitMixin):
                 KernelExplainerWrapper,
                 explainer_args,
                 explainer_kwargs,
-            )  # type: DistributedExplainer
+            )  #
         else:
-            self._explainer = KernelExplainerWrapper(*explainer_args, **explainer_kwargs)  # type: KernelExplainerWrapper # noqa: E501
+            self._explainer = KernelExplainerWrapper(*explainer_args, **explainer_kwargs)
         self.expected_value = self._explainer.expected_value
         if not self._explainer.vector_out:
             logger.warning(
@@ -846,9 +848,13 @@ class KernelShap(Explainer, FitMixin):
         if isinstance(expected_value, float):
             expected_value = [expected_value]
 
+        # TODO: @janis: the type is ignored because the distributed explainer can also return a generator or something
+        #  else than a list of objects (because it's a generic class). An API update is necessary in order to seamlessly
+        #  deal with this. Ignoring with the assumption that this feature is WIP and will not be used for now
+        #  (aka, return_generator=True is not passed to the DistributedExplainer)
         explanation = self.build_explanation(
             X,
-            shap_values,
+            shap_values,  # type: ignore
             expected_value,
             summarise_result=summarise_result,
             cat_vars_start_idx=cat_vars_start_idx,

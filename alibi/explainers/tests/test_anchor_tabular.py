@@ -88,7 +88,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
 
 @pytest.mark.parametrize('ncpu', [2], ids='ncpu={}'.format)
 @pytest.mark.parametrize('predict_type', ('proba', 'class'), ids='predict_type={}'.format)
-@pytest.mark.parametrize('at_defaults', [0.95], ids='threshold={}'.format, indirect=True)
+@pytest.mark.parametrize('at_defaults', [0.94], ids='threshold={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
                          [lazy_fixture('iris_data')],
                          indirect=True,

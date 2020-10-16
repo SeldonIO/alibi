@@ -13,14 +13,14 @@ The following table summarizes the capabilities of the current algorithms:
 
 |Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Distributed|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔||
-|[Anchors](../methods/Anchors.ipynb)|BB|local|✔||✔|✔|✔|✔|For Tabular||
-|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional||
-|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No||
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional||
-|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional||
+|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
+|[Anchors](../methods/Anchors.ipynb)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
+|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
+|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
+|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
+|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional|| 
+|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | 
 
 
 

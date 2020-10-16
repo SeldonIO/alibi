@@ -1113,13 +1113,26 @@ def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_p
 # TreeShap tests start here
 
 
-mock_ker_exp_params = [(5, 'raw'), ]
+def mock_tree_expln_id(params: List):
+    """
+    Formatter to display mock TreeShap explainer constructor args in command line.
+
+    Parameters
+    ----------
+    params
+        Iterable with values for MockPredictor output dimension, `link` and `distributed_opts`.
+    """
+    fmt = 'pred_out_dim={}, model_output={}'
+    return fmt.format(*params)
+
+
+mock_tree_expln_params = [(5, 'raw'), ]
 data_dimensions = [(TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49), (55, 49), (1, 49)]
 data_types = ['array', 'frame']
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 def test__check_inputs_tree(caplog, mock_tree_shap_explainer, data_dimension, data_type):
@@ -1139,7 +1152,7 @@ def test__check_inputs_tree(caplog, mock_tree_shap_explainer, data_dimension, da
         assert not records
 
 
-mock_ker_exp_params = [(5, 'raw'), ]  # second element refers to the model output type
+mock_tree_expln_params = [(5, 'raw'), ]  # second element refers to the model output type
 data_dimension = [
     (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD + 5, 49),
     (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD - 12, 49),
@@ -1150,7 +1163,7 @@ categorical_names = [{}, {0: ['a', 'b', 'c']}]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_dimension', data_dimension, ids='n_feats_samples={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('categorical_names', categorical_names, ids='categorical_names={}'.format)
@@ -1189,11 +1202,11 @@ data_dimension = [
     (TREE_SHAP_BACKGROUND_WARNING_THRESHOLD - 12, 49),
     (1, 49)
 ]
-mock_ker_exp_params = [(5, 'raw'), (1, 'raw'), ]
+mock_tree_expln_params = [(5, 'raw'), (1, 'raw'), ]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_background', summarise_background, ids='summarise={}'.format)
 @pytest.mark.parametrize('data_dimension', data_dimensions, ids='n_samples_feats={}'.format)
@@ -1264,14 +1277,14 @@ def test_fit_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, summ
         assert_message_in_logs('scalar', records)
 
 
-mock_ker_exp_params = [(5, 'raw'), (1, 'raw'), ]
+mock_tree_expln_params = [(5, 'raw'), (1, 'raw'), ]
 data_types = ['frame', 'array', 'none', 'catboost.Pool']
 summarise_result = [False, True]
 interactions = [False, True]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
@@ -1301,6 +1314,7 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
     explainer.fit(background_data)
 
     # patch _check_* methods to make testing easier: the point is to test explain
+    # TODO: @janis: let's do path.multiple or something like that
     with unittest.mock.patch.object(explainer, '_check_interactions'):
         with unittest.mock.patch.object(explainer, '_check_explainer_setup'):
             with unittest.mock.patch.object(explainer, 'build_explanation'):
@@ -1334,14 +1348,14 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
                 assert not explainer.meta['params']['explain_loss']
 
 
-mock_ker_exp_params = [(1, 'raw'), ]
+mock_tree_expln_params = [(1, 'raw'), ]
 data_types = ['frame', 'array', 'none', 'catboost.Pool']
 approximate = [True, False]
 labels = [True, False]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('approximate', approximate, ids='approximate={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
@@ -1379,13 +1393,13 @@ def test__check_interactions(caplog, mock_tree_shap_explainer, data_type, approx
         assert not records
 
 
-mock_ker_exp_params = [(1, 'raw'), (1, 'probability'), (1, 'probability_doubled'), (1, 'log_loss')]
+mock_tree_expln_params = [(1, 'raw'), (1, 'probability'), (1, 'probability_doubled'), (1, 'log_loss')]
 data_types = ['frame', 'array', 'none', 'catboost.Pool']
 labels = [True, False]
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
 def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
@@ -1426,7 +1440,7 @@ def test__check_explainer_setup(mock_tree_shap_explainer, data_type, labels):
                 explainer._check_explainer_setup(background_data, model_output, y)
 
 
-mock_ker_exp_params = [
+mock_tree_expln_params = [
     (5, 'raw'),
     (1, 'raw'),
     (1, 'probability'),
@@ -1459,7 +1473,7 @@ def uncollect_if_test_tree_api(**kwargs):
 
 # @pytest.mark.skip
 @pytest.mark.uncollect_if(func=uncollect_if_test_tree_api)
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
 @pytest.mark.parametrize('data_type', data_types, ids='data_type={}'.format)
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
@@ -1595,7 +1609,7 @@ def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels,
         assert set(explanation.meta['params']) == set(TREE_SHAP_PARAMS)
 
 
-mock_ker_exp_params = [(1, 'raw'), ]
+mock_tree_expln_params = [(1, 'raw'), ]
 vars_start_enc_dim = [
     ([0, 4], [2, 6]),
     ([0, 4], None),
@@ -1604,7 +1618,7 @@ vars_start_enc_dim = [
 
 
 # @pytest.mark.skip
-@pytest.mark.parametrize('mock_tree_shap_explainer', mock_ker_exp_params, indirect=True, ids='n_classes, link={}'.format)
+@pytest.mark.parametrize('mock_tree_shap_explainer', mock_tree_expln_params, indirect=True, ids=mock_tree_expln_id)
 @pytest.mark.parametrize('cat_vars_start_enc_dim', vars_start_enc_dim, ids='start_dim={}'.format)
 def test__check_result_summarisation(caplog, mock_tree_shap_explainer, cat_vars_start_enc_dim):
     """

@@ -34,7 +34,7 @@ one of the requirements for running the test suite.
 We use `flake8` for linting adhering to PEP8 with exceptions defined in `setup.cfg`.
 
 ## Syntax
-We use `pyupgrade` (via `nbqa`) to ensure that the Jupyter Notebooks in the documentation make use of syntax from
+We use `pyupgrade` (run via `nbqa`) to ensure that the Jupyter Notebooks in the documentation make use of syntax from
 Python3.6 onwards.
 
 ## Type checking

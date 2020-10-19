@@ -50,6 +50,7 @@
    examples/kernel_shap_wine_lr
    examples/kernel_shap_adult_lr
    examples/kernel_shap_adult_categorical_preproc
+   examples/distributed_kernel_shap_adult_lr
    examples/linearity_measure_iris
    examples/linearity_measure_fashion_mnist
    examples/trustscore_iris

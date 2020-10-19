@@ -127,5 +127,12 @@ explanation.anchor
 ['petal width (cm) > 1.80', 'sepal width (cm) <= 2.80']
 ```
 
+Some algorithms, such as [Kernel SHAP](../methods/KernelSHAP.ipynb), can run batches of explanations in parallel, if the number of cores is specified in the algorithm constructor:
+```python
+distributed_ks = KernelShap(predict_fn, distributed_opts={'n_cpus': 10})
+```
+
+Note that this requires the user to run ``pip install alibi[ray]`` to install dependencies of the distributed backend.
+
 The exact details will vary slightly from method to method, so we encourage the reader to become
 familiar with the [types of algorithms supported](../overview/algorithms.md) in Alibi.

@@ -14,7 +14,7 @@ def check_ray() -> bool:
     """
     Checks if ray is installed.
 
-    Returns:
+    Returns
     -------
         A bool indicating whether ray is installed or not.
     """
@@ -60,21 +60,26 @@ class ActorPool(object):
         self._pending_submits = []
 
     def map(self, fn, values, chunksize=1):
-        """Apply the given function in parallel over the actors and values.
-        This returns an ordered iterator that will return results of the map
-        as they finish. Note that you must iterate over the iterator to force
-        the computation to finish.
-        Arguments:
-            fn (func): Function that takes (actor, value) as argument and
-                returns an ObjectID computing the result over the value. The
-                actor will be considered busy until the ObjectID completes.
-            values (list): List of values that fn(actor, value) should be
-                applied to.
-            chunksize (int): splits the list of values to be submitted to the
-                parallel process into sublists of size chunksize or less
-        Returns:
+        """Apply the given function in parallel over the actors and values. This returns an ordered iterator that will
+        return results of the map as they finish. Note that you must iterate over the iterator to force the computation
+        to finish.
+
+        Parameters
+        ----------
+        fn (func)
+            Function that takes (actor, value) as argument and returns an ObjectID computing the result over the value.
+            The actor will be considered busy until the ObjectID completes.
+        values (list)
+            List of values that fn(actor, value) should be applied to.
+        chunksize (int)
+            splits the list of values to be submitted to the parallel process into sublists of size chunksize or less
+
+        Returns
+        -------
             Iterator over results from applying fn to the actors and values.
-        Examples:
+
+        Examples
+        --------
             >>> pool = ActorPool(...)
             >>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
             [2, 4, 6, 8]
@@ -88,21 +93,26 @@ class ActorPool(object):
             yield self.get_next()
 
     def map_unordered(self, fn, values, chunksize=1):
-        """Similar to map(), but returning an unordered iterator.
-        This returns an unordered iterator that will return results of the map
-        as they finish. This can be more efficient that map() if some results
-        take longer to compute than others.
-        Arguments:
-            fn (func): Function that takes (actor, value) as argument and
-                returns an ObjectID computing the result over the value. The
-                actor will be considered busy until the ObjectID completes.
-            values (list): List of values that fn(actor, value) should be
-                applied to.
-            chunksize (int): splits the list of values to be submitted to the
-                parallel process into sublists of size chunksize or less
-        Returns:
+        """Similar to map(), but returning an unordered iterator. This returns an unordered iterator that will
+        return results of the map as they finish. This can be more efficient that map() if some results take longer to
+        compute than others.
+
+        Parameters
+        ----------
+        fn (func)
+            Function that takes (actor, value) as argument and returns an ObjectID computing the result over the value.
+            The actor will be considered busy until the ObjectID completes.
+        values (list)
+            List of values that fn(actor, value) should be applied to.
+        chunksize (int)
+            splits the list of values to be submitted to the parallel process into sublists of size chunksize or less
+
+        Returns
+        -------
             Iterator over results from applying fn to the actors and values.
-        Examples:
+
+        Examples
+        --------
             >>> pool = ActorPool(...)
             >>> print(pool.map(lambda a, v: a.double.remote(v), [1, 2, 3, 4]))
             [6, 2, 4, 8]
@@ -116,16 +126,18 @@ class ActorPool(object):
             yield self.get_next_unordered()
 
     def submit(self, fn, value):
-        """Schedule a single task to run in the pool.
-        This has the same argument semantics as map(), but takes on a single
-        value instead of a list of values. The result can be retrieved using
-        get_next() / get_next_unordered().
-        Arguments:
-            fn (func): Function that takes (actor, value) as argument and
-                returns an ObjectID computing the result over the value. The
-                actor will be considered busy until the ObjectID completes.
-            value (object): Value to compute a result for.
-        Examples:
+        """Schedule a single task to run in the pool. This has the same argument semantics as map(), but takes on a
+        single value instead of a list of values. The result can be retrieved using get_next() / get_next_unordered().
+
+        Parameters
+        ----------
+        fn (func)
+            Function that takes (actor, value) as argument and returns an ObjectID computing the result over the value.
+            The actor will be considered busy until the ObjectID completes.
+        value (object): Value to compute a result for.
+
+        Examples
+        --------
             >>> pool = ActorPool(...)
             >>> pool.submit(lambda a, v: a.double.remote(v), 1)
             >>> pool.submit(lambda a, v: a.double.remote(v), 2)
@@ -143,9 +155,13 @@ class ActorPool(object):
 
     def has_next(self):
         """Returns whether there are any pending results to return.
-        Returns:
-            True if there are any pending results not yet returned.
-        Examples:
+
+        Returns
+        -------
+            `True` if there are any pending results not yet returned.
+
+        Examples
+        --------
             >>> pool = ActorPool(...)
             >>> pool.submit(lambda a, v: a.double.remote(v), 1)
             >>> print(pool.has_next())
@@ -243,18 +259,19 @@ def batch(X: np.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -
     batch_size
         The size of each batch. In particular:
 
-            - if `batch_size` is not `None`, batches of this size are created. The sizes of the batches created
-            might vary if the 0-th dimension of `X` is not divisible by `batch_size`. For an array of length `l`
-            that should be split into `n` sections, it returns `l % n` sub-arrays of size `l//n + 1` and the rest of
-            `size l//n`
+            - if `batch_size` is not `None`, batches of this size are created. The sizes of the batches created might \
+            vary if the 0-th dimension of `X` is not divisible by `batch_size`. For an array of length `l` that should \
+            be split into `n` sections, it returns `l % n` sub-arrays of size `l//n + 1` and the rest of  `size l//n`
+            
             - if `batch_size` is `None`, then `X` is split into `n_batches` sub-arrays.
+            
     n_batches
         Number of batches in which to split the sub-array. Only used if `batch_size = None`
 
     Returns
     ------
         A list of sub-arrays of X.
-    """
+    """  # noqa W605
 
     n_records = X.shape[0]
     if isinstance(X, sparse.spmatrix):
@@ -275,14 +292,14 @@ def batch(X: np.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -
 
 def default_target_fcn(actor: Any, instances: tuple, kwargs: Optional[Dict] = None):
     """
-     A target function that is executed in parallel given an actor pool. Its arguments must be an actor and a batch of
+    A target function that is executed in parallel given an actor pool. Its arguments must be an actor and a batch of
     values to be processed by the actor. Its role is to execute distributed computations when an actor is available.
 
     Parameters
     ----------
     actor
         A `ray` actor. This is typically a class decorated with the @ray.remote decorator, that has been subsequently
-        instantiated using cls.remote(*args, **kwargs).
+        instantiated using ``cls.remote(*args, **kwargs)``.
     instances
         A (batch_index, batch) tuple containing the batch of instances to be explained along with a batch index.
     kwargs
@@ -321,7 +338,7 @@ def concatenate_minibatches(minibatch_results: Union[List[np.ndarray], List[List
     Returns
     -------
         If the input is ``List[np.ndarray]``, a single numpy array obtained by concatenating `minibatch` results along 
-        the 0th axis. \\
+        the 0th axis. \
         If the input is ``List[List[np.ndarray]]`` A list of numpy arrays obtained by concatenating arrays in with the 
         same position in the sublists along the 0th axis.
     """  # noqa W605
@@ -351,7 +368,7 @@ def invert_permutation(p: list) -> np.ndarray:
     """
     Inverts a permutation.
 
-    Parameters:
+    Parameters
     -----------
     p
         Some permutation of 0, 1, ..., len(p)-1. Returns an array s, where s[i] gives the index of i in p.
@@ -430,19 +447,20 @@ class DistributedExplainer:
                     
             The dictionary may contain two additional keys:
                 
-                - ``'actor_cpu_frac'`` (float, <= 1.0, >0.0): This is used to create more than one process on one \\
-                CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when few physical \\ 
-                cores are available. In particular, this is highly useful when the user wants to share a GPU for \\
-                multiple tasks, with the caviat that the machine learning framework itself needs to support running \\ 
+                - ``'actor_cpu_frac'`` (float, <= 1.0, >0.0): This is used to create more than one process on one \
+                CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when few physical \
+                cores are available. In particular, this is highly useful when the user wants to share a GPU for \
+                multiple tasks, with the caviat that the machine learning framework itself needs to support running \
                 multiple replicas on the same GPU. See the ``ray`` documentation `here_` for details.
                 
                 .. _here:
                    https://docs.ray.io/en/stable/resources.html#fractional-resources
                 
-                - ``'algorithm'``: this is specified internally by the caller. It is used in order to register target 
-                function callbacks for the parallel pool These should be implemented in the global scope. 
-                If not specified, its value will be ``'default'``, which will select a default target function which
+                - ``'algorithm'``: this is specified internally by the caller. It is used in order to register target \
+                function callbacks for the parallel pool These should be implemented in the global scope. \
+                If not specified, its value will be ``'default'``, which will select a default target function which \
                 expects the actor has a `get_explanation` method. 
+
         explainer_type
             Explainer class.
         explainer_init_args
@@ -480,7 +498,8 @@ class DistributedExplainer:
             self.target_fcn = globals()[f"{algorithm}_target_fcn"]
 
         if not DistributedExplainer.ray.is_initialized():
-            DistributedExplainer.ray.init(num_cpus=distributed_opts['n_cpus'])
+            logger.info(f"Initialising ray on {self.n_processes} processes!")
+            DistributedExplainer.ray.init(num_cpus=self.n_processes)
 
         # a pool is a collection of handles to different processes that can process data points in parallel
         self.pool = self.create_parallel_pool(
@@ -514,12 +533,13 @@ class DistributedExplainer:
         Notes
         -----
             1. This method assumes that the actor implements a `return_attribute` method.
-            2. Note that we are indexing the idle actors. This means that if a pool was initialised with 5 actors and 3
+            2. Note that we are indexing the idle actors. This means that if a pool was initialised with 5 actors and 3 \
             are busy, indexing with index 2 will raise an IndexError.
-            3. The order of _idle_actors constantly changes - an actor is removed from it if there is a task to execute
-            and appended back when the task is complete. Therefore, indexing at the same position as computation
+            3. The order of _idle_actors constantly changes - an actor is removed from it if there is a task to execute \
+            and appended back when the task is complete. Therefore, indexing at the same position as computation \
             proceeds will result in retrieving state from different processes.
-        """
+
+        """  # noqa W605
 
         if self._actor_index > self.n_processes - 1:
             raise ValueError(f"Index of actor should be less than or equal to {self.n_processes - 1}!")
@@ -590,16 +610,16 @@ class DistributedExplainer:
         --------
         The explanations are returned as:
         
-            - a generator, if the `return_generator` option is specified. This is used so that the caller can access
-            the results as they are computed. This is the only case when this method is non-blocking and the caller \\
+            - a generator, if the `return_generator` option is specified. This is used so that the caller can access \
+            the results as they are computed. This is the only case when this method is non-blocking and the caller \
             needs to call `next` on the generator to trigger the parallel computation
             
+            - a list of objects, whose type depends on the return type of the explainer. This is returned  if no \
+            custom preprocessing function is specified
             
-            - a list of objects, whose type depends on the return type of the explainer. This is returned  if `\\
-            no custom preprocessing function is specified
-            
-            - an object, whose type depends on the return type of the concatenation function return when called with \\
+            - an object, whose type depends on the return type of the concatenation function return when called with \
             a list of minibatch results with the same order as the minibatches
+            
         """  # noqa E501
 
         if kwargs is not None:
@@ -677,6 +697,7 @@ class PoolCollection:
                 cpus_per_pool /= actor_cpu_fraction
 
         if not PoolCollection.ray.is_initialized():
+            logger.info(f"Initialising ray on {distributed_opts['n_cpus']} CPUs")
             PoolCollection.ray.init(num_cpus=distributed_opts['n_cpus'])
 
         opts = copy.deepcopy(distributed_opts)

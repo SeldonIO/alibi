@@ -107,16 +107,16 @@ from method to method so we encourage the reader to become familiar with the
 The following tables summarize the possible use cases for each method.
 
 ### Model Explanations
-|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
-|[ALE](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔|
-|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular|
-|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional|
-|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No|
-|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional|
-|[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional|
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|
-|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| 
+|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|Distributed|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
+|[ALE](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
+|[Anchors](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
+|[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
+|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
+|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
+|[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
+|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
+|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

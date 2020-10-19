@@ -238,9 +238,10 @@ def mock_kernel_shap_explainer(request):
     """
     Instantiates a KernelShap explainer with a mock predictor.
     """
-    pred_out_dim, link = request.param
+
+    pred_out_dim, link, distributed_opts = request.param
     predictor = MockPredictor(out_dim=pred_out_dim, seed=0)
-    explainer = KernelShap(predictor=predictor, seed=0)
+    explainer = KernelShap(predictor=predictor, link=link, distributed_opts=distributed_opts, seed=0)
 
     return explainer
 

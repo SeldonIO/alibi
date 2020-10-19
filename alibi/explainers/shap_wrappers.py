@@ -212,7 +212,7 @@ Default distributed options for KernelShap:
     CPUs are specified. If set to `None`, the code will run sequentially.
     
     - ``'batch_size'``: ``int``, how many instances are explained in the same remote process at once. The `shap` library \
-     of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post_` for batch \
+     of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post`_ for batch \
      size experiments results. If set to `None`, an input array is split in (roughly) equal parts and distributed across \
      the available CPUs.
     

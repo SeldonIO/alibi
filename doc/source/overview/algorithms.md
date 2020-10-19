@@ -11,8 +11,8 @@ only requirement is to have access to a prediction function (which could be an A
 
 The following table summarizes the capabilities of the current algorithms:
 
-|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Distributed|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|
+|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Dist.|
+|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
 |[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
 |[Anchors](../methods/Anchors.ipynb)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
@@ -20,7 +20,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
 |[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | 
+|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
 
 
 
@@ -33,7 +33,7 @@ Key:
  - **Global** - explains the model with respect to a set of instances
  - **Cat. data** - support for categorical features
  - **Train** - whether a training set is required to fit the explainer
- - **Distributed** - whether a batch of explanations can be executed in parallel
+ - **Dist.** - whether a batch of explanations can be executed in parallel
 
 **Accumulated Local Effects (ALE)**: calculates first-order feature effects on the model with
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.

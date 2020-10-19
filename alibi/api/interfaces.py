@@ -3,10 +3,10 @@ import json
 from collections import ChainMap
 from typing import Any
 import logging
+from functools import partial
+import pprint
 
 import attr
-from prettyprinter import pretty_repr
-
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -22,13 +22,46 @@ def default_meta() -> dict:
     }
 
 
+class AlibiPrettyPrinter(pprint.PrettyPrinter):
+    """
+    Overrides the built in dictionary pretty representation to look more similar to the external
+    prettyprinter libary.
+    """
+    _dispatch = {}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _pprint_dict(self, object, stream, indent, allowance, context, level):
+        # compare with https://github.com/python/cpython/blob/3.9/Lib/pprint.py
+        write = stream.write
+        indent += self._indent_per_level
+        write('{\n' + ' ' * (indent + 1))
+        if self._indent_per_level > 1:
+            write((self._indent_per_level - 1) * ' ')
+        length = len(object)
+        if length:
+            if self._sort_dicts:
+                items = sorted(object.items(), key=pprint._safe_tuple)
+            else:
+                items = object.items()
+            self._format_dict_items(items, stream, indent, allowance + 1,
+                                    context, level)
+        write('}\n' + ' ' * (indent - 1))
+
+    _dispatch[dict.__repr__] = _pprint_dict
+
+
+alibi_pformat = partial(AlibiPrettyPrinter(sort_dicts=False).pformat)
+
+
 @attr.s
 class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
 
-    meta = attr.ib(default=attr.Factory(default_meta), repr=pretty_repr)  # type: dict
+    meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
 
     def __attrs_post_init__(self):
         # add a name to the metadata dictionary
@@ -73,8 +106,8 @@ class Explanation:
     """
     Explanation class returned by explainers.
     """
-    meta = attr.ib(repr=pretty_repr)  # type: dict
-    data = attr.ib(repr=pretty_repr)  # type: dict
+    meta = attr.ib(repr=alibi_pformat)  # type: dict
+    data = attr.ib(repr=alibi_pformat)  # type: dict
 
     def __attrs_post_init__(self):
         """

@@ -211,7 +211,6 @@ Key:
   numpy
   Pillow
   pandas
-  prettyprinter
   requests
   scikit-learn
   scikit-image<0.17

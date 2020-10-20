@@ -80,6 +80,11 @@ Alternatively, the development version can be installed:
 pip install git+https://github.com/SeldonIO/alibi.git 
 ```
 
+To take advantage of distributed computation of explanations, install `alibi` with `ray`:
+```bash
+pip install alibi[ray]
+```
+
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
 fit and explain steps. We will use the [AnchorTabular](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
 explainer to illustrate the API:
@@ -208,17 +213,23 @@ Key:
 ```bash
   attrs
   beautifulsoup4
+  matplotlib
   numpy
   Pillow
   pandas
   requests
   scikit-learn
-  scikit-image<0.17
+  scikit-image!=0.17.1
   scipy
   shap>=0.36
-  spacy
+  spacy[lookups]
   tensorflow>=2.0
-  typing-extensions
+  typing-extensions>=3.7.2
+```
+
+Dependencies for distributed computation of explanations:
+```bash
+ray
 ```
 
 ## Citations

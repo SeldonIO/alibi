@@ -7,19 +7,15 @@ from functools import partial
 import pprint
 
 import attr
+from alibi.api.defaults import ExplanationModel, DefaultMeta
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
 
-# default metadata
+# default metadata factory
 def default_meta() -> dict:
-    return {
-        "name": None,
-        "type": [],
-        "explanations": [],
-        "params": {},
-    }
+    return DefaultMeta().dict()
 
 
 class AlibiPrettyPrinter(pprint.PrettyPrinter):
@@ -117,18 +113,30 @@ class Explanation:
         """
         Expose keys stored in self.meta and self.data as attributes of the class.
         """
+
+        # the following validates the explanation against the schema
+        # TODO: this duplicates data, find a more efficient way of getting data from the internal model
+        self._explanation_model = ExplanationModel(meta=self.meta, data=self.data)
+        self.meta = self._explanation_model.meta.dict()
+        self.data = self._explanation_model.data.dict()
+
         for key, value in ChainMap(self.meta, self.data).items():
             setattr(self, key, value)
 
-    def to_json(self) -> str:
+    def to_json(self, **kwargs) -> str:
         """
         Serialize the explanation data and metadata into a json format.
+
+        Parameters
+        ----------
+        kwargs
+            Keyword arguments passed to the `json.dumps` function.
 
         Returns
         -------
         String containing json representation of the explanation
         """
-        return json.dumps(attr.asdict(self), cls=NumpyEncoder)
+        return json.dumps(attr.asdict(self), cls=NumpyEncoder, **kwargs)
 
     @classmethod
     def from_json(cls, jsonrepr) -> "Explanation":

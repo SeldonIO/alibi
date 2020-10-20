@@ -1,5 +1,22 @@
 # Change Log
 
+## [v0.5.5](https://github.com/SeldonIO/alibi/tree/v0.5.5) (2020-10-20)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.4...v0.5.5)
+
+### Added
+- **New feature** Distributed backend using `ray`. To use, install `ray` using `pip install alibi[ray]`.
+- **New feature** `KernelShap` distributed version using the new distributed backend.
+- For anchor methods added an explanation field `data['raw']['instances']` which is a batch-wise version of the existing `data['raw']['instance']`. This is in preparation for the eventual batch support for anchor methods.
+- Pre-commit hook for `pyupgrade` via `nbqa` for formatting example notebooks using Python 3.6+ syntax.
+
+### Fixed
+- Flaky test for distributed anchors (note: this is the old non-batchwise implementation) by dropping the precision treshold.
+- Notebook string formatting upgraded to Python 3.6+ f-strings.
+
+### Changed
+- **Breaking change** For anchor methods, the returned explanation field `data['raw']['prediction']` is now batch-wise, i.e. for `AnchorTabular` and `AnchorImage` it is a 1-dimensional `numpy` array whilst for `AnchorText` it is a list of strings. This is in preparation for the eventual batch support for anchor methods.
+- Removed dependency on `prettyprinter` and substituted with a slightly modified standard library version of `PrettyPrinter`. This is to prepare for a `conda` release which requires all dependencies to also be published on `conda`.
+
 ## [v0.5.4](https://github.com/SeldonIO/alibi/tree/v0.5.4) (2020-09-03)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.3...v0.5.4)
 

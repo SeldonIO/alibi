@@ -31,8 +31,12 @@ class AlibiPrettyPrinter(pprint.PrettyPrinter):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # `sort_dicts` kwarg was only introduced in Python 3.8 so we just override it here.
+        # Before Python 3.8 the printing was done in insertion order by default.
+        self._sort_dicts = False
 
     def _pprint_dict(self, object, stream, indent, allowance, context, level):
+        # Add a few newlines and the appropriate indentation to dictionary printing
         # compare with https://github.com/python/cpython/blob/3.9/Lib/pprint.py
         write = stream.write
         indent += self._indent_per_level
@@ -52,7 +56,7 @@ class AlibiPrettyPrinter(pprint.PrettyPrinter):
     _dispatch[dict.__repr__] = _pprint_dict
 
 
-alibi_pformat = partial(AlibiPrettyPrinter(sort_dicts=False).pformat)
+alibi_pformat = partial(AlibiPrettyPrinter().pformat)
 
 
 @attr.s

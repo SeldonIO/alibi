@@ -426,7 +426,8 @@ class AnchorImage(Explainer):
         """
 
         result['instance'] = image
-        result['prediction'] = predicted_label
+        result['instances'] = np.expand_dims(image, 0)
+        result['prediction'] = np.array([predicted_label])
 
         # overlay image with anchor mask
         anchor = self.overlay_mask(image, self.segments, result['feature'])

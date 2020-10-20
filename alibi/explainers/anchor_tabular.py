@@ -869,8 +869,9 @@ class AnchorTabular(Explainer, FitMixin):
         """
 
         self.add_names_to_exp(result)
-        result['prediction'] = predicted_label
+        result['prediction'] = np.array([predicted_label])
         result['instance'] = X
+        result['instances'] = np.atleast_2d(X)
         exp = AnchorExplanation('tabular', result)
 
         # output explanation dictionary

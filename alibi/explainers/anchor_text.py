@@ -597,7 +597,8 @@ class AnchorText(Explainer):
         """
 
         result['instance'] = text
-        result['prediction'] = predicted_label
+        result['instances'] = [text]  # TODO: should this be an array?
+        result['prediction'] = np.array([predicted_label])
         exp = AnchorExplanation('text', result)
 
         # output explanation dictionary

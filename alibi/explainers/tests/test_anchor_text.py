@@ -86,7 +86,7 @@ def test_anchor_text(lr_classifier, text, n_punctuation_marks, n_unique_words,
         use_similarity_proba=use_similarity_proba,
     )
     assert explanation.precision >= threshold
-    assert explanation.raw['prediction'] == label
+    assert explanation.raw['prediction'].item() == label
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR.keys()
 

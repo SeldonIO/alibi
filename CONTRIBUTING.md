@@ -16,7 +16,7 @@ This will install everything needed to run alibi and all the dev tools
 
 ## Git pre-commit hooks
 To make it easier to format code locally before submitting a PR, we provide
-integration with `pre-commit` to run `flake8` and `mypy` hooks before every commit.
+integration with `pre-commit` to run `flake8`, `mypy` and `pyupgrade` (via `nbqa`) hooks before every commit.
 After installing the development requirements and cloning the package, run `pre-commit install`
 from the project root to install the hooks locally. Now before every `git commit ...`
 these hooks will be run to verify that the linting and type checking is correct. If there are
@@ -32,6 +32,10 @@ one of the requirements for running the test suite.
 
 ## Linter
 We use `flake8` for linting adhering to PEP8 with exceptions defined in `setup.cfg`.
+
+## Syntax
+We use `pyupgrade` (run via `nbqa`) to ensure that the Jupyter notebooks in the documentation make use of syntax from
+Python 3.6 onwards.
 
 ## Type checking
 We use type hints to develop the libary and `mypy` to for static type checking. Some

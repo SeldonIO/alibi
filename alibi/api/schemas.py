@@ -23,6 +23,17 @@ class DefaultMeta(AlibiBaseModel):
     params: dict = {}
 
 
+# ALE
+class ALEData(AlibiBaseModel):
+    ale_values: List[Array[float, (-1, -1)]]  # 2D for classification, for regression 1D empty axis, i.e. (-1, 1)
+    constant_value: float
+    ale0: List[Array[float, (-1,)]]  # size of array corresponds to the number of targets/classes
+    feature_values: List[Array[float, (-1,)]]  # TODO: should be same shape as ale_values
+    feature_names: Array[str, (-1,)]  # this is an array for easier post-processing
+    target_names: Array[str, (-1,)]  # ditto
+    feature_deciles: List[Array[float, (11,)]]  # inclusive of 0th and 10th decile, hence 11 points
+
+
 # Anchors
 
 class AnchorDataRawTabularExamples(AlibiBaseModel):
@@ -84,9 +95,21 @@ class AnchorData(AlibiBaseModel):
     raw: Union[AnchorDataRawTabular, AnchorDataRawText, AnchorDataRawImage]
 
 
+# CEM
+
+# CounterFactual
+
+# CFProto
+
+# IntegratedGradients
+
+# KernelShap
+
+# TreeShap
+
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: AnchorData
+    data: Union[ALEData, AnchorData]
 
 
 def numpy_encoder(obj: Any) -> Any:

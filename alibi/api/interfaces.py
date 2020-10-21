@@ -7,7 +7,7 @@ from functools import partial
 import pprint
 
 import attr
-from alibi.api.defaults import ExplanationModel, DefaultMeta
+from alibi.api.schemas import ExplanationModel, DefaultMeta
 import numpy as np
 
 logger = logging.getLogger(__name__)

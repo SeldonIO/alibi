@@ -25,8 +25,6 @@ class DefaultMeta(AlibiBaseModel):
 
 # Anchors
 
-## Common
-
 class AnchorDataRawTabularExamples(AlibiBaseModel):
     covered_true: Array[Any, (-1, -1)]
     covered_false: Array[Any, (-1, -1)]
@@ -35,7 +33,7 @@ class AnchorDataRawTabularExamples(AlibiBaseModel):
 
 
 class AnchorDataRawImageExamples(AlibiBaseModel):
-    covered_true: Union[List[Array], Array]
+    covered_true: Union[List[Array], Array]  # TODO: need to fix this and only return Array
     covered_false: Union[List[Array], Array]
     uncovered_true: Union[List[Array], Array]
     uncovered_false: Union[List[Array], Array]
@@ -48,75 +46,47 @@ class AnchorDataRawTextExamples(AlibiBaseModel):
     uncovered_false: Array[str, (-1,)]
 
 
-class AnchorDataRawTabular(AlibiBaseModel):
+class AnchorDataRawCommon(AlibiBaseModel):
     feature: List[int]
     mean: List[float]
     precision: List[confloat(ge=0.0, le=1.0)]
     coverage: List[confloat(ge=0.0, le=1.0)]
-    examples: conlist(AnchorDataRawTabularExamples, min_items=2, max_items=2)
     all_precision: float
     num_preds: int
     success: bool
-    names: List[str]
     prediction: int
+
+
+class AnchorDataRawTabular(AnchorDataRawCommon):
+    examples: conlist(AnchorDataRawTabularExamples, min_items=2, max_items=2)
+    names: List[str]
     instance: Array[Any, (-1,)]
     instances: Array[Any, (-1, 1)]
 
 
-class AnchorDataRawImage(AlibiBaseModel):
-    feature: List[int]
-    mean: List[float]
-    precision: List[confloat(ge=0.0, le=1.0)]
-    coverage: List[confloat(ge=0.0, le=1.0)]
-    examples: List[AnchorDataRawImageExamples]
-    all_precision: float
-    num_preds: int
-    success: bool
-    prediction: int
+class AnchorDataRawImage(AnchorDataRawCommon):
+    examples: conlist(AnchorDataRawImageExamples, min_items=1, max_items=1)
     instance: Array
     instances: Array
 
 
-class AnchorDataRawText(AlibiBaseModel):
-    feature: List[int]
-    mean: List[float]
-    precision: List[confloat(ge=0.0, le=1.0)]
-    coverage: List[confloat(ge=0.0, le=1.0)]
-    examples: conlist(AnchorDataRawTextExamples, min_items=1, max_items=1)
-    all_precision: float
-    num_preds: int
-    success: bool
+class AnchorDataRawText(AnchorDataRawCommon):
+    examples: conlist(AnchorDataRawTextExamples, min_items=2, max_items=2)
     names: List[str]
-    prediction: int
     instance: str
     instances: List[str]
 
 
-class AnchorDataTabular(AlibiBaseModel):
-    anchor: List[str]
+class AnchorData(AlibiBaseModel):
+    anchor: Union[List[str], Array]  # Array for images, List[str] for tabular and text
     precision: confloat(ge=0.0, le=1.0)
-    coverage: confloat(ge=0.0, le=1.0)
-    raw: AnchorDataRawTabular
-
-
-class AnchorDataImage(AlibiBaseModel):
-    anchor: Array
-    precision: confloat(ge=0.0, le=1.0)
-    coverage: confloat(ge=0.0, le=1.0)
-    raw: AnchorDataRawImage
-    segments: Array
-
-
-class AnchorDataText(AlibiBaseModel):
-    anchor: List[str]
-    precision: confloat(ge=0.0, le=1.0)
-    coverage: confloat(ge=0.0, le=1.0)
-    raw: AnchorDataRawText
+    coverage: confloat(ge=-0.0, le=1.0)
+    raw: Union[AnchorDataRawTabular, AnchorDataRawText, AnchorDataRawImage]
 
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorDataTabular, AnchorDataText, AnchorDataImage]
+    data: AnchorData
 
 
 def numpy_encoder(obj: Any) -> Any:

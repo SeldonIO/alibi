@@ -3,63 +3,6 @@ This module defines the default metadata and data dictionaries for each explanat
 Note that the "name" field is automatically populated upon initialization of the corresponding
 Explainer class.
 """
-from alibi.api.types import Array
-from pydantic import BaseModel, conlist, confloat
-from typing import Any, List, Optional, Union
-from typing_extensions import Literal
-
-import numpy as np
-
-ModelType = Literal['blackbox', 'whitebox']
-ExpType = Literal['local', 'global']
-
-
-class AlibiBaseModel(BaseModel):
-    class Config:
-        json_encoders = {
-            np.ndarray: lambda x: numpy_encoder(x)
-        }
-
-
-class DefaultMeta(AlibiBaseModel):
-    name: Optional[str] = None
-    type: List[ModelType] = []
-    explanations: List[ExpType] = []
-    params: dict = {}
-
-
-class AnchorDataRawExamples(AlibiBaseModel):
-    covered_true: Array[Any, (-1, -1)]
-    covered_false: Array[Any, (-1, -1)]
-    uncovered_true: Array[Any, (-1, -1)]
-    uncovered_false: Array[Any, (-1, -1)]
-
-
-class AnchorDataRaw(AlibiBaseModel):
-    feature: List[int]
-    mean: List[float]
-    precision: List[confloat(ge=0.0, le=1.0)]
-    coverage: List[confloat(ge=0.0, le=1.0)]
-    examples: conlist(AnchorDataRawExamples, min_items=2, max_items=2)
-    all_precision: float
-    num_preds: int
-    success: bool
-    names: List[str]
-    prediction: int
-    instance: Array[Any, (-1,)]
-
-
-class AnchorData(AlibiBaseModel):
-    anchor: List[str]
-    precision: float
-    coverage: float
-    raw: AnchorDataRaw
-
-
-class ExplanationModel(AlibiBaseModel):
-    meta: DefaultMeta
-    data: Union[AnchorData]
-
 
 # Anchors
 DEFAULT_META_ANCHOR = {"name": None,
@@ -280,27 +223,3 @@ DEFAULT_DATA_INTGRAD = {
 """
 Default IntegratedGradients data.
 """
-
-
-def numpy_encoder(obj: Any) -> Any:
-    if isinstance(
-            obj,
-            (
-                    np.int_,
-                    np.intc,
-                    np.intp,
-                    np.int8,
-                    np.int16,
-                    np.int32,
-                    np.int64,
-                    np.uint8,
-                    np.uint16,
-                    np.uint32,
-                    np.uint64,
-            ),
-    ):
-        return int(obj)
-    elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
-        return float(obj)
-    elif isinstance(obj, (np.ndarray,)):
-        return obj.tolist()

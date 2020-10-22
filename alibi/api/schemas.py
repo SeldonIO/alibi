@@ -69,20 +69,20 @@ class AnchorDataRawCommon(AlibiBaseModel):
 
 
 class AnchorDataRawTabular(AnchorDataRawCommon):
-    examples: conlist(AnchorDataRawTabularExamples, min_items=2, max_items=2)
+    examples: List[AnchorDataRawTabularExamples]  # one for each partial anchor
     names: List[str]
     instance: Array[Any, (-1,)]
     instances: Array[Any, (-1, 1)]
 
 
 class AnchorDataRawImage(AnchorDataRawCommon):
-    examples: conlist(AnchorDataRawImageExamples, min_items=1, max_items=1)
+    examples: List[AnchorDataRawImageExamples]  # one for each partial anchor
     instance: Array
     instances: Array
 
 
 class AnchorDataRawText(AnchorDataRawCommon):
-    examples: conlist(AnchorDataRawTextExamples, min_items=2, max_items=2)
+    examples: List[AnchorDataRawTextExamples]  # one for each partial anchor
     names: List[str]
     instance: str
     instances: List[str]
@@ -109,7 +109,7 @@ class AnchorData(AlibiBaseModel):
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[ALEData, AnchorData]
+    data: Union[AnchorData, ALEData]
 
 
 def numpy_encoder(obj: Any) -> Any:

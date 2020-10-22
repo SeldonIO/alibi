@@ -522,7 +522,8 @@ class CounterFactual(Explainer):
             lb_ix = np.where(cf_count > 0)[0][1]  # take the second order of magnitude with some CFs as lower-bound
             # TODO robust?
         except IndexError:
-            logger.exception('No appropriate lambda range found, try decreasing lam_init')
+            logger.error('No appropriate lambda range found, try decreasing lam_init')
+            return
         lam_lb = np.ones(self.batch_size) * lams[lb_ix]
 
         # find the upper bound
@@ -530,8 +531,8 @@ class CounterFactual(Explainer):
             ub_ix = np.where(cf_count == 0)[0][-1]  # TODO is 0 robust?
         except IndexError:
             ub_ix = 0
-            logger.exception('Could not find upper bound for lambda where no solutions found, setting upper bound to '
-                             'lam_init=%s', lams[ub_ix])
+            logger.debug('Could not find upper bound for lambda where no solutions found, setting upper bound to '
+                         'lam_init=%s', lams[ub_ix])
         lam_ub = np.ones(self.batch_size) * lams[ub_ix]
 
         # start the search in the middle

@@ -26,9 +26,6 @@ setup(name='alibi',
       packages=find_packages(),
       include_package_data=True,
       python_requires='>=3.6',
-      setup_requires=[
-          'pytest-runner'
-      ],
       install_requires=[
           'attrs',
           'beautifulsoup4',
@@ -44,12 +41,6 @@ setup(name='alibi',
           'shap>=0.36',
           'scipy',
           'typing-extensions>=3.7.2'
-      ],
-      tests_require=[
-          'pytest',
-          'pytest-cov',
-          'pytest-xdist',
-          'pytest-lazy-fixture',
       ],
       extras_require=extras_require,
       test_suite='tests',

@@ -4,15 +4,15 @@ install:
 
 .PHONY: test
 test:
-	python setup.py test
+	pytest alibi
 
 .PHONY: lint
 lint:
-	flake8 .
+	flake8 alibi
 
 .PHONY: mypy
 mypy:
-	mypy .
+	mypy alibi
 
 .PHONY: build_docs
 build_docs:

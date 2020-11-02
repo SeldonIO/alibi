@@ -345,7 +345,11 @@ class IntegratedGradients(Explainer):
         self.meta['params'].update(params)
 
         self.model = model
-        self.input_dtype = self.model.input.dtype
+        if not isinstance(self.model.input, list):
+            self.inputs = [self.model.input]
+        else:
+            self.inputs = self.model.input
+        self.input_dtypes = [inp.dtype for inp in self.inputs]
         self.layer = layer
         self.n_steps = n_steps
         self.method = method
@@ -388,24 +392,19 @@ class IntegratedGradients(Explainer):
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
-        nb_samples = len(X)
+        if not isinstance(X, list):
+            X = [X]
+            baselines = [baselines]
 
-        # format and check inputs and targets
-        baselines = _format_input_baseline(X, baselines)
-        target = _format_target(target, nb_samples)
+        assert max([len(x) for x in X]) == min([len(x) for x in X])
+        nb_samples = len(X[0])
 
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-
-        # construct paths and prepare batches
-        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
+        target = _format_target(target, nb_samples)
         if target is not None:
             target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
-            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
-        else:
-            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
-        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         # fix orginal call method for layer
         if self.layer is not None:
@@ -413,47 +412,78 @@ class IntegratedGradients(Explainer):
         else:
             orig_call = None
 
+        paths = []
+        for i in range(len(X)):
+            x, baseline, inp_dtype = X[i], baselines[i], self.input_dtypes[i]
+            # format and check inputs and targets
+            baseline = _format_input_baseline(x, baseline)
+            baselines[i] = baseline
+
+            # construct paths and prepare batches
+            path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
+            print(type(path), path.shape)
+            paths.append(path)
+
+        def generator():
+            inps_labels = paths + [target_paths]
+            for y in zip(*inps_labels):
+                yield tuple(y[i] for i in range(len(y) - 1)), y[-1]
+
+        if target is not None:
+            paths_ds = tf.data.Dataset.from_generator(generator,
+                                                      output_types=(tuple(self.input_dtypes),
+                                                                    tf.int64)).batch(self.internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
+
+        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
+
         # calculate gradients for batches
         batches = []
-        for path in paths_ds:
+        for p in paths_ds:
 
             if target is not None:
-                paths_b, target_b = path
+                paths_b, target_b = p
             else:
-                paths_b, target_b = path, None
-
+                paths_b, target_b = p, None
+            paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
             if self.layer is not None:
                 grads_b = _gradients_layer(self.model, self.layer, orig_call,
-                                           tf.dtypes.cast(paths_b, self.input_dtype), target_b)
+                                           tf.dtypes.cast(paths_b, inp_dtype), target_b)
             else:
-                grads_b = _gradients_input(self.model,
-                                           tf.dtypes.cast(paths_b, self.input_dtype), target_b)
-
+                grads_b = _gradients_input(self.model, paths_b, target_b)
             batches.append(grads_b)
+        print(len(batches[:][0]))
+        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
 
         # tf concatatation
-        grads = tf.concat(batches, 0)
-        shape = grads.shape[1:]
-        if isinstance(shape, tf.TensorShape):
-            shape = tuple(shape.as_list())
+        attributions = []
+        for j in range(len(self.inputs)):
+            print(j)
+            grads = tf.concat(batches[j], 0)
+            shape = grads.shape[1:]
+            if isinstance(shape, tf.TensorShape):
+                shape = tuple(shape.as_list())
 
-        # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-        if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
-            sign = 2 * target_paths - 1
-            grads = np.array([s * g for s, g in zip(sign, grads)])
+            # invert sign of gradients for target 0 examples if classifier returns only positive class probability
+            if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
+                sign = 2 * target_paths - 1
+                grads = np.array([s * g for s, g in zip(sign, grads)])
 
-        grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
+            grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
+            print(grads.shape)
 
-        # sum integral terms and scale attributions
-        sum_int = _sum_integral_terms(step_sizes, grads.numpy())
-        if self.layer is not None:
-            layer_output = self.layer.output
-            model_layer = Model(self.model.input, outputs=layer_output)
-            norm = (model_layer(X) - model_layer(baselines)).numpy()
-        else:
-            norm = X - baselines
-        attributions = norm * sum_int
-
+            # sum integral terms and scale attributions
+            sum_int = _sum_integral_terms(step_sizes, grads.numpy())
+            if self.layer is not None:
+                layer_output = self.layer.output
+                model_layer = Model(self.model.input, outputs=layer_output)
+                norm = (model_layer(X) - model_layer(baselines)).numpy()
+            else:
+                norm = X[j] - baselines[j]
+            attribution = norm * sum_int
+            attributions.append(attribution)
+        return attributions
         return self.build_explanation(
             X=X,
             baselines=baselines,

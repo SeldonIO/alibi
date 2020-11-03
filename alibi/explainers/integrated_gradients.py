@@ -446,14 +446,16 @@ class IntegratedGradients(Explainer):
                 paths_b, target_b = p
             else:
                 paths_b, target_b = p, None
+
             paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
+
             if self.layer is not None:
                 grads_b = _gradients_layer(self.model, self.layer, orig_call,
                                            tf.dtypes.cast(paths_b, inp_dtype), target_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
             batches.append(grads_b)
-        print(len(batches[:][0]))
+
         batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
 
         # tf concatatation
@@ -483,7 +485,7 @@ class IntegratedGradients(Explainer):
                 norm = X[j] - baselines[j]
             attribution = norm * sum_int
             attributions.append(attribution)
-        return attributions
+
         return self.build_explanation(
             X=X,
             baselines=baselines,
@@ -507,7 +509,10 @@ class IntegratedGradients(Explainer):
         data.update(predictions=predictions)
 
         # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model, attributions, baselines, X, target)
+        deltas = []
+        for i in range(len(attributions)):
+            delta = _compute_convergence_delta(self.model, attributions[i], baselines[i], X[i], target)
+            deltas.append(delta)
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

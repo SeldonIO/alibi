@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
+                               input_dtypes: list,
                                attributions: np.ndarray,
                                start_point: np.ndarray,
                                end_point: np.ndarray,
@@ -42,14 +43,32 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     -------
         Convergence deltas for each data point.
     """
+    if len(attributions) != len(start_point):
+        raise ValueError("'attributions' and 'start_point' must have the same lenght. "
+                         "'attributions' lenght: {}. 'start_point lenght: {}'".format(len(attributions), len(start_point)))
+    if len(attributions) != len(end_point):
+        raise ValueError("'attributions' and 'end_point' must have the same lenght. "
+                         "'attributions' lenght: {}. 'end_point lenght: {}'".format(len(attributions), len(end_point)))
+    if len(start_point) != len(end_point):
+        raise ValueError("'start_point' and 'end_point' must have the same lenght. "
+                         "'start_point' lenght: {}. 'end_point lenght: {}'".format(len(start_point), len(end_point)))
+    
+    for i in range(len(attributions)):
+        if end_point[i].shape[0] != attributions[i].shape[0]:
+            raise ValueError("`attributions {}` and `end_point{}` must match on the first dimension "
+                             "but found `attributions`: {} and `end_point`: {}".format(i, i, attributions[i].shape[0],
+                                                                                       end_point[i].shape[0]))
+        if start_point[i].shape[0] != attributions[i].shape[0]:
+            raise ValueError("`attributions {}` and `start_point{}` must match on the first dimension "
+                             "but found `attributions`: {} and `start_point`: {}".format(i, i, attributions[i].shape[0],
+                                                                                         end_point[i].shape[0]))
+        if start_point[i].shape[0] != end_point[i].shape[0]:
+            raise ValueError("`start_point' {} and `end_point` {} must match on the first dimension "
+                             "but found `start_point`: {} and `end_point`: {}".format(i, i, start_point[i].shape[0],
+                                                                                         end_point[i].shape[0]))                
 
-    if end_point.shape[0] != attributions.shape[0]:
-        raise ValueError("`attributions` and `end_point` must match on the first dimension "
-                         "but found `attributions`: {} and `end_point`: {}".format(attributions.shape[0],
-                                                                                   end_point.shape[0]))
-
-    start_point = tf.convert_to_tensor(start_point, dtype=model.input.dtype)
-    end_point = tf.convert_to_tensor(end_point, dtype=model.input.dtype)
+    start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
+    end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
 
     def _sum_rows(inp):
 
@@ -62,20 +81,36 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
             raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
+    #for ii in range(len(start_point)):
+    #    print('==== start_point shape: {}'.format(start_point[ii].shape))
+    #print('==== start_point: ', start_point)
     start_out = _run_forward(model, start_point, target)
+    print('++++ start_out shape: ', start_out.shape)
     end_out = _run_forward(model, end_point, target)
+    print('++++ end_out shape: ', end_out.shape)
     if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
         sign = 2 * target_tensor - 1
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
-
+        print(target_tensor.shape)
+        print(sign.shape)
         start_out = target_tensor + sign * start_out
         end_out = target_tensor + sign * end_out
-
+        print(start_out.shape)
+        print(end_out.shape)
+        
+    #print('==== start_out: ', start_out)
     start_out_sum = _sum_rows(start_out)
     end_out_sum = _sum_rows(end_out)
+    #print('++++ start_out_sum shape: ', start_out_sum.shape)
+    #print('++++ end_out_sum shape: ', end_out_sum.shape)
+    attr_sum = np.zeros(start_out_sum.shape)
+    for j in range(len(attributions)):
+        #print('---- attributions {} shape: {}'.format(j, attributions[j].shape))
+        attrs_sum_j = _sum_rows(attributions[j])
+        #print('---- attrs_sum_{} shape: {}'.format(j, attrs_sum_j.shape)) 
+        attr_sum += attrs_sum_j
 
-    attr_sum = _sum_rows(attributions)
 
     _deltas = attr_sum - (end_out_sum - start_out_sum)
 
@@ -114,9 +149,10 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         return ps
 
     preds = model(x)
+    print('800A', preds.shape)
     if len(model.output_shape) > 1 and model.output_shape[1] > 1:
         preds = _select_target(preds, target)
-
+    print('800A', preds.shape)
     return preds
 
 
@@ -509,10 +545,9 @@ class IntegratedGradients(Explainer):
         data.update(predictions=predictions)
 
         # calculate convergence deltas
-        deltas = []
-        for i in range(len(attributions)):
-            delta = _compute_convergence_delta(self.model, attributions[i], baselines[i], X[i], target)
-            deltas.append(delta)
-        data.update(deltas=deltas)
+        #deltas = []
+        delta = _compute_convergence_delta(self.model, self.input_dtypes, attributions, baselines, X, target)
+        #deltas.append(delta)
+        data.update(deltas=delta)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

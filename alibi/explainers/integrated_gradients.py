@@ -8,7 +8,7 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union
+from typing import Callable, TYPE_CHECKING, Union, List
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -18,9 +18,9 @@ logger = logging.getLogger(__name__)
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                                input_dtypes: list,
-                               attributions: np.ndarray,
-                               start_point: np.ndarray,
-                               end_point: np.ndarray,
+                               attributions: List[np.ndarray],
+                               start_point: List[np.ndarray],
+                               end_point: List[np.ndarray],
                                target: Union[None, np.ndarray, list]) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
@@ -30,6 +30,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     ----------
     model
         Tensorflow or keras model.
+    input_dtypes
+        List with data types of the inputs.
     attributions
         Attributions assigned by the integrated gradients method to each feature.
     start_point
@@ -45,21 +47,24 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     """
     if len(attributions) != len(start_point):
         raise ValueError("'attributions' and 'start_point' must have the same lenght. "
-                         "'attributions' lenght: {}. 'start_point lenght: {}'".format(len(attributions), len(start_point)))
+                         "'attributions' lenght: {}. 'start_point lenght: {}'".format(len(attributions),
+                                                                                      len(start_point)))
     if len(attributions) != len(end_point):
         raise ValueError("'attributions' and 'end_point' must have the same lenght. "
-                         "'attributions' lenght: {}. 'end_point lenght: {}'".format(len(attributions), len(end_point)))
+                         "'attributions' lenght: {}. 'end_point lenght: {}'".format(len(attributions),
+                                                                                    len(end_point)))
     if len(start_point) != len(end_point):
         raise ValueError("'start_point' and 'end_point' must have the same lenght. "
-                         "'start_point' lenght: {}. 'end_point lenght: {}'".format(len(start_point), len(end_point)))
+                         "'start_point' lenght: {}. 'end_point lenght: {}'".format(len(start_point),
+                                                                                   len(end_point)))
     
     for i in range(len(attributions)):
         if end_point[i].shape[0] != attributions[i].shape[0]:
-            raise ValueError("`attributions {}` and `end_point{}` must match on the first dimension "
+            raise ValueError("`attributions {}` and `end_point {}` must match on the first dimension "
                              "but found `attributions`: {} and `end_point`: {}".format(i, i, attributions[i].shape[0],
                                                                                        end_point[i].shape[0]))
         if start_point[i].shape[0] != attributions[i].shape[0]:
-            raise ValueError("`attributions {}` and `start_point{}` must match on the first dimension "
+            raise ValueError("`attributions {}` and `start_point {}` must match on the first dimension "
                              "but found `attributions`: {} and `start_point`: {}".format(i, i, attributions[i].shape[0],
                                                                                          end_point[i].shape[0]))
         if start_point[i].shape[0] != end_point[i].shape[0]:
@@ -81,36 +86,25 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
             raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
-    #for ii in range(len(start_point)):
-    #    print('==== start_point shape: {}'.format(start_point[ii].shape))
-    #print('==== start_point: ', start_point)
     start_out = _run_forward(model, start_point, target)
-    print('++++ start_out shape: ', start_out.shape)
     end_out = _run_forward(model, end_point, target)
-    print('++++ end_out shape: ', end_out.shape)
+
     if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+
         target_tensor = tf.cast(target, dtype=start_out.dtype)
-        sign = 2 * target_tensor - 1
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
-        print(target_tensor.shape)
-        print(sign.shape)
+        sign = 2 * target_tensor - 1
+
         start_out = target_tensor + sign * start_out
         end_out = target_tensor + sign * end_out
-        print(start_out.shape)
-        print(end_out.shape)
-        
-    #print('==== start_out: ', start_out)
+
     start_out_sum = _sum_rows(start_out)
     end_out_sum = _sum_rows(end_out)
-    #print('++++ start_out_sum shape: ', start_out_sum.shape)
-    #print('++++ end_out_sum shape: ', end_out_sum.shape)
+
     attr_sum = np.zeros(start_out_sum.shape)
     for j in range(len(attributions)):
-        #print('---- attributions {} shape: {}'.format(j, attributions[j].shape))
         attrs_sum_j = _sum_rows(attributions[j])
-        #print('---- attrs_sum_{} shape: {}'.format(j, attrs_sum_j.shape)) 
         attr_sum += attrs_sum_j
-
 
     _deltas = attr_sum - (end_out_sum - start_out_sum)
 
@@ -118,7 +112,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
 
 
 def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                 x: Union[tf.Tensor, np.ndarray],
+                 x: Union[List[tf.Tensor], List[np.ndarray]],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
     Returns the output of the model. If the target is not `None`, only the output for the selected target is returned.
@@ -149,10 +143,9 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         return ps
 
     preds = model(x)
-    print('800A', preds.shape)
     if len(model.output_shape) > 1 and model.output_shape[1] > 1:
         preds = _select_target(preds, target)
-    print('800A', preds.shape)
+
     return preds
 
 
@@ -432,6 +425,10 @@ class IntegratedGradients(Explainer):
             X = [X]
             baselines = [baselines]
 
+        if len(X) != len(baselines):
+            raise ValueError("Length of 'X' must match leght of 'baselines'. "
+                             "Found len(X): {}, len(baselines): {}".format(len(X), len(baselines)))
+
         assert max([len(x) for x in X]) == min([len(x) for x in X])
         nb_samples = len(X[0])
 
@@ -530,10 +527,10 @@ class IntegratedGradients(Explainer):
         )
 
     def build_explanation(self,
-                          X: np.ndarray,
-                          baselines: np.ndarray,
+                          X: List[np.ndarray],
+                          baselines: List[np.ndarray],
                           target: list,
-                          attributions: np.ndarray) -> Explanation:
+                          attributions: List[np.ndarray]) -> Explanation:
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
@@ -545,9 +542,7 @@ class IntegratedGradients(Explainer):
         data.update(predictions=predictions)
 
         # calculate convergence deltas
-        #deltas = []
         delta = _compute_convergence_delta(self.model, self.input_dtypes, attributions, baselines, X, target)
-        #deltas.append(delta)
         data.update(deltas=delta)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

@@ -454,7 +454,6 @@ class IntegratedGradients(Explainer):
 
             # construct paths and prepare batches
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
-            print(type(path), path.shape)
             paths.append(path)
 
         def generator():
@@ -494,7 +493,6 @@ class IntegratedGradients(Explainer):
         # tf concatatation
         attributions = []
         for j in range(len(self.inputs)):
-            print(j)
             grads = tf.concat(batches[j], 0)
             shape = grads.shape[1:]
             if isinstance(shape, tf.TensorShape):
@@ -506,7 +504,6 @@ class IntegratedGradients(Explainer):
                 grads = np.array([s * g for s, g in zip(sign, grads)])
 
             grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
-            print(grads.shape)
 
             # sum integral terms and scale attributions
             sum_int = _sum_integral_terms(step_sizes, grads.numpy())

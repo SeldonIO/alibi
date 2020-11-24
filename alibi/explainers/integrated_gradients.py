@@ -45,14 +45,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     -------
         Convergence deltas for each data point.
     """
-    if len(attributions) != len(start_point):
-        raise ValueError("'attributions' and 'start_point' must have the same lenght. "
-                         "'attributions' lenght: {}. 'start_point lenght: {}'".format(len(attributions),
-                                                                                      len(start_point)))
-    if len(attributions) != len(end_point):
-        raise ValueError("'attributions' and 'end_point' must have the same lenght. "
-                         "'attributions' lenght: {}. 'end_point lenght: {}'".format(len(attributions),
-                                                                                    len(end_point)))
+
     if len(start_point) != len(end_point):
         raise ValueError("'start_point' and 'end_point' must have the same lenght. "
                          "'start_point' lenght: {}. 'end_point lenght: {}'".format(len(start_point),
@@ -175,7 +168,7 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         preds = _run_forward(model, x, target)
 
     grads = tape.gradient(preds, x)
-
+    print('grads type layer=None', type(grads))
     return grads
 
 
@@ -207,6 +200,8 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
+    for i in range(len(x)):
+        print('element {}, shape x {}'.format(i, x[i].shape))
 
     def watch_layer(layer, tape):
         """
@@ -238,9 +233,13 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
 
     grads = tape.gradient(preds, layer.result)
 
+    print('layer.result shape:', layer.result.shape)
+
     delattr(layer, 'result')
     layer.call = orig_call
 
+    print('grads type layer!=None', type(grads))
+    print('grads shape', grads.shape)
     return grads
 
 
@@ -380,6 +379,8 @@ class IntegratedGradients(Explainer):
             self.inputs = self.model.input
         self.input_dtypes = [inp.dtype for inp in self.inputs]
         self.layer = layer
+        if not isinstance(self.layer, list) and self.layer is not None:
+            self.layer = [layer]
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -441,9 +442,11 @@ class IntegratedGradients(Explainer):
 
         # fix orginal call method for layer
         if self.layer is not None:
-            orig_call = self.layer.call
+            orig_calls = []
+            for layer in self.layer:
+                orig_calls.append(layer.call)
         else:
-            orig_call = None
+            orig_calls = None
 
         paths = []
         for i in range(len(X)):
@@ -482,38 +485,43 @@ class IntegratedGradients(Explainer):
             paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
 
             if self.layer is not None:
-                grads_b = _gradients_layer(self.model, self.layer, orig_call, paths_b, target_b)
+                grads_b = []
+                for layer_idx in range(len(self.layer)):
+                    grad_b = _gradients_layer(self.model, self.layer[layer_idx],
+                                              orig_calls[layer_idx], paths_b, target_b)
+                    grads_b.append(grad_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
             batches.append(grads_b)
 
-        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
+        if self.layer is not None:
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.layer))]
+        else:
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
 
         # tf concatatation
         attributions = []
-        for j in range(len(self.inputs)):
-            grads = tf.concat(batches[j], 0)
-            shape = grads.shape[1:]
-            if isinstance(shape, tf.TensorShape):
-                shape = tuple(shape.as_list())
-
-            # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-            if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
-                sign = 2 * target_paths - 1
-                grads = np.array([s * g for s, g in zip(sign, grads)])
-
-            grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
-
-            # sum integral terms and scale attributions
-            sum_int = _sum_integral_terms(step_sizes, grads.numpy())
-            if self.layer is not None:
-                layer_output = self.layer.output
-                model_layer = Model(self.inputs, outputs=layer_output)
+        if self.layer is not None:
+            for j in range(len(self.layer)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
+                layer_output = self.layer[j].output
+                model_layer = Model(self.model.input, outputs=layer_output)
                 norm = (model_layer(X) - model_layer(baselines)).numpy()
-            else:
+                print('norm shape', norm.shape)
+                attribution = norm * sum_int
+                attributions.append(attribution)
+        else:
+            for j in range(len(self.inputs)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
                 norm = X[j] - baselines[j]  # type: ignore
-            attribution = norm * sum_int
-            attributions.append(attribution)
+                attribution = norm * sum_int
+                attributions.append(attribution)
 
         return self.build_explanation(
             X=X,
@@ -542,3 +550,23 @@ class IntegratedGradients(Explainer):
         data.update(deltas=delta)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+
+def _calculate_sum_int(batches, model, target, target_paths, n_steps, nb_samples, step_sizes, j):
+
+    grads = tf.concat(batches[j], 0)
+    shape = grads.shape[1:]
+    if isinstance(shape, tf.TensorShape):
+        shape = tuple(shape.as_list())
+
+    # invert sign of gradients for target 0 examples if classifier returns only positive class probability
+    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+        sign = 2 * target_paths - 1
+        grads = np.array([s * g for s, g in zip(sign, grads)])
+
+    grads = tf.reshape(grads, (n_steps, nb_samples) + shape)
+    print('grads shape:', grads.shape)
+    # sum integral terms and scale attributions
+    sum_int = _sum_integral_terms(step_sizes, grads.numpy())
+    print('sum_int shape', sum_int.shape)
+    return sum_int

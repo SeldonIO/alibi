@@ -508,7 +508,7 @@ class IntegratedGradients(Explainer):
             sum_int = _sum_integral_terms(step_sizes, grads.numpy())
             if self.layer is not None:
                 layer_output = self.layer.output
-                model_layer = Model(self.model.input, outputs=layer_output)
+                model_layer = Model(self.inputs, outputs=layer_output)
                 norm = (model_layer(X) - model_layer(baselines)).numpy()
             else:
                 norm = X[j] - baselines[j]  # type: ignore

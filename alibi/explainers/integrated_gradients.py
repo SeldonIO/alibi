@@ -168,7 +168,7 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         preds = _run_forward(model, x, target)
 
     grads = tape.gradient(preds, x)
-    print('grads type layer=None', type(grads))
+
     return grads
 
 
@@ -200,9 +200,6 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
-    for i in range(len(x)):
-        print('element {}, shape x {}'.format(i, x[i].shape))
-
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -233,13 +230,9 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
 
     grads = tape.gradient(preds, layer.result)
 
-    print('layer.result shape:', layer.result.shape)
-
     delattr(layer, 'result')
     layer.call = orig_call
 
-    print('grads type layer!=None', type(grads))
-    print('grads shape', grads.shape)
     return grads
 
 
@@ -330,11 +323,62 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
+def _calculate_sum_int(batches: List,
+                       model: Union[tf.keras.Model, 'keras.Model'],
+                       target: List,
+                       target_paths: np.ndarray,
+                       n_steps: int,
+                       nb_samples: int,
+                       step_sizes: List,
+                       j: int):
+    """
+    Calculates the sum of all the terms in the integral from a list of batch gradients.
+    Parameters
+    ----------
+    batches
+        List of batch gradients.
+    model
+        tf.keras or keras model.
+    target
+        List of targets.
+    target_paths
+        Targets for each path in the integral.
+    n_steps
+        Number of steps in the integral.
+    nb_samples
+        Total number of samples.
+    step_sizes
+        Step sizes used to calculate the integral.
+    j
+        Iterates through list of inputs or list of layers.
+
+    Returns
+    -------
+
+    """
+    grads = tf.concat(batches[j], 0)
+    shape = grads.shape[1:]
+    if isinstance(shape, tf.TensorShape):
+        shape = tuple(shape.as_list())
+
+    # invert sign of gradients for target 0 examples if classifier returns only positive class probability
+    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+        sign = 2 * target_paths - 1
+        grads = np.array([s * g for s, g in zip(sign, grads)])
+
+    grads = tf.reshape(grads, (n_steps, nb_samples) + shape)
+    # sum integral terms and scale attributions
+    sum_int = _sum_integral_terms(step_sizes, grads.numpy())
+
+    return sum_int
+
+
 class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer',
+                              List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: Union[None, int] = 100
@@ -365,22 +409,26 @@ class IntegratedGradients(Explainer):
         params = locals()
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
+        if not isinstance(layer, list) and layer is not None:
+            layer = [layer]
+
         if layer is None:
             layer_num = 0
         else:
-            layer_num = model.layers.index(layer)
+            layer_num = []
+            for l in layer:
+                layer_num.append(model.layers.index(l))
+
         params['layer'] = layer_num
         self.meta['params'].update(params)
-
         self.model = model
+        self.layer = layer
         if not isinstance(self.model.input, list):
             self.inputs = [self.model.input]
         else:
             self.inputs = self.model.input
         self.input_dtypes = [inp.dtype for inp in self.inputs]
-        self.layer = layer
-        if not isinstance(self.layer, list) and self.layer is not None:
-            self.layer = [layer]
+
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -510,7 +558,7 @@ class IntegratedGradients(Explainer):
                 layer_output = self.layer[j].output
                 model_layer = Model(self.model.input, outputs=layer_output)
                 norm = (model_layer(X) - model_layer(baselines)).numpy()
-                print('norm shape', norm.shape)
+
                 attribution = norm * sum_int
                 attributions.append(attribution)
         else:
@@ -520,6 +568,7 @@ class IntegratedGradients(Explainer):
                                              self.n_steps, nb_samples,
                                              step_sizes, j)
                 norm = X[j] - baselines[j]  # type: ignore
+
                 attribution = norm * sum_int
                 attributions.append(attribution)
 
@@ -550,23 +599,3 @@ class IntegratedGradients(Explainer):
         data.update(deltas=delta)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
-
-
-def _calculate_sum_int(batches, model, target, target_paths, n_steps, nb_samples, step_sizes, j):
-
-    grads = tf.concat(batches[j], 0)
-    shape = grads.shape[1:]
-    if isinstance(shape, tf.TensorShape):
-        shape = tuple(shape.as_list())
-
-    # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
-        sign = 2 * target_paths - 1
-        grads = np.array([s * g for s, g in zip(sign, grads)])
-
-    grads = tf.reshape(grads, (n_steps, nb_samples) + shape)
-    print('grads shape:', grads.shape)
-    # sum integral terms and scale attributions
-    sum_int = _sum_integral_terms(step_sizes, grads.numpy())
-    print('sum_int shape', sum_int.shape)
-    return sum_int

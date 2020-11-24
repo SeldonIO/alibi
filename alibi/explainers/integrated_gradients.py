@@ -482,8 +482,7 @@ class IntegratedGradients(Explainer):
             paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
 
             if self.layer is not None:
-                grads_b = _gradients_layer(self.model, self.layer, orig_call,
-                                           tf.dtypes.cast(paths_b, inp_dtype), target_b)
+                grads_b = _gradients_layer(self.model, self.layer, orig_call, paths_b, target_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
             batches.append(grads_b)

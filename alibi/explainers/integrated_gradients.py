@@ -57,7 +57,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         raise ValueError("'start_point' and 'end_point' must have the same lenght. "
                          "'start_point' lenght: {}. 'end_point lenght: {}'".format(len(start_point),
                                                                                    len(end_point)))
-    
+
     for i in range(len(attributions)):
         if end_point[i].shape[0] != attributions[i].shape[0]:
             raise ValueError("`attributions {}` and `end_point {}` must match on the first dimension "
@@ -70,7 +70,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         if start_point[i].shape[0] != end_point[i].shape[0]:
             raise ValueError("`start_point' {} and `end_point` {} must match on the first dimension "
                              "but found `start_point`: {} and `end_point`: {}".format(i, i, start_point[i].shape[0],
-                                                                                         end_point[i].shape[0]))                
+                                                                                      end_point[i].shape[0]))
 
     start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
     end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
@@ -385,8 +385,8 @@ class IntegratedGradients(Explainer):
         self.internal_batch_size = internal_batch_size
 
     def explain(self,
-                X: np.ndarray,
-                baselines: Union[None, int, float, np.ndarray] = None,
+                X: Union[np.ndarray, List[np.ndarray]],
+                baselines: Union[None, int, float, np.ndarray, List[np.ndarray]] = None,
                 target: Union[None, int, list, np.ndarray] = None) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
@@ -425,9 +425,9 @@ class IntegratedGradients(Explainer):
             X = [X]
             baselines = [baselines]
 
-        if len(X) != len(baselines):
+        if len(X) != len(baselines):  # type: ignore
             raise ValueError("Length of 'X' must match leght of 'baselines'. "
-                             "Found len(X): {}, len(baselines): {}".format(len(X), len(baselines)))
+                             "Found len(X): {}, len(baselines): {}".format(len(X), len(baselines)))  # type: ignore
 
         assert max([len(x) for x in X]) == min([len(x) for x in X])
         nb_samples = len(X[0])
@@ -447,10 +447,10 @@ class IntegratedGradients(Explainer):
 
         paths = []
         for i in range(len(X)):
-            x, baseline, inp_dtype = X[i], baselines[i], self.input_dtypes[i]
+            x, baseline, inp_dtype = X[i], baselines[i], self.input_dtypes[i]  # type: ignore
             # format and check inputs and targets
             baseline = _format_input_baseline(x, baseline)
-            baselines[i] = baseline
+            baselines[i] = baseline  # type: ignore
 
             # construct paths and prepare batches
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
@@ -515,13 +515,13 @@ class IntegratedGradients(Explainer):
                 model_layer = Model(self.model.input, outputs=layer_output)
                 norm = (model_layer(X) - model_layer(baselines)).numpy()
             else:
-                norm = X[j] - baselines[j]
+                norm = X[j] - baselines[j]  # type: ignore
             attribution = norm * sum_int
             attributions.append(attribution)
 
         return self.build_explanation(
             X=X,
-            baselines=baselines,
+            baselines=baselines,  # type: ignore
             target=target,
             attributions=attributions
         )

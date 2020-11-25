@@ -411,14 +411,12 @@ class IntegratedGradients(Explainer):
         params = {k: v for k, v in params.items() if k not in remove}
         if not isinstance(layer, list) and layer is not None:
             layer = [layer]
-
         if layer is None:
             layer_num = 0
         else:
             layer_num = []
             for l in layer:
                 layer_num.append(model.layers.index(l))
-
         params['layer'] = layer_num
         self.meta['params'].update(params)
         self.model = model

@@ -118,4 +118,4 @@ def test_neighbors():
     assert len(n['words']) == len(n['similarities'])
     # similarity score list needs to be descending
     similarity_score = n['similarities']
-    assert (np.sort(similarity_score[::-1]) - similarity_score).sum() == 0.0
+    assert np.isclose((np.sort(similarity_score)[::-1] - similarity_score).sum(), 0.)

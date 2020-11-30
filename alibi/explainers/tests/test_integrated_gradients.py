@@ -38,7 +38,7 @@ INTEGRAL_METHODS = ['gausslegendre', 'riemann_middle']
 @pytest.fixture()
 def ffn_model(request):
     """
-    Simple feed-forward model with configurable data, loss funciton, output activation and dimension
+    Simple feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
     inputs = tf.keras.Input(shape=config['X_train'].shape[1:])
@@ -58,7 +58,7 @@ def ffn_model(request):
 @pytest.fixture()
 def ffn_model_multi_inputs(request):
     """
-    Simple feed-forward model with configurable data, loss funciton, output activation and dimension
+    Simple feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
     input0 = tf.keras.Input(shape=config['X_train_multi_inputs'][0].shape[1:])
@@ -86,7 +86,7 @@ def ffn_model_multi_inputs(request):
                                                       'X_train_multi_inputs': X_train_multi_inputs,
                                                       'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
-def test_integrated_gradients_binary_classification_mi(ffn_model_multi_inputs, method):
+def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi_inputs, method):
     model = ffn_model_multi_inputs
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
@@ -118,7 +118,7 @@ def test_integrated_gradients_binary_classification_mi(ffn_model_multi_inputs, m
                                                       'X_train_multi_inputs': X_train_multi_inputs,
                                                       'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-def test_integrated_gradients_binary_classification_single_output_mi(ffn_model_multi_inputs, method):
+def test_integrated_gradients_binary_classification_single_output_multi_inputs(ffn_model_multi_inputs, method):
     model = ffn_model_multi_inputs
     ig = IntegratedGradients(model, n_steps=50, method=method)
 

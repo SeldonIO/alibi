@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the master branch
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.6', '3.7', '3.8']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      -name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dependencies
+        run: |
+          sudo apt-get install pandoc
+          pip install --upgrade pip
+          pip install -r requirements/requirements_all.txt
+          python -m spacy download en_core_web_md
+          pip install -e .
+          pip freeze
+      - name: Lint with flake8
+        run: |
+          flake8 alibi
+      - name: Typecheck with mypy
+        run: |
+          mypy alibi
+      - name: Check 3rd party licences haven't changed
+        run: |
+          make licenses
+          make check_licenses
+      - name: Test with pytest
+        run: |
+          pytest -m tf1
+          pytest -m "not tf1"
+      - name : Upload coverage to Codecov
+        if: ${{ success() }}
+          run: |
+            codecov
+      - name: Build Python package
+        run: |
+          make build_pypi
+      - name: Build documentation
+        run: |
+          make build_docs

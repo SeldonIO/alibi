@@ -52,4 +52,4 @@ We use `sphinx` for building documentation. You can call `make build_docs` from 
 the docs will be built under `doc/_build/html`. Detail information about documentation can be found [here](doc/README.md).
 
 ## CI
-All PRs triger a TravisCI build to run linting, type checking, tests, and build docs.
+All PRs triger a CI job to run linting, type checking, tests, and build docs.

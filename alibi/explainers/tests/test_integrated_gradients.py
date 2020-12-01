@@ -9,6 +9,7 @@ N = 100
 N_TRAIN = 90
 N_FEATURES = 4
 N_TEST = N - N_TRAIN
+BASELINES = [None, 1, np.random.rand(N_TEST, N_FEATURES)]
 
 X = np.random.rand(N, N_FEATURES)
 X_train, X_test = X[:N_TRAIN, :], X[N_TRAIN:, :]
@@ -17,6 +18,9 @@ X_train, X_test = X[:N_TRAIN, :], X[N_TRAIN:, :]
 X0 = np.random.rand(N, 10, N_FEATURES)
 X_multi_inputs = [X0, X]
 X_train_multi_inputs, X_test_multi_inputs = [X0[:N_TRAIN, :], X[:N_TRAIN, :]], [X0[N_TRAIN:, :], X[N_TRAIN:, :]]
+BASELINES_MULTI_INPUTS = [None, [1, 1],
+                          [np.random.random(X_test_multi_inputs[0].shape),
+                           np.random.random(X_test_multi_inputs[1].shape)]]
 
 # regression labels
 y_regression = X[:, 0] + X[:, 1]
@@ -86,12 +90,13 @@ def ffn_model_multi_inputs(request):
                                                       'X_train_multi_inputs': X_train_multi_inputs,
                                                       'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
-def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi_inputs, method):
+@pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
+def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi_inputs, method, baselines):
     model = ffn_model_multi_inputs
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_multi_inputs,
-                              baselines=[None, None],
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -118,12 +123,15 @@ def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi
                                                       'X_train_multi_inputs': X_train_multi_inputs,
                                                       'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-def test_integrated_gradients_binary_classification_single_output_multi_inputs(ffn_model_multi_inputs, method):
+@pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
+def test_integrated_gradients_binary_classification_single_output_multi_inputs(ffn_model_multi_inputs,
+                                                                               method,
+                                                                               baselines):
     model = ffn_model_multi_inputs
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_multi_inputs,
-                              baselines=[None, None],
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -150,12 +158,13 @@ def test_integrated_gradients_binary_classification_single_output_multi_inputs(f
                                          'X_train': X_train,
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
-def test_integrated_gradients_binary_classification(ffn_model, method):
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification(ffn_model, method, baselines):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
-                              baselines=None,
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -174,12 +183,13 @@ def test_integrated_gradients_binary_classification(ffn_model, method):
                                          'X_train': X_train,
                                          'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-def test_integrated_gradients_binary_classification_single_output(ffn_model, method):
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification_single_output(ffn_model, method, baselines):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
-                              baselines=None,
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -199,12 +209,13 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
                                          'y_train': y_train_classification_ordinal,
                                          'squash_output': True})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method):
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method, baselines):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
-                              baselines=None,
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -224,7 +235,8 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('layer_nb', (None, 1))
-def test_integrated_gradients_binary_classification_layer(ffn_model, method, layer_nb):
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification_layer(ffn_model, method, layer_nb, baselines):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
@@ -235,7 +247,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, lay
                              n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
-                              baselines=None,
+                              baselines=baselines,
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
@@ -258,12 +270,13 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, lay
                                          'X_train': X_train,
                                          'y_train': y_train_regression})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
-def test_integrated_gradients_regression(ffn_model, method):
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_regression(ffn_model, method, baselines):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
-                              baselines=None,
+                              baselines=baselines,
                               target=None)
 
     assert isinstance(explanations, Explanation)

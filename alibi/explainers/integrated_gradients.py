@@ -434,8 +434,8 @@ class IntegratedGradients(Explainer):
 
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
-                baselines: Union[None, int, float, np.ndarray, List[np.ndarray], List[None]] = None,
-                target: Union[None, int, list, np.ndarray] = None) -> Explanation:
+                baselines: Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]] = None,
+                target: Union[int, list, np.ndarray] = None) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
 
@@ -472,10 +472,16 @@ class IntegratedGradients(Explainer):
         if not isinstance(X, list):
             X = [X]
             baselines = [baselines]
-
-        if len(X) != len(baselines):
-            raise ValueError(f"Length of 'X' must match length of 'baselines'. "
-                             f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
+        elif isinstance(X, list) and baselines is None:
+            baselines = [None for _ in range(len(X))]
+        elif isinstance(X, list) and baselines is not None:
+            if not isinstance(baselines, list):
+                raise ValueError(f"If the input X is a list, baseline can only be `None` or "
+                                 f"a list of the same length of X. Found baselines type {type(baselines)}")
+            else:
+                if len(X) != len(baselines):
+                    raise ValueError(f"Length of 'X' must match length of 'baselines'. "
+                                     f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
 
         if max([len(x) for x in X]) != min([len(x) for x in X]):
             raise ValueError("First dimension must be egual for all inputs")
@@ -501,7 +507,7 @@ class IntegratedGradients(Explainer):
             x, baseline = X[i], baselines[i]
             # format and check baselines
             baseline = _format_input_baseline(x, baseline)
-            baselines[i] = baseline  # type: ignore
+            baselines[i] = baseline
 
             # construct paths
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)

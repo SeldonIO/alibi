@@ -82,7 +82,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     end_out = _run_forward(model, end_point, target)
 
     if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
-
         target_tensor = tf.cast(target, dtype=start_out.dtype)
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
         sign = 2 * target_tensor - 1
@@ -199,6 +198,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
+
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -376,11 +376,11 @@ class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer',
+                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer',
                               List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
-                 internal_batch_size: Union[None, int] = 100
+                 internal_batch_size: int = 100
                  ) -> None:
         """
         An implementation of the integrated gradients method for Tensorflow and Keras models.
@@ -484,7 +484,7 @@ class IntegratedGradients(Explainer):
                                      f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
 
         if max([len(x) for x in X]) != min([len(x) for x in X]):
-            raise ValueError("First dimension must be egual for all inputs")
+            raise ValueError("First dimension must be equal for all inputs")
 
         nb_samples = len(X[0])
 
@@ -558,7 +558,6 @@ class IntegratedGradients(Explainer):
                     grads_b.append(grad_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
-
             batches.append(grads_b)
 
         if self.layer is not None:

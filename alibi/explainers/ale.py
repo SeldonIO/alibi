@@ -20,7 +20,9 @@ class ALE(Explainer):
     def __init__(self,
                  predictor: Callable,
                  feature_names: Optional[List[str]] = None,
-                 target_names: Optional[List[str]] = None) -> None:
+                 target_names: Optional[List[str]] = None,
+                 check_feature_resolution: bool = True,
+                 low_resolution_threshold: int = 10) -> None:
         """
         Accumulated Local Effects for tabular datasets. Current implementation supports first order
         feature effects of numerical features.
@@ -35,12 +37,23 @@ class ALE(Explainer):
             A list of feature names used for displaying results.
         target_names
             A list of target/output names used for displaying results.
+        check_feature_resolution
+            If true, the number of unique values is calculated for each feature and if it is less than
+            `low_resolution_threshold` then the feature values are used for gridpoints instead of quantiles.
+            This may increase the runtime of the algorithm for large datasets.
+        low_resolution_threshold
+            If a feature has at most this many unique values, these are used as the grid points instead of
+            quantiles. This is to avoid situations when the quantile algorithm returns quantiles between discrete
+            values which can result in jumps in the ALE plot obscuring the true effect. Only used if
+            `check_feature_resolution` is True.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
         self.predictor = predictor
         self.feature_names = feature_names
         self.target_names = target_names
+        self.check_feature_resolution = check_feature_resolution
+        self.low_resolution_threshold = low_resolution_threshold
 
     def explain(self, X: np.ndarray, min_bin_points: int = 4) -> Explanation:
         """
@@ -60,6 +73,8 @@ class ALE(Explainer):
             An `Explanation` object containing the data and the metadata of the calculated ALE curves.
 
         """
+        # TODO: need to check dtype of X, if int then quantiles will be rounded to nearest int
+        # Do we always convert to float?
         self.meta['params'].update(min_bin_points=min_bin_points)
 
         if X.ndim != 2:
@@ -86,7 +101,9 @@ class ALE(Explainer):
                 self.predictor,
                 X=X,
                 feature=feature,
-                min_bin_points=min_bin_points
+                min_bin_points=min_bin_points,
+                check_feature_resolution=self.check_feature_resolution,
+                low_resolution_threshold=self.low_resolution_threshold
             )
             deciles = get_quantiles(X[:, feature], num_quantiles=11)
 
@@ -262,7 +279,9 @@ def ale_num(
         predictor: Callable,
         X: np.ndarray,
         feature: int,
-        min_bin_points: int = 4) -> Tuple[np.ndarray, ...]:
+        min_bin_points: int = 4,
+        check_feature_resolution: bool = True,
+        low_resolution_threshold: int = 10) -> Tuple[np.ndarray, ...]:
     """
     Calculate the first order ALE curve for a numerical feature.
 
@@ -277,6 +296,10 @@ def ale_num(
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
         ALE estimation.
+    check_feature_resolution
+        Refer to :class:`ALE` documentation.
+    low_resolution_threshold
+        Refer to :class:`ALE` documentation.
 
     Returns
     -------
@@ -288,7 +311,21 @@ def ale_num(
         The constant offset used to center the ALE curves.
 
     """
-    q, _ = adaptive_grid(X[:, feature], min_bin_points)
+    if check_feature_resolution:
+        uniques = np.unique(X[:, feature])
+        if len(uniques) <= low_resolution_threshold:
+            q = uniques
+        else:
+            q, _ = adaptive_grid(X[:, feature], min_bin_points)
+    else:
+        q, _ = adaptive_grid(X[:, feature], min_bin_points)
+
+    # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
+    if len(q) == 1:
+        if np.abs(q.item()) >= 1:
+            q = np.hstack((q - q / 10, q + q / 10))
+        else:
+            q = np.hstack((q - 0.1, q + 0.1))
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

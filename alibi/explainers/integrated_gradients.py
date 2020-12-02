@@ -8,7 +8,7 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union
+from typing import Callable, TYPE_CHECKING, Union, List
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                               attributions: np.ndarray,
-                               start_point: np.ndarray,
-                               end_point: np.ndarray,
+                               input_dtypes: List[tf.DType],
+                               attributions: List[np.ndarray],
+                               start_point: List[np.ndarray],
+                               end_point: List[np.ndarray],
                                target: Union[None, np.ndarray, list]) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
@@ -29,6 +30,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     ----------
     model
         Tensorflow or keras model.
+    input_dtypes
+        List with data types of the inputs.
     attributions
         Attributions assigned by the integrated gradients method to each feature.
     start_point
@@ -43,13 +46,26 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         Convergence deltas for each data point.
     """
 
-    if end_point.shape[0] != attributions.shape[0]:
-        raise ValueError("`attributions` and `end_point` must match on the first dimension "
-                         "but found `attributions`: {} and `end_point`: {}".format(attributions.shape[0],
-                                                                                   end_point.shape[0]))
+    if len(start_point) != len(end_point):
+        raise ValueError(f"'start_point' and 'end_point' must have the same length. "
+                         f"'start_point' length: {len(start_point)}. 'end_point length: {len(end_point)}'")
 
-    start_point = tf.convert_to_tensor(start_point, dtype=model.input.dtype)
-    end_point = tf.convert_to_tensor(end_point, dtype=model.input.dtype)
+    for i in range(len(attributions)):
+        if end_point[i].shape[0] != attributions[i].shape[0]:
+            raise ValueError(f"`attributions {i}` and `end_point {i}` must match on the first dimension "
+                             f"but found `attributions` first dimension: {attributions[i].shape[0]} "
+                             f"and `end_point` first dimension: {end_point[i].shape[0]}")
+        if start_point[i].shape[0] != attributions[i].shape[0]:
+            raise ValueError(f"`attributions {i}` and `start_point {i}` must match on the first dimension "
+                             f"but found `attributions` first dimension: {attributions[i].shape[0]} "
+                             f"and `start_point` first dimension: {start_point[i].shape[0]}")
+        if start_point[i].shape[0] != end_point[i].shape[0]:
+            raise ValueError(f"`start_point' {i} and `end_point` {i} must match on the first dimension "
+                             f"but found `start_point` first dimension: {start_point[i].shape[0]} "
+                             f"and `end_point` first dimension: {end_point[i].shape[0]}")
+
+    start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
+    end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
 
     def _sum_rows(inp):
 
@@ -64,10 +80,11 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
 
     start_out = _run_forward(model, start_point, target)
     end_out = _run_forward(model, end_point, target)
+
     if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
-        sign = 2 * target_tensor - 1
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
+        sign = 2 * target_tensor - 1
 
         start_out = target_tensor + sign * start_out
         end_out = target_tensor + sign * end_out
@@ -75,7 +92,10 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     start_out_sum = _sum_rows(start_out)
     end_out_sum = _sum_rows(end_out)
 
-    attr_sum = _sum_rows(attributions)
+    attr_sum = np.zeros(start_out_sum.shape)
+    for j in range(len(attributions)):
+        attrs_sum_j = _sum_rows(attributions[j])
+        attr_sum += attrs_sum_j
 
     _deltas = attr_sum - (end_out_sum - start_out_sum)
 
@@ -83,7 +103,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
 
 
 def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                 x: Union[tf.Tensor, np.ndarray],
+                 x: Union[List[tf.Tensor], List[np.ndarray]],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
     Returns the output of the model. If the target is not `None`, only the output for the selected target is returned.
@@ -121,8 +141,8 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
 
 
 def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                     x: tf.Tensor,
-                     target: Union[None, tf.Tensor]) -> tf.Tensor:
+                     x: List[tf.Tensor],
+                     target: Union[None, tf.Tensor]) -> List[tf.Tensor]:
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
     with respect to each input feature.
@@ -153,7 +173,7 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
 def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
                      layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
                      orig_call: Callable,
-                     x: tf.Tensor,
+                     x: List[tf.Tensor],
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
@@ -269,7 +289,7 @@ def _format_input_baseline(X: np.ndarray,
     elif isinstance(baselines, np.ndarray):
         bls = baselines.astype(X.dtype)
     else:
-        raise ValueError('baselines must be `int`, `float`, `np.ndarray` or `None`. Found {}'.format(type(baselines)))
+        raise ValueError(f"baselines must be `int`, `float`, `np.ndarray` or `None`. Found {type(baselines)}")
 
     return bls
 
@@ -302,17 +322,68 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
+def _calculate_sum_int(batches: List[List[tf.Tensor]],
+                       model: Union[tf.keras.Model, 'keras.Model'],
+                       target: Union[None, List[int]],
+                       target_paths: np.ndarray,
+                       n_steps: int,
+                       nb_samples: int,
+                       step_sizes: List[float],
+                       j: int) -> Union[tf.Tensor, np.ndarray]:
+    """
+    Calculates the sum of all the terms in the integral from a list of batch gradients.
+    Parameters
+    ----------
+    batches
+        List of batch gradients.
+    model
+        tf.keras or keras model.
+    target
+        List of targets.
+    target_paths
+        Targets for each path in the integral.
+    n_steps
+        Number of steps in the integral.
+    nb_samples
+        Total number of samples.
+    step_sizes
+        Step sizes used to calculate the integral.
+    j
+        Iterates through list of inputs or list of layers.
+
+    Returns
+    -------
+
+    """
+    grads = tf.concat(batches[j], 0)
+    shape = grads.shape[1:]
+    if isinstance(shape, tf.TensorShape):
+        shape = tuple(shape.as_list())
+
+    # invert sign of gradients for target 0 examples if classifier returns only positive class probability
+    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+        sign = 2 * target_paths - 1
+        grads = np.array([s * g for s, g in zip(sign, grads)])
+
+    grads = tf.reshape(grads, (n_steps, nb_samples) + shape)
+    # sum integral terms and scale attributions
+    sum_int = _sum_integral_terms(step_sizes, grads.numpy())
+
+    return sum_int
+
+
 class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer',
+                              List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
-                 internal_batch_size: Union[None, int] = 100
+                 internal_batch_size: int = 100
                  ) -> None:
         """
-        An mplementation of the integrated gradients method for Tensorflow and Keras models.
+        An implementation of the integrated gradients method for Tensorflow and Keras models.
 
         For details of the method see the original paper:
         https://arxiv.org/abs/1703.01365 .
@@ -322,7 +393,8 @@ class IntegratedGradients(Explainer):
         model
             Tensorflow or Keras model.
         layer
-            Layer with respect to which the gradients are calculated.
+            Layers with respect to which the gradients are calculated.
+            It can be a single layer or a list of layers.
             If not provided, the gradients are calculated with respect to the input.
         method
             Method for the integral approximation. Methods available:
@@ -337,24 +409,33 @@ class IntegratedGradients(Explainer):
         params = locals()
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
+        if not isinstance(layer, list) and layer is not None:
+            layer = [layer]
+        layer_num: Union[int, List]
         if layer is None:
             layer_num = 0
         else:
-            layer_num = model.layers.index(layer)
+            layer_num = []
+            for lay in layer:
+                layer_num.append(model.layers.index(lay))
         params['layer'] = layer_num
         self.meta['params'].update(params)
-
         self.model = model
-        self.input_dtype = self.model.input.dtype
         self.layer = layer
+        if not isinstance(self.model.input, list):
+            self.inputs = [self.model.input]
+        else:
+            self.inputs = self.model.input
+        self.input_dtypes = [inp.dtype for inp in self.inputs]
+
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
 
     def explain(self,
-                X: np.ndarray,
-                baselines: Union[None, int, float, np.ndarray] = None,
-                target: Union[None, int, list, np.ndarray] = None) -> Explanation:
+                X: Union[np.ndarray, List[np.ndarray]],
+                baselines: Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]] = None,
+                target: Union[int, list, np.ndarray] = None) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
 
@@ -388,30 +469,75 @@ class IntegratedGradients(Explainer):
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
-        nb_samples = len(X)
+        if not isinstance(X, list):
+            X = [X]
+            baselines = [baselines]
+        elif isinstance(X, list) and baselines is None:
+            baselines = [None for _ in range(len(X))]
+        elif isinstance(X, list) and baselines is not None:
+            if not isinstance(baselines, list):
+                raise ValueError(f"If the input X is a list, baseline can only be `None` or "
+                                 f"a list of the same length of X. Found baselines type {type(baselines)}")
+            else:
+                if len(X) != len(baselines):
+                    raise ValueError(f"Length of 'X' must match length of 'baselines'. "
+                                     f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
 
-        # format and check inputs and targets
-        baselines = _format_input_baseline(X, baselines)
-        target = _format_target(target, nb_samples)
+        if max([len(x) for x in X]) != min([len(x) for x in X]):
+            raise ValueError("First dimension must be equal for all inputs")
+
+        nb_samples = len(X[0])
 
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-
-        # construct paths and prepare batches
-        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
-        if target is not None:
-            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
-            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
-        else:
-            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
-        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
+        target = _format_target(target, nb_samples)
 
         # fix orginal call method for layer
         if self.layer is not None:
-            orig_call = self.layer.call
+            orig_calls = []
+            for layer in self.layer:
+                orig_calls.append(layer.call)
         else:
-            orig_call = None
+            orig_calls = None
+
+        # define paths in features' space
+        paths = []
+        for i in range(len(X)):
+            x, baseline = X[i], baselines[i]
+            # format and check baselines
+            baseline = _format_input_baseline(x, baseline)
+            baselines[i] = baseline
+
+            # construct paths
+            path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
+            paths.append(path)
+
+        # define target paths
+        if target is not None:
+            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+        else:
+            target_paths = None
+
+        def generator(target_paths=target_paths):
+            """Generates paths - targets pairs"""
+            if target_paths is not None:
+                inps_labels = paths + [target_paths]
+                for y in zip(*inps_labels):
+                    yield tuple(y[i] for i in range(len(y) - 1)), y[-1]
+            else:
+                for y in zip(*paths):
+                    yield y
+
+        if target is not None:
+            paths_ds = tf.data.Dataset.from_generator(generator,
+                                                      output_types=(tuple(self.input_dtypes),
+                                                                    tf.int64)).batch(self.internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_generator(generator, output_types=tuple(self.input_dtypes)).batch(
+                self.internal_batch_size)
+
+        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         # calculate gradients for batches
         batches = []
@@ -422,37 +548,47 @@ class IntegratedGradients(Explainer):
             else:
                 paths_b, target_b = path, None
 
-            if self.layer is not None:
-                grads_b = _gradients_layer(self.model, self.layer, orig_call,
-                                           tf.dtypes.cast(paths_b, self.input_dtype), target_b)
-            else:
-                grads_b = _gradients_input(self.model,
-                                           tf.dtypes.cast(paths_b, self.input_dtype), target_b)
+            paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
 
+            if self.layer is not None:
+                grads_b = []
+                for layer_idx in range(len(self.layer)):
+                    grad_b = _gradients_layer(self.model, self.layer[layer_idx],
+                                              orig_calls[layer_idx], paths_b, target_b)
+                    grads_b.append(grad_b)
+            else:
+                grads_b = _gradients_input(self.model, paths_b, target_b)
             batches.append(grads_b)
 
-        # tf concatatation
-        grads = tf.concat(batches, 0)
-        shape = grads.shape[1:]
-        if isinstance(shape, tf.TensorShape):
-            shape = tuple(shape.as_list())
-
-        # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-        if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is not None:
-            sign = 2 * target_paths - 1
-            grads = np.array([s * g for s, g in zip(sign, grads)])
-
-        grads = tf.reshape(grads, (self.n_steps, nb_samples) + shape)
-
-        # sum integral terms and scale attributions
-        sum_int = _sum_integral_terms(step_sizes, grads.numpy())
         if self.layer is not None:
-            layer_output = self.layer.output
-            model_layer = Model(self.model.input, outputs=layer_output)
-            norm = (model_layer(X) - model_layer(baselines)).numpy()
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.layer))]
         else:
-            norm = X - baselines
-        attributions = norm * sum_int
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
+
+        # calculate attributions from gradients batches
+        attributions = []
+        if self.layer is not None:
+            for j in range(len(self.layer)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
+                layer_output = self.layer[j].output
+                model_layer = Model(self.model.input, outputs=layer_output)
+                norm = (model_layer(X) - model_layer(baselines)).numpy()
+
+                attribution = norm * sum_int
+                attributions.append(attribution)
+        else:
+            for j in range(len(self.inputs)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
+                norm = X[j] - baselines[j]
+
+                attribution = norm * sum_int
+                attributions.append(attribution)
 
         return self.build_explanation(
             X=X,
@@ -462,10 +598,10 @@ class IntegratedGradients(Explainer):
         )
 
     def build_explanation(self,
-                          X: np.ndarray,
-                          baselines: np.ndarray,
+                          X: List[np.ndarray],
+                          baselines: List[np.ndarray],
                           target: list,
-                          attributions: np.ndarray) -> Explanation:
+                          attributions: List[np.ndarray]) -> Explanation:
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
                     baselines=baselines,
@@ -477,7 +613,7 @@ class IntegratedGradients(Explainer):
         data.update(predictions=predictions)
 
         # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model, attributions, baselines, X, target)
+        deltas = _compute_convergence_delta(self.model, self.input_dtypes, attributions, baselines, X, target)
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)

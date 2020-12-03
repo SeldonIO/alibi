@@ -68,6 +68,7 @@ def test_adaptive_grid(batch_size, min_bin_points):
 out_dim_out_type = [(1, 'continuous'), (3, 'proba')]
 features = [None, [0], [3, 5, 7]]
 
+
 def uncollect_if_n_features_more_than_input_dim(**kwargs):
     features = kwargs['features']
     if features:
@@ -76,6 +77,7 @@ def uncollect_if_n_features_more_than_input_dim(**kwargs):
         n_features = kwargs['input_dim']
 
     return n_features > kwargs['input_dim']
+
 
 @pytest.mark.uncollect_if(func=uncollect_if_n_features_more_than_input_dim)
 @pytest.mark.parametrize('features', features, ids='features={}'.format)
@@ -95,8 +97,8 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size):
 
     # check that the length of all relevant attributes is the same as the number of features explained
     assert all(len(attr) == n_features for attr in (exp.ale_values, exp.feature_values,
-                                                   exp.feature_names, exp.feature_deciles,
-                                                   exp.ale0))
+                                                    exp.feature_names, exp.feature_deciles,
+                                                    exp.ale0))
 
     assert len(exp.target_names) == out_dim
 

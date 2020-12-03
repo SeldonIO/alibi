@@ -66,17 +66,35 @@ def test_adaptive_grid(batch_size, min_bin_points):
 
 
 out_dim_out_type = [(1, 'continuous'), (3, 'proba')]
+features = [None, [0], [3, 5, 7]]
 
+def uncollect_if_n_features_more_than_input_dim(**kwargs):
+    features = kwargs['features']
+    if features:
+        n_features = len(features)
+    else:
+        n_features = kwargs['input_dim']
 
+    return n_features > kwargs['input_dim']
+
+@pytest.mark.uncollect_if(func=uncollect_if_n_features_more_than_input_dim)
+@pytest.mark.parametrize('features', features, ids='features={}'.format)
 @pytest.mark.parametrize('input_dim', (1, 10), ids='input_dim={}'.format)
 @pytest.mark.parametrize('batch_size', (10, 100, 1000), ids='batch_size={}'.format)
 @pytest.mark.parametrize('mock_ale_explainer', out_dim_out_type, indirect=True, ids='out_dim, out_type={}'.format)
-def test_explain(mock_ale_explainer, input_dim, batch_size):
+def test_explain(mock_ale_explainer, features, input_dim, batch_size):
     out_dim = mock_ale_explainer.predictor.out_dim
     X = np.random.rand(batch_size, input_dim)
-    exp = mock_ale_explainer.explain(X)
 
-    assert all(len(attr) == input_dim for attr in (exp.ale_values, exp.feature_values,
+    if features:
+        n_features = len(features)
+    else:
+        n_features = input_dim
+
+    exp = mock_ale_explainer.explain(X, features=features)
+
+    # check that the length of all relevant attributes is the same as the number of features explained
+    assert all(len(attr) == n_features for attr in (exp.ale_values, exp.feature_values,
                                                    exp.feature_names, exp.feature_deciles,
                                                    exp.ale0))
 

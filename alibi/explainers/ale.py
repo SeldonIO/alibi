@@ -55,7 +55,7 @@ class ALE(Explainer):
         self.check_feature_resolution = check_feature_resolution
         self.low_resolution_threshold = low_resolution_threshold
 
-    def explain(self, X: np.ndarray, min_bin_points: int = 4) -> Explanation:
+    def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -81,6 +81,7 @@ class ALE(Explainer):
             raise ValueError('The array X must be 2-dimensional')
         n_features = X.shape[1]
 
+        # set feature and target names, this is done here as we don't know n_features at init time
         if self.feature_names is None:
             self.feature_names = [f'f_{i}' for i in range(n_features)]
         if self.target_names is None:
@@ -90,13 +91,20 @@ class ALE(Explainer):
         self.feature_names = np.array(self.feature_names)
         self.target_names = np.array(self.target_names)
 
+        # only calculate ALE for the specified features and return the explanation for this subset
+        if features:
+            feature_names = self.feature_names[features]
+        else:
+            feature_names = self.feature_names
+            features = range(n_features)
+
         feature_values = []
         ale_values = []
         ale0 = []
         feature_deciles = []
 
         # TODO: use joblib to paralelise?
-        for feature in range(n_features):
+        for feature in features:
             q, ale, a0 = ale_num(
                 self.predictor,
                 X=X,
@@ -122,7 +130,8 @@ class ALE(Explainer):
             ale0=ale0,
             constant_value=constant_value,
             feature_values=feature_values,
-            feature_deciles=feature_deciles
+            feature_deciles=feature_deciles,
+            feature_names=feature_names
         )
 
     def build_explanation(self,
@@ -130,7 +139,8 @@ class ALE(Explainer):
                           ale0: List[np.ndarray],
                           constant_value: float,
                           feature_values: List[np.ndarray],
-                          feature_deciles: List[np.ndarray]) -> Explanation:
+                          feature_deciles: List[np.ndarray],
+                          feature_names: np.ndarray) -> Explanation:
         """
         Helper method to build the Explanation object.
         """
@@ -144,7 +154,7 @@ class ALE(Explainer):
             ale0=ale0,
             constant_value=constant_value,
             feature_values=feature_values,
-            feature_names=self.feature_names,
+            feature_names=feature_names,
             target_names=self.target_names,
             feature_deciles=feature_deciles
         )

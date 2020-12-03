@@ -1,4 +1,3 @@
-# flake8: noqa E131
 import copy
 import math
 import numpy as np
@@ -93,10 +92,10 @@ class ALE(Explainer):
 
         # only calculate ALE for the specified features and return the explanation for this subset
         if features:
-            feature_names = self.feature_names[features]
+            feature_names = self.feature_names[features]  # type: ignore
         else:
             feature_names = self.feature_names
-            features = range(n_features)
+            features = range(n_features)  # type: ignore
 
         feature_values = []
         ale_values = []

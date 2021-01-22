@@ -38,7 +38,7 @@ setup(name='alibi',
           'spacy[lookups]',
           'scikit-image!=0.17.1',  # https://github.com/SeldonIO/alibi/issues/215
           'tensorflow>=2.0',
-          'shap>=0.36',
+          'shap>=0.36,!=0.38.1',  # https://github.com/SeldonIO/alibi/issues/333
           'scipy',
           'typing-extensions>=3.7.2'
       ],

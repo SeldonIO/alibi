@@ -123,7 +123,7 @@ def test_constant_feature(extrapolate_constant, extrapolate_constant_perc, extra
                           constant_value, feature):
     X = np.random.normal(size=(100, 2))
     X[:, feature] = constant_value
-    predict = lambda x: x.sum(axis=1)  # dummy predictor
+    predict = lambda x: x.sum(axis=1)  # dummy predictor # noqa
 
     q, ale, ale0 = ale_num(predict, X, feature, extrapolate_constant=extrapolate_constant,
                            extrapolate_constant_perc=extrapolate_constant_perc,

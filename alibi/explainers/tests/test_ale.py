@@ -112,3 +112,26 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size):
 
     assert exp.meta.keys() == DEFAULT_META_ALE.keys()
     assert exp.data.keys() == DEFAULT_DATA_ALE.keys()
+
+
+@pytest.mark.parametrize('extrapolate_constant', (True, False))
+@pytest.mark.parametrize('extrapolate_constant_perc', (10., 50.))
+@pytest.mark.parametrize('extrapolate_constant_min', (0.1, 1.0))
+@pytest.mark.parametrize('constant_value', (5.,))
+@pytest.mark.parametrize('feature', (1,))
+def test_constant_feature(extrapolate_constant, extrapolate_constant_perc, extrapolate_constant_min,
+                          constant_value, feature):
+    X = np.random.normal(size=(100, 2))
+    X[:, feature] = constant_value
+    predict = lambda x: x.sum(axis=1)  # dummy predictor
+
+    q, ale, ale0 = ale_num(predict, X, feature, extrapolate_constant=extrapolate_constant,
+                           extrapolate_constant_perc=extrapolate_constant_perc,
+                           extrapolate_constant_min=extrapolate_constant_min)
+    if extrapolate_constant:
+        delta = max(constant_value * extrapolate_constant_perc / 100, extrapolate_constant_min)
+        assert_allclose(q, np.array([constant_value - delta, constant_value + delta]))
+    else:
+        assert_allclose(q, np.array([constant_value]))
+        assert_allclose(ale, np.array([[0.]]))
+        assert_allclose(ale0, np.array([0.]))

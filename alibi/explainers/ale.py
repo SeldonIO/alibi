@@ -21,7 +21,10 @@ class ALE(Explainer):
                  feature_names: Optional[List[str]] = None,
                  target_names: Optional[List[str]] = None,
                  check_feature_resolution: bool = True,
-                 low_resolution_threshold: int = 10) -> None:
+                 low_resolution_threshold: int = 10,
+                 extrapolate_constant: bool = True,
+                 extrapolate_constant_perc: float = 10.,
+                 extrapolate_constant_min: float = 0.1) -> None:
         """
         Accumulated Local Effects for tabular datasets. Current implementation supports first order
         feature effects of numerical features.
@@ -45,6 +48,23 @@ class ALE(Explainer):
             quantiles. This is to avoid situations when the quantile algorithm returns quantiles between discrete
             values which can result in jumps in the ALE plot obscuring the true effect. Only used if
             `check_feature_resolution` is True.
+        extrapolate_constant
+            If a feature is constant, only one quantile exists where all the data points lie. In this case the
+            ALE value at that poiny is zero, however this may be misleading if the feature does have an effect on
+            the model. If this parameter is set to `True`, the ALE values are calculated on an interval surrounding
+            the constant value. The interval length is controlled by the `extrapolate_constant_perc` and
+            `extrapolate_constant_min` arguments.
+        extrapolate_constant_perc
+            Percentage by which to extrapolate a constant feature value to create an interval for ALE calculation.
+            If `q` is the constant feature value, creates an interval
+            `[q - q/extrapolate_constant_perc, q + q/extrapolate_constant_perc]` for which ALE is calculated.
+            Only relevant if `extrapolate_constant` is set to `True`.
+        extrapolate_constant_min
+            Controls the minimum extrapolation length for constant features. An interval constructed for constant
+            features is guaranteed to be 2*extrapolate_constant_min wide centered on the feature value. This allows
+            for capturing model behaviour around constant features which have small value so that
+            `extrapolate_constant_perc` is not so helpful.
+            Only relevant if `extrapolate_constant` is set to `True`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
@@ -53,6 +73,9 @@ class ALE(Explainer):
         self.target_names = target_names
         self.check_feature_resolution = check_feature_resolution
         self.low_resolution_threshold = low_resolution_threshold
+        self.extrapolate_constant = extrapolate_constant
+        self.extrapolate_constant_perc = extrapolate_constant_perc
+        self.extrapolate_constant_min = extrapolate_constant_min
 
     def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """
@@ -63,6 +86,8 @@ class ALE(Explainer):
         X
             An NxF tabular dataset used to calculate the ALE curves. This is typically the training dataset
             or a representative sample.
+        features:
+            Features for which to calculate ALE.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
             ALE estimation.
@@ -72,8 +97,6 @@ class ALE(Explainer):
             An `Explanation` object containing the data and the metadata of the calculated ALE curves.
 
         """
-        # TODO: need to check dtype of X, if int then quantiles will be rounded to nearest int
-        # Do we always convert to float?
         self.meta['params'].update(min_bin_points=min_bin_points)
 
         if X.ndim != 2:
@@ -110,7 +133,10 @@ class ALE(Explainer):
                 feature=feature,
                 min_bin_points=min_bin_points,
                 check_feature_resolution=self.check_feature_resolution,
-                low_resolution_threshold=self.low_resolution_threshold
+                low_resolution_threshold=self.low_resolution_threshold,
+                extrapolate_constant=self.extrapolate_constant,
+                extrapolate_constant_perc=self.extrapolate_constant_perc,
+                extrapolate_constant_min=self.extrapolate_constant_min
             )
             deciles = get_quantiles(X[:, feature], num_quantiles=11)
 
@@ -290,7 +316,10 @@ def ale_num(
         feature: int,
         min_bin_points: int = 4,
         check_feature_resolution: bool = True,
-        low_resolution_threshold: int = 10) -> Tuple[np.ndarray, ...]:
+        low_resolution_threshold: int = 10,
+        extrapolate_constant: bool = True,
+        extrapolate_constant_perc: float = 10.,
+        extrapolate_constant_min: float = 0.1) -> Tuple[np.ndarray, ...]:
     """
     Calculate the first order ALE curve for a numerical feature.
 
@@ -308,6 +337,12 @@ def ale_num(
     check_feature_resolution
         Refer to :class:`ALE` documentation.
     low_resolution_threshold
+        Refer to :class:`ALE` documentation.
+    extrapolate_constant
+        Refer to :class:`ALE` documentation.
+    extrapolate_constant_perc
+        Refer to :class:`ALE` documentation.
+    extrapolate_constant_min
         Refer to :class:`ALE` documentation.
 
     Returns
@@ -331,10 +366,12 @@ def ale_num(
 
     # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
     if len(q) == 1:
-        if np.abs(q.item()) >= 1:
-            q = np.hstack((q - q / 10, q + q / 10))
+        if extrapolate_constant:
+            delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
+            q = np.hstack((q - delta, q + delta))
         else:
-            q = np.hstack((q - 0.1, q + 0.1))
+            # ALE is 0 at a constant feature value
+            return q, np.array([[0.]]), np.array([0.])
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

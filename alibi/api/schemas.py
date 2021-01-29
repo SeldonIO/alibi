@@ -1,6 +1,6 @@
 from alibi.api.types import Array
-from pydantic import BaseModel, conlist, confloat
-from typing import Any, List, Optional, Union
+from pydantic import BaseModel, Field, conlist, confloat
+from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
 
 import numpy as np
@@ -114,6 +114,23 @@ class CEMData(AlibiBaseModel):
 
 
 # CounterFactual
+class CounterFactualDataCF(AlibiBaseModel):
+    X: Array
+    distance: float
+    lambda_: float = Field(alias='lambda')
+    index: int
+    class_: int = Field(alias='class')
+    proba: Array[float, (1, -1)]
+    loss: float
+
+
+class CounterFactualData(AlibiBaseModel):
+    cf: Optional[CounterFactualDataCF] = None  # TODO: make non-optional?
+    all: Dict[int, List[CounterFactualDataCF]]
+    orig_class: int
+    orig_proba: float
+    success: Optional[bool] = None  # TODO: make non-optional
+
 
 # CFProto
 
@@ -125,7 +142,7 @@ class CEMData(AlibiBaseModel):
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorData, ALEData, CEMData]
+    data: Union[AnchorData, ALEData, CEMData, CounterFactualData]
     # What happens if the data is incorrect? The schema validation will fail for the correct type and
     # pydantic will attempt to check the other types in the Union which will also fail, but this results
     # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in

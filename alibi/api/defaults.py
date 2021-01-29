@@ -4,6 +4,9 @@ Note that the "name" field is automatically populated upon initialization of the
 Explainer class.
 """
 
+# TODO: these should probably be moved into the modules where the explainer is defined
+# and refactored into factory functions.
+
 # Anchors
 DEFAULT_META_ANCHOR = {"name": None,
                        "type": ["blackbox"],

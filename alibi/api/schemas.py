@@ -10,6 +10,9 @@ ExpType = Literal['local', 'global']
 
 
 class AlibiBaseModel(BaseModel):
+    """
+    We subclass pydantic's BaseModel to override a custom json encoder which handles numpy arrays.
+    """
     class Config:
         json_encoders = {
             np.ndarray: lambda x: numpy_encoder(x)

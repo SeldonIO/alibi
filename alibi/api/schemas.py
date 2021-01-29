@@ -113,6 +113,11 @@ class AnchorData(AlibiBaseModel):
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
     data: Union[AnchorData, ALEData]
+    # What happens if the data is incorrect? The schema validation will fail for the correct type and
+    # pydantic will attempt to check the other types in the Union which will also fail, but this results
+    # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in
+    # e.g. ALE (but without actually specifying the classes tried in this Union). There should be a better
+    # way of doing this for developer experience and for changes between Alibi versions.
 
 
 def numpy_encoder(obj: Any) -> Any:

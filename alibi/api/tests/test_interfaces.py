@@ -91,7 +91,7 @@ def test_explanation():
         _ = exp['anchor']
     assert len(record) == 1
 
-
+# TODO: extend this to test with numpy arrays present, will likely need to define custom __eq__
 def test_serialize_deserialize_explanation():
     exp = Explanation(meta=valid_meta, data=valid_data)
     jrep = exp.to_json()

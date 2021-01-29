@@ -5,14 +5,17 @@ from typing_extensions import Literal
 
 import numpy as np
 
-ModelType = Literal['blackbox', 'whitebox']
+ModelType = Literal['blackbox', 'whitebox', 'tensorflow', 'keras']
 ExpType = Literal['local', 'global']
 
+
+# TODO: add a numeric type like Union[float, int] to replace Any in Array declarations
 
 class AlibiBaseModel(BaseModel):
     """
     We subclass pydantic's BaseModel to override a custom json encoder which handles numpy arrays.
     """
+
     class Config:
         json_encoders = {
             np.ndarray: lambda x: numpy_encoder(x)
@@ -99,6 +102,16 @@ class AnchorData(AlibiBaseModel):
 
 
 # CEM
+class CEMData(AlibiBaseModel):
+    PP: Optional[Array]  # can do some advanced validation to ensure that at least one of these is present
+    PN: Optional[Array]
+    PP_pred: Optional[int]  # ditto above
+    PN_pred: Optional[int]
+    grads_graph: Array
+    grads_num: Array
+    X: Array
+    X_pred: int
+
 
 # CounterFactual
 
@@ -112,12 +125,14 @@ class AnchorData(AlibiBaseModel):
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorData, ALEData]
+    data: Union[AnchorData, ALEData, CEMData]
     # What happens if the data is incorrect? The schema validation will fail for the correct type and
     # pydantic will attempt to check the other types in the Union which will also fail, but this results
     # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in
     # e.g. ALE (but without actually specifying the classes tried in this Union). There should be a better
-    # way of doing this for developer experience and for changes between Alibi versions.
+    # way of doing this for developer experience and for changes between Alibi versions. An alternative
+    # would be gaving a separate model for each explanation type and use dynamic dispatch in the `Explanation`
+    # interface to fetch the correct model given the name of the explainer in the `meta` dictionary.
 
 
 def numpy_encoder(obj: Any) -> Any:

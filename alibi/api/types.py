@@ -3,6 +3,14 @@ from typing import Any
 
 
 class Array(np.ndarray):
+    """
+    A class implementing an Array type used for pydantic models. The type can take two parameters:
+    `dtype` and `shape`. In the current implementation, when `shape` is absent, an arbitrary dimensional
+    Array is permitted. Whenever `shape` is specified, the dimensionality is enforced to be len(shape).
+    The number of entries in each dimension can be arbitrary by specifying `-1` in the appropriate dimension.
+    # TODO: extension - can we contstrain the number of instances in some dimensions whilst allowing an
+    # arbitrary number of dimensions?
+    """
 
     def __class_getitem__(cls, params):
         try:

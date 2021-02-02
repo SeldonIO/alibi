@@ -35,7 +35,7 @@ setup(name='alibi',
           'pandas',
           'requests',
           'scikit-learn',
-          'spacy[lookups]',
+          'spacy[lookups]<3.0.0',
           'scikit-image!=0.17.1',  # https://github.com/SeldonIO/alibi/issues/215
           'tensorflow>=2.0',
           'shap>=0.36,!=0.38.1',  # https://github.com/SeldonIO/alibi/issues/333

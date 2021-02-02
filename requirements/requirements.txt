@@ -1,7 +1,7 @@
 numpy>=1.17.4
 pandas>=0.23.4
 scikit-learn>=0.21.2
-spacy[lookups]>=2.0.18
+spacy[lookups]>=2.0.18,<3.0.0
 scikit-image>=0.14.2,!=0.17.1
 requests>=2.21.0
 Pillow>=6.0.0

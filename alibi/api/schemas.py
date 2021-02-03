@@ -10,6 +10,7 @@ ExpType = Literal['local', 'global']
 
 
 # TODO: add a numeric type like Union[float, int] to replace Any in Array declarations
+# TODO: we should take care with np.float32 datatypes as they would be converted to float
 
 class AlibiBaseModel(BaseModel):
     """

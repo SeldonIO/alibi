@@ -151,6 +151,15 @@ class CounterFactualProtoData(AlibiBaseModel):
 
 
 # IntegratedGradients
+class IGData(AlibiBaseModel):
+    attributions: List[Array]  # List because of potential for multi-input models
+    X: List[Array]  # ditto
+    baselines: List[Array]  # ditto
+    predictions: Array[float, (-1, -1)]  # n_instances x n_targets
+    deltas: Array[float, (-1,)]
+    target: List[int]  # TODO: `float` should be possible for multi-output regression but `_format_target` outputs int?
+    # TODO: should target input type be preserved? Or at least kept as np.ndarray?
+
 
 # KernelShap
 
@@ -158,7 +167,7 @@ class CounterFactualProtoData(AlibiBaseModel):
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorData, ALEData, CEMData, CounterFactualData, CounterFactualProtoData]
+    data: Union[AnchorData, ALEData, CEMData, CounterFactualData, CounterFactualProtoData, IGData]
     # What happens if the data is incorrect? The schema validation will fail for the correct type and
     # pydantic will attempt to check the other types in the Union which will also fail, but this results
     # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in

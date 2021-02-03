@@ -31,13 +31,23 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
         elif MINOR == 3:
             # spacy 2.3.0 moved lexeme_prob into a different package `spacy_lookups_data`
             # https://github.com/explosion/spaCy/issues/5638
-            nlp.vocab.lookups_extra.remove_table('lexeme_prob')
+            try:
+                table = nlp.vocab.lookups_extra.get_table('lexeme_prob')
+                # remove the default empty table
+                if table == dict():
+                    nlp.vocab.lookups_extra.remove_table('lexeme_prob')
+            except KeyError:
+                pass
+            finally:
+                # access the `prob` of any word to load the full table
+                assert nlp.vocab["a"].prob != -20.0, f"Failed to load the `lexeme_prob` table for model {nlp}"
     elif MAJOR >= 3:
         # in spacy 3.x we need to manually add the tables
         # https://github.com/explosion/spaCy/discussions/6388#discussioncomment-331096
-        from spacy.lookups import load_lookups
-        lookups = load_lookups(nlp.lang, ['lexeme_prob'])
-        nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))
+        if 'lexeme_prob' not in nlp.vocab.lookups.tables:
+            from spacy.lookups import load_lookups
+            lookups = load_lookups(nlp.lang, ['lexeme_prob'])
+            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))
 
     return nlp
 

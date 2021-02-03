@@ -162,12 +162,33 @@ class IGData(AlibiBaseModel):
 
 
 # KernelShap
+class ImportanceDict(AlibiBaseModel):
+    ranked_effect: Array[float, (-1,)]  # n_features
+    names: List[str]
+
+
+class KernelSHAPDataRaw(AlibiBaseModel):
+    raw_prediction: Array[float, (-1, -1)]  # n_instances x n_targets
+    prediction: Array[int, (-1,)]  # n_instances
+    instances: Array[float, (-1, -1)]  # n_instances x n_features
+    importances: Dict[str, ImportanceDict]  # n_targets + 1 keys (one for each target and 'aggregated')
+
+
+class KernelSHAPData(AlibiBaseModel):
+    shap_values: List[Array[float, (-1, -1)]]  # list of length n_targets with n_instances x n_features arrays
+    expected_value: Array[float, (-1,)]  # n_instances
+    # link: Literal['identity', 'logit'] TODO: change docs to reflect link is in meta
+    feature_names: List[str]
+    categorical_names: Dict[int, List[str]]
+    raw: KernelSHAPDataRaw
+
 
 # TreeShap
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorData, ALEData, CEMData, CounterFactualData, CounterFactualProtoData, IGData]
+    data: Union[AnchorData, ALEData, CEMData, CounterFactualData, CounterFactualProtoData,
+                IGData, KernelSHAPData]
     # What happens if the data is incorrect? The schema validation will fail for the correct type and
     # pydantic will attempt to check the other types in the Union which will also fail, but this results
     # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in

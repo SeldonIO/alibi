@@ -133,6 +133,21 @@ class CounterFactualData(AlibiBaseModel):
 
 
 # CFProto
+class CounterFactualProtoDataCF(AlibiBaseModel):
+    X: Array
+    class_: int = Field(alias='class')
+    proba: Array[float, (1, -1)]
+    grads_graph: Array
+    grads_num: Array
+
+
+class CounterFactualProtoData(AlibiBaseModel):
+    cf: Optional[CounterFactualProtoDataCF] = None  # TODO: make non-optional?
+    all: Dict[int, List[Array]]  # NB: different from CounterFactual!
+    orig_class: int
+    orig_proba: Array[float, (1, -1)]
+    id_proto: Optional[int] = None  # None if prototype loss turned off
+
 
 # IntegratedGradients
 
@@ -142,7 +157,7 @@ class CounterFactualData(AlibiBaseModel):
 
 class ExplanationModel(AlibiBaseModel):
     meta: DefaultMeta
-    data: Union[AnchorData, ALEData, CEMData, CounterFactualData]
+    data: Union[AnchorData, ALEData, CEMData, CounterFactualData, CounterFactualProtoData]
     # What happens if the data is incorrect? The schema validation will fail for the correct type and
     # pydantic will attempt to check the other types in the Union which will also fail, but this results
     # in a relatively obscure message that the data of e.g. Anchor was not compatible in some fields in

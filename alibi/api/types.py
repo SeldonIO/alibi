@@ -4,6 +4,8 @@ from typing import Any
 
 class Array(np.ndarray):
     """
+    Adapted from https://github.com/samuelcolvin/pydantic/issues/380#issuecomment-620378743
+
     A class implementing an Array type used for pydantic models. The type can take two parameters:
     `dtype` and `shape`. In the current implementation, when `shape` is absent, an arbitrary dimensional
     Array is permitted. Whenever `shape` is specified, the dimensionality is enforced to be len(shape).
@@ -18,6 +20,7 @@ class Array(np.ndarray):
             if not isinstance(shape, tuple):
                 raise ValueError('Shape must be a tuple of integers.')
         except TypeError:
+            # no shape passed
             dtype = params
             shape = tuple()
         return type('Array', (Array,), {'__dtype__': dtype, '__shape__': shape})

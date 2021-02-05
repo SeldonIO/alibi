@@ -136,7 +136,10 @@ class Explanation:
         -------
         String containing json representation of the explanation
         """
-        return json.dumps(attr.asdict(self), cls=NumpyEncoder, **kwargs)
+        # this is pretty much the same as the previous version below,
+        # `NumpyEncoder` is already part of `_explanation_model`
+        return self._explanation_model.json(dumps_kwargs=kwargs)
+        # return json.dumps(attr.asdict(self), cls=NumpyEncoder, **kwargs)
 
     @classmethod
     def from_json(cls, jsonrepr) -> "Explanation":

@@ -276,8 +276,9 @@ class TabularSampler:
             [allowed_rows[feat] for feat in uniq_feat_ids],
             np.intersect1d),
         )
-        nb_partial_anchors = np.array([len(n_records) for n_records in reversed(partial_anchor_rows)])
-        coverage = nb_partial_anchors[-1] / self.n_records
+        nb_partial_anchors = np.array([len(n_records) for n_records in
+                                       reversed(partial_anchor_rows)])  # reverse required for np.searchsorted later
+        coverage = nb_partial_anchors[0] / self.n_records  # since we sorted, the correct coverage is first not last
 
         # if there are enough train records containing the anchor, replace the original records and return...
         num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)

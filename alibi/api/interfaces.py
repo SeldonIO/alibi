@@ -138,7 +138,7 @@ class Explanation:
         """
         # this is pretty much the same as the previous version below,
         # `NumpyEncoder` is already part of `_explanation_model`
-        return self._explanation_model.json(dumps_kwargs=kwargs)
+        return self._explanation_model.json(**kwargs)
         # return json.dumps(attr.asdict(self), cls=NumpyEncoder, **kwargs)
 
     @classmethod

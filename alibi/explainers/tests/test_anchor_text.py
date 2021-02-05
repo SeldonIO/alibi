@@ -7,7 +7,7 @@ import numpy as np
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import Neighbors
+from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.download import spacy_model
 
@@ -110,7 +110,7 @@ def test_neighbors():
     tag = 'NN'
     top_n = 10
 
-    neighbor = Neighbors(nlp, w_prob=w_prob)
+    neighbor = Neighbors(_load_spacy_lexeme_prob(nlp), w_prob=w_prob)
     n = neighbor.neighbors('book', tag, top_n)
     # The word itself is excluded from the array with similar words
     assert 'book' not in n['words']

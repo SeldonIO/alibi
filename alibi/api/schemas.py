@@ -1,8 +1,7 @@
 from alibi.api.types import Array
-from pydantic import BaseModel, Field, conlist, confloat
+from pydantic import BaseModel, Field, confloat
 from typing import Any, Dict, List, Optional, Union
 from typing_extensions import Literal
-
 import numpy as np
 
 ModelType = Literal['blackbox', 'whitebox', 'tensorflow', 'keras']
@@ -216,6 +215,7 @@ class ExplanationModel(AlibiBaseModel):
     # interface to fetch the correct model given the name of the explainer in the `meta` dictionary.
     # TODO: we put TreeSHAPData before KernelSHAPData, otherwise TreeSHAP gets pattern matched with KernelSHAP
     # and the extra fields like `shap_interaction_values` get dropped. This is another shortcoming of this approach.
+
 
 def numpy_encoder(obj: Any) -> Any:
     if isinstance(

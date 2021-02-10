@@ -11,7 +11,7 @@ exec(open('alibi/version.py').read())
 
 extras_require = {
     'examples': ['seaborn>=0.9.0', 'xgboost>=0.90'],
-    'ray': ['ray>=0.8.7,<1.2'],  # from requirements/dev.txt
+    'ray': ['ray>=0.8.7, <2.0.0'],  # from requirements/dev.txt
 }
 
 setup(name='alibi',

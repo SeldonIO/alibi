@@ -9,7 +9,7 @@ When you contribute code, you affirm that the contribution is your original work
 The easiest way to get started is to install all the development dependencies
 in a separate virtual environment:
 ```
-pip install -r requirements/requirements_all.txt
+pip install -r requirements/dev.txt -r requirements/docs.txt
 ```
 This will install everything needed to run alibi and all the dev tools
 (docs builder, testing, linting etc.)

@@ -10,7 +10,7 @@ docstrings.
 ## Building documentation locally
 To build the documentation, first we need to install Python requirements:
 
-`pip install -r ../requirements/requirements_ci.txt -r ../requirements/requirements.txt`
+`pip install -r ../requirements/docs.txt`
 
 We also need `pandoc` for parsing Jupyter notebooks, the easiest way
 to install this is using conda:

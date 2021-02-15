@@ -67,7 +67,6 @@ If you're interested in outlier detection, concept drift or adversarial instance
   * [Model Explanations](#model-explanations)
   * [Model Confidence](#model-confidence)
   * [References and Examples](#references-and-examples)
-* [Dependencies](#dependencies)
 * [Citations](#citations)
 
 ## Installation and Usage

@@ -6,9 +6,11 @@ from itertools import count
 from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
-try:
-    from typing import Literal  # type: ignore
-except ImportError:
+import sys
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
     from typing_extensions import Literal
 
 from alibi.api.interfaces import Explainer, Explanation

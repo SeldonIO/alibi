@@ -31,7 +31,7 @@ jobs:
         run: |
           sudo apt-get install pandoc
           pip install --upgrade pip setuptools
-          pip install -r requirements/requirements_all.txt
+          pip install -r requirements/dev.txt -r requirements/docs.txt
           python -m spacy download en_core_web_md
           pip install -e .
           pip freeze

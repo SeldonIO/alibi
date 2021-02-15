@@ -209,29 +209,6 @@ Key:
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_iris.html),
     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/linearity_measure_fashion_mnist.html)
 
-## Dependencies
-```bash
-  attrs
-  beautifulsoup4
-  matplotlib
-  numpy
-  Pillow
-  pandas
-  requests
-  scikit-learn
-  scikit-image!=0.17.1
-  scipy
-  shap>=0.36
-  spacy[lookups]
-  tensorflow>=2.0
-  typing-extensions>=3.7.2
-```
-
-Dependencies for distributed computation of explanations:
-```bash
-ray
-```
-
 ## Citations
 If you use alibi in your research, please consider citing it.
 

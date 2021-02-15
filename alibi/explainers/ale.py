@@ -7,7 +7,7 @@ from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
 try:
-    from typing import Literal
+    from typing import Literal  # type: ignore
 except ImportError:
     from typing_extensions import Literal
 

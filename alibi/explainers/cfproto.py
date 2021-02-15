@@ -1289,7 +1289,7 @@ class CounterFactualProto(Explainer, FitMixin):
         Returns
         -------
         explanation
-            Dictionary containing the counterfactual with additional metadata
+            `Explanation` object containing the counterfactual with additional metadata as attributes.
         """
         # get params for storage in meta
         params = locals()

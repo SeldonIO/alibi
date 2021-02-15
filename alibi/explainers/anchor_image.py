@@ -369,7 +369,7 @@ class AnchorImage(Explainer):
         Returns
         -------
         explanation
-            Dictionary containing the anchor explaining the instance with additional metadata.
+            `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
         """
         # get params for storage in meta
         params = locals()

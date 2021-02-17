@@ -5,7 +5,13 @@ import pandas as pd
 from itertools import count
 from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
-from typing_extensions import Literal
+
+import sys
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE

@@ -29,9 +29,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          sudo apt-get install pandoc
           pip install --upgrade pip setuptools
-          pip install -r requirements/dev.txt -r requirements/docs.txt
+          pip install -r requirements/dev.txt
           python -m spacy download en_core_web_md
           pip install -e .
           pip freeze
@@ -56,6 +55,22 @@ jobs:
       - name: Build Python package
         run: |
           make build_pypi
+
+  docs:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Install dependencies
+        run: |
+          sudo apt-get install pandoc
+          pip install -r requirements/docs.txt
+          pip freeze
       - name: Build documentation
         run: |
           make build_docs

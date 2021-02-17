@@ -674,7 +674,7 @@ class CEM(Explainer, FitMixin):
         Returns
         -------
         explanation
-            Dictionary containing the PP or PN with additional metadata
+            `Explanation` object containing the PP or PN with additional metadata as attributes.
         """
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '

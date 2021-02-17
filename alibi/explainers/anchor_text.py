@@ -12,7 +12,6 @@ from .anchor_explanation import AnchorExplanation
 
 if TYPE_CHECKING:
     import spacy
-
 logger = logging.getLogger(__name__)
 
 
@@ -558,7 +557,7 @@ class AnchorText(Explainer):
         Returns
         -------
         explanation
-            Dictionary containing the anchor explaining the instance with additional metadata.
+            `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
         """
         # get params for storage in meta
         params = locals()

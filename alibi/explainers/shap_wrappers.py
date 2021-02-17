@@ -821,7 +821,11 @@ class KernelShap(Explainer, FitMixin):
         Returns
         -------
         explanation
-            An explanation object containing the algorithm results.
+            An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
+            field containing additional data. See usage `examples`_ for details.
+
+            .. _examples:
+               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
         """  # noqa W605
 
         if not self._fitted:
@@ -1259,6 +1263,16 @@ class TreeShap(Explainer, FitMixin):
             The start indices of the categorical variables.
         cat_vars_enc_dim
             The length of the encoding dimension for each categorical variable.
+
+        Returns
+        -------
+        explanation
+            An `Explanation` object containing the shap values and prediction in the `data` field, along with a
+            `meta` field containing additional data. See usage examples `here`_ for details.
+
+            .. _here:
+               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+
         """  # noqa: E501
 
         if not self._fitted:

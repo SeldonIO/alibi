@@ -311,7 +311,7 @@ class CounterFactual(Explainer):
 
         Returns
         -------
-        *explanation* - a dictionary containing the counterfactual with additional metadata.
+        `Explanation` object containing the counterfactual with additional metadata as attributes.
 
         """
         # TODO change init parameters on the fly

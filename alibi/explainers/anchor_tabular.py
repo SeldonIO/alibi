@@ -811,7 +811,7 @@ class AnchorTabular(Explainer, FitMixin):
         Returns
         -------
         explanation
-            Dictionary containing the result explaining the instance with additional metadata.
+            `Explanation` object containing the result explaining the instance with additional metadata as attributes.
         """
         # get params for storage in meta
         params = locals()
@@ -866,7 +866,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         Return
         ------
-             Dictionary containing human readable explanation, metadata, and precision/coverage info.
+             `Explanation` object containing human readable explanation, metadata, and precision/coverage
+             info as attributes.
         """
 
         self.add_names_to_exp(result)

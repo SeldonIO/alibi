@@ -1,5 +1,30 @@
 # Change Log
 
+## [v0.5.6](https://github.com/SeldonIO/alibi/tree/v0.5.6) (2020-02-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.5...v0.5.6)
+
+### Added
+- **Breaking change** `IntegratedGradients` now supports models with multiple inputs. For each input of the model, attributions are calculated and returned in a list. Also extends the method allowing to calculate attributions for multiple internal layers. If a list of layers is passed, a list of attributions is returned. See  https://github.com/SeldonIO/alibi/pull/321.
+- `ALE` now supports selecting a subset of features to explain. This can be useful to reduce runtime if only some features are of interest and also indirectly helps dealing with categorical variables by being able to exclude them (as `ALE` does not support categorical variables).
+
+### Fixed
+- `AnchorTabular` coverage calculation was incorrect which was caused by incorrectly indexing a list, this is now resolved.
+- `ALE` was causing an error when a constant feature was present. This is now handled explicitly and the user has control over how to handle these features. See https://docs.seldon.io/projects/alibi/en/latest/api/alibi.explainers.ale.html#alibi.explainers.ale.ALE for more details.
+- Release of Spacy 3.0 broke the `AnchorText` functionality as the way `lexeme_prob` tables are loaded was changed. This is now fixed by explicitly handling the loading depending on the `spacy` version.
+- Fixed documentation to refer to the `Explanation` object instead of the old `dict` object.
+- Added warning boxes to `CounterFactual`, `CounterFactualProto` and `CEM` docs to explain the necessity of clearing the TensorFlow graph if switching to a new model in the same session.
+
+### Development
+- Introduced lower and upper bounds for library and development dependencies to limit the potential for breaking functionality upon new releases of dependencies.
+- Added dependabot support to automatically monitor new releases of dependencies (both library and development).
+- Switched from Travis CI to Github Actions as the former limited their free tier.
+- Removed unused CI provider configs from the repo to reduce clutter.
+- Simplified development dependencies to just two files, `requirements/dev.txt` and `requirements/docs.txt`.
+- Split out the docs building stage as a separate step on CI as it doesn't need to run on every Python version thus saving time.
+- Added `.readthedocs.yml` to control how user-facing docs are built directly from the repo.
+- Removed testing related entries to `setup.py` as the workflow is both unused and outdated.
+- Avoid `shap==0.38.1` as a dependency as it assumes `IPython` is installed and breaks the installation.
+
 ## [v0.5.5](https://github.com/SeldonIO/alibi/tree/v0.5.5) (2020-10-20)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.4...v0.5.5)
 

@@ -38,7 +38,7 @@ setup(name='alibi',
           'beautifulsoup4>=4.7.1, <5.0.0',
           'tensorflow>=2.0.0, <2.5.0',
           'attrs>=19.2.0, <21.0.0',
-          'shap>=0.36.0, !=0.38.1, <0.39.0',  # https://github.com/SeldonIO/alibi/issues/333
+          'shap>=0.36.0, !=0.38.1, <0.40.0',  # https://github.com/SeldonIO/alibi/issues/333
           'scipy>=1.1.0, <2.0.0',
           'matplotlib>=3.0.0, <4.0.0',
           'typing-extensions>=3.7.2; python_version < "3.8"',  # https://github.com/SeldonIO/alibi/pull/248

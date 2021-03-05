@@ -79,9 +79,8 @@ class Explainer(abc.ABC):
     def explain(self, X: Any) -> "Explanation":
         pass
 
-    @abc.abstractmethod
     def reset_predictor(self, predictor: Any) -> None:
-        pass
+        raise NotImplementedError
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """

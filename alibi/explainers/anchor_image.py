@@ -68,6 +68,7 @@ class AnchorImage(Explainer):
             )
 
         # set the predictor
+        self.image_shape = image_shape
         self.predictor = self._transform_predictor(predictor)
 
         # segmentation function is either a user-defined function or one of the values in
@@ -80,7 +81,6 @@ class AnchorImage(Explainer):
             self.segmentation_fn = partial(fn_options[segmentation_fn], **segmentation_kwargs)
 
         self.images_background = images_background
-        self.image_shape = image_shape
         # [H, W] int array; each int is a superpixel labels
         self.segments = None  # type: np.ndarray
         self.segment_labels = None  # type: list

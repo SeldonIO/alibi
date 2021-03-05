@@ -602,5 +602,5 @@ class CounterFactual(Explainer):
 
         self.return_dict['success'] = True
 
-    def reset_predictor(self, predictor: Union[Callabl, tf.keras.Model, 'keras.Model']) -> None:
+    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model, 'keras.Model']) -> None:
         raise NotImplementedError('Resetting a predictor is currently not supported')

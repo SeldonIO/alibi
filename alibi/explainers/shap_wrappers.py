@@ -982,8 +982,8 @@ class KernelShap(Explainer, FitMixin):
 
     def reset_predictor(self, predictor: Callable) -> None:
         self.predictor = predictor
-        # TODO: check if we need to reinitialize self._explainer (potentially not, as it should hold a reference to self.predictor)
-        # however, the shap.KernelExplainer may utilize the Callable to set some attributes
+        # TODO: check if we need to reinitialize self._explainer (potentially not, as it should hold a reference
+        #  to self.predictor) however, the shap.KernelExplainer may utilize the Callable to set some attributes
         # TODO: check if we need to do more for the distributed case
 
 

@@ -143,12 +143,8 @@ class AnchorText(Explainer):
 
         self.nlp = _load_spacy_lexeme_prob(nlp)
 
-        # check if predictor returns predicted class or prediction probabilities for each class
-        # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(['Hello world']).shape) == 0:
-            self.predictor = predictor
-        else:
-            self.predictor = ArgmaxTransformer(predictor)
+        # set the predictor
+        self.predictor = self._transform_predictor(predictor)
 
         self._synonyms_generator = Neighbors(self.nlp)
         self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
@@ -641,3 +637,15 @@ class AnchorText(Explainer):
         # params passed to explain
         explanation.meta['params'].update(params)
         return explanation
+
+    def _transform_predictor(self, predictor: Callable) -> Callable:
+        # check if predictor returns predicted class or prediction probabilities for each class
+        # if needed adjust predictor so it returns the predicted class
+        if np.argmax(predictor(['Hello world']).shape) == 0:
+            return predictor
+        else:
+            transformer = ArgmaxTransformer(predictor)
+            return transformer
+
+    def reset_predictor(self, predictor: Callable) -> None:
+        self.predictor = self._transform_predictor(predictor)

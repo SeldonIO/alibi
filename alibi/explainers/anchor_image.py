@@ -67,12 +67,8 @@ class AnchorImage(Explainer):
                 'the specified segmentation function will be used.'
             )
 
-        # check if predictor returns predicted class or prediction probabilities for each class
-        # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros((1,) + image_shape)).shape) == 0:
-            self.predictor = predictor
-        else:
-            self.predictor = ArgmaxTransformer(predictor)
+        # set the predictor
+        self.predictor = self._transform_predictor(predictor)
 
         # segmentation function is either a user-defined function or one of the values in
         fn_options = {'felzenszwalb': felzenszwalb, 'slic': slic, 'quickshift': quickshift}
@@ -503,3 +499,15 @@ class AnchorImage(Explainer):
         masked_image = (image * np.expand_dims(mask, 2)).astype(int)
 
         return masked_image
+
+    def _transform_predictor(self, predictor: Callable) -> Callable:
+        # check if predictor returns predicted class or prediction probabilities for each class
+        # if needed adjust predictor so it returns the predicted class
+        if np.argmax(predictor(np.zeros((1,) + self.image_shape)).shape) == 0:
+            return predictor
+        else:
+            transformer = ArgmaxTransformer(predictor)
+            return transformer
+
+    def reset_predictor(self, predictor: Callable) -> None:
+        self.predictor = self._transform_predictor(predictor)

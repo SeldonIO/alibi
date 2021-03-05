@@ -601,3 +601,6 @@ class CounterFactual(Explainer):
             self._bisect_lambda(cf_found, l_step, lam, lam_lb, lam_ub)
 
         self.return_dict['success'] = True
+
+    def reset_predictor(self, predictor: Union[Callabl, tf.keras.Model, 'keras.Model']) -> None:
+        raise NotImplementedError('Resetting a predictor is currently not supported')

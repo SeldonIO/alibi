@@ -1350,3 +1350,6 @@ class CounterFactualProto(Explainer, FitMixin):
         explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
         return explanation
+
+    def reset_predictor(self, predictor: Union[Callabl, tf.keras.Model, 'keras.Model']) -> None:
+        raise NotImplementedError('Resetting a predictor is currently not supported')

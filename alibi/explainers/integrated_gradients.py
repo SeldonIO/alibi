@@ -617,3 +617,6 @@ class IntegratedGradients(Explainer):
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def reset_predictor(self, predictor: Union[tf.keras.Model, 'keras.Model']) -> None:
+        raise NotImplementedError('Resetting a predictor is currently not supported')

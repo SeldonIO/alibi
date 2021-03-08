@@ -192,6 +192,9 @@ class ALE(Explainer):
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
+    def reset_predictor(self, predictor: Callable) -> None:
+        self.predictor = predictor
+
 
 def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='linear') -> np.ndarray:
     """

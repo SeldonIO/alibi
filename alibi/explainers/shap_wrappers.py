@@ -980,6 +980,12 @@ class KernelShap(Explainer, FitMixin):
                 )
                 self.summarise_result = False
 
+    def reset_predictor(self, predictor: Callable) -> None:
+        self.predictor = predictor
+        # TODO: check if we need to reinitialize self._explainer (potentially not, as it should hold a reference
+        #  to self.predictor) however, the shap.KernelExplainer may utilize the Callable to set some attributes
+        # TODO: check if we need to do more for the distributed case
+
 
 # TODO: Look into pyspark support requirements if requested
 # TODO: catboost.Pool not supported for fit stage (due to summarisation) but can do if there is a user need
@@ -1586,3 +1592,6 @@ class TreeShap(Explainer, FitMixin):
                 "the encoding dimensions were not passed!"
             )
             self.summarise_result = False
+
+    def reset_predictor(self, predictor: Any) -> None:
+        raise NotImplementedError('Resetting a predictor is currently not supported')

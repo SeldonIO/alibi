@@ -79,6 +79,9 @@ class Explainer(abc.ABC):
     def explain(self, X: Any) -> "Explanation":
         pass
 
+    def reset_predictor(self, predictor: Any) -> None:
+        raise NotImplementedError
+
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
         Updates the metadata of the explainer using the data from the `data_dict`. If the params option

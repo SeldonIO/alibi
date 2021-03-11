@@ -385,8 +385,7 @@ class IntegratedGradients(Explainer):
                               List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
-                 internal_batch_size: Union[None, int] = 100,
-                 subclassed_model=False
+                 internal_batch_size: Union[None, int] = 100
                  ) -> None:
         """
         An implementation of the integrated gradients method for Tensorflow and Keras models.
@@ -415,7 +414,11 @@ class IntegratedGradients(Explainer):
         params = locals()
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
-        self.is_subclassed = subclassed_model
+        self.model = model
+        if not hasattr(model, 'output_shape'):
+            self.is_subclassed = True
+        else:
+            self.is_subclassed = False
         if not self.is_subclassed:
             if not isinstance(layer, list) and layer is not None:
                 layer = [layer]
@@ -433,7 +436,6 @@ class IntegratedGradients(Explainer):
                 layer_num = model.layers.index(layer)
         params['layer'] = layer_num
         self.meta['params'].update(params)
-        self.model = model
         self.layer = layer
         if not self.is_subclassed:
             self.inputs = self.model.inputs

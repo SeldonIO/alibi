@@ -478,7 +478,7 @@ class IntegratedGradients(Explainer):
 
         """
         if self.is_subclassed:
-            self.model(tf.keras.Input(shape=X.shape))
+            self.model(tf.keras.Input(shape=X.shape[1:]))
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[-1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."

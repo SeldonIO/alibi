@@ -8,7 +8,7 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union, List
+from typing import Callable, TYPE_CHECKING, Union, List, Tuple
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -415,7 +415,7 @@ class IntegratedGradients(Explainer):
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
         self.model = model
-        if not hasattr(model, 'output_shape'):
+        if not hasattr(model, "output_shape"):
             self.is_subclassed = True
         else:
             self.is_subclassed = False
@@ -518,177 +518,20 @@ class IntegratedGradients(Explainer):
         target = _format_target(target, nb_samples)
 
         if not self.is_subclassed:
-
-            # fix orginal call method for layer
-            if self.layer is not None:
-                orig_calls = []
-                for layer in self.layer:
-                    orig_calls.append(layer.call)
-            else:
-                orig_calls = None
-
-            # define paths in features' space
-            paths = []
-            for i in range(len(X)):
-                x, baseline = X[i], baselines[i]
-                # format and check baselines
-                baseline = _format_input_baseline(x, baseline)
-                baselines[i] = baseline
-
-                # construct paths
-                path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
-                paths.append(path)
-
-            # define target paths
-            if target is not None:
-                target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
-            else:
-                target_paths = None
-
-            def generator(target_paths=target_paths):
-                """Generates paths - targets pairs"""
-                if target_paths is not None:
-                    inps_labels = paths + [target_paths]
-                    for y in zip(*inps_labels):
-                        yield tuple(y[i] for i in range(len(y) - 1)), y[-1]
-                else:
-                    for y in zip(*paths):
-                        yield y
-
-            if target is not None:
-                paths_ds = tf.data.Dataset.from_generator(generator,
-                                                          output_types=(tuple(self.input_dtypes),
-                                                                        tf.int64)).batch(self.internal_batch_size)
-            else:
-                paths_ds = tf.data.Dataset.from_generator(generator, output_types=tuple(self.input_dtypes)).batch(
-                    self.internal_batch_size)
-
-            paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
-
-            # calculate gradients for batches
-            batches = []
-            for path in paths_ds:
-
-                if target is not None:
-                    paths_b, target_b = path
-                else:
-                    paths_b, target_b = path, None
-
-                paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
-
-                if self.layer is not None:
-                    grads_b = []
-                    for layer_idx in range(len(self.layer)):
-                        grad_b = _gradients_layer(self.model, self.layer[layer_idx],
-                                                  orig_calls[layer_idx], paths_b, target_b)
-                        grads_b.append(grad_b)
-                else:
-                    grads_b = _gradients_input(self.model, paths_b, target_b)
-
-                batches.append(grads_b)
-
-            if self.layer is not None:
-                batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.layer))]
-            else:
-                batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
-
-            # calculate attributions from gradients batches
-            attributions = []
-            if self.layer is not None:
-                for j in range(len(self.layer)):
-                    sum_int = _calculate_sum_int(batches, self.model,
-                                                 target, target_paths,
-                                                 self.n_steps, nb_samples,
-                                                 step_sizes, j)
-                    layer_output = self.layer[j].output
-                    model_layer = Model(self.model.input, outputs=layer_output)
-                    norm = (model_layer(X) - model_layer(baselines)).numpy()
-
-                    attribution = norm * sum_int
-                    attributions.append(attribution)
-            else:
-                for j in range(len(self.inputs)):
-                    sum_int = _calculate_sum_int(batches, self.model,
-                                                 target, target_paths,
-                                                 self.n_steps, nb_samples,
-                                                 step_sizes, j)
-                    norm = X[j] - baselines[j]
-
-                    attribution = norm * sum_int
-                    attributions.append(attribution)
+            attributions, baselines = self._compute_attributions_list_input(X,
+                                                                            baselines,
+                                                                            target,
+                                                                            step_sizes,
+                                                                            alphas,
+                                                                            nb_samples)
 
         else:
-
-            # fix orginal call method for layer
-            if self.layer is not None:
-                orig_calls = self.layer.call
-            else:
-                orig_calls = None
-
-            # define paths in features' space
-
-            x, baselines = X, baselines
-            # format and check baselines
-            baselines = _format_input_baseline(X, baselines)
-
-            # construct paths
-            paths = np.concatenate([baselines + alphas[i] * (x - baselines) for i in range(self.n_steps)], axis=0)
-
-            # define target paths
-            if target is not None:
-                target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
-            else:
-                target_paths = None
-
-            paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
-
-            if target_paths is not None:
-                paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
-            else:
-                paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
-
-            paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
-
-            # calculate gradients for batches
-            batches = []
-            for path in paths_ds:
-
-                if target is not None:
-                    paths_b, target_b = path
-                else:
-                    paths_b, target_b = path, None
-
-                if self.layer is not None:
-                    grads_b = _gradients_layer(self.model, self.layer, orig_calls,
-                                               paths_b, target_b)
-                else:
-                    grads_b = _gradients_input(self.model,
-                                               paths_b, target_b)
-
-                batches.append(grads_b)
-
-            # calculate attributions from gradients batches
-            attributions = []
-            if self.layer is not None:
-                sum_int = _calculate_sum_int([batches], self.model,
-                                             target, target_paths,
-                                             self.n_steps, nb_samples,
-                                             step_sizes, 0)
-                layer_output = self.layer.output
-                model_layer = Model(self.model.input, outputs=layer_output)
-                norm = (model_layer(X) - model_layer(baselines)).numpy()
-
-                attribution = norm * sum_int
-                attributions.append(attribution)
-            else:
-                sum_int = _calculate_sum_int([batches], self.model,
-                                             target, target_paths,
-                                             self.n_steps, nb_samples,
-                                             step_sizes, 0)
-                norm = X - baselines
-
-                attribution = norm * sum_int
-                attributions.append(attribution)
+            attributions, baselines = self._compute_attributions_tensor_input(X,
+                                                                              baselines,
+                                                                              target,
+                                                                              step_sizes,
+                                                                              alphas,
+                                                                              nb_samples)
 
         return self.build_explanation(
             X=X,
@@ -723,3 +566,235 @@ class IntegratedGradients(Explainer):
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def _compute_attributions_list_input(self,
+                                         X: List[np.ndarray],
+                                         baselines: Union[List[int], List[float], List[np.ndarray]],
+                                         target: Union[int, list, np.ndarray],
+                                         step_sizes: list,
+                                         alphas,
+                                         nb_samples) -> Tuple:
+        """Calculates the attributions for each input feature or element of layer and
+        returns an Explanation object.
+
+        Parameters
+        ----------
+        X
+            Instance for which integrated gradients attribution are computed.
+        baselines
+            Baselines (starting point of the path integral) for each instance.
+            If the passed value is an `np.ndarray` must have the same shape as X.
+            If not provided, all features values for the baselines are set to 0.
+        target
+            Defines which element of the model output is considered to compute the gradients.
+            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
+            for the same element of the output for all data points.
+            It must be provided if the model output dimension is higher than 1.
+            For regression models whose output is a scalar, target should not be provided.
+            For classification models `target` can be either the true classes or the classes predicted by the model.
+
+        Returns
+        -------
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+            for each feature.
+
+        """
+        # fix orginal call method for layer
+        if self.layer is not None:
+            orig_calls = []
+            for layer in self.layer:
+                orig_calls.append(layer.call)
+        else:
+            orig_calls = None
+
+        # define paths in features' space
+        paths = []
+        for i in range(len(X)):
+            x, baseline = X[i], baselines[i]
+            # format and check baselines
+            baseline = _format_input_baseline(x, baseline)
+            baselines[i] = baseline
+
+            # construct paths
+            path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
+            paths.append(path)
+
+        # define target paths
+        if target is not None:
+            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+        else:
+            target_paths = None
+
+        def generator(target_paths=target_paths):
+            """Generates paths - targets pairs"""
+            if target_paths is not None:
+                inps_labels = paths + [target_paths]
+                for y in zip(*inps_labels):
+                    yield tuple(y[i] for i in range(len(y) - 1)), y[-1]
+            else:
+                for y in zip(*paths):
+                    yield y
+
+        if target is not None:
+            paths_ds = tf.data.Dataset.from_generator(generator,
+                                                      output_types=(tuple(self.input_dtypes),
+                                                                    tf.int64)).batch(self.internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_generator(generator, output_types=tuple(self.input_dtypes)).batch(
+                self.internal_batch_size)
+
+        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+        # calculate gradients for batches
+        batches = []
+        for path in paths_ds:
+
+            if target is not None:
+                paths_b, target_b = path
+            else:
+                paths_b, target_b = path, None
+
+            paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
+
+            if self.layer is not None:
+                grads_b = []
+                for layer_idx in range(len(self.layer)):
+                    grad_b = _gradients_layer(self.model, self.layer[layer_idx],
+                                              orig_calls[layer_idx], paths_b, target_b)
+                    grads_b.append(grad_b)
+            else:
+                grads_b = _gradients_input(self.model, paths_b, target_b)
+
+            batches.append(grads_b)
+
+        if self.layer is not None:
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.layer))]
+        else:
+            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
+
+        # calculate attributions from gradients batches
+        attributions = []
+        if self.layer is not None:
+            for j in range(len(self.layer)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
+                layer_output = self.layer[j].output
+                model_layer = Model(self.model.input, outputs=layer_output)
+                norm = (model_layer(X) - model_layer(baselines)).numpy()
+
+                attribution = norm * sum_int
+                attributions.append(attribution)
+        else:
+            for j in range(len(self.inputs)):
+                sum_int = _calculate_sum_int(batches, self.model,
+                                             target, target_paths,
+                                             self.n_steps, nb_samples,
+                                             step_sizes, j)
+                norm = X[j] - baselines[j]
+
+                attribution = norm * sum_int
+                attributions.append(attribution)
+
+        return attributions, baselines
+
+    def _compute_attributions_tensor_input(self,
+                                           X: np.ndarray,
+                                           baselines: Union[int, float, np.ndarray],
+                                           target: Union[int, list, np.ndarray],
+                                           step_sizes,
+                                           alphas,
+                                           nb_samples) -> Tuple:
+        """Calculates the attributions for each input feature or element of layer and
+        returns an Explanation object.
+
+        Parameters
+        ----------
+        X
+            Instance for which integrated gradients attribution are computed.
+        baselines
+            Baselines (starting point of the path integral) for each instance.
+            If the passed value is an `np.ndarray` must have the same shape as X.
+            If not provided, all features values for the baselines are set to 0.
+        target
+            Defines which element of the model output is considered to compute the gradients.
+            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
+            for the same element of the output for all data points.
+            It must be provided if the model output dimension is higher than 1.
+            For regression models whose output is a scalar, target should not be provided.
+            For classification models `target` can be either the true classes or the classes predicted by the model.
+
+        Returns
+        -------
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+            for each feature.
+
+        """
+        # fix orginal call method for layer
+        if self.layer is not None:
+            orig_calls = self.layer.call
+        else:
+            orig_calls = None
+
+        # format and check baselines
+        baselines = _format_input_baseline(X, baselines)
+
+        # construct paths
+        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
+
+        # define target paths
+        if target is not None:
+            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+        else:
+            target_paths = None
+
+        if target_paths is not None:
+            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
+
+        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+        # calculate gradients for batches
+        batches = []
+        for path in paths_ds:
+
+            if target is not None:
+                paths_b, target_b = path
+            else:
+                paths_b, target_b = path, None
+
+            if self.layer is not None:
+                grads_b = _gradients_layer(self.model, self.layer, orig_calls,
+                                           paths_b, target_b)
+            else:
+                grads_b = _gradients_input(self.model,
+                                           paths_b, target_b)
+
+            batches.append(grads_b)
+
+        # calculate attributions from gradients batches
+        attributions = []
+        if self.layer is not None:
+            sum_int = _calculate_sum_int([batches], self.model,
+                                         target, target_paths,
+                                         self.n_steps, nb_samples,
+                                         step_sizes, 0)
+            layer_output = self.layer.output
+            model_layer = Model(self.model.input, outputs=layer_output)
+            norm = (model_layer(X) - model_layer(baselines)).numpy()
+
+            attribution = norm * sum_int
+            attributions.append(attribution)
+        else:
+            sum_int = _calculate_sum_int([batches], self.model,
+                                         target, target_paths,
+                                         self.n_steps, nb_samples,
+                                         step_sizes, 0)
+            norm = X - baselines
+
+            attribution = norm * sum_int
+            attributions.append(attribution)
+
+        return attributions, baselines

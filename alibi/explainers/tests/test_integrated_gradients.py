@@ -95,13 +95,11 @@ def ffn_model_subclass(request):
 
         def __init__(self, input_shape, output_dim, activation):
             super(Linear, self).__init__()
-            self.inp = tf.keras.layers.InputLayer(input_shape=input_shape)
             self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
             self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
 
         def call(self, inputs):
-            x = self.inp(inputs)
-            x = self.dense_1(x)
+            x = self.dense_1(inputs)
             outputs = self.dense_2(x)
             return outputs
 

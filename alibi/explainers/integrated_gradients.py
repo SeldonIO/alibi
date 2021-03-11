@@ -415,7 +415,7 @@ class IntegratedGradients(Explainer):
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
         self.model = model
-        if not hasattr(model, "output_shape"):
+        if model.inputs is None:
             self.is_subclassed = True
         else:
             self.is_subclassed = False

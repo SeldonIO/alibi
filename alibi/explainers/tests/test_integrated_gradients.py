@@ -171,7 +171,7 @@ def test_integrated_gradients_model_sequential(ffn_model_sequential, method, bas
 @pytest.mark.parametrize('baselines', BASELINES)
 def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines):
     model = ffn_model_subclass
-    ig = IntegratedGradients(model, n_steps=50, method=method, subclassed_model=True)
+    ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,

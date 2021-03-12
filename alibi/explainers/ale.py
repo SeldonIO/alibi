@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import count
 from functools import partial
-from typing import Any, Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
 import sys
 

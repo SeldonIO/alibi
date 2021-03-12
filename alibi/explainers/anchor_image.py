@@ -210,7 +210,7 @@ class AnchorImage(Explainer):
             covered_false = [self._scale(img) for img in covered_false]
             # coverage set to -1.0 as we can't compute 'true'coverage for this model
 
-            return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]
+            return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]  # type: ignore
 
         else:
             data = self._choose_superpixels(num_samples)

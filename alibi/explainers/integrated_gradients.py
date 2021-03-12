@@ -587,10 +587,10 @@ class IntegratedGradients(Explainer):
         # define paths in features' space
         paths = []
         for i in range(len(X)):
-            x, baseline = X[i], baselines[i]
+            x, baseline = X[i], baselines[i]  # type: ignore
             # format and check baselines
             baseline = _format_input_baseline(x, baseline)
-            baselines[i] = baseline
+            baselines[i] = baseline  # type: ignore
 
             # construct paths
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
@@ -664,7 +664,7 @@ class IntegratedGradients(Explainer):
                                              target, target_paths,
                                              self.n_steps, nb_samples,
                                              step_sizes, j)
-                norm = X[j] - baselines[j]
+                norm = X[j] - baselines[j]  # type: ignore
 
                 attribution = norm * sum_int
                 attributions.append(attribution)

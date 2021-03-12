@@ -37,7 +37,6 @@ DEFAULT_META_CEM = {"name": None,
 """
 Default CEM metadata.
 """
-
 DEFAULT_DATA_CEM = {"PN": None,
                     "PP": None,
                     "PN_pred": None,
@@ -46,7 +45,7 @@ DEFAULT_DATA_CEM = {"PN": None,
                     "grads_num": None,
                     "X": None,
                     "X_pred": None
-                    }
+                    }  # type: dict
 """
 Default CEM data.
 """

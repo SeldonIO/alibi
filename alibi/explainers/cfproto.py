@@ -5,7 +5,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
-from typing import Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
+from typing import Any, Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
@@ -726,13 +726,13 @@ class CounterFactualProto(Explainer, FitMixin):
             if d_type == 'abdm':
                 d_pair = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
             elif d_type == 'mvdm':
-                d_pair = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
+                d_pair = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)  # type: ignore
 
             # combined distance measure
             if d_type == 'abdm-mvdm':
                 # pairwise distances
                 d_abdm = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
-                d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
+                d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)  # type: ignore
 
                 # multidim scaled distances
                 d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
@@ -767,7 +767,7 @@ class CounterFactualProto(Explainer, FitMixin):
                                                                   update_feature_range=update_feature_range)
 
             # create array used for ragged tensor placeholder
-            self.d_abs_ragged = []  # type: List
+            self.d_abs_ragged = []  # type: Any
             for _, v in self.d_abs.items():
                 n_pad = self.max_cat - len(v)
                 v_pad = np.pad(v, (0, n_pad), 'constant')
@@ -790,7 +790,7 @@ class CounterFactualProto(Explainer, FitMixin):
                 ts = TrustScore()
             if self.is_cat:  # map categorical to numerical data
                 train_data = ord_to_num(train_data_ord, self.d_abs)
-            ts.fit(train_data, preds, classes=self.classes)
+            ts.fit(train_data, preds, classes=self.classes)  # type: ignore
             self.kdtrees = ts.kdtrees
             self.X_by_class = ts.X_kdtree
 
@@ -916,7 +916,7 @@ class CounterFactualProto(Explainer, FitMixin):
             if self.is_cat:
                 X = num_to_ord(X, self.d_abs)
             if self.ohe:
-                X = ord_to_ohe(X, self.cat_vars_ord)
+                X, _ = ord_to_ohe(X, self.cat_vars_ord)  # TODO: (Arnaud) is this a genuine bug?
             X_enc = self.enc.predict(X)
             adv_proto = self.class_proto[adv_class]
             orig_proto = self.class_proto[orig_class]
@@ -988,8 +988,8 @@ class CounterFactualProto(Explainer, FitMixin):
             """
             if not isinstance(x, (float, int, np.int64)):
                 x = np.copy(x)
-                x[y] += self.kappa
-                x = np.argmax(x)
+                x[y] += self.kappa  # type: ignore
+                x = np.argmax(x)  # type: ignore
             return x != y
 
         # define target classes for prototype if not specified yet
@@ -1086,7 +1086,7 @@ class CounterFactualProto(Explainer, FitMixin):
                 feed_dict[self.assign_map] = self.d_abs_ragged
             self.sess.run(self.setup, feed_dict=feed_dict)
 
-            X_der_batch, X_der_batch_s = [], []
+            X_der_batch, X_der_batch_s = [], []  # type: Any, Any
 
             for i in range(self.max_iterations):
 
@@ -1110,8 +1110,8 @@ class CounterFactualProto(Explainer, FitMixin):
                         grads_num_s = self.get_gradients(X_der_batch_s, Y, cat_vars_ord=self.cat_vars_ord,
                                                          grads_shape=pert_shape[1:]) * c
                         # clip gradients
-                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])
-                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])
+                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])  # type: ignore
+                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])  # type: ignore
                         X_der_batch, X_der_batch_s = [], []
 
                 # compute and clip gradients defined in graph
@@ -1180,13 +1180,13 @@ class CounterFactualProto(Explainer, FitMixin):
                     print('Target proba: {:.2f}, max non target proba: {:.2f}'.format(target_proba,
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
-                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'.format(np.mean(grads_graph),
-                                                                               np.mean(np.abs(grads_graph))))
+                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}' \
+                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
                     if not self.model:
-                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}'.format(grads_num.min(),
-                                                                                        grads_num.max()))
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'.format(np.mean(grads_num),
-                                                                                       np.mean(np.abs(grads_num))))
+                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}' \
+                              .format(grads_num.min(), grads_num.max()))  # type: ignore
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}' \
+                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
                     sys.stdout.flush()
 
                 # update best perturbation (distance) and class probabilities
@@ -1205,20 +1205,20 @@ class CounterFactualProto(Explainer, FitMixin):
 
                     # calculate trust score
                     if threshold > 0.:
-                        score = self.score(adv_idx, np.argmax(pred_proba), Y_class)
+                        score = self.score(adv_idx, np.argmax(pred_proba), Y_class)  # type: ignore
                         above_threshold = score > threshold
                     else:
                         above_threshold = True
 
                     # current step
-                    if (dist < current_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold
-                            and adv_class in target_class):
+                    if (dist < current_best_dist[batch_idx] and compare(proba, Y_class)  # type: ignore
+                            and above_threshold and adv_class in target_class):
                         current_best_dist[batch_idx] = dist
-                        current_best_proba[batch_idx] = adv_class
+                        current_best_proba[batch_idx] = adv_class  # type: ignore
 
                     # global
-                    if (dist < overall_best_dist[batch_idx] and compare(proba, Y_class) and above_threshold
-                            and adv_class in target_class):
+                    if (dist < overall_best_dist[batch_idx] and compare(proba, Y_class)  # type: ignore
+                            and above_threshold and adv_class in target_class):
                         if verbose:
                             print('\nNew best counterfactual found!')
                         overall_best_dist[batch_idx] = dist
@@ -1229,7 +1229,7 @@ class CounterFactualProto(Explainer, FitMixin):
 
             # adjust the 'c' constant for the first loss term
             for batch_idx in range(self.batch_size):
-                if (compare(current_best_proba[batch_idx], np.argmax(Y[batch_idx])) and
+                if (compare(current_best_proba[batch_idx], np.argmax(Y[batch_idx])) and  # type: ignore
                         current_best_proba[batch_idx] != -1):
                     # want to refine the current best solution by putting more emphasis on the regularization terms
                     # of the loss by reducing 'c'; aiming to find a perturbation closer to the original instance

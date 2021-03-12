@@ -74,7 +74,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
             logger.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
             feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
 
-    importances = {}  # type: Dict[str, Dict[str, np.ndarray]]
+    importances = {}  # type: Dict[str, Dict[str, Union[np.ndarray, List[str]]]]
     avg_mag = []  # type: List
 
     # rank the features by average shap value for each class in turn
@@ -920,7 +920,7 @@ class KernelShap(Explainer, FitMixin):
         if self.task != 'regression':
             argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
         else:
-            argmax_pred = []
+            argmax_pred = []  # type: ignore
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if isinstance(X, sparse.spmatrix):
@@ -1497,13 +1497,13 @@ class TreeShap(Explainer, FitMixin):
             shap_values = [interactions.sum(axis=2) for interactions in shap_output]
         else:
             shap_interaction_values = [np.array([])]
-            shap_values = shap_output
+            shap_values = shap_output  # type: ignore
         if summarise_result:
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
             summarised_shap = []
             for shap_array in shap_values:
-                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
+                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))  # type: ignore
             shap_values = summarised_shap
             if shap_interaction_values[0].size != 0:
                 summarised_shap_interactions = []
@@ -1518,7 +1518,7 @@ class TreeShap(Explainer, FitMixin):
         # NB: raw output of a regression or classification task will not work for pyspark (predict not implemented)
         if self.model_output == 'log_loss':
             loss = self._explainer.model.predict(X, y, tree_limit=self.tree_limit)
-            raw_predictions = []  # type: Union[List, np.ndarray]
+            raw_predictions = []  # type: Any
         else:
             loss = []
             raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)
@@ -1527,7 +1527,7 @@ class TreeShap(Explainer, FitMixin):
                 raw_predictions = raw_predictions.squeeze(-1)
 
         # predicted class
-        argmax_pred = []  # type: Union[List, np.ndarray]
+        argmax_pred = []  # type: Any
         if self.task != 'regression':
             if not isinstance(raw_predictions, list):
                 if self.scalar_output:
@@ -1539,7 +1539,7 @@ class TreeShap(Explainer, FitMixin):
                 else:
                     argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
 
-        importances = rank_by_importance(shap_values, feature_names=self.feature_names)
+        importances = rank_by_importance(shap_values, feature_names=self.feature_names)  # type: ignore
 
         if self._explainer.model.model_type == 'catboost':
             import catboost  # noqa: F811

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import count
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing import Any, Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
 
 import sys
 
@@ -75,8 +75,8 @@ class ALE(Explainer):
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
         self.predictor = predictor
-        self.feature_names = feature_names
-        self.target_names = target_names
+        self.feature_names = np.array(feature_names)
+        self.target_names = np.array(feature_names)
         self.check_feature_resolution = check_feature_resolution
         self.low_resolution_threshold = low_resolution_threshold
         self.extrapolate_constant = extrapolate_constant
@@ -111,13 +111,11 @@ class ALE(Explainer):
 
         # set feature and target names, this is done here as we don't know n_features at init time
         if self.feature_names is None:
-            self.feature_names = [f'f_{i}' for i in range(n_features)]
+            self.feature_names = np.array([f'f_{i}' for i in range(n_features)])
         if self.target_names is None:
             pred = np.atleast_2d(self.predictor(X[0].reshape(1, -1)))
             n_targets = pred.shape[1]
-            self.target_names = [f'c_{i}' for i in range(n_targets)]
-        self.feature_names = np.array(self.feature_names)
-        self.target_names = np.array(self.target_names)
+            self.target_names = np.array([f'c_{i}' for i in range(n_targets)])
 
         # only calculate ALE for the specified features and return the explanation for this subset
         if features:

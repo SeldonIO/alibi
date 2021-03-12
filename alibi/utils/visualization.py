@@ -62,7 +62,7 @@ def _normalize_image_attr(
         threshold = _cumulative_sum_threshold(np.abs(attr_combined), 100 - outlier_perc)
     elif VisualizeSign[sign] == VisualizeSign.positive:
         attr_combined = (attr_combined > 0) * attr_combined
-        threshold = _cumulative_sum_threshold(attr_combined, 100 - outlier_perc)
+        threshold = _cumulative_sum_threshold(attr_combined, 100 - outlier_perc)  # type: ignore
     elif VisualizeSign[sign] == VisualizeSign.negative:
         attr_combined = (attr_combined < 0) * attr_combined
         threshold = -1 * _cumulative_sum_threshold(
@@ -70,10 +70,10 @@ def _normalize_image_attr(
         )
     elif VisualizeSign[sign] == VisualizeSign.absolute_value:
         attr_combined = np.abs(attr_combined)
-        threshold = _cumulative_sum_threshold(attr_combined, 100 - outlier_perc)
+        threshold = _cumulative_sum_threshold(attr_combined, 100 - outlier_perc)  # type: ignore
     else:
         raise AssertionError("Visualize Sign type is not valid.")
-    return _normalize_scale(attr_combined, threshold)
+    return _normalize_scale(attr_combined, threshold)  # type: ignore
 
 
 def visualize_image_attr(

@@ -7,7 +7,7 @@ import requests
 from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
 import tarfile
-from typing import Tuple, Union
+from typing import Any, Tuple, Union
 import logging
 from alibi.utils.data import Bunch
 

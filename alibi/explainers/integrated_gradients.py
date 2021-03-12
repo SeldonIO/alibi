@@ -22,7 +22,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
                                start_point: List[np.ndarray],
                                end_point: List[np.ndarray],
                                target: Union[None, np.ndarray, list],
-                               is_subclassed=False) -> np.ndarray:
+                               has_inputs) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
     is to the difference between the model output at the baseline and the model output at the data point.
@@ -46,7 +46,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     -------
         Convergence deltas for each data point.
     """
-    if not is_subclassed:
+    if has_inputs:
         if len(start_point) != len(end_point):
             raise ValueError(f"'start_point' and 'end_point' must have the same length. "
                              f"'start_point' length: {len(start_point)}. 'end_point length: {len(end_point)}'")
@@ -416,10 +416,10 @@ class IntegratedGradients(Explainer):
         params = {k: v for k, v in params.items() if k not in remove}
         self.model = model
         if self.model.inputs is None:
-            self.is_subclassed = True
+            self._has_inputs = False
         else:
-            self.is_subclassed = False
-        if not self.is_subclassed:
+            self._has_inputs = True
+        if self._has_inputs:
             if not isinstance(layer, list) and layer is not None:
                 layer = [layer]
             layer_num: Union[int, List]
@@ -432,13 +432,13 @@ class IntegratedGradients(Explainer):
         else:
             if layer is None:
                 layer_num = 0
-                layer = model.layers[layer_num]
+                #layer = model.layers[layer_num]
             else:
                 layer_num = model.layers.index(layer)
         params['layer'] = layer_num
         self.meta['params'].update(params)
         self.layer = layer
-        if not self.is_subclassed:
+        if self._has_inputs:
             self.inputs = self.model.inputs
             if self.inputs is not None:
                 self.input_dtypes = [inp.dtype for inp in self.inputs]
@@ -480,7 +480,7 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
-        if self.is_subclassed:
+        if not self._has_inputs:
             self.model(tf.keras.Input(shape=X.shape[1:]))
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[-1] == 1) and target is None:
@@ -490,7 +490,7 @@ class IntegratedGradients(Explainer):
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
-        if not self.is_subclassed:
+        if self._has_inputs:
             if not isinstance(X, list):
                 X = [X]
                 baselines = [baselines]
@@ -518,7 +518,7 @@ class IntegratedGradients(Explainer):
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
         target = _format_target(target, nb_samples)
 
-        if not self.is_subclassed:
+        if self._has_inputs:
             attributions, baselines = self._compute_attributions_list_input(X,
                                                                             baselines,
                                                                             target,
@@ -563,7 +563,7 @@ class IntegratedGradients(Explainer):
                                             baselines,
                                             X,
                                             target,
-                                            is_subclassed=self.is_subclassed)
+                                            self._has_inputs)
         data.update(deltas=deltas)
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
@@ -593,7 +593,12 @@ class IntegratedGradients(Explainer):
             It must be provided if the model output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
-
+        step_sizes
+            Weights in the path integral sum.
+        alphas
+            Interpolation parameter defining the points of the interal path.
+        nb_samples
+            Total number of samples.
         Returns
         -------
             `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
@@ -725,7 +730,12 @@ class IntegratedGradients(Explainer):
             It must be provided if the model output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
-
+        step_sizes
+            Weights in the path integral sum.
+        alphas
+            Interpolation parameter defining the points of the interal path.
+        nb_samples
+            Total number of samples.
         Returns
         -------
             `Explanation` object including `meta` and `data` attributes with integrated gradients attributions

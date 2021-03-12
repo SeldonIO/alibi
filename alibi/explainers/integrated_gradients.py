@@ -8,7 +8,7 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union, List
+from typing import Callable, TYPE_CHECKING, Union, List, Tuple
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -21,7 +21,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
                                attributions: List[np.ndarray],
                                start_point: List[np.ndarray],
                                end_point: List[np.ndarray],
-                               target: Union[None, np.ndarray, list]) -> np.ndarray:
+                               target: Union[None, np.ndarray, list],
+                               has_inputs) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
     is to the difference between the model output at the baseline and the model output at the data point.
@@ -45,27 +46,31 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     -------
         Convergence deltas for each data point.
     """
+    if has_inputs:
+        if len(start_point) != len(end_point):
+            raise ValueError(f"'start_point' and 'end_point' must have the same length. "
+                             f"'start_point' length: {len(start_point)}. 'end_point length: {len(end_point)}'")
 
-    if len(start_point) != len(end_point):
-        raise ValueError(f"'start_point' and 'end_point' must have the same length. "
-                         f"'start_point' length: {len(start_point)}. 'end_point length: {len(end_point)}'")
+        for i in range(len(attributions)):
+            if end_point[i].shape[0] != attributions[i].shape[0]:
+                raise ValueError(f"`attributions {i}` and `end_point {i}` must match on the first dimension "
+                                 f"but found `attributions` first dimension: {attributions[i].shape[0]} "
+                                 f"and `end_point` first dimension: {end_point[i].shape[0]}")
+            if start_point[i].shape[0] != attributions[i].shape[0]:
+                raise ValueError(f"`attributions {i}` and `start_point {i}` must match on the first dimension "
+                                 f"but found `attributions` first dimension: {attributions[i].shape[0]} "
+                                 f"and `start_point` first dimension: {start_point[i].shape[0]}")
+            if start_point[i].shape[0] != end_point[i].shape[0]:
+                raise ValueError(f"`start_point' {i} and `end_point` {i} must match on the first dimension "
+                                 f"but found `start_point` first dimension: {start_point[i].shape[0]} "
+                                 f"and `end_point` first dimension: {end_point[i].shape[0]}")
 
-    for i in range(len(attributions)):
-        if end_point[i].shape[0] != attributions[i].shape[0]:
-            raise ValueError(f"`attributions {i}` and `end_point {i}` must match on the first dimension "
-                             f"but found `attributions` first dimension: {attributions[i].shape[0]} "
-                             f"and `end_point` first dimension: {end_point[i].shape[0]}")
-        if start_point[i].shape[0] != attributions[i].shape[0]:
-            raise ValueError(f"`attributions {i}` and `start_point {i}` must match on the first dimension "
-                             f"but found `attributions` first dimension: {attributions[i].shape[0]} "
-                             f"and `start_point` first dimension: {start_point[i].shape[0]}")
-        if start_point[i].shape[0] != end_point[i].shape[0]:
-            raise ValueError(f"`start_point' {i} and `end_point` {i} must match on the first dimension "
-                             f"but found `start_point` first dimension: {start_point[i].shape[0]} "
-                             f"and `end_point` first dimension: {end_point[i].shape[0]}")
+        start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
+        end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
 
-    start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
-    end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
+    else:
+        start_point = tf.convert_to_tensor(start_point)
+        end_point = tf.convert_to_tensor(end_point)
 
     def _sum_rows(inp):
 
@@ -81,7 +86,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     start_out = _run_forward(model, start_point, target)
     end_out = _run_forward(model, end_point, target)
 
-    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+    if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
+
         target_tensor = tf.cast(target, dtype=start_out.dtype)
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
         sign = 2 * target_tensor - 1
@@ -134,7 +140,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         return ps
 
     preds = model(x)
-    if len(model.output_shape) > 1 and model.output_shape[1] > 1:
+    if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
 
     return preds
@@ -198,7 +204,6 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
-
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -361,7 +366,7 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
         shape = tuple(shape.as_list())
 
     # invert sign of gradients for target 0 examples if classifier returns only positive class probability
-    if (len(model.output_shape) == 1 or model.output_shape[1] == 1) and target is not None:
+    if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
         sign = 2 * target_paths - 1
         grads = np.array([s * g for s, g in zip(sign, grads)])
 
@@ -376,11 +381,11 @@ class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer',
+                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer',
                               List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
-                 internal_batch_size: int = 100
+                 internal_batch_size: Union[None, int] = 100
                  ) -> None:
         """
         An implementation of the integrated gradients method for Tensorflow and Keras models.
@@ -409,25 +414,38 @@ class IntegratedGradients(Explainer):
         params = locals()
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
-        if not isinstance(layer, list) and layer is not None:
-            layer = [layer]
-        layer_num: Union[int, List]
-        if layer is None:
-            layer_num = 0
+        self.model = model
+        if self.model.inputs is None:
+            self._has_inputs = False
         else:
-            layer_num = []
-            for lay in layer:
-                layer_num.append(model.layers.index(lay))
+            self._has_inputs = True
+        if self._has_inputs:
+            if not isinstance(layer, list) and layer is not None:
+                layer = [layer]
+            layer_num: Union[int, List]
+            if layer is None:
+                layer_num = 0
+            else:
+                layer_num = []
+                for lay in layer:
+                    layer_num.append(model.layers.index(lay))
+        else:
+            if layer is None:
+                layer_num = 0
+            else:
+                layer_num = model.layers.index(layer)
         params['layer'] = layer_num
         self.meta['params'].update(params)
-        self.model = model
         self.layer = layer
-        if not isinstance(self.model.input, list):
-            self.inputs = [self.model.input]
+        if self._has_inputs:
+            self.inputs = self.model.inputs
+            if self.inputs is not None:
+                self.input_dtypes = [inp.dtype for inp in self.inputs]
+            else:
+                self.input_dtypes = [tf.float32]
         else:
-            self.inputs = self.model.input
-        self.input_dtypes = [inp.dtype for inp in self.inputs]
-
+            self.inputs = None
+            self.input_dtypes = None
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -461,38 +479,131 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
+        if not self._has_inputs:
+            self.model(tf.keras.Input(shape=X.shape[1:]))
 
-        if (len(self.model.output_shape) == 1 or self.model.output_shape[1] == 1) and target is None:
+        if (len(self.model.output_shape) == 1 or self.model.output_shape[-1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
                            "If your model is a regression model this will produce correct attributions. If your model "
                            "is a classification model, targets for each datapoint must be defined. "
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
-        if not isinstance(X, list):
-            X = [X]
-            baselines = [baselines]
-        elif isinstance(X, list) and baselines is None:
-            baselines = [None for _ in range(len(X))]
-        elif isinstance(X, list) and baselines is not None:
-            if not isinstance(baselines, list):
-                raise ValueError(f"If the input X is a list, baseline can only be `None` or "
-                                 f"a list of the same length of X. Found baselines type {type(baselines)}")
-            else:
-                if len(X) != len(baselines):
-                    raise ValueError(f"Length of 'X' must match length of 'baselines'. "
-                                     f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
+        if self._has_inputs:
+            if not isinstance(X, list):
+                X = [X]
+                baselines = [baselines]
+            elif isinstance(X, list) and baselines is None:
+                baselines = [None for _ in range(len(X))]
+            elif isinstance(X, list) and baselines is not None:
+                if not isinstance(baselines, list):
+                    raise ValueError(f"If the input X is a list, baseline can only be `None` or "
+                                     f"a list of the same length of X. Found baselines type {type(baselines)}")
+                else:
+                    if len(X) != len(baselines):
+                        raise ValueError(f"Length of 'X' must match length of 'baselines'. "
+                                         f"Found len(X): {len(X)}, len(baselines): {len(baselines)}")
 
-        if max([len(x) for x in X]) != min([len(x) for x in X]):
-            raise ValueError("First dimension must be equal for all inputs")
+            if max([len(x) for x in X]) != min([len(x) for x in X]):
+                raise ValueError("First dimension must be egual for all inputs")
 
-        nb_samples = len(X[0])
+            nb_samples = len(X[0])
+
+        else:
+            nb_samples = len(X)
 
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
         target = _format_target(target, nb_samples)
 
+        if self._has_inputs:
+            attributions, baselines = self._compute_attributions_list_input(X,
+                                                                            baselines,
+                                                                            target,
+                                                                            step_sizes,
+                                                                            alphas,
+                                                                            nb_samples)
+
+        else:
+            attributions, baselines = self._compute_attributions_tensor_input(X,
+                                                                              baselines,
+                                                                              target,
+                                                                              step_sizes,
+                                                                              alphas,
+                                                                              nb_samples)
+
+        return self.build_explanation(
+            X=X,
+            baselines=baselines,
+            target=target,
+            attributions=attributions
+        )
+
+    def build_explanation(self,
+                          X: List[np.ndarray],
+                          baselines: List[np.ndarray],
+                          target: list,
+                          attributions: List[np.ndarray]) -> Explanation:
+        data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
+        data.update(X=X,
+                    baselines=baselines,
+                    target=target,
+                    attributions=attributions)
+
+        # calculate predictions
+        predictions = self.model(X).numpy()
+        data.update(predictions=predictions)
+
+        # calculate convergence deltas
+        deltas = _compute_convergence_delta(self.model,
+                                            self.input_dtypes,
+                                            attributions,
+                                            baselines,
+                                            X,
+                                            target,
+                                            self._has_inputs)
+        data.update(deltas=deltas)
+
+        return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def _compute_attributions_list_input(self,
+                                         X: List[np.ndarray],
+                                         baselines: Union[List[int], List[float], List[np.ndarray]],
+                                         target: Union[int, list, np.ndarray],
+                                         step_sizes: list,
+                                         alphas,
+                                         nb_samples) -> Tuple:
+        """Calculates the attributions for each input feature or element of layer and
+        returns an Explanation object.
+
+        Parameters
+        ----------
+        X
+            Instance for which integrated gradients attribution are computed.
+        baselines
+            Baselines (starting point of the path integral) for each instance.
+            If the passed value is an `np.ndarray` must have the same shape as X.
+            If not provided, all features values for the baselines are set to 0.
+        target
+            Defines which element of the model output is considered to compute the gradients.
+            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
+            for the same element of the output for all data points.
+            It must be provided if the model output dimension is higher than 1.
+            For regression models whose output is a scalar, target should not be provided.
+            For classification models `target` can be either the true classes or the classes predicted by the model.
+        step_sizes
+            Weights in the path integral sum.
+        alphas
+            Interpolation parameter defining the points of the interal path.
+        nb_samples
+            Total number of samples.
+        Returns
+        -------
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+            for each feature.
+
+        """
         # fix orginal call method for layer
         if self.layer is not None:
             orig_calls = []
@@ -558,6 +669,7 @@ class IntegratedGradients(Explainer):
                     grads_b.append(grad_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
+
             batches.append(grads_b)
 
         if self.layer is not None:
@@ -590,33 +702,109 @@ class IntegratedGradients(Explainer):
                 attribution = norm * sum_int
                 attributions.append(attribution)
 
-        return self.build_explanation(
-            X=X,
-            baselines=baselines,
-            target=target,
-            attributions=attributions
-        )
+        return attributions, baselines
 
-    def build_explanation(self,
-                          X: List[np.ndarray],
-                          baselines: List[np.ndarray],
-                          target: list,
-                          attributions: List[np.ndarray]) -> Explanation:
-        data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
-        data.update(X=X,
-                    baselines=baselines,
-                    target=target,
-                    attributions=attributions)
+    def _compute_attributions_tensor_input(self,
+                                           X: np.ndarray,
+                                           baselines: Union[int, float, np.ndarray],
+                                           target: Union[int, list, np.ndarray],
+                                           step_sizes,
+                                           alphas,
+                                           nb_samples) -> Tuple:
+        """Calculates the attributions for each input feature or element of layer and
+        returns an Explanation object.
 
-        # calculate predictions
-        predictions = self.model(X).numpy()
-        data.update(predictions=predictions)
+        Parameters
+        ----------
+        X
+            Instance for which integrated gradients attribution are computed.
+        baselines
+            Baselines (starting point of the path integral) for each instance.
+            If the passed value is an `np.ndarray` must have the same shape as X.
+            If not provided, all features values for the baselines are set to 0.
+        target
+            Defines which element of the model output is considered to compute the gradients.
+            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
+            for the same element of the output for all data points.
+            It must be provided if the model output dimension is higher than 1.
+            For regression models whose output is a scalar, target should not be provided.
+            For classification models `target` can be either the true classes or the classes predicted by the model.
+        step_sizes
+            Weights in the path integral sum.
+        alphas
+            Interpolation parameter defining the points of the interal path.
+        nb_samples
+            Total number of samples.
+        Returns
+        -------
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+            for each feature.
 
-        # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model, self.input_dtypes, attributions, baselines, X, target)
-        data.update(deltas=deltas)
+        """
+        # fix orginal call method for layer
+        if self.layer is not None:
+            orig_calls = self.layer.call
+        else:
+            orig_calls = None
 
-        return Explanation(meta=copy.deepcopy(self.meta), data=data)
+        # format and check baselines
+        baselines = _format_input_baseline(X, baselines)
 
-    def reset_predictor(self, predictor: Union[tf.keras.Model, 'keras.Model']) -> None:
-        raise NotImplementedError('Resetting a predictor is currently not supported')
+        # construct paths
+        paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
+
+        # define target paths
+        if target is not None:
+            target_paths = np.concatenate([target for _ in range(self.n_steps)], axis=0)
+        else:
+            target_paths = None
+
+        if target_paths is not None:
+            paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
+        else:
+            paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
+
+        paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
+
+        # calculate gradients for batches
+        batches = []
+        for path in paths_ds:
+
+            if target is not None:
+                paths_b, target_b = path
+            else:
+                paths_b, target_b = path, None
+
+            if self.layer is not None:
+                grads_b = _gradients_layer(self.model, self.layer, orig_calls,
+                                           paths_b, target_b)
+            else:
+                grads_b = _gradients_input(self.model,
+                                           paths_b, target_b)
+
+            batches.append(grads_b)
+
+        # calculate attributions from gradients batches
+        attributions = []
+        if self.layer is not None:
+            sum_int = _calculate_sum_int([batches], self.model,
+                                         target, target_paths,
+                                         self.n_steps, nb_samples,
+                                         step_sizes, 0)
+            layer_output = self.layer.output
+            model_layer = Model(self.model.input, outputs=layer_output)
+            norm = (model_layer(X) - model_layer(baselines)).numpy()
+
+            attribution = norm * sum_int
+            attributions.append(attribution)
+        else:
+            sum_int = _calculate_sum_int([batches], self.model,
+                                         target, target_paths,
+                                         self.n_steps, nb_samples,
+                                         step_sizes, 0)
+            norm = X - baselines
+
+            attribution = norm * sum_int
+            attributions.append(attribution)
+
+        return attributions, baselines

@@ -3,6 +3,7 @@ import pytest
 from alibi.explainers import IntegratedGradients
 from alibi.api.interfaces import Explanation
 import tensorflow as tf
+from tensorflow.keras import Model
 
 # generate some dummy data
 N = 100
@@ -82,6 +83,107 @@ def ffn_model_multi_inputs(request):
     model.fit(config['X_train_multi_inputs'], config['y_train'], epochs=1, batch_size=256, verbose=0)
 
     return model
+
+
+@pytest.fixture()
+def ffn_model_subclass(request):
+    """
+    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    """
+    config = request.param
+
+    class Linear(Model):
+
+        def __init__(self, input_shape, output_dim, activation):
+            super(Linear, self).__init__()
+            self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
+            self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
+
+        def call(self, inputs):
+            x = self.dense_1(inputs)
+            outputs = self.dense_2(x)
+            return outputs
+
+    model = Linear(config['X_train'][0].shape[1:], config['output_dim'], activation=config['activation'])
+    model.compile(loss=config['loss'],
+                  optimizer='adam')
+
+    model.fit(config['X_train'], config['y_train'], epochs=1, batch_size=256, verbose=1)
+
+    return model
+
+
+@pytest.fixture()
+def ffn_model_sequential(request):
+    """
+    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    """
+    config = request.param
+    layers = [
+        tf.keras.layers.InputLayer(input_shape=config['X_train'].shape[1:]),
+        tf.keras.layers.Dense(20, activation='relu'),
+        tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])
+        ]
+    if config.get('squash_output', False):
+        layers.append(tf.keras.layers.Reshape(()))
+    model = tf.keras.models.Sequential(layers)
+    model.compile(loss=config['loss'],
+                  optimizer='adam')
+
+    model.fit(config['X_train'], config['y_train'], epochs=1, batch_size=256, verbose=1)
+
+    return model
+
+
+@pytest.mark.parametrize('ffn_model_sequential', [({'output_dim': 2,
+                                                    'activation': 'softmax',
+                                                    'loss': 'categorical_crossentropy',
+                                                    'X_train': X_train,
+                                                    'y_train': y_train_classification_categorical})], indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_model_sequential(ffn_model_sequential, method, baselines):
+    model = ffn_model_sequential
+    ig = IntegratedGradients(model, n_steps=50, method=method)
+
+    explanations = ig.explain(X_test,
+                              baselines=baselines,
+                              target=test_labels)
+
+    assert isinstance(explanations, Explanation)
+    assert explanations['data']['attributions'][0].shape == X_test.shape
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+
+# @pytest.mark.skip(reason="no way of currently testing this")
+@pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
+                                                  'activation': 'softmax',
+                                                  'loss': 'categorical_crossentropy',
+                                                  'X_train': X_train,
+                                                  'y_train': y_train_classification_categorical})], indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines):
+    model = ffn_model_subclass
+    ig = IntegratedGradients(model, n_steps=50, method=method)
+
+    explanations = ig.explain(X_test,
+                              baselines=baselines,
+                              target=test_labels)
+
+    assert isinstance(explanations, Explanation)
+    assert explanations['data']['attributions'][0].shape == X_test.shape
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
 @pytest.mark.parametrize('ffn_model_multi_inputs', [({'output_dim': 2,

@@ -432,7 +432,6 @@ class IntegratedGradients(Explainer):
         else:
             if layer is None:
                 layer_num = 0
-                #layer = model.layers[layer_num]
             else:
                 layer_num = model.layers.index(layer)
         params['layer'] = layer_num

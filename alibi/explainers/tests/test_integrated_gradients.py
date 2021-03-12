@@ -91,6 +91,7 @@ def ffn_model_subclass(request):
     Simple feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
+
     class Linear(Model):
 
         def __init__(self, input_shape, output_dim, activation):
@@ -135,10 +136,10 @@ def ffn_model_sequential(request):
 
 
 @pytest.mark.parametrize('ffn_model_sequential', [({'output_dim': 2,
-                                                  'activation': 'softmax',
-                                                  'loss': 'categorical_crossentropy',
-                                                  'X_train': X_train,
-                                                  'y_train': y_train_classification_categorical})], indirect=True)
+                                                    'activation': 'softmax',
+                                                    'loss': 'categorical_crossentropy',
+                                                    'X_train': X_train,
+                                                    'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES)
 def test_integrated_gradients_model_sequential(ffn_model_sequential, method, baselines):

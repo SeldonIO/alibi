@@ -116,8 +116,8 @@ class ALE(Explainer):
             pred = np.atleast_2d(self.predictor(X[0].reshape(1, -1)))
             n_targets = pred.shape[1]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
-        self.feature_names = np.array(self.feature_names)
-        self.target_names = np.array(self.target_names)
+        self.feature_names = np.array(self.feature_names)  # type: ignore
+        self.target_names = np.array(self.target_names)  # type: ignore
 
         # only calculate ALE for the specified features and return the explanation for this subset
         if features:

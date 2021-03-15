@@ -1,6 +1,6 @@
 import pytest
 from requests import RequestException
-from alibi.datasets import fetch_adult, fetch_imagenet, fetch_movie_sentiment, load_cats
+from alibi.datasets import fetch_adult, fetch_movie_sentiment, load_cats
 
 # TODO use mocking instead of relying on external services
 

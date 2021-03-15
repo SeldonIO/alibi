@@ -482,7 +482,15 @@ class IntegratedGradients(Explainer):
         if not self._has_inputs:
             # TODO Implement a model call for initialization of models with no inputs (subclassed models)
             #      in case the model takes multiple inputs
-            self.model(tf.keras.Input(shape=X.shape[1:]))
+            if isinstance(X, list):
+                inps = [tf.keras.Input(shape=xx.shape[1:]) for xx in X]
+                self.model(inps)
+                self.inputs = [inp for inp in inps]
+                self.input_dtypes = [tf.float32 for _ in inps]
+                self._has_inputs = True
+            else:
+                inp = tf.keras.Input(shape=X.shape[1:])
+                self.model(inp)
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[-1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
@@ -490,6 +498,18 @@ class IntegratedGradients(Explainer):
                            "is a classification model, targets for each datapoint must be defined. "
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
+
+        if isinstance(X, list):
+            nb_samples = len(X[0])
+        elif isinstance(X, np.ndarray):
+            nb_samples = len(X)
+        else:
+            raise ValueError("Input must be a np.ndarray or a list of np.ndarray")
+
+        # defining integral method
+        step_sizes_func, alphas_func = approximation_parameters(self.method)
+        step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
+        target = _format_target(target, nb_samples)
 
         if self._has_inputs:
             if not isinstance(X, list):
@@ -509,17 +529,6 @@ class IntegratedGradients(Explainer):
             if max([len(x) for x in X]) != min([len(x) for x in X]):
                 raise ValueError("First dimension must be egual for all inputs")
 
-            nb_samples = len(X[0])
-
-        else:
-            nb_samples = len(X)
-
-        # defining integral method
-        step_sizes_func, alphas_func = approximation_parameters(self.method)
-        step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        target = _format_target(target, nb_samples)
-
-        if self._has_inputs:
             attributions, baselines = self._compute_attributions_list_input(X,
                                                                             baselines,
                                                                             target,

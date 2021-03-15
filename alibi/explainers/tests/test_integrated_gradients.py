@@ -94,7 +94,7 @@ def ffn_model_subclass(request):
 
     class Linear(Model):
 
-        def __init__(self, input_shape, output_dim, activation):
+        def __init__(self, output_dim, activation):
             super(Linear, self).__init__()
             self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
             self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
@@ -104,11 +104,44 @@ def ffn_model_subclass(request):
             outputs = self.dense_2(x)
             return outputs
 
-    model = Linear(config['X_train'][0].shape[1:], config['output_dim'], activation=config['activation'])
+    model = Linear(config['output_dim'], activation=config['activation'])
     model.compile(loss=config['loss'],
                   optimizer='adam')
 
     model.fit(config['X_train'], config['y_train'], epochs=1, batch_size=256, verbose=1)
+
+    return model
+
+
+@pytest.fixture()
+def ffn_model_subclass_list_input(request):
+    """
+    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    """
+    config = request.param
+
+    class Linear(Model):
+
+        def __init__(self, output_dim, activation):
+            super(Linear, self).__init__()
+            self.flat = tf.keras.layers.Flatten()
+            self.concat = tf.keras.layers.Concatenate()
+            self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
+            self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
+
+        def call(self, inputs):
+            inp0 = self.flat(inputs[0])
+            inp1 = self.flat(inputs[1])
+            x = self.concat([inp0, inp1])
+            x = self.dense_1(x)
+            outputs = self.dense_2(x)
+            return outputs
+
+    model = Linear(config['output_dim'], activation=config['activation'])
+    model.compile(loss=config['loss'],
+                  optimizer='adam')
+
+    model.fit(config['X_train_multi_inputs'], config['y_train'], epochs=1, batch_size=256, verbose=1)
 
     return model
 
@@ -184,6 +217,41 @@ def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselin
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+
+# @pytest.mark.skip(reason="no way of currently testing this")
+@pytest.mark.parametrize('ffn_model_subclass_list_input', [({'output_dim': 2,
+                                                             'activation': 'softmax',
+                                                             'loss': 'categorical_crossentropy',
+                                                             'X_train_multi_inputs': X_train_multi_inputs,
+                                                             'y_train': y_train_classification_categorical})],
+                         indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
+@pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
+def test_integrated_gradients_model_subclass_list_input(ffn_model_subclass_list_input, method, baselines):
+    model = ffn_model_subclass_list_input
+    ig = IntegratedGradients(model, n_steps=50, method=method)
+
+    explanations = ig.explain(X_test_multi_inputs,
+                              baselines=baselines,
+                              target=test_labels)
+
+    assert isinstance(explanations, Explanation)
+    assert max([len(x) for x in X_test_multi_inputs]) == min([len(x) for x in X_test_multi_inputs])
+    assert (max([len(x) for x in explanations['data']['attributions']]) ==
+            min([len(x) for x in explanations['data']['attributions']]))
+    assert len(explanations['data']['attributions'][0]) == N_TEST
+    assert len(X_test_multi_inputs[0]) == N_TEST
+
+    attrs = explanations['data']['attributions']
+    for i in range(len(attrs)):
+        assert attrs[i].shape == X_test_multi_inputs[i].shape
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == N_TEST
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == N_TEST
 
 
 @pytest.mark.parametrize('ffn_model_multi_inputs', [({'output_dim': 2,

@@ -31,33 +31,6 @@ MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_
                        'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
 
 
-# deprecated functions
-def imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
-             min_std: float = 10., seed: int = 42):
-    import warnings
-    warnings.warn('`imagenet` is deprecated and will be removed soon, use `fetch_imagenet` instead',
-                  DeprecationWarning, stacklevel=2)
-    return fetch_imagenet(category=category, nb_images=nb_images, target_size=target_size, min_std=min_std,
-                          seed=seed, return_X_y=True)
-
-
-def movie_sentiment():
-    import warnings
-    warnings.warn('`movie_sentiment` is deprecated and will be removed soon, use `fetch_movie_sentiment` instead',
-                  DeprecationWarning, stacklevel=2)
-    return fetch_movie_sentiment(return_X_y=True)
-
-
-def adult(features_drop=None):
-    if features_drop is None:
-        features_drop = ["fnlwgt", "Education-Num"]
-    import warnings
-    warnings.warn('`adult` is deprecated and will be removed soon, use `fetch_adult` instead', DeprecationWarning,
-                  stacklevel=2)
-    bunch = fetch_adult(features_drop)
-    return bunch.data, bunch.target, bunch.feature_names, bunch.category_map
-
-
 def fetch_imagenet(category: str = 'Persian cat', nb_images: int = 10, target_size: tuple = (299, 299),
                    min_std: float = 10., seed: int = 42, return_X_y: bool = False) -> Union[Bunch, Tuple[np.ndarray,
                                                                                                          np.ndarray]]:

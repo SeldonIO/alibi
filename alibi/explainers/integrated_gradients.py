@@ -483,14 +483,16 @@ class IntegratedGradients(Explainer):
             # TODO Implement a model call for initialization of models with no inputs (subclassed models)
             #      in case the model takes multiple inputs
             if isinstance(X, list):
-                inps = [tf.keras.Input(shape=xx.shape[1:]) for xx in X]
+                inps = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inps)
                 self.inputs = [inp for inp in inps]
-                self.input_dtypes = [tf.float32 for _ in inps]
+                self.input_dtypes = [inp.dtype for inp in inps]
                 self._has_inputs = True
             else:
-                inp = tf.keras.Input(shape=X.shape[1:])
+                inp = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)
                 self.model(inp)
+                self.inputs = [inp]
+                self.input_dtypes = [inp.dtype]
 
         if (len(self.model.output_shape) == 1 or self.model.output_shape[-1] == 1) and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."

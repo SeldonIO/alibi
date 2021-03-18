@@ -35,7 +35,6 @@ setup(name='alibi',
           'scikit-image>=0.14.2, !=0.17.1, <0.19',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',
           'Pillow>=5.4.1, <9.0',
-          'beautifulsoup4>=4.7.1, <5.0.0',
           'tensorflow>=2.0.0, <2.5.0',
           'attrs>=19.2.0, <21.0.0',
           'shap>=0.36.0, !=0.38.1, <0.40.0',  # https://github.com/SeldonIO/alibi/issues/333

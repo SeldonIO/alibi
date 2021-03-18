@@ -1,6 +1,6 @@
 import pytest
 from requests import RequestException
-from alibi.datasets import fetch_adult, fetch_imagenet, fetch_movie_sentiment
+from alibi.datasets import fetch_adult, fetch_movie_sentiment, load_cats
 
 # TODO use mocking instead of relying on external services
 
@@ -29,29 +29,6 @@ def test_adult(return_X_y):
     assert len(set(y)) == ADULT_CLASSES
 
 
-@pytest.mark.parametrize('nb_images', [3])
-@pytest.mark.parametrize('category', [
-    'Persian cat', 'volcano', 'strawberry', 'Siamese cat', 'Siamese', 'Siamese cat, Siamese'])
-@pytest.mark.parametrize('return_X_y', [True, False])
-def test_imagenet(nb_images, category, return_X_y):
-    try:
-        data = fetch_imagenet(category=category, nb_images=nb_images, target_size=(299, 299), return_X_y=return_X_y)
-    except RequestException:
-        pytest.skip('Imagenet API down')
-
-    if return_X_y:
-        X, y = data
-    else:
-        X = data.data
-        y = data.target
-
-    assert X.shape == (nb_images, 299, 299, 3)  # 3 color channels
-    assert X.max() <= 255  # RGB limits
-    assert X.min() >= 0
-
-    assert len(y) == nb_images
-
-
 MOVIE_CLASSES = 2
 
 
@@ -71,3 +48,18 @@ def test_movie_sentiment(return_X_y):
 
     assert len(X) == len(y)
     assert len(set(y)) == MOVIE_CLASSES
+
+
+@pytest.mark.parametrize('return_X_y', [True, False])
+@pytest.mark.parametrize('target_size', [(299, 299)])
+def test_cats(return_X_y, target_size):
+    data = load_cats(target_size=target_size, return_X_y=return_X_y)
+    if return_X_y:
+        assert len(data) == 2
+        X, y = data
+    else:
+        assert len(data) == 3
+        X = data.data
+        y = data.target
+    assert len(X) == len(y)
+    assert X.shape[1:] == target_size + (3,)  # 3 channels

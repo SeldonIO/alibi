@@ -138,7 +138,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Pillow
-8.1.1
+8.1.2
+
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
@@ -744,7 +745,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 absl-py
-0.11.0
+0.12.0
 Apache Software License
 
                                  Apache License
@@ -1249,41 +1250,6 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-
-beautifulsoup4
-4.9.3
-MIT License
-Beautiful Soup is made available under the MIT license:
-
- Copyright (c) 2004-2019 Leonard Richardson
-
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
-
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
-
- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
- BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
- ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
- CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- SOFTWARE.
-
-Beautiful Soup incorporates code from the html5lib library, which is
-also made available under the MIT license. Copyright (c) 2006-2013
-James Graham and other contributors
-
-Beautiful Soup depends on the soupsieve library, which is also made
-available under the MIT license. Copyright (c) 2018 Isaac Muse
 
 
 blis
@@ -2306,7 +2272,8 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-1.27.0
+1.28.0
+
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2512,7 +2479,7 @@ Apache Software License
 
 
 google-auth-oauthlib
-0.4.2
+0.4.3
 Apache Software License
                             Apache License
                            Version 2.0, January 2004
@@ -3439,7 +3406,8 @@ Copyright (C) 2017-present MagicStack Inc.
 
 
 importlib-metadata
-3.7.0
+3.7.3
+
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -3567,7 +3535,7 @@ to indicate the copyright and license terms:
 
 
 llvmlite
-0.35.0
+0.36.0
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -3770,7 +3738,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.52.0
+0.53.0
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -5049,7 +5017,8 @@ THE SOFTWARE.
 
 
 protobuf
-3.15.4
+3.15.6
+
 3-Clause BSD License
 UNKNOWN
 
@@ -6576,34 +6545,9 @@ SOFTWARE.
 
 
 
-soupsieve
-2.2
-MIT License
-MIT License
-
-Copyright (c) 2018 - 2021 Isaac Muse <isaacmuse@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
 spacy
-3.0.3
+3.0.5
+
 MIT License
 The MIT License (MIT)
 
@@ -7740,7 +7684,7 @@ THE SOFTWARE.
 
 
 thinc
-8.0.1
+8.0.2
 MIT License
 The MIT License (MIT)
 
@@ -7794,7 +7738,8 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2021.2.26
+2021.3.17
+
 BSD License
 BSD 3-Clause License
 
@@ -7829,7 +7774,8 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 tqdm
-4.58.0
+4.59.0
+
 MIT License, Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -8168,7 +8114,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 urllib3
-1.26.3
+1.26.4
 MIT License
 MIT License
 
@@ -8249,7 +8195,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 zipp
-3.4.0
+3.4.1
 MIT License
 Copyright Jason R. Coombs
 

@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 __all__ = ['fetch_adult',
            'fetch_fashion_mnist',
            'fetch_imagenet',
+           'fetch_movie_sentiment',
            'load_cats']
 
 ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',

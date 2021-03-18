@@ -16,6 +16,7 @@
 "certifi","Mozilla Public License 2.0 (MPL 2.0)"
 "chardet","GNU Library or Lesser General Public License (LGPL)"
 "click","BSD License"
+"cloudpickle","BSD License"
 "contextvars","Apache Software License"
 "cycler","BSD"
 "cymem","MIT License"

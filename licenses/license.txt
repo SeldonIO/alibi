@@ -139,6 +139,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Pillow
 8.1.2
+
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
@@ -951,7 +952,7 @@ Apache Software License
 
 
 alibi
-0.5.6.dev0
+0.5.7.dev0
 Apache 2.0
                                  Apache License
                            Version 2.0, January 2004
@@ -1919,6 +1920,43 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
+cloudpickle
+1.6.0
+BSD License
+This module was extracted from the `cloud` package, developed by
+PiCloud, Inc.
+
+Copyright (c) 2015, Cloudpickle contributors.
+Copyright (c) 2012, Regents of the University of California.
+Copyright (c) 2009 PiCloud, Inc. http://www.picloud.com.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions
+are met:
+    * Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the University of California, Berkeley nor the
+      names of its contributors may be used to endorse or promote
+      products derived from this software without specific prior written
+      permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
 contextvars
 2.4
 Apache Software License
@@ -2235,6 +2273,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 google-auth
 1.28.0
+
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3368,6 +3407,7 @@ Copyright (C) 2017-present MagicStack Inc.
 
 importlib-metadata
 3.7.3
+
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -4978,6 +5018,7 @@ THE SOFTWARE.
 
 protobuf
 3.15.6
+
 3-Clause BSD License
 UNKNOWN
 
@@ -6424,7 +6465,7 @@ Public License instead of this License.  But first, please read
 
 
 shap
-0.37.0
+0.39.0
 MIT
 UNKNOWN
 
@@ -6452,7 +6493,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 slicer
-0.0.3
+0.0.7
 MIT License
 MIT License
 
@@ -6506,6 +6547,7 @@ SOFTWARE.
 
 spacy
 3.0.5
+
 MIT License
 The MIT License (MIT)
 
@@ -7697,6 +7739,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
 2021.3.17
+
 BSD License
 BSD 3-Clause License
 
@@ -7732,6 +7775,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 tqdm
 4.59.0
+
 MIT License, Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright

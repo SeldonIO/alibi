@@ -674,13 +674,9 @@ class AnchorTabular(Explainer, FitMixin):
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
 
         self.feature_names = feature_names
-        # check if predictor returns predicted class or prediction probabilities for each class
-        # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros([1, len(feature_names)])).shape) == 0:
-            self.predictor = predictor
-        else:
-            transformer = ArgmaxTransformer(predictor)
-            self.predictor = transformer
+
+        # set the predictor
+        self.predictor = self._transform_predictor(predictor)
 
         # define column indices of categorical and numerical (aka continuous) features
         if categorical_names:
@@ -962,6 +958,20 @@ class AnchorTabular(Explainer, FitMixin):
                 handled.add(feat_id)
             explanation['names'].append(fname)
 
+    def _transform_predictor(self, predictor: Callable) -> Callable:
+        # check if predictor returns predicted class or prediction probabilities for each class
+        # if needed adjust predictor so it returns the predicted class
+        if np.argmax(predictor(np.zeros([1, len(self.feature_names)])).shape) == 0:
+            return predictor
+        else:
+            transformer = ArgmaxTransformer(predictor)
+            return transformer
+
+    def reset_predictor(self, predictor: Callable) -> None:
+        predictor = self._transform_predictor(predictor)
+        self.predictor = predictor
+        self.samplers[0].predictor = predictor
+
 
 class DistributedAnchorTabular(AnchorTabular):
     if RAY_INSTALLED:
@@ -1099,3 +1109,8 @@ class DistributedAnchorTabular(AnchorTabular):
         self.mab = mab
 
         return self.build_explanation(X, result, self.instance_label, params)
+
+    def reset_predictor(self, predictor: Callable) -> None:
+        raise NotImplementedError("Resetting predictor is currently not supported for distributed explainers.")
+        # TODO: to support resetting a predictor we would need to re-run most of the code in `fit` instantiating the
+        # instances of RemoteSampler anew

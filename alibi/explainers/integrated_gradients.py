@@ -8,7 +8,7 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union, List, Tuple
+from typing import Callable, TYPE_CHECKING, Union, List, Tuple, Optional
 
 if TYPE_CHECKING:  # pragma: no cover
     import keras  # noqa
@@ -480,8 +480,6 @@ class IntegratedGradients(Explainer):
 
         """
         if not self._has_inputs:
-            # TODO Implement a model call for initialization of models with no inputs (subclassed models)
-            #      in case the model takes multiple inputs
             if isinstance(X, list):
                 inps = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inps)
@@ -583,12 +581,12 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_list_input(self,
                                          X: List[np.ndarray],
                                          baselines: Union[List[int], List[float], List[np.ndarray]],
-                                         target: Union[int, list, np.ndarray],
+                                         target: Optional[List[int]],
                                          step_sizes: list,
-                                         alphas,
-                                         nb_samples) -> Tuple:
-        """Calculates the attributions for each input feature or element of layer and
-        returns an Explanation object.
+                                         alphas: list,
+                                         nb_samples: int) -> Tuple:
+        """For each tensor in a list of input tensors,
+        calculates the attributions for each feature or element of layer.
 
         Parameters
         ----------
@@ -596,15 +594,8 @@ class IntegratedGradients(Explainer):
             Instance for which integrated gradients attribution are computed.
         baselines
             Baselines (starting point of the path integral) for each instance.
-            If the passed value is an `np.ndarray` must have the same shape as X.
-            If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.
-            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
-            for the same element of the output for all data points.
-            It must be provided if the model output dimension is higher than 1.
-            For regression models whose output is a scalar, target should not be provided.
-            For classification models `target` can be either the true classes or the classes predicted by the model.
         step_sizes
             Weights in the path integral sum.
         alphas
@@ -613,8 +604,7 @@ class IntegratedGradients(Explainer):
             Total number of samples.
         Returns
         -------
-            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
-            for each feature.
+            Tuple with integrated gradients attribution and formatted baselines
 
         """
         # fix orginal call method for layer
@@ -720,12 +710,11 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_tensor_input(self,
                                            X: np.ndarray,
                                            baselines: Union[int, float, np.ndarray],
-                                           target: Union[int, list, np.ndarray],
-                                           step_sizes,
-                                           alphas,
-                                           nb_samples) -> Tuple:
-        """Calculates the attributions for each input feature or element of layer and
-        returns an Explanation object.
+                                           target: Optional[List[int]],
+                                           step_sizes: list,
+                                           alphas: list,
+                                           nb_samples: int) -> Tuple:
+        """For a single input tensor, calculates the attributions for each input feature or element of layer.
 
         Parameters
         ----------
@@ -733,15 +722,8 @@ class IntegratedGradients(Explainer):
             Instance for which integrated gradients attribution are computed.
         baselines
             Baselines (starting point of the path integral) for each instance.
-            If the passed value is an `np.ndarray` must have the same shape as X.
-            If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.
-            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
-            for the same element of the output for all data points.
-            It must be provided if the model output dimension is higher than 1.
-            For regression models whose output is a scalar, target should not be provided.
-            For classification models `target` can be either the true classes or the classes predicted by the model.
         step_sizes
             Weights in the path integral sum.
         alphas
@@ -750,9 +732,7 @@ class IntegratedGradients(Explainer):
             Total number of samples.
         Returns
         -------
-            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
-            for each feature.
-
+            Tuple with integrated gradients attribution and formatted baselines
         """
         # fix orginal call method for layer
         if self.layer is not None:

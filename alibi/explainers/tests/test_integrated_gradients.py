@@ -63,7 +63,7 @@ def ffn_model(request):
 @pytest.fixture()
 def ffn_model_multi_inputs(request):
     """
-    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    Simple multi-inputs feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
     input0 = tf.keras.Input(shape=config['X_train_multi_inputs'][0].shape[1:])
@@ -88,7 +88,7 @@ def ffn_model_multi_inputs(request):
 @pytest.fixture()
 def ffn_model_subclass(request):
     """
-    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    Simple subclassed feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
 
@@ -116,7 +116,8 @@ def ffn_model_subclass(request):
 @pytest.fixture()
 def ffn_model_subclass_list_input(request):
     """
-    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    Simple subclassed, multi-input feed-forward model with configurable data,
+    loss function, output activation and dimension
     """
     config = request.param
 
@@ -149,7 +150,7 @@ def ffn_model_subclass_list_input(request):
 @pytest.fixture()
 def ffn_model_sequential(request):
     """
-    Simple feed-forward model with configurable data, loss function, output activation and dimension
+    Simple sequential feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
     layers = [
@@ -193,7 +194,6 @@ def test_integrated_gradients_model_sequential(ffn_model_sequential, method, bas
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-# @pytest.mark.skip(reason="no way of currently testing this")
 @pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
                                                   'activation': 'softmax',
                                                   'loss': 'categorical_crossentropy',
@@ -219,7 +219,6 @@ def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselin
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-# @pytest.mark.skip(reason="no way of currently testing this")
 @pytest.mark.parametrize('ffn_model_subclass_list_input', [({'output_dim': 2,
                                                              'activation': 'softmax',
                                                              'loss': 'categorical_crossentropy',

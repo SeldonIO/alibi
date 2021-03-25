@@ -42,7 +42,7 @@ def uncollect_if_test_explainer(**kwargs):
 
 @pytest.mark.uncollect_if(func=uncollect_if_test_explainer)
 @pytest.mark.parametrize('n_explainer_runs', [10], ids='n_exp_runs={}'.format)
-@pytest.mark.parametrize('at_defaults', [0.95], ids='threshold={}'.format, indirect=True)
+@pytest.mark.parametrize('at_defaults', [0.9, 0.95], ids='threshold={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
                          [lazy_fixture('iris_data'), lazy_fixture('adult_data')],
                          indirect=True,

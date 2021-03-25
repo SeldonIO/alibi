@@ -48,6 +48,7 @@ def ffn_model(request):
     config = request.param
     inputs = tf.keras.Input(shape=config['X_train'].shape[1:])
     x = tf.keras.layers.Dense(20, activation='relu')(inputs)
+    x = tf.keras.layers.Dense(20, activation='relu')(x)
     outputs = tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
     if config.get('squash_output', False):
         outputs = tf.keras.layers.Reshape(())(outputs)
@@ -97,11 +98,13 @@ def ffn_model_subclass(request):
         def __init__(self, output_dim, activation):
             super(Linear, self).__init__()
             self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
-            self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
+            self.dense_2 = tf.keras.layers.Dense(20, activation='relu')
+            self.dense_3 = tf.keras.layers.Dense(output_dim, activation)
 
         def call(self, inputs):
             x = self.dense_1(inputs)
-            outputs = self.dense_2(x)
+            x = self.dense_2(x)
+            outputs = self.dense_3(x)
             return outputs
 
     model = Linear(config['output_dim'], activation=config['activation'])
@@ -456,3 +459,49 @@ def test_integrated_gradients_regression(ffn_model, method, baselines):
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+
+@pytest.mark.skip(reason='Not testing as multi-layers will not be supported in the future')
+@pytest.mark.parametrize('ffn_model', [({'output_dim': 2,
+                                         'activation': 'softmax',
+                                         'loss': 'categorical_crossentropy',
+                                         'X_train': X_train,
+                                         'y_train': y_train_classification_categorical})], indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS)
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification_multi_layer(ffn_model, method, baselines):
+    model = ffn_model
+
+    layer = [model.layers[1], model.layers[2]]
+
+    ig = IntegratedGradients(model, layer=layer,
+                             n_steps=50, method=method)
+
+    explanations = ig.explain(X_test,
+                              baselines=baselines,
+                              target=test_labels)
+
+    assert isinstance(explanations, Explanation)
+
+
+@pytest.mark.skip(reason='Not testing as multi-layers will not be supported in the future')
+@pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
+                                                  'activation': 'softmax',
+                                                  'loss': 'categorical_crossentropy',
+                                                  'X_train': X_train,
+                                                  'y_train': y_train_classification_categorical})], indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS)
+@pytest.mark.parametrize('baselines', BASELINES)
+def test_integrated_gradients_binary_classification_multi_layer_subclassed(ffn_model_subclass, method, baselines):
+    model = ffn_model_subclass
+
+    layer = [model.layers[0], model.layers[1]]
+
+    ig = IntegratedGradients(model, layer=layer,
+                             n_steps=50, method=method)
+
+    explanations = ig.explain(X_test,
+                              baselines=baselines,
+                              target=test_labels)
+
+    assert isinstance(explanations, Explanation)

@@ -21,8 +21,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
                                attributions: List[np.ndarray],
                                start_point: List[np.ndarray],
                                end_point: List[np.ndarray],
-                               target: Union[None, np.ndarray, list],
-                               has_inputs) -> np.ndarray:
+                               target: Optional[List[int]],
+                               has_inputs: bool) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
     is to the difference between the model output at the baseline and the model output at the data point.
@@ -41,6 +41,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         Data points.
     target
         Target for which the gradients are calculated for classification models.
+    has_inputs
+        Whether the model is subclassed (`has_inputs`=False) or not (`has_inputs`=True)
 
     Returns
     -------
@@ -69,7 +71,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     end_out = _run_forward(model, end_point, target)
 
     if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
-
         target_tensor = tf.cast(target, dtype=start_out.dtype)
         target_tensor = tf.reshape(1 - target_tensor, [len(target), 1])
         sign = 2 * target_tensor - 1
@@ -186,6 +187,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
         Gradients for each element of layer.
 
     """
+
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -282,7 +284,7 @@ def _format_input_baseline(X: np.ndarray,
 
 
 def _format_target(target: Union[None, int, list, np.ndarray],
-                   nb_samples: int) -> list:
+                   nb_samples: int) -> Union[None, List[int]]:
     """
     Formats target to return a list.
 
@@ -363,11 +365,11 @@ class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[None, tf.keras.layers.Layer, 'keras.layers.Layer',
+                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer',
                               List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
-                 internal_batch_size: Union[None, int] = 100
+                 internal_batch_size: int = 100
                  ) -> None:
         """
         An implementation of the integrated gradients method for Tensorflow and Keras models.
@@ -397,6 +399,8 @@ class IntegratedGradients(Explainer):
         remove = ['self', 'model', '__class__', 'layer']
         params = {k: v for k, v in params.items() if k not in remove}
         self.model = model
+
+        # subclassed models which have not been called will not have inputs set, we handle this with a flag
         if self.model.inputs is None:
             self._has_inputs = False
         else:
@@ -404,9 +408,8 @@ class IntegratedGradients(Explainer):
         if self._has_inputs:
             if not isinstance(layer, list) and layer is not None:
                 layer = [layer]
-            layer_num: Union[int, List]
             if layer is None:
-                layer_num = 0
+                layer_num = 0  # type: Union[int, List[int]]
             else:
                 layer_num = []
                 for lay in layer:
@@ -536,7 +539,7 @@ class IntegratedGradients(Explainer):
     def build_explanation(self,
                           X: List[np.ndarray],
                           baselines: List[np.ndarray],
-                          target: list,
+                          target: Optional[List[int]],
                           attributions: List[np.ndarray]) -> Explanation:
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         data.update(X=X,
@@ -564,8 +567,8 @@ class IntegratedGradients(Explainer):
                                          X: List[np.ndarray],
                                          baselines: Union[List[int], List[float], List[np.ndarray]],
                                          target: Optional[List[int]],
-                                         step_sizes: list,
-                                         alphas: list,
+                                         step_sizes: List[float],
+                                         alphas: List[float],
                                          nb_samples: int) -> Tuple:
         """For each tensor in a list of input tensors,
         calculates the attributions for each feature or element of layer.
@@ -693,8 +696,8 @@ class IntegratedGradients(Explainer):
                                            X: np.ndarray,
                                            baselines: Union[int, float, np.ndarray],
                                            target: Optional[List[int]],
-                                           step_sizes: list,
-                                           alphas: list,
+                                           step_sizes: List[float],
+                                           alphas: List[float],
                                            nb_samples: int) -> Tuple:
         """For a single input tensor, calculates the attributions for each input feature or element of layer.
 

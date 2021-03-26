@@ -413,34 +413,9 @@ class IntegratedGradients(Explainer):
         else:
             layer_num = model.layers.index(layer)
 
-
-        #if self._has_inputs:
-        #    # convert to a list as functional/sequential models unpack single element input lists
-        #    if not isinstance(layer, list) and layer is not None:
-        #        layer = [layer]
-        #    if layer is None:
-        #        layer_num = 0  # type: Union[int, List[int]]
-        #    else:
-        #        layer_num = []
-        #        for lay in layer:
-        #            layer_num.append(model.layers.index(lay))
-        #else:
-        #    if layer is None:
-        #        layer_num = 0
-        #    else:
-        #        layer_num = model.layers.index(layer)
         params['layer'] = layer_num
         self.meta['params'].update(params)
         self.layer = layer
-        #if self._has_inputs:
-        #    self.inputs = self.model.inputs
-        #    if self.inputs is not None:
-        #        self.input_dtypes = [inp.dtype for inp in self.inputs]
-        #    else:
-        #        self.input_dtypes = [tf.float32]
-        #else:
-        #    self.inputs = None
-        #    self.input_dtypes = None
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -660,7 +635,7 @@ class IntegratedGradients(Explainer):
 
             if self.layer is not None:
                 grads_b = _gradients_layer(self.model, self.layer, orig_calls,
-                                          paths_b, target_b)
+                                           paths_b, target_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
 

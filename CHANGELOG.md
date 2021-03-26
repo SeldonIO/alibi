@@ -1,5 +1,20 @@
 # Change Log
 
+## [v0.5.7](https://github.com/SeldonIO/alibi/tree/v0.5.7) (2021-03-26)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.6...v0.5.7)
+
+### Added
+- A `reset_predictor` method for black-box explainers. The intended use case for this is for deploying an already configured explainer to work with a remote predictor endpoint instead of the local predictor used in development.
+- `alibi.datasets.load_cats` function which loads a small sample of cat images shipped with the library to be used in examples.
+
+### Fixed
+- Deprecated the `alibi.datasets.fetch_imagenet` function as the Imagenet API is no longer available.
+- `IntegratedGradients` now works with subclassed TensorFlow models.
+- Removed support for calculating attributions wrt multiple layers in `IntegratedGradients` as this was not working properly and is difficult to do in the general case.
+
+### Development
+- Fixed an issue with `AnchorTabular` tests not being picked up due to a name change of test data fixtures.
+
 ## [v0.5.6](https://github.com/SeldonIO/alibi/tree/v0.5.6) (2021-02-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.5...v0.5.6)
 

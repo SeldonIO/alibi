@@ -47,24 +47,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
         Convergence deltas for each data point.
     """
     if has_inputs:
-        if len(start_point) != len(end_point):
-            raise ValueError(f"'start_point' and 'end_point' must have the same length. "
-                             f"'start_point' length: {len(start_point)}. 'end_point length: {len(end_point)}'")
-
-        for i in range(len(attributions)):
-            if end_point[i].shape[0] != attributions[i].shape[0]:
-                raise ValueError(f"`attributions {i}` and `end_point {i}` must match on the first dimension "
-                                 f"but found `attributions` first dimension: {attributions[i].shape[0]} "
-                                 f"and `end_point` first dimension: {end_point[i].shape[0]}")
-            if start_point[i].shape[0] != attributions[i].shape[0]:
-                raise ValueError(f"`attributions {i}` and `start_point {i}` must match on the first dimension "
-                                 f"but found `attributions` first dimension: {attributions[i].shape[0]} "
-                                 f"and `start_point` first dimension: {start_point[i].shape[0]}")
-            if start_point[i].shape[0] != end_point[i].shape[0]:
-                raise ValueError(f"`start_point' {i} and `end_point` {i} must match on the first dimension "
-                                 f"but found `start_point` first dimension: {start_point[i].shape[0]} "
-                                 f"and `end_point` first dimension: {end_point[i].shape[0]}")
-
         start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
         end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
 
@@ -535,8 +517,8 @@ class IntegratedGradients(Explainer):
                                                                             step_sizes,
                                                                             alphas,
                                                                             nb_samples)
-
         else:
+
             attributions, baselines = self._compute_attributions_tensor_input(X,
                                                                               baselines,
                                                                               target,

@@ -365,8 +365,7 @@ class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer',
-                              List[tf.keras.layers.Layer], List['keras.layers.Layer']] = None,
+                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -382,8 +381,7 @@ class IntegratedGradients(Explainer):
         model
             Tensorflow or Keras model.
         layer
-            Layers with respect to which the gradients are calculated.
-            It can be a single layer or a list of layers.
+            Layer with respect to which the gradients are calculated.
             If not provided, the gradients are calculated with respect to the input.
         method
             Method for the integral approximation. Methods available:
@@ -403,34 +401,21 @@ class IntegratedGradients(Explainer):
         # subclassed models which have not been called will not have inputs set, we handle this with a flag
         if self.model.inputs is None:
             self._has_inputs = False
+            self.inputs = None
+            self.input_dtypes = None
         else:
             self._has_inputs = True
-        if self._has_inputs:
-            if not isinstance(layer, list) and layer is not None:
-                layer = [layer]
-            if layer is None:
-                layer_num = 0  # type: Union[int, List[int]]
-            else:
-                layer_num = []
-                for lay in layer:
-                    layer_num.append(model.layers.index(lay))
+            self.inputs = self.model.inputs
+            self.input_dtypes = [inp.dtype for inp in self.inputs]
+
+        if layer is None:
+            layer_num = 0
         else:
-            if layer is None:
-                layer_num = 0
-            else:
-                layer_num = model.layers.index(layer)
+            layer_num = model.layers.index(layer)
+
         params['layer'] = layer_num
         self.meta['params'].update(params)
         self.layer = layer
-        if self._has_inputs:
-            self.inputs = self.model.inputs
-            if self.inputs is not None:
-                self.input_dtypes = [inp.dtype for inp in self.inputs]
-            else:
-                self.input_dtypes = [tf.float32]
-        else:
-            self.inputs = None
-            self.input_dtypes = None
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -497,6 +482,7 @@ class IntegratedGradients(Explainer):
         target = _format_target(target, nb_samples)
 
         if self._has_inputs:
+            # functional/sequential models or subclassed models with multiple inputs
             if not isinstance(X, list):
                 X = [X]
                 baselines = [baselines]
@@ -521,7 +507,7 @@ class IntegratedGradients(Explainer):
                                                                             alphas,
                                                                             nb_samples)
         else:
-
+            # subclassed models with a single input
             attributions, baselines = self._compute_attributions_tensor_input(X,
                                                                               baselines,
                                                                               target,
@@ -594,9 +580,7 @@ class IntegratedGradients(Explainer):
         """
         # fix orginal call method for layer
         if self.layer is not None:
-            orig_calls = []
-            for layer in self.layer:
-                orig_calls.append(layer.call)
+            orig_calls = self.layer.call
         else:
             orig_calls = None
 
@@ -650,35 +634,30 @@ class IntegratedGradients(Explainer):
             paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
 
             if self.layer is not None:
-                grads_b = []
-                for layer_idx in range(len(self.layer)):
-                    grad_b = _gradients_layer(self.model, self.layer[layer_idx],
-                                              orig_calls[layer_idx], paths_b, target_b)
-                    grads_b.append(grad_b)
+                grads_b = _gradients_layer(self.model, self.layer, orig_calls,
+                                           paths_b, target_b)
             else:
                 grads_b = _gradients_input(self.model, paths_b, target_b)
 
             batches.append(grads_b)
 
-        if self.layer is not None:
-            batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.layer))]
-        else:
+        if self.layer is None:
+            # multi-input
             batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
 
         # calculate attributions from gradients batches
         attributions = []
         if self.layer is not None:
-            for j in range(len(self.layer)):
-                sum_int = _calculate_sum_int(batches, self.model,
-                                             target, target_paths,
-                                             self.n_steps, nb_samples,
-                                             step_sizes, j)
-                layer_output = self.layer[j].output
-                model_layer = Model(self.model.input, outputs=layer_output)
-                norm = (model_layer(X) - model_layer(baselines)).numpy()
+            sum_int = _calculate_sum_int([batches], self.model,
+                                         target, target_paths,
+                                         self.n_steps, nb_samples,
+                                         step_sizes, 0)
+            layer_output = self.layer.output
+            model_layer = Model(self.model.input, outputs=layer_output)
+            norm = (model_layer(X) - model_layer(baselines)).numpy()
 
-                attribution = norm * sum_int
-                attributions.append(attribution)
+            attribution = norm * sum_int
+            attributions.append(attribution)
         else:
             for j in range(len(self.inputs)):
                 sum_int = _calculate_sum_int(batches, self.model,
@@ -757,8 +736,7 @@ class IntegratedGradients(Explainer):
                 grads_b = _gradients_layer(self.model, self.layer, orig_calls,
                                            paths_b, target_b)
             else:
-                grads_b = _gradients_input(self.model,
-                                           paths_b, target_b)
+                grads_b = _gradients_input(self.model, paths_b, target_b)
 
             batches.append(grads_b)
 

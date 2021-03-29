@@ -33,6 +33,7 @@ jobs:
           pip install -r requirements/dev.txt
           python -m spacy download en_core_web_md
           pip install -e .
+          pip install -e .[shap]
           pip freeze
       - name: Lint with flake8
         run: |

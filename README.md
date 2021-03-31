@@ -224,7 +224,7 @@ BibTeX entry:
   author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru},
   url = {https://github.com/SeldonIO/alibi},
   version = {0.5.7},
-  date = {2021-03-26},
+  date = {2021-03-31},
   year = {2019}
 }
 ```

@@ -1,7 +1,10 @@
 # Change Log
 
-## [v0.5.7](https://github.com/SeldonIO/alibi/tree/v0.5.7) (2021-03-26)
+## [v0.5.7](https://github.com/SeldonIO/alibi/tree/v0.5.7) (2021-03-31)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.6...v0.5.7)
+
+### Changed
+- Support for `KernelShap` and `TreeShap` now requires installing the `shap` dependency explicitly after installing `alibi`. This can be achieved by running `pip install alibi && pip install alibi[shap]`. The reason for this is that the build process for the upstream `shap` package is not well configured resulting in broken installations as detailed in https://github.com/SeldonIO/alibi/pull/376 and https://github.com/slundberg/shap/pull/1802. We expect this to be a temporary change until changes are made upstream.
 
 ### Added
 - A `reset_predictor` method for black-box explainers. The intended use case for this is for deploying an already configured explainer to work with a remote predictor endpoint instead of the local predictor used in development.

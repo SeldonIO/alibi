@@ -9,7 +9,6 @@ from .anchor_image import AnchorImage
 from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
-from .shap_wrappers import KernelShap, TreeShap
 from .integrated_gradients import IntegratedGradients
 
 __all__ = ["ALE",
@@ -20,8 +19,12 @@ __all__ = ["ALE",
            "CEM",
            "CounterFactual",
            "CounterFactualProto",
-           "KernelShap",
-           "TreeShap",
            "plot_ale",
            "IntegratedGradients"
            ]
+
+try:
+    from .shap_wrappers import KernelShap, TreeShap
+    __all__ += ["KernelShap", "TreeShap"]
+except ImportError:
+    pass

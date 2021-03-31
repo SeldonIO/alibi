@@ -84,6 +84,11 @@ To take advantage of distributed computation of explanations, install `alibi` wi
 pip install alibi[ray]
 ```
 
+For SHAP support, install `alibi` as follows:
+```bash
+pip install alibi && pip install alibi[shap]
+```
+
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
 fit and explain steps. We will use the [AnchorTabular](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
 explainer to illustrate the API:

@@ -86,8 +86,7 @@ pip install alibi[ray]
 
 For SHAP support, install `alibi` as follows:
 ```bash
-pip install alibi
-pip install alibi[shap]
+pip install alibi && pip install alibi[shap]
 ```
 
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,

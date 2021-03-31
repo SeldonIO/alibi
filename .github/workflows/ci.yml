@@ -30,10 +30,10 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip setuptools
-          pip install -r requirements/dev.txt
+          pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
           python -m spacy download en_core_web_md
-          pip install -e .
-          pip install -e .[shap]
+          pip install --upgrade --upgrade-strategy eager -e .
+          pip install --upgrade --upgrade-strategy eager -e .[shap]
           pip freeze
       - name: Lint with flake8
         run: |

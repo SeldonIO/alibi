@@ -215,9 +215,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
         X_sampled_tmp = X_train[indices]
         X_sampled.append(X_sampled_tmp)
 
-    X_sampled = np.array(X_sampled)  # shape=(nb_instances, nb_samples, nb_features)
-
-    return X_sampled
+    return np.asarray(X_sampled)  # shape=(nb_instances, nb_samples, nb_features)
 
 
 def _sample_grid(x: np.ndarray, feature_range: np.ndarray = None, epsilon: float = 0.04,
@@ -422,8 +420,7 @@ class LinearityMeasure(object):
                                      model_type=self.model_type, agg=self.agg)
         elif self.method == 'grid':
             if not self.is_fit:
-                self.feature_range = [[0, 1] for _ in x.shape[1]]  # hardcoded (e.g. from 0 to 1)
-
+                self.feature_range = np.asarray([[0, 1]] * x.shape[1])  # hardcoded (e.g. from 0 to 1)
             lin = _linearity_measure(predict_fn, x, X_train=None, feature_range=self.feature_range,
                                      method=self.method, nb_samples=self.nb_samples, res=self.res, epsilon=self.epsilon,
                                      alphas=self.alphas, model_type=self.model_type, agg=self.agg)
@@ -476,7 +473,7 @@ def linearity_measure(predict_fn: Callable, x: np.ndarray, feature_range: Union[
                                  model_type=model_type, agg=agg)
     elif method == 'grid':
         assert feature_range is not None or X_train is not None, "Method 'grid' requires " \
-                                                                  "feature_range != None or X_train != None"
+                                                                 "feature_range != None or X_train != None"
         if X_train is not None and feature_range is None:
             feature_range = _infer_feature_range(X_train)  # infer from dataset
         elif feature_range is not None:

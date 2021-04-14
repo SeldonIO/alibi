@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Union
 
 
 class AnchorExplanation:
@@ -96,7 +97,7 @@ class AnchorExplanation:
             return coverage[-1]
 
     def examples(self, only_different_prediction: bool = False,
-                 only_same_prediction: bool = False, partial_index: int = None) -> np.ndarray:
+                 only_same_prediction: bool = False, partial_index: int = None) -> Union[list, np.ndarray]:
         """
         Parameters
         ----------

@@ -60,7 +60,7 @@ class TabularSampler:
         self.ord_lookup = {}  # type: Dict[int, set]
         self.enc2feat_idx = {}  # type: Dict[int, int]
 
-    def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.array, Any]) -> Any:
+    def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.ndarray, Any]) -> Any:
         """
         Initialise the Tabular sampler object with data, discretizer, feature statistics and
         build an index from feature values and bins to database rows for each feature.
@@ -85,7 +85,7 @@ class TabularSampler:
 
         return self
 
-    def _set_data(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.array, Any]) -> None:
+    def _set_data(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.ndarray, Any]) -> None:
         """
         Initialise sampler training set and discretized training set, set number of records.
         """
@@ -373,7 +373,7 @@ class TabularSampler:
 
         # replace partial anchors with partial anchors drawn from the training dataset
         # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
-        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp

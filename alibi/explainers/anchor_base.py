@@ -8,7 +8,6 @@ from typing import Callable, Tuple, Set, Dict, List
 from alibi.utils.distributed import ActorPool, RAY_INSTALLED
 from alibi.utils.distributions import kl_bernoulli
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -50,21 +49,21 @@ class AnchorBaseBeam:
         prealloc_size = batch_size * self.sample_cache_size
         # t_ indicates that the attribute is a dictionary with entries for each anchor
         self.state = {
-            't_coverage': defaultdict(lambda: 0.),   # anchors' coverage
-            't_coverage_idx': defaultdict(set),      # index of anchors in coverage set
-            't_covered_true': defaultdict(None),     # samples with same pred as instance where t_ applies
-            't_covered_false': defaultdict(None),    # samples with dif pred to instance where t_ applies
-            't_idx': defaultdict(set),               # row idx in sample cache where the anchors apply
-            't_nsamples': defaultdict(lambda: 0.),   # total number of samples drawn for the anchors
-            't_order': defaultdict(list),            # anchors are sorted to avoid exploring permutations
-                                                     # this is the order in which anchors were found
+            't_coverage': defaultdict(lambda: 0.),  # anchors' coverage
+            't_coverage_idx': defaultdict(set),  # index of anchors in coverage set
+            't_covered_true': defaultdict(None),  # samples with same pred as instance where t_ applies
+            't_covered_false': defaultdict(None),  # samples with dif pred to instance where t_ applies
+            't_idx': defaultdict(set),  # row idx in sample cache where the anchors apply
+            't_nsamples': defaultdict(lambda: 0.),  # total number of samples drawn for the anchors
+            't_order': defaultdict(list),  # anchors are sorted to avoid exploring permutations
+            # this is the order in which anchors were found
             't_positives': defaultdict(lambda: 0.),  # nb of samples where result pred = pred on instance
-            'prealloc_size': prealloc_size,          # samples caches size
+            'prealloc_size': prealloc_size,  # samples caches size
             'data': np.zeros((prealloc_size, coverage_data.shape[1]), coverage_data.dtype),  # samples caches
-            'labels': np.zeros(prealloc_size, ),     # clf pred labels on raw_data
+            'labels': np.zeros(prealloc_size, ),  # clf pred labels on raw_data
             'current_idx': 0,
-            'n_features': coverage_data.shape[1],    # data set dim after encoding
-            'coverage_data': coverage_data,          # coverage data
+            'n_features': coverage_data.shape[1],  # data set dim after encoding
+            'coverage_data': coverage_data,  # coverage data
         }  # type: dict
         self.state['t_order'][()] = ()  # Trivial order for the empty result
 
@@ -422,7 +421,7 @@ class AnchorBaseBeam:
         return list(new_tuples)
 
     def update_state(self, covered_true: np.ndarray, covered_false: np.ndarray, labels: np.ndarray,
-                     samples: tuple, anchor: tuple) -> Tuple[int, int]:
+                     samples: Tuple[np.ndarray, float], anchor: tuple) -> Tuple[int, int]:
         """
         Updates the explainer state (see __init__ for full state definition).
 
@@ -475,7 +474,7 @@ class AnchorBaseBeam:
                 (self.state['labels'], np.zeros(prealloc_size, labels.dtype))
             )
 
-        return labels.sum(), data.shape[0]
+        return labels.sum(), data.shape[0]  # type: ignore
 
     def get_init_stats(self, anchors: list, coverages=False) -> dict:
         """
@@ -612,7 +611,7 @@ class AnchorBaseBeam:
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
                     beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100,
                     max_anchor_size: int = None, stop_on_first: bool = False, batch_size: int = 100,
-                    coverage_samples: int = 10000,  verbose: bool = False, verbose_every: int = 1,
+                    coverage_samples: int = 10000, verbose: bool = False, verbose_every: int = 1,
                     **kwargs) -> dict:
 
         """
@@ -755,7 +754,7 @@ class AnchorBaseBeam:
                 pos, total = self.draw_samples(selected_anchors, batch_size)
                 positives[continue_sampling] += pos
                 n_samples[continue_sampling] += total
-                means[continue_sampling] = positives[continue_sampling]/n_samples[continue_sampling]
+                means[continue_sampling] = positives[continue_sampling] / n_samples[continue_sampling]
                 kl_constraints[continue_sampling] = beta / n_samples[continue_sampling]
                 lbs[continue_sampling] = self.dlow_bernoulli(
                     means[continue_sampling],
@@ -774,7 +773,7 @@ class AnchorBaseBeam:
 
             if verbose:
                 for i, valid, mean, lb, ub, coverage in \
-                        zip(candidate_anchors, valid_anchors,  means, lbs, ubs, coverages):
+                        zip(candidate_anchors, valid_anchors, means, lbs, ubs, coverages):
                     t = anchors[i]
                     print(
                         '%s mean = %.2f lb = %.2f ub = %.2f coverage: %.2f n: %d' %
@@ -821,7 +820,6 @@ class AnchorBaseBeam:
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
-
     if RAY_INSTALLED:
         import ray
         ray = ray
@@ -830,7 +828,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         super().__init__(samplers)
         self.chunksize = kwargs.get('chunksize', 1)
-        self.sample_fcn = lambda actor, anchor, n_samples, compute_labels=True:\
+        self.sample_fcn = lambda actor, anchor, n_samples, compute_labels=True: \
             actor.__call__.remote(anchor,
                                   n_samples,
                                   compute_labels=compute_labels)
@@ -852,11 +850,11 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         [coverage_data] = DistributedAnchorBaseBeam.ray.get(
             self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
-            )
+        )
 
         return coverage_data
 
-    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:
+    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore
         """
         Distributes sampling requests among processes running sampling tasks.
 

@@ -6,7 +6,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
-from typing import Callable, Tuple, Union, TYPE_CHECKING
+from typing import Any, Callable, Tuple, Union, TYPE_CHECKING
 from alibi.utils.tf import _check_keras_or_tf
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -494,10 +494,10 @@ class CEM(Explainer, FitMixin):
             if not isinstance(x, (float, int, np.int64)):
                 x = np.copy(x)
                 if self.mode == "PP":
-                    x[y] -= self.kappa
+                    x[y] -= self.kappa  # type:ignore
                 elif self.mode == "PN":
-                    x[y] += self.kappa
-                x = np.argmax(x)
+                    x[y] += self.kappa  # type:ignore
+                x = np.argmax(x)  # type:ignore
             if self.mode == "PP":
                 return x == y
             else:
@@ -532,7 +532,7 @@ class CEM(Explainer, FitMixin):
                                        self.assign_adv_s: X,
                                        self.assign_no_info: self.no_info_val})
 
-            X_der_batch, X_der_batch_s = [], []
+            X_der_batch, X_der_batch_s = [], []  # type: Any, Any
 
             for i in range(self.max_iterations):
 
@@ -557,8 +557,8 @@ class CEM(Explainer, FitMixin):
                         grads_num = self.get_gradients(X_der_batch, Y) * c
                         grads_num_s = self.get_gradients(X_der_batch_s, Y) * c
                         # clip gradients
-                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])
-                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])
+                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])  # type:ignore
+                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])  # type: ignore
                         X_der_batch, X_der_batch_s = [], []
 
                 # compute and clip gradients defined in graph
@@ -603,13 +603,13 @@ class CEM(Explainer, FitMixin):
                     print('Target proba: {:.2f}, max non target proba: {:.2f}'.format(target_proba,
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
-                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'.format(np.mean(grads_graph),
-                                                                               np.mean(np.abs(grads_graph))))
+                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}' \
+                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
                     if not self.model:
-                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}'.format(grads_num.min(),
-                                                                                        grads_num.max()))
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'.format(np.mean(grads_num),
-                                                                                       np.mean(np.abs(grads_num))))
+                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}' \
+                              .format(grads_num.min(), grads_num.max()))  # type: ignore
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}' \
+                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
                     sys.stdout.flush()
 
                 # update best perturbation (distance) and class probabilities
@@ -617,12 +617,12 @@ class CEM(Explainer, FitMixin):
                 # different from the initial label (for PN); update best current step or global perturbations
                 for batch_idx, (dist, proba, adv_idx) in enumerate(zip(loss_l1_l2, pred_proba, adv)):
                     # current step
-                    if dist < current_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):
+                    if dist < current_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):  # type: ignore
                         current_best_dist[batch_idx] = dist
-                        current_best_proba[batch_idx] = np.argmax(proba)
+                        current_best_proba[batch_idx] = np.argmax(proba)  # type: ignore
 
                     # global
-                    if dist < overall_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):
+                    if dist < overall_best_dist[batch_idx] and compare(proba, np.argmax(Y[batch_idx])):  # type: ignore
                         if verbose:
                             print('\nNew best {} found!'.format(self.mode))
                         overall_best_dist[batch_idx] = dist
@@ -632,7 +632,7 @@ class CEM(Explainer, FitMixin):
 
             # adjust the 'c' constant for the first loss term
             for batch_idx in range(self.batch_size):
-                if (compare(current_best_proba[batch_idx], np.argmax(Y[batch_idx])) and
+                if (compare(current_best_proba[batch_idx], np.argmax(Y[batch_idx])) and  # type: ignore
                         current_best_proba[batch_idx] != -1):
                     # want to refine the current best solution by putting more emphasis on the regularization terms
                     # of the loss by reducing 'c'; aiming to find a perturbation closer to the original instance

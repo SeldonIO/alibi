@@ -30,7 +30,6 @@ RAY_INSTALLED = check_ray()
 
 
 class ActorPool(object):
-
     # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, THEN THIS CLASS SHOULD INHERIT FROM
     #  RAY.UTIL.ACTORPOOL, OVERRIDE MAP AND MAP_UNORDERED AND ADD _CHUNK STATIC METHOD.
 
@@ -346,7 +345,7 @@ def concatenate_minibatches(minibatch_results: Union[List[np.ndarray], List[List
     if isinstance(minibatch_results[0], np.ndarray):
         return np.concatenate(minibatch_results, axis=0)
     elif isinstance(minibatch_results[0], list) and isinstance(minibatch_results[0][0], np.ndarray):
-        return _array_list_concatenator(minibatch_results)
+        return _array_list_concatenator(minibatch_results)  # type: ignore
     else:
         raise TypeError(
             "Minibatch concatenation function is defined only for List[np.ndarray] and List[List[np.ndarray]]"
@@ -676,7 +675,7 @@ class PoolCollection:
             If the number of CPUs specified by the user is smaller than the number of distributed explainers.
         ValueError
             If the number of entries in the explainers args/kwargs list differ.
-        """ # noqa W605
+        """  # noqa W605
 
         available_cpus = distributed_opts['n_cpus']
         if len(explainer_init_args) != len(explainer_init_kwargs):

@@ -24,7 +24,7 @@ SUPPORTED_METHODS = SUPPORTED_RIEMANN_METHODS + ["gausslegendre"]
 
 
 def approximation_parameters(
-    method: str,
+        method: str,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
     """Retrieves parameters for the input approximation `method`
 
@@ -41,7 +41,7 @@ def approximation_parameters(
 
 
 def riemann_builders(
-    method: Riemann = Riemann.trapezoid,
+        method: Riemann = Riemann.trapezoid,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
     """Step sizes are identical and alphas are scaled in [0, 1]
 
@@ -132,11 +132,11 @@ def gauss_legendre_builders() -> Tuple[
     def step_sizes(n: int) -> List[float]:
         assert n > 0, "The number of steps has to be larger than zero"
         # Scaling from 2 to 1
-        return list(0.5 * np.polynomial.legendre.leggauss(n)[1])
+        return list(0.5 * np.polynomial.legendre.leggauss(n)[1])  # type: ignore
 
     def alphas(n: int) -> List[float]:
         assert n > 0, "The number of steps has to be larger than zero"
         # Scaling from [-1, 1] to [0, 1]
-        return list(0.5 * (1 + np.polynomial.legendre.leggauss(n)[0]))
+        return list(0.5 * (1 + np.polynomial.legendre.leggauss(n)[0]))  # type: ignore
 
     return step_sizes, alphas

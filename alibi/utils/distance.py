@@ -34,7 +34,7 @@ def cityblock_batch(X: np.ndarray,
 def mvdm(X: np.ndarray,
          y: np.ndarray,
          cat_vars: dict,
-         alpha: int = 1) -> np.ndarray:
+         alpha: int = 1) -> Dict[int, np.ndarray]:
     """
     Calculate the pair-wise distances between categories of a categorical variable using
     the Modified Value Difference Measure based on Cost et al (1993).

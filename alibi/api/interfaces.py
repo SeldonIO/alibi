@@ -7,7 +7,8 @@ from functools import partial
 import pprint
 
 import attr
-import numpy as np
+
+from alibi.saving import load_explainer, save_explainer, PathLike, NumpyEncoder
 
 logger = logging.getLogger(__name__)
 
@@ -79,8 +80,17 @@ class Explainer(abc.ABC):
     def explain(self, X: Any) -> "Explanation":
         pass
 
+    @classmethod
+    def load(cls, path: PathLike, predictor: Any) -> "Explainer":
+        # TODO: discuss: when called as AnchorTabular.load(...) can use class information to
+        #  do explainer-specific loading if needed
+        return load_explainer(path, predictor)
+
     def reset_predictor(self, predictor: Any) -> None:
         raise NotImplementedError
+
+    def save(self, path: PathLike) -> None:
+        save_explainer(self, path)
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
@@ -165,29 +175,3 @@ class Explanation:
               "be done via attribute access. Accessing via item will stop working in a future version."
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return getattr(self, item)
-
-
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(
-                obj,
-                (
-                        np.int_,
-                        np.intc,
-                        np.intp,
-                        np.int8,
-                        np.int16,
-                        np.int32,
-                        np.int64,
-                        np.uint8,
-                        np.uint16,
-                        np.uint32,
-                        np.uint64,
-                ),
-        ):
-            return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
-            return float(obj)
-        elif isinstance(obj, (np.ndarray,)):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)

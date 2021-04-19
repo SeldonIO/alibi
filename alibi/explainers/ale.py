@@ -74,6 +74,9 @@ class ALE(Explainer):
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
+        init_kwargs = locals()
+        init_kwargs.pop('predictor')
+
         self.predictor = predictor
         self.feature_names = feature_names
         self.target_names = target_names
@@ -82,6 +85,8 @@ class ALE(Explainer):
         self.extrapolate_constant = extrapolate_constant
         self.extrapolate_constant_perc = extrapolate_constant_perc
         self.extrapolate_constant_min = extrapolate_constant_min
+
+        self.meta['params'].update(init_kwargs=init_kwargs)
 
     def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """

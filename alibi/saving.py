@@ -2,13 +2,15 @@ import json
 from os import PathLike
 from pathlib import Path
 import sys
-from typing import Callable, TYPE_CHECKING
+from typing import Callable, TYPE_CHECKING, Union
 
 import numpy as np
+import tensorflow as tf
 
 if TYPE_CHECKING:
     from alibi.api.interfaces import Explainer
-    from alibi.explainers import ALE
+    from alibi.explainers import ALE, IntegratedGradients
+    import keras
 
 thismodule = sys.modules[__name__]
 # https://www.python.org/dev/peps/pep-0519/#provide-specific-type-hinting-support
@@ -21,8 +23,6 @@ NOT_SUPPORTED = ["AnchorTabular",
                  "CEM",
                  "CounterFactual",
                  "CounterFactualProto",
-                 "plot_ale",
-                 "IntegratedGradients",
                  "KernelShap",
                  "TreeShap"]
 
@@ -76,8 +76,30 @@ def _load_ALE(path: PathLike, predictor: Callable, meta: dict) -> 'ALE':
     return ale
 
 
-def _save_ALE(explainer: 'Explainer', path: PathLike) -> None:
+def _save_ALE(explainer: 'ALE', path: PathLike) -> None:
     # ALE state is contained in metadata which is already saved
+    pass
+
+
+def _load_IntegratedGradients(path: PathLike, predictor: Union[tf.keras.Model, 'keras.Model'],
+                              meta: dict) -> 'IntegratedGradients':
+    from alibi.explainers import IntegratedGradients
+    layer_num = meta['params']['layer']
+    if layer_num == 0:
+        layer = None
+    else:
+        layer = predictor.layers[layer_num]
+
+    ig = IntegratedGradients(model=predictor,
+                             layer=layer,
+                             method=meta['params']['method'],
+                             n_steps=meta['params']['n_steps'],
+                             internal_batch_size=meta['params']['internal_batch_size'])
+    return ig
+
+
+def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: PathLike) -> None:
+    # IG state is contained in the metadata which is already saved
     pass
 
 

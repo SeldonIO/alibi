@@ -41,10 +41,6 @@ jobs:
       - name: Typecheck with mypy
         run: |
           mypy alibi
-      - name: Check 3rd party licences haven't changed
-        run: |
-          make licenses
-          make check_licenses
       - name: Test with pytest
         run: |
           pytest -m tf1
@@ -75,3 +71,19 @@ jobs:
       - name: Build documentation
         run: |
           make build_docs
+
+  licenses:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Check 3rd party licenses haven't changed
+        run: |
+          pip install "tox>=3.21.0,<4.0.0"
+          make licenses
+          make check_licenses

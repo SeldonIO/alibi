@@ -4,12 +4,17 @@ from pathlib import Path
 import sys
 from typing import Callable, TYPE_CHECKING, Union
 
+import dill
 import numpy as np
 import tensorflow as tf
 
 if TYPE_CHECKING:
     from alibi.api.interfaces import Explainer
-    from alibi.explainers import ALE, IntegratedGradients
+    from alibi.explainers import (
+        ALE,
+        AnchorImage,
+        IntegratedGradients
+    )
     import keras
 
 thismodule = sys.modules[__name__]
@@ -19,7 +24,6 @@ thismodule = sys.modules[__name__]
 NOT_SUPPORTED = ["AnchorTabular",
                  "DistributedAnchorTabular",
                  "AnchorText",
-                 "AnchorImage",
                  "CEM",
                  "CounterFactual",
                  "CounterFactualProto",
@@ -101,6 +105,34 @@ def _load_IntegratedGradients(path: PathLike, predictor: Union[tf.keras.Model, '
 def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: PathLike) -> None:
     # IG state is contained in the metadata which is already saved
     pass
+
+
+def _load_AnchorImage(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorImage':
+    from alibi.explainers import AnchorImage
+
+    # black-box segmentation function
+    if meta['params']['custom_segmentation']:
+        with open(Path(path, 'segmentation_fn.dill'), 'rb') as f:
+            segmentation_fn = dill.load(f)
+    # built-in segmentation function
+    else:
+        segmentation_fn = meta['params']['segmentation_fn']
+
+    ai = AnchorImage(predictor=predictor,
+                     image_shape=meta['params']['image_shape'],
+                     segmentation_fn=segmentation_fn,
+                     segmentation_kwargs=meta['params']['segmentation_kwargs'],
+                     images_background=meta['params']['images_background'],
+                     seed=meta['params']['seed'])
+
+    return ai
+
+
+def _save_AnchorImage(explainer: 'AnchorImage', path: PathLike) -> None:
+    # if black-box segmentation function used, we save it, it must be picklable
+    if explainer.meta['params']['custom_segmentation']:
+        with open(Path(path, 'segmentation_fn.dill'), 'wb') as f:
+            dill.dump(explainer.segmentation_fn, f, recurse=True)
 
 
 # def save_explainer(explainer: 'Explainer', path: PathLike) -> None:

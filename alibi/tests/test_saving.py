@@ -5,9 +5,17 @@ from sklearn.linear_model import LogisticRegression
 import tempfile
 import tensorflow as tf
 
-from alibi.explainers import ALE, IntegratedGradients
+from alibi.explainers import (
+    ALE,
+    AnchorImage,
+    IntegratedGradients
+)
 from alibi.saving import load_explainer
 from alibi_testing.data import get_iris_data
+import alibi_testing
+
+
+# TODO: consolidate fixtures with those in explainers/tests/conftest.py
 
 
 @pytest.fixture(scope='module')
@@ -37,6 +45,13 @@ def ffn_classifier(request):
 
 
 @pytest.fixture(scope='module')
+def mnist_predictor():
+    model = alibi_testing.load('mnist-cnn-tf2.2.0')
+    predictor = lambda x: model.predict(x)
+    return predictor
+
+
+@pytest.fixture(scope='module')
 def ale_explainer(iris_data, lr_classifier):
     ale = ALE(predictor=lr_classifier.predict_proba,
               feature_names=iris_data['metadata']['feature_names'])
@@ -47,6 +62,23 @@ def ale_explainer(iris_data, lr_classifier):
 def ig_explainer(iris_data, ffn_classifier):
     ig = IntegratedGradients(model=ffn_classifier)
     return ig
+
+
+def mnist_segmentation_fn(image, size=(4, 7)):
+    segments = np.zeros([image.shape[0], image.shape[1]])
+    row_idx, col_idx = np.where(segments == 0)
+    for i, j in zip(row_idx, col_idx):
+        segments[i, j] = int((image.shape[1] / size[1]) * (i // size[0]) + j // size[1])
+    return segments
+
+
+@pytest.fixture(scope='module')
+def ai_explainer(mnist_predictor, request):
+    segmentation_fn = request.param
+    ai = AnchorImage(predictor=mnist_predictor,
+                     image_shape=(28, 28, 1),
+                     segmentation_fn=segmentation_fn)
+    return ai
 
 
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -71,6 +103,7 @@ def test_save_ALE(ale_explainer, lr_classifier, iris_data):
 
 config = {'output_dim': 3, 'loss': 'categorical_crossentropy', 'activation': 'softmax'}
 
+
 # TODO: figure out a way to pass both lazy_fixture('iris_data') and config...
 @pytest.mark.parametrize('ffn_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_IG(ig_explainer, ffn_classifier, iris_data):
@@ -89,3 +122,20 @@ def test_save_IG(ig_explainer, ffn_classifier, iris_data):
 
         # IG is deterministic
         assert np.all(exp0.attributions[0] == exp1.attributions[0])
+
+
+# test with black-box and built-in segmentation function
+@pytest.mark.parametrize('ai_explainer', [mnist_segmentation_fn, 'slic'], indirect=True)
+def test_save_AnchorImage(ai_explainer, mnist_predictor):
+    X = np.random.rand(28, 28, 1)
+
+    exp0 = ai_explainer.explain(X)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        ai_explainer.save(temp_dir)
+        ai_explainer1 = load_explainer(temp_dir, predictor=mnist_predictor)
+
+        assert isinstance(ai_explainer1, AnchorImage)
+
+        exp1 = ai_explainer1.explain(X)
+        assert exp0.meta == exp1.meta

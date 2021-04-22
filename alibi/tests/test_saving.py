@@ -209,7 +209,7 @@ def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
         atext_explainer1 = load_explainer(temp_dir, predictor=predictor)
 
         assert isinstance(atext_explainer1, AnchorText)
-        atext_explainer.meta == atext_explainer1.meta
+        assert atext_explainer.meta == atext_explainer1.meta
 
         exp1 = atext_explainer1.explain(X)
         assert exp0.meta == exp1.meta

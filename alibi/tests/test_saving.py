@@ -8,11 +8,12 @@ import tensorflow as tf
 from alibi.explainers import (
     ALE,
     AnchorImage,
+    AnchorTabular,
     AnchorText,
     IntegratedGradients
 )
 from alibi.saving import load_explainer
-from alibi_testing.data import get_iris_data, get_movie_sentiment_data
+from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
 import alibi_testing
 from alibi.utils.download import spacy_model
 from alibi.explainers.tests.utils import predict_fcn
@@ -27,6 +28,11 @@ def english_spacy_model():
     spacy_model(model=model)
     nlp = spacy.load(model)
     return nlp
+
+
+@pytest.fixture(scope='module')
+def adult_data():
+    return get_adult_data()
 
 
 @pytest.fixture(scope='module')
@@ -115,11 +121,22 @@ def atext_explainer(lr_classifier, english_spacy_model, movie_sentiment_data):
     return atext
 
 
+@pytest.fixture(scope='module')
+def atab_explainer(lr_classifier, adult_data):
+    predictor = predict_fcn(predict_type='class',
+                            clf=lr_classifier,
+                            preproc=adult_data['preprocessor'])
+    atab = AnchorTabular(predictor=predictor,
+                         feature_names=adult_data['metadata']['feature_names'],
+                         categorical_names=adult_data['metadata']['category_map'])
+    atab.fit(adult_data['X_train'], disc_perc=(25, 50, 75))
+    return atab
+
+
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_ALE(ale_explainer, lr_classifier, iris_data):
     X = iris_data['X_test']
     exp0 = ale_explainer.explain(X)
-
     with tempfile.TemporaryDirectory() as temp_dir:
         ale_explainer.save(temp_dir)
         ale_explainer1 = load_explainer(temp_dir, predictor=lr_classifier.predict_proba)
@@ -191,4 +208,24 @@ def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
         assert isinstance(atext_explainer1, AnchorText)
 
         exp1 = atext_explainer1.explain(X)
+        assert exp0.meta == exp1.meta
+
+
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('adult_data')], indirect=True)
+def test_save_AnchorTabular(atab_explainer, lr_classifier, adult_data):
+    predictor = predict_fcn(predict_type='class',
+                            clf=lr_classifier,
+                            preproc=adult_data['preprocessor'])
+    X = adult_data['X_test'][0]
+
+    exp0 = atab_explainer.explain(X)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        atab_explainer.save(temp_dir)
+        atab_explainer1 = load_explainer(temp_dir, predictor=predictor)
+
+        assert isinstance(atab_explainer1, AnchorTabular)
+        assert atab_explainer.meta == atab_explainer1.meta
+
+        exp1 = atab_explainer1.explain(X)
         assert exp0.meta == exp1.meta

@@ -694,7 +694,12 @@ class AnchorTabular(Explainer, FitMixin):
         self.instance_label = None
 
         # update metadata
-        self.meta['params'].update(seed=seed)
+        # TODO: adding all these to meta['params'] makes the __repr__ quite unsightly
+        #  maybe it makes sense to keep private attributes `_init_kwargs`, `_fit_kwargs`
+        #  purely for serialization purposes and outside of general metadata?
+        self.meta['params'].update(feature_names=feature_names,
+                                   categorical_names=categorical_names,
+                                   seed=seed)
 
     def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
             **kwargs) -> "AnchorTabular":

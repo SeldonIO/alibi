@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from alibi.explainers import (
         ALE,
         AnchorImage,
+        AnchorTabular,
         AnchorText,
         IntegratedGradients
     )
@@ -22,8 +23,7 @@ thismodule = sys.modules[__name__]
 # https://www.python.org/dev/peps/pep-0519/#provide-specific-type-hinting-support
 # PathLike = Union[str, bytes, os.PathLike]
 
-NOT_SUPPORTED = ["AnchorTabular",
-                 "DistributedAnchorTabular",
+NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CEM",
                  "CounterFactual",
                  "CounterFactualProto",
@@ -157,6 +157,40 @@ def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
     # save the spacy model
     nlp = explainer.nlp
     nlp.to_disk(Path(path, 'nlp'))
+
+
+def _load_AnchorTabular(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorTabular':
+    from alibi.explainers import AnchorTabular
+
+    # TODO: HACK: `categorical_names` should have integer keys, but json saves them as strings
+    cmap = meta['params']['categorical_names']
+    cmap = {int(k): v for k, v in cmap.items()}
+    meta['params']['categorical_names'] = cmap
+
+    # disc_perc should be a tuple
+    meta['params']['disc_perc'] = tuple(meta['params']['disc_perc'])
+
+    # load the training data
+    with open(Path(path, 'train_data.npy'), 'rb') as f:
+        train_data = np.load(f)
+
+    atab = AnchorTabular(predictor=predictor,
+                         feature_names=meta['params']['feature_names'],
+                         categorical_names=meta['params']['categorical_names'],
+                         seed=meta['params']['seed'])
+
+    # TODO: calling `fit` here is fast and the data is available as it's stored internally by the explainer
+    #  though we may still want to improve this and not have to call `fit` in the future
+    atab.fit(train_data=train_data, disc_perc=meta['params']['disc_perc'])
+
+    return atab
+
+
+def _save_AnchorTabular(explainer: 'AnchorTabular', path: PathLike) -> None:
+    # AnchorTabular saves a copy of the numpy training data, so we extract it and save it separately
+    X_train = explainer.samplers[0].train_data
+    with open(Path(path, 'train_data.npy'), 'wb') as f:
+        np.save(f, X_train)
 
 
 # def save_explainer(explainer: 'Explainer', path: PathLike) -> None:

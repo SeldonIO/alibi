@@ -411,7 +411,10 @@ class IntegratedGradients(Explainer):
         if layer is None:
             layer_num = 0
         else:
-            layer_num = model.layers.index(layer)
+            try:
+                layer_num = model.layers.index(layer)
+            except ValueError:
+                layer_num = None
 
         params['layer'] = layer_num
         self.meta['params'].update(params)

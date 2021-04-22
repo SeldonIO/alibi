@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from alibi.explainers import (
         ALE,
         AnchorImage,
+        AnchorText,
         IntegratedGradients
     )
     import keras
@@ -23,7 +24,6 @@ thismodule = sys.modules[__name__]
 
 NOT_SUPPORTED = ["AnchorTabular",
                  "DistributedAnchorTabular",
-                 "AnchorText",
                  "CEM",
                  "CounterFactual",
                  "CounterFactualProto",
@@ -133,6 +133,28 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: PathLike) -> None:
     if explainer.meta['params']['custom_segmentation']:
         with open(Path(path, 'segmentation_fn.dill'), 'wb') as f:
             dill.dump(explainer.segmentation_fn, f, recurse=True)
+
+
+def _load_AnchorText(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorText':
+    from alibi.explainers import AnchorText
+    import spacy
+
+    # load the spacy model
+    nlp = spacy.load(Path(path, 'nlp'))
+
+    # TODO: re-initialization takes some time due initializing Neighbours, this should be saved as part
+    #  of the state in the future, see also https://github.com/SeldonIO/alibi/issues/251#issuecomment-649484225
+    atext = AnchorText(nlp=nlp,
+                       predictor=predictor,
+                       seed=meta['params']['seed'])
+
+    return atext
+
+
+def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
+    # save the spacy model
+    nlp = explainer.nlp
+    nlp.to_disk(Path(path, 'nlp'))
 
 
 # def save_explainer(explainer: 'Explainer', path: PathLike) -> None:

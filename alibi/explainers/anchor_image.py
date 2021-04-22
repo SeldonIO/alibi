@@ -94,7 +94,8 @@ class AnchorImage(Explainer):
             segmentation_kwargs=segmentation_kwargs,
             p_sample=self.p_sample,
             seed=seed,
-            image_shape=image_shape
+            image_shape=self.image_shape,
+            images_background=self.images_background
         )
         if not self.custom_segmentation:
             self.meta['params'].update(segmentation_fn=segmentation_fn)

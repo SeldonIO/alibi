@@ -120,6 +120,9 @@ def _load_AnchorImage(path: PathLike, predictor: Callable, meta: dict) -> 'Ancho
     else:
         segmentation_fn = meta['params']['segmentation_fn']
 
+    # image-shape should be a tuple
+    meta['params']['image_shape'] = tuple(meta['params']['image_shape'])
+
     ai = AnchorImage(predictor=predictor,
                      image_shape=meta['params']['image_shape'],
                      segmentation_fn=segmentation_fn,

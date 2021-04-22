@@ -142,7 +142,8 @@ def test_save_ALE(ale_explainer, lr_classifier, iris_data):
         ale_explainer1 = load_explainer(temp_dir, predictor=lr_classifier.predict_proba)
 
         assert isinstance(ale_explainer1, ALE)
-        # assert ale_explainer.meta == ale_explainer1.meta # cannot pass as meta updated after explain TODO: fix
+        # TODO: cannot pass as meta updated after explain
+        # assert ale_explainer.meta == ale_explainer1.meta
         exp1 = ale_explainer1.explain(X)
 
         # ALE explanations are deterministic
@@ -167,6 +168,7 @@ def test_save_IG(ig_explainer, ffn_classifier, iris_data):
         ig_explainer1 = load_explainer(temp_dir, predictor=ffn_classifier)
 
         assert isinstance(ig_explainer1, IntegratedGradients)
+        assert ig_explainer.meta == ig_explainer1.meta
 
         exp1 = ig_explainer.explain(X, target=target)
         assert exp0.meta == exp1.meta
@@ -187,6 +189,7 @@ def test_save_AnchorImage(ai_explainer, mnist_predictor):
         ai_explainer1 = load_explainer(temp_dir, predictor=mnist_predictor)
 
         assert isinstance(ai_explainer1, AnchorImage)
+        assert ai_explainer.meta == ai_explainer1.meta
 
         exp1 = ai_explainer1.explain(X)
         assert exp0.meta == exp1.meta
@@ -206,6 +209,7 @@ def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
         atext_explainer1 = load_explainer(temp_dir, predictor=predictor)
 
         assert isinstance(atext_explainer1, AnchorText)
+        atext_explainer.meta == atext_explainer1.meta
 
         exp1 = atext_explainer1.explain(X)
         assert exp0.meta == exp1.meta

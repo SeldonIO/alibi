@@ -76,7 +76,9 @@ def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
 
 def _load_ALE(path: PathLike, predictor: Callable, meta: dict) -> 'ALE':
     from alibi.explainers import ALE
-    ale = ALE(predictor, **meta['params']['init_kwargs'])
+    init_kwargs = meta['params']
+    init_kwargs.pop('min_bin_points')
+    ale = ALE(predictor, **init_kwargs)
     return ale
 
 

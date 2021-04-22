@@ -153,6 +153,9 @@ class AnchorText(Explainer):
         # the method used to generate samples
         self.perturbation = None  # type: Union[Callable, None]
 
+        # update metadata
+        self.meta['params'].update(seed=seed)
+
     def set_words_and_pos(self, text: str) -> None:
         """
         Process the sentence to be explained into spaCy token objects, a list of words,

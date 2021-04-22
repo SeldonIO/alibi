@@ -8,14 +8,25 @@ import tensorflow as tf
 from alibi.explainers import (
     ALE,
     AnchorImage,
+    AnchorText,
     IntegratedGradients
 )
 from alibi.saving import load_explainer
-from alibi_testing.data import get_iris_data
+from alibi_testing.data import get_iris_data, get_movie_sentiment_data
 import alibi_testing
+from alibi.utils.download import spacy_model
+from alibi.explainers.tests.utils import predict_fcn
 
 
 # TODO: consolidate fixtures with those in explainers/tests/conftest.py
+
+@pytest.fixture(scope='module')
+def english_spacy_model():
+    import spacy
+    model = 'en_core_web_md'
+    spacy_model(model=model)
+    nlp = spacy.load(model)
+    return nlp
 
 
 @pytest.fixture(scope='module')
@@ -24,10 +35,23 @@ def iris_data():
 
 
 @pytest.fixture(scope='module')
+def movie_sentiment_data():
+    return get_movie_sentiment_data()
+
+
+@pytest.fixture(scope='module')
 def lr_classifier(request):
     data = request.param
+    is_preprocessor = False
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
     clf = LogisticRegression()
-    clf.fit(data['X_train'], data['y_train'])
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
     return clf
 
 
@@ -79,6 +103,16 @@ def ai_explainer(mnist_predictor, request):
                      image_shape=(28, 28, 1),
                      segmentation_fn=segmentation_fn)
     return ai
+
+
+@pytest.fixture(scope='module')
+def atext_explainer(lr_classifier, english_spacy_model, movie_sentiment_data):
+    predictor = predict_fcn(predict_type='class',
+                            clf=lr_classifier,
+                            preproc=movie_sentiment_data['preprocessor'])
+    atext = AnchorText(nlp=english_spacy_model,
+                       predictor=predictor)
+    return atext
 
 
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -138,4 +172,23 @@ def test_save_AnchorImage(ai_explainer, mnist_predictor):
         assert isinstance(ai_explainer1, AnchorImage)
 
         exp1 = ai_explainer1.explain(X)
+        assert exp0.meta == exp1.meta
+
+
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
+def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
+    predictor = predict_fcn(predict_type='class',
+                            clf=lr_classifier,
+                            preproc=movie_sentiment_data['preprocessor'])
+    X = movie_sentiment_data['X_test'][0]
+
+    exp0 = atext_explainer.explain(X)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        atext_explainer.save(temp_dir)
+        atext_explainer1 = load_explainer(temp_dir, predictor=predictor)
+
+        assert isinstance(atext_explainer1, AnchorText)
+
+        exp1 = atext_explainer1.explain(X)
         assert exp0.meta == exp1.meta

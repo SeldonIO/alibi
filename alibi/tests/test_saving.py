@@ -10,7 +10,8 @@ from alibi.explainers import (
     AnchorImage,
     AnchorTabular,
     AnchorText,
-    IntegratedGradients
+    IntegratedGradients,
+    KernelShap
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -133,6 +134,18 @@ def atab_explainer(lr_classifier, adult_data):
     return atab
 
 
+@pytest.fixture(scope='module')
+def kshap_explainer(lr_classifier, adult_data):
+    predictor = predict_fcn(predict_type='proba',
+                            clf=lr_classifier,
+                            preproc=adult_data['preprocessor'])
+    kshap = KernelShap(predictor=predictor,
+                       link='logit',
+                       feature_names=adult_data['metadata']['feature_names'])
+    kshap.fit(adult_data['X_train'][:100])
+    return kshap
+
+
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_ALE(ale_explainer, lr_classifier, iris_data):
     X = iris_data['X_test']
@@ -232,4 +245,27 @@ def test_save_AnchorTabular(atab_explainer, lr_classifier, adult_data):
         assert atab_explainer.meta == atab_explainer1.meta
 
         exp1 = atab_explainer1.explain(X)
+        assert exp0.meta == exp1.meta
+
+
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('adult_data')], indirect=True)
+def test_save_KernelShap(kshap_explainer, lr_classifier, adult_data):
+    predictor = predict_fcn(predict_type='proba',
+                            clf=lr_classifier,
+                            preproc=adult_data['preprocessor'])
+    X = adult_data['X_test'][:2]
+
+    exp0 = kshap_explainer.explain(X)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        kshap_explainer.save(temp_dir)
+        kshap_explainer1 = load_explainer(temp_dir, predictor=predictor)
+
+        assert isinstance(kshap_explainer1, KernelShap)
+        assert kshap_explainer.meta == kshap_explainer1.meta
+
+        # cannot compare as includes numpy arrays
+        # assert kshap_explainer._state == kshap_explainer1._state
+
+        exp1 = kshap_explainer.explain(X)
         assert exp0.meta == exp1.meta

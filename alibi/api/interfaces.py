@@ -1,7 +1,7 @@
 import abc
 import json
-from collections import ChainMap
-from typing import Any
+from collections import ChainMap, defaultdict
+from typing import Any, List
 import logging
 from functools import partial
 import pprint
@@ -108,6 +108,30 @@ class Explainer(abc.ABC):
                 self.meta['params'].update([(key, data_dict[key])])
         else:
             self.meta.update(data_dict)
+
+    def _update_state(self, key: str, params: dict, skip: List[str] = None) -> None:
+        """
+        Create or update the internal `_state` dictionary with parameters.
+        Used for tracking user supplied arguments to `__init__` and `fit` as well as state after calling `fit`.
+        The `_state` is serialized and used for recreating explainers, either by calling the `__init__` and `fit`
+        methods with the kwargs taken from `_state['init_kwargs'], _state['fit_kwargs']` or by setting relevant
+        attributes to avoid calling e.g. a fit method (using `_state['post_fit']`).
+
+        Parameters
+        ----------
+        key
+            Dictionary key, e.g. `init_kwargs`, `fit_kwargs`, `post_fit`
+        params
+            Dictionary of parameters to track, usually a subset of `locals()` after a method call.
+        skip
+            List of strings of parameters to not save, e.g. `predictor`, `self`, `__class__` etc.
+        """
+        if not hasattr(self, '_state'):  # could be initialized as a class attribute to avoid check
+            self._state = defaultdict(dict)
+
+        for k, v in params.items():
+            if skip is None or k not in skip:
+                self._state[key][k] = v
 
 
 class FitMixin(abc.ABC):

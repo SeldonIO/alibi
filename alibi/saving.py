@@ -196,6 +196,62 @@ def _save_AnchorTabular(explainer: 'AnchorTabular', path: PathLike) -> None:
         np.save(f, X_train)
 
 
+def _load_KernelShap(path: PathLike, predictor: Callable, meta: dict) -> 'KernelShap':
+    from alibi.explainers import KernelShap
+    from alibi.explainers.shap_wrappers import KernelExplainerWrapper
+
+    # load the potentially summarized background data
+    with open(Path(path, 'background_data.dill'), 'rb') as f:
+        background_data = dill.load(f)
+
+    # load the state
+    with open(Path(path, 'state.json'), 'r') as f:
+        state = json.load(f)
+
+    kshap = KernelShap(predictor=predictor, **state['init_kwargs'])
+
+    # set state to what is achieved after calling `fit`
+    # TODO: this will fail if trying to de-serialize an explainer which hasn't been fitted
+    for key, val in state['post_fit'].items():
+        setattr(kshap, key, val)
+
+    # set the background data
+    kshap.background_data = background_data
+
+    # initialize the underlying shap explainer object
+    distribute = state['post_fit']['distribute']
+    explainer_args = (predictor, background_data)
+    explainer_kwargs = state['fit_other']['explainer_kwargs']
+    if distribute:
+        from alibi.utils.distributed import DistributedExplainer
+        _explainer = DistributedExplainer(
+            kshap.distributed_opts,
+            KernelExplainerWrapper,
+            explainer_args,
+            explainer_kwargs
+        )
+    else:
+        _explainer = KernelExplainerWrapper(*explainer_args, **explainer_kwargs)
+    kshap._explainer = _explainer
+
+    # update the metadata and the state
+    kshap._state = state
+    kshap.meta = meta
+
+    return kshap
+
+
+def _save_KernelShap(explainer: 'KernelShap', path: PathLike) -> None:
+    # save the potentially summarized background data, use dill as this can be several different formats...
+    # TODO: programmatically determine which type of data it is and save appropriately together with some metadata info
+    with open(Path(path, 'background_data.dill'), 'wb') as f:
+        dill.dump(explainer.background_data, f)
+
+    # save the state
+    with open(Path(path, 'state.json'), 'w') as f:
+        json.dump(explainer._state, f, cls=NumpyEncoder)
+
+
 # def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
 #    # TODO: allow specifying deep or shallow copy instead of try/except?
 #    if explainer.name in NOT_SUPPORTED:

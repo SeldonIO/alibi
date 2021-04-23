@@ -330,6 +330,7 @@ class KernelShap(Explainer, FitMixin):
         """  # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))
+        self._update_state('init_kwargs', locals(), skip=['self', 'predictor', '__class__'])
 
         self.link = link
         self.predictor = predictor
@@ -338,7 +339,11 @@ class KernelShap(Explainer, FitMixin):
         self.task = task
         self.seed = seed
         self._update_metadata({"task": self.task})
-        self._update_metadata({"link": self.link}, params=True)
+        # TODO: ugly to just dump all kwargs in meta['params']...
+        self._update_metadata({"link": self.link,
+                               "feature_names": self.feature_names,
+                               "categorical_names": self.categorical_names,
+                               "distributed_opts": distributed_opts}, params=True)
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False
@@ -712,7 +717,7 @@ class KernelShap(Explainer, FitMixin):
             Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
-
+        self._update_state('fit_kwargs', locals(), skip=['self', '__class__', 'background_data'])
         np.random.seed(self.seed)
 
         self._fitted = True
@@ -775,6 +780,17 @@ class KernelShap(Explainer, FitMixin):
             'transpose': self.transposed,
         }
         self._update_metadata(params, params=True)
+        self._update_state('post_fit', {
+            '_fitted': self._fitted,
+            'use_groups': self.use_groups,
+            'feature_names': self.feature_names,
+            # 'background_data': self.background_data, # saved separately
+            'distribute': self.distribute,
+            'expected_value': self.expected_value
+        })
+        self._update_state('fit_other', {
+            'explainer_kwargs': explainer_kwargs,
+        })
 
         return self
 

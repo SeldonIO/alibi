@@ -27,7 +27,6 @@ NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CEM",
                  "CounterFactual",
                  "CounterFactualProto",
-                 "KernelShap",
                  "TreeShap"]
 
 
@@ -167,8 +166,9 @@ def _load_AnchorTabular(path: PathLike, predictor: Callable, meta: dict) -> 'Anc
 
     # TODO: HACK: `categorical_names` should have integer keys, but json saves them as strings
     cmap = meta['params']['categorical_names']
-    cmap = {int(k): v for k, v in cmap.items()}
-    meta['params']['categorical_names'] = cmap
+    if cmap is not None:
+        cmap = {int(k): v for k, v in cmap.items()}
+        meta['params']['categorical_names'] = cmap
 
     # disc_perc should be a tuple
     meta['params']['disc_perc'] = tuple(meta['params']['disc_perc'])

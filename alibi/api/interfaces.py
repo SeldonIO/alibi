@@ -82,8 +82,6 @@ class Explainer(abc.ABC):
 
     @classmethod
     def load(cls, path: PathLike, predictor: Any) -> "Explainer":
-        # TODO: discuss: when called as AnchorTabular.load(...) can use class information to
-        #  do explainer-specific loading if needed
         return load_explainer(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:

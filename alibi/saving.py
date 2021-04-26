@@ -205,6 +205,7 @@ def _load_KernelShap(path: PathLike, predictor: Callable, meta: dict) -> 'Kernel
         background_data = dill.load(f)
 
     # load the state
+    # TODO: deal with numpy arrays in state
     with open(Path(path, 'state.json'), 'r') as f:
         state = json.load(f)
 

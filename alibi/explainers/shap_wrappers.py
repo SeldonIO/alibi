@@ -339,11 +339,7 @@ class KernelShap(Explainer, FitMixin):
         self.task = task
         self.seed = seed
         self._update_metadata({"task": self.task})
-        # TODO: ugly to just dump all kwargs in meta['params']...
-        self._update_metadata({"link": self.link,
-                               "feature_names": self.feature_names,
-                               "categorical_names": self.categorical_names,
-                               "distributed_opts": distributed_opts}, params=True)
+        self._update_metadata({"link": self.link}, params=True)
 
         # if the user specifies groups but no names, the groups are automatically named
         self.use_groups = False

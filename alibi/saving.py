@@ -253,37 +253,6 @@ def _save_KernelShap(explainer: 'KernelShap', path: PathLike) -> None:
         json.dump(explainer._state, f, cls=NumpyEncoder)
 
 
-# def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
-#    # TODO: allow specifying deep or shallow copy instead of try/except?
-#    if explainer.name in NOT_SUPPORTED:
-#        raise NotImplementedError(f'Saving not yet supported for {explainer.name}')
-#    try:
-#        # try to recurse and save the white-box explainer referenced by the black-box predictor function
-#        with open(path, 'wb') as f:
-#            dill.dump(explainer, f, recurse=True)
-#    except TypeError:
-#        # need to close file before attempting to save again
-#        with open(path, 'wb') as f:
-#            dill.dump(explainer, f, recurse=False)
-#            import warnings
-#            warnings.warn('Could not save a deep copy of the explainer. '
-#                          'This is most likely due to the type of the model used. '
-#                          'You may need to call `explainer.reset_predictor(predictor)`'
-#                          'after loading the saved explainer.')
-
-
-# Older prototype dispatching manually on name
-# try:
-#    save_fun = getattr(thismodule, '_save_' + explainer.name)
-#    save_fun(explainer, path)
-# except AttributeError:
-#    raise NotImplementedError(f'Saving not implemented for {explainer.name}')
-
-
-# def _save_AnchorTabular(explainer: 'AnchorTabular', path: PathLike) -> None:
-#    with open(path, 'wb') as f:
-#        dill.dump(explainer, f, recurse=True)
-
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(

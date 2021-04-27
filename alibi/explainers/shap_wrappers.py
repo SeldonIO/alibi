@@ -330,7 +330,6 @@ class KernelShap(Explainer, FitMixin):
         """  # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))
-        self._update_state('init_kwargs', locals(), skip=['self', 'predictor', '__class__'])
 
         self.link = link
         self.predictor = predictor
@@ -713,7 +712,6 @@ class KernelShap(Explainer, FitMixin):
             Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
-        self._update_state('fit_kwargs', locals(), skip=['self', '__class__', 'background_data'])
         np.random.seed(self.seed)
 
         self._fitted = True
@@ -776,17 +774,6 @@ class KernelShap(Explainer, FitMixin):
             'transpose': self.transposed,
         }
         self._update_metadata(params, params=True)
-        self._update_state('post_fit', {
-            '_fitted': self._fitted,
-            'use_groups': self.use_groups,
-            'feature_names': self.feature_names,
-            # 'background_data': self.background_data, # saved separately
-            'distribute': self.distribute,
-            'expected_value': self.expected_value
-        })
-        self._update_state('fit_other', {
-            'explainer_kwargs': explainer_kwargs,
-        })
 
         return self
 
@@ -1606,4 +1593,5 @@ class TreeShap(Explainer, FitMixin):
             self.summarise_result = False
 
     def reset_predictor(self, predictor: Any) -> None:
-        raise NotImplementedError('Resetting a predictor is currently not supported')
+        # TODO: check what else should be done (e.g. validate dtypes again?)
+        self.model = predictor

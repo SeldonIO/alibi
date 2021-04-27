@@ -1,8 +1,10 @@
+import copy
 import json
 from os import PathLike
 from pathlib import Path
 import sys
 from typing import Callable, TYPE_CHECKING, Union
+import warnings
 
 import dill
 import numpy as np
@@ -15,9 +17,13 @@ if TYPE_CHECKING:
         AnchorImage,
         AnchorTabular,
         AnchorText,
-        IntegratedGradients
+        IntegratedGradients,
+        KernelShap,
+        TreeShap
     )
     import keras
+
+from alibi.version import __version__
 
 thismodule = sys.modules[__name__]
 # https://www.python.org/dev/peps/pep-0519/#provide-specific-type-hinting-support
@@ -26,28 +32,25 @@ thismodule = sys.modules[__name__]
 NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CEM",
                  "CounterFactual",
-                 "CounterFactualProto",
-                 "TreeShap"]
+                 "CounterFactualProto"]
 
-
-# TODO: tricky to use singledispatch and explainer types due to circular imports,
-#  manual dispatch on name instead
-# @singledispatch
-# def save_explainer(explainer, path) -> None:
-#    pass
-#
-# @save_explainer.register
-# def _(explainer: explainers.AnchorTabular, path: PathLike) -> None:
-#    raise NotImplementedError(f'Saving not implemented for {explainer.name}')
 
 def load_explainer(path: PathLike, predictor) -> 'Explainer':
     # load metadata
-    with open(Path(path, 'meta.json'), 'r') as f:
-        meta = json.load(f)
+    with open(Path(path, 'meta.dill'), 'rb') as f:
+        meta = dill.load(f)
 
-    # get the explainer specific load function
+    # check version
+    if meta['version'] != __version__:
+        warnings.warn(f'Trying to load explainer from version {meta["version"]} when using version {__version__}. '
+                      f'This may lead to breaking code or invalid results.')
+
     name = meta['name']
-    load_fn = getattr(thismodule, '_load_' + name)
+    try:
+        # get the explainer specific load function
+        load_fn = getattr(thismodule, '_load_' + name)
+    except AttributeError:
+        load_fn = _simple_load
     return load_fn(path, predictor, meta)
 
 
@@ -62,97 +65,107 @@ def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
     # save metadata
-    meta = explainer.meta
-    with open(Path(path, 'meta.json'), 'w') as f:
-        json.dump(meta, f, cls=NumpyEncoder)
+    meta = copy.deepcopy(explainer.meta)
+    meta['version'] = explainer._version
+    with open(Path(path, 'meta.dill'), 'wb') as f:
+        dill.dump(meta, f)
 
-    # get explainer specific save function
-    save_fn = getattr(thismodule, '_save_' + name)
-
-    # save
+    try:
+        # get explainer specific save function
+        save_fn = getattr(thismodule, '_save_' + name)
+    except AttributeError:
+        # no explainer specific functionality required, just set predictor to `None` and dump
+        save_fn = _simple_save
     save_fn(explainer, path)
 
 
-def _load_ALE(path: PathLike, predictor: Callable, meta: dict) -> 'ALE':
-    from alibi.explainers import ALE
-    init_kwargs = meta['params']
-    init_kwargs.pop('min_bin_points')
-    ale = ALE(predictor, **init_kwargs)
-    return ale
+def _simple_save(explainer: 'Explainer', path: PathLike) -> None:
+    predictor = explainer.predictor
+    explainer.predictor = None
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+    explainer.predictor = predictor
 
 
-def _save_ALE(explainer: 'ALE', path: PathLike) -> None:
-    # ALE state is contained in metadata which is already saved
-    pass
+def _simple_load(path: PathLike, predictor, meta) -> 'Explainer':
+    with open(Path(path, 'explainer.dill'), 'rb') as f:
+        explainer = dill.load(f)
+    explainer.reset_predictor(predictor)
+    return explainer
 
 
 def _load_IntegratedGradients(path: PathLike, predictor: Union[tf.keras.Model, 'keras.Model'],
                               meta: dict) -> 'IntegratedGradients':
-    from alibi.explainers import IntegratedGradients
     layer_num = meta['params']['layer']
     if layer_num == 0:
         layer = None
     else:
         layer = predictor.layers[layer_num]
 
-    ig = IntegratedGradients(model=predictor,
-                             layer=layer,
-                             method=meta['params']['method'],
-                             n_steps=meta['params']['n_steps'],
-                             internal_batch_size=meta['params']['internal_batch_size'])
-    return ig
+    with open(Path(path, 'explainer.dill'), 'rb') as f:
+        explainer = dill.load(f)
+    explainer.reset_predictor(predictor)
+    explainer.layer = layer
+
+    return explainer
 
 
 def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: PathLike) -> None:
-    # IG state is contained in the metadata which is already saved
-    pass
+    model = explainer.model
+    layer = explainer.layer
+    explainer.model = explainer.layer = None
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+    explainer.model = model
+    explainer.layer = layer
 
 
 def _load_AnchorImage(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorImage':
-    from alibi.explainers import AnchorImage
+    # segmentation function
+    with open(Path(path, 'segmentation_fn.dill'), 'rb') as f:
+        segmentation_fn = dill.load(f)
 
-    # black-box segmentation function
-    if meta['params']['custom_segmentation']:
-        with open(Path(path, 'segmentation_fn.dill'), 'rb') as f:
-            segmentation_fn = dill.load(f)
-    # built-in segmentation function
-    else:
-        segmentation_fn = meta['params']['segmentation_fn']
+    with open(Path(path, 'explainer.dill'), 'rb') as f:
+        explainer = dill.load(f)
 
-    # image-shape should be a tuple
-    meta['params']['image_shape'] = tuple(meta['params']['image_shape'])
+    explainer.segmentation_fn = segmentation_fn
+    explainer.reset_predictor(predictor)
 
-    ai = AnchorImage(predictor=predictor,
-                     image_shape=meta['params']['image_shape'],
-                     segmentation_fn=segmentation_fn,
-                     segmentation_kwargs=meta['params']['segmentation_kwargs'],
-                     images_background=meta['params']['images_background'],
-                     seed=meta['params']['seed'])
-
-    return ai
+    return explainer
 
 
 def _save_AnchorImage(explainer: 'AnchorImage', path: PathLike) -> None:
-    # if black-box segmentation function used, we save it, it must be picklable
-    if explainer.meta['params']['custom_segmentation']:
-        with open(Path(path, 'segmentation_fn.dill'), 'wb') as f:
-            dill.dump(explainer.segmentation_fn, f, recurse=True)
+    # save the segmentation function separately (could be user-supplied or built-in), must be picklable
+    segmentation_fn = explainer.segmentation_fn
+    explainer.segmentation_fn = None
+    with open(Path(path, 'segmentation_fn.dill'), 'wb') as f:
+        dill.dump(segmentation_fn, f, recurse=True)
+
+    predictor = explainer.predictor
+    explainer.predictor = None
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+    explainer.segmentation_fn = segmentation_fn
+    explainer.predictor = predictor
 
 
 def _load_AnchorText(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorText':
-    from alibi.explainers import AnchorText
-    import spacy
-
     # load the spacy model
+    import spacy
     nlp = spacy.load(Path(path, 'nlp'))
 
-    # TODO: re-initialization takes some time due initializing Neighbours, this should be saved as part
-    #  of the state in the future, see also https://github.com/SeldonIO/alibi/issues/251#issuecomment-649484225
-    atext = AnchorText(nlp=nlp,
-                       predictor=predictor,
-                       seed=meta['params']['seed'])
+    with open(Path(path, 'explainer.dill'), 'rb') as f:
+        explainer = dill.load(f)
 
-    return atext
+    explainer.nlp = nlp
+
+    # explainer._synonyms_generator contains spacy Lexemes which contain unserializable Cython constructs
+    # so we re-initialize the object here
+    from alibi.explainers.anchor_text import Neighbors
+    explainer._synonyms_generator = Neighbors(nlp_obj=nlp)
+    explainer.reset_predictor(predictor)
+
+    return explainer
 
 
 def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
@@ -160,97 +173,29 @@ def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
     nlp = explainer.nlp
     nlp.to_disk(Path(path, 'nlp'))
 
+    _synonyms_generator = explainer._synonyms_generator
+    predictor = explainer.predictor
 
-def _load_AnchorTabular(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorTabular':
-    from alibi.explainers import AnchorTabular
+    explainer.nlp = None
+    explainer._synonyms_generator = None
+    explainer.predictor = None
 
-    # TODO: HACK: `categorical_names` should have integer keys, but json saves them as strings
-    cmap = meta['params']['categorical_names']
-    if cmap is not None:
-        cmap = {int(k): v for k, v in cmap.items()}
-        meta['params']['categorical_names'] = cmap
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
 
-    # disc_perc should be a tuple
-    meta['params']['disc_perc'] = tuple(meta['params']['disc_perc'])
-
-    # load the training data
-    with open(Path(path, 'train_data.npy'), 'rb') as f:
-        train_data = np.load(f)
-
-    atab = AnchorTabular(predictor=predictor,
-                         feature_names=meta['params']['feature_names'],
-                         categorical_names=meta['params']['categorical_names'],
-                         seed=meta['params']['seed'])
-
-    # TODO: calling `fit` here is fast and the data is available as it's stored internally by the explainer
-    #  though we may still want to improve this and not have to call `fit` in the future
-    atab.fit(train_data=train_data, disc_perc=meta['params']['disc_perc'])
-
-    return atab
-
-
-def _save_AnchorTabular(explainer: 'AnchorTabular', path: PathLike) -> None:
-    # AnchorTabular saves a copy of the numpy training data, so we extract it and save it separately
-    X_train = explainer.samplers[0].train_data
-    with open(Path(path, 'train_data.npy'), 'wb') as f:
-        np.save(f, X_train)
-
-
-def _load_KernelShap(path: PathLike, predictor: Callable, meta: dict) -> 'KernelShap':
-    from alibi.explainers import KernelShap
-    from alibi.explainers.shap_wrappers import KernelExplainerWrapper
-
-    # load the potentially summarized background data
-    with open(Path(path, 'background_data.dill'), 'rb') as f:
-        background_data = dill.load(f)
-
-    # load the state
-    # TODO: deal with numpy arrays in state
-    with open(Path(path, 'state.json'), 'r') as f:
-        state = json.load(f)
-
-    kshap = KernelShap(predictor=predictor, **state['init_kwargs'])
-
-    # set state to what is achieved after calling `fit`
-    # TODO: this will fail if trying to de-serialize an explainer which hasn't been fitted
-    for key, val in state['post_fit'].items():
-        setattr(kshap, key, val)
-
-    # set the background data
-    kshap.background_data = background_data
-
-    # initialize the underlying shap explainer object
-    distribute = state['post_fit']['distribute']
-    explainer_args = (predictor, background_data)
-    explainer_kwargs = state['fit_other']['explainer_kwargs']
-    if distribute:
-        from alibi.utils.distributed import DistributedExplainer
-        _explainer = DistributedExplainer(
-            kshap.distributed_opts,
-            KernelExplainerWrapper,
-            explainer_args,
-            explainer_kwargs
-        )
-    else:
-        _explainer = KernelExplainerWrapper(*explainer_args, **explainer_kwargs)
-    kshap._explainer = _explainer
-
-    # update the metadata and the state
-    kshap._state = state
-    kshap.meta = meta
-
-    return kshap
+    explainer.nlp = nlp
+    explainer._synonyms_generator = _synonyms_generator
+    explainer.predictor = predictor
 
 
 def _save_KernelShap(explainer: 'KernelShap', path: PathLike) -> None:
-    # save the potentially summarized background data, use dill as this can be several different formats...
-    # TODO: programmatically determine which type of data it is and save appropriately together with some metadata info
-    with open(Path(path, 'background_data.dill'), 'wb') as f:
-        dill.dump(explainer.background_data, f)
+    # TODO: save internal shap objects using native pickle?
+    _simple_save(explainer, path)
 
-    # save the state
-    with open(Path(path, 'state.json'), 'w') as f:
-        json.dump(explainer._state, f, cls=NumpyEncoder)
+
+def _save_TreelShap(explainer: 'TreeShap', path: PathLike) -> None:
+    # TODO: save internal shap objects using native pickle?
+    _simple_save(explainer, path)
 
 
 class NumpyEncoder(json.JSONEncoder):

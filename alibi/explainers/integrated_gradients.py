@@ -549,6 +549,10 @@ class IntegratedGradients(Explainer):
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
+    def reset_predictor(self, predictor: Union[tf.keras.Model, 'keras.Model']) -> None:
+        # TODO: check what else should be done (e.g. validate dtypes again?)
+        self.model = predictor
+
     def _compute_attributions_list_input(self,
                                          X: List[np.ndarray],
                                          baselines: Union[List[int], List[float], List[np.ndarray]],

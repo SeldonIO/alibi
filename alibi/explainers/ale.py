@@ -83,9 +83,7 @@ class ALE(Explainer):
         self.extrapolate_constant_perc = extrapolate_constant_perc
         self.extrapolate_constant_min = extrapolate_constant_min
 
-        self.meta['params'].update(feature_names=feature_names,
-                                   target_names=target_names,
-                                   check_feature_resolution=check_feature_resolution,
+        self.meta['params'].update(check_feature_resolution=check_feature_resolution,
                                    low_resolution_threshold=low_resolution_threshold,
                                    extrapolate_constant=extrapolate_constant,
                                    extrapolate_constant_perc=extrapolate_constant_perc,

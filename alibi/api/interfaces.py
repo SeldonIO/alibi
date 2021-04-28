@@ -66,7 +66,7 @@ class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
-    _version: ClassVar = __version__
+    _version: ClassVar[str] = __version__
     meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
 
     def __attrs_post_init__(self):

@@ -1,7 +1,9 @@
 import numpy as np
+from numpy.testing import assert_allclose
 import pytest
 from pytest_lazyfixture import lazy_fixture
 from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 import tempfile
 import tensorflow as tf
 
@@ -11,7 +13,8 @@ from alibi.explainers import (
     AnchorTabular,
     AnchorText,
     IntegratedGradients,
-    KernelShap
+    KernelShap,
+    TreeShap
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -55,6 +58,23 @@ def lr_classifier(request):
         preprocessor = data['preprocessor']
 
     clf = LogisticRegression()
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
+    return clf
+
+
+@pytest.fixture(scope='module')
+def rf_classifier(request):
+    data = request.param
+    is_preprocessor = False
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    np.random.seed(0)
+    clf = RandomForestClassifier(n_estimators=50)
     if is_preprocessor:
         clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
     else:
@@ -144,6 +164,15 @@ def kshap_explainer(lr_classifier, adult_data):
                        feature_names=adult_data['metadata']['feature_names'])
     kshap.fit(adult_data['X_train'][:100])
     return kshap
+
+
+@pytest.fixture(scope='module')
+def tree_explainer(rf_classifier, iris_data):
+    treeshap = TreeShap(predictor=rf_classifier,
+                        model_output='probability',
+                        feature_names=iris_data['metadata']['feature_names'])
+    treeshap.fit(iris_data['X_train'])
+    return treeshap
 
 
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -264,8 +293,23 @@ def test_save_KernelShap(kshap_explainer, lr_classifier, adult_data):
         assert isinstance(kshap_explainer1, KernelShap)
         assert kshap_explainer.meta == kshap_explainer1.meta
 
-        # cannot compare as includes numpy arrays
-        # assert kshap_explainer._state == kshap_explainer1._state
-
         exp1 = kshap_explainer.explain(X)
         assert exp0.meta == exp1.meta
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+def test_save_TreeShap(tree_explainer, rf_classifier, iris_data):
+    X = iris_data['X_test']
+
+    exp0 = tree_explainer.explain(X)
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        tree_explainer.save(temp_dir)
+        tree_explainer1 = load_explainer(temp_dir, predictor=rf_classifier)
+
+        assert isinstance(tree_explainer1, TreeShap)
+        assert tree_explainer.meta == tree_explainer1.meta
+
+        exp1 = tree_explainer1.explain(X)
+        assert exp0.meta == exp1.meta
+        assert_allclose(exp0.shap_values[0], exp1.shap_values[0])

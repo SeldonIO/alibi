@@ -312,4 +312,6 @@ def test_save_TreeShap(tree_explainer, rf_classifier, iris_data):
 
         exp1 = tree_explainer1.explain(X)
         assert exp0.meta == exp1.meta
+
+        # TreeShap is deterministic
         assert_allclose(exp0.shap_values[0], exp1.shap_values[0])

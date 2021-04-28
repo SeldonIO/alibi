@@ -46,7 +46,7 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
         if 'lexeme_prob' not in nlp.vocab.lookups.tables:
             from spacy.lookups import load_lookups
             lookups = load_lookups(nlp.lang, ['lexeme_prob'])
-            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))
+            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))  # type: ignore
 
     return nlp
 

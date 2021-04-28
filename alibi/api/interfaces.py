@@ -1,14 +1,15 @@
 import abc
 import json
+import os
 from collections import ChainMap
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union
 import logging
 from functools import partial
 import pprint
 
 import attr
 
-from alibi.saving import load_explainer, save_explainer, PathLike, NumpyEncoder
+from alibi.saving import load_explainer, save_explainer, NumpyEncoder
 from alibi.version import __version__
 
 logger = logging.getLogger(__name__)
@@ -82,13 +83,35 @@ class Explainer(abc.ABC):
         pass
 
     @classmethod
-    def load(cls, path: PathLike, predictor: Any) -> "Explainer":
+    def load(cls, path: Union[str, os.PathLike], predictor: Any) -> "Explainer":
+        """
+        Load an explainer from disk.
+
+        Parameters
+        ----------
+        path
+            Path to a directory containing the saved explainer.
+        predictor
+            Model or prediction function used to originally initialize the explainer.
+
+        Returns
+        -------
+        An explainer instance.
+        """
         return load_explainer(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
         raise NotImplementedError
 
-    def save(self, path: PathLike) -> None:
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """
+        Save an explainer to disk. Uses the `dill` module.
+
+        Parameters
+        ----------
+        path
+            Path to a directory. A new directory will be created if one does not exist.
+        """
         save_explainer(self, path)
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:

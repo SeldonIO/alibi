@@ -1,6 +1,6 @@
 import copy
 import json
-from os import PathLike
+import os
 from pathlib import Path
 import sys
 from typing import Callable, TYPE_CHECKING, Union
@@ -24,8 +24,6 @@ if TYPE_CHECKING:
 from alibi.version import __version__
 
 thismodule = sys.modules[__name__]
-# https://www.python.org/dev/peps/pep-0519/#provide-specific-type-hinting-support
-# PathLike = Union[str, bytes, os.PathLike]
 
 NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CEM",
@@ -33,7 +31,21 @@ NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CounterFactualProto"]
 
 
-def load_explainer(path: PathLike, predictor) -> 'Explainer':
+def load_explainer(path: Union[str, os.PathLike], predictor) -> 'Explainer':
+    """
+    Load an explainer from disk.
+
+    Parameters
+    ----------
+    path
+        Path to a directory containing the saved explainer.
+    predictor
+        Model or prediction function used to originally initialize the explainer.
+
+    Returns
+    -------
+    An explainer instance.
+    """
     # load metadata
     with open(Path(path, 'meta.dill'), 'rb') as f:
         meta = dill.load(f)
@@ -52,7 +64,17 @@ def load_explainer(path: PathLike, predictor) -> 'Explainer':
     return load_fn(path, predictor, meta)
 
 
-def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
+def save_explainer(explainer: 'Explainer', path: Union[str, os.PathLike]) -> None:
+    """
+    Save an explainer to disk. Uses the `dill` module.
+
+    Parameters
+    ----------
+    explainer
+        Explainer instance to save to disk.
+    path
+        Path to a directory. A new directory will be created if one does not exist.
+    """
     name = explainer.meta['name']
     if name in NOT_SUPPORTED:
         raise NotImplementedError(f'Saving for {name} not yet supported')
@@ -77,7 +99,7 @@ def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
     save_fn(explainer, path)
 
 
-def _simple_save(explainer: 'Explainer', path: PathLike) -> None:
+def _simple_save(explainer: 'Explainer', path: Union[str, os.PathLike]) -> None:
     predictor = explainer.predictor  # type: ignore
     explainer.predictor = None  # type: ignore
     with open(Path(path, 'explainer.dill'), 'wb') as f:
@@ -85,14 +107,14 @@ def _simple_save(explainer: 'Explainer', path: PathLike) -> None:
     explainer.predictor = predictor  # type: ignore
 
 
-def _simple_load(path: PathLike, predictor, meta) -> 'Explainer':
+def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
     explainer.reset_predictor(predictor)
     return explainer
 
 
-def _load_IntegratedGradients(path: PathLike, predictor: Union[tf.keras.Model, 'keras.Model'],
+def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: Union[tf.keras.Model, 'keras.Model'],
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
     if layer_num == 0:
@@ -108,7 +130,7 @@ def _load_IntegratedGradients(path: PathLike, predictor: Union[tf.keras.Model, '
     return explainer
 
 
-def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: PathLike) -> None:
+def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: Union[str, os.PathLike]) -> None:
     model = explainer.model
     layer = explainer.layer
     explainer.model = explainer.layer = None
@@ -118,7 +140,7 @@ def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: PathLike) 
     explainer.layer = layer
 
 
-def _load_AnchorImage(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorImage':
+def _load_AnchorImage(path: Union[str, os.PathLike], predictor: Callable, meta: dict) -> 'AnchorImage':
     # segmentation function
     with open(Path(path, 'segmentation_fn.dill'), 'rb') as f:
         segmentation_fn = dill.load(f)
@@ -132,7 +154,7 @@ def _load_AnchorImage(path: PathLike, predictor: Callable, meta: dict) -> 'Ancho
     return explainer
 
 
-def _save_AnchorImage(explainer: 'AnchorImage', path: PathLike) -> None:
+def _save_AnchorImage(explainer: 'AnchorImage', path: Union[str, os.PathLike]) -> None:
     # save the segmentation function separately (could be user-supplied or built-in), must be picklable
     segmentation_fn = explainer.segmentation_fn
     explainer.segmentation_fn = None
@@ -147,7 +169,7 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: PathLike) -> None:
     explainer.predictor = predictor
 
 
-def _load_AnchorText(path: PathLike, predictor: Callable, meta: dict) -> 'AnchorText':
+def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: dict) -> 'AnchorText':
     # load the spacy model
     import spacy
     nlp = spacy.load(Path(path, 'nlp'))
@@ -166,7 +188,7 @@ def _load_AnchorText(path: PathLike, predictor: Callable, meta: dict) -> 'Anchor
     return explainer
 
 
-def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
+def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> None:
     # save the spacy model
     nlp = explainer.nlp
     nlp.to_disk(Path(path, 'nlp'))
@@ -186,12 +208,12 @@ def _save_AnchorText(explainer: 'AnchorText', path: PathLike) -> None:
     explainer.predictor = predictor
 
 
-def _save_KernelShap(explainer: 'KernelShap', path: PathLike) -> None:
+def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:
     # TODO: save internal shap objects using native pickle?
     _simple_save(explainer, path)
 
 
-def _save_TreelShap(explainer: 'TreeShap', path: PathLike) -> None:
+def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> None:
     # TODO: save internal shap objects using native pickle?
     _simple_save(explainer, path)
 

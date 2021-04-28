@@ -13,9 +13,7 @@ import tensorflow as tf
 if TYPE_CHECKING:
     from alibi.api.interfaces import Explainer
     from alibi.explainers import (
-        ALE,
         AnchorImage,
-        AnchorTabular,
         AnchorText,
         IntegratedGradients,
         KernelShap,
@@ -80,11 +78,11 @@ def save_explainer(explainer: 'Explainer', path: PathLike) -> None:
 
 
 def _simple_save(explainer: 'Explainer', path: PathLike) -> None:
-    predictor = explainer.predictor
-    explainer.predictor = None
+    predictor = explainer.predictor  # type: ignore
+    explainer.predictor = None  # type: ignore
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
-    explainer.predictor = predictor
+    explainer.predictor = predictor  # type: ignore
 
 
 def _simple_load(path: PathLike, predictor, meta) -> 'Explainer':

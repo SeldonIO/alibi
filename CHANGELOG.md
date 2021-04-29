@@ -1,5 +1,18 @@
 # Change Log
 
+## [v0.5.8](https://github.com/SeldonIO/alibi/tree/v0.5.8) (2021-04-29)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.7...v0.5.8)
+
+### Added
+- Experimental explainer serialization support using `dill`. See [docs](https://docs.seldon.io/projects/alibi/en/latest/overview/saving.html) for more details.
+
+### Fixed
+- Handle layers which are not part of `model.layers` for `IntegratedGradients`.
+
+### Development
+- Update type hints to be compatible with `numpy` 1.20.
+- Separate licence build step in CI, only check licences against latest Python version.
+
 ## [v0.5.7](https://github.com/SeldonIO/alibi/tree/v0.5.7) (2021-03-31)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.6...v0.5.7)
 

@@ -1,6 +1,6 @@
 # Saving and loading
 
-Alibi includes experimental support for saving and loading a subset explainers to disk using the `dill` module.
+Alibi includes experimental support for saving and loading a subset of explainers to disk using the `dill` module.
 
 To save an explainer, simply call the `save` method and provide a path to a directory (a new one will be created if it doesn't exist):
 ```python

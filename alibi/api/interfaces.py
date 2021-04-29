@@ -1,13 +1,16 @@
 import abc
 import json
+import os
 from collections import ChainMap
-from typing import Any
+from typing import Any, ClassVar, Union
 import logging
 from functools import partial
 import pprint
 
 import attr
-import numpy as np
+
+from alibi.saving import load_explainer, save_explainer, NumpyEncoder
+from alibi.version import __version__
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +67,7 @@ class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
-
+    _version: ClassVar[str] = __version__
     meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
 
     def __attrs_post_init__(self):
@@ -79,8 +82,37 @@ class Explainer(abc.ABC):
     def explain(self, X: Any) -> "Explanation":
         pass
 
+    @classmethod
+    def load(cls, path: Union[str, os.PathLike], predictor: Any) -> "Explainer":
+        """
+        Load an explainer from disk.
+
+        Parameters
+        ----------
+        path
+            Path to a directory containing the saved explainer.
+        predictor
+            Model or prediction function used to originally initialize the explainer.
+
+        Returns
+        -------
+        An explainer instance.
+        """
+        return load_explainer(path, predictor)
+
     def reset_predictor(self, predictor: Any) -> None:
         raise NotImplementedError
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        """
+        Save an explainer to disk. Uses the `dill` module.
+
+        Parameters
+        ----------
+        path
+            Path to a directory. A new directory will be created if one does not exist.
+        """
+        save_explainer(self, path)
 
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
@@ -165,29 +197,3 @@ class Explanation:
               "be done via attribute access. Accessing via item will stop working in a future version."
         warnings.warn(msg, DeprecationWarning, stacklevel=2)
         return getattr(self, item)
-
-
-class NumpyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(
-                obj,
-                (
-                        np.int_,
-                        np.intc,
-                        np.intp,
-                        np.int8,
-                        np.int16,
-                        np.int32,
-                        np.int64,
-                        np.uint8,
-                        np.uint16,
-                        np.uint32,
-                        np.uint64,
-                ),
-        ):
-            return int(obj)
-        elif isinstance(obj, (np.float_, np.float16, np.float32, np.float64)):
-            return float(obj)
-        elif isinstance(obj, (np.ndarray,)):
-            return obj.tolist()
-        return json.JSONEncoder.default(self, obj)

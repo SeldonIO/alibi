@@ -22,6 +22,7 @@
 "cymem","MIT License"
 "dataclasses","Apache Software License"
 "decorator","BSD License"
+"dill","BSD License"
 "flatbuffers","Apache Software License"
 "gast","BSD License"
 "google-auth","Apache Software License"

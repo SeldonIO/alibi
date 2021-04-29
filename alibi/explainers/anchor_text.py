@@ -153,6 +153,9 @@ class AnchorText(Explainer):
         # the method used to generate samples
         self.perturbation = None  # type: Union[Callable, None]
 
+        # update metadata
+        self.meta['params'].update(seed=seed)
+
     def set_words_and_pos(self, text: str) -> None:
         """
         Process the sentence to be explained into spaCy token objects, a list of words,
@@ -601,6 +604,9 @@ class AnchorText(Explainer):
         result['positions'] = [self.positions[x] for x in result['feature']]
         self.mab = mab
 
+        # clear some attributes set during the `explain` call
+        self._clear_state()
+
         return self.build_explanation(text, result, self.instance_label, params)
 
     def build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
@@ -649,3 +655,14 @@ class AnchorText(Explainer):
 
     def reset_predictor(self, predictor: Callable) -> None:
         self.predictor = self._transform_predictor(predictor)
+
+    def _clear_state(self):
+        """
+        Clears the explainer attributes set during the `explain` call. This is to avoid the explainer
+        having state from a previous `explain` call which can also interfere with serializaiton.
+        """
+        # TODO: should we organize the state set during `explain` call into a single dictionary attribute
+        #  instead of being scatter across several attributes?
+        # TODO: currently not clearing self.meta which is updated during `explain`
+        self.tokens, self.words, self.positions, self.punctuation = [], [], [], []
+        self.synonyms = {}

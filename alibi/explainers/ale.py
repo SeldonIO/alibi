@@ -83,6 +83,12 @@ class ALE(Explainer):
         self.extrapolate_constant_perc = extrapolate_constant_perc
         self.extrapolate_constant_min = extrapolate_constant_min
 
+        self.meta['params'].update(check_feature_resolution=check_feature_resolution,
+                                   low_resolution_threshold=low_resolution_threshold,
+                                   extrapolate_constant=extrapolate_constant,
+                                   extrapolate_constant_perc=extrapolate_constant_perc,
+                                   extrapolate_constant_min=extrapolate_constant_min)
+
     def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.

@@ -712,7 +712,6 @@ class KernelShap(Explainer, FitMixin):
             Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
-
         np.random.seed(self.seed)
 
         self._fitted = True
@@ -1594,4 +1593,5 @@ class TreeShap(Explainer, FitMixin):
             self.summarise_result = False
 
     def reset_predictor(self, predictor: Any) -> None:
-        raise NotImplementedError('Resetting a predictor is currently not supported')
+        # TODO: check what else should be done (e.g. validate dtypes again?)
+        self.model = predictor

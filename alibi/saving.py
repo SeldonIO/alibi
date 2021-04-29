@@ -181,6 +181,7 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
 
     # explainer._synonyms_generator contains spacy Lexemes which contain unserializable Cython constructs
     # so we re-initialize the object here
+    # TODO: this is slow to re-initialize, try optimzing
     from alibi.explainers.anchor_text import Neighbors
     explainer._synonyms_generator = Neighbors(nlp_obj=nlp)
     explainer.reset_predictor(predictor)

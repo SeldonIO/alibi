@@ -1,5 +1,33 @@
-from typing import Union, Tuple, Callable
 import numpy as np
+
+from alibi.utils.frameworks import FRAMEWORKS
+from typing import Callable, Dict, List, Union, Tuple
+from typing_extensions import Literal
+
+numerical_gradients = {'pytorch': [], 'tensorflow': []}  # type: Dict[Literal['pytorch', 'tensorflow'], List[Callable]]
+"""
+dict: A registry for numerical gradient functions implemented in PyTorch or TensorFlow. This should be imported by
+backend classes that need to utilize numerical differentiation. To add a function to the registry, import the
+`numerical_gradient` decorator from `alibi.utils.gradients` and parametrize it by with the `framework` argument that
+takes values 'pytorch'/'tensorflow'.
+"""
+
+
+def numerical_gradient(framework: str = 'tensorflow') -> Callable:
+    """
+    A decorator used to register a function as a numerical gradient implementation.
+    """
+
+    if framework not in FRAMEWORKS:
+        raise ValueError(
+            f"Framework must be 'pytorch' or 'tensorflow' but got {framework}"
+        )
+
+    def decorate_numerical_gradient(func):
+        numerical_gradients[framework].append(func)
+        return func
+
+    return decorate_numerical_gradient
 
 
 def perturb(X: np.ndarray,
@@ -21,6 +49,7 @@ def perturb(X: np.ndarray,
     -------
     Instances where a positive and negative perturbation is applied.
     """
+
     # N = batch size; F = nb of features in X
     shape = X.shape
     X = np.reshape(X, (shape[0], -1))  # NxF
@@ -34,6 +63,7 @@ def perturb(X: np.ndarray,
     shape = (dim * shape[0],) + shape[1:]
     X_pert_pos = np.reshape(X_pert_pos, shape)  # (N*F)x(shape of X[0])
     X_pert_neg = np.reshape(X_pert_neg, shape)  # (N*F)x(shape of X[0])
+
     return X_pert_pos, X_pert_neg
 
 
@@ -50,7 +80,7 @@ def num_grad_batch(func: Callable,
     func
         Function to be differentiated
     X
-        A batch of vectors at which to evaluate the gradient of the function
+        A batch of vectors at which to evaluate the gradient of the function.
     args
         Any additional arguments to pass to the function
     eps
@@ -62,6 +92,7 @@ def num_grad_batch(func: Callable,
 
     """
     # N = gradient batch size; F = nb of features in X, P = nb of prediction classes, B = instance batch size
+
     batch_size = X.shape[0]
     data_shape = X[0].shape
     preds = func(X, *args)

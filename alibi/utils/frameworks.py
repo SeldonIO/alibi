@@ -1,4 +1,3 @@
-# flake8: noqa: F401
 import logging
 from typing import Optional
 

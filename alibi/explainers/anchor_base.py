@@ -6,7 +6,7 @@ from functools import partial
 from typing import Callable, Tuple, Set, Dict, List
 
 from alibi.utils.distributed import ActorPool, RAY_INSTALLED
-from alibi.utils.distributions import kl_bernoulli
+from alibi.utils.stats import kl_bernoulli
 
 logger = logging.getLogger(__name__)
 

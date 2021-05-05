@@ -45,7 +45,7 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str
     return default_model_device
 
 
-def _validate_framework(framework: str) -> bool:
+def _validate_framework(framework: str) -> None:
     """
     Checks if PyTorch or TensorFlow is installed.
 

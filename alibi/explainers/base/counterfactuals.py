@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from alibi.explainers.backend import load_backend
-from alibi.utils.frameworks import _check_tf_or_pytorch, infer_device
+from alibi.utils.frameworks import _validate_framework, infer_device
 from alibi.utils.logging import tensorboard_loggers
 from collections import defaultdict
 from functools import partial
@@ -68,11 +68,13 @@ class CounterfactualBase:
                 
         Raises
         ------
-        ValueError
-            If the framework specified by `framework` argument is not installed.
+        ImportError
+            If the specified framework is not installed.
+        NotImplementedError
+            If the value of `framework` is not 'pytorch' or 'tensorflow'.
         """  # noqa W605
 
-        _check_tf_or_pytorch(framework)
+        _validate_framework(framework)
         self.fitted = False
         self.params = {}  # type: Dict[str, Any] # used by API classes to update metadata
         predictor_device = kwargs.get('predictor_device', None)

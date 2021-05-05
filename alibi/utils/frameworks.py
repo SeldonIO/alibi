@@ -45,7 +45,7 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str
     return default_model_device
 
 
-def _check_tf_or_pytorch(framework: str) -> bool:
+def _validate_framework(framework: str) -> bool:
     """
     Checks if PyTorch or TensorFlow is installed.
 
@@ -55,16 +55,14 @@ def _check_tf_or_pytorch(framework: str) -> bool:
 
     Raises
     ------
-    ValueError
-        If the value of `package` is not 'pytorch' or 'tensorflow'.
+    ImportError
+        If the specified framework is not installed.
+    NotImplementedError
+        If the value of `framework` is not 'pytorch' or 'tensorflow'.
     """
 
-    if framework == 'tensorflow':
-        return has_tensorflow
-    elif framework == 'pytorch':
-        return has_pytorch
-    else:
-        raise ValueError(
-            "Unknown framework specified or framework not installed. Please check spelling and/or install the "
-            "framework in order to run this explainer."
-        )
+    framework = framework.lower()
+    if framework == 'tensorflow' and not has_tensorflow or framework == 'pytorch' and not has_pytorch:
+        raise ImportError(f'{framework} not installed. ')
+    elif framework not in FRAMEWORKS:
+        raise NotImplementedError(f'{framework} not implemented. Use tensorflow or pytorch instead.')

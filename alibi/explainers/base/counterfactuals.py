@@ -3,7 +3,7 @@ import logging
 import numpy as np
 
 from alibi.explainers.backend import load_backend
-from alibi.utils.frameworks import _validate_framework, infer_device
+from alibi.utils.frameworks import _validate_framework, _infer_device
 from alibi.utils.logging import tensorboard_loggers
 from collections import defaultdict
 from functools import partial
@@ -83,7 +83,7 @@ class CounterfactualBase:
             logger.warning("Predictor type not specified, assuming whitebox predictor.")
             predictor_type = 'whitebox'
         if not predictor_device:
-            self.predictor_device = infer_device(predictor, predictor_type, framework)
+            self.predictor_device = _infer_device(predictor, predictor_type, framework)
         else:
             self.predictor_device = predictor_device
 

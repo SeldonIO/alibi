@@ -19,7 +19,7 @@ except ImportError:
     has_pytorch = False
 
 
-def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str]:
+def _infer_device(predictor, predictor_type: str, framework: str) -> Optional[str]:
     """
     A function that returns the device on which a predictor.
 
@@ -36,9 +36,9 @@ def infer_device(predictor, predictor_type: str, framework: str) -> Optional[str
     """
 
     if framework == 'tensorflow':
-        return  # type: ignore
+        return None
     if predictor_type == 'blackbox':
-        return  # type: ignore
+        return None
 
     default_model_device = next(predictor.parameters()).device
     logging.warning(f"No device specified for the predictor. Inferred {default_model_device}")

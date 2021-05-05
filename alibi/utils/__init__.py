@@ -1,10 +1,10 @@
 # flake8: noqa: F401
-from alibi.utils.frameworks import tensorflow_installed, pytorch_installed
+from alibi.utils.frameworks import has_tensorflow, has_pytorch
 
 # run decorators in the TensorFlow module
-if tensorflow_installed():
+if has_tensorflow:
     import alibi.utils.tensorflow
 
 # run decorators in the PyTorch module
-if pytorch_installed():
+if has_pytorch:
     import alibi.utils.pytorch

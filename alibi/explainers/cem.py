@@ -1,4 +1,3 @@
-# flake8: noqa F841
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 import copy
@@ -603,12 +602,12 @@ class CEM(Explainer, FitMixin):
                     print('Target proba: {:.2f}, max non target proba: {:.2f}'.format(target_proba,
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
-                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}' \
+                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'
                           .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
                     if not self.model:
-                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}' \
+                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}'
                               .format(grads_num.min(), grads_num.max()))  # type: ignore
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}' \
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'
                               .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
                     sys.stdout.flush()
 

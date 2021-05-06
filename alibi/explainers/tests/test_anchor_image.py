@@ -1,4 +1,3 @@
-# flake8: noqa E731
 import pytest
 
 import numpy as np
@@ -26,7 +25,7 @@ def test_anchor_image(models, mnist_data):
 
     # define and train model
     # model = conv_net
-    predict_fn = lambda x: models[0].predict(x)
+    predict_fn = lambda x: models[0].predict(x)  # noqa: E731
 
     explainer = AnchorImage(
         predict_fn,
@@ -36,7 +35,7 @@ def test_anchor_image(models, mnist_data):
     )
     # test explainer initialization
     assert explainer.predictor(np.zeros((1,) + image_shape)).shape == (1,)
-    assert explainer.custom_segmentation == False
+    assert explainer.custom_segmentation is False
 
     # test sampling and segmentation functions
     image = x_train[0]
@@ -53,7 +52,7 @@ def test_anchor_image(models, mnist_data):
     # grayscale image should be replicated across channel dim before segmentation
     assert image_preproc.shape[-1] == 3
     for channel in range(image_preproc.shape[-1]):
-        assert (image.squeeze() - image_preproc[..., channel] <= eps).all() == True
+        assert (image.squeeze() - image_preproc[..., channel] <= eps).all() is True
     # check superpixels mask
     assert superpixels_mask.shape[0] == num_samples
     assert superpixels_mask.shape[1] == len(list(np.unique(segments)))

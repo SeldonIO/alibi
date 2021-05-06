@@ -1,11 +1,9 @@
-# flake8: noqa F841
-
 import copy
 import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
-from typing import Any, Callable, Dict, List, Tuple, Union, TYPE_CHECKING, Sequence
+from typing import Any, Callable, Dict, Tuple, Union, TYPE_CHECKING, Sequence
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
@@ -280,8 +278,8 @@ class CounterFactualProto(Explainer, FitMixin):
                 def true_fn():
                     try:
                         return self.map_cat_to_num[icat][adv_to_map[0, icol]]
-                    except:  # the value of adv_to_map[0, icol] is a float
-                        # TODO: add error type
+                    except TypeError:  # the value of adv_to_map[0, icol] is a float
+                        # TODO: check error type
                         idx = round_grad(adv_to_map[0, icol])
                         return self.map_cat_to_num[icat][idx]
 
@@ -1180,12 +1178,12 @@ class CounterFactualProto(Explainer, FitMixin):
                     print('Target proba: {:.2f}, max non target proba: {:.2f}'.format(target_proba,
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
-                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}' \
+                    print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'
                           .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
                     if not self.model:
-                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}' \
+                        print('Gradient numerical attack min/max: {:.3f}/{:.3f}'
                               .format(grads_num.min(), grads_num.max()))  # type: ignore
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}' \
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'
                               .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
                     sys.stdout.flush()
 

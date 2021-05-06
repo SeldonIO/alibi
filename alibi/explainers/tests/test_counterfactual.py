@@ -1,4 +1,3 @@
-# flake8: noqa E731
 import pytest
 import numpy as np
 from sklearn.datasets import load_iris

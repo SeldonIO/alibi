@@ -1,4 +1,3 @@
-# flake8: noqa E731
 import pytest
 from pytest_lazyfixture import lazy_fixture
 import spacy

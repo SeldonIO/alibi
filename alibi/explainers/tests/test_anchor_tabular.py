@@ -1,4 +1,3 @@
-# flake8: noqa E731
 from collections import OrderedDict
 
 import numpy as np
@@ -75,7 +74,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
     for _ in range(n_explainer_runs):
         explanation = explainer.explain(X_test[test_instance_idx], threshold=threshold, **explain_defaults)
         assert explainer.instance_label == instance_label
-        if not "Could not find" in caplog.text:
+        if "Could not find" not in caplog.text:
             assert explanation.precision >= threshold
         assert explanation.coverage >= 0.01
         assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()

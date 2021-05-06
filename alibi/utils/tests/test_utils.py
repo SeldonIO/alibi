@@ -6,11 +6,11 @@ import tensorflow as tf
 from alibi.utils.tf import _check_keras_or_tf
 from unittest import mock
 
-blackbox_model = lambda x: x
+blackbox_model = lambda x: x  # noqa: E731
 keras_model = keras.Model()
 tf_model = tf.keras.Model()
-blackbox_keras = lambda x: keras_model.predict(x)
-blackbox_tf = lambda x: tf_model.predict(x)
+blackbox_keras = lambda x: keras_model.predict(x)  # noqa: E731
+blackbox_tf = lambda x: tf_model.predict(x)  # noqa: E731
 
 
 def test_blackbox_check_keras_or_tf():

@@ -15,7 +15,6 @@ from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
 from alibi.explainers.exceptions import CounterfactualError
 from alibi.utils.logging import DEFAULT_LOGGING_OPTS
 from alibi.utils.stats import median_abs_deviation
-from alibi.utils.wrappers import get_blackbox_wrapper
 
 # TODO: ALEX: TBD: THIS DOESN'T FEEL RIGHT AT ALL?!
 if TYPE_CHECKING:  # pragma: no cover
@@ -319,7 +318,6 @@ class _WachterCounterfactual(CounterfactualBase):
         """  # noqa
 
         _validate_wachter_loss_spec(loss_spec, predictor_type)
-        blackbox_wrapper = get_blackbox_wrapper(framework) if predictor_type == 'blackbox' else None
         super().__init__(
             predictor,
             framework,
@@ -327,8 +325,6 @@ class _WachterCounterfactual(CounterfactualBase):
             WACHTER_METHOD_OPTS,
             feature_range,
             predictor_type=predictor_type,
-            # can pass additional kwargs for backend initialization like this
-            backend_kwargs={'blackbox_wrapper': blackbox_wrapper},
             predictor_device=kwargs.get("predictor_device", None)
         )
 

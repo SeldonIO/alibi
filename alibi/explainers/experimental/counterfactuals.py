@@ -320,7 +320,6 @@ class _WachterCounterfactual(CounterfactualBase):
 
         _validate_wachter_loss_spec(loss_spec, predictor_type)
         blackbox_wrapper = get_blackbox_wrapper(framework) if predictor_type == 'blackbox' else None
-
         super().__init__(
             predictor,
             framework,

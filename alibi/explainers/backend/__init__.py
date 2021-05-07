@@ -1,7 +1,7 @@
-from .registry import backends_registry, register_backend, load_backend
+from .registry import BACKENDS_REGISTRY, register_backend, load_backend
 
 __all__ = [
-    'backends_registry',
+    'BACKENDS_REGISTRY',
     'register_backend',
     'load_backend'
 ]

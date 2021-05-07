@@ -25,7 +25,7 @@ def framework_factory():
     return {'blackbox': None, 'whitebox': None}
 
 
-backends_registry = {
+BACKENDS_REGISTRY = {
     'pytorch': defaultdict(framework_factory),
     'tensorflow': defaultdict(framework_factory),
 }  # type: Dict[Literal['pytorch', 'tensorflow'], Dict]
@@ -89,7 +89,7 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
             raise ValueError(
                 f"Framework must be 'pytorch' or 'tensorflow' but got {framework}"
             )
-        backends_registry[framework][consumer_class][predictor_type] = obj
+        BACKENDS_REGISTRY[framework][consumer_class][predictor_type] = obj
         return obj
 
     return register
@@ -121,5 +121,4 @@ def load_backend(class_name: str,
     backend_module = ".".join([__package__, framework, module_name])
     # update the backend registry
     importlib.import_module(backend_module)
-
-    return backends_registry[framework][class_name][predictor_type]
+    return BACKENDS_REGISTRY[framework][class_name][predictor_type]

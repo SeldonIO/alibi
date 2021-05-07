@@ -3,7 +3,7 @@ import tensorflow as tf
 
 from alibi.explainers.backend import register_backend
 from alibi.explainers.exceptions import CounterfactualError
-from alibi.utils.gradients import numerical_gradients
+from alibi.utils.gradients import get_numerical_gradient
 from collections import defaultdict
 from copy import deepcopy
 from functools import partial
@@ -116,7 +116,7 @@ WACHTER_LOSS_SPEC_BLACKBOX = {
     },
     'distance': {'fcn': scaled_l1_loss, 'kwargs': {'feature_scale': None}},
     'loss': {'fcn': wachter_loss, 'kwargs': {}},  # function that combines the prediction and distance
-    'numerical_diff_scheme': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
+    'num_grad_method': {'name': 'central_difference', 'kwargs': {'eps': 0.01}}
 }  # type: Dict[str, Mapping[str, Any]]
 """dict: A specification that allows customising the Wachter loss, defined as:
 
@@ -253,6 +253,8 @@ class TFCounterfactualOptimizer:
     """
 
     framework = 'tensorflow'  # type: Final
+    num_grad_method = 'central_difference'
+    num_grad_method_kwargs = {'eps': 0.01}
 
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model, 'keras.Model'],
@@ -305,7 +307,7 @@ class TFCounterfactualOptimizer:
         # further loss spec properties (for black-box functions or more advanced functionality) are set in sub-classes
         for term in loss_spec:
             # defer setting non-differetiable terms properties to sub-classes
-            if 'numerical_diff_scheme' in term:
+            if 'num_grad_method' in term:
                 continue
             this_term_kwargs = loss_spec[term]['kwargs']
             assert isinstance(this_term_kwargs, dict)
@@ -696,6 +698,7 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
             - `prediction_grad_fcn`: the derivative of :math:`L_{pred}` with respect to `pred`, the predictor output
         """  # noqa W605
         super().__init__(predictor, loss_spec, feature_range, **kwargs)
+        wrapper = kwargs.get("blackbox_wrapper")
 
         # TODO: ALEX: TBD: THIS PRACTICALLY MEANS ATTRS NOT IN THE SCHEMA WILL NOT BE SET
         expected_attributes = set(WACHTER_LOSS_SPEC_BLACKBOX) | {'prediction_grad_fcn', '_num_grads_fn'}
@@ -705,21 +708,20 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         # set numerical gradients method and gradient fcns of nonlinear transformation wrt model output
         self.num_grad_fcn = None  # type: Union[Callable, None]
         # set numerical differentiation scheme callable
-        available_grad_methods = [fcn for fcn in numerical_gradients[self.framework]]
-        available_grad_methods_names = [fcn.__name__ for fcn in available_grad_methods]
-        numerical_diff_scheme = loss_spec['numerical_diff_scheme']['name']
-        numerical_diff_scheme_kwargs = loss_spec['numerical_diff_scheme']['kwargs']
         try:
-            grad_method_idx = available_grad_methods_names.index(numerical_diff_scheme)
-        except IndexError:
-            raise CounterfactualError(f"Undefined numerical differentiation scheme: {numerical_diff_scheme}!")
+            num_grad_method = loss_spec['num_grad_method']['name']
+            kwargs = loss_spec['num_grad_method'].get('kwargs', {})
+            loss_spec.pop('num_grad_method')
+        except KeyError:
+            num_grad_method = self.num_grad_method
+            kwargs = self.num_grad_method_kwargs
 
-        if numerical_diff_scheme_kwargs:
-            self.__setattr__(
-                'num_grad_fcn', partial(available_grad_methods[grad_method_idx], **numerical_diff_scheme_kwargs)
-            )
-        else:
-            self.__setattr__('num_grads_fcn', available_grad_methods[grad_method_idx])
+        try:
+            num_grad_fcn = get_numerical_gradient(self.framework, num_grad_method)
+        except KeyError:
+            raise CounterfactualError(f'Unknown numerical differention scheme: {num_grad_method}')
+
+        setattr(self, 'num_grad_fcn', partial(num_grad_fcn, **kwargs))
 
         for term in loss_spec:
             # set fcn to calculate the prediction term gradient wrt to predictor output
@@ -734,7 +736,6 @@ class TFWachterCounterfactualOptimizerBB(TFWachterCounterfactualOptimizer):
         self.loss_spec = loss_spec
         self.blackbox_eval_fcn = wachter_blackbox_wrapper
         # wrap in a decorator that casts the input to np.ndarray and the output to tensor
-        wrapper = kwargs.get("blackbox_wrapper")
         self.wrapper = wrapper
         self.predictor = wrapper(self.predictor)
 

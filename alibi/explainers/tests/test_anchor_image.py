@@ -52,7 +52,7 @@ def test_anchor_image(models, mnist_data):
     # grayscale image should be replicated across channel dim before segmentation
     assert image_preproc.shape[-1] == 3
     for channel in range(image_preproc.shape[-1]):
-        assert (image.squeeze() - image_preproc[..., channel] <= eps).all() is True
+        assert (image.squeeze() - image_preproc[..., channel] <= eps).all()
     # check superpixels mask
     assert superpixels_mask.shape[0] == num_samples
     assert superpixels_mask.shape[1] == len(list(np.unique(segments)))

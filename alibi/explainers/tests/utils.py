@@ -1,4 +1,3 @@
-# flake8: noqa: E731
 # A file containing functions that can be used by multiple tests
 import numpy as np
 
@@ -18,14 +17,14 @@ def predict_fcn(predict_type, clf, preproc=None):
             )
     if predict_type == 'proba':
         if preproc:
-            predict_fn = lambda x: clf.predict_proba(preproc.transform(x))
+            predict_fn = lambda x: clf.predict_proba(preproc.transform(x))  # noqa: E731
         else:
-            predict_fn = lambda x: clf.predict_proba(x)
+            predict_fn = lambda x: clf.predict_proba(x)  # noqa: E731
     elif predict_type == 'class':
         if preproc:
-            predict_fn = lambda x: clf.predict(preproc.transform(x))
+            predict_fn = lambda x: clf.predict(preproc.transform(x))  # noqa: E731
         else:
-            predict_fn = lambda x: clf.predict(x)
+            predict_fn = lambda x: clf.predict(x)  # noqa: E731
 
     return predict_fn
 

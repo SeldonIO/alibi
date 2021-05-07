@@ -1,4 +1,3 @@
-# flake8: noqa E731
 import numpy as np
 import pytest
 import tensorflow as tf
@@ -115,7 +114,6 @@ def test_tf_keras_adult_explainer(disable_tf2, adult_data, tf_keras_adult_explai
     # instance to be explained
     x = X_train[0].reshape(1, -1)
     pred_class = np.argmax(model.predict(x))
-    not_pred_class = np.argmin(model.predict(x))
 
     # test fit
     cf.fit(X_train, d_type=d_type)

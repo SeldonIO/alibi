@@ -1,5 +1,3 @@
-# flake8: noqa E731
-
 from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 from alibi.explainers import CEM
 import numpy as np
@@ -25,7 +23,7 @@ def test_cem(disable_tf2):
     clf.fit(X, Y)
 
     # define prediction function
-    predict_fn = lambda x: clf.predict_proba(x)
+    predict_fn = lambda x: clf.predict_proba(x)  # noqa: E731
 
     # instance to be explained
     idx = 0

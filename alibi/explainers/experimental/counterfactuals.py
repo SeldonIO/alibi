@@ -680,9 +680,11 @@ class _WachterCounterfactual(CounterfactualBase):
                 f"deviation from the predicted probability on the original instance is considered significant. "
                 f"Otherwise, adjusting the target_proba, target_class and tol may help to find counterfactuals."
             )
+        # TODO: not sure if we should hard-code upper-bound to be 10x lower-bound if all lams and/or
+        #  just the first one yield CFs
         elif cf_found.sum() == len(cf_found):
             # found a cf for all lambdas
-            bounds = lam_bounds(lb=lams[0], midpoint=0.5 * (lams[0] + lams[1]), ub=lams[1])
+            bounds = lam_bounds(lb=lams[0], midpoint=0.5 * (lams[0] + lams[1]), ub=10 * lams[0])
 
         elif cf_found.sum() == 1:
             # this case is unlikely to occur in practice
@@ -700,7 +702,7 @@ class _WachterCounterfactual(CounterfactualBase):
             # backtrack to find the upper bound
             lam_ub_idx = lam_lb_idx - 1
             while lam_ub_idx >= 0:
-                if cf_found[lam_lb_idx] > 0:
+                if cf_found[lam_ub_idx] == 0:
                     break
                 lam_ub_idx -= 1
             lb = lams[lam_lb_idx]

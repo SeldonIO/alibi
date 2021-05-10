@@ -77,7 +77,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
         assert explainer.instance_label == instance_label
         if not "Could not find" in caplog.text:
             assert explanation.precision >= threshold
-        assert explanation.coverage >= 0.01
+        assert explanation.coverage >= 0.001
         assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
         assert explanation.data.keys() == DEFAULT_DATA_ANCHOR.keys()
         run_precisions.append(explanation.precision)

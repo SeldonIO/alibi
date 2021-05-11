@@ -413,21 +413,27 @@ class TFGradientOptimizer:
             tf.math.abs(self._get_cf_prediction(prediction, self.target_class) - target_proba) <= tol,
         ).numpy()
 
-    def collect_step_data(self):
+    def collect_step_data(self, sync: bool = False):
         """
         This function is used by the calling object in order to obtain the current state that is subsequently written to
         TensorBoard. As the state might require additional computation which is not necessary for steps where data is
         not logged, this method defers the functionality to `update_state` where the state is computed.
         """
-        return self.update_state()
+        return self.update_state(sync=sync)
 
-    def update_state(self):
+    def update_state(self, sync: bool = False):
         """
         Computes quantities used solely for logging purposes. Called when data needs to be written to TensorBoard.
         If the logging requires expensive quantities that don't need to be computed at each iteration, they should be
         computed here and added to the state dictionary, which is collected by the calling object.
+
+        With `sync=True`, in the case of white-box models the losses are re-evaluated for the current solution. This is
+        to ensure that the correct loss values are reported in the final output. With `sync=False` the loss values are
+        off-by-one as a result of white-box models updating the state before applying gradients (and thus the loss
+        values are with respect to the solution at the previous step). This is generally useful behaviour for logging
+        purposes as re-evaluating all losses incurs significant runtime overhead.
         """
-        if self.predictor_type == 'whitebox':
+        if self.predictor_type == 'whitebox' and not sync:
             self.state['lr'] = self._get_learning_rate()
             return self.state
 

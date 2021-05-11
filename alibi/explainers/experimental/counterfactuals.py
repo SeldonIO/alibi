@@ -835,7 +835,7 @@ class _WachterCounterfactual(CounterfactualBase):
         """  # noqa W605
 
         # collect data from the optimizer
-        optimizer_state = self.backend.collect_step_data()
+        optimizer_state = self.backend.collect_step_data(sync=True)
         # augment the data and update the response
         pred_class = _convert_to_label(current_cf_pred)
         target_pred_proba = current_cf_pred[:, pred_class].item()

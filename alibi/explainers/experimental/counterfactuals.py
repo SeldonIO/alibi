@@ -79,7 +79,7 @@ _WACHTER_CF_TRACKED_VARIABLES_DEFAULT = {
     'descriptions': _CF_WACHTER_DESCRIPTIONS_DEFAULT
 }
 """
-dict: A description of the variables to be recorded to TensorBoard for the WachterCounterfactual class. \
+dict: A description of the variables to be recorded to TensorBoard for the :py:class:`WactherCounterfactual` class. \
 """
 _WACHTER_CF_LOGGING_OPTS_DEFAULT = copy.deepcopy(DEFAULT_LOGGING_OPTS)
 _WACHTER_CF_LOGGING_OPTS_DEFAULT.update({
@@ -130,7 +130,7 @@ class predicted on the inititial solution does not change by more than `instance
 - `instance_proba_delta`: the model prediction on the counterfactual for the class with the highest probability for \
 the original instance should decrease by at least this value in `lam_exploration_steps` to warrant continuation of \
 optimisation for a given :math:`\lambda` in the initial search loop.
-- `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in `WatcherCounterfactual`.
+- `lam_cf_threshold`, `lam_multiplier`, `lam_divider`: see `bisect_lam` docstring in :py:mod:`_WachterCounterfactual`.
 - `common_ratio`, `decay_steps`: role in determining the original optimisation schedule for :math:`\lambda` as  \
 described above.
 - `max_lam_steps`: maximum number of times to adjust the regularization constant before terminating the search \
@@ -164,7 +164,7 @@ WACHTER_METHOD_OPTS = {
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
 the explainer constructor or when calling ``explain``. If the same subset of arguments is specified in both
 ``explain`` and the constructor, the ``explain`` options will override the constructor options. See the documentation
-for `WACHTER_SEARCH_OPTS_DEFAULT` and `WACHTER_LAM_OPTS_DEFAULT` to understand algorithm hyperparameters.
+for :py:data:`WACHTER_SEARCH_OPTS_DEFAULT` and :py:data:`WACHTER_LAM_OPTS_DEFAULT` to understand algorithm hyperparameters.
 
 Examples
 --------
@@ -996,47 +996,40 @@ class WachterCounterfactual(Explainer, FitMixin):
             `predictor` returns probabilities. In the future this explainer may be extended to work with regression 
             models. If `predictor_type` is set to `blackbox` then the `predictor` should be a callable that inputs/outputs
             `np.ndarray` objects.
-         predictor_type: {'blackbox', 'whitebox'}
-
+        predictor_type: {'blackbox', 'whitebox'}
             - 'blackbox' indicates that the algorithm does not have access to the model parameters (e.g., the predictor \
             is an API endpoint so can only be queried to return prediction). This argument should be used to search for \
             counterfactuals of non-differentiable models (e.g., trees, random forests) or models implemented in machine \
             learning frameworks other than PyTorch and TensorFlow.
-
-            - 'whitebox' indicates that the model is implemented in PyTorch or TensorFlow and that the explainer has 
-            access to the parameters, so that the automatic differentiation and optimization of the framework can be 
-            leveraged in the search process.  
-
+            - 'whitebox' indicates that the model is implemented in PyTorch or TensorFlow and that the explainer has \ 
+            access to the parameters, so that the automatic differentiation and optimization of the framework can be  \
+            leveraged in the search process.
         loss_spec
-            Check the `pytorch`_ or `tensorflow`_ loss specification for detailed explanation of the assumptions of the 
-            loss function. As detailed there, the loss_specification depends on the `predictor_type`. This argument 
-            should be used by advanced users who want to modify the functional form of the loss term  - the positional
-            arguments for the individual terms *_should be the same as in the default specification_*. 
-
-            .. _pytorch: file:///C:/Users/alexc/dev/alibi/doc/_build/html/api/alibi.explainers.experimental.counterfactuals.html
-            .. _tensorflow: file:///C:/Users/alexc/dev/alibi/doc/_build/html/api/alibi.explainers.backend.tensorflow.counterfactuals.html
-
+            Check the :py:mod:`alibi.explainers.backend.pytorch.counterfactuals` or
+            :py:mod:`alibi.explainers.backend.tensorflow.counterfactuals`
+            loss specification for detailed explanation of the assumptions of the loss function. As detailed there,
+            the loss_specification depends on the `predictor_type`. This argument should be used by advanced users
+            who want to modify the functional form of the loss term---the positional arguments for the individual terms
+            **should be the same as in the default specification**. 
         method_opts
-            Paramaters that control the optimisation process. See documentation for `WATCHER_METHOD_OPTS` above for 
-            detailed information about the role of each parameter and how to override them through the `explain` 
-            interface.. It is recommended that the user runs the algorithm with the defaults and then and uses the 
+            Paramaters that control the optimisation process. See documentation for :py:data:`WACHTER_METHOD_OPTS` for 
+            detailed information about the role of each parameter and how to override them through the ``explain`` 
+            interface. It is recommended that the user runs the algorithm with the defaults and uses the 
             TensorBoard display to adjust  the parameters (by overriding them through the explain interface) in cases of 
             non-convergence, long-running explanations or if different explanation properties are desired. 
         feature_range
             Tuple with upper and lower bounds for feature values of the counterfactual. The upper and lower bounds can
             be floats or numpy arrays with dimension :math:`(N, )` where `N` is the number of features, as might be the
             case for a tabular data application. For images, a tensor of the same shape as the input data can be applied
-            for pixel-wise constraints. If `fit` is called with argument `X`, then  feature_range is automatically
+            for pixel-wise constraints. If ``fit`` is called with argument `X`, then  feature_range is automatically
             updated as `(X.min(axis=0), X.max(axis=0))`.
         framework: {'pytorch', 'tensorflow'}
             The framework in which the model is implemented for ``'whitebox'`` predictors, or the framework used to run
             the optimization for ``'blackbox'`` predictors. PyTorch and TensorFlow are optional dependencies so they
             must be installed before running this algorithm. PyTorch support will be available in future releases, only 
             ``'tensorflow'`` is a valid version for the current release.
-
         kwargs
-            Valid kwargs include:
-                - `predictor_device`: used to pass a device so that cpu/gpu computation can be supported for PyTorch     
+             - `predictor_device`: used to pass a device so that cpu/gpu computation can be supported for PyTorch     
         """  # noqa
 
         # TODO: ALEX: TBD: DISCUSS DEVICE HANDLING
@@ -1064,9 +1057,9 @@ class WachterCounterfactual(Explainer, FitMixin):
         following effect:
 
             - If `constrain_features=True`, the minimum and maximum of the array along the leading dimension constrain \
-            the minimum and the maximum of the counterfactual
-            - If the `scale` argument is set to `True` or `median`, then the distance between the input and the \
-            counterfactual is scaled, feature-wise at each optimisiation step by the feature-wise median absolute \
+            the minimum and the maximum of the counterfactual.
+            - If the `scale` argument is set to `True` or `'median'`, then the distance between the input and the \
+            counterfactual is scaled, feature-wise at each optimisation step by the feature-wise median absolute \
             deviation (MAD) calculated from `X` as detailed in the notes. Other options might be supported in the \
             future (raise a feature request).
 
@@ -1075,7 +1068,7 @@ class WachterCounterfactual(Explainer, FitMixin):
         X
             An array of :math:`N` data points.
         scale
-            If set to `True` or 'median', the MAD is computed and applied to the distance part of the function. 
+            If set to `True` or `'median'`, the MAD is computed and applied to the distance part of the function. 
         constrain_features
             If `True` the counterfactual features are constrained.
 
@@ -1110,17 +1103,16 @@ class WachterCounterfactual(Explainer, FitMixin):
         """
         Find a  counterfactual :math:`X'` for instance :math:`X`, given the `target_class` and the desired probability
         predicted by the model for `target_class` when :math:`X'` is input. The probability is reached with tolerance
-        `tol` (see `WACHTER_METHOD_OPTS` `here`_ for default value). The search procedure is guided by the value of the
+        `tol` (see :py:data:`WACHTER_METHOD_OPTS` for default value). The search procedure is guided by the value of the
         method argument passed to the explainer. For details regarding the optimization procedure for each method, refer
-        to our `detailed`_ documentation of the implementations.
+        to our detailed_ documentation of the implementations.
 
-        .. _here  https://docs.seldon.io/projects/alibi/en/stable/api/alibi.explainers.base.counterfactuals.html
-        .. _detailed https://docs.seldon.io/projects/alibi/en/stable/api/alibi.explainers.base.counterfactuals.html
+        .. _detailed: https://docs.seldon.io/projects/alibi/en/stable/api/alibi.explainers.base.counterfactuals.html
 
         Parameters
         ----------
         X
-             Instance for which a counterfactual is to be generated. Only 1 instance can be explained at one time, 
+             Instance for which a counterfactual is to be generated. Only 1 instance can be explained at q time, 
             so the shape of the `X` array is expected to be `(1, ...)` where the ellipsis corresponds to the dimension 
             of one datapoint. In the future, batches of instances may be supported via a distributed implementation.
         target_class: {'same', 'other', int}
@@ -1140,7 +1132,7 @@ class WachterCounterfactual(Explainer, FitMixin):
 
                     Adam(learning_rate=PolynomialDecay(0.1, max_iter, end_learning_rate=0.002, power=1))
 
-                Here `max_iter` is read from the default method options defined `here`_ and can be overriden via the 
+                Here `max_iter` is read from the default method options defined here_ and can be overriden via the 
                 `method_opts` argument. 
 
                 - To pass the an optimizer class. This class is initialialized using the keyword arguments specified in
@@ -1155,10 +1147,10 @@ class WachterCounterfactual(Explainer, FitMixin):
             dimension of 1) containing `1` for the features to be optimised and `0` for the features that keep their 
             original values.
         logging_opts
-            See `alibi.utils.logging` for information about the logging options and how to log quantities to
+            See :py:mod:`alibi.utils.logging` for information about the logging options and how to log quantities to
             TensorBoard automatically. 
         method_opts
-            Use this argument to pass overrides for the defaults specified in the `WATCHER_METHOD_OPTS`.
+            Use this argument to pass overrides for the defaults specified in the :py:data:`WATCHER_METHOD_OPTS`.
         """  # noqa W605
 
         # TODO: UPDATE DOCS

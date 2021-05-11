@@ -129,7 +129,7 @@ See our `documentation`_ for details.
 This specification assumes that the term specified in the ``'prediction'`` field cannot be differentiated using
 automatic differentiation frameworks. Consequently, this term requires additional information in the following fields:
 
-    - ``'num_grad_metho'``. The ``'name'`` sub-field specifies a function that can compute numerical gradients given \
+    - ``'num_grad_method'``. The ``'name'`` sub-field specifies a function that can compute numerical gradients given \
     a black-box function and an input tensor :math:`X`. See `alibi.utils.tensorflow.gradients` for an example and \
     interface description and `alibi.explainers.backend.tensorflow.counterfactuals` `get_numerical_gradients` method \
     for an integration example. The kwargs of this function should be specified in the ``'kwargs'`` field

@@ -377,7 +377,7 @@ class _WachterCounterfactual(CounterfactualBase):
             )
 
         y = self.backend.make_prediction(self.backend.to_tensor(instance))
-        y = self.backend.to_numpy_arr(y)
+        y = self.backend.to_numpy(y)
         instance_class = _convert_to_label(y)
         instance_proba = y[:, instance_class].item()
         self.backend._get_cf_prediction = partial(self.backend.cf_prediction_fcn, src_idx=instance_class)
@@ -498,8 +498,8 @@ class _WachterCounterfactual(CounterfactualBase):
 
                 # save and optionally display results of current gradient descent step
                 current_state = (
-                    self.backend.to_numpy_arr(self.backend.solution),
-                    self.backend.to_numpy_arr(cf_prediction)
+                    self.backend.to_numpy(self.backend.solution),
+                    self.backend.to_numpy(cf_prediction)
                 )
                 write_summary = self.log_traces and self.step % summary_freq == 0
 
@@ -598,13 +598,13 @@ class _WachterCounterfactual(CounterfactualBase):
                     self.tol
                 )
                 cf_prediction = self.backend.make_prediction(self.backend.solution)
-                instance_class_pred = self.backend.to_numpy_arr(cf_prediction[:, self.instance_class]).item()
+                instance_class_pred = self.backend.to_numpy(cf_prediction[:, self.instance_class]).item()
 
                 # update response and log data to TensorBoard
                 write_summary = self.log_traces and self.step % self.summary_freq == 0
                 current_state = (
-                    self.backend.to_numpy_arr(self.backend.solution),
-                    self.backend.to_numpy_arr(cf_prediction)
+                    self.backend.to_numpy(self.backend.solution),
+                    self.backend.to_numpy(cf_prediction)
                 )
 
                 if write_summary:

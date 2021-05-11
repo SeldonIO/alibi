@@ -362,7 +362,7 @@ class TFGradientOptimizer:
         self.device = None
         # below would need to be done for a PyTorchHelper with GPU support
         # subclasses provide PyTorch support, set by wrapper
-        # self.to_numpy_arr = partial(self.to_numpy_arr, device=self.device)
+        # self.to_numpy = partial(self.to_numpy, device=self.device)
 
         # a function used to slice predictor output so that it returns the target class output only.
         # Used by the calling context to slice predictor outputs
@@ -441,9 +441,9 @@ class TFGradientOptimizer:
         dist_loss = self.distance_fcn(self.instance, self.solution)
         combined_loss = self.loss_fcn(dist_loss, self.lam, pred_loss)
 
-        self.state['distance_loss'] = self.to_numpy_arr(dist_loss).item()
-        self.state['prediction_loss'] = self.to_numpy_arr(pred_loss).item()
-        self.state['total_loss'] = self.to_numpy_arr(combined_loss).item()
+        self.state['distance_loss'] = self.to_numpy(dist_loss).item()
+        self.state['prediction_loss'] = self.to_numpy(pred_loss).item()
+        self.state['total_loss'] = self.to_numpy(combined_loss).item()
         self.state['lr'] = self._get_learning_rate()
 
         return self.state
@@ -642,7 +642,7 @@ class TFGradientOptimizer:
         raise NotImplementedError
 
     @staticmethod
-    def to_numpy_arr(X: Union[tf.Tensor, tf.Variable, np.ndarray]) -> np.ndarray:
+    def to_numpy(X: Union[tf.Tensor, tf.Variable, np.ndarray]) -> np.ndarray:
         """
         Casts an array-like object tf.Tensor and tf.Variable objects to a `np.array` object.
         """
@@ -688,9 +688,9 @@ class TFWachterOptimizerWB(TFGradientOptimizer):
 
         # updating state here to avoid extra evaluation later
         # TODO: this is wrong as the solution is not yet updated
-        self.state['distance_loss'] = self.to_numpy_arr(dist_loss).item()
-        self.state['prediction_loss'] = self.to_numpy_arr(pred_loss).item()
-        self.state['total_loss'] = self.to_numpy_arr(total_loss).item()
+        self.state['distance_loss'] = self.to_numpy(dist_loss).item()
+        self.state['prediction_loss'] = self.to_numpy(pred_loss).item()
+        self.state['total_loss'] = self.to_numpy(total_loss).item()
 
         return total_loss
 

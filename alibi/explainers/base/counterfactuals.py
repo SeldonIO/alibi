@@ -22,8 +22,7 @@ class CounterfactualBase:
         or PyTorch. The backend is set as the `backend` property
         - Attribute setting: `method_opts` contents are set as object attributes. These should be the algorithm \
         default hyperparameters
-        - TensorBoard writer object setting as `tensorboard` attribute. This object should be initialised by the \
-        subclass.
+        - Initialize a TensorBoard writer object setting it as `tensorboard` attribute.
     """  # noqa W605
 
     def __init__(self,
@@ -90,10 +89,16 @@ class CounterfactualBase:
         backend = load_backend(
             class_name=self.__class__.__name__,
             framework=framework,
-            predictor_type=kwargs.get("predictor_type", predictor_type)
+            predictor_type=predictor_type
         )
         backend_kwargs = kwargs.get("backend_kwargs", {})
-        self.backend = backend(predictor, loss_spec, feature_range, **backend_kwargs)
+        self.backend = backend(
+            predictor=predictor,
+            loss_spec=loss_spec,
+            predictor_type=predictor_type,
+            feature_range=feature_range,
+            **backend_kwargs
+        )
         # track attributes set
         self._expected_attributes = set()
         # create attributes and set them with default values, passed by sub-class

@@ -259,7 +259,7 @@ class TFGradientOptimizer:
     def __init__(self,
                  predictor: Union[Callable, tf.keras.Model],
                  loss_spec: Dict[str, Dict[str, Any]],
-                 predictor_type: Literal['blackbox', 'whitebox'] = 'blackbox',
+                 predictor_type: Literal['blackbox', 'whitebox'],
                  feature_range: Union[Tuple[Union[float, np.ndarray], Union[float, np.ndarray]], None] = None,
                  ) -> None:
         """

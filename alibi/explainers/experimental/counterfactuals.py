@@ -164,7 +164,8 @@ WACHTER_METHOD_OPTS = {
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys to
 the explainer constructor or when calling ``explain``. If the same subset of arguments is specified in both
 ``explain`` and the constructor, the ``explain`` options will override the constructor options. See the documentation
-for :py:data:`WACHTER_SEARCH_OPTS_DEFAULT` and :py:data:`WACHTER_LAM_OPTS_DEFAULT` to understand algorithm hyperparameters.
+for :py:data:`WACHTER_SEARCH_OPTS_DEFAULT` and :py:data:`WACHTER_LAM_OPTS_DEFAULT` to understand algorithm
+hyperparameters.
 
 Examples
 --------

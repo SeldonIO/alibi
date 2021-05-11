@@ -1,11 +1,10 @@
 import numpy as np
 
-from alibi.utils.frameworks import FRAMEWORKS
-from typing import Callable, Dict, List, Union, Tuple
-from typing_extensions import Literal
+from alibi.utils.frameworks import FRAMEWORKS, Framework
+from typing import Callable, Dict, Union, Tuple
 
 NUMERICAL_GRADIENTS_REGISTRY = {'pytorch': {},
-                                'tensorflow': {}}  # type: Dict[Literal['pytorch', 'tensorflow'], Dict[str, Callable]]
+                                'tensorflow': {}}  # type: Dict[Framework, Dict[str, Callable]]
 """
 dict: A registry for numerical gradient functions implemented in PyTorch or TensorFlow. This should be imported by
 backend classes that need to utilize numerical differentiation. To add a function to the registry, import the
@@ -31,7 +30,7 @@ def numerical_gradient(framework: str = 'tensorflow') -> Callable:
     return decorate_numerical_gradient
 
 
-def get_numerical_gradient(framework: str, name: str = 'central_difference'):
+def get_numerical_gradient(framework: Framework, name: str = 'central_difference') -> Callable:
     return NUMERICAL_GRADIENTS_REGISTRY[framework][name]
 
 

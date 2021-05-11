@@ -1,17 +1,19 @@
 import logging
 from typing import Optional
+from typing_extensions import Literal
 
 FRAMEWORKS = ['pytorch', 'tensorflow']
+Framework = Literal['pytorch', 'tensorflow']
 
 try:
-    import tensorflow as tf
+    import tensorflow  # noqa F401
 
     has_tensorflow = True
 except ImportError:
     has_tensorflow = False
 
 try:
-    import torch
+    import torch  # noqa F401
 
     has_pytorch = True
 except ImportError:

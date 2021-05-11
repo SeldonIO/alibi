@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Tuple, Union, T
 from typing_extensions import Final, Literal
 
 if TYPE_CHECKING:
-    import keras
+    import keras  # noqa F401
 
 
 def scaled_l1_loss(instance: tf.Tensor, cf: tf.Variable, feature_scale: Optional[tf.Tensor] = None) -> tf.Tensor:
@@ -250,7 +250,7 @@ class TFGradientOptimizer:
         framework-independent functionality
         - a method that updates and returns the state dictionary to the calling object (used for logging purposes)
     """
-    framework = 'tensorflow'
+    framework: Final = 'tensorflow'
     num_grad_method = 'central_difference'
     num_grad_method_kwargs = {'eps': 0.01}
 
@@ -286,8 +286,8 @@ class TFGradientOptimizer:
             Each key in the dictionary is the name of a term of the loss to be implemented (e.g., `loss_term_name_1` in
             the example above). The mapping of each term is expected to  have a ``'fcn'`` key where a callable
             implementing the loss term is stored and a ``'kwargs'`` entry where keyword arguments for the said callable
-            are passed. If no kwargs are needed, then the latter should be set to {}. Partial functions obtained from the
-            callables (or the callables themselves when there are no kwargs  specified) as object attributes under
+            are passed. If no kwargs are needed, then the latter should be set to {}. Partial functions obtained from
+            the callables (or the callables themselves when there are no kwargs  specified) as object attributes under
             the name `*_fcn` where the * is substituted by the name of the term. For the example above, the object will
             have attributes `loss_term_name_1`, `loss_term_name_2` and `loss`.
 
@@ -669,6 +669,9 @@ class TFGradientOptimizer:
         Copies the value of the variable X into a new tensor
         """
         return tf.identity(X)
+
+    def __getattr__(self, item) -> Any:  # for mypy
+        ...
 
 
 @register_backend(consumer_class='_WachterCounterfactual', predictor_type='whitebox')

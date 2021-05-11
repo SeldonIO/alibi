@@ -1,8 +1,12 @@
 from collections import namedtuple
 import numpy as np
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_almost_equal
 import pytest
-from alibi.explainers.experimental.counterfactuals import _WachterCounterfactual, _validate_wachter_loss_spec
+from alibi.explainers.experimental.counterfactuals import (
+    _WachterCounterfactual,
+    _validate_wachter_loss_spec,
+    _select_features
+)
 from alibi.explainers.exceptions import CounterfactualError
 
 bounds = namedtuple('bounds', 'lb ub')
@@ -53,3 +57,9 @@ def test_no_numerical_diff_scheme__validate_wachter_loss_spec(loss_spec, predict
     with pytest.raises(CounterfactualError) as excinfo:
         _validate_wachter_loss_spec(loss_spec, predictor_type)
     assert 'Missing key \'numerical_diff_scheme\'' in str(excinfo.value)
+
+
+@pytest.mark.parametrize('X', [np.random.rand(3, 4, 5)])
+def test__select_features_all(X):
+    mask = _select_features(X, feature_whitelist='all')
+    assert_array_almost_equal(mask, np.ones(X.shape))

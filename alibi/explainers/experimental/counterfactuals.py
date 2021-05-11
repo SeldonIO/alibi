@@ -288,6 +288,7 @@ def _select_features(X: np.ndarray, feature_whitelist: Union[Literal['all'], np.
                 f"Expected feature_whitelist and X shapes to be identical but got {actual} whitelist dimension "
                 f"and {expected} X shape!"
             )
+        # TODO: it seems this is just a validation function
         return feature_whitelist
 
 

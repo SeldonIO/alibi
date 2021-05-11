@@ -206,18 +206,9 @@ def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
     if not loss_spec:
         return
 
-    # TODO: ALEX: TBD: SHOULD WE ENFORCE KWARGS IN SPEC?
-
     if 'distance' not in loss_spec:
         raise CounterfactualError(f"Expected loss_spec to have key 'distance'. Found keys {loss_spec.keys()}!")
-    for term in loss_spec:
-        # TODO: not necessary if there are no kwargs, should aim for conciseness in loss_spec
-        if 'kwargs' not in loss_spec[term]:
-            raise CounterfactualError(
-                "Could not find keyword arguments for one of the loss terms. Each term in loss_spec is expected to "
-                "have 'kwargs' entry, a dictionary with key-value pairs for keyword arguments of your function. "
-                "If your function does not need keyword arguments, then set 'kwargs' : {}."
-            )
+
     if predictor_type == 'blackbox':
         correct = False
         for term in loss_spec:

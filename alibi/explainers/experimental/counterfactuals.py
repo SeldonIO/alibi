@@ -232,9 +232,9 @@ def _validate_wachter_loss_spec(loss_spec: dict, predictor_type: str) -> None:
                 "the corresponding 'fcn', and represents the derivative of the loss term with respect to the predictor "
                 "output. If the function takes no kwargs, then set 'pred_out_grad_fcn_kwargs': {}"
             )
-        if 'numerical_diff_scheme' not in loss_spec:
+        if 'num_grad_method' not in loss_spec:
             raise CounterfactualError(
-                "Missing key 'numerical_diff_scheme' in loss specification. For non-differentiable predictors, "
+                "Missing key 'num_grad_method' in loss specification. For non-differentiable predictors, "
                 "a numerical differentiation scheme must be specified. Use the 'name' field to specify the name of the "
                 "function and the 'kwargs' field to specify its kwargs. To register your function, use the "
                 "`numerical_gradients` decorator in `alibi.utils.gradients`."

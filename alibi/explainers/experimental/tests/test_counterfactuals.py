@@ -56,7 +56,7 @@ def test_no_grad_fn__validate_wachter_loss_spec(loss_spec, predictor_type):
 def test_no_numerical_diff_scheme__validate_wachter_loss_spec(loss_spec, predictor_type):
     with pytest.raises(CounterfactualError) as excinfo:
         _validate_wachter_loss_spec(loss_spec, predictor_type)
-    assert 'Missing key \'numerical_diff_scheme\'' in str(excinfo.value)
+    assert 'Missing key \'num_grad_method\'' in str(excinfo.value)
 
 
 @pytest.mark.parametrize('X', [np.random.rand(3, 4, 5)])

@@ -95,7 +95,6 @@ class CounterfactualBase:
         self.backend = backend(
             predictor=predictor,
             loss_spec=loss_spec,
-            predictor_type=predictor_type,
             feature_range=feature_range,
             **backend_kwargs
         )

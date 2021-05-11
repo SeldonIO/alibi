@@ -32,14 +32,6 @@ def test_no_distance__validate_wachter_loss_spec(loss_spec, predictor_type):
     assert 'Expected loss_spec to have key' in str(excinfo.value)
 
 
-@pytest.mark.parametrize('predictor_type', ['whitebox', 'blackbox'])
-@pytest.mark.parametrize('loss_spec', [{'distance': {}}])
-def test_no_kwargs__validate_wachter_loss_spec(loss_spec, predictor_type):
-    with pytest.raises(CounterfactualError) as excinfo:
-        _validate_wachter_loss_spec(loss_spec, predictor_type)
-    assert 'Could not find keyword arguments' in str(excinfo.value)
-
-
 @pytest.mark.parametrize('predictor_type', ['blackbox'])
 @pytest.mark.parametrize('loss_spec', [{'distance': {'kwargs': {}}}])
 def test_no_grad_fn__validate_wachter_loss_spec(loss_spec, predictor_type):

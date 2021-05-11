@@ -24,7 +24,7 @@ copyright = '2019, Seldon Technologies Ltd'
 author = 'Seldon Technologies Ltd'
 
 # The short X.Y version
-#import alibi
+# import alibi
 exec(open('../../alibi/version.py').read())
 
 version = __version__
@@ -49,7 +49,7 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    #'recommonmark',
+    # 'recommonmark',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
@@ -72,6 +72,9 @@ apidoc_extra_args = ['-d 6']
 # mock imports
 autodoc_mock_imports = ['sklearn', 'skimage', 'requests',
                         'cv2', 'keras', 'seaborn', 'PIL', 'tensorflow', 'spacy', 'catboost']
+
+# order by appearance in source code not alphabetically
+autodoc_member_order = 'bysource'
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -121,14 +124,13 @@ pygments_style = None
 html_theme = 'sphinx_rtd_theme'
 html_logo = '_static/Alibi_Explain_Logo_white.png'
 
-
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-        'logo_only': True
-    }
+    'logo_only': True
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -240,39 +242,41 @@ todo_include_todos = True
 # Ensure env.metadata[env.docname]['nbsphinx-link-target']
 # points relative to repo root:
 import os
+
 here = os.path.dirname(__file__)
 repo = os.path.join(here, '..', '..')
 nbsphinx_link_target_root = repo
 
 # from https://github.com/vidartf/nbsphinx-link/blob/master/docs/source/conf.py for custom tags
 import subprocess
+
 try:
-   git_rev = subprocess.check_output(['git', 'describe', '--exact-match', 'HEAD'], universal_newlines=True)
+    git_rev = subprocess.check_output(['git', 'describe', '--exact-match', 'HEAD'], universal_newlines=True)
 except subprocess.CalledProcessError:
-   try:
-       git_rev = subprocess.check_output(['git', 'rev-parse', 'HEAD'], universal_newlines=True)
-   except subprocess.CalledProcessError:
-       git_rev = ''
+    try:
+        git_rev = subprocess.check_output(['git', 'rev-parse', 'HEAD'], universal_newlines=True)
+    except subprocess.CalledProcessError:
+        git_rev = ''
 if git_rev:
-   git_rev = git_rev.splitlines()[0] + '/'
+    git_rev = git_rev.splitlines()[0] + '/'
 
 nbsphinx_prolog = (
-r"""
-{% if env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
-{% else %}
-{% set docpath = env.doc2path(env.docname, base='doc/source/') %}
-{% endif %}
-
-.. only:: html
-
-    .. role:: raw-html(raw)
-        :format: html
-    
-    .. nbinfo::
-        This page was generated from `{{ docpath }}`__.
-    
-    __ https://github.com/SeldonIO/alibi/blob/
-        """ +
-git_rev + r"{{ docpath }}"
+        r"""
+        {% if env.metadata[env.docname]['nbsphinx-link-target'] %}
+        {% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
+        {% else %}
+        {% set docpath = env.doc2path(env.docname, base='doc/source/') %}
+        {% endif %}
+        
+        .. only:: html
+        
+            .. role:: raw-html(raw)
+                :format: html
+            
+            .. nbinfo::
+                This page was generated from `{{ docpath }}`__.
+            
+            __ https://github.com/SeldonIO/alibi/blob/
+                """ +
+        git_rev + r"{{ docpath }}"
 )

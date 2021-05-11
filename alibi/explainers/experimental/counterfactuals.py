@@ -316,7 +316,7 @@ class _WachterCounterfactual(CounterfactualBase):
             predictor,
             framework,
             loss_spec,
-            WACHTER_METHOD_OPTS,
+            WACHTER_METHOD_OPTS,  # sets default options first to ensure valid entries (self._expected_attributes)
             feature_range,
             predictor_type=predictor_type,
             predictor_device=kwargs.get("predictor_device", None)

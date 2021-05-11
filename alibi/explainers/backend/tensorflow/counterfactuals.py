@@ -352,6 +352,7 @@ class TFGradientOptimizer:
         # initialisation method and constraints for counterfactual
         self.solution_constraint = None
         if feature_range is not None:
+            # TODO: test correctness
             self.solution_constraint = [feature_range[0], feature_range[1]]
 
         # used for user attribute setting validation

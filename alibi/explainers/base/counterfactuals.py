@@ -109,6 +109,8 @@ class CounterfactualBase:
         # placeholders for options passed at runtime.
         self.log_traces = True
         self.logging_opts = {}  # type: Dict[str, Any]
+
+        # fetch and initialize tensorboard logger
         self.tensorboard = tensorboard_loggers[self.backend.framework]()
         # container for the data logged to tensorboard at every step
         self.data_store = defaultdict(lambda: None)  # type: defaultdict

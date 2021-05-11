@@ -43,7 +43,7 @@ The backends registry is a dictionary, structured as follows::
 """
 
 
-def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'blackbox'] = 'whitebox'):
+def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'blackbox']):
     """
     A parametrized decorator that can be used to register a class that contains PyTorch or TensorFlow backend
     implementations for explainers. The decorator is used to access the implementations in various modules in the

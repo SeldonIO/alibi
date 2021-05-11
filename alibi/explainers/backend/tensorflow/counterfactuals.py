@@ -462,7 +462,7 @@ class TFGradientOptimizer:
         instantiated.
         """
 
-        self.lr_schedule = PolynomialDecay(0.1, self.max_iter, end_learning_rate=0.002, power=1)
+        self.lr_schedule = PolynomialDecay(0.1, self.max_iter, end_learning_rate=0.002, power=1.)
         self.optimizer = Adam(learning_rate=self.lr_schedule)
 
     def set_optimizer(self, optimizer: tf.keras.optimizers.Optimizer, optimizer_opts: Dict[str, Any]) -> None:
@@ -666,7 +666,7 @@ class TFGradientOptimizer:
         return tf.identity(X)
 
 
-@register_backend(consumer_class='_WachterCounterfactual')
+@register_backend(consumer_class='_WachterCounterfactual', predictor_type='whitebox')
 class TFWachterOptimizerWB(TFGradientOptimizer):
     def __init__(self,
                  predictor,
@@ -687,6 +687,7 @@ class TFWachterOptimizerWB(TFGradientOptimizer):
         total_loss = self.loss_fcn(dist_loss, self.lam, pred_loss)
 
         # updating state here to avoid extra evaluation later
+        # TODO: this is wrong as the solution is not yet updated
         self.state['distance_loss'] = self.to_numpy_arr(dist_loss).item()
         self.state['prediction_loss'] = self.to_numpy_arr(pred_loss).item()
         self.state['total_loss'] = self.to_numpy_arr(total_loss).item()

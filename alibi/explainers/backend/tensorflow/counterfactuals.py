@@ -366,7 +366,7 @@ class TFGradientOptimizer:
         # a function used to slice predictor output so that it returns the target class output only.
         # Used by the calling context to slice predictor outputs
         self.cf_prediction_fcn = slice_prediction
-        # fixes specified arguments of self._cf_prediction, set at explain time
+        # fixes specified arguments of self.cf_prediction_fcn, set at explain time
         self._get_cf_prediction = None  # type: Union[None, Callable]
 
     def _set_predictor(self, predictor) -> None:

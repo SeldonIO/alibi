@@ -417,7 +417,7 @@ class TFGradientOptimizer:
         """
         This function is used by the calling object in order to obtain the current state that is subsequently written to
         TensorBoard. As the state might require additional computation which is not necessary for steps where data is
-        not logged, this method defers the functionality to `_get_current_state` where the state is computed.
+        not logged, this method defers the functionality to `update_state` where the state is computed.
         """
         return self.update_state()
 

@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 
 DEFAULT_LOGGING_OPTS = {
     'verbose': False,
-    'log_traces': True,
+    'log_traces': False,
     'trace_dir': 'tb_logs/',
     'summary_freq': 1,
     'image_summary_freq': 10,
@@ -13,9 +13,9 @@ DEFAULT_LOGGING_OPTS = {
 dict: The default values for logging options.
 
 
-    - 'verbose': if `True` the logger (a `logging.Loggger` instance) will be set to ``DEBUG`` level.
+    - `verbose`: if `True` the logger (a :py:class:`logging.Loggger` instance) will be set to ``DEBUG`` level.
 
-    - 'log_traces': if `True`, data about the optimisation process will be logged to TensorBoard with a frequency \
+    - `log_traces`: if `True`, data about the optimisation process will be logged to TensorBoard with a frequency \
     specified  by `summary_freq` input. The algorithm will also log images if `X` is a 4-dimensional tensor \
     (corresponding to a leading dimension of 1 and `(H, W, C)` dimensions) with a frequency specified by \
     `image_summary_freq`. For each `explain` run, a subdirectory of `trace_dir` with `run_{}` is created and  {} is \
@@ -28,15 +28,15 @@ dict: The default values for logging options.
      traces can be visualised as the optimisation proceeds and can provide useful information on how to adjust the \
      optimisation in cases of non-convergence of fitting or explainers.
 
-    - 'trace_dir': the directory where the optimisation infromation is logged.
+    - `trace_dir`: the directory where the optimisation infromation is logged.
 
-    - 'summary_freq': logging frequency for optimisation information.
+    - `summary_freq`: logging frequency for optimisation information.
 
-    - 'image_summary_freq': logging frequency for intermediate for image data
+    - `image_summary_freq`: logging frequency for intermediate for image data
 
-    - 'tracked_variables': This should be used to specify what will be logged:
+    - `tracked_variables`: This should be used to specify what will be logged:
 
-            * 'tags': a list of tags with variable names (e.g., ``['training/loss', 'training'/accuracy]``). To log \
+            * `tags`: a list of tags with variable names (e.g., ``['training/loss', 'training'/accuracy]``). To log \
             these quantities to TensorBoard, one should do the following::
 
                     self.data_store['loss'] = loss_val
@@ -46,14 +46,14 @@ dict: The default values for logging options.
             Note that the quantities will not be logged unless the string after the last / in the tag name matches the \
             key of `self.data_store`.
 
-            * 'data_types': a list of data types for logged quantities. For the above example, the list would be \
+            * `data_types`: a list of data types for logged quantities. For the above example, the list would be \
             ``['scalar', 'scalar']``. Other supported data types are 'audio', 'image', 'text' and 'histogram'.
 
-            * 'descriptions': A list of optional descriptions. To skip a descriptions, for the above example the list \
+            * `descriptions`: A list of optional descriptions. To skip a descriptions, for the above example the list \
             would be ``['', '']`` and to add a description for the first variable it would be ``['my first var', '']``.
 
-See the documentation for `alibi.utils.logging.TensorboardWriterBase` and
-`alibi.utils.tensorflow.logging.TFTensorboardWriter` for more details about the logs.
+See the documentation for :py:class:`alibi.utils.logging.TensorboardWriterBase` and
+:py:class:`alibi.utils.tensorflow.logging.TFTensorboardWriter` for more details about the logs.
 
 Any subset of these options can be overridden by passing a dictionary with the corresponding subset of keys when calling
 `explain` method.
@@ -70,7 +70,7 @@ following key-word arguments::
 tensorboard_loggers = {'pytorch': None, 'tensorflow': None}  # type: Dict
 """
 dict: A registry that contains TensorBoard writers for PyTorch and TensorFlow. This registry can be imported and used to
-return a TensorboardWriter object for the desired framework.
+return a `TensorboardWriter` object for the desired framework.
 """
 
 
@@ -181,7 +181,7 @@ class TensorboardWriterBase:
                 }
 
             It should contain all the variables to be logged. For a variable to be logged, it has to be defined in
-            the ``'tracked_variables'`` attribute of the default logging configuration that initialises this object.
+            the ``tracked_variables`` attribute of the default logging configuration that initialises this object.
             If you don't want to update the logging configuration, use `record_step` instead.
         prefix
             Allows prefixing all tags in the store. Useful for logging the same quantities under different contexts

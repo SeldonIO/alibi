@@ -11,7 +11,7 @@ from typing_extensions import Literal
 
 from alibi.api.defaults import DEFAULT_DATA_CF_NEW, DEFAULT_META_CF
 from alibi.api.interfaces import Explanation, Explainer, FitMixin
-from alibi.explainers.base.counterfactuals import CounterfactualBase, logger
+from alibi.explainers.cf_base import CounterfactualBase, logger
 from alibi.explainers.exceptions import CounterfactualError
 from alibi.utils.logging import DEFAULT_LOGGING_OPTS
 from alibi.utils.stats import median_abs_deviation
@@ -291,6 +291,8 @@ class _WachterCounterfactual(CounterfactualBase):
     .. paper: 
        https://jolt.law.harvard.edu/assets/articlePDFs/v31/Counterfactual-Explanations-without-Opening-the-Black-Box-Sandra-Wachter-et-al.pdf
     """  # noqa
+
+    module_name = 'counterfactuals'
 
     def __init__(self,
                  predictor: Union[Callable, 'tf.keras.Model', 'keras.Model'],

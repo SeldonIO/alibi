@@ -85,9 +85,9 @@ class CounterfactualBase:
             self.predictor_device = _infer_device(predictor, predictor_type, framework)
         else:
             self.predictor_device = predictor_device
-
         backend = load_backend(
             class_name=self.__class__.__name__,
+            module_name=self.module_name,
             framework=framework,
             predictor_type=predictor_type
         )

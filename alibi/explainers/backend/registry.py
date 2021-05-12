@@ -96,6 +96,7 @@ def register_backend(consumer_class: str, predictor_type: Literal['whitebox', 'b
 
 
 def load_backend(class_name: str,
+                 module_name: str,
                  framework: Literal['pytorch', 'tensorflow'],
                  predictor_type: Literal['blackbox', 'whitebox']):
     """
@@ -106,6 +107,8 @@ def load_backend(class_name: str,
     ----------
     class_name
         The name of the class whose backend will be loaded.
+    module_name
+        Name of the backend module, specified in the implementation classes.
     framework: {'pytorch', 'tensorflow'}
         Indicates which backend should be loaded for `class_name`.
     predictor_type: {'blackbox', 'whitebox'}
@@ -114,10 +117,7 @@ def load_backend(class_name: str,
         a black-box (e.g., numerical differentiation is needed to differentiate the predictor output wrt its input).
     """  # noqa W605
 
-    # find out where the loader is called from
-    caller_file = inspect.stack()[1].filename
-    # assume a backend module with the same name as the caller exists
-    module_name = caller_file.split("/")[-1][:-3]  # exclude .py
+    # look for the module in alibi.explainers.backend.framework.module_name
     backend_module = ".".join([__package__, framework, module_name])
     # update the backend registry
     importlib.import_module(backend_module)

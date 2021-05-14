@@ -19,7 +19,6 @@ if TYPE_CHECKING:
         KernelShap,
         TreeShap
     )
-    import keras
 
 from alibi.version import __version__
 
@@ -114,7 +113,7 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
     return explainer
 
 
-def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: Union[tf.keras.Model, 'keras.Model'],
+def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: Union[tf.keras.Model],
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
     if layer_num == 0:

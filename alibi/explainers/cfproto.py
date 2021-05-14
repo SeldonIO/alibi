@@ -3,7 +3,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
-from typing import Any, Callable, Dict, Tuple, Union, TYPE_CHECKING, Sequence
+from typing import Any, Callable, Dict, Tuple, Union, Sequence
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
@@ -12,10 +12,7 @@ from alibi.utils.discretizer import Discretizer
 from alibi.utils.distance import abdm, mvdm, multidim_scaling
 from alibi.utils.gradients import perturb
 from alibi.utils.mapping import ohe_to_ord_shape, ord_to_num, num_to_ord, ohe_to_ord, ord_to_ohe
-from alibi.utils.tf import _check_keras_or_tf, argmax_grad, argmin_grad, one_hot_grad, round_grad
-
-if TYPE_CHECKING:  # pragma: no cover
-    import keras
+from alibi.utils.tf import argmax_grad, argmin_grad, one_hot_grad, round_grad
 
 logger = logging.getLogger(__name__)
 
@@ -23,14 +20,14 @@ logger = logging.getLogger(__name__)
 class CounterFactualProto(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict: Union[Callable, tf.keras.Model],
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
-                 enc_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 ae_model: Union[tf.keras.Model] = None,
+                 enc_model: Union[tf.keras.Model] = None,
                  theta: float = 0.,
                  cat_vars: dict = None,
                  ohe: bool = False,
@@ -108,15 +105,12 @@ class CounterFactualProto(Explainer, FitMixin):
 
         self.predict = predict
 
-        # check whether the model, encoder and auto-encoder are Keras or TF models and get session
-        is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
-        is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
-        is_enc, is_enc_keras, enc_sess = _check_keras_or_tf(enc_model)
-        self.meta['params'].update(is_model=is_model, is_model_keras=is_model_keras)
-        self.meta['params'].update(is_ae=is_ae, is_ae_keras=is_ae_keras)
-        self.meta['params'].update(is_enc=is_enc, is_enc_keras=is_enc_keras)
-
-        # TODO: check ae, enc and model are all compatible
+        # check if the passed object is a model and get session
+        is_model = isinstance(predict, tf.keras.Model)
+        model_sess = tf.compat.v1.keras.backend.get_session()
+        is_ae = isinstance(ae_model, tf.keras.Model)
+        is_enc = isinstance(enc_model, tf.keras.Model)
+        self.meta['params'].update(is_model=is_model, is_ae=is_ae, is_enc=is_enc)
 
         # if session provided, use it
         if isinstance(sess, tf.Session):
@@ -1349,5 +1343,5 @@ class CounterFactualProto(Explainer, FitMixin):
 
         return explanation
 
-    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model, 'keras.Model']) -> None:
+    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model]) -> None:
         raise NotImplementedError('Resetting a predictor is currently not supported')

@@ -1,16 +1,12 @@
 import copy
 import numpy as np
-from typing import Callable, Optional, Tuple, Union, TYPE_CHECKING
+from typing import Callable, Optional, Tuple, Union
 import tensorflow.compat.v1 as tf
 import logging
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.utils.gradients import num_grad_batch
-from alibi.utils.tf import _check_keras_or_tf
-
-if TYPE_CHECKING:  # pragma: no cover
-    import keras  # noqa
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +63,7 @@ def _define_func(predict_fn: Callable,
 class CounterFactual(Explainer):
 
     def __init__(self,
-                 predict_fn: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict_fn: Union[Callable, tf.keras.Model],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,
@@ -157,8 +153,10 @@ class CounterFactual(Explainer):
         self.debug = debug
 
         # check if the passed object is a model and get session
-        is_model, is_keras, model_sess = _check_keras_or_tf(predict_fn)
-        self.meta['params'].update(is_model=is_model, is_keras=is_keras)
+        is_model = isinstance(predict_fn, tf.keras.Model)
+        model_sess = tf.compat.v1.keras.backend.get_session()
+
+        self.meta['params'].update(is_model=is_model)
 
         # if session provided, use it
         if isinstance(sess, tf.Session):
@@ -602,5 +600,5 @@ class CounterFactual(Explainer):
 
         self.return_dict['success'] = True
 
-    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model, 'keras.Model']) -> None:
+    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model]) -> None:
         raise NotImplementedError('Resetting a predictor is currently not supported')

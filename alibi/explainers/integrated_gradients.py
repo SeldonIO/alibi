@@ -8,15 +8,12 @@ from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
 from tensorflow.keras.models import Model
-from typing import Callable, TYPE_CHECKING, Union, List, Tuple, Optional
-
-if TYPE_CHECKING:  # pragma: no cover
-    import keras  # noqa
+from typing import Callable, Union, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
 
-def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
                                start_point: List[np.ndarray],
@@ -91,7 +88,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model, 'keras.models
     return _deltas
 
 
-def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _run_forward(model: Union[tf.keras.models.Model],
                  x: Union[List[tf.Tensor], List[np.ndarray]],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
@@ -129,7 +126,7 @@ def _run_forward(model: Union[tf.keras.models.Model, 'keras.models.Model'],
     return preds
 
 
-def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
+def _gradients_input(model: Union[tf.keras.models.Model],
                      x: List[tf.Tensor],
                      target: Union[None, tf.Tensor]) -> List[tf.Tensor]:
     """
@@ -159,8 +156,8 @@ def _gradients_input(model: Union[tf.keras.models.Model, 'keras.models.Model'],
     return grads
 
 
-def _gradients_layer(model: Union[tf.keras.models.Model, 'keras.models.Model'],
-                     layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'],
+def _gradients_layer(model: Union[tf.keras.models.Model],
+                     layer: Union[tf.keras.layers.Layer],
                      orig_call: Callable,
                      x: List[tf.Tensor],
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
@@ -312,7 +309,7 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 
 
 def _calculate_sum_int(batches: List[List[tf.Tensor]],
-                       model: Union[tf.keras.Model, 'keras.Model'],
+                       model: Union[tf.keras.Model],
                        target: Union[None, List[int]],
                        target_paths: np.ndarray,
                        n_steps: int,
@@ -364,8 +361,8 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
 class IntegratedGradients(Explainer):
 
     def __init__(self,
-                 model: Union[tf.keras.Model, 'keras.Model'],
-                 layer: Union[tf.keras.layers.Layer, 'keras.layers.Layer'] = None,
+                 model: Union[tf.keras.Model],
+                 layer: Union[tf.keras.layers.Layer] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -553,7 +550,7 @@ class IntegratedGradients(Explainer):
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-    def reset_predictor(self, predictor: Union[tf.keras.Model, 'keras.Model']) -> None:
+    def reset_predictor(self, predictor: Union[tf.keras.Model]) -> None:
         # TODO: check what else should be done (e.g. validate dtypes again?)
         self.model = predictor
 

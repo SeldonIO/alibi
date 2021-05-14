@@ -5,11 +5,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
-from typing import Any, Callable, Tuple, Union, TYPE_CHECKING
-from alibi.utils.tf import _check_keras_or_tf
-
-if TYPE_CHECKING:  # pragma: no cover
-    import keras
+from typing import Any, Callable, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -17,14 +13,14 @@ logger = logging.getLogger(__name__)
 class CEM(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model, 'keras.Model'],
+                 predict: Union[Callable, tf.keras.Model],
                  mode: str,
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model, 'keras.Model'] = None,
+                 ae_model: Union[tf.keras.Model] = None,
                  learning_rate_init: float = 1e-2,
                  max_iterations: int = 1000,
                  c_init: float = 10.,
@@ -92,12 +88,11 @@ class CEM(Explainer, FitMixin):
         self.meta['params'].update(params)
         self.predict = predict
 
-        # check whether the model and the auto-encoder are Keras or TF models and get session
-        is_model, is_model_keras, model_sess = _check_keras_or_tf(predict)
-        is_ae, is_ae_keras, ae_sess = _check_keras_or_tf(ae_model)
-        # TODO: check ae and model are compatible
-        self.meta['params'].update(is_model=is_model, is_model_keras=is_model_keras, is_ae=is_ae,
-                                   is_ae_keras=is_ae_keras)
+        # check if the passed object is a model and get session
+        is_model = isinstance(predict, tf.keras.Model)
+        model_sess = tf.compat.v1.keras.backend.get_session()
+        is_ae = isinstance(ae_model, tf.keras.Model)
+        self.meta['params'].update(is_model=is_model, is_ae=is_ae)
 
         # if session provided, use it
         if isinstance(sess, tf.Session):
@@ -717,5 +712,5 @@ class CEM(Explainer, FitMixin):
 
         return explanation
 
-    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model, 'keras.Model']) -> None:
+    def reset_predictor(self, predictor: Union[Callable, tf.keras.Model]) -> None:
         raise NotImplementedError('Resetting a predictor is currently not supported')

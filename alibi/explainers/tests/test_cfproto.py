@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import tensorflow as tf
-import keras
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.explainers import CounterFactualProto
 from alibi.utils.mapping import ohe_to_ord, ord_to_num
@@ -22,7 +21,6 @@ def tf_keras_iris_explainer(request, models, iris_data):
                                        feature_range=(X_train.min(axis=0).reshape(shape),
                                                       X_train.max(axis=0).reshape(shape)))
     yield model, cf_explainer
-    keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
 
@@ -93,7 +91,6 @@ def tf_keras_adult_explainer(request, models, adult_data):
                                        c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))
     yield models[0], cf_explainer
-    keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
 

@@ -3,7 +3,6 @@ import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
 import tensorflow as tf
-import keras
 
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
@@ -26,7 +25,6 @@ def cf_iris_explainer(request, logistic_iris):
                                   max_lam_steps=10)
 
     yield X, y, lr, cf_explainer
-    keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
 
@@ -36,7 +34,6 @@ def keras_mnist_cf_explainer(request, models):
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
     yield models[0], cf_explainer
-    keras.backend.clear_session()
     tf.keras.backend.clear_session()
 
 

@@ -31,9 +31,9 @@ jobs:
         run: |
           pip install --upgrade pip setuptools
           pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          python -m spacy download en_core_web_md
           pip install --upgrade --upgrade-strategy eager -e .
           pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m spacy download en_core_web_md
           pip freeze
       - name: Lint with flake8
         run: |

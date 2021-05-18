@@ -37,7 +37,7 @@ setup(name='alibi',
           'scikit-image>=0.14.2, !=0.17.1, <0.19',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',
           'Pillow>=5.4.1, <9.0',
-          'tensorflow>=2.0.0, <2.5.0',
+          'tensorflow>=2.0.0, <2.6.0',
           'attrs>=19.2.0, <22.0.0',
           'scipy>=1.1.0, <2.0.0',
           'matplotlib>=3.0.0, <4.0.0',

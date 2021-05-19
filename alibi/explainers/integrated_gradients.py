@@ -16,8 +16,8 @@ logger = logging.getLogger(__name__)
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
-                               start_point: List[np.ndarray],
-                               end_point: List[np.ndarray],
+                               start_point: Union[List[np.ndarray], np.ndarray],
+                               end_point: Union[List[np.ndarray], np.ndarray],
                                target: Optional[List[int]],
                                _is_list: bool) -> np.ndarray:
     """
@@ -38,8 +38,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
         Data points.
     target
         Target for which the gradients are calculated for classification models.
-    has_inputs
-        Whether the model is subclassed (`has_inputs`=False) or not (`has_inputs`=True)
+    _is_list
+        Whether the model's input is a list (multiple inputs) or a np array (single input).
 
     Returns
     -------
@@ -252,8 +252,7 @@ def _sum_integral_terms(step_sizes: list,
 
 
 def _format_input_baseline(X: np.ndarray,
-                           baselines: Union[None, int, float, np.ndarray],
-                           model_to_layer: Optional[tf.keras.Model] = None) -> Tuple[np.ndarray, np.ndarray]:
+                           baselines: Union[None, int, float, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
     """
     Formats baselines to return a numpy array.
 
@@ -263,8 +262,6 @@ def _format_input_baseline(X: np.ndarray,
         Input data points.
     baselines
         Baselines.
-    model_to_layer
-        If not None, inputs and baselines are forwarded on the layer space.
 
     Returns
     -------
@@ -280,6 +277,29 @@ def _format_input_baseline(X: np.ndarray,
     else:
         raise ValueError(f"baselines must be `int`, `float`, `np.ndarray` or `None`. Found {type(baselines)}")
 
+    return X, bls
+
+
+def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
+                            bls: Union[List[np.ndarray], np.ndarray],
+                            model_to_layer: Optional[tf.keras.Model] = None) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Forwards inputs and baselines to the output layer of `model_to_layer`.
+
+    Parameters
+    ----------
+    X
+        Input data points.
+    bls
+        Baselines.
+    model_to_layer
+        If not None, inputs and baselines are forwarded on the layer space.
+
+    Returns
+    -------
+        Forwarded inputs and  baselines as a numpy arrays.
+
+    """
     if model_to_layer is not None:
         X: np.ndarray = model_to_layer(X).numpy()
         bls: np.ndarray = model_to_layer(bls).numpy()
@@ -445,6 +465,7 @@ class IntegratedGradients(Explainer):
 
         if layer is None:
             layer_num = 0
+
             self.model_to_layer = None
             self.model_from_layer = model
         else:
@@ -456,6 +477,7 @@ class IntegratedGradients(Explainer):
 
             self.model_to_layer = Model(model.input, layer.output)
             self.model_from_layer = ModelFromLayer(model, layer, inp_out='out')
+            self._has_inputs = False
 
         params['layer'] = layer_num
         self.meta['params'].update(params)
@@ -509,7 +531,7 @@ class IntegratedGradients(Explainer):
         target = _format_target(target, nb_samples)
 
         if self._is_list:
-
+            # models with multiple inptus
             if baselines is None:
                 baselines = [None for _ in range(len(X))]
             else:
@@ -524,14 +546,36 @@ class IntegratedGradients(Explainer):
             if max([len(x) for x in X]) != min([len(x) for x in X]):
                 raise ValueError("First dimension must be egual for all inputs")
 
-            attributions, deltas, predictions = self._compute_attributions_list_input(X,
-                                                                                      baselines,
-                                                                                      target,
-                                                                                      step_sizes,
-                                                                                      alphas,
-                                                                                      nb_samples)
+            for i in range(len(X)):
+                x, baseline = X[i], baselines[i]  # type: ignore
+                # format and check baselines
+                x, baseline = _format_input_baseline(x, baseline)
+                baselines[i] = baseline  # type: ignore
+
+            if self.model_to_layer is not None:
+                # forwad inputs and  baselines
+                X, baselines = _forward_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
+                attributions, deltas, predictions = self._compute_attributions_tensor_input(X,
+                                                                                            baselines,
+                                                                                            target,
+                                                                                            step_sizes,
+                                                                                            alphas,
+                                                                                            nb_samples)
+            else:
+                attributions, deltas, predictions = self._compute_attributions_list_input(X,
+                                                                                          baselines,
+                                                                                          target,
+                                                                                          step_sizes,
+                                                                                          alphas,
+                                                                                          nb_samples)
+
         else:
-            # subclassed models with a single input
+            # models with a single input
+            X, baselines = _format_input_baseline(X, baselines)
+            if self.model_to_layer is not None:
+                # forwad inputs and  baselines
+                X, baselines = _forward_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
+
             attributions, deltas, predictions = self._compute_attributions_tensor_input(X,
                                                                                         baselines,
                                                                                         target,
@@ -598,24 +642,6 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
-        # define paths in features' or layers' space
-        paths = []
-        if self.model_to_layer is None:
-            for i in range(len(X)):
-                x, baseline = X[i], baselines[i]  # type: ignore
-                # format and check baselines
-                x, baseline = _format_input_baseline(x, baseline, model_to_layer=self.model_to_layer)
-                baselines[i] = baseline  # type: ignore
-
-                # construct paths
-                path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
-                paths.append(path)
-        else:
-            X, baselines = _format_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
-            self._has_inputs = False
-            print(X)
-            print(baselines)
-
         if not self._has_inputs:
             inps = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
             self.model_from_layer(inps)
@@ -630,6 +656,14 @@ class IntegratedGradients(Explainer):
                            "is a classification model, targets for each datapoint must be defined. "
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
+
+        # define paths in features' space
+        paths = []
+        for i in range(len(X)):
+            x, baseline = X[i], baselines[i]  # type: ignore
+            # construct paths
+            path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
+            paths.append(path)
 
         # define target paths
         if target is not None:
@@ -683,7 +717,6 @@ class IntegratedGradients(Explainer):
                                          self.n_steps, nb_samples,
                                          step_sizes, j)
             norm = X[j] - baselines[j]  # type: ignore
-
             attribution = norm * sum_int
             attributions.append(attribution)
 
@@ -727,14 +760,6 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
-        # fix orginal call method for layer
-        if self.model_to_layer is not None:
-            assert self.layer is not None
-            self._has_inputs = False
-
-        # format and check baselines
-        X, baselines = _format_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
-
         if not self._has_inputs:
             inp = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)
             self.model_from_layer(inp)
@@ -750,7 +775,7 @@ class IntegratedGradients(Explainer):
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
 
-        # construct paths
+        # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
         # define target paths

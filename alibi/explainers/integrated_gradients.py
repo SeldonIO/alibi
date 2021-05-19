@@ -390,28 +390,87 @@ class ModelFromLayer(tf.keras.Model):
     def __init__(self, model, layer, inp_out='out'):
 
         super(ModelFromLayer, self).__init__()
-        self.model = model
+        if hasattr(model, 'layers') and layer in model.layers:
+            self.model_layers = model.layers
+
+        elif hasattr(model, 'layers') and layer not in model.layers:
+            self.model_layers = []
+            for l in model.layers:
+                if not hasattr(l, 'layers'):
+                    self.model_layers.append(l)
+                else:
+                    for ll in l.layers:
+                        self.model_layers.append(ll)
+
+        else:
+            raise NotImplementedError
+
         self.layer = layer
         self.inp_out = inp_out
         self.layers_top = []
 
-        for l in self.model.layers:
-            lidx = self.model.layers.index(l)
+        for l in self.model_layers:
+            lidx = self.model_layers.index(l)
             if hasattr(l, 'name'):
                 name = l.name
             else:
                 name = lidx
             if self.inp_out == 'out':
-                if lidx > self.model.layers.index(self.layer):
+                if lidx > self.model_layers.index(self.layer):
                     setattr(self, name, l)
                     self.layers_top.append(getattr(self, name))
             elif self.inp_out == 'inp':
-                if lidx >= self.model.layers.index(self.layer):
+                if lidx >= self.model_layers.index(self.layer):
                     setattr(self, name, l)
                     self.layers_top.append(getattr(self, name))
 
     def call(self, x):
         for l in self.layers_top:
+            x = l(x)
+        return x
+
+
+class ModelToLayer(tf.keras.Model):
+
+    def __init__(self, model, layer, inp_out='out'):
+
+        super(ModelToLayer, self).__init__()
+        if hasattr(model, 'layers') and layer in model.layers:
+            self.model_layers = model.layers
+
+        elif hasattr(model, 'layers') and layer not in model.layers:
+            self.model_layers = []
+            for l in model.layers:
+                if  not hasattr(l, 'layers'):
+                    self.model_layers.append(l)
+                else:
+                    for ll in l.layers:
+                        self.model_layers.append(ll)
+
+        else:
+            raise NotImplementedError
+
+        self.layer = layer
+        self.inp_out = inp_out
+        self.layers_bottom = []
+
+        for l in self.model_layers:
+            lidx = self.model_layers.index(l)
+            if hasattr(l, 'name'):
+                name = l.name
+            else:
+                name = lidx
+            if self.inp_out == 'out':
+                if lidx <= self.model_layers.index(self.layer):
+                    setattr(self, name, l)
+                    self.layers_bottom.append(getattr(self, name))
+            elif self.inp_out == 'inp':
+                if lidx < self.model_layers.index(self.layer):
+                    setattr(self, name, l)
+                    self.layers_bottom.append(getattr(self, name))
+
+    def call(self, x):
+        for l in self.layers_bottom:
             x = l(x)
         return x
 
@@ -475,7 +534,7 @@ class IntegratedGradients(Explainer):
                 logger.info("Layer not in the list of model.layers")
                 layer_num = None
 
-            self.model_to_layer = Model(model.input, layer.output)
+            self.model_to_layer = ModelToLayer(model, layer, inp_out='out')
             self.model_from_layer = ModelFromLayer(model, layer, inp_out='out')
             self._has_inputs = False
 

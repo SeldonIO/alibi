@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
-from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union
+from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union, Optional
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
@@ -12,6 +12,7 @@ from .anchor_explanation import AnchorExplanation
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distributed import RAY_INSTALLED
+from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 
 
 class TabularSampler:
@@ -657,8 +658,8 @@ class RemoteSampler:
 
 class AnchorTabular(Explainer, FitMixin):
 
-    def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
-                 seed: int = None) -> None:
+    def __init__(self, predictor: Callable, feature_names: List[str], categorical_names: Dict[int, List[str]] = None,
+                 ohe: bool = False, seed: int = None) -> None:
         """
         Parameters
         ----------
@@ -668,15 +669,24 @@ class AnchorTabular(Explainer, FitMixin):
             List with feature names.
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature.
+        ohe
+            Whether the categorical variables are one-hot encoded (OHE) or not. If not OHE, they are
+            assumed to have ordinal encodings.
         seed
             Used to set the random number generator for repeatability purposes.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
 
+        self.ohe = ohe
         self.feature_names = feature_names
 
-        # set the predictor
-        self.predictor = self._transform_predictor(predictor)
+        if ohe:
+            self.cat_vars_ord = {col: len(values) for col, values in categorical_names.items()}
+            self.cat_vars_ohe = ord_to_ohe(np.zeros((1, len(feature_names))), self.cat_vars_ord)[1]
+
+        # defines self._predictor which expect label categorical features, and if ohe == True,
+        # it defines self._ohe_predictor which expects one-hot encoded categorical features
+        self.predictor = predictor
 
         # define column indices of categorical and numerical (aka continuous) features
         if categorical_names:
@@ -690,6 +700,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.samplers = []  # type: list
+        self.ohe = ohe
         self.seed = seed
         self.instance_label = None
 
@@ -711,13 +722,16 @@ class AnchorTabular(Explainer, FitMixin):
             List with percentiles (int) used for discretization.
         """
 
+        # transform one-hot encodings to labels if ohe == True
+        train_data = ohe_to_ord(X_ohe=train_data, cat_vars_ohe=self.cat_vars_ohe)[0] if self.ohe else train_data
+
         # discretization of continuous features
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
         self.feature_values.update(disc.feature_intervals)
 
         sampler = TabularSampler(
-            self.predictor,
+            self._predictor,
             disc_perc,
             self.numerical_features,
             self.categorical_features,
@@ -809,6 +823,9 @@ class AnchorTabular(Explainer, FitMixin):
         explanation
             `Explanation` object containing the result explaining the instance with additional metadata as attributes.
         """
+        # transform one-hot encodings to labels if ohe == True
+        X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
+
         # get params for storage in meta
         params = locals()
         remove = ['X', 'self']
@@ -868,8 +885,12 @@ class AnchorTabular(Explainer, FitMixin):
 
         self.add_names_to_exp(result)
         result['prediction'] = np.array([predicted_label])
-        result['instance'] = X
-        result['instances'] = np.atleast_2d(X)
+        result['instance'] = ord_to_ohe(np.atleast_2d(X), self.cat_vars_ord)[0].reshape(-1) if self.ohe else X
+        result['instances'] = ord_to_ohe(np.atleast_2d(X), self.cat_vars_ord)[0] if self.ohe else np.atleast_2d(X)
+        result['examples'] = [
+            {k: ord_to_ohe(np.atleast_2d(v), self.cat_vars_ord)[0] for k, v in example.items() if v.size}
+            for example in result['examples']
+        ] if self.ohe else result['examples']
         exp = AnchorExplanation('tabular', result)
 
         # output explanation dictionary
@@ -937,13 +958,13 @@ class AnchorTabular(Explainer, FitMixin):
                 if geq > float('-inf'):
                     if geq == len(self.feature_values[feat_id]) - 1:
                         geq = geq - 1
-                    name = self.feature_values[feat_id][geq + 1]
+                    name = self.feature_values[feat_id][int(geq) + 1]
                     if '<' in name:
                         geq_val = name.split()[0]
                     elif '>' in name:
                         geq_val = name.split()[-1]
                 if leq < float('inf'):
-                    name = self.feature_values[feat_id][leq]
+                    name = self.feature_values[feat_id][int(leq)]
                     if leq == 0:
                         leq_val = name.split()[-1]
                     elif '<' in name:
@@ -958,19 +979,53 @@ class AnchorTabular(Explainer, FitMixin):
                 handled.add(feat_id)
             explanation['names'].append(fname)
 
+    @property
+    def predictor(self) -> Callable:
+        return self._ohe_predictor if self.ohe else self._predictor
+
+    @predictor.setter
+    def predictor(self, predictor: Optional[Callable]) -> None:
+        # if input is one-hot encoded
+        if self.ohe:
+            # this predictor expects ordinal/labels encoded categorical variables
+            ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
+            self._predictor = self._transform_predictor(ord_predictor) if predictor else None
+
+            # this predictor expects one-hot encoded categorical variable
+            self._ohe_predictor = self._transform_ohe_predictor(predictor) if predictor else None
+
+        else:
+            # set the predictor
+            self._predictor = self._transform_predictor(predictor) if predictor else None
+
     def _transform_predictor(self, predictor: Callable) -> Callable:
-        # check if predictor returns predicted class or prediction probabilities for each class
-        # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros([1, len(self.feature_names)])).shape) == 0:
+        # define data instance full of zeros
+        zeros = np.zeros([1, len(self.feature_names)])
+
+        try:
+            # check if predictor returns predicted class or prediction probabilities for each class
+            # if needed adjust predictor so it returns the predicted class
+            prediction = predictor(zeros)
+        except Exception:
+            ncols = ord_to_ohe(zeros, self.cat_vars_ord)[0].shape[1] if self.ohe else zeros.shape[1]
+            raise ValueError("The classifier is expecting a different number of features. "
+                             f"Calling a classifier using {ncols} features failed, check the values "
+                             "of the `feature_names` and `categorical_names`.")
+
+        if np.argmax(prediction.shape) == 0:
             return predictor
         else:
             transformer = ArgmaxTransformer(predictor)
             return transformer
 
+    def _transform_ohe_predictor(self, predictor: Callable) -> Callable:
+        if isinstance(self._predictor, ArgmaxTransformer):
+            return ArgmaxTransformer(predictor)
+        return predictor
+
     def reset_predictor(self, predictor: Callable) -> None:
-        predictor = self._transform_predictor(predictor)
         self.predictor = predictor
-        self.samplers[0].predictor = predictor
+        self.samplers[0].predictor = self._predictor
 
 
 class DistributedAnchorTabular(AnchorTabular):
@@ -978,10 +1033,10 @@ class DistributedAnchorTabular(AnchorTabular):
         import ray
         ray = ray  # set module as class variable to used only in this context
 
-    def __init__(self, predictor: Callable, feature_names: list, categorical_names: dict = None,
-                 seed: int = None) -> None:
+    def __init__(self, predictor: Callable, feature_names: List[str], categorical_names: Dict[int, List[str]] = None,
+                 ohe: bool = False, seed: int = None) -> None:
 
-        super().__init__(predictor, feature_names, categorical_names, seed)
+        super().__init__(predictor, feature_names, categorical_names, ohe, seed)
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 
@@ -1002,13 +1057,16 @@ class DistributedAnchorTabular(AnchorTabular):
                             'expected argument, ncpu. Defaulting to ncpu=2!')
             ncpu = 2
 
+        # transform one-hot encodings to labels if ohe == True
+        train_data = ohe_to_ord(X_ohe=train_data, cat_vars_ohe=self.cat_vars_ohe)[0] if self.ohe else train_data
+
         disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
         d_train_data = disc.discretize(train_data)
 
         self.feature_values.update(disc.feature_intervals)
 
         sampler_args = (
-            self.predictor,
+            self._predictor,
             disc_perc,
             self.numerical_features,
             self.categorical_features,
@@ -1074,6 +1132,9 @@ class DistributedAnchorTabular(AnchorTabular):
         -------
             See superclass implementation.
         """
+        # transform one-hot encodings to labels if ohe == True
+        X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
+
         # get params for storage in meta
         params = locals()
         remove = ['X', 'self']

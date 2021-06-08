@@ -369,7 +369,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
         layer.call = decorator(layer.call)
         return layer
-    print(x)
+
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
         preds = _run_forward(model, orig_dummy_input, target)

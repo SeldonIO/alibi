@@ -7,13 +7,14 @@ import tensorflow as tf
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-from tensorflow.keras.models import Model
 from typing import Callable, Union, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
+                               layer: Union[tf.keras.layers.Layer],
+                               orig_dummy_input: Union[list, np.ndarray],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
                                start_point: Union[List[np.ndarray], np.ndarray],
@@ -28,6 +29,12 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     ----------
     model
         Tensorflow or keras model.
+    layer
+        Layer for which attributions are computed.
+        If None, attributions are assumed to be computed with respect to the model inputs.
+    orig_dummy_input
+        Dummy input needed to initiate the model forward call when start_point, end_point and attributions refer to
+        an internal layer. The correct values layer input are overwritten during the forward call.
     input_dtypes
         List with data types of the inputs.
     attributions
@@ -64,8 +71,13 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
             raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
-    start_out = _run_forward(model, start_point, target)
-    end_out = _run_forward(model, end_point, target)
+    if layer is not None:
+        orig_call = layer.call
+        start_out = _run_forward_from_layer(model, layer, orig_call, orig_dummy_input, start_point, target)
+        end_out = _run_forward_from_layer(model, layer, orig_call, orig_dummy_input, end_point, target)
+    else:
+        start_out = _run_forward(model, start_point, target)
+        end_out = _run_forward(model, end_point, target)
 
     if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
@@ -88,6 +100,17 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     return _deltas
 
 
+def _select_target(ps, ts):
+    if ts is not None:
+        if isinstance(ps, tf.Tensor):
+            ps = tf.linalg.diag_part(tf.gather(ps, ts, axis=1))
+        else:
+            raise NotImplementedError
+    else:
+        raise ValueError("target cannot be `None` if `model` output dimensions > 1")
+    return ps
+
+
 def _run_forward(model: Union[tf.keras.models.Model],
                  x: Union[List[tf.Tensor], List[np.ndarray]],
                  target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
@@ -108,22 +131,159 @@ def _run_forward(model: Union[tf.keras.models.Model],
         Model output or model output after target selection for classification models.
 
     """
-
-    def _select_target(ps, ts):
-        if ts is not None:
-            if isinstance(ps, tf.Tensor):
-                ps = tf.linalg.diag_part(tf.gather(ps, ts, axis=1))
-            else:
-                raise NotImplementedError
-        else:
-            raise ValueError("target cannot be `None` if `model` output dimensions > 1")
-        return ps
-
     preds = model(x)
     if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
 
     return preds
+
+
+def _run_forward_from_layer(model: tf.keras.models.Model,
+                            layer: tf.keras.layers.Layer,
+                            orig_call: Callable,
+                            orig_dummy_input: Union[list, np.ndarray],
+                            x: tf.Tensor,
+                            target: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
+    """
+    Executes a forward call from an internal layer of the model to the model output.
+    Parameters
+    ----------
+    model
+        Tensorflow or keras model.
+    layer
+        Starting layer for the forward call.
+    orig_call
+        Original `call` method of the layer.
+    orig_dummy_input
+        Dummy input needed to initiate the model forward call.
+        The  layer's status is overwritten during the forward call.
+    x
+        Layer's inputs. The layer's status is overwritten with `x` during th eforward call.
+    target
+        Target for the output position to be returned.
+
+    Returns
+    -------
+        Model's predictions for the given target.
+
+    """
+    def feed_layer(layer):
+        """
+        Overwrites the intermediate layer status with the precomputed values `x`.
+
+        """
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                # Store the result of `layer.call` internally.
+                layer.result = x
+                # Return the result to continue with the forward pass.
+                return layer.result
+
+            return wrapper
+
+        layer.call = decorator(layer.call)
+        return layer
+
+    feed_layer(layer)
+    preds = model(orig_dummy_input)
+
+    delattr(layer, 'result')
+    layer.call = orig_call
+
+    if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
+        preds = _select_target(preds, target)
+
+    return preds
+
+
+def _run_forward_to_layer(model: tf.keras.models.Model,
+                          layer: tf.keras.layers.Layer,
+                          orig_call: Callable,
+                          x: Union[List[np.ndarray], np.ndarray]) -> tf.Tensor:
+    """
+    Executes a forward call from the model input to an internal layer output.
+    Parameters
+    ----------
+    model
+        Tensorflow or keras model.
+    layer
+        Starting layer for the forward call.
+    orig_call
+        Original `call` method of the layer.
+    x
+        Model's inputs.
+
+    Returns
+    -------
+        Output of the given layer.
+
+    """
+    def take_layer(layer):
+        """
+        Stores the layer's outputs internally to the layer's object.
+
+        """
+        def decorator(func):
+            def wrapper(*args, **kwargs):
+                # Store the result of `layer.call` internally.
+                layer.result = func(*args, **kwargs)
+                # Return the result to continue with the forward pass.
+                return layer.result
+
+            return wrapper
+
+        layer.call = decorator(layer.call)
+        return layer
+
+    # inp = tf.zeros((x.shape[0], ) + model.input_shape[1:])
+    take_layer(layer)
+    _ = model(x)
+    layer_out = layer.result
+
+    delattr(layer, 'result')
+    layer.call = orig_call
+
+    return layer_out
+
+
+def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
+                            bls: Union[List[np.ndarray], np.ndarray],
+                            model: tf.keras.Model,
+                            layer: tf.keras.layers.Layer,
+                            orig_call: Callable) -> Tuple[Union[list, tf.Tensor], Union[list, tf.Tensor]]:
+    """
+    Forwards inputs and baselines to the output layer of `model_to_layer`.
+
+    Parameters
+    ----------
+    X
+        Input data points.
+    bls
+        Baselines.
+    model
+        Tensorflow or keras model.
+    layer
+        Desired layer output.
+    orig_call
+        Original `call` method of layer.
+
+    Returns
+    -------
+        Forwarded inputs and  baselines as a numpy arrays.
+
+    """
+    if layer is not None:
+        X_layer = _run_forward_to_layer(model, layer, orig_call, X)
+        bls_layer = _run_forward_to_layer(model, layer, orig_call, bls)
+        if isinstance(X_layer, tuple):
+            X_layer = list(X_layer)
+
+        if isinstance(bls_layer, tuple):
+            bls_layer = list(bls_layer)
+
+        return X_layer, bls_layer
+    else:
+        return X, bls
 
 
 def _gradients_input(model: Union[tf.keras.models.Model],
@@ -159,7 +319,8 @@ def _gradients_input(model: Union[tf.keras.models.Model],
 def _gradients_layer(model: Union[tf.keras.models.Model],
                      layer: Union[tf.keras.layers.Layer],
                      orig_call: Callable,
-                     x: List[tf.Tensor],
+                     orig_dummy_input: Union[list, np.ndarray],
+                     x: Union[List[tf.Tensor], tf.Tensor],
                      target: Union[None, tf.Tensor]) -> tf.Tensor:
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
@@ -198,7 +359,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Store the result of `layer.call` internally.
-                layer.result = func(*args, **kwargs)
+                layer.result = x
                 # From this point onwards, watch this tensor.
                 tape.watch(layer.result)
                 # Return the result to continue with the forward pass.
@@ -208,10 +369,10 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
         layer.call = decorator(layer.call)
         return layer
-
+    print(x)
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
-        preds = _run_forward(model, x, target)
+        preds = _run_forward(model, orig_dummy_input, target)
 
     grads = tape.gradient(preds, layer.result)
 
@@ -219,6 +380,63 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
     layer.call = orig_call
 
     return grads
+
+
+def _format_baseline(X: np.ndarray,
+                     baselines: Union[None, int, float, np.ndarray]) -> np.ndarray:
+    """
+    Formats baselines to return a numpy array.
+
+    Parameters
+    ----------
+    X
+        Input data points.
+    baselines
+        Baselines.
+
+    Returns
+    -------
+        Formatted inputs and  baselines as a numpy arrays.
+
+    """
+    if baselines is None:
+        bls = np.zeros(X.shape).astype(X.dtype)
+    elif isinstance(baselines, int) or isinstance(baselines, float):
+        bls = np.full(X.shape, baselines).astype(X.dtype)
+    elif isinstance(baselines, np.ndarray):
+        bls = baselines.astype(X.dtype)
+    else:
+        raise ValueError(f"baselines must be `int`, `float`, `np.ndarray` or `None`. Found {type(baselines)}")
+
+    return bls
+
+
+def _format_target(target: Union[None, int, list, np.ndarray],
+                   nb_samples: int) -> Union[None, List[int]]:
+    """
+    Formats target to return a list.
+
+    Parameters
+    ----------
+    target
+        Original target.
+    nb_samples
+        Number of samples in the batch.
+
+    Returns
+    -------
+        Formatted target as a list.
+
+    """
+    if target is not None:
+        if isinstance(target, int):
+            target = [target for _ in range(nb_samples)]
+        elif isinstance(target, list) or isinstance(target, np.ndarray):
+            target = [t.astype(int) for t in target]
+        else:
+            raise NotImplementedError
+
+    return target
 
 
 def _sum_integral_terms(step_sizes: list,
@@ -249,90 +467,6 @@ def _sum_integral_terms(step_sizes: list,
     else:
         raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
     return sums
-
-
-def _format_input_baseline(X: np.ndarray,
-                           baselines: Union[None, int, float, np.ndarray]) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Formats baselines to return a numpy array.
-
-    Parameters
-    ----------
-    X
-        Input data points.
-    baselines
-        Baselines.
-
-    Returns
-    -------
-        Formatted inputs and  baselines as a numpy arrays.
-
-    """
-    if baselines is None:
-        bls = np.zeros(X.shape).astype(X.dtype)
-    elif isinstance(baselines, int) or isinstance(baselines, float):
-        bls = np.full(X.shape, baselines).astype(X.dtype)
-    elif isinstance(baselines, np.ndarray):
-        bls = baselines.astype(X.dtype)
-    else:
-        raise ValueError(f"baselines must be `int`, `float`, `np.ndarray` or `None`. Found {type(baselines)}")
-
-    return X, bls
-
-
-def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
-                            bls: Union[List[np.ndarray], np.ndarray],
-                            model_to_layer: Optional[tf.keras.Model] = None) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Forwards inputs and baselines to the output layer of `model_to_layer`.
-
-    Parameters
-    ----------
-    X
-        Input data points.
-    bls
-        Baselines.
-    model_to_layer
-        If not None, inputs and baselines are forwarded on the layer space.
-
-    Returns
-    -------
-        Forwarded inputs and  baselines as a numpy arrays.
-
-    """
-    if model_to_layer is not None:
-        X: np.ndarray = model_to_layer(X).numpy()
-        bls: np.ndarray = model_to_layer(bls).numpy()
-
-    return X, bls
-
-
-def _format_target(target: Union[None, int, list, np.ndarray],
-                   nb_samples: int) -> Union[None, List[int]]:
-    """
-    Formats target to return a list.
-
-    Parameters
-    ----------
-    target
-        Original target.
-    nb_samples
-        Number of samples in the batch.
-
-    Returns
-    -------
-        Formatted target as a list.
-
-    """
-    if target is not None:
-        if isinstance(target, int):
-            target = [target for _ in range(nb_samples)]
-        elif isinstance(target, list) or isinstance(target, np.ndarray):
-            target = [t.astype(int) for t in target]
-        else:
-            raise NotImplementedError
-
-    return target
 
 
 def _calculate_sum_int(batches: List[List[tf.Tensor]],
@@ -385,101 +519,11 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
     return sum_int
 
 
-class ModelFromLayer(tf.keras.Model):
-
-    def __init__(self, model, layer, inp_out='out'):
-
-        super(ModelFromLayer, self).__init__()
-        if hasattr(model, 'layers') and layer in model.layers:
-            self.model_layers = model.layers
-
-        elif hasattr(model, 'layers') and layer not in model.layers:
-            self.model_layers = []
-            for l in model.layers:
-                if not hasattr(l, 'layers'):
-                    self.model_layers.append(l)
-                else:
-                    for ll in l.layers:
-                        self.model_layers.append(ll)
-
-        else:
-            raise NotImplementedError
-
-        self.layer = layer
-        self.inp_out = inp_out
-        self.layers_top = []
-
-        for l in self.model_layers:
-            lidx = self.model_layers.index(l)
-            if hasattr(l, 'name'):
-                name = l.name
-            else:
-                name = lidx
-            if self.inp_out == 'out':
-                if lidx > self.model_layers.index(self.layer):
-                    setattr(self, name, l)
-                    self.layers_top.append(getattr(self, name))
-            elif self.inp_out == 'inp':
-                if lidx >= self.model_layers.index(self.layer):
-                    setattr(self, name, l)
-                    self.layers_top.append(getattr(self, name))
-
-    def call(self, x):
-        for l in self.layers_top:
-            x = l(x)
-        return x
-
-
-class ModelToLayer(tf.keras.Model):
-
-    def __init__(self, model, layer, inp_out='out'):
-
-        super(ModelToLayer, self).__init__()
-        if hasattr(model, 'layers') and layer in model.layers:
-            self.model_layers = model.layers
-
-        elif hasattr(model, 'layers') and layer not in model.layers:
-            self.model_layers = []
-            for l in model.layers:
-                if  not hasattr(l, 'layers'):
-                    self.model_layers.append(l)
-                else:
-                    for ll in l.layers:
-                        self.model_layers.append(ll)
-
-        else:
-            raise NotImplementedError
-
-        self.layer = layer
-        self.inp_out = inp_out
-        self.layers_bottom = []
-
-        for l in self.model_layers:
-            lidx = self.model_layers.index(l)
-            if hasattr(l, 'name'):
-                name = l.name
-            else:
-                name = lidx
-            if self.inp_out == 'out':
-                if lidx <= self.model_layers.index(self.layer):
-                    setattr(self, name, l)
-                    self.layers_bottom.append(getattr(self, name))
-            elif self.inp_out == 'inp':
-                if lidx < self.model_layers.index(self.layer):
-                    setattr(self, name, l)
-                    self.layers_bottom.append(getattr(self, name))
-
-    def call(self, x):
-        for l in self.layers_bottom:
-            x = l(x)
-        return x
-
-
 class IntegratedGradients(Explainer):
 
     def __init__(self,
-                 model: Union[tf.keras.Model],
-                 layer: Union[tf.keras.layers.Layer] = None,
+                 model: tf.keras.Model,
+                 layer: Optional[tf.keras.layers.Layer] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -512,31 +556,21 @@ class IntegratedGradients(Explainer):
         params = {k: v for k, v in params.items() if k not in remove}
         self.model = model
 
-        # subclassed models which have not been called will not have inputs set, we handle this with a flag
         if self.model.inputs is None:
             self._has_inputs = False
-            self.inputs = None
-            self.input_dtypes = None
         else:
             self._has_inputs = True
-            self.inputs = self.model.inputs
-            self.input_dtypes = [inp.dtype for inp in self.inputs]
 
         if layer is None:
+            self.orig_call = None
             layer_num = 0
-
-            self.model_to_layer = None
-            self.model_from_layer = model
         else:
+            self.orig_call = layer.call
             try:
                 layer_num = model.layers.index(layer)
             except ValueError:
                 logger.info("Layer not in the list of model.layers")
                 layer_num = None
-
-            self.model_to_layer = ModelToLayer(model, layer, inp_out='out')
-            self.model_from_layer = ModelFromLayer(model, layer, inp_out='out')
-            self._has_inputs = False
 
         params['layer'] = layer_num
         self.meta['params'].update(params)
@@ -544,6 +578,10 @@ class IntegratedGradients(Explainer):
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
+
+        self._is_list: Optional[bool] = None
+        self._is_np: Optional[bool] = None
+        self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
@@ -578,19 +616,9 @@ class IntegratedGradients(Explainer):
         self._is_np = isinstance(X, np.ndarray)
 
         if self._is_list:
+            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
             nb_samples = len(X[0])
-        elif self._is_np:
-            nb_samples = len(X)
-        else:
-            raise ValueError("Input must be a np.ndarray or a list of np.ndarray")
-
-        # defining integral method
-        step_sizes_func, alphas_func = approximation_parameters(self.method)
-        step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        target = _format_target(target, nb_samples)
-
-        if self._is_list:
-            # models with multiple inptus
+            # Formatting baselines in case of models with multiple inputs
             if baselines is None:
                 baselines = [None for _ in range(len(X))]
             else:
@@ -608,47 +636,106 @@ class IntegratedGradients(Explainer):
             for i in range(len(X)):
                 x, baseline = X[i], baselines[i]  # type: ignore
                 # format and check baselines
-                x, baseline = _format_input_baseline(x, baseline)
+                baseline = _format_baseline(x, baseline)
                 baselines[i] = baseline  # type: ignore
 
-            if self.model_to_layer is not None:
-                # forwad inputs and  baselines
-                X, baselines = _forward_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
-                attributions, deltas, predictions = self._compute_attributions_tensor_input(X,
-                                                                                            baselines,
-                                                                                            target,
-                                                                                            step_sizes,
-                                                                                            alphas,
-                                                                                            nb_samples)
-            else:
-                attributions, deltas, predictions = self._compute_attributions_list_input(X,
-                                                                                          baselines,
-                                                                                          target,
-                                                                                          step_sizes,
-                                                                                          alphas,
-                                                                                          nb_samples)
+        elif self._is_np:
+            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
+            nb_samples = len(X)
+            # Formatting baselines for models with a single input
+            baselines = _format_baseline(X, baselines)
 
         else:
-            # models with a single input
-            X, baselines = _format_input_baseline(X, baselines)
-            if self.model_to_layer is not None:
-                # forwad inputs and  baselines
-                X, baselines = _forward_input_baseline(X, baselines, model_to_layer=self.model_to_layer)
+            raise ValueError("Input must be a np.ndarray or a list of np.ndarray")
 
-            attributions, deltas, predictions = self._compute_attributions_tensor_input(X,
-                                                                                        baselines,
-                                                                                        target,
-                                                                                        step_sizes,
-                                                                                        alphas,
-                                                                                        nb_samples)
+        # defining integral method
+        step_sizes_func, alphas_func = approximation_parameters(self.method)
+        step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
+        target = _format_target(target, nb_samples)
+
+        if self._is_list:
+            # Attributions calculation in case of multiple inputs
+            if not self._has_inputs:
+                # Inferring model's inputs from data points for models with no explicit inputs
+                # (typically subclassed models)
+                inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
+                self.model(inputs)
+
+            if self.layer is None:
+                # No layer passed, attributions computed with respect to the inputs
+                attributions, deltas = self._compute_attributions_list_input(X,
+                                                                             baselines,
+                                                                             target,
+                                                                             step_sizes,
+                                                                             alphas,
+                                                                             nb_samples)
+
+            else:
+                # forwad inputs and  baselines
+                X_layer, baselines_layer = _forward_input_baseline(X,
+                                                                   baselines,
+                                                                   self.model,
+                                                                   self.layer,
+                                                                   self.orig_call)
+
+                if isinstance(X_layer, list) and isinstance(baselines_layer, list):
+                    attributions, deltas = self._compute_attributions_list_input(X_layer,
+                                                                                 baselines_layer,
+                                                                                 target,
+                                                                                 step_sizes,
+                                                                                 alphas,
+                                                                                 nb_samples)
+                else:
+                    attributions, deltas = self._compute_attributions_tensor_input(X_layer,
+                                                                                   baselines_layer,
+                                                                                   target,
+                                                                                   step_sizes,
+                                                                                   alphas,
+                                                                                   nb_samples)
+
+        else:
+            # Attributions calculation in case of single input
+            if not self._has_inputs:
+                inputs = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
+                self.model(inputs)
+
+            if self.layer is None:
+                attributions, deltas = self._compute_attributions_tensor_input(X,
+                                                                               baselines,
+                                                                               target,
+                                                                               step_sizes,
+                                                                               alphas,
+                                                                               nb_samples)
+
+            else:
+                # forwad inputs and  baselines
+                X_layer, baselines_layer = _forward_input_baseline(X,
+                                                                   baselines,
+                                                                   self.model,
+                                                                   self.layer,
+                                                                   self.orig_call)
+
+                if isinstance(X_layer, list) and isinstance(baselines_layer, list):
+                    attributions, deltas = self._compute_attributions_list_input(X_layer,
+                                                                                 baselines_layer,
+                                                                                 target,
+                                                                                 step_sizes,
+                                                                                 alphas,
+                                                                                 nb_samples)
+                else:
+                    attributions, deltas = self._compute_attributions_tensor_input(X_layer,
+                                                                                   baselines_layer,
+                                                                                   target,
+                                                                                   step_sizes,
+                                                                                   alphas,
+                                                                                   nb_samples)
 
         return self.build_explanation(
             X=X,
             baselines=baselines,
             target=target,
             attributions=attributions,
-            deltas=deltas,
-            predictions=predictions
+            deltas=deltas
         )
 
     def build_explanation(self,
@@ -656,9 +743,10 @@ class IntegratedGradients(Explainer):
                           baselines: List[np.ndarray],
                           target: Optional[List[int]],
                           attributions: List[np.ndarray],
-                          deltas: np.ndarray,
-                          predictions: np.ndarray) -> Explanation:
+                          deltas: np.ndarray) -> Explanation:
+
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
+        predictions = self.model(X).numpy()
         data.update(X=X,
                     baselines=baselines,
                     target=target,
@@ -701,14 +789,10 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
-        if not self._has_inputs:
-            inps = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
-            self.model_from_layer(inps)
-            self.inputs = [inp for inp in inps]
-            self.input_dtypes = [inp.dtype for inp in inps]
+        input_dtypes = [xx.dtype for xx in X]
 
-        if (len(self.model_from_layer.output_shape) == 1
-            or self.model_from_layer.output_shape[-1] == 1) \
+        if (len(self.model.output_shape) == 1
+            or self.model.output_shape[-1] == 1) \
                 and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
                            "If your model is a regression model this will produce correct attributions. If your model "
@@ -742,10 +826,10 @@ class IntegratedGradients(Explainer):
 
         if target is not None:
             paths_ds = tf.data.Dataset.from_generator(generator,
-                                                      output_types=(tuple(self.input_dtypes),
+                                                      output_types=(tuple(input_dtypes),
                                                                     tf.int64)).batch(self.internal_batch_size)
         else:
-            paths_ds = tf.data.Dataset.from_generator(generator, output_types=tuple(self.input_dtypes)).batch(
+            paths_ds = tf.data.Dataset.from_generator(generator, output_types=tuple(input_dtypes)).batch(
                 self.internal_batch_size)
 
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
@@ -759,19 +843,27 @@ class IntegratedGradients(Explainer):
             else:
                 paths_b, target_b = path, None
 
-            paths_b = [tf.dtypes.cast(paths_b[i], self.input_dtypes[i]) for i in range(len(paths_b))]
+            paths_b = [tf.dtypes.cast(paths_b[i], input_dtypes[i]) for i in range(len(paths_b))]
 
-            grads_b = _gradients_input(self.model_from_layer, paths_b, target_b)
+            if self.layer is None:
+                grads_b = _gradients_input(self.model, paths_b, target_b)
+            else:
+                grads_b = _gradients_layer(self.model,
+                                           self.layer,
+                                           self.orig_call,
+                                           self.orig_dummy_input,
+                                           paths_b,
+                                           target_b)
 
             batches.append(grads_b)
 
         # multi-input
-        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(self.inputs))]
+        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(input_dtypes))]
 
         # calculate attributions from gradients batches
         attributions = []
-        for j in range(len(self.inputs)):
-            sum_int = _calculate_sum_int(batches, self.model_from_layer,
+        for j in range(len(input_dtypes)):
+            sum_int = _calculate_sum_int(batches, self.model,
                                          target, target_paths,
                                          self.n_steps, nb_samples,
                                          step_sizes, j)
@@ -780,21 +872,21 @@ class IntegratedGradients(Explainer):
             attributions.append(attribution)
 
         # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model_from_layer,
-                                            self.input_dtypes,
+        deltas = _compute_convergence_delta(self.model,
+                                            self.layer,
+                                            self.orig_dummy_input,
+                                            input_dtypes,
                                             attributions,
                                             baselines,
                                             X,
                                             target,
                                             self._is_list)
 
-        predictions = self.model_from_layer(X).numpy()
-
-        return attributions, deltas, predictions
+        return attributions, deltas
 
     def _compute_attributions_tensor_input(self,
-                                           X: np.ndarray,
-                                           baselines: Union[int, float, np.ndarray],
+                                           X: Union[np.ndarray, tf.Tensor],
+                                           baselines: Union[np.ndarray, tf.Tensor],
                                            target: Optional[List[int]],
                                            step_sizes: List[float],
                                            alphas: List[float],
@@ -819,20 +911,16 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
-        if not self._has_inputs:
-            inp = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)
-            self.model_from_layer(inp)
-            self.inputs = [inp]
-            self.input_dtypes = [inp.dtype]
-
-        if (len(self.model_from_layer.output_shape) == 1
-            or self.model_from_layer.output_shape[-1] == 1) \
+        if (len(self.model.output_shape) == 1
+            or self.model.output_shape[-1] == 1) \
                 and target is None:
             logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
                            "If your model is a regression model this will produce correct attributions. If your model "
                            "is a classification model, targets for each datapoint must be defined. "
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
+
+        input_dtypes = [xx.dtype for xx in X]
 
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
@@ -859,13 +947,22 @@ class IntegratedGradients(Explainer):
             else:
                 paths_b, target_b = path, None
 
-            grads_b = _gradients_input(self.model_from_layer, paths_b, target_b)
+            if self.layer is None:
+                grads_b = _gradients_input(self.model, paths_b, target_b)
+
+            else:
+                grads_b = _gradients_layer(self.model,
+                                           self.layer,
+                                           self.orig_call,
+                                           self.orig_dummy_input,
+                                           paths_b,
+                                           target_b)
 
             batches.append(grads_b)
 
         # calculate attributions from gradients batches
         attributions = []
-        sum_int = _calculate_sum_int([batches], self.model_from_layer,
+        sum_int = _calculate_sum_int([batches], self.model,
                                      target, target_paths,
                                      self.n_steps, nb_samples,
                                      step_sizes, 0)
@@ -875,15 +972,14 @@ class IntegratedGradients(Explainer):
         attributions.append(attribution)
 
         # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model_from_layer,
-                                            self.input_dtypes,
+        deltas = _compute_convergence_delta(self.model,
+                                            self.layer,
+                                            self.orig_dummy_input,
+                                            input_dtypes,
                                             attributions,
                                             baselines,
                                             X,
                                             target,
                                             self._is_list)
 
-        predictions = self.model_from_layer(X).numpy()
-
-        return attributions, deltas, predictions
-
+        return attributions, deltas

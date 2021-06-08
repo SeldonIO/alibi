@@ -742,11 +742,13 @@ class IntegratedGradients(Explainer):
                           X: List[np.ndarray],
                           baselines: List[np.ndarray],
                           target: Optional[List[int]],
-                          attributions: List[np.ndarray],
+                          attributions: Union[List[np.ndarray], List[tf.Tensor]],
                           deltas: np.ndarray) -> Explanation:
 
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         predictions = self.model(X).numpy()
+        if isinstance(attributions[0], tf.Tensor):
+            attributions = [attr.numpy() for attr in attributions]
         data.update(X=X,
                     baselines=baselines,
                     target=target,

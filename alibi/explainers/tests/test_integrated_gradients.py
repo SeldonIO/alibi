@@ -408,7 +408,12 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('layer_nb', (None, 1))
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_binary_classification_layer(ffn_model, method, layer_nb, baselines):
+@pytest.mark.parametrize('layer_inputs_attributions', (False, True))
+def test_integrated_gradients_binary_classification_layer(ffn_model,
+                                                          method,
+                                                          layer_nb,
+                                                          baselines,
+                                                          layer_inputs_attributions):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
@@ -420,13 +425,14 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, lay
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=test_labels,
+                              compute_layer_inputs_gradients=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
-    if layer is not None:
+    if layer is not None and not layer_inputs_attributions:
         layer_out = layer(X_test).numpy()
         assert explanations['data']['attributions'][0].shape == layer_out.shape
-    else:
+    elif layer is None:
         assert explanations['data']['attributions'][0].shape == X_test.shape
 
     assert 'deltas' in explanations['data'].keys()

@@ -588,13 +588,16 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
     return sum_int
 
 
-def _validate_output(model: tf.keras.Model) -> None:
+def _validate_output(model: tf.keras.Model,
+                     target: Optional[List[int]]) -> None:
     """
     Validates the model's output type and rises an error if the output type is not supported.
     Parameters
     ----------
     model
         Keras model for which the output is validated.
+    target
+        Targets for which gradients are calculated
 
     Returns
     -------
@@ -602,7 +605,16 @@ def _validate_output(model: tf.keras.Model) -> None:
     """
     if not any(isinstance(model.output, output_type) for output_type in _valid_outputs):
         raise NotImplementedError(f"The model's output type must be in {_valid_outputs}. "
-                                  f"Founded type{type(model.output)}")
+                                  f"Founded type: {type(model.output)}")
+
+    if (len(model.output_shape) == 1
+        or model.output_shape[-1] == 1) \
+            and target is None:
+        logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
+                       "If your model is a regression model this will produce correct attributions. If your model "
+                       "is a classification model, targets for each datapoint must be defined. "
+                       "Not defining the target may lead to incorrect values for the attributions."
+                       "Targets can be either the true classes or the classes predicted by the model.")
 
 
 class IntegratedGradients(Explainer):
@@ -751,6 +763,8 @@ class IntegratedGradients(Explainer):
                 inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inputs)
 
+            _validate_output(self.model, target)
+
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions, deltas = self._compute_attributions_list_input(X,
@@ -792,6 +806,8 @@ class IntegratedGradients(Explainer):
             if not self._has_inputs:
                 inputs = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
                 self.model(inputs)
+
+            _validate_output(self.model, target)
 
             if self.layer is None:
                 attributions, deltas = self._compute_attributions_tensor_input(X,
@@ -894,17 +910,6 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
-        _validate_output(self.model)
-
-        if (len(self.model.output_shape) == 1
-            or self.model.output_shape[-1] == 1) \
-                and target is None:
-            logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
-                           "If your model is a regression model this will produce correct attributions. If your model "
-                           "is a classification model, targets for each datapoint must be defined. "
-                           "Not defining the target may lead to incorrect values for the attributions."
-                           "Targets can be either the true classes or the classes predicted by the model.")
-
         input_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
@@ -1025,17 +1030,6 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
-        _validate_output(self.model)
-
-        if (len(self.model.output_shape) == 1
-            or self.model.output_shape[-1] == 1) \
-                and target is None:
-            logger.warning("It looks like you are passing a model with a scalar output and target is set to `None`."
-                           "If your model is a regression model this will produce correct attributions. If your model "
-                           "is a classification model, targets for each datapoint must be defined. "
-                           "Not defining the target may lead to incorrect values for the attributions."
-                           "Targets can be either the true classes or the classes predicted by the model.")
-
         input_dtypes = [xx.dtype for xx in X]
 
         # define paths in features's or layers' space

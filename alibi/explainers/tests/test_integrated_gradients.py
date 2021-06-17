@@ -549,7 +549,8 @@ def test_run_forward_from_layer(layer_nb,
     layer = model.layers[layer_nb]
     orig_call = layer.call
 
-    dummy_input = np.zeros((1,) + X_test.shape[1:])
+    dummy_input = np.zeros((1, 16))
+
     if run_from_layer_inputs:
         x_layer = [tf.convert_to_tensor(np.ones((2, ) + (layer.input_shape[1:])))]
         expected_shape = (2, 1)

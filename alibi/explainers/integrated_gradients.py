@@ -11,7 +11,7 @@ from typing import Callable, Union, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
-_valid_outputs: List = [tf.Tensor]
+_valid_output_shape_type: List = [tuple, list]
 
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
@@ -603,9 +603,9 @@ def _validate_output(model: tf.keras.Model,
     -------
 
     """
-    if not any(isinstance(model.output, output_type) for output_type in _valid_outputs):
-        raise NotImplementedError(f"The model's output type must be in {_valid_outputs}. "
-                                  f"Founded type: {type(model.output)}")
+    if not model.output_shape or not any(isinstance(model.output_shape, t) for t in _valid_output_shape_type):
+        raise NotImplementedError(f"The model output_shape attribute must be in {_valid_output_shape_type}. "
+                                  f"Founded model.output_shape: {model.output_shape}")
 
     if (len(model.output_shape) == 1
         or model.output_shape[-1] == 1) \

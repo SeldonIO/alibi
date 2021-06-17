@@ -11,6 +11,8 @@ from typing import Callable, Union, List, Tuple, Optional
 
 logger = logging.getLogger(__name__)
 
+_valid_outputs: List = [tf.Tensor]
+
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                layer: Union[tf.keras.layers.Layer],
@@ -116,15 +118,29 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     return _deltas
 
 
-def _select_target(ps, ts):
-    if ts is not None:
-        if isinstance(ps, tf.Tensor):
-            ps = tf.linalg.diag_part(tf.gather(ps, ts, axis=1))
+def _select_target(preds: tf.Tensor,
+                   targets: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
+    """
+    Select the predictions corresponding to the targets if targets is not None.
+    Parameters
+    ----------
+    preds
+        Predictions before selection.
+    targets
+        Targets to select.
+    Returns
+    -------
+        Selected predictions
+
+    """
+    if targets is not None:
+        if isinstance(preds, tf.Tensor):
+            preds = tf.linalg.diag_part(tf.gather(preds, targets, axis=1))
         else:
             raise NotImplementedError
     else:
         raise ValueError("target cannot be `None` if `model` output dimensions > 1")
-    return ps
+    return preds
 
 
 def _run_forward(model: Union[tf.keras.models.Model],
@@ -160,7 +176,8 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
                             orig_dummy_input: Union[list, np.ndarray],
                             x: tf.Tensor,
                             target: Union[None, tf.Tensor, np.ndarray, list],
-                            run_from_layer_inputs: bool = False) -> tf.Tensor:
+                            run_from_layer_inputs: bool = False,
+                            select_target: bool = True) -> tf.Tensor:
     """
     Executes a forward call from an internal layer of the model to the model output.
     Parameters
@@ -180,6 +197,8 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         Target for the output position to be returned.
     run_from_layer_inputs
         If True, the forward pass starts from the layer's inputs, if False it starts from the layer's outputs.
+    select_target
+        Whether to return predictions for selected targets or return predictions for all targets.
 
     Returns
     -------
@@ -206,7 +225,6 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
             return wrapper
 
         layer.call = decorator(layer.call)
-        return layer
 
     feed_layer(layer)
     preds = model(orig_dummy_input)
@@ -215,7 +233,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
     delattr(layer, 'result')
     layer.call = orig_call
 
-    if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
+    if select_target and len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
 
     return preds
@@ -262,7 +280,6 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
             return wrapper
 
         layer.call = decorator(layer.call)
-        return layer
 
     # inp = tf.zeros((x.shape[0], ) + model.input_shape[1:])
     take_layer(layer)
@@ -287,7 +304,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
                             orig_call: Callable,
                             forward_to_inputs: bool = False) -> Tuple[Union[list, tf.Tensor], Union[list, tf.Tensor]]:
     """
-    Forwards inputs and baselines to the output layer of `model_to_layer`.
+    Forwards inputs and baselines to the layer's inputs or outputs.
 
     Parameters
     ----------
@@ -380,8 +397,8 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
     target
         Target for which the gradients are calculated if the output dimension is higher than 1.
     compute_layer_inputs_gradients
-        If True, gradients are computed respect to the layer's inputs.
-        If False, they are computed respect to the layer's outputs.
+        If True, gradients are computed with respect to the layer's inputs.
+        If False, they are computed with respect to the layer's outputs.
 
     Returns
     -------
@@ -408,7 +425,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
                 else:
                     layer.inp = args
                     layer.result = x
-                # From this point onwards, watch this tensors.
+                # From this point onwards, watch these tensors.
                 tape.watch(layer.inp)
                 tape.watch(layer.result)
                 # Return the result to continue with the forward pass.
@@ -417,7 +434,6 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
             return wrapper
 
         layer.call = decorator(layer.call)
-        return layer
 
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
@@ -570,6 +586,23 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
     sum_int = _sum_integral_terms(step_sizes, grads.numpy())
 
     return sum_int
+
+
+def _validate_output(model: tf.keras.Model) -> None:
+    """
+    Validates the model's output type and rises an error if the output type is not supported.
+    Parameters
+    ----------
+    model
+        Keras model for which the output is validated.
+
+    Returns
+    -------
+
+    """
+    if not any(isinstance(model.output, output_type) for output_type in _valid_outputs):
+        raise NotImplementedError(f"The model's output type must be in {_valid_outputs}. "
+                                  f"Founded type{type(model.output)}")
 
 
 class IntegratedGradients(Explainer):
@@ -861,7 +894,7 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
-        input_dtypes = [xx.dtype for xx in X]
+        _validate_output(self.model)
 
         if (len(self.model.output_shape) == 1
             or self.model.output_shape[-1] == 1) \
@@ -871,6 +904,8 @@ class IntegratedGradients(Explainer):
                            "is a classification model, targets for each datapoint must be defined. "
                            "Not defining the target may lead to incorrect values for the attributions."
                            "Targets can be either the true classes or the classes predicted by the model.")
+
+        input_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
         paths = []
@@ -990,6 +1025,8 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
+        _validate_output(self.model)
+
         if (len(self.model.output_shape) == 1
             or self.model.output_shape[-1] == 1) \
                 and target is None:

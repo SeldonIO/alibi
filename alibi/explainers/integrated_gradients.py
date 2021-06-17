@@ -422,12 +422,13 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
                 if compute_layer_inputs_gradients:
                     layer.inp = x
                     layer.result = func(*x, **kwargs)
+                    # From this point onwards, watch this tensor.
+                    tape.watch(layer.inp)
                 else:
                     layer.inp = args
                     layer.result = x
-                # From this point onwards, watch these tensors.
-                tape.watch(layer.inp)
-                tape.watch(layer.result)
+                    # From this point onwards, watch this tensor.
+                    tape.watch(layer.result)
                 # Return the result to continue with the forward pass.
                 return layer.result
 

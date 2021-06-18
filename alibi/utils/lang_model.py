@@ -1,0 +1,316 @@
+import abc
+import string
+import numpy as np
+from typing import List, Optional, Tuple
+
+import torch
+import transformers
+from transformers import AutoModelForMaskedLM, AutoTokenizer
+
+
+class LanguageModel(abc.ABC):
+    def __init__(self, model_path: str, device: str = "cuda"):
+        self.model_path = model_path
+        self.device = torch.device(device)
+
+        # load tokenizer
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+        # load and send model to device
+        self.model = AutoModelForMaskedLM.from_pretrained(model_path)
+        self.model.to(self.device)
+        self.model.eval()
+
+    @abc.abstractmethod
+    def is_subword_prefix(self, token: str) -> bool:
+        """
+        Checks if the given token in a subword.
+
+        Parameters
+        ----------
+        token
+            Token to be checked if it is a subword.
+
+        Returns
+        -------
+        True if the given token is a subword. False otherwise.
+        """
+        pass
+
+    def select_entire_word(self, text: List[str], start_idx: int, punctuation: str) -> str:
+        """
+        Given a text and the starting index of a word, the function
+        selects the entier word.
+
+        Parameters
+        ----------
+        text
+            Full text.
+        start_idx
+            Starting index of a word.
+
+        Returns
+        -------
+        The entire words (this includes the subwords that come after).
+        """
+        # define the ending index
+        end_idx = start_idx + 1
+
+        # while the token under the ending index is a subword
+        while end_idx < len(text):
+            # stop if is not subword or is punctuation
+            if (not self.is_subword_prefix(text[end_idx])) or (self.is_punctuation(text[end_idx], punctuation)):
+                break
+
+            end_idx += 1
+
+        # convert the tokens into a string
+        word = self.tokenizer.convert_tokens_to_string(text[start_idx:end_idx])
+        return word
+
+    @abc.abstractmethod
+    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
+        """
+        Checks if the given token is in the list of stopwords
+
+        Parameters
+        ----------
+        token:
+            Token to be checked if it is a stopword.
+        stopwords:
+            List of stop words. The words in this list should be lowercase.
+
+        Returns
+        -------
+        True if the `token` is in the `stopwords` list. False otherwise.
+        """
+        pass
+
+    @abc.abstractmethod
+    def is_punctuation(self, token: str, punctuation: str) -> bool:
+        """
+        Checks if the given token is punctuation.
+
+        Parameters
+        ----------
+        token:
+            Token to be checked if it is punctuation.
+        punctuation:
+            String containing all punctuation to be considered.
+
+        Returns
+        -------
+        True if the `token` is a punctuation. False otherwise.
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def mask(self) -> str:
+        pass
+
+    @property
+    def mask_token(self) -> int:
+        return self.tokenizer.mask_token_id
+
+    @property
+    def max_num_tokens(self) -> int:
+        return self.model.config.max_position_embeddings
+
+    def head_tail_split(self, text: str) -> Tuple[str, Optional[str], List[str], Optional[List[str]]]:
+        """
+        Split the text in head and tail. Some language models support a maximum
+        number of tokens. Thus is necessary to split the text to meet this constraint.
+        After the text is split in head and tail, only the head is considered for operation.
+        Thus the tail will remain unchanged.
+
+        Parameters
+        ----------
+        text
+            Text to be split in head and tail.
+
+        Returns
+        -------
+        Tuple consisting of the head, tail and their corresponding list of tokens.
+        """
+        # data = `This is not a wordy sentence` -> tokens = [this, is, not, a, word, ##y, sentence, .]
+        tokens: List[str] = self.tokenizer.tokenize(text)
+
+        # some models do not have a max length restrictions (e.g. XLNet)
+        if self.max_num_tokens == -1:
+            return text, None, tokens, []
+
+        # head's length
+        head_num_tokens = self.max_num_tokens
+
+        # if the text is larger then the maximum number of tokens,
+        # then it needs to be split in head and tail
+        if head_num_tokens < len(tokens):
+
+            # decrease the head length so it contains full words
+            while (head_num_tokens > 0) and self.is_subword_prefix(tokens[head_num_tokens]):
+                head_num_tokens -= 1
+
+            if head_num_tokens == 0:
+                raise ValueError("Check the first word in the sentence. Seems it is a very long word")
+
+        ids = self.tokenizer.convert_tokens_to_ids(tokens[:head_num_tokens])
+        head_text = self.tokenizer.decode(ids).strip()
+        tail_text = None
+
+        # if the number of tokens exceeds the maximum allowed
+        # number, then construct also the tail_text
+        if len(tokens) >= head_num_tokens:
+            ids = self.tokenizer.convert_tokens_to_ids(tokens[head_num_tokens:])
+            tail_text = self.tokenizer.decode(ids).strip()
+
+        return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
+
+    def is_punctuation(self, token: str, punctuation: str) -> bool:
+        token = token.replace(self.SUBWORD_PREFIX, '')
+        return all([chr in punctuation for chr in token])
+
+
+class DistilbertBaseUncased(LanguageModel):
+    SUBWORD_PREFIX = '##'
+
+    def __init__(self, device: str = "cuda"):
+        super(DistilbertBaseUncased, self).__init__("distilbert-base-uncased", device)
+
+    @property
+    def mask(self) -> str:
+        return self.tokenizer.mask_token
+
+    def is_subword_prefix(self, token: str) -> bool:
+        return DistilbertBaseUncased.SUBWORD_PREFIX in token
+
+    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
+        if not stopwords:
+            return False
+
+        return token.lower() in stopwords
+
+
+class BertBaseUncased(LanguageModel):
+    SUBWORD_PREFIX = '##'
+
+    def __init__(self, device: str = "cuda"):
+        super(BertBaseUncased, self).__init__("bert-base-uncased", device)
+
+    @property
+    def mask(self) -> str:
+        return self.tokenizer.mask_token
+
+    def is_subword_prefix(self, token: str) -> bool:
+        return BertBaseUncased.SUBWORD_PREFIX in token
+
+    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
+        if not stopwords:
+            return False
+
+        return token.lower() in stopwords
+
+
+class RobertaBase(LanguageModel):
+    SUBWORD_PREFIX = 'Ġ'
+
+    def __init__(self, device: str = "cuda"):
+        super(RobertaBase, self).__init__("roberta-base", device)
+
+    @property
+    def mask(self):
+        return RobertaBase.SUBWORD_PREFIX + self.tokenizer.mask_token
+
+    def is_subword_prefix(self, token: str) -> bool:
+        return RobertaBase.SUBWORD_PREFIX not in token
+
+    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
+        if not stopwords:
+            return False
+
+        token = token.replace(RobertaBase.SUBWORD_PREFIX, '')
+        return token.lower() in stopwords
+
+
+def predict_batch_lm(model: torch.nn.Module,
+                     x: transformers.tokenization_utils_base.BatchEncoding,
+                     device: torch.device,
+                     vocab_size: int,
+                     batch_size: int) -> torch.Tensor:
+    """
+    PyTorch language model batch predictions for AnchorText.
+    Parameters
+    ----------
+    model
+        Language model.
+    x
+        Batch of instances.
+    device
+        Device used for the model.
+    vocab_size
+        Vocabulary size of language model.
+    batch_size
+        Batch size used for predictions.
+    Returns
+    -------
+    y
+        Tensor with model predictions.
+    """
+    is_cuda = device.type == 'cuda'
+    n, m = x['input_ids'].shape
+    y = torch.zeros((n, m, vocab_size), dtype=torch.float32)
+    n_minibatch = int(np.ceil(n / batch_size))
+
+    for i in range(n_minibatch):
+        istart, istop = i * batch_size, min((i + 1) * batch_size, n)
+        x_batch = dict()
+
+        if 'input_ids' in x.keys():
+            x_batch['input_ids'] = x['input_ids'][istart:istop].to(device)
+
+        if 'token_type_ids' in x.keys():
+            x_batch['token_type_ids'] = x['token_type_ids'][istart:istop].to(device)
+
+        if 'attention_mask' in x.keys():
+            x_batch['attention_mask'] = x['attention_mask'][istart:istop].to(device)
+
+        preds = model(**x_batch)[0]
+        y[istart:istop] = preds.cpu().detach() if is_cuda else preds.detach()
+    return y
+
+
+
+# def test_functionalities(lm: LanguageModels, text):
+#     stopwords = ['and', 'the', 'but', 'a']
+#
+#     tokens = lm.tokenizer.tokenize(text)
+#     string_tokens = lm.tokenizer.convert_tokens_to_string(tokens)
+#
+#     print("Tokens:", tokens)
+#     print("String:", string_tokens)
+#     print("Ids:", lm.tokenizer.convert_tokens_to_ids(tokens))
+#     print("Stopwords:", [lm.is_stop_word(token, stopwords) for token in tokens])
+#     print("Punctuation:", [lm.is_punctuation(token, string.punctuation) for token in tokens])
+#
+#
+# if __name__ == "__main__":
+#     text = "a this and this this is a first sentence !?! but nothing afterwards don't matter..."
+#
+#     print("\n\n RobertaBase \n =============== \n")
+#     lm = RobertaBase()
+#     test_functionalities(lm, text)
+#     del lm
+#
+#     print("\n\n BertBaseUncased \n =============== \n")
+#     lm = BertBaseUncased()
+#     test_functionalities(lm, text)
+#     del lm
+#
+#     print("\n\n DistilbertBaseUncased \n =============== \n")
+#     lm = DistilbertBaseUncased()
+#     test_functionalities(lm, text)
+#     del lm
+#
+
+
+

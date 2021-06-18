@@ -180,6 +180,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
                             select_target: bool = True) -> tf.Tensor:
     """
     Executes a forward call from an internal layer of the model to the model output.
+
     Parameters
     ----------
     model
@@ -246,6 +247,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
                           run_to_layer_inputs: bool = False) -> tf.Tensor:
     """
     Executes a forward call from the model input to an internal layer output.
+
     Parameters
     ----------
     model
@@ -549,6 +551,7 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
                        j: int) -> Union[tf.Tensor, np.ndarray]:
     """
     Calculates the sum of all the terms in the integral from a list of batch gradients.
+
     Parameters
     ----------
     batches
@@ -592,7 +595,8 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
 def _validate_output(model: tf.keras.Model,
                      target: Optional[List[int]]) -> None:
     """
-    Validates the model's output type and rises an error if the output type is not supported.
+    Validates the model's output type and raises an error if the output type is not supported.
+
     Parameters
     ----------
     model
@@ -606,7 +610,7 @@ def _validate_output(model: tf.keras.Model,
     """
     if not model.output_shape or not any(isinstance(model.output_shape, t) for t in _valid_output_shape_type):
         raise NotImplementedError(f"The model output_shape attribute must be in {_valid_output_shape_type}. "
-                                  f"Founded model.output_shape: {model.output_shape}")
+                                  f"Found model.output_shape: {model.output_shape}")
 
     if (len(model.output_shape) == 1
         or model.output_shape[-1] == 1) \

@@ -122,7 +122,7 @@ def _select_target(preds: tf.Tensor,
                    targets: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
     Select the predictions corresponding to the targets if targets is not None.
-    
+
     Parameters
     ----------
     preds

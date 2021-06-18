@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from alibi.explainers import IntegratedGradients
+from alibi.explainers.integrated_gradients import _run_forward_to_layer, _run_forward_from_layer
 from alibi.api.interfaces import Explanation
 import tensorflow as tf
 from tensorflow.keras import Model
@@ -408,7 +409,12 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('layer_nb', (None, 1))
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_binary_classification_layer(ffn_model, method, layer_nb, baselines):
+@pytest.mark.parametrize('layer_inputs_attributions', (False, True))
+def test_integrated_gradients_binary_classification_layer(ffn_model,
+                                                          method,
+                                                          layer_nb,
+                                                          baselines,
+                                                          layer_inputs_attributions):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
@@ -420,13 +426,76 @@ def test_integrated_gradients_binary_classification_layer(ffn_model, method, lay
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=test_labels,
+                              compute_layer_inputs_gradients=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:
-        layer_out = layer(X_test).numpy()
-        assert explanations['data']['attributions'][0].shape == layer_out.shape
+        orig_call = layer.call
+        layer_out = _run_forward_to_layer(model,
+                                          layer,
+                                          orig_call,
+                                          X_test,
+                                          run_to_layer_inputs=layer_inputs_attributions)
+
+        if isinstance(layer_out, tuple):
+            for i in range(len(layer_out)):
+                assert explanations['data']['attributions'][i].shape == layer_out[i].shape
+        else:
+            assert explanations['data']['attributions'][0].shape == layer_out.shape
+    elif layer is None:
+        assert explanations['data']['attributions'][0].shape == X_test.shape
+
+    assert 'deltas' in explanations['data'].keys()
+    assert explanations['data']['deltas'].shape[0] == X_test.shape[0]
+
+    assert 'predictions' in explanations['data'].keys()
+    assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+
+@pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
+                                                  'activation': 'softmax',
+                                                  'loss': 'categorical_crossentropy',
+                                                  'X_train': X_train,
+                                                  'y_train': y_train_classification_categorical})], indirect=True)
+@pytest.mark.parametrize('method', INTEGRAL_METHODS)
+@pytest.mark.parametrize('layer_nb', (None, 1))
+@pytest.mark.parametrize('baselines', BASELINES)
+@pytest.mark.parametrize('layer_inputs_attributions', (False, True))
+def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_subclass,
+                                                                   method,
+                                                                   layer_nb,
+                                                                   baselines,
+                                                                   layer_inputs_attributions):
+    model = ffn_model_subclass
+    if layer_nb is not None:
+        layer = model.layers[layer_nb]
     else:
+        layer = None
+
+    ig = IntegratedGradients(model, layer=layer,
+                             n_steps=50, method=method)
+
+    explanations = ig.explain(X_test,
+                              baselines=baselines,
+                              target=test_labels,
+                              compute_layer_inputs_gradients=layer_inputs_attributions)
+
+    assert isinstance(explanations, Explanation)
+    if layer is not None:
+        orig_call = layer.call
+        layer_out = _run_forward_to_layer(model,
+                                          layer,
+                                          orig_call,
+                                          X_test,
+                                          run_to_layer_inputs=layer_inputs_attributions)
+
+        if isinstance(layer_out, tuple):
+            for i in range(len(layer_out)):
+                assert explanations['data']['attributions'][i].shape == layer_out[i].shape
+        else:
+            assert explanations['data']['attributions'][0].shape == layer_out.shape
+    elif layer is None:
         assert explanations['data']['attributions'][0].shape == X_test.shape
 
     assert 'deltas' in explanations['data'].keys()
@@ -459,6 +528,52 @@ def test_integrated_gradients_regression(ffn_model, method, baselines):
 
     assert 'predictions' in explanations['data'].keys()
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
+
+
+@pytest.mark.parametrize('layer_nb', (1, ))
+@pytest.mark.parametrize('run_from_layer_inputs', (False, True))
+def test_run_forward_from_layer(layer_nb,
+                                run_from_layer_inputs):
+
+    # One layer ffn with all weights = 1.
+    inputs = tf.keras.Input(shape=(16,))
+    out = tf.keras.layers.Dense(8,
+                                kernel_initializer=tf.keras.initializers.Ones(),
+                                name='linear1')(inputs)
+    out = tf.keras.layers.Dense(1,
+                                kernel_initializer=tf.keras.initializers.Ones(),
+                                name='linear3')(out)
+    model = tf.keras.Model(inputs=inputs, outputs=out)
+
+    # Select layer
+    layer = model.layers[layer_nb]
+    orig_call = layer.call
+
+    dummy_input = np.zeros((1, 16))
+
+    if run_from_layer_inputs:
+        x_layer = [tf.convert_to_tensor(np.ones((2, ) + (layer.input_shape[1:])))]
+        expected_shape = (2, 1)
+        expected_values = 128
+    else:
+        x_layer = tf.convert_to_tensor(np.ones((3, ) + (layer.output_shape[1:])))
+        expected_shape = (3, 1)
+        expected_values = 8
+
+    preds_from_layer = _run_forward_from_layer(model,
+                                               layer,
+                                               orig_call,
+                                               dummy_input,
+                                               x_layer,
+                                               None,
+                                               run_from_layer_inputs=run_from_layer_inputs,
+                                               select_target=False)
+    preds_from_layer = preds_from_layer.numpy()
+
+    assert preds_from_layer.shape == expected_shape
+    assert np.allclose(preds_from_layer, expected_values)
+
+#####################################################################################################################
 
 
 @pytest.mark.skip(reason='Not testing as multi-layers will not be supported in the future')

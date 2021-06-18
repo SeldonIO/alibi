@@ -514,7 +514,7 @@ class AnchorText(Explainer):
                 self.synonyms[word] = self._synonyms_generator.neighbors(word, token.tag_, self.top_n)
 
     def perturb_sentence_lm(self, anchor: tuple, num_samples: int, sample_proba: float = .5, k: int = 1,
-                            batch_size_lm: int = 32, fill_method: str = 'parallel', **kwargs) \
+                            batch_size_lm: int = 32, filling_method: str = 'parallel', **kwargs) \
             -> Tuple[np.ndarray, np.ndarray]:
         """
         The function returns  an np.array of num_samples where randomly chose features
@@ -532,7 +532,7 @@ class AnchorText(Explainer):
             k used for top k sampling.
         batch_size_lm:
             Batch size used for language model.
-        fill_method:
+        filling_method:
             Method to fill masked words. Either `parallel` or `ar`.
 
         Returns
@@ -547,8 +547,8 @@ class AnchorText(Explainer):
         data, raw = self.create_mask(anchor, sample_proba)
 
         # fill in mask with language model
-        if fill_method in ['parallel', 'ar']:
-            raw, data = self.fill_mask(raw, data, k, batch_size_lm, fill_method)
+        if filling_method in ['parallel', 'autoregressive']:
+            raw, data = self.fill_mask(raw, data, k, batch_size_lm, filling_method)
         else:
             raise NotImplementedError
 
@@ -626,7 +626,7 @@ class AnchorText(Explainer):
         ))
         return data, raw
 
-    def fill_mask(self, raw: List[str], data: np.ndarray, k: int, batch_size: int, fill_method: str = "parallel") \
+    def fill_mask(self, raw: List[str], data: np.ndarray, k: int, batch_size: int, filling_method: str = "parallel") \
             -> Tuple[np.ndarray, np.ndarray]:
         """
         Fill in the masked tokens with language model.
@@ -646,9 +646,9 @@ class AnchorText(Explainer):
             Array containing num_samples elements. Each element is a perturbed sentence.
         """
         # perturb instances
-        if fill_method == self.FILLING_PARALLEL:
+        if filling_method == self.FILLING_PARALLEL:
             tokens, data = self._perturb_instances_parallel(raw=raw, data=data, batch_size=batch_size, k=k)
-        elif fill_method == self.FILL_AUTOREGRESSIVE:
+        elif filling_method == self.FILLING_AUTOREGRESSIVE:
             tokens, data = self._perturb_instance_ar(raw=raw, data=data, batch_size=batch_size, k=k)
         else:
             raise NotImplementedError()
@@ -674,7 +674,6 @@ class AnchorText(Explainer):
 
     def _perturb_instances_parallel(self, raw: List[str], data: np.ndarray, batch_size: int, k: int) \
             -> Tuple[torch.Tensor, np.ndarray]:
-
         # tokenize instances
         tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
 
@@ -748,13 +747,13 @@ class AnchorText(Explainer):
         data = np.tile(data, (num_samples, 1))
 
         # tokenize instances
-        tokens_plus = self.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
+        tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
         tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)
 
         # store the column indices for each row where a token is a mask
         masked_idx = []
         max_len_idx = -1
-        mask_row, mask_col = torch.where(tokens == self.MASK_TOKEN)
+        mask_row, mask_col = torch.where(tokens == self.model.mask_token)
 
         for i in range(tokens.shape[0]):
             # get the columns indexes and store them in the buffer
@@ -785,8 +784,8 @@ class AnchorText(Explainer):
                 tmp_tokens_plus[key] = tokens_plus[key][masked_rows]
 
             # compute logits
-            logits = predict_batch_lm(self.model.model, tmp_tokens_plus, self.device, self.tokenizer.vocab_size,
-                                      batch_size)
+            logits = predict_batch_lm(self.model.model, tmp_tokens_plus, self.model.device, 
+                                      self.model.tokenizer.vocab_size, batch_size)
 
             # select only the logits of the first masked word in each row
             logits_mask = logits[torch.arange(logits.shape[0]), masked_cols, :]
@@ -1021,10 +1020,10 @@ class AnchorText(Explainer):
                 if (not sample_punctuation) and self.model.is_punctuation(token, self.punctuation):
                     self.subwords_mask[vocab[token]] = True
 
-        # define indices of the words which can be perturbped
-        perturb_punctuation = kwargs.get('perturb_punctuation', False)
-        perturb_stopwords = kwargs.get('perturb_stopwords', False)
-        self.get_sample_ids(perturb_punctuation, perturb_stopwords)
+            # define indices of the words which can be perturbped
+            perturb_punctuation = kwargs.get('perturb_punctuation', False)
+            perturb_stopwords = kwargs.get('perturb_stopwords', False)
+            self.get_sample_ids(perturb_punctuation, perturb_stopwords)
 
         # set the sampling function and type for samples' arrays
         perturb_opts = {

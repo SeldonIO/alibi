@@ -480,6 +480,7 @@ class LanguageModeSampler:
                 ids_sample.remove(i)
 
         self.ids_sample = np.array(ids_sample)
+        self.ids_mapping = {i: id for i, id in enumerate(self.ids_sample)}
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -498,6 +499,7 @@ class LanguageModeSampler:
         -------
             see _unk method
         """
+
         assert self.perturb_opts, "'perturb_opts' is None"
         return self.perturb_sentence(
             anchor,
@@ -538,9 +540,15 @@ class LanguageModeSampler:
         # create the mask
         data, raw = self.create_mask(anchor, sample_proba, num_samples, filling_method, **kwargs)
 
-        # fill in mask with language model
-        raw, data = self.fill_mask(num_samples, raw, data, top_n, batch_size_lm, filling_method, **kwargs)
-
+        # if the anchor covers the entire sentence
+        if np.all(np.isclose(data, 1)):
+            data = np.tile(data, (num_samples, 1))
+            raw = np.tile(np.array(raw), (num_samples, 1)).reshape(num_samples)
+        else:
+            # fill in mask with language model
+            raw, data = self.fill_mask(num_samples, raw, data, top_n, batch_size_lm, filling_method, **kwargs)
+            # print(raw)
+            # print(data)
         # append tail if it exits
         raw = self._append_tail(raw) if self.tail else raw
         return raw, data
@@ -567,38 +575,45 @@ class LanguageModeSampler:
         raw
             List with masked instances.
         """
-        # number or words
-        num_tokens = len(self.head_tokens)
+        # compute indices allowed be masked
+        all_indices = range(len(self.ids_sample))
+        allowed_indices = list(set(all_indices) - set(anchor))
 
         # number of masking templates
         if filling_method == self.FILLING_PARALLEL:
-            mask_templates = 1 if np.isclose(sample_proba, 1) else self.perturb_opts.get('mask_templates', 100)
+            if np.isclose(sample_proba, 1) or (len(allowed_indices) == 0):
+                mask_templates = 1
+            else:
+                mask_templates = max(1, int(num_samples * self.perturb_opts.get('mask_templates', 1.0)))
         else:
             # for autoregressive mode it doesn't make sense to generate
             # a lower number of mask_templates than the number of samples to be generated
             mask_templates = num_samples
 
-        data = np.ones((mask_templates, num_tokens))
-        raw = np.zeros((mask_templates, num_tokens), dtype=self.dtype_token)
+        # allocate memory
+        data = np.ones((mask_templates, len(self.ids_sample)))
+        raw = np.zeros((mask_templates, len(self.head_tokens)), dtype=self.dtype_token)
 
         # fill each row of the raw data matrix with the text instance to be explained
         raw[:] = self.head_tokens
 
-        # compute indices allowed be masked
-        allowed_indices = list(set(self.ids_sample) - set(anchor))
-
         # create mask
-        for i in range(mask_templates):
-            n_changed = max(1, np.random.binomial(len(allowed_indices), sample_proba))
-            changed = np.random.choice(allowed_indices, n_changed, replace=False)
+        if len(allowed_indices):
+            for i in range(mask_templates):
+                n_changed = max(1, np.random.binomial(len(allowed_indices), sample_proba))
+                changed = np.random.choice(allowed_indices, n_changed, replace=False)
 
-            # mark the entrance as maks
-            data[i, changed] = 0
-            raw[i, changed] = self.model.mask
+                # mark the entrance as maks
+                data[i, changed] = 0
 
-            # have to remove the subword prefix which has to be done iteratively
-            for j in changed:
-                self._remove_subwords(raw=raw, row=i, col=j, **kwargs)
+                # mask the corresponding words. This requires a mapping from indices
+                # to the actual position of the words in the text
+                changed_mapping = [self.ids_mapping[j] for j in changed]
+                raw[i, changed_mapping] = self.model.mask
+
+                # have to remove the subword prefix which has to be done iteratively
+                for j in changed_mapping:
+                    self._remove_subwords(raw=raw, row=i, col=j, **kwargs)
 
         # join words
         raw = list(np.apply_along_axis(
@@ -699,7 +714,7 @@ class LanguageModeSampler:
         tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
 
         # number of samples to generate per mask template
-        assert num_samples % len(raw) == 0
+        reminder = num_samples % len(raw)
         mult_factor = num_samples // len(raw)
 
         # fill in masks with language model
@@ -716,9 +731,11 @@ class LanguageModeSampler:
         mask_row, mask_col = torch.where(tokens == self.model.mask_token)
 
         # buffer containing sampled tokens
-        num_rows, num_cols = mult_factor * tokens.shape[0], tokens.shape[1]
-        sampled_tokens = torch.zeros(num_rows, num_cols, dtype=torch.long)
-        sampled_data = np.zeros((num_rows, data.shape[1]))
+        sampled_tokens = torch.zeros(num_samples, tokens.shape[1], dtype=torch.long)
+        sampled_data = np.zeros((num_samples, data.shape[1]))
+
+        # initialize offset
+        offset = 0
 
         for i in range(logits.shape[0]):
             # select indices corresponding to the current row `i`
@@ -742,9 +759,9 @@ class LanguageModeSampler:
             dist = torch.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
-            for j in range(mult_factor):
+            for j in range(mult_factor + int(reminder > 0)):
                 # compute the buffer index
-                idx = i * mult_factor + j
+                idx = i * mult_factor + j + offset
 
                 # sample indices
                 ids_k = dist.sample().reshape(-1, 1)
@@ -757,20 +774,20 @@ class LanguageModeSampler:
             # add the original binary mask which marks the beginning of a masked
             # word, as is needed for the anchor algorithm (backend stuff)
             idx = i * mult_factor
-            sampled_data[idx:idx + mult_factor] = data[i]
+            sampled_data[idx + offset:idx + mult_factor + offset + (reminder > 0)] = data[i]
 
+            # decrement reminder and increase counter if reminder is gt 0
+            reminder -= 1
+            offset += int(reminder > 0)
+
+        assert torch.all(sampled_tokens != self.model.mask_token)
         return sampled_tokens, sampled_data
 
     def _perturb_instance_ar(self, num_samples: int, raw: List[str], data: np.ndarray,
                              batch_size: int, top_n: int, **kwargs):
 
         # number of samples to generate per mask template
-        assert num_samples % len(raw) == 0
-        mult_factor = num_samples // len(raw)
-
-        # repeat the raw and data `num_samples` times
-        raw = raw * mult_factor
-        data = np.tile(data, (mult_factor, 1))
+        assert num_samples == len(raw)
 
         # tokenize instances
         tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
@@ -952,7 +969,7 @@ class AnchorText(Explainer):
             covered_true = raw_data[labels][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels)][:self.n_covered_ex]
 
-            # coverage set to -1.0 as we can't compute 'true'coverage for this model
+            # coverage set to -1.0 as we can't compute 'true' coverage for this model
             return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]
         else:
             return [data]
@@ -1144,7 +1161,7 @@ class AnchorText(Explainer):
 
         if sampling_method == self.SAMPLING_LANGUAGE_MODEL:
             # take the whole word (this takes just the first part of the word)
-            features = list(filter(lambda x: x in self.perturbation.ids_sample, result['feature']))
+            features = [self.perturbation.ids_mapping[i] for i in result['feature']]
             result['names'] = [
                 self.model.select_entire_word(
                     self.perturbation.head_tokens,

@@ -68,15 +68,16 @@ class LanguageModel(abc.ABC):
         word = self.tokenizer.convert_tokens_to_string(text[start_idx:end_idx])
         return word
 
-    @abc.abstractmethod
-    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
+    def is_stop_word(self, text: List[str], start_idx: int, punctuation: str, stopwords: Optional[List[str]]) -> bool:
         """
-        Checks if the given token is in the list of stopwords
+        Checks if the given words starting at the given index is in the list of stopwords
 
         Parameters
         ----------
-        token:
-            Token to be checked if it is a stopword.
+        text
+            Full text.
+        start_idx
+            Starting index of a word.
         stopwords:
             List of stop words. The words in this list should be lowercase.
 
@@ -84,9 +85,12 @@ class LanguageModel(abc.ABC):
         -------
         True if the `token` is in the `stopwords` list. False otherwise.
         """
-        pass
+        if self.is_subword_prefix(text[start_idx]):
+            return False
 
-    @abc.abstractmethod
+        word = self.select_entire_word(text, start_idx=start_idx, punctuation=punctuation).strip()
+        return word.lower() in stopwords
+
     def is_punctuation(self, token: str, punctuation: str) -> bool:
         """
         Checks if the given token is punctuation.
@@ -102,7 +106,8 @@ class LanguageModel(abc.ABC):
         -------
         True if the `token` is a punctuation. False otherwise.
         """
-        pass
+        token = token.replace(self.SUBWORD_PREFIX, '').strip()
+        return all([chr in punctuation for chr in token])
 
     @property
     @abc.abstractmethod
@@ -166,9 +171,51 @@ class LanguageModel(abc.ABC):
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
 
-    def is_punctuation(self, token: str, punctuation: str) -> bool:
-        token = token.replace(self.SUBWORD_PREFIX, '')
-        return all([chr in punctuation for chr in token])
+    def predict_batch_lm(self,
+                         x: transformers.tokenization_utils_base.BatchEncoding,
+                         device: torch.device,
+                         vocab_size: int,
+                         batch_size: int) -> torch.Tensor:
+        """
+        PyTorch language model batch predictions for AnchorText.
+
+        Parameters
+        ----------
+        x
+            Batch of instances.
+        device
+            Device used for the model.
+        vocab_size
+            Vocabulary size of language model.
+        batch_size
+            Batch size used for predictions.
+
+        Returns
+        -------
+        y
+            Tensor with model predictions.
+        """
+        is_cuda = device.type == 'cuda'
+        n, m = x['input_ids'].shape
+        y = torch.zeros((n, m, vocab_size), dtype=torch.float32)
+        n_minibatch = int(np.ceil(n / batch_size))
+
+        for i in range(n_minibatch):
+            istart, istop = i * batch_size, min((i + 1) * batch_size, n)
+            x_batch = dict()
+
+            if 'input_ids' in x.keys():
+                x_batch['input_ids'] = x['input_ids'][istart:istop].to(device)
+
+            if 'token_type_ids' in x.keys():
+                x_batch['token_type_ids'] = x['token_type_ids'][istart:istop].to(device)
+
+            if 'attention_mask' in x.keys():
+                x_batch['attention_mask'] = x['attention_mask'][istart:istop].to(device)
+
+            preds = self.model(**x_batch)[0]
+            y[istart:istop] = preds.cpu().detach() if is_cuda else preds.detach()
+        return y
 
 
 class DistilbertBaseUncased(LanguageModel):
@@ -184,12 +231,6 @@ class DistilbertBaseUncased(LanguageModel):
     def is_subword_prefix(self, token: str) -> bool:
         return DistilbertBaseUncased.SUBWORD_PREFIX in token
 
-    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
-        if not stopwords:
-            return False
-
-        return token.lower() in stopwords
-
 
 class BertBaseUncased(LanguageModel):
     SUBWORD_PREFIX = '##'
@@ -203,12 +244,6 @@ class BertBaseUncased(LanguageModel):
 
     def is_subword_prefix(self, token: str) -> bool:
         return BertBaseUncased.SUBWORD_PREFIX in token
-
-    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
-        if not stopwords:
-            return False
-
-        return token.lower() in stopwords
 
 
 class RobertaBase(LanguageModel):
@@ -224,93 +259,48 @@ class RobertaBase(LanguageModel):
     def is_subword_prefix(self, token: str) -> bool:
         return RobertaBase.SUBWORD_PREFIX not in token
 
-    def is_stop_word(self, token: str, stopwords: Optional[List[str]]) -> bool:
-        if not stopwords:
-            return False
-
-        token = token.replace(RobertaBase.SUBWORD_PREFIX, '')
-        return token.lower() in stopwords
-
-
-def predict_batch_lm(model: torch.nn.Module,
-                     x: transformers.tokenization_utils_base.BatchEncoding,
-                     device: torch.device,
-                     vocab_size: int,
-                     batch_size: int) -> torch.Tensor:
-    """
-    PyTorch language model batch predictions for AnchorText.
-    Parameters
-    ----------
-    model
-        Language model.
-    x
-        Batch of instances.
-    device
-        Device used for the model.
-    vocab_size
-        Vocabulary size of language model.
-    batch_size
-        Batch size used for predictions.
-    Returns
-    -------
-    y
-        Tensor with model predictions.
-    """
-    is_cuda = device.type == 'cuda'
-    n, m = x['input_ids'].shape
-    y = torch.zeros((n, m, vocab_size), dtype=torch.float32)
-    n_minibatch = int(np.ceil(n / batch_size))
-
-    for i in range(n_minibatch):
-        istart, istop = i * batch_size, min((i + 1) * batch_size, n)
-        x_batch = dict()
-
-        if 'input_ids' in x.keys():
-            x_batch['input_ids'] = x['input_ids'][istart:istop].to(device)
-
-        if 'token_type_ids' in x.keys():
-            x_batch['token_type_ids'] = x['token_type_ids'][istart:istop].to(device)
-
-        if 'attention_mask' in x.keys():
-            x_batch['attention_mask'] = x['attention_mask'][istart:istop].to(device)
-
-        preds = model(**x_batch)[0]
-        y[istart:istop] = preds.cpu().detach() if is_cuda else preds.detach()
-    return y
 
 
 
-# def test_functionalities(lm: LanguageModels, text):
-#     stopwords = ['and', 'the', 'but', 'a']
-#
-#     tokens = lm.tokenizer.tokenize(text)
-#     string_tokens = lm.tokenizer.convert_tokens_to_string(tokens)
-#
-#     print("Tokens:", tokens)
-#     print("String:", string_tokens)
-#     print("Ids:", lm.tokenizer.convert_tokens_to_ids(tokens))
-#     print("Stopwords:", [lm.is_stop_word(token, stopwords) for token in tokens])
-#     print("Punctuation:", [lm.is_punctuation(token, string.punctuation) for token in tokens])
-#
-#
-# if __name__ == "__main__":
-#     text = "a this and this this is a first sentence !?! but nothing afterwards don't matter..."
-#
-#     print("\n\n RobertaBase \n =============== \n")
-#     lm = RobertaBase()
-#     test_functionalities(lm, text)
-#     del lm
-#
-#     print("\n\n BertBaseUncased \n =============== \n")
-#     lm = BertBaseUncased()
-#     test_functionalities(lm, text)
-#     del lm
-#
-#     print("\n\n DistilbertBaseUncased \n =============== \n")
-#     lm = DistilbertBaseUncased()
-#     test_functionalities(lm, text)
-#     del lm
-#
+def test_functionalities(lm: LanguageModel, text):
+    stopwords = ['and', 'the', 'but', 'a', 'this']
+
+    tokens = lm.tokenizer.tokenize(text)
+    string_tokens = lm.tokenizer.convert_tokens_to_string(tokens)
+
+    print("Tokens:", tokens)
+    print("String:", string_tokens)
+    print("Ids:", lm.tokenizer.convert_tokens_to_ids(tokens))
+
+    stopwords = [token for i, token in enumerate(tokens) if lm.is_stop_word(
+                                                            text=tokens,
+                                                            start_idx=i,
+                                                            punctuation=string.punctuation,
+                                                            stopwords=stopwords)]
+    print("Stopwords:", stopwords)
+
+    punctuation = [token for token in tokens if lm.is_punctuation(token, string.punctuation)]
+    print("Punctuation:", punctuation)
+
+
+if __name__ == "__main__":
+    text = "this and this this is a first sentence !?! but nothing afterwards don't matter..."
+
+    print("\n\n RobertaBase \n =============== \n")
+    lm = RobertaBase()
+    test_functionalities(lm, text)
+    del lm
+
+    print("\n\n BertBaseUncased \n =============== \n")
+    lm = BertBaseUncased()
+    test_functionalities(lm, text)
+    del lm
+
+    print("\n\n DistilbertBaseUncased \n =============== \n")
+    lm = DistilbertBaseUncased()
+    test_functionalities(lm, text)
+    del lm
+
 
 
 

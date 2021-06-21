@@ -6,10 +6,11 @@ import logging
 import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
+from functools import partial
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
 
 from alibi.utils.wrappers import ArgmaxTransformer
-from alibi.utils.lang_model import LanguageModel, predict_batch_lm
+from alibi.utils.lang_model import LanguageModel
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
@@ -455,11 +456,17 @@ class LanguageModeSampler:
 
         num_words = len(self.head_tokens)
         ids_sample = list(np.arange(num_words))
+        is_stop_word = partial(
+            self.model.is_stop_word,
+            text=self.head_tokens,
+            punctuation=punctuation,
+            stopwords=stopwords
+        )
 
-        # punctuation, stopwords, subwords conditions
-        punctuation_cond = lambda token: (not perturb_punctuation) and (token in punctuation)
-        stopwords_cond = lambda token: (not perturb_stopwords) and self.model.is_stop_word(token, stopwords)
-        subword_cond = lambda token: self.model.is_subword_prefix(token)
+        # lambda expressions to check for a stopword, punctuation & subwords
+        stopwords_cond = lambda token, idx: (not perturb_stopwords) and is_stop_word(start_idx=idx)
+        punctuation_cond = lambda token, idx: (not perturb_punctuation) and (token in punctuation)
+        subword_cond = lambda token, idx: self.model.is_subword_prefix(token)
 
         # gather all in a list of conditions
         conds = [
@@ -469,7 +476,7 @@ class LanguageModeSampler:
         ]
 
         for i, token in enumerate(self.head_tokens):
-            if any([cond(token) for cond in conds]):
+            if any([cond(token, i) for cond in conds]):
                 ids_sample.remove(i)
 
         self.ids_sample = np.array(ids_sample)
@@ -697,9 +704,12 @@ class LanguageModeSampler:
 
         # fill in masks with language model
         # (mask_template x max_length_sentence x num_tokens)
-        logits = predict_batch_lm(self.model.model, tokens_plus,
-                                  self.model.device, self.model.tokenizer.vocab_size,
-                                  batch_size)
+        logits = self.model.predict_batch_lm(
+            tokens_plus,
+            self.model.device,
+            self.model.tokenizer.vocab_size,
+            batch_size
+        )
 
         # select rows and cols where the input the tokens are masked
         tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)
@@ -797,8 +807,12 @@ class LanguageModeSampler:
             tmp_tokens_plus = deepcopy(tokens_plus)
 
             # compute logits
-            logits = predict_batch_lm(self.model.model, tmp_tokens_plus, self.model.device,
-                                      self.model.tokenizer.vocab_size, batch_size)
+            logits = self.model.predict_batch_lm(
+                tmp_tokens_plus,
+                self.model.device,
+                self.model.tokenizer.vocab_size,
+                batch_size
+            )
 
             # select only the logits of the first masked word in each row
             logits_mask = logits[torch.arange(logits.shape[0]), masked_cols, :]

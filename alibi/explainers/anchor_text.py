@@ -542,13 +542,11 @@ class LanguageModeSampler:
 
         # if the anchor covers the entire sentence
         if np.all(np.isclose(data, 1)):
-            data = np.tile(data, (num_samples, 1))
-            raw = np.tile(np.array(raw), (num_samples, 1)).reshape(num_samples)
+            raw = np.array(raw)
         else:
             # fill in mask with language model
             raw, data = self.fill_mask(num_samples, raw, data, top_n, batch_size_lm, filling_method, **kwargs)
-            # print(raw)
-            # print(data)
+        
         # append tail if it exits
         raw = self._append_tail(raw) if self.tail else raw
         return raw, data
@@ -578,17 +576,12 @@ class LanguageModeSampler:
         # compute indices allowed be masked
         all_indices = range(len(self.ids_sample))
         allowed_indices = list(set(all_indices) - set(anchor))
-
-        # number of masking templates
-        if filling_method == self.FILLING_PARALLEL:
-            if np.isclose(sample_proba, 1) or (len(allowed_indices) == 0):
-                mask_templates = 1
-            else:
-                mask_templates = max(1, int(num_samples * self.perturb_opts.get('mask_templates', 1.0)))
-        else:
-            # for autoregressive mode it doesn't make sense to generate
-            # a lower number of mask_templates than the number of samples to be generated
+        
+        if len(allowed_indices) == 0 or filling_method == self.FILLING_AUTOREGRESSIVE:
             mask_templates = num_samples
+        else:
+            mask_templates = 1 if np.isclose(sample_proba, 1) else \
+                    max(1, int(num_samples * self.perturb_opts.get('mask_templates', 1.0)))
 
         # allocate memory
         data = np.ones((mask_templates, len(self.ids_sample)))
@@ -808,7 +801,7 @@ class LanguageModeSampler:
             max_len_idx = max(max_len_idx, len(cols))
 
         # iterate through all possible columns indexes
-        for i in tqdm(range(max_len_idx)):
+        for i in range(max_len_idx):
             masked_rows, masked_cols = [], []
 
             # iterate through all possible examples
@@ -820,19 +813,16 @@ class LanguageModeSampler:
                 masked_rows.append(row)
                 masked_cols.append(masked_idx[row][i])
 
-            # select only the `masked_rows` indices
-            tmp_tokens_plus = deepcopy(tokens_plus)
-
             # compute logits
             logits = self.model.predict_batch_lm(
-                tmp_tokens_plus,
+                tokens_plus,
                 self.model.device,
                 self.model.tokenizer.vocab_size,
                 batch_size
             )
 
             # select only the logits of the first masked word in each row
-            logits_mask = logits[torch.arange(logits.shape[0]), masked_cols, :]
+            logits_mask = logits[masked_rows, masked_cols, :]
 
             # maskout partial words
             logits_mask[:, self.subwords_mask.long()] = -np.inf

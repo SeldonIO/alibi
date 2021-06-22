@@ -1,3 +1,4 @@
+import string
 import numpy as np
 
 import pytest
@@ -22,6 +23,9 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
                                 ('proba', (), 'unknown', None, 0.95),
                                 ('proba', (), 'similarity', None, 0.95),
                                 ('proba', (), 'language_model', 'parallel', 0.95)
+                                ('class', (), 'unknown', None, 0.90),
+                                ('class', (), 'similarity', None, 0.90),
+                                ('class', (), 'language_model', 'parallel', 0.90),
                             ]
                          )
 @pytest.mark.parametrize('lang_model',
@@ -74,6 +78,31 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
     if sampling_method in [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]:
         assert len(explainer.perturbation.punctuation) == n_punctuation_marks
         assert len(explainer.perturbation.words) == len(explainer.perturbation.positions)
+    else:
+        # do something similar for the transformers. this simplified verison
+        # works because there are not multiple consecutive punctuations
+        tokens = lang_model.tokenizer.tokenize(text)
+        punctuation = []
+
+        for token in tokens:
+            if lang_model.is_punctuation(token, string.punctuation):
+                punctuation.append(token.strip())
+
+
+        # select all words without punctuation
+        words = []
+
+        for i, token in enumerate(tokens):
+            if (not lang_model.is_subword_prefix(token)) and \
+                    (not lang_model.is_punctuation(token, string.punctuation)):
+                word = lang_model.select_entire_word(tokens, i, string.punctuation)
+                words.append(word.strip())
+
+        # set with all unique words including punctuation
+        unique_words = set(words) | set(punctuation)
+
+        assert len(punctuation) == n_punctuation_marks
+        assert len(unique_words) >= n_unique_words - 1 # (because of Roberta first token)
 
     # test sampler
     cov_true, cov_false, labels, data, coverage, _ = explainer.sampler((0, anchor), num_samples)

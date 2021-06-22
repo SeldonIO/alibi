@@ -464,9 +464,10 @@ class LanguageModeSampler:
         )
 
         # lambda expressions to check for a stopword, punctuation & subwords
-        stopwords_cond = lambda token, idx: (not perturb_stopwords) and is_stop_word(start_idx=idx)
-        punctuation_cond = lambda token, idx: (not perturb_punctuation) and (token in punctuation)
         subword_cond = lambda token, idx: self.model.is_subword_prefix(token)
+        stopwords_cond = lambda token, idx: (not perturb_stopwords) and is_stop_word(start_idx=idx)
+        punctuation_cond = lambda token, idx: (not perturb_punctuation) and \
+                self.model.is_punctuation(token, punctuation)
 
         # gather all in a list of conditions
         conds = [

@@ -7,6 +7,7 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 from functools import partial
+from abc import abstractmethod
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
 
 from alibi.utils.wrappers import ArgmaxTransformer
@@ -128,26 +129,81 @@ class Neighbors(object):
         return {'words': words, 'similarities': np.array(similarities)}
 
 
-class UnkownSampler:
+class AnchorTextSampler:
+    @abstractmethod
+    def set_params(self, text: str, perturb_opts: dict):
+        pass
+
+    @abstractmethod
+    def __call__(self, anchor: tuple, num_samples: int):
+        pass
+
+    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+        """
+        Function to concatenate an np.array of strings along a specified axis.
+
+        Parameters
+        ----------
+        arr
+            1D numpy array of strings.
+        dtype
+           Array type, used to avoid truncation of strings when concatenating along axis.
+
+        Returns
+        -------
+            Array with one element, the concatenation of the strings in the input array.
+        """
+        if not dtype:
+            return np.array(' '.join(arr))
+
+        return np.array(' '.join(arr)).astype(dtype)
+
+
+class UnkownSampler(AnchorTextSampler):
     UNK = "UNK"
 
-    def __init__(self, nlp):
+    def __init__(self, nlp: 'spacy.language.Language'):
+        """
+        Initialize unknown sampler. This sampler replaces word with the `UNK` token.
+
+        Parameters
+        ----------
+        nlp
+            spaCy model.
+        """
+        super(UnkownSampler, self).__init__()
+
+        # store nlp object
         self.nlp = nlp
+
+        # define buffer for word, punctuation and position
         self.words, self.punctuation, self.positions = [], [], [] # type: List, List, List
-        self.perturb_opts = None
+
+        # define perturbation options
+        self.perturb_opts = None  # type: Union[Dict, None]
 
     def set_params(self, text: str, perturb_opts: dict):
+        """
+        Sets the text to be processed and the perturbation options
+
+        Parameters
+        ----------
+        text
+            Text to be processed.
+        perturb_opts:
+            Perturbation options.
+        """
         # process text
-        processed = self.nlp(text)  # spaCy tokens for text
-        self.words = [x.text for x in processed]  # list with words in text
-        self.positions = [x.idx for x in processed]  # positions of words in text
-        self.punctuation = [x for x in processed if x.is_punct]
+        processed = self.nlp(text)                                  # spaCy tokens for text
+        self.words = [x.text for x in processed]                    # list with words in text
+        self.positions = [x.idx for x in processed]                 # positions of words in text
+        self.punctuation = [x for x in processed if x.is_punct]     # list with punctuation in text
 
         # set perturbation options
         self.perturb_opts = perturb_opts
 
         # set dtype
-        self.set_data_type(perturb_opts)
+        self.set_data_type()
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -169,16 +225,17 @@ class UnkownSampler:
             A (num_samples, m)-dimensional boolean array, where m is the number of tokens
             in the instance to be explained.
         """
-        assert self.perturb_opts, "'perturb_opts' is None"
+        assert self.perturb_opts, "Perturbation options are not set."
 
-        words = self.words
-        data = np.ones((num_samples, len(words)))
-        raw = np.zeros((num_samples, len(words)), self.dtype)
+        # allocate memory for the binary mask and the perturbed instances
+        data = np.ones((num_samples, len(self.words)))
+        raw = np.zeros((num_samples, len(self.words)), self.dtype)
 
         # fill each row of the raw data matrix with the text instance to be explained
-        raw[:] = words
+        raw[:] = self.words
 
-        for i, t in enumerate(words):
+        for i, t in enumerate(self.words):
+            # do not perturb words that are in anchor
             if i in anchor:
                 continue
 
@@ -188,39 +245,34 @@ class UnkownSampler:
             raw[changed, i] = UnkownSampler.UNK
             data[changed, i] = 0
 
+        # join the words
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype)
         return raw, data
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def set_data_type(self) -> None:
         """
-        Function to concatenate an np.array of strings along a specified axis.
-
-        Parameters
-        ----------
-        arr
-            1D numpy array of strings.
-        dtype
-           Array type, used to avoid truncation of strings when concatenating along axis.
-
-        Returns
-        -------
-            Array with one element, the concatenation of the strings in the input array.
+        Working with numpy arrays of strings requires setting the data type to avoid
+        truncating examples. This function estimates the longest sentence expected
+        during the sampling process, which is used to set the number of characters
+        for the samples and examples arrays. This depends on the perturbation method
+        used for sampling.
         """
-
-        if not dtype:
-            return np.array(' '.join(arr))
-        else:
-            return np.array(' '.join(arr)).astype(dtype)
-
-    def set_data_type(self, perturb_opts: dict) -> None:
         max_len = max(len(self.UNK), len(max(self.words, key=len)))
         max_sent_len = len(self.words) * max_len + len(self.UNK) * len(self.punctuation) + 1
         self.dtype = '<U' + str(max_sent_len)
 
 
-class SimilaritySampler:
+class SimilaritySampler(AnchorTextSampler):
     def __init__(self, nlp: 'spacy.language.Language'):
+        """
+        Initialize similarity sampler. This sampler replaces words with similar words.
+        """
+        super(SimilaritySampler, self).__init__()
+
+        # store nlp object
         self.nlp = nlp
+
+        # define synomym generator
         self._synonyms_generator = Neighbors(self.nlp)
 
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
@@ -234,14 +286,23 @@ class SimilaritySampler:
         self.perturbation = None  # type: Union[Callable, None]
 
         # perturbation_options
-        self.perturb_opts = None
+        self.perturb_opts = None  # type: Union[Dict, None]
 
     def set_params(self, text: str, perturb_opts: dict):
-        # process text
+        """
+        Sets the text to be processed and the perturbation options
+
+        Parameters
+        ----------
+        text
+          Text to be processed.
+        perturb_opts
+          Perturbation options.
+        """
         processed = self.nlp(text)                                  # spaCy tokens for text
         self.words = [x.text for x in processed]                    # list with words in text
         self.positions = [x.idx for x in processed]                 # positions of words in text
-        self.punctuation = [x for x in processed if x.is_punct]
+        self.punctuation = [x for x in processed if x.is_punct]     # punctuation in text
         self.tokens = processed
 
         # set perturbation options
@@ -251,7 +312,7 @@ class SimilaritySampler:
         self.find_similar_words()
 
         # set dtype
-        self.set_data_type(perturb_opts)
+        self.set_data_type()
 
     def find_similar_words(self) -> None:
         """
@@ -260,7 +321,6 @@ class SimilaritySampler:
         the search procedure returns a dictionary containing an np.array of words ('words')
         and an np.array of word similarities ('similarities').
         """
-
         for word, token in zip(self.words, self.tokens):
             if word not in self.synonyms:
                 self.synonyms[word] = self._synonyms_generator.neighbors(word, token.tag_, self.perturb_opts['top_n'])
@@ -280,16 +340,14 @@ class SimilaritySampler:
 
         Returns
         -------
-            see _unk method
+        See perturb_sentence_similarity
         """
-        assert self.perturb_opts, "`perturb_opts` is None"
-        return self.perturb_sentence_similarity(
-            anchor,
-            num_samples,
-            **self.perturb_opts,
-        )
+        assert self.perturb_opts, "Perturbation options are not set."
+        return self.perturb_sentence_similarity(anchor, num_samples, **self.perturb_opts)
 
-    def perturb_sentence_similarity(self, present: tuple, n: int,
+    def perturb_sentence_similarity(self,
+                                    present: tuple,
+                                    n: int,
                                     sample_proba: float = 0.5,
                                     forbidden: frozenset = frozenset(),
                                     forbidden_tags: frozenset = frozenset(['PRP$']),
@@ -323,13 +381,14 @@ class SimilaritySampler:
 
         Returns
         -------
-        raw_data
+        raw
             Array of perturbed text instances.
         data
             Matrix with 1s and 0s indicating whether a word in the text
             has not been perturbed for each sample.
         """
 
+        # allocate memory for the binary mask and the perturbed instances
         raw = np.zeros((n, len(self.tokens)), self.dtype)
         data = np.ones((n, len(self.tokens)))
 
@@ -337,8 +396,8 @@ class SimilaritySampler:
         raw[:] = [x.text for x in self.tokens]
 
         for i, t in enumerate(self.tokens):  # apply sampling to each token
-
-            if i in present:  # if the word is part of the anchor, move on to next token
+            # if the word is part of the anchor, move on to next token
+            if i in present:
                 continue
 
             # check that token does not fall in any forbidden category
@@ -367,28 +426,14 @@ class SimilaritySampler:
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype)
         return raw, data
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def set_data_type(self) -> None:
         """
-        Function to concatenate an np.array of strings along a specified axis.
-
-        Parameters
-        ----------
-        arr
-            1D numpy array of strings.
-        dtype
-           Array type, used to avoid truncation of strings when concatenating along axis.
-
-        Returns
-        -------
-            Array with one element, the concatenation of the strings in the input array.
+        Working with numpy arrays of strings requires setting the data type to avoid
+        truncating examples. This function estimates the longest sentence expected
+        during the sampling process, which is used to set the number of characters
+        for the samples and examples arrays. This depends on the perturbation method
+        used for sampling.
         """
-
-        if not dtype:
-            return np.array(' '.join(arr))
-        else:
-            return np.array(' '.join(arr)).astype(dtype)
-
-    def set_data_type(self, perturb_opts: dict) -> None:
         max_len = 0
         max_sent_len = 0
 
@@ -400,62 +445,61 @@ class SimilaritySampler:
             self.dtype = '<U' + str(max_sent_len)
 
 
-class LanguageModelSampler:
+class LanguageModelSampler(AnchorTextSampler):
     # filling methods
     FILLING_PARALLEL = 'parallel'
     FILLING_AUTOREGRESSIVE = 'autoregressive'
 
     def __init__(self, model: LanguageModel):
+        """
+        Initialize language model sampler. This sampler replaces words with the ones
+        sampled according to the output distribution of the language model. There are
+        two modes to use the sampler: `parallel` and `autoregressive`. In the parallel
+        mode, all words are replaced at ones. In the `autoregressive` model, the words
+        are replaced one by one, starting from left to right. Thus the following words
+        are conditioned also on the previous predicted words.
+
+        Parameters
+        ----------
+        model
+            Language model to be used to perturb the sentences.
+        """
+        super(LanguageModelSampler, self).__init__()
+
+        # store language model
         self.model = model
-        self.perturb_opts = None
 
-    def set_params(self, text: str, perturb_opts: dict):
-        # set perturb_opts
-        self.perturb_opts = perturb_opts
+        # define perturbation options
+        self.perturb_opts = None  # type: Union[Dict, None]
 
-        # some language models can only work with a limited number of tokens
-        # thus the text needs to be split in head_text and tail_text.
-        # we will only operate on the head_text.
-        self.head, self.tail, self.head_tokens, self.tail_tokens = self.model.head_tail_split(text)
+        # define head, tail part of the text
+        self.head, self.tail = '', ''  # type: str, str
+        self.head_tokens, self.tail_tokens = None, None  # type: Union[List[str], None], Union[List[str], None]
 
-        # set dtypes
-        self.set_data_type(perturb_opts)
-
-        # define language model vocab
-        self.vocab: Dict[str, int] = self.model.tokenizer.get_vocab()
-
-        # define masking sampling tensor.
-        # this tensor is used to avoid sampling certain from the vocabulary
-        self.subwords_mask = torch.zeros(len(self.vocab.keys()), dtype=torch.bool)
-
-        # we can discard subwords and punctuation when sampling
-        for token in self.vocab:
-            if self.model.is_subword_prefix(token):
-                self.subwords_mask[self.vocab[token]] = True
-
-            # discard punctuation from sampling
-            if not perturb_opts.get('sample_punctuation', False) and \
-                    self.model.is_punctuation(token, perturb_opts.get('punctuation', string.punctuation)):
-                self.subwords_mask[self.vocab[token]] = True
-
-        # define indices of the words which can be perturbed
-        self.get_sample_ids(**perturb_opts)
-
-    def get_sample_ids(self, perturb_punctuation: bool = False, perturb_stopwords: bool = False,
-                       punctuation: str = string.punctuation, stopwords: List[str] = [], **kwargs) -> None:
+    def get_sample_ids(self,
+                       perturb_punctuation: bool = False,
+                       perturb_stopwords: bool = False,
+                       punctuation: str = string.punctuation,
+                       stopwords: Optional[List[str]] = None,
+                       **kwargs) -> None:
         """
         Find indices in words which can be perturbed.
 
         Parameters
         ----------
-        perturb_punctuation:
+        perturb_punctuation
             Whether to allow punctuations to be perturbed.
-        perturb_stopwords:
+        perturb_stopwords
             Whether to allow stopwords to be perturbed.
+        punctuation
+            String of punctuation characters.
+        stopwords
+            List of stopwords.
         """
+        # Initialize list of indices allowed to be perturbed
+        ids_sample = list(np.arange(len(self.head_tokens)))
 
-        num_words = len(self.head_tokens)
-        ids_sample = list(np.arange(num_words))
+        # Define partial function for stopwords checking
         is_stop_word = partial(
             self.model.is_stop_word,
             text=self.head_tokens,
@@ -463,25 +507,74 @@ class LanguageModelSampler:
             stopwords=stopwords
         )
 
-        # lambda expressions to check for a stopword, punctuation & subwords
+        # lambda expressions to check for a subword
         subword_cond = lambda token, idx: self.model.is_subword_prefix(token)
+
+        # lambda experssion to check for a stopword
         stopwords_cond = lambda token, idx: (not perturb_stopwords) and is_stop_word(start_idx=idx)
+
+        # lambda expression to check for punctuation
         punctuation_cond = lambda token, idx: (not perturb_punctuation) and \
                 self.model.is_punctuation(token, punctuation)
 
-        # gather all in a list of conditions
-        conds = [
-            punctuation_cond,
-            stopwords_cond,
-            subword_cond
-        ]
+        # Gather all in a list of conditions
+        conds = [punctuation_cond, stopwords_cond, subword_cond]
 
+        # Remove indices of the tokens that are not allowed to be masked
         for i, token in enumerate(self.head_tokens):
             if any([cond(token, i) for cond in conds]):
                 ids_sample.remove(i)
 
+        # Save the indices allowed to be masked and the corresponding mapping.
+        # The anchor base algorithm alters indices one by one. By saving the mapping
+        # and sending only the initial token of a word, we avoid unnecessary sampling.
+        # E.g. word = token1 ##token2. Instead of trying two anchors (1 0), (1, 1) - which are
+        # equivalent because we take the full word, just try one (1)
         self.ids_sample = np.array(ids_sample)
         self.ids_mapping = {i: id for i, id in enumerate(self.ids_sample)}
+
+    def set_params(self, text: str, perturb_opts: dict):
+        """
+        Sets the text to be processed and the perturbation options
+
+        Parameters
+        ----------
+        text
+          Text to be processed.
+        perturb_opts
+          Perturbation options.
+        """
+        # Set perturbation options
+        self.perturb_opts = perturb_opts
+
+        # Some language models can only work with a limited number of tokens. Thus the text needs
+        # to be split in head_text and tail_text. We will only alter the head_tokens.
+        self.head, self.tail, self.head_tokens, self.tail_tokens = self.model.head_tail_split(text)
+
+        # Set dtypes
+        self.set_data_type()
+
+        # Define language model's vocab
+        vocab: Dict[str, int] = self.model.tokenizer.get_vocab()
+
+        # Define masking sampling tensor. This tensor is used to avoid sampling
+        # certain tokens from the vocabulary such as: subwords, punctuation, etc.
+        self.subwords_mask = torch.zeros(len(vocab.keys()), dtype=torch.bool)
+
+        for token in vocab:
+            # Add subwords in the sampling mask. This means that subwords
+            # will not be considered when sampling for the masked words.
+            if self.model.is_subword_prefix(token):
+                self.subwords_mask[vocab[token]] = True
+
+            # Add punctuation in the sampling mask. This means that the
+            # punctuation will not be considered when sampling for the masked words.
+            if not perturb_opts.get('sample_punctuation', False) and \
+                    self.model.is_punctuation(token, perturb_opts.get('punctuation', string.punctuation)):
+                self.subwords_mask[vocab[token]] = True
+
+        # define indices of the words which can be perturbed
+        self.get_sample_ids(**perturb_opts)
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -498,19 +591,19 @@ class LanguageModelSampler:
 
         Returns
         -------
-            see _unk method
+        See perturb_sentence
         """
+        assert self.perturb_opts, "Perturbation options are not set."
+        return self.perturb_sentence(anchor, num_samples, **self.perturb_opts)
 
-        assert self.perturb_opts, "'perturb_opts' is None"
-        return self.perturb_sentence(
-            anchor,
-            num_samples,
-            **self.perturb_opts
-        )
-
-    def perturb_sentence(self, anchor: tuple, num_samples: int, sample_proba: float = .5, top_n: int = 1,
-                            batch_size_lm: int = 32, filling_method: str = "parallel", **kwargs) \
-            -> Tuple[np.ndarray, np.ndarray]:
+    def perturb_sentence(self,
+                         anchor: tuple,
+                         num_samples: int,
+                         sample_proba: float = .5,
+                         top_n: int = 1,
+                         batch_size_lm: int = 32,
+                         filling_method: str = "parallel",
+                         **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         The function returns  an np.array of num_samples where randomly chose features
         except those in anchor are replaced by similar words.
@@ -538,33 +631,54 @@ class LanguageModelSampler:
             A (num_samples, m)-dimensional boolean array, where m is the number of tokens
             in the instance to be explained.
         """
-        # create the mask
-        data, raw = self.create_mask(anchor, sample_proba, num_samples, filling_method, **kwargs)
+        # Create the mask
+        data, raw = self.create_mask(
+            anchor=anchor,
+            num_samples=num_samples,
+            sample_proba=sample_proba,
+            filling_method=filling_method,
+            **kwargs
+        )
 
-        # if the anchor covers the entire sentence
-        if np.all(np.isclose(data, 1)):
-            raw = np.array(raw)
-        else:
-            # fill in mask with language model
-            raw, data = self.fill_mask(num_samples, raw, data, top_n, batch_size_lm, filling_method, **kwargs)
+        # If the anchor does not covers the entire sentence,
+        # then fill in mask with language model
+        if len(anchor) != len(self.ids_sample):
+            raw, data = self.fill_mask(
+                raw=raw, data=data,
+                num_samples=num_samples,
+                top_n=top_n,
+                batch_size_lm=batch_size_lm,
+                filling_method=filling_method,
+                **kwargs
+            )
         
         # append tail if it exits
         raw = self._append_tail(raw) if self.tail else raw
         return raw, data
 
-    def create_mask(self, anchor: tuple, sample_proba: float,
-                    num_samples: int, filling_method: str, **kwargs) -> Tuple[np.ndarray, List[str]]:
+    def create_mask(self,
+                    anchor: tuple,
+                    num_samples: int,
+                    sample_proba: float = 1.0,
+                    filling_method: str = 'parallel',
+                    prec_mask_templates: float = 1.0,
+                    **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Create mask for words to be perturbed.
 
         Parameters
         ----------
-        anchor:
+        anchor
             Indices represent the positions of the words to be kept unchanged.
-        num_samples:
+        num_samples
             Number of perturbed sentences to be returned.
-        sample_proba:
+        sample_proba
             Probability of a word being replaced.
+        filling_method:
+            Filling method procedure. Can be `parallel` or `autoregressive`.
+            See constructor for more details.
+        prec_mask_templates
+            Procentage form the number of samples of mask templates
 
         Returns
         -------
@@ -574,15 +688,25 @@ class LanguageModelSampler:
         raw
             List with masked instances.
         """
+        # make sure that prec_mask_templates is in [0, 1]
+        prec_mask_templates = np.clip(prec_mask_templates, 0, 1)
+
         # compute indices allowed be masked
         all_indices = range(len(self.ids_sample))
         allowed_indices = list(set(all_indices) - set(anchor))
-        
+
         if len(allowed_indices) == 0 or filling_method == self.FILLING_AUTOREGRESSIVE:
+            # If the anchor covers all the word that can be perturbed (it can happen)
+            # then the number of mask_templates should be equal to the number of sampled requested.
+            # If the filling method is autoregressive, just generate from the start a `num_sample`
+            # masks, cause the computation performance is pretty similar.
             mask_templates = num_samples
         else:
-            mask_templates = 1 if np.isclose(sample_proba, 1) else \
-                    max(1, int(num_samples * self.perturb_opts.get('mask_templates', 1.0)))
+            # If the probability of sampling a word is 1, then all words will be masked.
+            # Thus there is no point in generating more than one mask.
+            # Otherwise compute the number of masking templates according to the precentage
+            # passed as argument and make sure that at least one mask template is generated
+            mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * prec_mask_templates))
 
         # allocate memory
         data = np.ones((mask_templates, len(self.ids_sample)))
@@ -594,40 +718,49 @@ class LanguageModelSampler:
         # create mask
         if len(allowed_indices):
             for i in range(mask_templates):
+                # Here the sampling of the indices of the word to be masked is done by rows
+                # and not by columns as in the other sampling methods. The reason is that
+                # is much easier to ensure that at least one word in the sentence is masked.
+                # If the sampling is performed over the columns it might be the case
+                # that no word in a sentence will be masked.
                 n_changed = max(1, np.random.binomial(len(allowed_indices), sample_proba))
                 changed = np.random.choice(allowed_indices, n_changed, replace=False)
 
                 # mark the entrance as maks
                 data[i, changed] = 0
 
-                # mask the corresponding words. This requires a mapping from indices
+                # Mask the corresponding words. This requires a mapping from indices
                 # to the actual position of the words in the text
                 changed_mapping = [self.ids_mapping[j] for j in changed]
                 raw[i, changed_mapping] = self.model.mask
 
-                # have to remove the subword prefix which has to be done iteratively
+                # Have to remove the subwords of the masked word, which has to be done iteratively
                 for j in changed_mapping:
                     self._remove_subwords(raw=raw, row=i, col=j, **kwargs)
 
         # join words
-        raw = list(np.apply_along_axis(
-            self._joiner,
-            axis=1, arr=raw,
-            dtype=self.dtype_sent
-        ))
+        raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype_sent)
         return data, raw
 
-    def _append_tail(self, raw) -> np.array:
+    def _append_tail(self, raw: np.ndarray) -> np.array:
+        """
+        Appends the tail part of the text to the new sampled head.
+
+        Parameters
+        ----------
+        raw
+            New sampled heads.
+
+        Returns
+        -------
+        full_raw
+            Concatenation of the new sampled head with the original tail.
+        """
         full_raw = []
 
         for i in range(raw.shape[0]):
-            # tokenize new head
             new_head_tokens = self.model.tokenizer.tokenize(raw[i])
-
-            # concat new_head and tails
             new_tokens = new_head_tokens + self.tail_tokens
-
-            # transform tokens to string
             full_raw.append(self.model.tokenizer.convert_tokens_to_string(new_tokens))
 
         # convert to array and return
@@ -637,12 +770,14 @@ class LanguageModelSampler:
     def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
         """
         Function to concatenate an np.array of strings along a specified axis.
+
         Parameters
         ----------
         arr
             1D numpy array of strings.
         dtype
            Array type, used to avoid truncation of strings when concatenating along axis.
+
         Returns
         -------
             Array with one element, the concatenation of the strings in the input array.
@@ -652,43 +787,82 @@ class LanguageModelSampler:
 
         if not dtype:
             return np.array(arr)
-        else:
-            return np.array(arr).astype(dtype)
 
-    def fill_mask(self, num_samples: int, raw: List[str], data: np.ndarray, top_n: int,
-                  batch_size: int, filling_method: str = "parallel", **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+        return np.array(arr).astype(dtype)
+
+    def fill_mask(self,
+                  raw: np.ndarray,
+                  data: np.ndarray,
+                  num_samples: int,
+                  top_n: int = 1,
+                  batch_size_lm: int = 32,
+                  filling_method: str = "parallel",
+                  **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Fill in the masked tokens with language model.
 
         Parameters
         ----------
-        x:
-            List with masked words.
+        raw
+            Array of mask templates.
+        data
+            Binary mask having 0 where the word was masked. Note that
+            the width of the data array is equal to the length of id_samples.
+        num_samples
+            Number of samples to be drawn.
         top_n:
-            Used in top k sampling.
-        batch_size:
+            Use the top n words when sampling.
+        batch_size_lm:
             Batch size used for language model.
+        filling_method
+            Filling method procedure. Can be `parallel` or `autoregressive`.
+            See constructor for more details.
 
         Returns
         -------
         raw
             Array containing num_samples elements. Each element is a perturbed sentence.
         """
-        # perturb instances
-        if filling_method == self.FILLING_PARALLEL:
-            tokens, data = self._perturb_instances_parallel(num_samples=num_samples, raw=raw, data=data,
-                                                            batch_size=batch_size, top_n=top_n, **kwargs)
-        else:
-            tokens, data = self._perturb_instance_ar(num_samples=num_samples, raw=raw, data=data,
-                                                     batch_size=batch_size, top_n=top_n, **kwargs)
+        # chose the perturbation function
+        perturb_func = self._perturb_instances_parallel if filling_method == self.FILLING_PARALLEL\
+            else self._perturb_instance_ar
 
+        # perturb instances
+        tokens, data = perturb_func(
+            raw=raw, data=data,
+            num_samples=num_samples,
+            batch_size_lm=batch_size_lm,
+            top_n=top_n,
+            **kwargs
+        )
         # decode the tokens and remove special characters as <pad>, <cls> etc.
         raw = self.model.tokenizer.batch_decode(tokens, **dict(skip_special_tokens=True))
         return np.array(raw), data
 
     def _remove_subwords(self, raw: np.array, row: int, col: int,
                          punctuation: str = string.punctuation, **kwargs) -> np.array:
-        # delete all subwords that follow
+        """
+        Deletes the subwords that follow a given token identified by the (row, col) pair in the `raw` matrix.
+        A token is considered to be part of a word if is not a punctuation and if has the subword prefix
+        specific to the used language model. The subwords are not actually deleted in, but they are replace
+        by the empty string ``
+
+        Parameters
+        ----------
+        raw
+            Array of tokens.
+        row
+            Row coordinate of the word to be removed.
+        col
+            Col coodrinate of the word to be removed.
+        punctuation
+            String containing the punctuation to be considered.
+
+        Returns
+        -------
+        raw
+            Array of tokens where deleted subwords are replaced by the empty string.
+        """
         for next_col in range(col + 1, len(self.head_tokens)):
             # if encounter a punctuation, just stop
             if self.model.is_punctuation(raw[row, next_col], punctuation):
@@ -702,10 +876,43 @@ class LanguageModelSampler:
 
         return raw
 
-    def _perturb_instances_parallel(self, num_samples: int, raw: List[str], data: np.ndarray, batch_size: int,
-                                    top_n: int, **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
+    def _perturb_instances_parallel(self,
+                                    num_samples: int,
+                                    raw: np.ndarray,
+                                    data: np.ndarray,
+                                    top_n: int = 1,
+                                    batch_size_lm: int = 32,
+                                    temperature: float = 1.0,
+                                    **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
+        """
+        Perturb the instances in a single forward pass (parallel).
+
+        Parameters
+        ----------
+        num_samples
+            Number of samples to be generates
+        raw
+            Array of mask templates. Has `mask_templates` rows
+        data
+            Binary array having 0 where the tokens are masked. Has `mask_templates` rows.
+        top_n:
+            Use the top n words when sampling.
+        batch_size_lm:
+            Batch size used for language model.
+        temperature
+            Sample weight hyper-parameter.
+
+        Returns
+        -------
+        sampled_tokens
+            Tensor containing the ids of the sampled tokens.
+            Has `num_samples` rows.
+        sampled_data
+            Binary array havin 0 where the tokens were masked.
+            Has `num_samples` rows.
+        """
         # tokenize instances
-        tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
+        tokens_plus = self.model.tokenizer.batch_encode_plus(list(raw), padding=True, return_tensors='pt')
 
         # number of samples to generate per mask template
         reminder = num_samples % len(raw)
@@ -714,10 +921,10 @@ class LanguageModelSampler:
         # fill in masks with language model
         # (mask_template x max_length_sentence x num_tokens)
         logits = self.model.predict_batch_lm(
-            tokens_plus,
-            self.model.device,
-            self.model.tokenizer.vocab_size,
-            batch_size
+            x=tokens_plus,
+            device=self.model.device,
+            vocab_size=self.model.tokenizer.vocab_size,
+            batch_size=batch_size_lm
         )
 
         # select rows and cols where the input the tokens are masked
@@ -741,31 +948,30 @@ class LanguageModelSampler:
             # select the logits of the masked input
             logits_mask = logits[i, cols, :]
 
-            # mask out subwords
+            # mask out tokens according to the subword_mask
             logits_mask[:, self.subwords_mask] = -np.inf
 
-            # select top k tokens from each distribution
+            # select top n tokens from each distribution
             top_k = torch.topk(logits_mask, top_n, dim=1)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits /= self.perturb_opts['temperature']
+            top_k_logits /= temperature
             dist = torch.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
             for j in range(mult_factor + int(reminder > 0)):
-                # compute the buffer index
+                # Compute the buffer index
                 idx = i * mult_factor + j + offset
 
-                # sample indices
+                # Sample indices
                 ids_k = dist.sample().reshape(-1, 1)
 
-                # set the unmasked tokens and for the masked one
-                # replace them with the samples drawn
+                # Set the unmasked tokens and for the masked one and replace them with the samples drawn
                 sampled_tokens[idx] = tokens[i]
                 sampled_tokens[idx, cols] = torch.reshape(top_k_tokens.gather(1, ids_k), (-1,))
 
-            # add the original binary mask which marks the beginning of a masked
+            # Add the original binary mask which marks the beginning of a masked
             # word, as is needed for the anchor algorithm (backend stuff)
             idx = i * mult_factor
             sampled_data[idx + offset:idx + mult_factor + offset + (reminder > 0)] = data[i]
@@ -774,17 +980,50 @@ class LanguageModelSampler:
             reminder -= 1
             offset += int(reminder > 0)
 
+        # Check that there are not masked tokens left
         assert torch.all(sampled_tokens != self.model.mask_token)
         return sampled_tokens, sampled_data
 
-    def _perturb_instance_ar(self, num_samples: int, raw: List[str], data: np.ndarray,
-                             batch_size: int, top_n: int, **kwargs):
+    def _perturb_instance_ar(self,
+                             num_samples: int,
+                             raw: np.ndarray,
+                             data: np.ndarray,
+                             top_n: int = 1,
+                             batch_size: int = 32,
+                             temperature: float = 1.0,
+                             **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
+        """
+        Perturb the instances in an autoregressive fashion (sequential).
+
+        ----------
+        num_samples
+            Number of samples to be generates
+        raw
+            Array of mask templates. Has `mask_templates` rows
+        data
+            Binary array having 0 where the tokens are masked. Has `mask_templates` rows.
+        top_n:
+            Use the top n words when sampling.
+        batch_size_lm:
+            Batch size used for language model.
+        temperature
+            Sample weight hyper-parameter.
+
+        Returns
+        -------
+        sampled_tokens
+            Tensor containing the ids of the sampled tokens.
+            Has `num_samples` rows.
+        sampled_data
+            Binary array havin 0 where the tokens were masked.
+            Has `num_samples` rows.
+        """
 
         # number of samples to generate per mask template
         assert num_samples == len(raw)
 
         # tokenize instances
-        tokens_plus = self.model.tokenizer.batch_encode_plus(raw, padding=True, return_tensors='pt')
+        tokens_plus = self.model.tokenizer.batch_encode_plus(list(raw), padding=True, return_tensors='pt')
         tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)
 
         # store the column indices for each row where a token is a mask
@@ -825,15 +1064,15 @@ class LanguageModelSampler:
             # select only the logits of the first masked word in each row
             logits_mask = logits[masked_rows, masked_cols, :]
 
-            # maskout partial words
+            # mask out words according to the subword_mask
             logits_mask[:, self.subwords_mask.long()] = -np.inf
 
-            # select top k tokens from each distribution
+            # select top n tokens from each distribution
             top_k = torch.topk(logits_mask, top_n, dim=1)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits /= self.perturb_opts['temperature']
+            top_k_logits /= temperature
             dist = torch.distributions.Categorical(logits=top_k_logits)
 
             # sample indexes
@@ -844,18 +1083,13 @@ class LanguageModelSampler:
 
         return tokens, data
 
-    def set_data_type(self, perturb_opts: dict) -> None:
+    def set_data_type(self) -> None:
         """
         Working with numpy arrays of strings requires setting the data type to avoid
         truncating examples. This function estimates the longest sentence expected
         during the sampling process, which is used to set the number of characters
         for the samples and examples arrays. This depends on the perturbation method
         used for sampling.
-
-        Parameters
-        ----------
-        perturb_opts:
-            See 'set_sampler_perturbation'.
         """
 
         # get the vocabulary

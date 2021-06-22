@@ -85,6 +85,9 @@ class LanguageModel(abc.ABC):
         -------
         True if the `token` is in the `stopwords` list. False otherwise.
         """
+        if not stopwords:
+            return False
+
         if self.is_subword_prefix(text[start_idx]):
             return False
 

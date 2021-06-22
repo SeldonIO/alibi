@@ -400,7 +400,7 @@ class SimilaritySampler:
             self.dtype = '<U' + str(max_sent_len)
 
 
-class LanguageModeSampler:
+class LanguageModelSampler:
     # filling methods
     FILLING_PARALLEL = 'parallel'
     FILLING_AUTOREGRESSIVE = 'autoregressive'
@@ -1013,7 +1013,7 @@ class AnchorText(Explainer):
             self.perturbation.set_params(text, perturb_opts)
 
         elif perturb_opts['sampling_method'] == self.SAMPLING_LANGUAGE_MODEL:
-            self.perturbation = LanguageModeSampler(self.model)
+            self.perturbation = LanguageModelSampler(self.model)
             self.perturbation.set_params(text, perturb_opts)
 
         else:

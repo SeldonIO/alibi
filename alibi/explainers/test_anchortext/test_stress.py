@@ -11,16 +11,13 @@ from alibi.explainers.tests.utils import predict_fcn
 
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
-@pytest.mark.parametrize('perturb_punctuation', [True, False])
-@pytest.mark.parametrize('punctuation', string.punctuation)
-@pytest.mark.parametrize('perturb_stopwords', [True, False])
-@pytest.mark.parametrize('stopwords', [['a', 'the', 'but', 'this', 'there', 'those', 'an']])
-def test_precision(lang_model, lr_classifier, movie_sentiment_data, perturb_punctuation, punctuation,
-        perturb_stopwords, stopwords):
+@pytest.mark.parametrize('punctuation', ['', string.punctuation])
+@pytest.mark.parametrize('stopwords', [[], ['a', 'the', 'but', 'this', 'there', 'those', 'an']])
+def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation, stopwords):
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
-    # select 100 examples
+    # select 10 examples
     n = 1
     np.random.seed(0)
     idx = np.random.choice(len(X_test), size=n, replace=False)
@@ -43,8 +40,6 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, perturb_punc
         "temperature": 1.0,
         "top_n": 100,
         "threshold": 0.95,
-        "perturb_punctuation": perturb_punctuation,
-        "perturb_stopwords": perturb_stopwords,
         "stopwords": stopwords,
         "punctuation": punctuation,
     }
@@ -72,7 +67,7 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
-    # select 100 sampleds
+    # select 10 sampleds
     n = 10 
     np.random.seed(0)
     idx = np.random.choice(len(X_test), size=n, replace=False)
@@ -120,7 +115,7 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
             
             # check if the punctuation was petrub and it was not supposed to
             for p in punctuation:
-                if p in text:
+                if (p in text) and (p != '\''):  # ' is a tricky one as in words don't for which don' is a token
                     assert text.count(p) == str(raw[j]).count(p)
 
 
@@ -172,11 +167,12 @@ def test_mask(lang_model, num_tokens, sample_proba, filling_method):
 
     # hope that law of large number holds
     empirical_mean1 = np.mean(np.sum(data == 0, axis=1))
-    theoretical_mean = sample_proba * len(sampler.head_tokens)
+    theoretical_mean = sample_proba * len(sampler.ids_sample)
 
     # compute number of mask tokens in the strings
-    empirical_mean2 = np.mean([str(x).count(lang_model.mask) for x in raw])
-    assert np.abs(empirical_mean1 - theoretical_mean) < 0.1
+    mask = lang_model.mask.replace(lang_model.SUBWORD_PREFIX, '')
+    empirical_mean2 = np.mean([str(x).count(mask) for x in raw])
+    assert np.abs(empirical_mean1 - theoretical_mean) < 1.0
     assert empirical_mean1 == empirical_mean2
 
 

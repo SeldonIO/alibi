@@ -54,7 +54,7 @@ def test_stopwords(text, stopwords, lang_model):
     assert len(tail_tokens) == 0
 
     # convert stopwords to lowercase
-    stopwords = [s.lower() for s in stopwords]
+    stopwords = [s.strip().lower() for s in stopwords]
 
     # find all the subwords in the sentence
     found_stopwords = []
@@ -65,7 +65,7 @@ def test_stopwords(text, stopwords, lang_model):
             found_stopwords.append(word.strip())
 
     # transform found_stopwords to lowercase
-    found_stopwords = set([s.lower() for s in found_stopwords])
+    found_stopwords = set([s.strip().lower() for s in found_stopwords])
 
     # check if the found subwords and the expected one are the same
     assert set(found_stopwords) == set(stopwords)

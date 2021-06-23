@@ -66,7 +66,12 @@ class LanguageModel(abc.ABC):
         # define the ending index
         end_idx = start_idx + 1
 
-        while (end_idx < len(text)) and self.is_subword_prefix(text[end_idx]):
+        while (end_idx < len(text)):
+            # The second condition is necessary for models like Roberta.
+            # If the second condition is not included, it can select words like: `word,` instaed of `word`
+            if (not self.is_subword_prefix(text[end_idx])) or self.is_punctuation(text[end_idx], punctuation):
+                break
+
             end_idx += 1
 
         # convert the tokens into a string

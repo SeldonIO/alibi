@@ -22,7 +22,7 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
                             [
                                 ('proba', (), 'unknown', None, 0.95),
                                 ('proba', (), 'similarity', None, 0.95),
-                                ('proba', (), 'language_model', 'parallel', 0.95)
+                                ('proba', (), 'language_model', 'parallel', 0.95),
                                 ('class', (), 'unknown', None, 0.90),
                                 ('class', (), 'similarity', None, 0.90),
                                 ('class', (), 'language_model', 'parallel', 0.90),

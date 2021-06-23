@@ -484,6 +484,9 @@ class LanguageModelSampler(AnchorTextSampler):
         stopwords
             List of stopwords.
         """
+        # transform stopword to lowercase
+        stopwords = [w.lower() for w in stopwords]
+
         # Initialize list of indices allowed to be perturbed
         ids_sample = list(np.arange(len(self.head_tokens)))
 

@@ -8,7 +8,8 @@ from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
 
-@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased'], indirect=True)
+
+@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize('perturb_punctuation', [True, False])
 @pytest.mark.parametrize('punctuation', string.punctuation)
@@ -47,29 +48,27 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, perturb_punc
         "stopwords": stopwords,
         "punctuation": punctuation,
     }
-    
+
     for i in range(n):
         text = X_test[i]
-        
+
         # compute explanation
         explanation = explainer.explain(
             text,
             **perturb_opts
         )
-        
+
         # check precision to be greater than the threshold
         assert explanation.precision >= perturb_opts['threshold']
 
 
-@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased'], indirect=True)
-@pytest.mark.parametrize('perturb_punctuation', [True, False])
-@pytest.mark.parametrize('punctuation', [string.punctuation])
-@pytest.mark.parametrize('perturb_stopwords', [True, False])
-@pytest.mark.parametrize('stopwords', [['a', 'the', 'but', 'this', 'there', 'those', 'an']])
+@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
+@pytest.mark.parametrize('punctuation', ['', string.punctuation])
+@pytest.mark.parametrize('stopwords', [[], ['a', 'the', 'but', 'this', 'there', 'those', 'an']])
 @pytest.mark.parametrize('filling_method', ['parallel'])
 @pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
-def test_sample_ids(lang_model, perturb_punctuation, punctuation, perturb_stopwords, stopwords,
-        filling_method, movie_sentiment_data, sample_proba, nlp):
+def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_method,
+                               movie_sentiment_data, sample_proba, nlp):
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
@@ -88,8 +87,6 @@ def test_sample_ids(lang_model, perturb_punctuation, punctuation, perturb_stopwo
     # define perturb opts
     perturb_opts = {
         "sample_proba": sample_proba,
-        "perturb_punctuation": perturb_punctuation,
-        "perturb_stopwords": perturb_stopwords,
         "punctuation": punctuation,
         "stopwords": stopwords,
     }
@@ -99,27 +96,134 @@ def test_sample_ids(lang_model, perturb_punctuation, punctuation, perturb_stopwo
         
         # process test
         processed = nlp(text)
-        words = set([w.text.lower() for w in processed])
+        words = [w.text.lower() for w in processed]
+        words = {w: words.count(w) for w in words}
 
         # set sampler perturb opts
         sampler.set_params(text, perturb_opts)
 
         # get masks samples
-        data, raw = sampler.create_mask((), num_samples=10, filling_method=filling_method, **perturb_opts)
+        raw, data = sampler.create_mask((), num_samples=10, filling_method=filling_method, **perturb_opts)
         
         for j in range(len(raw)):
-            if (not perturb_stopwords) or (not perturb_punctuation):
-                preprocessed = nlp(str(raw[j]))
-                words_masks = set([w.text.lower() for w in preprocessed])
+            mask_counts = str(raw[j]).count(lang_model.mask)
+            raw[j] = str(raw[j]).replace(lang_model.mask, '', mask_counts)
+
+            preprocessed = nlp(str(raw[j]))
+            words_masks = [w.text.lower() for w in preprocessed]
+            words_masks = {w: words_masks.count(w) for w in words_masks}
 
             # check if the stopwords were perturb and they were not supposed to
-            if not perturb_stopwords:
-                for sw in stopwords:
-                    if sw in words:
-                        assert sw in words_masks
+            for sw in stopwords:
+                if sw in words:
+                    assert words[sw] == words_masks[sw]
             
             # check if the punctuation was petrub and it was not supposed to
-            if not perturb_punctuation:
-                for p in punctuation:
-                    if p in words:
-                        assert p in words_masks
+            for p in punctuation:
+                if p in text:
+                    assert text.count(p) == str(raw[j]).count(p)
+
+
+@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
+@pytest.mark.parametrize('head_gt, num_tokens',
+                         [
+                             ('word1', 2),
+                             ('word1 word2', 3),
+                             ('word1 word2 word3', 4),
+                             ('word1 word2 word3 word4', 5),
+                             ('word1 word2 word3 word4 word5', 6)
+                         ])
+def test_split(lang_model, head_gt, num_tokens):
+    # initalize sampler
+    sampler = LanguageModelSampler(model=lang_model)
+
+    # define a very long word as tail
+    tail = 'Pneumonoultramicroscopicsilicovolcanoconiosis ' * 100
+    text = head_gt + ' ' + tail
+
+    # split head tail
+    head, tail, head_tokens, tail_tokens = lang_model.head_tail_split(text)
+
+    # get the unique words in head
+    unique_words = set(head.strip().split(' '))
+    assert len(unique_words) == num_tokens
+
+
+@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
+@pytest.mark.parametrize('num_tokens', [30, 50, 100])
+@pytest.mark.parametrize('sample_proba', [0.1, 0.3, 0.5, 0.6, 0.7, 0.9])
+@pytest.mark.parametrize('filling_method', ['parallel', 'autoregressive'])
+def test_mask(lang_model, num_tokens, sample_proba, filling_method):
+    # define text
+    text = 'word ' * num_tokens
+
+    # define sampler
+    sampler = LanguageModelSampler(model=lang_model)
+    perturb_opts = {
+        "sample_proba": sample_proba,
+        "punctuation": '',
+        "stopwords": [],
+        "filling_method": filling_method,
+    }
+    sampler.set_params(text, perturb_opts)
+
+    # create a bunch of masks
+    raw, data = sampler.create_mask((), 10000, sample_proba, prec_mask_templates=1.0)
+
+    # hope that law of large number holds
+    empirical_mean1 = np.mean(np.sum(data == 0, axis=1))
+    theoretical_mean = sample_proba * len(sampler.head_tokens)
+
+    # compute number of mask tokens in the strings
+    empirical_mean2 = np.mean([str(x).count(lang_model.mask) for x in raw])
+    assert np.abs(empirical_mean1 - theoretical_mean) < 0.1
+    assert empirical_mean1 == empirical_mean2
+
+
+@pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
+@pytest.mark.parametrize('filling_method', ['parallel'])
+@pytest.mark.parametrize('punctuation', [string.punctuation])
+@pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
+def test_sample_punctuation(lang_model, punctuation, filling_method, movie_sentiment_data, sample_proba):
+    # unpack test data
+    X_test = movie_sentiment_data['X_test']
+
+    # select 100 sampleds
+    n = 10
+    np.random.seed(0)
+    idx = np.random.choice(len(X_test), size=n, replace=False)
+
+    # update test dat
+    X_test = [X_test[i] for i in idx]
+    assert len(X_test) == n
+
+    # initalize sampler
+    sampler = LanguageModelSampler(model=lang_model)
+
+    # define perturb opts
+    perturb_opts = {
+        "sample_proba": sample_proba,
+        "punctuation": punctuation,
+        "stopwords": [],
+        "filling_method": filling_method,
+        "sample_punctuation": False
+    }
+
+    for i in range(n):
+        text = X_test[i]
+        text = ''.join([chr for chr in text if chr not in string.punctuation])
+
+        # set sampler perturb opts
+        sampler.set_params(text, perturb_opts)
+
+        # get masks samples
+        raw, data = sampler.perturb_sentence((), num_samples=10)
+
+        for j in range(len(raw)):
+            mask_counts = str(raw[j]).count(lang_model.mask)
+            raw[j] = str(raw[j]).replace(lang_model.mask, '', mask_counts)
+
+            for p in punctuation:
+                assert p not in raw[j]
+
+

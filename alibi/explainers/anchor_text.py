@@ -282,9 +282,6 @@ class SimilaritySampler(AnchorTextSampler):
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
         self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
 
-        # the method used to generate samples
-        self.perturbation = None  # type: Union[Callable, None]
-
         # perturbation_options
         self.perturb_opts = None  # type: Union[Dict, None]
 
@@ -476,21 +473,12 @@ class LanguageModelSampler(AnchorTextSampler):
         self.head, self.tail = '', ''  # type: str, str
         self.head_tokens, self.tail_tokens = None, None  # type: Union[List[str], None], Union[List[str], None]
 
-    def get_sample_ids(self,
-                       perturb_punctuation: bool = False,
-                       perturb_stopwords: bool = False,
-                       punctuation: str = string.punctuation,
-                       stopwords: Optional[List[str]] = None,
-                       **kwargs) -> None:
+    def get_sample_ids(self, punctuation: str = '', stopwords: Optional[List[str]] = None, **kwargs) -> None:
         """
         Find indices in words which can be perturbed.
 
         Parameters
         ----------
-        perturb_punctuation
-            Whether to allow punctuations to be perturbed.
-        perturb_stopwords
-            Whether to allow stopwords to be perturbed.
         punctuation
             String of punctuation characters.
         stopwords
@@ -511,11 +499,10 @@ class LanguageModelSampler(AnchorTextSampler):
         subword_cond = lambda token, idx: self.model.is_subword_prefix(token)
 
         # lambda experssion to check for a stopword
-        stopwords_cond = lambda token, idx: (not perturb_stopwords) and is_stop_word(start_idx=idx)
+        stopwords_cond = lambda token, idx: is_stop_word(start_idx=idx)
 
         # lambda expression to check for punctuation
-        punctuation_cond = lambda token, idx: (not perturb_punctuation) and \
-                self.model.is_punctuation(token, punctuation)
+        punctuation_cond = lambda token, idx: self.model.is_punctuation(token, punctuation)
 
         # Gather all in a list of conditions
         conds = [punctuation_cond, stopwords_cond, subword_cond]
@@ -569,8 +556,10 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # Add punctuation in the sampling mask. This means that the
             # punctuation will not be considered when sampling for the masked words.
-            if not perturb_opts.get('sample_punctuation', False) and \
-                    self.model.is_punctuation(token, perturb_opts.get('punctuation', string.punctuation)):
+            sample_punctuation: bool = perturb_opts.get('sample_punctuation', False)
+            punctuation: str = perturb_opts.get('punctuation', '')
+
+            if (not sample_punctuation) and self.model.is_punctuation(token, punctuation):
                 self.subwords_mask[vocab[token]] = True
 
         # define indices of the words which can be perturbed
@@ -632,7 +621,7 @@ class LanguageModelSampler(AnchorTextSampler):
             in the instance to be explained.
         """
         # Create the mask
-        data, raw = self.create_mask(
+        raw, data = self.create_mask(
             anchor=anchor,
             num_samples=num_samples,
             sample_proba=sample_proba,
@@ -682,11 +671,11 @@ class LanguageModelSampler(AnchorTextSampler):
 
         Returns
         -------
+        raw
+            Array with masked instances.
         data
             A (num_samples, m)-dimensional boolean array, where m is the number of tokens
             in the instance to be explained.
-        raw
-            List with masked instances.
         """
         # make sure that prec_mask_templates is in [0, 1]
         prec_mask_templates = np.clip(prec_mask_templates, 0, 1)
@@ -740,7 +729,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         # join words
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype_sent)
-        return data, raw
+        return raw, data
 
     def _append_tail(self, raw: np.ndarray) -> np.array:
         """
@@ -839,8 +828,7 @@ class LanguageModelSampler(AnchorTextSampler):
         raw = self.model.tokenizer.batch_decode(tokens, **dict(skip_special_tokens=True))
         return np.array(raw), data
 
-    def _remove_subwords(self, raw: np.array, row: int, col: int,
-                         punctuation: str = string.punctuation, **kwargs) -> np.array:
+    def _remove_subwords(self, raw: np.array, row: int, col: int, punctuation: str = '', **kwargs) -> np.array:
         """
         Deletes the subwords that follow a given token identified by the (row, col) pair in the `raw` matrix.
         A token is considered to be part of a word if is not a punctuation and if has the subword prefix
@@ -1391,7 +1379,7 @@ class AnchorText(Explainer):
                 self.model.select_entire_word(
                     self.perturbation.head_tokens,
                     idx_feature,
-                    perturb_opts.get('punctuation', string.punctuation)
+                    perturb_opts.get('punctuation', '')
                 ) for idx_feature in features
             ]
             # TODO: see what happens to positions

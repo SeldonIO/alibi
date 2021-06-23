@@ -10,6 +10,16 @@ from transformers import AutoModelForMaskedLM, AutoTokenizer
 
 class LanguageModel(abc.ABC):
     def __init__(self, model_path: str, device: str = "cuda"):
+        """
+        Initialize the language model.
+
+        Parameters
+        ----------
+        model_path
+            `transformers` package model path.
+        device
+            Device to use: cpu or cuda.
+        """
         self.model_path = model_path
         self.device = torch.device(device)
 
@@ -56,12 +66,7 @@ class LanguageModel(abc.ABC):
         # define the ending index
         end_idx = start_idx + 1
 
-        # while the token under the ending index is a subword
-        while end_idx < len(text):
-            # stop if is not subword or is punctuation
-            if (not self.is_subword_prefix(text[end_idx])) or (self.is_punctuation(text[end_idx], punctuation)):
-                break
-
+        while (end_idx < len(text)) and self.is_subword_prefix(text[end_idx]):
             end_idx += 1
 
         # convert the tokens into a string
@@ -100,9 +105,9 @@ class LanguageModel(abc.ABC):
 
         Parameters
         ----------
-        token:
+        token
             Token to be checked if it is punctuation.
-        punctuation:
+        punctuation
             String containing all punctuation to be considered.
 
         Returns
@@ -115,14 +120,23 @@ class LanguageModel(abc.ABC):
     @property
     @abc.abstractmethod
     def mask(self) -> str:
+        """
+        Returns the mask token.
+        """
         pass
 
     @property
     def mask_token(self) -> int:
+        """
+        Returns the mask token id
+        """
         return self.tokenizer.mask_token_id
 
     @property
     def max_num_tokens(self) -> int:
+        """
+        Returns the maximum number of token allowed by the model.
+        """
         return self.model.config.max_position_embeddings
 
     def head_tail_split(self, text: str) -> Tuple[str, Optional[str], List[str], Optional[List[str]]]:
@@ -141,26 +155,26 @@ class LanguageModel(abc.ABC):
         -------
         Tuple consisting of the head, tail and their corresponding list of tokens.
         """
+        text = text.strip()
+        if len(text) == 0:
+            raise ValueError("The text is empty")
+
         # data = `This is not a wordy sentence` -> tokens = [this, is, not, a, word, ##y, sentence, .]
         tokens: List[str] = self.tokenizer.tokenize(text)
 
         # some models do not have a max length restrictions (e.g. XLNet)
-        if self.max_num_tokens == -1:
+        if self.max_num_tokens == -1 or len(tokens) <= self.max_num_tokens:
             return text, None, tokens, []
 
         # head's length
         head_num_tokens = self.max_num_tokens
 
-        # if the text is larger then the maximum number of tokens,
-        # then it needs to be split in head and tail
-        if head_num_tokens < len(tokens):
+        # decrease the head length so it contains full words
+        while (head_num_tokens > 0) and self.is_subword_prefix(tokens[head_num_tokens]):
+            head_num_tokens -= 1
 
-            # decrease the head length so it contains full words
-            while (head_num_tokens > 0) and self.is_subword_prefix(tokens[head_num_tokens]):
-                head_num_tokens -= 1
-
-            if head_num_tokens == 0:
-                raise ValueError("Check the first word in the sentence. Seems it is a very long word")
+        if head_num_tokens == 0:
+            raise ValueError("Check the first word in the sentence. Seems it is a very long word")
 
         ids = self.tokenizer.convert_tokens_to_ids(tokens[:head_num_tokens])
         head_text = self.tokenizer.decode(ids).strip()
@@ -263,42 +277,40 @@ class RobertaBase(LanguageModel):
         return RobertaBase.SUBWORD_PREFIX not in token
 
 
-
-
 # def test_functionalities(lm: LanguageModel, text):
 #     stopwords = ['and', 'the', 'but', 'a', 'this']
-
+#
 #     tokens = lm.tokenizer.tokenize(text)
 #     string_tokens = lm.tokenizer.convert_tokens_to_string(tokens)
-
+#
 #     print("Tokens:", tokens)
 #     print("String:", string_tokens)
 #     print("Ids:", lm.tokenizer.convert_tokens_to_ids(tokens))
-
+#
 #     stopwords = [token for i, token in enumerate(tokens) if lm.is_stop_word(
 #                                                             text=tokens,
 #                                                             start_idx=i,
 #                                                             punctuation=string.punctuation,
 #                                                             stopwords=stopwords)]
 #     print("Stopwords:", stopwords)
-
+#
 #     punctuation = [token for token in tokens if lm.is_punctuation(token, string.punctuation)]
 #     print("Punctuation:", punctuation)
-
-
+#
+#
 # if __name__ == "__main__":
 #     text = "this and this this is a first sentence !?! but nothing afterwards don't matter..."
-
+#
 #     print("\n\n RobertaBase \n =============== \n")
 #     lm = RobertaBase()
 #     test_functionalities(lm, text)
 #     del lm
-
+#
 #     print("\n\n BertBaseUncased \n =============== \n")
 #     lm = BertBaseUncased()
 #     test_functionalities(lm, text)
 #     del lm
-
+#
 #     print("\n\n DistilbertBaseUncased \n =============== \n")
 #     lm = DistilbertBaseUncased()
 #     test_functionalities(lm, text)

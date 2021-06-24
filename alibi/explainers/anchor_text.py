@@ -1,9 +1,11 @@
 import sys
 import copy
-import torch
 import string
 import logging
 import numpy as np
+import tensorflow as tf
+import tensorflow_probability as tfp
+
 from tqdm import tqdm
 from copy import deepcopy
 from functools import partial
@@ -550,7 +552,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         # Define masking sampling tensor. This tensor is used to avoid sampling
         # certain tokens from the vocabulary such as: subwords, punctuation, etc.
-        self.subwords_mask = torch.zeros(len(vocab.keys()), dtype=torch.bool)
+        self.subwords_mask = np.zeros(len(vocab.keys()), dtype=np.bool_)
 
         for token in vocab:
             # Add subwords in the sampling mask. This means that subwords
@@ -876,7 +878,7 @@ class LanguageModelSampler(AnchorTextSampler):
                                     batch_size_lm: int = 32,
                                     temperature: float = 1.0,
                                     use_lm_proba: bool = True,
-                                    **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
+                                    **kwargs) -> Tuple[np.array, np.ndarray]:
         """
         Perturb the instances in a single forward pass (parallel).
 
@@ -918,17 +920,17 @@ class LanguageModelSampler(AnchorTextSampler):
         # (mask_template x max_length_sentence x num_tokens)
         logits = self.model.predict_batch_lm(
             x=tokens_plus,
-            device=self.model.device,
             vocab_size=self.model.tokenizer.vocab_size,
             batch_size=batch_size_lm
         )
 
         # select rows and cols where the input the tokens are masked
         tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)
-        mask_row, mask_col = torch.where(tokens == self.model.mask_token)
+        mask_pos = tf.where(tokens == self.model.mask_token)
+        mask_row, mask_col = mask_pos[:, 0], mask_pos[:, 1]
 
         # buffer containing sampled tokens
-        sampled_tokens = torch.zeros(num_samples, tokens.shape[1], dtype=torch.long)
+        sampled_tokens = tf.zeros((num_samples, tokens.shape[1]), dtype=tf.int32)
         sampled_data = np.zeros((num_samples, data.shape[1]))
 
         # initialize offset
@@ -936,7 +938,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         for i in range(logits.shape[0]):
             # select indices corresponding to the current row `i`
-            idx = torch.where(mask_row == i)[0]
+            idx = tf.reshape(tf.where(mask_row == i)[0], shape=-1)
 
             # select columns corresponding to the current row `i`
             cols = mask_col[idx]
@@ -948,12 +950,12 @@ class LanguageModelSampler(AnchorTextSampler):
             logits_mask[:, self.subwords_mask] = -np.inf
 
             # select top n tokens from each distribution
-            top_k = torch.topk(logits_mask, top_n, dim=1)
+            top_k = tf.math.top_k(logits_mask, top_n)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
-            dist = torch.distributions.Categorical(logits=top_k_logits)
+            dist = tfp.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
             for j in range(mult_factor + int(reminder > 0)):
@@ -961,11 +963,11 @@ class LanguageModelSampler(AnchorTextSampler):
                 idx = i * mult_factor + j + offset
 
                 # Sample indices
-                ids_k = dist.sample().reshape(-1, 1)
+                ids_k = dist.sample()
 
                 # Set the unmasked tokens and for the masked one and replace them with the samples drawn
                 sampled_tokens[idx] = tokens[i]
-                sampled_tokens[idx, cols] = torch.reshape(top_k_tokens.gather(1, ids_k), (-1,))
+                sampled_tokens[idx, cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
 
             # Add the original binary mask which marks the beginning of a masked
             # word, as is needed for the anchor algorithm (backend stuff)
@@ -977,7 +979,8 @@ class LanguageModelSampler(AnchorTextSampler):
             offset += int(reminder > 0)
 
         # Check that there are not masked tokens left
-        assert torch.all(sampled_tokens != self.model.mask_token)
+        sampled_tokens = sampled_tokens.numpy()
+        assert np.all(sampled_tokens != self.model.mask_token)
         return sampled_tokens, sampled_data
 
     def _perturb_instance_ar(self,
@@ -988,7 +991,7 @@ class LanguageModelSampler(AnchorTextSampler):
                              batch_size: int = 32,
                              temperature: float = 1.0,
                              use_lm_proba: bool = True,
-                             **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
+                             **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the instances in an autoregressive fashion (sequential).
 
@@ -1017,7 +1020,6 @@ class LanguageModelSampler(AnchorTextSampler):
             Binary array havin 0 where the tokens were masked.
             Has `num_samples` rows.
         """
-
         # number of samples to generate per mask template
         assert num_samples == len(raw)
 
@@ -1028,11 +1030,11 @@ class LanguageModelSampler(AnchorTextSampler):
         # store the column indices for each row where a token is a mask
         masked_idx = []
         max_len_idx = -1
-        mask_row, mask_col = torch.where(tokens == self.model.mask_token)
+        mask_row, mask_col = tf.where(tokens == self.model.mask_token)
 
         for i in range(tokens.shape[0]):
             # get the columns indexes and store them in the buffer
-            idx = torch.where(mask_row == i)[0]
+            idx = tf.reshape(tf.where(mask_row == i)[0], shape=-1)
             cols = mask_col[idx]
             masked_idx.append(cols)
 
@@ -1055,7 +1057,6 @@ class LanguageModelSampler(AnchorTextSampler):
             # compute logits
             logits = self.model.predict_batch_lm(
                 tokens_plus,
-                self.model.device,
                 self.model.tokenizer.vocab_size,
                 batch_size
             )
@@ -1064,21 +1065,21 @@ class LanguageModelSampler(AnchorTextSampler):
             logits_mask = logits[masked_rows, masked_cols, :]
 
             # mask out words according to the subword_mask
-            logits_mask[:, self.subwords_mask.long()] = -np.inf
+            logits_mask[:, self.subwords_mask] = -np.inf
 
             # select top n tokens from each distribution
-            top_k = torch.topk(logits_mask, top_n, dim=1)
+            top_k = tf.math.top_k(logits_mask, top_n, dim=1)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
-            dist = torch.distributions.Categorical(logits=top_k_logits)
+            dist = tfp.distributions.Categorical(logits=top_k_logits)
 
             # sample indexes
             ids_k = dist.sample().reshape(-1, 1)
 
             # replace masked tokens with the sampled one
-            tokens[masked_rows, masked_cols] = torch.reshape(top_k_tokens.gather(1, ids_k), (-1,))
+            tokens[masked_rows, masked_cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
 
         return tokens, data
 

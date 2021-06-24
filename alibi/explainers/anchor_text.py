@@ -411,7 +411,7 @@ class SimilaritySampler(AnchorTextSampler):
 
                 if use_similarity_proba:  # use similarity scores to sample changed tokens
                     weights = self.synonyms[t.text]['similarities']
-                    weights = weights ** (1. / temperature)  # weighting by temperature
+                    weights = np.exp(weights / temperature)  # weighting by temperature (check previous implementation)
                     weights = weights / sum(weights)
                 else:
                     weights = np.ones((t_neighbors.shape[0],))
@@ -484,8 +484,9 @@ class LanguageModelSampler(AnchorTextSampler):
         stopwords
             List of stopwords.
         """
-        # transform stopword to lowercase
-        stopwords = [w.lower() for w in stopwords]
+        # transform stopwords to lowercase
+        if stopwords:
+            stopwords = [w.lower() for w in stopwords]
 
         # Initialize list of indices allowed to be perturbed
         ids_sample = list(np.arange(len(self.head_tokens)))
@@ -874,6 +875,7 @@ class LanguageModelSampler(AnchorTextSampler):
                                     top_n: int = 1,
                                     batch_size_lm: int = 32,
                                     temperature: float = 1.0,
+                                    use_lm_proba: bool = True,
                                     **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
         """
         Perturb the instances in a single forward pass (parallel).
@@ -892,6 +894,9 @@ class LanguageModelSampler(AnchorTextSampler):
             Batch size used for language model.
         temperature
             Sample weight hyper-parameter.
+        use_lm_proba
+            Bool whether to sample according to the predicted words distribution
+
 
         Returns
         -------
@@ -947,7 +952,7 @@ class LanguageModelSampler(AnchorTextSampler):
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits /= temperature
+            top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
             dist = torch.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
@@ -982,6 +987,7 @@ class LanguageModelSampler(AnchorTextSampler):
                              top_n: int = 1,
                              batch_size: int = 32,
                              temperature: float = 1.0,
+                             use_lm_proba: bool = True,
                              **kwargs) -> Tuple[torch.Tensor, np.ndarray]:
         """
         Perturb the instances in an autoregressive fashion (sequential).
@@ -999,6 +1005,8 @@ class LanguageModelSampler(AnchorTextSampler):
             Batch size used for language model.
         temperature
             Sample weight hyper-parameter.
+        use_lm_proba
+            Bool whether to sample according to the predicted words distribution
 
         Returns
         -------
@@ -1063,7 +1071,7 @@ class LanguageModelSampler(AnchorTextSampler):
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits /= temperature
+            top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
             dist = torch.distributions.Categorical(logits=top_k_logits)
 
             # sample indexes

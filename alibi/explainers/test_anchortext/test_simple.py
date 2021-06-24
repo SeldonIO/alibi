@@ -10,6 +10,9 @@ from alibi.utils.lang_model import *
                          )
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 def test_punctuation(text, min_num, lang_model):
+    """
+    Checks if the language model can identify punctuation correctly
+    """
     head, tail, head_tokens, tail_tokens = lang_model.head_tail_split(text)
 
     # assert head
@@ -43,6 +46,9 @@ def test_punctuation(text, min_num, lang_model):
                          )
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 def test_stopwords(text, stopwords, lang_model):
+    """
+    Checks if the language model can identify stopwords correctly
+    """
     head, tail, head_tokens, tail_tokens = lang_model.head_tail_split(text)
 
     # head assertions

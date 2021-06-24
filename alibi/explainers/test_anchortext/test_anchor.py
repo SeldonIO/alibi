@@ -88,7 +88,6 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
             if lang_model.is_punctuation(token, string.punctuation):
                 punctuation.append(token.strip())
 
-
         # select all words without punctuation
         words = []
 

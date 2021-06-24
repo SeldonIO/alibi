@@ -14,11 +14,14 @@ from alibi.explainers.tests.utils import predict_fcn
 @pytest.mark.parametrize('punctuation', ['', string.punctuation])
 @pytest.mark.parametrize('stopwords', [[], ['a', 'the', 'but', 'this', 'there', 'those', 'an']])
 def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation, stopwords):
+    """
+    Checks if the anchor precision exceeds the threshold
+    """
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
     # select 10 examples
-    n = 1
+    n = 10
     np.random.seed(0)
     idx = np.random.choice(len(X_test), size=n, replace=False)
 
@@ -40,6 +43,7 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation,
         "temperature": 1.0,
         "top_n": 100,
         "threshold": 0.95,
+        "proc_mask_templates": 0.1,
         "stopwords": stopwords,
         "punctuation": punctuation,
     }
@@ -64,6 +68,10 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation,
 @pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
 def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_method,
                                movie_sentiment_data, sample_proba, nlp):
+    """
+    Checks if the sampling procedure affect the stopwords and the
+    punctuation when is not supposed to.
+    """
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
@@ -129,6 +137,9 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
                              ('word1 word2 word3 word4 word5', 6)
                          ])
 def test_split(lang_model, head_gt, num_tokens):
+    """
+    Check if the split head-tail is correctly performed
+    """
     # initalize sampler
     sampler = LanguageModelSampler(model=lang_model)
 
@@ -149,6 +160,9 @@ def test_split(lang_model, head_gt, num_tokens):
 @pytest.mark.parametrize('sample_proba', [0.1, 0.3, 0.5, 0.6, 0.7, 0.9])
 @pytest.mark.parametrize('filling_method', ['parallel', 'autoregressive'])
 def test_mask(lang_model, num_tokens, sample_proba, filling_method):
+    """
+    Tests the mean number of masked tokens match the expected one.
+    """
     # define text
     text = 'word ' * num_tokens
 
@@ -181,6 +195,9 @@ def test_mask(lang_model, num_tokens, sample_proba, filling_method):
 @pytest.mark.parametrize('punctuation', [string.punctuation])
 @pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
 def test_sample_punctuation(lang_model, punctuation, filling_method, movie_sentiment_data, sample_proba):
+    """
+    Check if the punctuation is not sampled when flag is set.
+    """
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 

@@ -272,9 +272,42 @@ class RobertaBase(LanguageModel):
         return RobertaBase.SUBWORD_PREFIX not in token
 
 
+class LanguageModelFactory:
+    TRANSFORMERS = {
+        "distilbert-base-uncased",
+        "bert-base-uncased",
+        "roberta-base"
+    }
+
+    TRANSFORMERS_CLASSES = {
+        "distilbert-base-uncased": DistilbertBaseUncased,
+        "bert-base-uncased": BertBaseUncased,
+        "roberta-base": RobertaBase
+    }
+
+    @classmethod
+    def get_language_model(cls, model_path: str) -> LanguageModel:
+        """
+        Constructs the desired language model.
+
+        Parameters
+        ----------
+        model_path
+            `transformers` model path. See TRANSFORMES for allowed values.
+
+        Returns
+        -------
+        model
+            Language model for AnchorText sampler.
+        """
+        if model_path not in cls.TRANSFORMERS:
+            raise ValueError(f"{model_path} transformer is not supported.")
+
+        return cls.TRANSFORMERS_CLASSES[model_path]()
+
 # def test_functionalities(lm: LanguageModel, text):
 #     stopwords = ['and', 'the', 'but', 'a', 'this']
-# 
+#
 #     tokens = lm.tokenizer.tokenize(text)
 #     string_tokens = lm.tokenizer.convert_tokens_to_string(tokens)
 #

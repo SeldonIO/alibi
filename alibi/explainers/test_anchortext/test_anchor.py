@@ -44,7 +44,9 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
     sample_proba = 0.5
     top_n = 500
     temperature = 1
-    n_covered_ex = 5  # number of examples where the anchor applies to be retruned
+    prec_mask_templates = 0.1
+    coverage_samples=10
+    n_covered_ex = 5# number of examples where the anchor applies to be retruned
 
     # fit and initialize predictor
     clf, preprocessor = lr_classifier
@@ -61,6 +63,8 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         'sample_proba': sample_proba,
         'temperature': temperature,
         'top_n': top_n,
+        'coverage_samples': coverage_samples,
+        "prec_maks_templates": prec_mask_templates
     }
 
     # set sampler

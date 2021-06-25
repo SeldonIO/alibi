@@ -92,6 +92,7 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
         "sample_proba": sample_proba,
         "punctuation": punctuation,
         "stopwords": stopwords,
+        "prec_mask_templates": 0.1,
     }
 
     for i in range(n):

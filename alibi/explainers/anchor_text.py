@@ -919,7 +919,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         # fill in masks with language model
         # (mask_template x max_length_sentence x num_tokens)
-        logits = self.model.predict_batch_lm(
+        logits: np.ndarray = self.model.predict_batch_lm(
             x=tokens_plus,
             vocab_size=self.model.tokenizer.vocab_size,
             batch_size=batch_size_lm
@@ -1021,21 +1021,22 @@ class LanguageModelSampler(AnchorTextSampler):
             Has `num_samples` rows.
         """
         # number of samples to generate per mask template
-        assert num_samples == len(raw)
-
+        assert num_samples == raw.shape[0]
+        
         # tokenize instances
-        tokens_plus = self.model.tokenizer.batch_encode_plus(list(raw), padding=True, return_tensors='pt')
-        tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)
-
+        tokens_plus = self.model.tokenizer.batch_encode_plus(list(raw), padding=True, return_tensors='tf')
+        tokens = tokens_plus['input_ids'].numpy()  # (mask_template x max_length_sentence)
+        
         # store the column indices for each row where a token is a mask
         masked_idx = []
         max_len_idx = -1
-        mask_row, mask_col = tf.where(tokens == self.model.mask_token)
+        mask_pos = tf.where(tokens == self.model.mask_token)
+        mask_row, mask_col = mask_pos[:, 0], mask_pos[:, 1]
 
         for i in range(tokens.shape[0]):
             # get the columns indexes and store them in the buffer
-            idx = tf.reshape(tf.where(mask_row == i)[0], shape=-1)
-            cols = mask_col[idx]
+            idx = tf.reshape(tf.where(mask_row == i), shape=-1)
+            cols = tf.gather(mask_col, idx)
             masked_idx.append(cols)
 
             # update maximum length
@@ -1055,7 +1056,7 @@ class LanguageModelSampler(AnchorTextSampler):
                 masked_cols.append(masked_idx[row][i])
 
             # compute logits
-            logits = self.model.predict_batch_lm(
+            logits: np.ndarray = self.model.predict_batch_lm(
                 tokens_plus,
                 self.model.tokenizer.vocab_size,
                 batch_size
@@ -1066,21 +1067,21 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # mask out words according to the subword_mask
             logits_mask[:, self.subwords_mask] = -np.inf
-
+            
             # select top n tokens from each distribution
-            top_k = tf.math.top_k(logits_mask, top_n, dim=1)
+            top_k = tf.math.top_k(logits_mask, top_n)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
             dist = tfp.distributions.Categorical(logits=top_k_logits)
-
+            
             # sample indexes
-            ids_k = dist.sample().reshape(-1, 1)
-
+            ids_k = dist.sample()
+            
             # replace masked tokens with the sampled one
             tokens[masked_rows, masked_cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
-
+        
         return tokens, data
 
     def set_data_type(self) -> None:

@@ -16,11 +16,11 @@ _valid_output_shape_type: List = [tuple, list]
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                layer: Union[tf.keras.layers.Layer],
-                               orig_dummy_input: Union[list, np.ndarray],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
                                start_point: Union[List[np.ndarray], np.ndarray],
                                end_point: Union[List[np.ndarray], np.ndarray],
+                               inp_kwargs: Optional[dict],
                                target: Optional[List[int]],
                                _is_list: bool,
                                layer_inputs_attributions: bool) -> np.ndarray:
@@ -35,9 +35,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     layer
         Layer for which attributions are computed.
         If None, attributions are assumed to be computed with respect to the model inputs.
-    orig_dummy_input
-        Dummy input needed to initiate the model forward call when start_point, end_point and attributions refer to
-        an internal layer. The correct values layer input are overwritten during the forward call.
     input_dtypes
         List with data types of the inputs.
     attributions
@@ -46,6 +43,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
         Baselines.
     end_point
         Data points.
+    inp_kwargs
+        Input keywords args.
     target
         Target for which the gradients are calculated for classification models.
     _is_list
@@ -77,25 +76,25 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
             raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
-    if layer is not None:
-        orig_call = layer.call
-        start_out = _run_forward_from_layer(model,
-                                            layer,
-                                            orig_call,
-                                            orig_dummy_input,
-                                            start_point,
-                                            target,
-                                            run_from_layer_inputs=layer_inputs_attributions)
-        end_out = _run_forward_from_layer(model,
-                                          layer,
-                                          orig_call,
-                                          orig_dummy_input,
-                                          end_point,
-                                          target,
-                                          run_from_layer_inputs=layer_inputs_attributions)
-    else:
-        start_out = _run_forward(model, start_point, target)
-        end_out = _run_forward(model, end_point, target)
+    #if layer is not None:
+    #    orig_call = layer.call
+    #    start_out = _run_forward_from_layer(model,
+    #                                        layer,
+    #                                        orig_call,
+    #                                        orig_dummy_input,
+    #                                        start_point,
+    #                                        target,
+    #                                        run_from_layer_inputs=layer_inputs_attributions)
+    #    end_out = _run_forward_from_layer(model,
+    #                                      layer,
+    #                                      orig_call,
+    #                                      orig_dummy_input,
+    #                                      end_point,
+    #                                      target,
+    #                                      run_from_layer_inputs=layer_inputs_attributions)
+    #else:
+    start_out = _run_forward(model, start_point, target, inp_kwargs=inp_kwargs)
+    end_out = _run_forward(model, end_point, target, inp_kwargs=inp_kwargs)
 
     if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
@@ -763,8 +762,10 @@ class IntegratedGradients(Explainer):
         self._is_np = isinstance(X, np.ndarray)
 
         if self._is_list:
-            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
+            self.orig_dummy_input = [np.zeros((self.internal_batch_size,) + xx.shape[1:], dtype=xx.dtype)
+                                     for xx in X]  # type: ignore
             nb_samples = len(X[0])
+            input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
             if baselines is None:
                 baselines = [None for _ in range(len(X))]
@@ -787,8 +788,9 @@ class IntegratedGradients(Explainer):
                 baselines[i] = baseline  # type: ignore
 
         elif self._is_np:
-            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
+            self.orig_dummy_input = np.zeros((self.internal_batch_size,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
+            input_dtypes = X.dtype
             # Formatting baselines for models with a single input
             baselines = _format_baseline(X, baselines)
 
@@ -812,14 +814,14 @@ class IntegratedGradients(Explainer):
 
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
-                attributions, deltas = self._compute_attributions_list_input(X,
-                                                                             baselines,
-                                                                             target,
-                                                                             step_sizes,
-                                                                             alphas,
-                                                                             nb_samples,
-                                                                             inp_kwargs,
-                                                                             compute_layer_inputs_gradients)
+                attributions = self._compute_attributions_list_input(X,
+                                                                     baselines,
+                                                                     target,
+                                                                     step_sizes,
+                                                                     alphas,
+                                                                     nb_samples,
+                                                                     inp_kwargs,
+                                                                     compute_layer_inputs_gradients)
 
             else:
                 # forwad inputs and  baselines
@@ -832,23 +834,23 @@ class IntegratedGradients(Explainer):
                                                                    forward_to_inputs=compute_layer_inputs_gradients)
 
                 if isinstance(X_layer, list) and isinstance(baselines_layer, list):
-                    attributions, deltas = self._compute_attributions_list_input(X_layer,
-                                                                                 baselines_layer,
-                                                                                 target,
-                                                                                 step_sizes,
-                                                                                 alphas,
-                                                                                 nb_samples,
-                                                                                 inp_kwargs,
-                                                                                 compute_layer_inputs_gradients)
+                    attributions = self._compute_attributions_list_input(X_layer,
+                                                                         baselines_layer,
+                                                                         target,
+                                                                         step_sizes,
+                                                                         alphas,
+                                                                         nb_samples,
+                                                                         inp_kwargs,
+                                                                         compute_layer_inputs_gradients)
                 else:
-                    attributions, deltas = self._compute_attributions_tensor_input(X_layer,
-                                                                                   baselines_layer,
-                                                                                   target,
-                                                                                   step_sizes,
-                                                                                   alphas,
-                                                                                   nb_samples,
-                                                                                   inp_kwargs,
-                                                                                   compute_layer_inputs_gradients)
+                    attributions = self._compute_attributions_tensor_input(X_layer,
+                                                                           baselines_layer,
+                                                                           target,
+                                                                           step_sizes,
+                                                                           alphas,
+                                                                           nb_samples,
+                                                                           inp_kwargs,
+                                                                           compute_layer_inputs_gradients)
 
         else:
             # Attributions calculation in case of single input
@@ -859,14 +861,14 @@ class IntegratedGradients(Explainer):
             _validate_output(self.model, target)
 
             if self.layer is None:
-                attributions, deltas = self._compute_attributions_tensor_input(X,
-                                                                               baselines,
-                                                                               target,
-                                                                               step_sizes,
-                                                                               alphas,
-                                                                               nb_samples,
-                                                                               inp_kwargs,
-                                                                               compute_layer_inputs_gradients)
+                attributions = self._compute_attributions_tensor_input(X,
+                                                                       baselines,
+                                                                       target,
+                                                                       step_sizes,
+                                                                       alphas,
+                                                                       nb_samples,
+                                                                       inp_kwargs,
+                                                                       compute_layer_inputs_gradients)
 
             else:
                 # forwad inputs and  baselines
@@ -879,23 +881,34 @@ class IntegratedGradients(Explainer):
                                                                    forward_to_inputs=compute_layer_inputs_gradients)
 
                 if isinstance(X_layer, list) and isinstance(baselines_layer, list):
-                    attributions, deltas = self._compute_attributions_list_input(X_layer,
-                                                                                 baselines_layer,
-                                                                                 target,
-                                                                                 step_sizes,
-                                                                                 alphas,
-                                                                                 nb_samples,
-                                                                                 inp_kwargs,
-                                                                                 compute_layer_inputs_gradients)
+                    attributions = self._compute_attributions_list_input(X_layer,
+                                                                         baselines_layer,
+                                                                         target,
+                                                                         step_sizes,
+                                                                         alphas,
+                                                                         nb_samples,
+                                                                         inp_kwargs,
+                                                                         compute_layer_inputs_gradients)
                 else:
-                    attributions, deltas = self._compute_attributions_tensor_input(X_layer,
-                                                                                   baselines_layer,
-                                                                                   target,
-                                                                                   step_sizes,
-                                                                                   alphas,
-                                                                                   nb_samples,
-                                                                                   inp_kwargs,
-                                                                                   compute_layer_inputs_gradients)
+                    attributions = self._compute_attributions_tensor_input(X_layer,
+                                                                           baselines_layer,
+                                                                           target,
+                                                                           step_sizes,
+                                                                           alphas,
+                                                                           nb_samples,
+                                                                           inp_kwargs,
+                                                                           compute_layer_inputs_gradients)
+        # calculate convergence deltas
+        deltas = _compute_convergence_delta(self.model,
+                                            self.layer,
+                                            input_dtypes,
+                                            attributions,
+                                            baselines,
+                                            X,
+                                            inp_kwargs,
+                                            target,
+                                            self._is_list,
+                                            compute_layer_inputs_gradients)
 
         return self.build_explanation(
             X=X,
@@ -937,7 +950,7 @@ class IntegratedGradients(Explainer):
                                          alphas: List[float],
                                          nb_samples: int,
                                          inp_kwargs: Optional[dict],
-                                         compute_layer_inputs_gradients: bool) -> Tuple:
+                                         compute_layer_inputs_gradients: bool) -> List:
         """For each tensor in a list of input tensors,
         calculates the attributions for each feature or element of layer.
 
@@ -965,7 +978,7 @@ class IntegratedGradients(Explainer):
 
         """
         # TODO include inp_kwargs. Replacee origi_dummy_input with real input
-        input_dtypes = [xx.dtype for xx in X]
+        attrs_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
         paths = []
@@ -990,17 +1003,18 @@ class IntegratedGradients(Explainer):
         if inp_kwargs is not None:
             if target_paths is not None:
                 paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (paths_kwargs, target_paths)).batch(5)
+                                                              (paths_kwargs,
+                                                               target_paths)).batch(self.internal_batch_size)
             else:
                 paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (paths_kwargs,)).batch(5)
+                                                              (paths_kwargs,)).batch(self.internal_batch_size)
 
         else:
             if target_paths is not None:
                 paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (target_paths,)).batch(5)
+                                                              (target_paths,)).batch(self.internal_batch_size)
             else:
-                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths)).batch(5)
+                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths)).batch(self.internal_batch_size)
 
         paths_ds.as_numpy_iterator()
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
@@ -1021,7 +1035,7 @@ class IntegratedGradients(Explainer):
                 else:
                     paths_b, kwargs_b, target_b = path, None, None
 
-            paths_b = [tf.dtypes.cast(paths_b[i], input_dtypes[i]) for i in range(len(paths_b))]
+            paths_b = [tf.dtypes.cast(paths_b[i], attrs_dtypes[i]) for i in range(len(paths_b))]
 
             if self.layer is None:
                 grads_b = _gradients_input(self.model, paths_b, target_b, inp_kwargs=kwargs_b)
@@ -1038,11 +1052,11 @@ class IntegratedGradients(Explainer):
             batches.append(grads_b)
 
         # multi-input
-        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(input_dtypes))]
+        batches = [[batches[i][j] for i in range(len(batches))] for j in range(len(attrs_dtypes))]
 
         # calculate attributions from gradients batches
         attributions = []
-        for j in range(len(input_dtypes)):
+        for j in range(len(attrs_dtypes)):
             sum_int = _calculate_sum_int(batches, self.model,
                                          target, target_paths,
                                          self.n_steps, nb_samples,
@@ -1051,19 +1065,7 @@ class IntegratedGradients(Explainer):
             attribution = norm * sum_int
             attributions.append(attribution)
 
-        # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model,
-                                            self.layer,
-                                            self.orig_dummy_input,
-                                            input_dtypes,
-                                            attributions,
-                                            baselines,
-                                            X,
-                                            target,
-                                            self._is_list,
-                                            compute_layer_inputs_gradients)
-
-        return attributions, deltas
+        return attributions
 
     def _compute_attributions_tensor_input(self,
                                            X: Union[np.ndarray, tf.Tensor],
@@ -1073,7 +1075,7 @@ class IntegratedGradients(Explainer):
                                            alphas: List[float],
                                            nb_samples: int,
                                            inp_kwargs: Optional[dict],
-                                           compute_layer_inputs_gradients: bool) -> Tuple:
+                                           compute_layer_inputs_gradients: bool) -> List:
         """For a single input tensor, calculates the attributions for each input feature or element of layer.
 
         Parameters
@@ -1099,8 +1101,6 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
         """
         # TODO include inp_kwargs. Replacee origi_dummy_input with real input
-        input_dtypes = [xx.dtype for xx in X]
-
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
@@ -1175,16 +1175,4 @@ class IntegratedGradients(Explainer):
         attribution = norm * sum_int
         attributions.append(attribution)
 
-        # calculate convergence deltas
-        deltas = _compute_convergence_delta(self.model,
-                                            self.layer,
-                                            self.orig_dummy_input,
-                                            input_dtypes,
-                                            attributions,
-                                            baselines,
-                                            X,
-                                            target,
-                                            self._is_list,
-                                            compute_layer_inputs_gradients)
-
-        return attributions, deltas
+        return attributions

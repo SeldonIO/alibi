@@ -21,7 +21,7 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation,
     X_test = movie_sentiment_data['X_test']
 
     # select 10 examples
-    n = 10
+    n = 1
     np.random.seed(0)
     idx = np.random.choice(len(X_test), size=n, replace=False)
 
@@ -43,7 +43,7 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation,
         "temperature": 1.0,
         "top_n": 100,
         "threshold": 0.95,
-        "proc_mask_templates": 0.1,
+        "prec_mask_templates": 0.1,
         "stopwords": stopwords,
         "punctuation": punctuation,
     }

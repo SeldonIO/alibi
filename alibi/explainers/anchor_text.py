@@ -697,7 +697,7 @@ class LanguageModelSampler(AnchorTextSampler):
             # Otherwise compute the number of masking templates according to the precentage
             # passed as argument and make sure that at least one mask template is generated
             mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * prec_mask_templates))
-
+        
         # allocate memory
         data = np.ones((mask_templates, len(self.ids_sample)))
         raw = np.zeros((mask_templates, len(self.head_tokens)), dtype=self.dtype_token)
@@ -1147,7 +1147,7 @@ DEFAULT_SAPLING_LANGUAGE_MODEL = {
   "top_n": 100,
   "temperature": 1.0,
   "use_lm_proba": True,
-  "frac_mask_templates": 0.1,
+  "prec_mask_templates": 0.01,  #TOOD modify this to frac
   "batch_size_lm": 32,
   "punctuation": string.punctuation,
   "stopwords": [],
@@ -1449,11 +1449,11 @@ class AnchorText(Explainer):
             **kwargs,
         )  # type: Any
 
-        if sampling_method == self.SAMPLING_LANGUAGE_MODEL:
+        if self.sampling_method == self.SAMPLING_LANGUAGE_MODEL:
             # take the whole word (this point just to the first part of the word)
             features = [self.perturbation.ids_mapping[i] for i in result['feature']]
             result['names'] = [
-                self.model.select_entire_word(
+                self.perturbation.model.select_entire_word(
                     self.perturbation.head_tokens,
                     idx_feature,
                     self.perturbation.perturb_opts['punctuation']

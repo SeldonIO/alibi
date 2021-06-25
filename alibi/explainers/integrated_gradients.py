@@ -15,15 +15,13 @@ _valid_output_shape_type: List = [tuple, list]
 
 
 def _compute_convergence_delta(model: Union[tf.keras.models.Model],
-                               layer: Union[tf.keras.layers.Layer],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
                                start_point: Union[List[np.ndarray], np.ndarray],
                                end_point: Union[List[np.ndarray], np.ndarray],
-                               inp_kwargs: Optional[dict],
+                               forward_kwargs: Optional[dict],
                                target: Optional[List[int]],
-                               _is_list: bool,
-                               layer_inputs_attributions: bool) -> np.ndarray:
+                               _is_list: bool) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
     is to the difference between the model output at the baseline and the model output at the data point.
@@ -32,9 +30,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     ----------
     model
         Tensorflow or keras model.
-    layer
-        Layer for which attributions are computed.
-        If None, attributions are assumed to be computed with respect to the model inputs.
     input_dtypes
         List with data types of the inputs.
     attributions
@@ -43,15 +38,12 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
         Baselines.
     end_point
         Data points.
-    inp_kwargs
+    forward_kwargs
         Input keywords args.
     target
         Target for which the gradients are calculated for classification models.
     _is_list
         Whether the model's input is a list (multiple inputs) or a np array (single input).
-    layer_inputs_attributions
-        Whether the attributions refer to the layer's inputs or output in case of layer's attributions.
-        If True, it is assumed that the attributions refer to the inputs, if False that they refer to the outputs.
 
     Returns
     -------
@@ -76,25 +68,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
             raise NotImplementedError('input must be a tensorflow tensor or a numpy array')
         return sums
 
-    #if layer is not None:
-    #    orig_call = layer.call
-    #    start_out = _run_forward_from_layer(model,
-    #                                        layer,
-    #                                        orig_call,
-    #                                        orig_dummy_input,
-    #                                        start_point,
-    #                                        target,
-    #                                        run_from_layer_inputs=layer_inputs_attributions)
-    #    end_out = _run_forward_from_layer(model,
-    #                                      layer,
-    #                                      orig_call,
-    #                                      orig_dummy_input,
-    #                                      end_point,
-    #                                      target,
-    #                                      run_from_layer_inputs=layer_inputs_attributions)
-    #else:
-    start_out = _run_forward(model, start_point, target, inp_kwargs=inp_kwargs)
-    end_out = _run_forward(model, end_point, target, inp_kwargs=inp_kwargs)
+    start_out = _run_forward(model, start_point, target, forward_kwargs=forward_kwargs)
+    end_out = _run_forward(model, end_point, target, forward_kwargs=forward_kwargs)
 
     if (len(model.output_shape) == 1 or model.output_shape[-1] == 1) and target is not None:
         target_tensor = tf.cast(target, dtype=start_out.dtype)
@@ -146,7 +121,7 @@ def _select_target(preds: tf.Tensor,
 def _run_forward(model: Union[tf.keras.models.Model],
                  x: Union[List[tf.Tensor], List[np.ndarray]],
                  target: Union[None, tf.Tensor, np.ndarray, list],
-                 inp_kwargs: Optional[dict] = None) -> tf.Tensor:
+                 forward_kwargs: Optional[dict] = None) -> tf.Tensor:
     """
     Returns the output of the model. If the target is not `None`, only the output for the selected target is returned.
 
@@ -158,17 +133,17 @@ def _run_forward(model: Union[tf.keras.models.Model],
         Input data point.
     target
         Target for which the gradients are calculated for classification models.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     Returns
     -------
         Model output or model output after target selection for classification models.
 
     """
-    if inp_kwargs is None:
+    if forward_kwargs is None:
         preds = model(x)
     else:
-        preds = model(x, **inp_kwargs)
+        preds = model(x, **forward_kwargs)
 
     if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
@@ -182,7 +157,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
                             orig_dummy_input: Union[list, np.ndarray],
                             x: tf.Tensor,
                             target: Union[None, tf.Tensor, np.ndarray, list],
-                            inp_kwargs: Optional[dict] = None,
+                            forward_kwargs: Optional[dict] = None,
                             run_from_layer_inputs: bool = False,
                             select_target: bool = True) -> tf.Tensor:
     """
@@ -203,7 +178,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         Layer's inputs. The layer's status is overwritten with `x` during the forward call.
     target
         Target for the output position to be returned.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     run_from_layer_inputs
         If True, the forward pass starts from the layer's inputs, if False it starts from the layer's outputs.
@@ -237,10 +212,10 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         layer.call = decorator(layer.call)
 
     feed_layer(layer)
-    if inp_kwargs is None:
+    if forward_kwargs is None:
         preds = model(orig_dummy_input)
     else:
-        preds = model(orig_dummy_input, **inp_kwargs)
+        preds = model(orig_dummy_input, **forward_kwargs)
 
     delattr(layer, 'inp')
     delattr(layer, 'result')
@@ -256,7 +231,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
                           layer: tf.keras.layers.Layer,
                           orig_call: Callable,
                           x: Union[List[np.ndarray], np.ndarray],
-                          inp_kwargs: Optional[dict] = None,
+                          forward_kwargs: Optional[dict] = None,
                           run_to_layer_inputs: bool = False) -> tf.Tensor:
     """
     Executes a forward call from the model input to an internal layer output.
@@ -271,7 +246,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
         Original `call` method of the layer.
     x
         Model's inputs.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     run_to_layer_inputs
         If True, the layer's inputs are returned. If False, the layer's output's are returned.
@@ -300,10 +275,10 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
 
     # inp = tf.zeros((x.shape[0], ) + model.input_shape[1:])
     take_layer(layer)
-    if inp_kwargs is None:
+    if forward_kwargs is None:
         _ = model(x)
     else:
-        _ = model(x, **inp_kwargs)
+        _ = model(x, **forward_kwargs)
     layer_inp = layer.inp
     layer_out = layer.result
 
@@ -322,7 +297,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
                             model: tf.keras.Model,
                             layer: tf.keras.layers.Layer,
                             orig_call: Callable,
-                            inp_kwargs: Optional[dict] = None,
+                            forward_kwargs: Optional[dict] = None,
                             forward_to_inputs: bool = False) -> Tuple[Union[list, tf.Tensor], Union[list, tf.Tensor]]:
     """
     Forwards inputs and baselines to the layer's inputs or outputs.
@@ -339,7 +314,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
         Desired layer output.
     orig_call
         Original `call` method of layer.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     forward_to_inputs
         If True, X and bls are forwarded to the layer's input. If False, they are forwarded to the layer's outputs.
@@ -354,13 +329,13 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
                                         layer,
                                         orig_call,
                                         X,
-                                        inp_kwargs=inp_kwargs,
+                                        forward_kwargs=forward_kwargs,
                                         run_to_layer_inputs=forward_to_inputs)
         bls_layer = _run_forward_to_layer(model,
                                           layer,
                                           orig_call,
                                           bls,
-                                          inp_kwargs=inp_kwargs,
+                                          forward_kwargs=forward_kwargs,
                                           run_to_layer_inputs=forward_to_inputs)
 
         if isinstance(X_layer, tuple):
@@ -378,7 +353,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
 def _gradients_input(model: Union[tf.keras.models.Model],
                      x: List[tf.Tensor],
                      target: Union[None, tf.Tensor],
-                     inp_kwargs: Optional[dict] = None) -> List[tf.Tensor]:
+                     forward_kwargs: Optional[dict] = None) -> List[tf.Tensor]:
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
     with respect to each input feature.
@@ -391,7 +366,7 @@ def _gradients_input(model: Union[tf.keras.models.Model],
         Input data point.
     target
         Target for which the gradients are calculated if the output dimension is higher than 1.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     Returns
     -------
@@ -400,7 +375,7 @@ def _gradients_input(model: Union[tf.keras.models.Model],
     """
     with tf.GradientTape() as tape:
         tape.watch(x)
-        preds = _run_forward(model, x, target, inp_kwargs=inp_kwargs)
+        preds = _run_forward(model, x, target, forward_kwargs=forward_kwargs)
 
     grads = tape.gradient(preds, x)
 
@@ -413,7 +388,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
                      orig_dummy_input: Union[list, np.ndarray],
                      x: Union[List[tf.Tensor], tf.Tensor],
                      target: Union[None, tf.Tensor],
-                     inp_kwargs: Optional[dict] = None,
+                     forward_kwargs: Optional[dict] = None,
                      compute_layer_inputs_gradients: bool = False) -> tf.Tensor:
     """
     Calculates the gradients of the target class output (or the output if the output dimension is equal to 1)
@@ -432,7 +407,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         Input data point.
     target
         Target for which the gradients are calculated if the output dimension is higher than 1.
-    inp_kwargs
+    forward_kwargs
         Input keyword args.
     compute_layer_inputs_gradients
         If True, gradients are computed with respect to the layer's inputs.
@@ -476,7 +451,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
-        preds = _run_forward(model, orig_dummy_input, target, inp_kwargs=inp_kwargs)
+        preds = _run_forward(model, orig_dummy_input, target, forward_kwargs=forward_kwargs)
 
     if compute_layer_inputs_gradients:
         grads = tape.gradient(preds, layer.inp)
@@ -724,10 +699,10 @@ class IntegratedGradients(Explainer):
 
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
-                inp_kwargs: Optional[dict] = None,
+                forward_kwargs: Optional[dict] = None,
                 baselines: Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]] = None,
                 target: Union[int, list, np.ndarray] = None,
-                compute_layer_inputs_gradients: bool = False) -> Explanation:
+                attribute_to_layer_inputs: bool = False) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
 
@@ -735,7 +710,7 @@ class IntegratedGradients(Explainer):
         ----------
         X
             Instance for which integrated gradients attribution are computed.
-        inp_kwargs
+        forward_kwargs
             Input keyword args.
         baselines
             Baselines (starting point of the path integral) for each instance.
@@ -748,7 +723,7 @@ class IntegratedGradients(Explainer):
             It must be provided if the model output dimension is higher than 1.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
-        compute_layer_inputs_gradients
+        attribute_to_layer_inputs
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If True, gradients are computed for the layer's inputs, if False for the layer's outputs.
 
@@ -820,8 +795,8 @@ class IntegratedGradients(Explainer):
                                                                      step_sizes,
                                                                      alphas,
                                                                      nb_samples,
-                                                                     inp_kwargs,
-                                                                     compute_layer_inputs_gradients)
+                                                                     forward_kwargs,
+                                                                     attribute_to_layer_inputs)
 
             else:
                 # forwad inputs and  baselines
@@ -830,8 +805,8 @@ class IntegratedGradients(Explainer):
                                                                    self.model,
                                                                    self.layer,
                                                                    self.orig_call,
-                                                                   inp_kwargs=inp_kwargs,
-                                                                   forward_to_inputs=compute_layer_inputs_gradients)
+                                                                   forward_kwargs=forward_kwargs,
+                                                                   forward_to_inputs=attribute_to_layer_inputs)
 
                 if isinstance(X_layer, list) and isinstance(baselines_layer, list):
                     attributions = self._compute_attributions_list_input(X_layer,
@@ -840,8 +815,8 @@ class IntegratedGradients(Explainer):
                                                                          step_sizes,
                                                                          alphas,
                                                                          nb_samples,
-                                                                         inp_kwargs,
-                                                                         compute_layer_inputs_gradients)
+                                                                         forward_kwargs,
+                                                                         attribute_to_layer_inputs)
                 else:
                     attributions = self._compute_attributions_tensor_input(X_layer,
                                                                            baselines_layer,
@@ -849,8 +824,8 @@ class IntegratedGradients(Explainer):
                                                                            step_sizes,
                                                                            alphas,
                                                                            nb_samples,
-                                                                           inp_kwargs,
-                                                                           compute_layer_inputs_gradients)
+                                                                           forward_kwargs,
+                                                                           attribute_to_layer_inputs)
 
         else:
             # Attributions calculation in case of single input
@@ -867,8 +842,8 @@ class IntegratedGradients(Explainer):
                                                                        step_sizes,
                                                                        alphas,
                                                                        nb_samples,
-                                                                       inp_kwargs,
-                                                                       compute_layer_inputs_gradients)
+                                                                       forward_kwargs,
+                                                                       attribute_to_layer_inputs)
 
             else:
                 # forwad inputs and  baselines
@@ -877,8 +852,8 @@ class IntegratedGradients(Explainer):
                                                                    self.model,
                                                                    self.layer,
                                                                    self.orig_call,
-                                                                   inp_kwargs=inp_kwargs,
-                                                                   forward_to_inputs=compute_layer_inputs_gradients)
+                                                                   forward_kwargs=forward_kwargs,
+                                                                   forward_to_inputs=attribute_to_layer_inputs)
 
                 if isinstance(X_layer, list) and isinstance(baselines_layer, list):
                     attributions = self._compute_attributions_list_input(X_layer,
@@ -887,8 +862,8 @@ class IntegratedGradients(Explainer):
                                                                          step_sizes,
                                                                          alphas,
                                                                          nb_samples,
-                                                                         inp_kwargs,
-                                                                         compute_layer_inputs_gradients)
+                                                                         forward_kwargs,
+                                                                         attribute_to_layer_inputs)
                 else:
                     attributions = self._compute_attributions_tensor_input(X_layer,
                                                                            baselines_layer,
@@ -896,22 +871,21 @@ class IntegratedGradients(Explainer):
                                                                            step_sizes,
                                                                            alphas,
                                                                            nb_samples,
-                                                                           inp_kwargs,
-                                                                           compute_layer_inputs_gradients)
+                                                                           forward_kwargs,
+                                                                           attribute_to_layer_inputs)
         # calculate convergence deltas
         deltas = _compute_convergence_delta(self.model,
-                                            self.layer,
                                             input_dtypes,
                                             attributions,
                                             baselines,
                                             X,
-                                            inp_kwargs,
+                                            forward_kwargs,
                                             target,
-                                            self._is_list,
-                                            compute_layer_inputs_gradients)
+                                            self._is_list)
 
         return self.build_explanation(
             X=X,
+            forward_kwargs=forward_kwargs,
             baselines=baselines,
             target=target,
             attributions=attributions,
@@ -920,6 +894,7 @@ class IntegratedGradients(Explainer):
 
     def build_explanation(self,
                           X: List[np.ndarray],
+                          forward_kwargs: Optional[dict],
                           baselines: List[np.ndarray],
                           target: Optional[List[int]],
                           attributions: Union[List[np.ndarray], List[tf.Tensor]],
@@ -930,6 +905,7 @@ class IntegratedGradients(Explainer):
         if isinstance(attributions[0], tf.Tensor):
             attributions = [attr.numpy() for attr in attributions]
         data.update(X=X,
+                    forward_kwargs=forward_kwargs,
                     baselines=baselines,
                     target=target,
                     attributions=attributions,
@@ -949,7 +925,7 @@ class IntegratedGradients(Explainer):
                                          step_sizes: List[float],
                                          alphas: List[float],
                                          nb_samples: int,
-                                         inp_kwargs: Optional[dict],
+                                         forward_kwargs: Optional[dict],
                                          compute_layer_inputs_gradients: bool) -> List:
         """For each tensor in a list of input tensors,
         calculates the attributions for each feature or element of layer.
@@ -968,6 +944,8 @@ class IntegratedGradients(Explainer):
             Interpolation parameter defining the points of the interal path.
         nb_samples
             Total number of samples.
+        forward_kwargs
+            Input keywords args.
         compute_layer_inputs_gradients
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If True, gradients are computed for the layer's inputs, if False for the layer's outputs.
@@ -977,7 +955,6 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
-        # TODO include inp_kwargs. Replacee origi_dummy_input with real input
         attrs_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
@@ -988,9 +965,9 @@ class IntegratedGradients(Explainer):
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
             paths.append(path)
 
-        if inp_kwargs is not None:
-            paths_kwargs = {k: np.concatenate([inp_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in inp_kwargs.keys()}
+        if forward_kwargs is not None:
+            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
+                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 
@@ -1000,29 +977,26 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if inp_kwargs is not None:
+        if forward_kwargs is not None:
             if target_paths is not None:
-                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (paths_kwargs,
-                                                               target_paths)).batch(self.internal_batch_size)
+                ds_args = tuple(p for p in paths) + (paths_kwargs, target_paths)
             else:
-                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (paths_kwargs,)).batch(self.internal_batch_size)
+                ds_args = tuple(p for p in paths) + (paths_kwargs,)
 
         else:
             if target_paths is not None:
-                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths) +
-                                                              (target_paths,)).batch(self.internal_batch_size)
+                ds_args = tuple(p for p in paths) + (target_paths,)
             else:
-                paths_ds = tf.data.Dataset.from_tensor_slices(tuple(p for p in paths)).batch(self.internal_batch_size)
+                ds_args = tuple(p for p in paths)
 
+        paths_ds = tf.data.Dataset.from_tensor_slices(ds_args).batch(self.internal_batch_size)
         paths_ds.as_numpy_iterator()
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if inp_kwargs is not None:
+            if forward_kwargs is not None:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path[:-2], path[-2], path[-1]
                 else:
@@ -1038,7 +1012,7 @@ class IntegratedGradients(Explainer):
             paths_b = [tf.dtypes.cast(paths_b[i], attrs_dtypes[i]) for i in range(len(paths_b))]
 
             if self.layer is None:
-                grads_b = _gradients_input(self.model, paths_b, target_b, inp_kwargs=kwargs_b)
+                grads_b = _gradients_input(self.model, paths_b, target_b, forward_kwargs=kwargs_b)
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
@@ -1046,7 +1020,7 @@ class IntegratedGradients(Explainer):
                                            self.orig_dummy_input,
                                            paths_b,
                                            target_b,
-                                           inp_kwargs=kwargs_b,
+                                           forward_kwargs=kwargs_b,
                                            compute_layer_inputs_gradients=compute_layer_inputs_gradients)
 
             batches.append(grads_b)
@@ -1074,7 +1048,7 @@ class IntegratedGradients(Explainer):
                                            step_sizes: List[float],
                                            alphas: List[float],
                                            nb_samples: int,
-                                           inp_kwargs: Optional[dict],
+                                           forward_kwargs: Optional[dict],
                                            compute_layer_inputs_gradients: bool) -> List:
         """For a single input tensor, calculates the attributions for each input feature or element of layer.
 
@@ -1092,6 +1066,8 @@ class IntegratedGradients(Explainer):
             Interpolation parameter defining the points of the interal path.
         nb_samples
             Total number of samples.
+        forward_kwargs
+            Inputs keywords args.
         compute_layer_inputs_gradients
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If True, gradients are computed for the layer's inputs, if False for the layer's outputs.
@@ -1100,13 +1076,12 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
-        # TODO include inp_kwargs. Replacee origi_dummy_input with real input
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
-        if inp_kwargs is not None:
-            paths_kwargs = {k: np.concatenate([inp_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in inp_kwargs.keys()}
+        if forward_kwargs is not None:
+            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
+                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 
@@ -1116,27 +1091,25 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if inp_kwargs is not None:
+        if forward_kwargs is not None:
             if target_paths is not None:
-                paths_ds = tf.data.Dataset.from_tensor_slices((paths,
-                                                               paths_kwargs,
-                                                               target_paths)).batch(self.internal_batch_size)
+                ds_args = (paths, paths_kwargs, target_paths)
             else:
-                paths_ds = tf.data.Dataset.from_tensor_slices((paths,
-                                                              paths_kwargs)).batch(self.internal_batch_size)
+                ds_args = (paths, paths_kwargs)
         else:
             if target_paths is not None:
-                paths_ds = tf.data.Dataset.from_tensor_slices((paths, target_paths)).batch(self.internal_batch_size)
+                ds_args = (paths, target_paths)
             else:
-                paths_ds = tf.data.Dataset.from_tensor_slices(paths).batch(self.internal_batch_size)
+                ds_args = paths
 
+        paths_ds = tf.data.Dataset.from_tensor_slices(ds_args).batch(self.internal_batch_size)
         paths_ds.as_numpy_iterator()
         paths_ds.prefetch(tf.data.experimental.AUTOTUNE)
 
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if inp_kwargs is not None:
+            if forward_kwargs is not None:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path
                 else:
@@ -1150,7 +1123,7 @@ class IntegratedGradients(Explainer):
                     paths_b, target_b = path, None
 
             if self.layer is None:
-                grads_b = _gradients_input(self.model, paths_b, target_b, inp_kwargs=kwargs_b)
+                grads_b = _gradients_input(self.model, paths_b, target_b, forward_kwargs=kwargs_b)
 
             else:
                 grads_b = _gradients_layer(self.model,
@@ -1159,7 +1132,7 @@ class IntegratedGradients(Explainer):
                                            self.orig_dummy_input,
                                            paths_b,
                                            target_b,
-                                           inp_kwargs=kwargs_b,
+                                           forward_kwargs=kwargs_b,
                                            compute_layer_inputs_gradients=compute_layer_inputs_gradients)
 
             batches.append(grads_b)

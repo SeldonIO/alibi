@@ -218,7 +218,7 @@ def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselin
     explanations = ig.explain(X_test,
                               baselines=baselines,
                               target=test_labels,
-                              inp_kwargs=kwargs)
+                              forward_kwargs=kwargs)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -434,7 +434,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model,
     explanations = ig.explain(X_test,
                               baselines=baselines,
                               target=test_labels,
-                              compute_layer_inputs_gradients=layer_inputs_attributions)
+                              attribute_to_layer_inputs=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:
@@ -488,8 +488,8 @@ def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_sub
     explanations = ig.explain(X_test,
                               baselines=baselines,
                               target=test_labels,
-                              inp_kwargs=kwargs,
-                              compute_layer_inputs_gradients=layer_inputs_attributions)
+                              forward_kwargs=kwargs,
+                              attribute_to_layer_inputs=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:

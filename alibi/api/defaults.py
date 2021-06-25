@@ -214,6 +214,7 @@ Default IntegratedGradients metadata.
 DEFAULT_DATA_INTGRAD = {
     "attributions": None,
     "X": None,
+    "forward_kwargs": None,
     "baselines": None,
     "predictions": None,
     "deltas": None

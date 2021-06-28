@@ -13,7 +13,7 @@ from abc import abstractmethod
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
 
 from alibi.utils.wrappers import ArgmaxTransformer
-from alibi.utils.lang_model import LanguageModelFactory
+from alibi.utils.lang_model import LanguageModelFactory, LanguageModel
 from alibi.utils.download import spacy_model
 
 from alibi.api.interfaces import Explainer, Explanation
@@ -165,24 +165,25 @@ class AnchorTextSampler:
 class UnkownSampler(AnchorTextSampler):
     UNK = "UNK"
 
-    def __init__(self, perturb_opts: Dict):
+    def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
         """
         Initialize unknown sampler. This sampler replaces word with the `UNK` token.
 
         Parameters
         ----------
+        nlp
+            spaCy object.
         perturb_opts
             Perturbation options.
         """
         super(UnkownSampler, self).__init__()
 
-        # set  perturbation options
+        # set nlp and perturbation options
+        self.nlp = _load_spacy_lexeme_prob(nlp)
         self.perturb_opts = perturb_opts  # type: Union[Dict, None]
 
         # set nlp object
-        spacy_model(model=perturb_opts['spacy_model'])
-        nlp = spacy.load(perturb_opts['spacy_model'])
-        self.nlp = _load_spacy_lexeme_prob(nlp) if nlp else None
+        self.nlp = _load_spacy_lexeme_prob(nlp)
 
         # define buffer for word, punctuation and position
         self.words, self.punctuation, self.positions = [], [], []  # type: List, List, List
@@ -263,25 +264,23 @@ class UnkownSampler(AnchorTextSampler):
 
 
 class SimilaritySampler(AnchorTextSampler):
-    def __init__(self, perturb_opts: Dict):
+    def __init__(self, nlp: 'spacy.language.Language',perturb_opts: Dict):
         """
         Initialize similarity sampler. This sampler replaces words with similar words.
 
         Parameters
         ----------
+        nlp
+            spaCy object.
         perturb_opts
             Perturbation options.
 
         """
         super(SimilaritySampler, self).__init__()
 
-        # set perturbation options
+        # set nlp and perturbation options
+        self.nlp = _load_spacy_lexeme_prob(nlp)
         self.perturb_opts = perturb_opts
-
-        # set nlp object
-        spacy_model(model=perturb_opts['spacy_model'])
-        nlp = spacy.load(perturb_opts['spacy_model'])
-        self.nlp = _load_spacy_lexeme_prob(nlp) if nlp else None
 
         # define synonym generator
         self._synonyms_generator = Neighbors(self.nlp)
@@ -354,7 +353,7 @@ class SimilaritySampler(AnchorTextSampler):
                                     forbidden_words: frozenset = frozenset(['be']),
                                     temperature: float = 1.,
                                     pos: frozenset = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                                    use_similarity_proba: bool = True, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+                                    use_similarity_proba: bool = False, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -449,7 +448,7 @@ class LanguageModelSampler(AnchorTextSampler):
     FILLING_PARALLEL = 'parallel'
     FILLING_AUTOREGRESSIVE = 'autoregressive'
 
-    def __init__(self, perturb_opts):
+    def __init__(self, model: LanguageModel, perturb_opts: dict,):
         """
         Initialize language model sampler. This sampler replaces words with the ones
         sampled according to the output distribution of the language model. There are
@@ -460,16 +459,16 @@ class LanguageModelSampler(AnchorTextSampler):
 
         Parameters
         ----------
+        model
+            Transfromers masked language model.
         perturb_opts
-            Perturbation options
+            Perturbation options.
         """
         super(LanguageModelSampler, self).__init__()
 
-        # set perturbation options
+        # set language model and perturbation options
+        self.model = model
         self.perturb_opts = perturb_opts
-
-        # store language model
-        self.model = LanguageModelFactory.get_language_model(perturb_opts['lang_model'])
 
         # Define language model's vocab
         vocab: Dict[str, int] = self.model.tokenizer.get_vocab()
@@ -496,7 +495,10 @@ class LanguageModelSampler(AnchorTextSampler):
         self.head, self.tail = '', ''  # type: str, str
         self.head_tokens, self.tail_tokens = None, None  # type: Union[List[str], None], Union[List[str], None]
 
-    def get_sample_ids(self, punctuation: str = '', stopwords: Optional[List[str]] = None, **kwargs) -> None:
+    def get_sample_ids(self,
+                       punctuation: str = string.punctuation,
+                       stopwords: Optional[List[str]] = None,
+                       **kwargs) -> None:
         """
         Find indices in words which can be perturbed.
 
@@ -524,10 +526,8 @@ class LanguageModelSampler(AnchorTextSampler):
 
         # lambda expressions to check for a subword
         subword_cond = lambda token, idx: self.model.is_subword_prefix(token)
-
         # lambda experssion to check for a stopword
         stopwords_cond = lambda token, idx: is_stop_word(start_idx=idx)
-
         # lambda expression to check for punctuation
         punctuation_cond = lambda token, idx: self.model.is_punctuation(token, punctuation)
 
@@ -590,7 +590,7 @@ class LanguageModelSampler(AnchorTextSampler):
                          anchor: tuple,
                          num_samples: int,
                          sample_proba: float = .5,
-                         top_n: int = 1,
+                         top_n: int = 100,
                          batch_size_lm: int = 32,
                          filling_method: str = "parallel",
                          **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -651,7 +651,7 @@ class LanguageModelSampler(AnchorTextSampler):
                     num_samples: int,
                     sample_proba: float = 1.0,
                     filling_method: str = 'parallel',
-                    prec_mask_templates: float = 1.0,
+                    frac_mask_templates: float = 0.1,
                     **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Create mask for words to be perturbed.
@@ -667,7 +667,7 @@ class LanguageModelSampler(AnchorTextSampler):
         filling_method:
             Filling method procedure. Can be `parallel` or `autoregressive`.
             See constructor for more details.
-        prec_mask_templates
+        frac_mask_templates
             Procentage form the number of samples of mask templates
 
         Returns
@@ -678,8 +678,8 @@ class LanguageModelSampler(AnchorTextSampler):
             A (num_samples, m)-dimensional boolean array, where m is the number of tokens
             in the instance to be explained.
         """
-        # make sure that prec_mask_templates is in [0, 1]
-        prec_mask_templates = np.clip(prec_mask_templates, 0, 1)
+        # make sure that frac_mask_templates is in [0, 1]
+        frac_mask_templates = np.clip(frac_mask_templates, 0, 1)
 
         # compute indices allowed be masked
         all_indices = range(len(self.ids_sample))
@@ -696,7 +696,7 @@ class LanguageModelSampler(AnchorTextSampler):
             # Thus there is no point in generating more than one mask.
             # Otherwise compute the number of masking templates according to the precentage
             # passed as argument and make sure that at least one mask template is generated
-            mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * prec_mask_templates))
+            mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * frac_mask_templates))
         
         # allocate memory
         data = np.ones((mask_templates, len(self.ids_sample)))
@@ -784,7 +784,7 @@ class LanguageModelSampler(AnchorTextSampler):
                   raw: np.ndarray,
                   data: np.ndarray,
                   num_samples: int,
-                  top_n: int = 1,
+                  top_n: int = 100,
                   batch_size_lm: int = 32,
                   filling_method: str = "parallel",
                   **kwargs) -> Tuple[np.ndarray, np.ndarray]:
@@ -870,10 +870,10 @@ class LanguageModelSampler(AnchorTextSampler):
                                     num_samples: int,
                                     raw: np.ndarray,
                                     data: np.ndarray,
-                                    top_n: int = 1,
+                                    top_n: int = 100,
                                     batch_size_lm: int = 32,
                                     temperature: float = 1.0,
-                                    use_lm_proba: bool = True,
+                                    use_lm_proba: bool = False,
                                     **kwargs) -> Tuple[np.array, np.ndarray]:
         """
         Perturb the instances in a single forward pass (parallel).
@@ -894,7 +894,6 @@ class LanguageModelSampler(AnchorTextSampler):
             Sample weight hyper-parameter.
         use_lm_proba
             Bool whether to sample according to the predicted words distribution
-
 
         Returns
         -------
@@ -982,10 +981,10 @@ class LanguageModelSampler(AnchorTextSampler):
                              num_samples: int,
                              raw: np.ndarray,
                              data: np.ndarray,
-                             top_n: int = 1,
+                             top_n: int = 100,
                              batch_size: int = 32,
                              temperature: float = 1.0,
-                             use_lm_proba: bool = True,
+                             use_lm_proba: bool = False,
                              **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the instances in an autoregressive fashion (sequential).
@@ -1109,19 +1108,15 @@ class LanguageModelSampler(AnchorTextSampler):
 
 
 DEFAULT_SAMPLING_UNKNOWN = {
-  "spacy_model": 'en_core_web_md',
   "sample_proba": 0.5
 }
 """
 Default perturbation options for `unknown` sampling
 
-    - ``'nlp'``: str, spaCy model name.
-    
     - ``'sample_proba'``: float, probability of a word to be masked.
 """
 
 DEFAULT_SAMPLING_SIMILARITY = {
-  "spacy_model": 'en_core_web_md',
   "sample_proba": 0.5,
   "top_n": 100,
   "temperature": 1.0,
@@ -1129,7 +1124,6 @@ DEFAULT_SAMPLING_SIMILARITY = {
 }
 """
 Default perturbation options for `similarity` sampling
-    - ``'nlp'``: str, spaCy model name.
     
     - ``'sample_proba'``: float, probability of a word to be masked.
     
@@ -1141,13 +1135,12 @@ Default perturbation options for `similarity` sampling
 """
 
 DEFAULT_SAPLING_LANGUAGE_MODEL = {
-  "lang_model": "distilbert-base-uncased",
   "filling_method": "parallel",
   "sample_proba": 0.5,
   "top_n": 100,
   "temperature": 1.0,
-  "use_lm_proba": True,
-  "prec_mask_templates": 0.01,  #TOOD modify this to frac
+  "use_lm_proba": False,
+  "frac_mask_templates": 0.1,
   "batch_size_lm": 32,
   "punctuation": string.punctuation,
   "stopwords": [],
@@ -1156,9 +1149,6 @@ DEFAULT_SAPLING_LANGUAGE_MODEL = {
 """
 Default perturbation options for `similarity` sampling
 
-    - ``'lang_model'``: str, transformer language model to be used. Allowed values: \
-    `distilbert-base-uncased`, `bert-base-uncased`, `roberta-base`.
-    
     - ``'filling_method'``: str, filling method for language models. Allowed values: `parallel`, `autoregressive`. \
     `parallel` method correspond to a single forward pass through the language model. The masked words are sampled \
     independent, according to the selected probability distribution (see `top_n`, `temperature`, `use_lm_proba`).  \
@@ -1214,7 +1204,13 @@ class AnchorText(Explainer):
         SAMPLING_LANGUAGE_MODEL: LanguageModelSampler
     }
 
-    def __init__(self, predictor: Callable, sampling_method: str, seed: int = 0, **kwargs: Any) -> None:
+    def __init__(self,
+                 predictor: Callable,
+                 sampling_method: str = 'unknown',
+                 nlp: Optional['spacy.language.Language'] = None,
+                 language_model: Optional[LanguageModel] = None,
+                 seed: int = 0,
+                 **kwargs: Any) -> None:
         """
         Initialize anchor text explainer.
 
@@ -1227,6 +1223,10 @@ class AnchorText(Explainer):
             `unknown` perturbation distribution will replace words randomly with UNKs.
             `similarity` sample according to a similarity scroe with the corpus embeddings.
             `language_model` sample according the distribution output by a language model.
+        nlp
+            spaCy object when sampling method is `unknown` or `similarity`.
+        language_model
+            Transformers masked language model.
         seed
             If set, ensure identical random streams.
         """
@@ -1236,17 +1236,27 @@ class AnchorText(Explainer):
         # set the predictor
         self.predictor = self._transform_predictor(predictor)
 
+        # define model which can be either spacy object or LanguageModel
+        # the initialization of the model happens in _validate_kwargs
+        self.model: Union['spacy.language.Language', LanguageModel]
+
         # validate kwargs
-        self.perturb_opts, all_opts = self._validate_kwargs(sampling_method, **kwargs)
+        self.perturb_opts, all_opts = self._validate_kwargs(sampling_method=sampling_method, nlp=nlp,
+                                                            language_model=language_model, **kwargs)
 
         # set perturbation
-        self.perturbation = self.CLASS_SAMPLER[self.sampling_method](self.perturb_opts)
+        self.perturbation = self.CLASS_SAMPLER[self.sampling_method](self.model, self.perturb_opts)
 
         # update metadata
         self.meta['params'].update(seed=seed)
         self.meta['params'].update(**all_opts)
 
-    def _validate_kwargs(self, sampling_method: str, **kwargs: Any) -> Tuple[dict, dict]:
+    def _validate_kwargs(self,
+                         sampling_method: str,
+                         nlp: Optional['spacy.language.Language'] = None,
+                         language_model: Optional[LanguageModel] = None,
+                         **kwargs: Any) -> Tuple[dict, dict]:
+
         # set sampling method
         self.sampling_method = sampling_method.strip().lower()
         sampling_methods = [
@@ -1259,7 +1269,18 @@ class AnchorText(Explainer):
         if self.sampling_method not in sampling_methods:
             self.sampling_method = self.SAMPLING_UNKNOWN
             logger.warning(f"Sampling method {sampling_method} if not valid. "
-                           f"Using the default value {self.SAMPLING_UNKNOWN}")
+                           f"Using the default value `{self.SAMPLING_UNKNOWN}`")
+
+        if sampling_method in [self.SAMPLING_UNKNOWN, self.SAMPLING_SIMILARITY]:
+            if nlp is None:
+                raise ValueError(f"spaCy model can not be `None` when `sampling_method` set to `{sampling_method}`.")
+            # set nlp object
+            self.model = _load_spacy_lexeme_prob(nlp)
+        else:
+            if language_model is None:
+                raise ValueError(f"Language model can not be `None` when `sampling_method` set to `{sampling_method}`")
+            # set language model object
+            self.model = language_model
 
         # get default args
         default_args = self.DEFAULTS[self.sampling_method]
@@ -1451,15 +1472,14 @@ class AnchorText(Explainer):
 
         if self.sampling_method == self.SAMPLING_LANGUAGE_MODEL:
             # take the whole word (this point just to the first part of the word)
-            features = [self.perturbation.ids_mapping[i] for i in result['feature']]
+            result['positions'] = [self.perturbation.ids_mapping[i] for i in result['feature']]
             result['names'] = [
                 self.perturbation.model.select_entire_word(
                     self.perturbation.head_tokens,
                     idx_feature,
                     self.perturbation.perturb_opts['punctuation']
-                ) for idx_feature in features
+                ) for idx_feature in result['positions']
             ]
-            # TODO: see what happens to positions
         else:
             result['names'] = [self.perturbation.words[x] for x in result['feature']]
             result['positions'] = [self.perturbation.positions[x] for x in result['feature']]

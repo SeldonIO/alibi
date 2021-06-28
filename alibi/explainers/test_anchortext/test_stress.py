@@ -5,7 +5,7 @@ import string
 import numpy as np
 
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import LanguageModelSampler
+from alibi.explainers.anchor_text import LanguageModelSampler, DEFAULT_SAPLING_LANGUAGE_MODEL
 from alibi.explainers.tests.utils import predict_fcn
 
 
@@ -32,33 +32,30 @@ def test_precision(lang_model, lr_classifier, movie_sentiment_data, punctuation,
     clf, preprocessor = lr_classifier
     predictor = predict_fcn('class', clf, preproc=preprocessor)
 
-    # initialize exapliner
-    explainer = AnchorText(language_model=lang_model, predictor=predictor)
-
     # setup perturbation options
     perturb_opts = {
-        "sampling_method": AnchorText.SAMPLING_LANGUAGE_MODEL,
         "filling_method": "parallel",
         "sample_proba": 0.5,
         "temperature": 1.0,
         "top_n": 100,
-        "threshold": 0.95,
-        "prec_mask_templates": 0.1,
+        "frac_mask_templates": 0.1,
         "stopwords": stopwords,
         "punctuation": punctuation,
     }
+
+    # initialize exaplainer
+    explainer = AnchorText(predictor=predictor, sampling_method=AnchorText.SAMPLING_LANGUAGE_MODEL,
+                           language_model=lang_model, **perturb_opts)
 
     for i in range(n):
         text = X_test[i]
 
         # compute explanation
-        explanation = explainer.explain(
-            text,
-            **perturb_opts
-        )
+        threshold = 0.95
+        explanation = explainer.explain(text, threshold=threshold)
 
         # check precision to be greater than the threshold
-        assert explanation.precision >= perturb_opts['threshold']
+        assert explanation.precision >= threshold
 
 
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
@@ -84,16 +81,16 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
     X_test = [X_test[i] for i in idx]
     assert len(X_test) == n
 
-    # initalize sampler
-    sampler = LanguageModelSampler(model=lang_model)
-
     # define perturb opts
     perturb_opts = {
         "sample_proba": sample_proba,
         "punctuation": punctuation,
         "stopwords": stopwords,
-        "prec_mask_templates": 0.1,
+        "frac_mask_templates": 0.1,
     }
+
+    # initialize sampler
+    sampler = LanguageModelSampler(model=lang_model, perturb_opts=perturb_opts)
 
     for i in range(n):
         text = X_test[i]
@@ -104,7 +101,7 @@ def test_stopwords_punctuation(lang_model, punctuation, stopwords, filling_metho
         words = {w: words.count(w) for w in words}
 
         # set sampler perturb opts
-        sampler.set_params(text, perturb_opts)
+        sampler.set_text(text)
 
         # get masks samples
         raw, data = sampler.create_mask((), num_samples=10, filling_method=filling_method, **perturb_opts)
@@ -141,9 +138,6 @@ def test_split(lang_model, head_gt, num_tokens):
     """
     Check if the split head-tail is correctly performed
     """
-    # initalize sampler
-    sampler = LanguageModelSampler(model=lang_model)
-
     # define a very long word as tail
     tail = 'Pneumonoultramicroscopicsilicovolcanoconiosis ' * 100
     text = head_gt + ' ' + tail
@@ -167,18 +161,20 @@ def test_mask(lang_model, num_tokens, sample_proba, filling_method):
     # define text
     text = 'word ' * num_tokens
 
-    # define sampler
-    sampler = LanguageModelSampler(model=lang_model)
+    # define perturbation options
     perturb_opts = {
         "sample_proba": sample_proba,
         "punctuation": '',
         "stopwords": [],
         "filling_method": filling_method,
     }
-    sampler.set_params(text, perturb_opts)
+
+    # define sampler
+    sampler = LanguageModelSampler(model=lang_model, perturb_opts=perturb_opts)
+    sampler.set_text(text)
 
     # create a bunch of masks
-    raw, data = sampler.create_mask((), 10000, sample_proba, prec_mask_templates=1.0)
+    raw, data = sampler.create_mask((), 10000, sample_proba, frac_mask_templates=1.0)
 
     # hope that law of large number holds
     empirical_mean1 = np.mean(np.sum(data == 0, axis=1))
@@ -211,9 +207,6 @@ def test_sample_punctuation(lang_model, punctuation, filling_method, movie_senti
     X_test = [X_test[i] for i in idx]
     assert len(X_test) == n
 
-    # initalize sampler
-    sampler = LanguageModelSampler(model=lang_model)
-
     # define perturb opts
     perturb_opts = {
         "sample_proba": sample_proba,
@@ -223,12 +216,15 @@ def test_sample_punctuation(lang_model, punctuation, filling_method, movie_senti
         "sample_punctuation": False
     }
 
+    # initalize sampler
+    sampler = LanguageModelSampler(model=lang_model, perturb_opts=perturb_opts)
+
     for i in range(n):
         text = X_test[i]
         text = ''.join([chr for chr in text if chr not in string.punctuation])
 
         # set sampler perturb opts
-        sampler.set_params(text, perturb_opts)
+        sampler.set_text(text)
 
         # get masks samples
         raw, data = sampler.perturb_sentence((), num_samples=10)
@@ -239,5 +235,3 @@ def test_sample_punctuation(lang_model, punctuation, filling_method, movie_senti
 
             for p in punctuation:
                 assert p not in raw[j]
-
-

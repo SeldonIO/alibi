@@ -44,38 +44,34 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
     sample_proba = 0.5
     top_n = 500
     temperature = 1
-    prec_mask_templates = 0.1
-    coverage_samples=10
-    n_covered_ex = 5# number of examples where the anchor applies to be retruned
+    frac_mask_templates = 0.1
+    coverage_samples = 10
+    n_covered_ex = 5          # number of examples where the anchor applies to be returned
 
     # fit and initialize predictor
     clf, preprocessor = lr_classifier
     predictor = predict_fcn(predict_type, clf, preproc=preprocessor)
 
-    # test expalainer initalization
-    explainer = AnchorText(nlp=nlp, language_model=lang_model, predictor=predictor)
-    assert explainer.predictor(['book']).shape == (1, )
-
     # setup explainer
     perturb_opts = {
-        'sampling_method': sampling_method,
         'filling_method': filling_method,
         'sample_proba': sample_proba,
         'temperature': temperature,
         'top_n': top_n,
-        'coverage_samples': coverage_samples,
-        "prec_maks_templates": prec_mask_templates
+        "frac_maks_templates": frac_mask_templates
     }
+
+    # test explainer initialization
+    explainer = AnchorText(predictor=predictor, sampling_method=sampling_method, nlp=nlp,
+                           language_model=lang_model, **perturb_opts)
+    assert explainer.predictor(['book']).shape == (1, )
 
     # set sampler
     explainer.n_covered_ex = n_covered_ex
-    explainer.set_sampler_perturbation(text=text, perturb_opts=perturb_opts)
+    explainer.perturbation.set_text(text=text)
 
     # set instance label
-    if predict_type == 'proba':
-        label = np.argmax(predictor([text])[0])
-    else:
-        label = predictor([text])[0]
+    label = np.argmax(predictor([text])[0]) if predict_type == 'proba' else predictor([text])[0]
     explainer.instance_label = label
 
     # check punctuation and words for `unknown` and `similarity` sampling
@@ -103,7 +99,6 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
 
         # set with all unique words including punctuation
         unique_words = set(words) | set(punctuation)
-
         assert len(punctuation) == n_punctuation_marks
         assert len(unique_words) >= n_unique_words - 1 # (because of Roberta first token)
 
@@ -121,12 +116,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         assert len(np.unique(all_words)) == n_unique_words
 
     # test explanation
-    explanation = explainer.explain(
-        text,
-        threshold=threshold,
-        **perturb_opts
-    )
-
+    explanation = explainer.explain(text, threshold=threshold, coverage_samples=coverage_samples)
     assert explanation.precision >= threshold
     assert explanation.raw['prediction'].item() == label
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()

@@ -765,7 +765,7 @@ class IntegratedGradients(Explainer):
         elif self._is_np:
             self.orig_dummy_input = np.zeros((self.internal_batch_size,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
-            input_dtypes = X.dtype
+            input_dtypes = [X.dtype]  # type: ignore
             # Formatting baselines for models with a single input
             baselines = _format_baseline(X, baselines)
 
@@ -1095,10 +1095,10 @@ class IntegratedGradients(Explainer):
             if target_paths is not None:
                 ds_args = (paths, paths_kwargs, target_paths)
             else:
-                ds_args = (paths, paths_kwargs)
+                ds_args = (paths, paths_kwargs)  # type: ignore
         else:
             if target_paths is not None:
-                ds_args = (paths, target_paths)
+                ds_args = (paths, target_paths)  # type: ignore
             else:
                 ds_args = paths
 

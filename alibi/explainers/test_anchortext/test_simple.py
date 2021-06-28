@@ -4,10 +4,7 @@ from alibi.utils.lang_model import *
 
 
 @pytest.mark.parametrize('text, min_num',
-                            [
-                                ("This is ... a sentence, with a long ?!?, lot of punctuation; test this.", 5)
-                            ]
-                         )
+                         [("This is ... a sentence, with a long ?!?, lot of punctuation; test this.", 5)])
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 def test_punctuation(text, min_num, lang_model):
     """
@@ -17,10 +14,8 @@ def test_punctuation(text, min_num, lang_model):
 
     # assert head
     assert len(head) > 0
-    assert len(head_tokens) > 0
-
-    # assert tail
     assert tail is None
+    assert len(head_tokens) > 0
     assert len(tail_tokens) == 0
 
     # select tokens that are punctuation
@@ -39,11 +34,9 @@ def test_punctuation(text, min_num, lang_model):
 
 
 @pytest.mark.parametrize('text, stopwords',
-                            [(
-                                'Test the following stopwords: this, but, a, the, verylongword',
-                                ['this', 'but', 'a', 'the', 'verylongword']
-                            )]
-                         )
+                            [('Test the following stopwords: this, but, a, the, verylongword',
+                             ['this', 'but', 'a', 'the', 'verylongword']
+                            )])
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 def test_stopwords(text, stopwords, lang_model):
     """

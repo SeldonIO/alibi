@@ -12,41 +12,34 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 
 
 @pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
-                            [
-                                ('This is a good book.', 1, 6),
-                                ('I, for one, hate it.', 3, 7)
-                            ]
-                         )
+                            [('This is a good book.', 1, 6),
+                             ('I, for one, hate it.', 3, 7)])
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
-@pytest.mark.parametrize('predict_type, anchor, sampling_method, filling_method, threshold',
-                            [
-                                ('proba', (), 'unknown', None, 0.95),
-                                ('proba', (), 'similarity', None, 0.95),
-                                ('proba', (), 'language_model', 'parallel', 0.95),
-                                ('class', (), 'unknown', None, 0.90),
-                                ('class', (), 'similarity', None, 0.90),
-                                ('class', (), 'language_model', 'parallel', 0.90),
-                            ]
-                         )
-@pytest.mark.parametrize('lang_model',
-                         ["None", "RobertaBase", "BertBaseUncased", "DistilbertBaseUncased"],
-                         indirect=True
-                         )
+@pytest.mark.parametrize('predict_type, anchor, use_similarity_proba, sampling_method, filling_method, threshold',
+                            [('proba', (), False, 'unknown', None, 0.95),
+                             ('proba', (), False, 'similarity', None, 0.95),
+                             ('proba', (), False, 'language_model', 'parallel', 0.95),
+                             ('class', (), False, 'unknown', None, 0.90),
+                             ('class', (), True, 'similarity', None, 0.90),
+                             ('class', (), False, 'language_model', 'parallel', 0.90),
+                             ('class', (3,), False, 'unknown', None, 0.95),
+                             ('class', (3,), True, 'similarity', None, 0.95),
+                             ('class', (3,), False, 'langauge_model', 'parallel', 0.98)])
+@pytest.mark.parametrize('lang_model', ["", "RobertaBase", "BertBaseUncased", "DistilbertBaseUncased"], indirect=True)
 def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, predict_type,
-                    anchor, sampling_method, filling_method, threshold, lang_model, nlp):
+                    anchor, use_similarity_proba, sampling_method, filling_method, threshold, lang_model, nlp):
     cond1 = (sampling_method != 'language_model') and (lang_model is not None)
     cond2 = (sampling_method == 'language_model') and (lang_model is None)
     if any([cond1, cond2]):
         pytest.skip("Invalid combination")
 
     # test parameters
-    num_samples = 100
     sample_proba = 0.5
     top_n = 500
     temperature = 1
-    frac_mask_templates = 0.1
-    coverage_samples = 10
-    n_covered_ex = 5          # number of examples where the anchor applies to be returned
+    num_samples = 100           #
+    frac_mask_templates = 0.1   # fraction of masking templates
+    n_covered_ex = 5            # number of examples where the anchor applies to be returned
 
     # fit and initialize predictor
     clf, preprocessor = lr_classifier
@@ -58,12 +51,13 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         'sample_proba': sample_proba,
         'temperature': temperature,
         'top_n': top_n,
-        "frac_maks_templates": frac_mask_templates
+        "frac_maks_templates": frac_mask_templates,
+        "use_similarity_proba": use_similarity_proba,
     }
 
     # test explainer initialization
-    explainer = AnchorText(predictor=predictor, sampling_method=sampling_method, nlp=nlp,
-                           language_model=lang_model, **perturb_opts)
+    explainer = AnchorText(predictor=predictor, sampling_method=sampling_method,
+                           nlp=nlp, language_model=lang_model, **perturb_opts)
     assert explainer.predictor(['book']).shape == (1, )
 
     # set sampler
@@ -116,7 +110,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         assert len(np.unique(all_words)) == n_unique_words
 
     # test explanation
-    explanation = explainer.explain(text, threshold=threshold, coverage_samples=coverage_samples)
+    explanation = explainer.explain(text, threshold=threshold)
     assert explanation.precision >= threshold
     assert explanation.raw['prediction'].item() == label
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()

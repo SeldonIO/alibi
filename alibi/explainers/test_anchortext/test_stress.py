@@ -5,7 +5,7 @@ import string
 import numpy as np
 
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import LanguageModelSampler, DEFAULT_SAPLING_LANGUAGE_MODEL
+from alibi.explainers.anchor_text import LanguageModelSampler, DEFAULT_SAMPLING_LANGUAGE_MODEL
 from alibi.explainers.tests.utils import predict_fcn
 
 
@@ -198,7 +198,7 @@ def test_sample_punctuation(lang_model, punctuation, filling_method, movie_senti
     # unpack test data
     X_test = movie_sentiment_data['X_test']
 
-    # select 100 sampleds
+    # select 10 samples
     n = 10
     np.random.seed(0)
     idx = np.random.choice(len(X_test), size=n, replace=False)

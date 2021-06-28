@@ -353,7 +353,7 @@ class SimilaritySampler(AnchorTextSampler):
                                     forbidden_words: frozenset = frozenset(['be']),
                                     temperature: float = 1.,
                                     pos: frozenset = frozenset(['NOUN', 'VERB', 'ADJ', 'ADV', 'ADP', 'DET']),
-                                    use_similarity_proba: bool = False, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
+                                    use_proba: bool = False, **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the text instance to be explained.
 
@@ -364,7 +364,7 @@ class SimilaritySampler(AnchorTextSampler):
         n
             Number of samples used when sampling from the corpus.
         sample_proba
-            Sample probability for a word if use_similarity_proba is False.
+            Sample probability for a word if use_proba is False.
         forbidden
             Forbidden lemmas.
         forbidden_tags
@@ -373,10 +373,10 @@ class SimilaritySampler(AnchorTextSampler):
             Forbidden words.
         pos
             POS that can be changed during perturbation.
-        use_similarity_proba
+        use_proba
             Bool whether to sample according to a similarity score with the corpus embeddings.
         temperature
-            Sample weight hyperparameter if use_similarity_proba equals True.
+            Sample weight hyperparameter if use_proba equals True.
 
         Returns
         -------
@@ -410,7 +410,7 @@ class SimilaritySampler(AnchorTextSampler):
                 n_changed = np.random.binomial(n, sample_proba)
                 changed = np.random.choice(n, n_changed, replace=False)
 
-                if use_similarity_proba:  # use similarity scores to sample changed tokens
+                if use_proba:  # use similarity scores to sample changed tokens
                     weights = self.synonyms[t.text]['similarities']
                     weights = np.exp(weights / temperature)  # weighting by temperature (check previous implementation)
                     weights = weights / sum(weights)
@@ -873,7 +873,7 @@ class LanguageModelSampler(AnchorTextSampler):
                                     top_n: int = 100,
                                     batch_size_lm: int = 32,
                                     temperature: float = 1.0,
-                                    use_lm_proba: bool = False,
+                                    use_proba: bool = False,
                                     **kwargs) -> Tuple[np.array, np.ndarray]:
         """
         Perturb the instances in a single forward pass (parallel).
@@ -892,7 +892,7 @@ class LanguageModelSampler(AnchorTextSampler):
             Batch size used for language model.
         temperature
             Sample weight hyper-parameter.
-        use_lm_proba
+        use_proba
             Bool whether to sample according to the predicted words distribution
 
         Returns
@@ -949,7 +949,7 @@ class LanguageModelSampler(AnchorTextSampler):
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
+            top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
             dist = tfp.distributions.Categorical(logits=top_k_logits)
         
             # sample `num_samples` instance for the current mask template
@@ -984,7 +984,7 @@ class LanguageModelSampler(AnchorTextSampler):
                              top_n: int = 100,
                              batch_size: int = 32,
                              temperature: float = 1.0,
-                             use_lm_proba: bool = False,
+                             use_proba: bool = False,
                              **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturb the instances in an autoregressive fashion (sequential).
@@ -1002,7 +1002,7 @@ class LanguageModelSampler(AnchorTextSampler):
             Batch size used for language model.
         temperature
             Sample weight hyper-parameter.
-        use_lm_proba
+        use_proba
             Bool whether to sample according to the predicted words distribution
 
         Returns
@@ -1067,7 +1067,7 @@ class LanguageModelSampler(AnchorTextSampler):
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
 
             # create categorical distribution that we can sample the words from
-            top_k_logits = (top_k_logits / temperature) if use_lm_proba else (top_k_logits * 0)
+            top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
             dist = tfp.distributions.Categorical(logits=top_k_logits)
             
             # sample indexes
@@ -1120,7 +1120,7 @@ DEFAULT_SAMPLING_SIMILARITY = {
   "sample_proba": 0.5,
   "top_n": 100,
   "temperature": 1.0,
-  "use_similarity_proba": False
+  "use_proba": False
 }
 """
 Default perturbation options for `similarity` sampling
@@ -1129,17 +1129,17 @@ Default perturbation options for `similarity` sampling
     
     - ``'top_n'``: int, number of similar words to sample for perturbations
     
-    - ``'temperature'``: float, sample weight hyper-parameter if `use_similarity_proba` equals `True`.
+    - ``'temperature'``: float, sample weight hyper-parameter if `use_proba` equals `True`.
     
-    - ``'use_similarity_proba'``: bool, whether to sample according to the words similarity.
+    - ``'use_proba'``: bool, whether to sample according to the words similarity.
 """
 
-DEFAULT_SAPLING_LANGUAGE_MODEL = {
+DEFAULT_SAMPLING_LANGUAGE_MODEL = {
   "filling_method": "parallel",
   "sample_proba": 0.5,
   "top_n": 100,
   "temperature": 1.0,
-  "use_lm_proba": False,
+  "use_proba": False,
   "frac_mask_templates": 0.1,
   "batch_size_lm": 32,
   "punctuation": string.punctuation,
@@ -1151,7 +1151,7 @@ Default perturbation options for `similarity` sampling
 
     - ``'filling_method'``: str, filling method for language models. Allowed values: `parallel`, `autoregressive`. \
     `parallel` method correspond to a single forward pass through the language model. The masked words are sampled \
-    independent, according to the selected probability distribution (see `top_n`, `temperature`, `use_lm_proba`).  \
+    independent, according to the selected probability distribution (see `top_n`, `temperature`, `use_proba`).  \
     `autoregressive` method fills the words one at the time. This corresponds to multiple forward passes through  \
     the language model which is computational expensive.
 
@@ -1159,9 +1159,9 @@ Default perturbation options for `similarity` sampling
 
     - ``'top_n'``: int, number of similar words to sample for perturbations.
 
-    - ``'temperature'``: float, sample weight hyper-parameter if use_lm_proba equals True.
+    - ``'temperature'``: float, sample weight hyper-parameter if use_proba equals True.
 
-    - ``'use_lm_proba'``: bool, whether to sample according to the predicted words distribution. If set to `False`,
+    - ``'use_proba'``: bool, whether to sample according to the predicted words distribution. If set to `False`,
     the `top_n` words are sampled uniformly at random.
     
     - ``frac_mask_template'``: float, fraction from the number of samples of mask templates to be generated. \
@@ -1194,7 +1194,7 @@ class AnchorText(Explainer):
     DEFAULTS = {
         SAMPLING_UNKNOWN: DEFAULT_SAMPLING_UNKNOWN,
         SAMPLING_SIMILARITY: DEFAULT_SAMPLING_SIMILARITY,
-        SAMPLING_LANGUAGE_MODEL: DEFAULT_SAPLING_LANGUAGE_MODEL,
+        SAMPLING_LANGUAGE_MODEL: DEFAULT_SAMPLING_LANGUAGE_MODEL,
     }
 
     # class of samplers
@@ -1535,3 +1535,7 @@ class AnchorText(Explainer):
 
     def reset_predictor(self, predictor: Callable) -> None:
         self.predictor = self._transform_predictor(predictor)
+
+    def seed(self, seed: int):
+        np.random.seed(seed)
+        tf.random.set_seed(seed)

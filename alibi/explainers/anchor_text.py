@@ -1,3 +1,6 @@
+import sys
+from line_profiler import LineProfiler
+
 import copy
 import spacy
 import string
@@ -908,11 +911,9 @@ class LanguageModelSampler(AnchorTextSampler):
 
         # fill in masks with language model
         # (mask_template x max_length_sentence x num_tokens)
-        logits: np.ndarray = self.model.predict_batch_lm(
-            x=tokens_plus,
-            vocab_size=self.model.tokenizer.vocab_size,
-            batch_size=batch_size_lm
-        )
+        logits: np.ndarray = self.model.predict_batch_lm(x=tokens_plus,
+                                                         vocab_size=self.model.tokenizer.vocab_size,
+                                                         batch_size=batch_size_lm)
 
         # select rows and cols where the input the tokens are masked
         tokens = tokens_plus['input_ids']  # (mask_template x max_length_sentence)

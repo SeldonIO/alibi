@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 import tensorflow as tf
 import transformers
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
+from transformers import PretrainedConfig
 
 
 class LanguageModel(abc.ABC):
@@ -20,12 +21,9 @@ class LanguageModel(abc.ABC):
             `transformers` package model path.
         """
         self.model_path = model_path
-
-        # load tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-
-        # load and send model to device
         self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.callable = tf.function(self.model.call)
 
     @abc.abstractmethod
     def is_subword_prefix(self, token: str) -> bool:
@@ -188,7 +186,8 @@ class LanguageModel(abc.ABC):
             tail_text = self.tokenizer.decode(ids).strip()
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
-    
+
+    @tf.autograph.experimental.do_not_convert
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,
@@ -227,7 +226,7 @@ class LanguageModel(abc.ABC):
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
 
-            y[istart:istop] = self.model(**x_batch)[0].numpy()
+            y[istart:istop] = self.callable(**x_batch)[0].numpy()
 
         return y
 

@@ -17,23 +17,46 @@ spacy_model(model=model)
 nlp = spacy.load(model)
 
 
+# TODO: Test DistributedAnchorBaseBeam separately
+def uncollect_if_test_explainer(**kwargs):
+    """
+    This function is used to skip combinations of explainers
+    and classifiers that do not make sense. This is achieved
+    by using the hooks in conftest.py. Such functions should
+    be passed to the @pytest.mark.uncollect_if decorator as
+    the func argument. They should take the same inputs as the
+    test function. Because this test function is parametrized
+    with a lazy fixture, in this case the arguments name change
+    (ie explainer can be both at_iris_explainer or at_adult_explainer),
+    the **kwargs argument is used to collect all inputs.
+    """
+
+    sampling_method = kwargs['sampling_method']
+    lang_model = kwargs['lang_model']
+
+    cond1 = (sampling_method != 'language_model') and (lang_model != '')
+    cond2 = (sampling_method == 'language_model') and (lang_model == '')
+    return any([cond1, cond2])
+
+
+@pytest.mark.uncollect_if(func=uncollect_if_test_explainer)
 @pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
-                            [('This is a good book.', 1, 6),
-                             ('I, for one, hate it.', 3, 7)])
+                         [('This is a good book.', 1, 6),
+                          ('I, for one, hate it.', 3, 7)])
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize('predict_type, anchor, use_similarity_proba, sampling_method, filling_method, threshold',
-                            [('proba', (), False, 'unknown', None, 0.95),
-                             ('proba', (), False, 'similarity', None, 0.95),
-                             ('proba', (), False, 'language_model', 'parallel', 0.95),
-                             ('class', (), False, 'unknown', None, 0.90),
-                             ('class', (), True, 'similarity', None, 0.90),
-                             ('class', (), False, 'language_model', 'parallel', 0.90),
-                             ('class', (3,), False, 'unknown', None, 0.95),
-                             ('class', (3,), True, 'similarity', None, 0.95),
-                             ('class', (3,), False, 'language_model', 'parallel', 0.95)])
+                         [('proba', (), False, 'unknown', None, 0.95),
+                          ('proba', (), False, 'similarity', None, 0.95),
+                          ('proba', (), False, 'language_model', 'parallel', 0.95),
+                          ('class', (), False, 'unknown', None, 0.90),
+                          ('class', (), True, 'similarity', None, 0.90),
+                          ('class', (), False, 'language_model', 'parallel', 0.90),
+                          ('class', (3,), False, 'unknown', None, 0.95),
+                          ('class', (3,), True, 'similarity', None, 0.95),
+                          ('class', (3,), False, 'language_model', 'parallel', 0.95)])
 @pytest.mark.parametrize('lang_model', ["", "RobertaBase", "BertBaseUncased", "DistilbertBaseUncased"], indirect=True)
-def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, predict_type,
-                    anchor, use_similarity_proba, sampling_method, filling_method, threshold, lang_model, nlp):
+def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, predict_type, anchor,
+                   use_similarity_proba, sampling_method, filling_method, threshold, lang_model, nlp):
     # check invalid combinations of params
     cond1 = (sampling_method != 'language_model') and (lang_model is not None)
     cond2 = (sampling_method == 'language_model') and (lang_model is None)
@@ -102,7 +125,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         # set with all unique words including punctuation
         unique_words = set(words) | set(punctuation)
         assert len(punctuation) == n_punctuation_marks
-        assert len(unique_words) >= n_unique_words - 1 # (because of Roberta first token)
+        assert len(unique_words) >= n_unique_words - 1  # (because of Roberta first token)
 
     # test sampler
     cov_true, cov_false, labels, data, coverage, _ = explainer.sampler((0, anchor), num_samples)

@@ -2,6 +2,7 @@ import abc
 import numpy as np
 from typing import List, Optional, Tuple
 
+import tensorflow as tf
 import transformers
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
@@ -187,7 +188,7 @@ class LanguageModel(abc.ABC):
             tail_text = self.tokenizer.decode(ids).strip()
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
-
+    
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,

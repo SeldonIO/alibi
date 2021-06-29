@@ -186,7 +186,7 @@ class LanguageModel(abc.ABC):
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
 
-    @tf.autograph.experimental.do_not_convert
+    @profile
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,

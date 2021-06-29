@@ -864,6 +864,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         return raw
 
+    @profile
     def _perturb_instances_parallel(self,
                                     num_samples: int,
                                     raw: np.ndarray,

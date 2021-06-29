@@ -947,7 +947,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
-            dist = tfp.distributions.Categorical(logits=top_k_logits)
+            # dist = tfp.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
             for j in range(mult_factor + int(reminder > 0)):
@@ -955,7 +955,8 @@ class LanguageModelSampler(AnchorTextSampler):
                 idx = i * mult_factor + j + offset
 
                 # Sample indices
-                ids_k = dist.sample()
+                # ids_k = dist.sample()
+                ids_k = tf.reshape(tf.random.categorical(top_k_logits, 1), shape=-1)
 
                 # Set the unmasked tokens and for the masked one and replace them with the samples drawn
                 sampled_tokens[idx] = tokens[i]

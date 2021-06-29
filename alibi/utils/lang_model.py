@@ -23,7 +23,6 @@ class LanguageModel(abc.ABC):
         self.model_path = model_path
         self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
-        self.callable = tf.function(self.model.call)
 
     @abc.abstractmethod
     def is_subword_prefix(self, token: str) -> bool:
@@ -226,8 +225,7 @@ class LanguageModel(abc.ABC):
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
 
-            y[istart:istop] = self.callable(**x_batch)[0].numpy()
-
+            y[istart:istop] = self.model(**x_batch)[0].numpy()
         return y
 
 

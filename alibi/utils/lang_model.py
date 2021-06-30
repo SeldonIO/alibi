@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 
 import tensorflow as tf
 import transformers
-from transformers import TFAutoModelForMaskedLM, AutoTokenizer
+from transformers import AutoConfig, TFAutoModelForMaskedLM, AutoTokenizer
 from transformers import PretrainedConfig
 
 
@@ -21,7 +21,13 @@ class LanguageModel(abc.ABC):
             `transformers` package model path.
         """
         self.model_path = model_path
-        self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
+        
+        config = AutoConfig.from_pretrained(model_path,
+                                            output_attentions=False, 
+                                            output_hidden_states=False,
+                                            use_cache=True,
+                                            return_dict=True)
+        self.model = TFAutoModelForMaskedLM.from_config(config)
         self.caller = tf.function(self.model.call)
         
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -188,6 +194,7 @@ class LanguageModel(abc.ABC):
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
 
+    @tf.autograph.experimental.do_not_convert
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,
@@ -233,22 +240,8 @@ class LanguageModel(abc.ABC):
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
             
-            y[istart:istop] = self.caller(**x_batch)[0].numpy()
-#            if istop_buff + increment >= max_len:
-#                y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
-#                
-#                # update buffer indices
-#                offset += istop_buff
-#                istart_buff = 0
-#                istop_buff = increment
-#            else:
-#                istart_buff = istop_buff
-#                istop_buff += increment 
-#
-#            y_buff[istart_buff:istop_buff].assign(self.caller(**x_batch)[0])
-        
-        # transfer whatever is in the buffer
-        # y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
+            output = self.caller(**x_batch)[0]
+            y[istart:istop] = output.numpy()
         return y
 
 

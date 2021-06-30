@@ -1,4 +1,3 @@
-import sys
 import copy
 import spacy
 import string
@@ -70,7 +69,7 @@ class Neighbors(object):
         Parameters
         ----------
         nlp_obj
-            spaCy model
+            spaCy model.
         n_similar
             Number of similar words to return.
         w_prob
@@ -207,8 +206,8 @@ class UnkownSampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an np.array of num_samples where randomly chose features
-        except those in anchor are replaced by self.UNK token.
+        The function returns  an np.array of num_samples where randomly chose features,
+        except those in anchor, are replaced by self.UNK token.
 
         Parameters
         ----------
@@ -322,8 +321,8 @@ class SimilaritySampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an np.array of num_samples where randomly chose features
-        except those in anchor are replaced by similar words with the same part of
+        The function returns an np.array of num_samples where randomly chose features,
+        except those in anchor, are replaced by similar words with the same part of
         speech of tag. See self.perturb_sentence for details of how the replacement works.
 
         Parameters
@@ -452,7 +451,7 @@ class LanguageModelSampler(AnchorTextSampler):
         two modes to use the sampler: `parallel` and `autoregressive`. In the parallel
         mode, all words are replaced at ones. In the `autoregressive` model, the words
         are replaced one by one, starting from left to right. Thus the following words
-        are conditioned also on the previous predicted words.
+        are conditioned on the previous predicted words.
 
         Parameters
         ----------
@@ -565,9 +564,9 @@ class LanguageModelSampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an np.array of num_samples where randomly chose features
-        except those in anchor are replaced by words sampled form the language model
-        prediction.
+        The function returns  an np.array of num_samples where randomly chose features,
+        except those in anchor, are replaced by words sampled according to the language
+        model's predictions.
 
         Parameters
         ----------
@@ -592,8 +591,9 @@ class LanguageModelSampler(AnchorTextSampler):
                          filling_method: str = "parallel",
                          **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an np.array of num_samples where randomly chose features
-        except those in anchor are replaced by similar words.
+        The function returns an np.array of num_samples where randomly chose features,
+        except those in anchor, are replaced by words sampled according to the language
+        model's predictions.
 
         Parameters
         ----------
@@ -608,7 +608,7 @@ class LanguageModelSampler(AnchorTextSampler):
         batch_size_lm:
             Batch size used for language model.
         filling_method:
-            Method to fill masked words. Either `parallel` or `ar`.
+            Method to fill masked words. Either `parallel` or `autoregressive`.
 
         Returns
         -------
@@ -665,7 +665,7 @@ class LanguageModelSampler(AnchorTextSampler):
             Filling method procedure. Can be `parallel` or `autoregressive`.
             See constructor for more details.
         frac_mask_templates
-            Fraction form the number of samples of mask templates
+            Fraction of mask templates from the number of requested samples.
 
         Returns
         -------
@@ -683,7 +683,7 @@ class LanguageModelSampler(AnchorTextSampler):
         allowed_indices = list(set(all_indices) - set(anchor))
 
         if len(allowed_indices) == 0 or filling_method == self.FILLING_AUTOREGRESSIVE:
-            # If the anchor covers all the word that can be perturbed (it can happen)
+            # If the anchor covers all the words that can be perturbed (it can happen)
             # then the number of mask_templates should be equal to the number of sampled requested.
             # If the filling method is autoregressive, just generate from the start a `num_sample`
             # masks, cause the computation performance is pretty similar.
@@ -691,7 +691,7 @@ class LanguageModelSampler(AnchorTextSampler):
         else:
             # If the probability of sampling a word is 1, then all words will be masked.
             # Thus there is no point in generating more than one mask.
-            # Otherwise compute the number of masking templates according to the precentage
+            # Otherwise compute the number of masking templates according to the fraction
             # passed as argument and make sure that at least one mask template is generated
             mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * frac_mask_templates))
 
@@ -814,13 +814,10 @@ class LanguageModelSampler(AnchorTextSampler):
             else self._perturb_instance_ar
 
         # perturb instances
-        tokens, data = perturb_func(
-            raw=raw, data=data,
-            num_samples=num_samples,
-            batch_size_lm=batch_size_lm,
-            top_n=top_n,
-            **kwargs
-        )
+        tokens, data = perturb_func(raw=raw, data=data,
+                                    num_samples=num_samples,
+                                    batch_size_lm=batch_size_lm,
+                                    top_n=top_n, **kwargs)
 
         # decode the tokens and remove special characters as <pad>, <cls> etc.
         raw = self.model.tokenizer.batch_decode(tokens, **dict(skip_special_tokens=True))
@@ -840,7 +837,7 @@ class LanguageModelSampler(AnchorTextSampler):
         row
             Row coordinate of the word to be removed.
         col
-            Col coodrinate of the word to be removed.
+            Column coordinate of the word to be removed.
         punctuation
             String containing the punctuation to be considered.
 
@@ -879,7 +876,7 @@ class LanguageModelSampler(AnchorTextSampler):
         num_samples
             Number of samples to be generates
         raw
-            Array of mask templates. Has `mask_templates` rows
+            Array of mask templates. Has `mask_templates` rows.
         data
             Binary array having 0 where the tokens are masked. Has `mask_templates` rows.
         top_n:
@@ -897,7 +894,7 @@ class LanguageModelSampler(AnchorTextSampler):
             Tensor containing the ids of the sampled tokens.
             Has `num_samples` rows.
         sampled_data
-            Binary array havin 0 where the tokens were masked.
+            Binary array having 0 where the tokens were masked.
             Has `num_samples` rows.
         """
         # tokenize instances
@@ -941,10 +938,7 @@ class LanguageModelSampler(AnchorTextSampler):
             # select top n tokens from each distribution
             top_k = tf.math.top_k(logits_mask, top_n)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
-
-            # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
-            # dist = tfp.distributions.Categorical(logits=top_k_logits)
 
             # sample `num_samples` instance for the current mask template
             for j in range(mult_factor + int(reminder > 0)):
@@ -952,7 +946,6 @@ class LanguageModelSampler(AnchorTextSampler):
                 idx = i * mult_factor + j + offset
 
                 # Sample indices
-                # ids_k = dist.sample()
                 ids_k = tf.reshape(tf.random.categorical(top_k_logits, 1), shape=-1)
 
                 # Set the unmasked tokens and for the masked one and replace them with the samples drawn
@@ -986,9 +979,9 @@ class LanguageModelSampler(AnchorTextSampler):
 
         ----------
         num_samples
-            Number of samples to be generates
+            Number of samples to be generates.
         raw
-            Array of mask templates. Has `mask_templates` rows
+            Array of mask templates. Has `mask_templates` rows.
         data
             Binary array having 0 where the tokens are masked. Has `mask_templates` rows.
         top_n:
@@ -998,7 +991,7 @@ class LanguageModelSampler(AnchorTextSampler):
         temperature
             Sample weight hyper-parameter.
         use_proba
-            Bool whether to sample according to the predicted words distribution
+            Bool whether to sample according to the predicted words distribution.
 
         Returns
         -------
@@ -1060,13 +1053,10 @@ class LanguageModelSampler(AnchorTextSampler):
             # select top n tokens from each distribution
             top_k = tf.math.top_k(logits_mask, top_n)
             top_k_logits, top_k_tokens = top_k.values, top_k.indices
-
-            # create categorical distribution that we can sample the words from
             top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
-            dist = tfp.distributions.Categorical(logits=top_k_logits)
 
-            # sample indexes
-            ids_k = dist.sample()
+            # Sample indices
+            ids_k = tf.reshape(tf.random.categorical(top_k_logits, 1), shape=-1)
 
             # replace masked tokens with the sampled one
             tokens[masked_rows, masked_cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
@@ -1090,7 +1080,7 @@ class LanguageModelSampler(AnchorTextSampler):
             max_len = len(token) if len(token) > max_len else max_len
 
         # length of the maximum word. the prefix it is just a precaution.
-        # for example <mask> -> _<mask> which is not in the vocabulary).
+        # for example <mask> -> _<mask> which is not in the vocabulary.
         max_len += len(self.model.SUBWORD_PREFIX)
 
         # length of the maximum text
@@ -1155,7 +1145,7 @@ Default perturbation options for `similarity` sampling
 
     - ``'temperature'``: float, sample weight hyper-parameter if use_proba equals True.
 
-    - ``'use_proba'``: bool, whether to sample according to the predicted words distribution. If set to `False`,
+    - ``'use_proba'``: bool, whether to sample according to the predicted words distribution. If set to `False`, \
     the `top_n` words are sampled uniformly at random.
 
     - ``frac_mask_template'``: float, fraction from the number of samples of mask templates to be generated. \
@@ -1238,8 +1228,8 @@ class AnchorText(Explainer):
         self.perturb_opts, all_opts = self._validate_kwargs(sampling_method=sampling_method, nlp=nlp,
                                                             language_model=language_model, **kwargs)
 
-        # set perturbation
-        self.perturbation = self.CLASS_SAMPLER[self.sampling_method](self.model, self.perturb_opts)
+        # set perturbation (Any - mypy warning)
+        self.perturbation: Any = self.CLASS_SAMPLER[self.sampling_method](self.model, self.perturb_opts)
 
         # update metadata
         self.meta['params'].update(seed=seed)
@@ -1496,7 +1486,7 @@ class AnchorText(Explainer):
         predicted_label
             Label of the instance to be explained. Inferred if not received.
         params
-            Parameters passed to `explain`
+            Parameters passed to `explain`.
         """
 
         result['instance'] = text

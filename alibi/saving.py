@@ -176,13 +176,13 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
 
-    explainer.nlp = nlp
+    explainer.perturbation.nlp = nlp
 
     # explainer._synonyms_generator contains spacy Lexemes which contain unserializable Cython constructs
     # so we re-initialize the object here
     # TODO: this is slow to re-initialize, try optimzing
     from alibi.explainers.anchor_text import Neighbors
-    explainer._synonyms_generator = Neighbors(nlp_obj=nlp)
+    explainer.perturbation._synonyms_generator = Neighbors(nlp_obj=nlp)
     explainer.reset_predictor(predictor)
 
     return explainer
@@ -190,21 +190,21 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
 
 def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> None:
     # save the spacy model
-    nlp = explainer.nlp
+    nlp = explainer.perturbation.nlp
     nlp.to_disk(Path(path, 'nlp'))
 
-    _synonyms_generator = explainer._synonyms_generator
+    _synonyms_generator = explainer.perturbation._synonyms_generator
     predictor = explainer.predictor
 
-    explainer.nlp = None
-    explainer._synonyms_generator = None
+    explainer.perturbation.nlp = None
+    explainer.perturbation._synonyms_generator = None
     explainer.predictor = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
 
-    explainer.nlp = nlp
-    explainer._synonyms_generator = _synonyms_generator
+    explainer.perturbation.nlp = nlp
+    explainer.perturbation._synonyms_generator = _synonyms_generator
     explainer.predictor = predictor
 
 

@@ -1,11 +1,10 @@
 import abc
 import numpy as np
+import tensorflow as tf  # type: ignore
 from typing import List, Optional, Tuple
 
-import tensorflow as tf
-import transformers
-from transformers import AutoConfig, TFAutoModelForMaskedLM, AutoTokenizer
-from transformers import PretrainedConfig
+import transformers  # type: ignore
+from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
 
 class LanguageModel(abc.ABC):
@@ -21,15 +20,12 @@ class LanguageModel(abc.ABC):
             `transformers` package model path.
         """
         self.model_path = model_path
-        
-        config = AutoConfig.from_pretrained(model_path,
-                                            output_attentions=False, 
-                                            output_hidden_states=False,
-                                            use_cache=True,
-                                            return_dict=True)
-        self.model = TFAutoModelForMaskedLM.from_config(config)
+
+        # set model
+        self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
         self.caller = tf.function(self.model.call)
-        
+
+        # set tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
     @abc.abstractmethod
@@ -145,7 +141,7 @@ class LanguageModel(abc.ABC):
         """
         return self.model.config.max_position_embeddings
 
-    def head_tail_split(self, text: str) -> Tuple[str, Optional[str], List[str], Optional[List[str]]]:
+    def head_tail_split(self, text: str) -> Tuple[str, str, List[str], List[str]]:
         """
         Split the text in head and tail. Some language models support a maximum
         number of tokens. Thus is necessary to split the text to meet this constraint.
@@ -170,7 +166,7 @@ class LanguageModel(abc.ABC):
 
         # some models do not have a max length restrictions (e.g. XLNet)
         if self.max_num_tokens == -1 or len(tokens) <= self.max_num_tokens:
-            return text, None, tokens, []
+            return text, '', tokens, []
 
         # head's length
         head_num_tokens = self.max_num_tokens
@@ -184,7 +180,7 @@ class LanguageModel(abc.ABC):
 
         ids = self.tokenizer.convert_tokens_to_ids(tokens[:head_num_tokens])
         head_text = self.tokenizer.decode(ids).strip()
-        tail_text = None
+        tail_text = ''
 
         # if the number of tokens exceeds the maximum allowed
         # number, then construct also the tail_text
@@ -220,16 +216,9 @@ class LanguageModel(abc.ABC):
         y = np.zeros((n, m, vocab_size), dtype=np.float32)
         n_minibatch = int(np.ceil(n / batch_size))
 
-        istart_buff, istop_buff = 0, 0
-        offset, max_len = 0, 128
-
-        y_buff = tf.Variable(tf.zeros((max_len, m, vocab_size), dtype=tf.float32))
-
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, n)
-            increment = istop - istart
             x_batch = dict()
-            
 
             if 'input_ids' in x.keys():
                 x_batch['input_ids'] = x['input_ids'][istart:istop]
@@ -239,9 +228,8 @@ class LanguageModel(abc.ABC):
 
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
-            
-            output = self.caller(**x_batch)[0]
-            y[istart:istop] = output.numpy()
+
+            y[istart:istop] = self.caller(**x_batch)[0].numpy()
         return y
 
 

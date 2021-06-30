@@ -46,8 +46,7 @@ class LanguageModel(abc.ABC):
 
     def select_entire_word(self, text: List[str], start_idx: int, punctuation: str) -> str:
         """
-        Given a text and the starting index of a word, the function
-        selects the entier word.
+        Given a text and the starting index of a word, the function selects the entire word.
 
         Parameters
         ----------
@@ -55,6 +54,9 @@ class LanguageModel(abc.ABC):
             Full text.
         start_idx
             Starting index of a word.
+        punctuation
+            String of punctuation to be considered. If it encounters a token
+             composed only of characters in `punctuation` it terminates the search.
 
         Returns
         -------
@@ -63,9 +65,9 @@ class LanguageModel(abc.ABC):
         # define the ending index
         end_idx = start_idx + 1
 
-        while (end_idx < len(text)):
+        while end_idx < len(text):
             # The second condition is necessary for models like Roberta.
-            # If the second condition is not included, it can select words like: `word,` instaed of `word`
+            # If the second condition is not included, it can select words like: `word,` instead of `word`
             if (not self.is_subword_prefix(text[end_idx])) or self.is_punctuation(text[end_idx], punctuation):
                 break
 
@@ -77,7 +79,7 @@ class LanguageModel(abc.ABC):
 
     def is_stop_word(self, text: List[str], start_idx: int, punctuation: str, stopwords: Optional[List[str]]) -> bool:
         """
-        Checks if the given words starting at the given index is in the list of stopwords
+        Checks if the given words starting at the given index is in the list of stopwords.
 
         Parameters
         ----------
@@ -87,6 +89,8 @@ class LanguageModel(abc.ABC):
             Starting index of a word.
         stopwords:
             List of stop words. The words in this list should be lowercase.
+        punctuation
+            Punctuation to be considered. See `select_entire_word`.
 
         Returns
         -------
@@ -117,7 +121,7 @@ class LanguageModel(abc.ABC):
         True if the `token` is a punctuation. False otherwise.
         """
         token = token.replace(self.SUBWORD_PREFIX, '').strip()
-        return all([chr in punctuation for chr in token])
+        return all([c in punctuation for c in token])
 
     @property
     @abc.abstractmethod

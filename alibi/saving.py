@@ -170,48 +170,43 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: Union[str, os.PathLike]) -
 
 def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: dict) -> 'AnchorText':
     # load the spacy model
+    # TODO: maybe include language model too ..
     import spacy
     nlp = spacy.load(Path(path, 'nlp'))
+
+    # define perturbation
+    # TODO: maybe add another parameter to the function ...
+    from alibi.explainers.anchor_text import UnkownSampler, DEFAULT_SAMPLING_UNKNOWN
+    perturbation = UnkownSampler(nlp, DEFAULT_SAMPLING_UNKNOWN)
 
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
 
-    explainer.perturbation.nlp = nlp
-
-    # explainer._synonyms_generator contains spacy Lexemes which contain unserializable Cython constructs
-    # so we re-initialize the object here
-    # TODO: this is slow to re-initialize, try optimzing
-    from alibi.explainers.anchor_text import Neighbors
+    explainer.model = nlp
     explainer.reset_predictor(predictor)
-
-    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
-        explainer.perturbation._synonyms_generator = Neighbors(nlp_obj=nlp)
-
+    explainer.perturbation = perturbation
     return explainer
 
 
 def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> None:
+    # TODO: maybe include language model too ...
     # save the spacy model
     nlp = explainer.perturbation.nlp
     nlp.to_disk(Path(path, 'nlp'))
 
-    _synonyms_generator = explainer.perturbation._synonyms_generator
     predictor = explainer.predictor
+    perturbation = explainer.perturbation
 
-    explainer.perturbation.nlp = None
+    explainer.model = None
     explainer.predictor = None
-
-    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
-        explainer.perturbation._synonyms_generator = None
+    explainer.perturbation = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
 
-    explainer.perturbation.nlp = nlp
+    explainer.model = nlp
     explainer.predictor = predictor
-
-    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
-        explainer.perturbation._synonyms_generator = _synonyms_generator
+    explainer.perturbation = perturbation
 
 
 def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:

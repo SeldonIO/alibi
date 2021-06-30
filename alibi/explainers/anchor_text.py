@@ -179,9 +179,6 @@ class UnkownSampler(AnchorTextSampler):
         self.nlp = _load_spacy_lexeme_prob(nlp)
         self.perturb_opts = perturb_opts  # type: Union[Dict, None]
 
-        # set nlp object
-        self.nlp = _load_spacy_lexeme_prob(nlp)
-
         # define buffer for word, punctuation and position
         self.words, self.punctuation, self.positions = [], [], []  # type: List, List, List
 

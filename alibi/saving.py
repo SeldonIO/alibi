@@ -182,8 +182,10 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
     # so we re-initialize the object here
     # TODO: this is slow to re-initialize, try optimzing
     from alibi.explainers.anchor_text import Neighbors
-    explainer.perturbation._synonyms_generator = Neighbors(nlp_obj=nlp)
     explainer.reset_predictor(predictor)
+
+    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
+        explainer.perturbation._synonyms_generator = Neighbors(nlp_obj=nlp)
 
     return explainer
 
@@ -197,15 +199,19 @@ def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> 
     predictor = explainer.predictor
 
     explainer.perturbation.nlp = None
-    explainer.perturbation._synonyms_generator = None
     explainer.predictor = None
+
+    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
+        explainer.perturbation._synonyms_generator = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
 
     explainer.perturbation.nlp = nlp
-    explainer.perturbation._synonyms_generator = _synonyms_generator
     explainer.predictor = predictor
+
+    if explainer.sampling_method == AnchorText.SAMPLING_SIMILARITY:
+        explainer.perturbation._synonyms_generator = _synonyms_generator
 
 
 def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:

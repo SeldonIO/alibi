@@ -22,6 +22,8 @@ class LanguageModel(abc.ABC):
         """
         self.model_path = model_path
         self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
+        self.caller = tf.function(self.model.call)
+        
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
 
     @abc.abstractmethod
@@ -186,7 +188,6 @@ class LanguageModel(abc.ABC):
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
 
-    @profile
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,
@@ -212,9 +213,16 @@ class LanguageModel(abc.ABC):
         y = np.zeros((n, m, vocab_size), dtype=np.float32)
         n_minibatch = int(np.ceil(n / batch_size))
 
+        istart_buff, istop_buff = 0, 0
+        offset, max_len = 0, 128
+
+        y_buff = tf.Variable(tf.zeros((max_len, m, vocab_size), dtype=tf.float32))
+
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, n)
+            increment = istop - istart
             x_batch = dict()
+            
 
             if 'input_ids' in x.keys():
                 x_batch['input_ids'] = x['input_ids'][istart:istop]
@@ -224,8 +232,24 @@ class LanguageModel(abc.ABC):
 
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
+            
+            #y[istart:istop] = self.caller(**x_batch)[0].numpy()
 
-            y[istart:istop] = self.model(**x_batch)[0].numpy()
+            if istop_buff + increment >= max_len:
+                y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
+                
+                # update buffer indices
+                offset += istop_buff
+                istart_buff = 0
+                istop_buff = increment
+            else:
+                istart_buff = istop_buff
+                istop_buff += increment 
+
+            y_buff[istart_buff:istop_buff].assign(self.caller(**x_batch)[0])
+        
+        # transfer whatever is in the buffer
+        y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
         return y
 
 

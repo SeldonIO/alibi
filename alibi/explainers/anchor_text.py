@@ -1,6 +1,4 @@
 import sys
-from line_profiler import LineProfiler
-
 import copy
 import spacy
 import string
@@ -864,7 +862,6 @@ class LanguageModelSampler(AnchorTextSampler):
 
         return raw
 
-    @profile
     def _perturb_instances_parallel(self,
                                     num_samples: int,
                                     raw: np.ndarray,

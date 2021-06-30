@@ -4,7 +4,6 @@ import string
 import logging
 import numpy as np
 import tensorflow as tf                  # type: ignore
-import tensorflow_probability as tfp     # type: ignore
 
 from copy import deepcopy
 from functools import partial
@@ -676,7 +675,7 @@ class LanguageModelSampler(AnchorTextSampler):
             in the instance to be explained.
         """
         # make sure that frac_mask_templates is in [0, 1]
-        frac_mask_templates = np.clip(frac_mask_templates, 0, 1)
+        frac_mask_templates = np.clip(frac_mask_templates, 0, 1).item()
 
         # compute indices allowed be masked
         all_indices = range(len(self.ids_sample))

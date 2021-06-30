@@ -176,7 +176,7 @@ def test_lm_punctuation(text, min_num, lang_model):
 
     # assert head
     assert len(head) > 0
-    assert tail is None
+    assert len(tail) == 0
     assert len(head_tokens) > 0
     assert len(tail_tokens) == 0
 
@@ -210,7 +210,7 @@ def test_lm_stopwords(text, stopwords, lang_model):
     assert len(head_tokens) > 0
 
     # tail assertions
-    assert tail is None
+    assert len(tail) == 0
     assert len(tail_tokens) == 0
 
     # convert stopwords to lowercase

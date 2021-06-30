@@ -233,23 +233,22 @@ class LanguageModel(abc.ABC):
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
             
-            #y[istart:istop] = self.caller(**x_batch)[0].numpy()
-
-            if istop_buff + increment >= max_len:
-                y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
-                
-                # update buffer indices
-                offset += istop_buff
-                istart_buff = 0
-                istop_buff = increment
-            else:
-                istart_buff = istop_buff
-                istop_buff += increment 
-
-            y_buff[istart_buff:istop_buff].assign(self.caller(**x_batch)[0])
+            y[istart:istop] = self.caller(**x_batch)[0].numpy()
+#            if istop_buff + increment >= max_len:
+#                y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
+#                
+#                # update buffer indices
+#                offset += istop_buff
+#                istart_buff = 0
+#                istop_buff = increment
+#            else:
+#                istart_buff = istop_buff
+#                istop_buff += increment 
+#
+#            y_buff[istart_buff:istop_buff].assign(self.caller(**x_batch)[0])
         
         # transfer whatever is in the buffer
-        y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
+        # y[offset:(offset + istop_buff)] = y_buff[0:istop_buff].numpy()
         return y
 
 

@@ -174,13 +174,19 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
     import spacy
     nlp = spacy.load(Path(path, 'nlp'))
 
-    # define perturbation
-    # TODO: maybe add another parameter to the function ...
-    from alibi.explainers.anchor_text import UnkownSampler, DEFAULT_SAMPLING_UNKNOWN
-    perturbation = UnkownSampler(nlp, DEFAULT_SAMPLING_UNKNOWN)
-
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
+
+    # define perturbation
+    from alibi.explainers import AnchorText
+    sampling_method = explainer.sampling_method
+    perturb_opts = explainer.perturb_opts
+    nlp_sampling_methods = [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]
+
+    if sampling_method in nlp_sampling_methods:
+        perturbation = AnchorText.CLASS_SAMPLER[sampling_method](nlp, perturb_opts)
+    else:
+        raise NotImplementedError("Loading for Language Model is not implemented.")
 
     explainer.model = nlp
     explainer.reset_predictor(predictor)

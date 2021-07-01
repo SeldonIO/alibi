@@ -915,9 +915,6 @@ class LanguageModelSampler(AnchorTextSampler):
         sampled_tokens = np.zeros((num_samples, tokens.shape[1]), dtype=np.int32)
         sampled_data = np.zeros((num_samples, data.shape[1]))
 
-        # initialize offset
-        offset = 0
-
         for i in range(logits.shape[0]):
             # select indices corresponding to the current row `i`
             idx = tf.reshape(tf.where(mask_row == i), shape=-1)
@@ -937,9 +934,9 @@ class LanguageModelSampler(AnchorTextSampler):
             top_k_logits = (top_k_logits / temperature) if use_proba else (top_k_logits * 0)
 
             # sample `num_samples` instance for the current mask template
-            for j in range(mult_factor + int(reminder > 0)):
+            for j in range(mult_factor + int(i < reminder)):
                 # Compute the buffer index
-                idx = i * mult_factor + j + offset
+                idx = i * mult_factor + j + min(i, reminder)
 
                 # Sample indices
                 ids_k = tf.reshape(tf.random.categorical(top_k_logits, 1), shape=-1)
@@ -950,15 +947,12 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # Add the original binary mask which marks the beginning of a masked
             # word, as is needed for the anchor algorithm (backend stuff)
-            idx = i * mult_factor
-            sampled_data[idx + offset:idx + mult_factor + offset + (reminder > 0)] = data[i]
-
-            # decrement reminder and increase counter if reminder is gt 0
-            reminder -= 1
-            offset += int(reminder > 0)
+            idx, offset = i * mult_factor, min(i, reminder)
+            sampled_data[idx + offset:idx + mult_factor + offset + (i < reminder)] = data[i]
 
         # Check that there are not masked tokens left
         assert np.all(sampled_tokens != self.model.mask_token)
+        assert np.all(np.any(sampled_tokens != 0, axis=1))
         return sampled_tokens, sampled_data
 
     def _perturb_instance_ar(self,

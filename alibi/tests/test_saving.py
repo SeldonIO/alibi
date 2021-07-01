@@ -35,6 +35,12 @@ def english_spacy_model():
 
 
 @pytest.fixture(scope='module')
+def language_model():
+    from alibi.utils.lang_model import DistilbertBaseUncased
+    return DistilbertBaseUncased()
+
+
+@pytest.fixture(scope='module')
 def adult_data():
     return get_adult_data()
 
@@ -133,12 +139,25 @@ def ai_explainer(mnist_predictor, request):
 
 
 @pytest.fixture(scope='module')
-def atext_explainer(lr_classifier, english_spacy_model, movie_sentiment_data):
+def atext_explainer_nlp(lr_classifier, english_spacy_model, movie_sentiment_data):
     predictor = predict_fcn(predict_type='class',
                             clf=lr_classifier,
                             preproc=movie_sentiment_data['preprocessor'])
     atext = AnchorText(nlp=english_spacy_model,
-                       predictor=predictor)
+                       predictor=predictor,
+                       sampling_method="unknown")
+    return atext
+
+
+@pytest.fixture(scope='module')
+def atext_explainer_lm(lr_classifier, language_model, movie_sentiment_data):
+    predictor = predict_fcn(predict_type='class',
+                            clf=lr_classifier,
+                            preproc=movie_sentiment_data['preprocessor'])
+    atext = AnchorText(language_model=language_model,
+                       predictor=predictor,
+                       sampling_method="language_model",
+                       sample_proba=1.0)
     return atext
 
 
@@ -238,12 +257,12 @@ def test_save_AnchorImage(ai_explainer, mnist_predictor):
 
 
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
+@pytest.mark.parametrize('atext_explainer', [lazy_fixture('atext_explainer_nlp'), lazy_fixture('atext_explainer_lm')])
 def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
     predictor = predict_fcn(predict_type='class',
                             clf=lr_classifier,
                             preproc=movie_sentiment_data['preprocessor'])
     X = movie_sentiment_data['X_test'][0]
-
     exp0 = atext_explainer.explain(X)
 
     with tempfile.TemporaryDirectory() as temp_dir:

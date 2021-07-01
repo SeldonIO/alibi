@@ -1186,7 +1186,9 @@ class AnchorText(Explainer):
                  seed: int = 0,
                  **kwargs: Any) -> None:
         """
-        Initialize anchor text explainer.
+        Initialize anchor text explainer. Sampling parameters can be passed as `kwargs`
+        depending on the `sampling_method`. Check default parameters defined in:
+        `DEFAULT_SAMPLING_UNKNOWN`, `DEFAULT_SAMPLING_SIMILARITY`, `DEFAULT_SAMPLING_LANGUAGE_MODEL`.
 
         Parameters
         ----------
@@ -1255,6 +1257,7 @@ class AnchorText(Explainer):
                 raise ValueError(f"Language model can not be `None` when `sampling_method` set to `{sampling_method}`")
             # set language model object
             self.model = language_model
+            self.model_class = type(language_model).__name__
 
         # get default args
         default_args: dict = self.DEFAULTS[self.sampling_method]
@@ -1341,7 +1344,6 @@ class AnchorText(Explainer):
 
     def explain(self,  # type: ignore
                 text: str,
-                sampling_method: str = 'unknown',
                 threshold: float = 0.95,
                 delta: float = 0.1,
                 tau: float = 0.15,
@@ -1364,11 +1366,6 @@ class AnchorText(Explainer):
         ----------
         text
             Text instance to be explained.
-        sampling_method
-            Perturbation distribution method.
-            `unknown` perturbation distribution will replace words randomly with UNKs.
-            `similarity` sample according to a similarity scroe with the corpus embeddings.
-            `language_model` sample according the distribution output by a language model.
         threshold
             Minimum precision threshold.
         delta
@@ -1415,6 +1412,8 @@ class AnchorText(Explainer):
         for key in remove:
             params.pop(key)
 
+        params = deepcopy(params)  # Get a reference to itself if not deepcopy for LM sampler
+
         # store n_covered_ex positive/negative examples for each anchor
         self.n_covered_ex = n_covered_ex
         self.instance_label = self.predictor([text])[0]
@@ -1429,6 +1428,7 @@ class AnchorText(Explainer):
             cache_margin=cache_margin,
             **kwargs
         )
+
         result = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
@@ -1460,7 +1460,6 @@ class AnchorText(Explainer):
 
         # set mab
         self.mab = mab
-
         return self.build_explanation(text, result, self.instance_label, params)
 
     def build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
@@ -1495,7 +1494,7 @@ class AnchorText(Explainer):
         explanation = Explanation(meta=copy.deepcopy(self.meta), data=data)
 
         # params passed to explain
-        explanation.meta['params'].update(params)
+        # explanation.meta['params'].update(params)
         return explanation
 
     def _transform_predictor(self, predictor: Callable) -> Callable:

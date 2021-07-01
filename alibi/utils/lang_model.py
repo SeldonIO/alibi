@@ -1,8 +1,9 @@
 import abc
 import numpy as np
-import tensorflow as tf  # type: ignore
-from typing import List, Optional, Tuple
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
 
+import tensorflow as tf  # type: ignore
 import transformers  # type: ignore
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
@@ -10,7 +11,7 @@ from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 class LanguageModel(abc.ABC):
     SUBWORD_PREFIX = ''
 
-    def __init__(self, model_path: str):
+    def __init__(self, model_path: str, preloading: bool = True):
         """
         Initialize the language model.
 
@@ -18,15 +19,53 @@ class LanguageModel(abc.ABC):
         ----------
         model_path
             `transformers` package model path.
+        preloading
+            Whether to preload the online version of the transformer.
+            If `False`, a call to `load` method is expected.
         """
         self.model_path = model_path
+        self.model, self.caller, self.tokenizer = None, None, None
 
+        if preloading:
+            # set model
+            self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
+            self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
+
+            # set tokenizer
+            self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+
+    def from_disk(self, path: Union[str, Path]):
+        """
+        Loads a model from disk.
+
+        Parameters
+        ----------
+        path
+            Path to the checkpoint.
+        """
         # set model
-        self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
-        self.caller = tf.function(self.model.call)
+        self.model = TFAutoModelForMaskedLM.from_pretrained(path, local_files_only=True)
+        self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
 
         # set tokenizer
-        self.tokenizer = AutoTokenizer.from_pretrained(model_path)
+        self.tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)
+
+    def to_disk(self, path: Union[str, Path]):
+        """
+        Saves a model to disk.
+
+        Parameters
+        ----------
+        path
+            Path to the checkpoint.
+        """
+        # save model if set
+        if self.model:
+            self.model.save_pretrained(path)
+
+        # save tokenizer if set
+        if self.tokenizer:
+            self.tokenizer.save_pretrained(path)
 
     @abc.abstractmethod
     def is_subword_prefix(self, token: str) -> bool:
@@ -240,8 +279,16 @@ class LanguageModel(abc.ABC):
 class DistilbertBaseUncased(LanguageModel):
     SUBWORD_PREFIX = '##'
 
-    def __init__(self):
-        super(DistilbertBaseUncased, self).__init__("distilbert-base-uncased")
+    def __init__(self, preloading: bool = True):
+        """
+        Initialize DistilbertBaseUncased.
+
+        Parameters
+        ----------
+        preloading
+            See `LanguageModel` constructor.
+        """
+        super(DistilbertBaseUncased, self).__init__("distilbert-base-uncased", preloading)
 
     @property
     def mask(self) -> str:
@@ -254,8 +301,16 @@ class DistilbertBaseUncased(LanguageModel):
 class BertBaseUncased(LanguageModel):
     SUBWORD_PREFIX = '##'
 
-    def __init__(self):
-        super(BertBaseUncased, self).__init__("bert-base-uncased")
+    def __init__(self, preloading: bool = True):
+        """
+        Initialize BertBaseUncased.
+
+        Parameters
+        ----------
+        preloading
+            See `LanguageModel` constructor.
+        """
+        super(BertBaseUncased, self).__init__("bert-base-uncased", preloading)
 
     @property
     def mask(self) -> str:
@@ -268,11 +323,19 @@ class BertBaseUncased(LanguageModel):
 class RobertaBase(LanguageModel):
     SUBWORD_PREFIX = 'Ġ'
 
-    def __init__(self):
-        super(RobertaBase, self).__init__("roberta-base")
+    def __init__(self, preloading: bool = True):
+        """
+        Initialize RobertaBase
+
+        Parameters
+        ----------
+        preloading
+            See `LanguageModel` constructor.
+        """
+        super(RobertaBase, self).__init__("roberta-base", preloading)
 
     @property
-    def mask(self):
+    def mask(self) -> str:
         return RobertaBase.SUBWORD_PREFIX + self.tokenizer.mask_token
 
     def is_subword_prefix(self, token: str) -> bool:

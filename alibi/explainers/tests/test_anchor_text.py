@@ -44,7 +44,7 @@ def uncollect_if_test_explainer(**kwargs):
                          [('This is a good book.', 1, 6),
                           ('I, for one, hate it.', 3, 7)])
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
-@pytest.mark.parametrize('predict_type, anchor, use_similarity_proba, sampling_method, filling_method, threshold',
+@pytest.mark.parametrize('predict_type, anchor, use_proba, sampling_method, filling_method, threshold',
                          [('proba', (), False, 'unknown', None, 0.95),
                           ('proba', (), False, 'similarity', None, 0.95),
                           ('proba', (), False, 'language_model', 'parallel', 0.95),
@@ -56,7 +56,7 @@ def uncollect_if_test_explainer(**kwargs):
                           ('class', (3,), False, 'language_model', 'parallel', 0.95)])
 @pytest.mark.parametrize('lang_model', ["", "RobertaBase", "BertBaseUncased", "DistilbertBaseUncased"], indirect=True)
 def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, predict_type, anchor,
-                   use_similarity_proba, sampling_method, filling_method, threshold, lang_model, nlp):
+                   use_proba, sampling_method, filling_method, threshold, lang_model, nlp):
     # check invalid combinations of params
     cond1 = (sampling_method != 'language_model') and (lang_model is not None)
     cond2 = (sampling_method == 'language_model') and (lang_model is None)
@@ -83,7 +83,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         'temperature': temperature,
         'top_n': top_n,
         "frac_maks_templates": frac_mask_templates,
-        "use_similarity_proba": use_similarity_proba,
+        "use_proba": use_proba,
     }
 
     # test explainer initialization

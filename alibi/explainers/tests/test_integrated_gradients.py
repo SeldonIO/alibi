@@ -15,6 +15,7 @@ BASELINES = [None, 1, np.random.rand(N_TEST, N_FEATURES)]
 
 X = np.random.rand(N, N_FEATURES)
 X_train, X_test = X[:N_TRAIN, :], X[N_TRAIN:, :]
+KWARGS = [None, {'mask': np.zeros(X_test.shape, dtype=np.float32)}]
 
 # multi inputs features
 X0 = np.random.rand(N, 10, N_FEATURES)
@@ -102,8 +103,12 @@ def ffn_model_subclass(request):
             self.dense_2 = tf.keras.layers.Dense(20, activation='relu')
             self.dense_3 = tf.keras.layers.Dense(output_dim, activation)
 
-        def call(self, inputs):
-            x = self.dense_1(inputs)
+        def call(self, inputs, mask=None):
+            if mask is not None:
+                x = tf.math.multiply(inputs, mask)
+                x = self.dense_1(x)
+            else:
+                x = self.dense_1(inputs)
             x = self.dense_2(x)
             outputs = self.dense_3(x)
             return outputs
@@ -205,13 +210,15 @@ def test_integrated_gradients_model_sequential(ffn_model_sequential, method, bas
                                                   'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines):
+@pytest.mark.parametrize('kwargs', KWARGS)
+def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines, kwargs):
     model = ffn_model_subclass
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=test_labels,
+                              forward_kwargs=kwargs)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -427,7 +434,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model,
     explanations = ig.explain(X_test,
                               baselines=baselines,
                               target=test_labels,
-                              compute_layer_inputs_gradients=layer_inputs_attributions)
+                              attribute_to_layer_inputs=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:
@@ -461,11 +468,13 @@ def test_integrated_gradients_binary_classification_layer(ffn_model,
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('layer_nb', (None, 1))
 @pytest.mark.parametrize('baselines', BASELINES)
+@pytest.mark.parametrize('kwargs', KWARGS)
 @pytest.mark.parametrize('layer_inputs_attributions', (False, True))
 def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_subclass,
                                                                    method,
                                                                    layer_nb,
                                                                    baselines,
+                                                                   kwargs,
                                                                    layer_inputs_attributions):
     model = ffn_model_subclass
     if layer_nb is not None:
@@ -479,7 +488,8 @@ def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_sub
     explanations = ig.explain(X_test,
                               baselines=baselines,
                               target=test_labels,
-                              compute_layer_inputs_gradients=layer_inputs_attributions)
+                              forward_kwargs=kwargs,
+                              attribute_to_layer_inputs=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
     if layer is not None:

@@ -2,6 +2,7 @@ import pytest
 import logging
 import shap
 
+import spacy
 import numpy as np
 from sklearn.linear_model import LogisticRegression, LinearRegression
 
@@ -10,6 +11,9 @@ from alibi.explainers import AnchorTabular
 from alibi.explainers import KernelShap, TreeShap
 from alibi.explainers.tests.utils import predict_fcn, MockTreeExplainer
 from alibi.tests.utils import MockPredictor
+from alibi.utils.lang_model import BertBaseUncased, DistilbertBaseUncased, RobertaBase
+from alibi.utils.download import spacy_model
+
 import tensorflow as tf
 from sklearn.ensemble import RandomForestClassifier
 
@@ -341,3 +345,27 @@ def disable_tf2():
     """
     tf.compat.v1.disable_v2_behavior()
     yield
+
+
+@pytest.fixture(scope='module')
+def lang_model(request):
+    model_name = request.param
+
+    if model_name == "RobertaBase":
+        return RobertaBase()
+
+    if model_name == "BertBaseUncased":
+        return BertBaseUncased()
+
+    if model_name == "DistilbertBaseUncased":
+        return DistilbertBaseUncased()
+
+    return None
+
+
+@pytest.fixture(scope='module')
+def nlp():
+    model = 'en_core_web_md'
+    spacy_model(model=model)
+    nlp = spacy.load(model)
+    return nlp

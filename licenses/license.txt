@@ -4910,7 +4910,7 @@ SOFTWARE.
 
 packaging
 21.0
-Apache Software License; BSD License
+BSD License; Apache Software License
 This software is made available under the terms of *either* of the licenses
 found in LICENSE.APACHE or LICENSE.BSD. Contributions to this software is made
 under the terms of *both* these licenses.
@@ -5298,7 +5298,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 python-dateutil
 2.8.1
-Apache Software License; BSD License
+BSD License; Apache Software License
 Copyright 2017- Paul Ganssle <paul@ganssle.io>
 Copyright 2017- dateutil contributors (see AUTHORS file)
 
@@ -8016,7 +8016,7 @@ UNKNOWN
 
 tqdm
 4.61.1
-MIT License; Mozilla Public License 2.0 (MPL 2.0)
+Mozilla Public License 2.0 (MPL 2.0); MIT License
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
 for their respective work, and release the work under the MIT licence

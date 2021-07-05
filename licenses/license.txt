@@ -8016,7 +8016,7 @@ UNKNOWN
 
 tqdm
 4.61.1
-Mozilla Public License 2.0 (MPL 2.0); MIT License
+MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
 for their respective work, and release the work under the MIT licence

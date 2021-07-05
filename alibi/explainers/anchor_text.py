@@ -159,7 +159,7 @@ class AnchorTextSampler:
         return np.array(' '.join(arr)).astype(dtype)
 
 
-class UnkownSampler(AnchorTextSampler):
+class UnknownSampler(AnchorTextSampler):
     UNK = "UNK"
 
     def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
@@ -237,7 +237,7 @@ class UnkownSampler(AnchorTextSampler):
             # sample the words in the text outside of the anchor that are replaced with UNKs
             n_changed = np.random.binomial(num_samples, self.perturb_opts['sample_proba'])
             changed = np.random.choice(num_samples, n_changed, replace=False)
-            raw[changed, i] = UnkownSampler.UNK
+            raw[changed, i] = UnknownSampler.UNK
             data[changed, i] = 0
 
         # join the words
@@ -1169,7 +1169,7 @@ class AnchorText(Explainer):
 
     # class of samplers
     CLASS_SAMPLER = {
-        SAMPLING_UNKNOWN: UnkownSampler,
+        SAMPLING_UNKNOWN: UnknownSampler,
         SAMPLING_SIMILARITY: SimilaritySampler,
         SAMPLING_LANGUAGE_MODEL: LanguageModelSampler
     }

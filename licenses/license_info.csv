@@ -86,7 +86,7 @@
 "threadpoolctl","2.1.0","BSD License"
 "tifffile","2021.7.2","BSD License"
 "tokenizers","0.10.3","Apache Software License"
-"tqdm","4.61.1","Mozilla Public License 2.0 (MPL 2.0); MIT License"
+"tqdm","4.61.1","MIT License; Mozilla Public License 2.0 (MPL 2.0)"
 "transformers","4.8.2","Apache Software License"
 "typer","0.3.2","MIT License"
 "typing-extensions","3.7.4.3","Python Software Foundation License"

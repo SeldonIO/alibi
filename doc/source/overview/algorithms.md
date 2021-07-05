@@ -72,6 +72,7 @@ straight line from the baseline to the input.
 [MNIST example](../examples/integrated_gradients_mnist.nblink),
 [Imagenet example](../examples/integrated_gradients_imagenet.nblink),
 [IMDB example](../examples/integrated_gradients_imdb.nblink).
+[Transformers example](../examples/integrated_gradients_transformers.nblink).
 
 **Kernel Shapley Additive Explanations (Kernel SHAP)**: attribute the change of a model output with respect
 to a given baseline (e.g., average over a reference set) to each of the input features. This is achieved for

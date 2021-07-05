@@ -43,7 +43,7 @@ setup(name='alibi',
           'matplotlib>=3.0.0, <4.0.0',
           'typing-extensions>=3.7.2; python_version < "3.8"',  # https://github.com/SeldonIO/alibi/pull/248
           'dill>=0.3.0, <0.4.0',
-          'transformers>=4.7.0'
+          'transformers>=4.7.0, <5.0.0'
       ],
       extras_require=extras_require,
       test_suite='tests',

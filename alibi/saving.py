@@ -176,10 +176,10 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
         explainer = dill.load(f)
 
     perturb_opts = explainer.perturb_opts
-    sampling_method = explainer.sampling_method
+    sampling_strategy = explainer.sampling_strategy
     nlp_sampling = [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]
 
-    if sampling_method in nlp_sampling:
+    if sampling_strategy in nlp_sampling:
         # load the spacy model
         import spacy
         model = spacy.load(Path(path, 'nlp'))
@@ -191,7 +191,7 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
         model.from_disk(Path(path, 'language_model'))
 
     # construct perturbation
-    perturbation = AnchorText.CLASS_SAMPLER[sampling_method](model, perturb_opts)
+    perturbation = AnchorText.CLASS_SAMPLER[sampling_strategy](model, perturb_opts)
 
     # set model, predictor, perturbation
     explainer.model = model
@@ -201,16 +201,15 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
 
 
 def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> None:
-    # TODO: maybe include language model too ...
     from alibi.explainers import AnchorText
 
     model = explainer.model
     predictor = explainer.predictor
     perturbation = explainer.perturbation
-    sampling_method = explainer.sampling_method
+    sampling_strategy = explainer.sampling_strategy
 
     nlp_sampling = [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]
-    dir_name = 'nlp' if sampling_method in nlp_sampling else 'language_model'
+    dir_name = 'nlp' if sampling_strategy in nlp_sampling else 'language_model'
     model.to_disk(Path(path, dir_name))
 
     explainer.model = None

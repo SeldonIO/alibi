@@ -1,6 +1,5 @@
 import pytest
 from pytest_lazyfixture import lazy_fixture
-import spacy
 
 import string
 import numpy as np
@@ -9,12 +8,6 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
-from alibi.utils.download import spacy_model
-
-# load spaCy model
-model = 'en_core_web_md'
-spacy_model(model=model)
-nlp = spacy.load(model)
 
 
 # TODO: Test DistributedAnchorBaseBeam separately
@@ -31,11 +24,11 @@ def uncollect_if_test_explainer(**kwargs):
     the **kwargs argument is used to collect all inputs.
     """
 
-    sampling_method = kwargs['sampling_method']
+    sampling_strategy = kwargs['sampling_strategy']
     lang_model = kwargs['lang_model']
 
-    cond1 = (sampling_method != 'language_model') and (lang_model != '')
-    cond2 = (sampling_method == 'language_model') and (lang_model == '')
+    cond1 = (sampling_strategy != 'language_model') and (lang_model != '')
+    cond2 = (sampling_strategy == 'language_model') and (lang_model == '')
     return any([cond1, cond2])
 
 
@@ -44,7 +37,7 @@ def uncollect_if_test_explainer(**kwargs):
                          [('This is a good book.', 1, 6),
                           ('I, for one, hate it.', 3, 7)])
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
-@pytest.mark.parametrize('predict_type, anchor, use_proba, sampling_method, filling_method, threshold',
+@pytest.mark.parametrize('predict_type, anchor, use_proba, sampling_strategy, filling, threshold',
                          [('proba', (), False, 'unknown', None, 0.95),
                           ('proba', (), False, 'similarity', None, 0.95),
                           ('proba', (), False, 'language_model', 'parallel', 0.95),
@@ -56,14 +49,7 @@ def uncollect_if_test_explainer(**kwargs):
                           ('class', (3,), False, 'language_model', 'parallel', 0.95)])
 @pytest.mark.parametrize('lang_model', ["", "RobertaBase", "BertBaseUncased", "DistilbertBaseUncased"], indirect=True)
 def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, predict_type, anchor,
-                   use_proba, sampling_method, filling_method, threshold, lang_model, nlp):
-    # check invalid combinations of params
-    cond1 = (sampling_method != 'language_model') and (lang_model is not None)
-    cond2 = (sampling_method == 'language_model') and (lang_model is None)
-
-    if any([cond1, cond2]):
-        pytest.skip("Invalid combination")
-
+                   use_proba, sampling_strategy, filling, threshold, lang_model, nlp):
     # test parameters
     sample_proba = 0.5          # probability of masking a word
     top_n = 500                 # use top 500 words
@@ -78,16 +64,16 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
 
     # setup explainer
     perturb_opts = {
-        'filling_method': filling_method,
+        'filling': filling,
         'sample_proba': sample_proba,
         'temperature': temperature,
         'top_n': top_n,
-        "frac_maks_templates": frac_mask_templates,
+        "frac_mask_templates": frac_mask_templates,
         "use_proba": use_proba,
     }
 
     # test explainer initialization
-    explainer = AnchorText(predictor=predictor, sampling_method=sampling_method,
+    explainer = AnchorText(predictor=predictor, sampling_strategy=sampling_strategy,
                            nlp=nlp, language_model=lang_model, **perturb_opts)
     assert explainer.predictor(['book']).shape == (1, )
 
@@ -100,7 +86,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
     explainer.instance_label = label
 
     # check punctuation and words for `unknown` and `similarity` sampling
-    if sampling_method in [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]:
+    if sampling_strategy in [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]:
         assert len(explainer.perturbation.punctuation) == n_punctuation_marks
         assert len(explainer.perturbation.words) == len(explainer.perturbation.positions)
     else:
@@ -119,7 +105,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         for i, token in enumerate(tokens):
             if (not lang_model.is_subword_prefix(token)) and \
                     (not lang_model.is_punctuation(token, string.punctuation)):
-                word = lang_model.select_entire_word(tokens, i, string.punctuation)
+                word = lang_model.select_word(tokens, i, string.punctuation)
                 words.append(word.strip())
 
         # set with all unique words including punctuation
@@ -133,10 +119,10 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         assert coverage == -1
 
     # check that words in present are in the proposed anchor
-    if (sampling_method in [AnchorText.SAMPLING_SIMILARITY]) and len(anchor) > 0:
+    if (sampling_strategy in [AnchorText.SAMPLING_SIMILARITY]) and len(anchor) > 0:
         assert len(anchor) * data.shape[0] == data[:, anchor].sum()
 
-    if sampling_method == AnchorText.SAMPLING_UNKNOWN:
+    if sampling_strategy == AnchorText.SAMPLING_UNKNOWN:
         all_words = explainer.perturbation.words
         assert len(np.unique(all_words)) == n_unique_words
 
@@ -148,7 +134,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR.keys()
 
 
-def test_neighbors():
+def test_neighbors(nlp):
     # test inputs
     w_prob = -15.
     tag = 'NN'
@@ -221,7 +207,7 @@ def test_lm_stopwords(text, stopwords, lang_model):
 
     for i in range(len(head_tokens)):
         if lang_model.is_stop_word(head_tokens, i, string.punctuation, stopwords):
-            word = lang_model.select_entire_word(head_tokens, i, string.punctuation)
+            word = lang_model.select_word(head_tokens, i, string.punctuation)
             found_stopwords.append(word.strip())
 
     # transform found_stopwords to lowercase
@@ -231,6 +217,7 @@ def test_lm_stopwords(text, stopwords, lang_model):
     assert set(found_stopwords) == set(stopwords)
 
 
+@pytest.mark.skip("This can take a while ...")
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize('punctuation', ['', string.punctuation])
@@ -239,14 +226,12 @@ def test_lm_precision(lang_model, lr_classifier, movie_sentiment_data, punctuati
     """
     Checks if the anchor precision exceeds the threshold
     """
-    pytest.skip("This can take a while...")
-
     # unpack test data
     X_test = movie_sentiment_data['X_test']
     short_examples = [i for i in range(len(X_test)) if len(X_test[i]) < 50]
 
     # select 10 examples
-    n = 5
+    n = 10
     np.random.seed(0)
     idx = np.random.choice(short_examples, size=n, replace=False)
 
@@ -259,7 +244,7 @@ def test_lm_precision(lang_model, lr_classifier, movie_sentiment_data, punctuati
 
     # setup perturbation options
     perturb_opts = {
-        "filling_method": "parallel",
+        "filling": "parallel",
         "sample_proba": 0.5,
         "temperature": 1.0,
         "top_n": 100,
@@ -269,7 +254,7 @@ def test_lm_precision(lang_model, lr_classifier, movie_sentiment_data, punctuati
     }
 
     # initialize exaplainer
-    explainer = AnchorText(predictor=predictor, sampling_method=AnchorText.SAMPLING_LANGUAGE_MODEL,
+    explainer = AnchorText(predictor=predictor, sampling_strategy=AnchorText.SAMPLING_LANGUAGE_MODEL,
                            language_model=lang_model, **perturb_opts)
 
     for i in range(n):
@@ -286,9 +271,9 @@ def test_lm_precision(lang_model, lr_classifier, movie_sentiment_data, punctuati
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('punctuation', ['', string.punctuation])
 @pytest.mark.parametrize('stopwords', [[], ['a', 'the', 'but', 'this', 'there', 'those', 'an']])
-@pytest.mark.parametrize('filling_method', ['parallel'])
+@pytest.mark.parametrize('filling', ['parallel'])
 @pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
-def test_lm_stopwords_punctuation(lang_model, punctuation, stopwords, filling_method,
+def test_lm_stopwords_punctuation(lang_model, punctuation, stopwords, filling,
                                   movie_sentiment_data, sample_proba, nlp):
     """
     Checks if the sampling procedure affect the stopwords and the
@@ -329,7 +314,7 @@ def test_lm_stopwords_punctuation(lang_model, punctuation, stopwords, filling_me
         sampler.set_text(text)
 
         # get masks samples
-        raw, data = sampler.create_mask((), num_samples=10, filling_method=filling_method, **perturb_opts)
+        raw, data = sampler.create_mask((), num_samples=10, filling=filling, **perturb_opts)
 
         for j in range(len(raw)):
             mask_counts = str(raw[j]).count(lang_model.mask)
@@ -339,12 +324,12 @@ def test_lm_stopwords_punctuation(lang_model, punctuation, stopwords, filling_me
             words_masks = [w.text.lower() for w in preprocessed]
             words_masks = {w: words_masks.count(w) for w in words_masks}
 
-            # check if the stopwords were perturb and they were not supposed to
+            # check if the stopwords were perturbed and they were not supposed to
             for sw in stopwords:
                 if sw in words:
                     assert words[sw] == words_masks[sw]
 
-            # check if the punctuation was petrub and it was not supposed to
+            # check if the punctuation was perturbed and it was not supposed to
             for p in punctuation:
                 if (p in text) and (p != '\''):  # ' is a tricky one as in words don't for which don' is a token
                     assert text.count(p) == str(raw[j]).count(p)
@@ -376,8 +361,8 @@ def test_lm_split(lang_model, head_gt, num_tokens):
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('num_tokens', [30, 50, 100])
 @pytest.mark.parametrize('sample_proba', [0.1, 0.3, 0.5, 0.6, 0.7, 0.9])
-@pytest.mark.parametrize('filling_method', ['parallel', 'autoregressive'])
-def test_lm_mask(lang_model, num_tokens, sample_proba, filling_method):
+@pytest.mark.parametrize('filling', ['parallel', 'autoregressive'])
+def test_lm_mask(lang_model, num_tokens, sample_proba, filling):
     """
     Tests the mean number of masked tokens match the expected one.
     """
@@ -389,7 +374,7 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling_method):
         "sample_proba": sample_proba,
         "punctuation": '',
         "stopwords": [],
-        "filling_method": filling_method,
+        "filling": filling,
     }
 
     # define sampler
@@ -411,10 +396,10 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling_method):
 
 
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
-@pytest.mark.parametrize('filling_method', ['parallel'])
+@pytest.mark.parametrize('filling', ['parallel'])
 @pytest.mark.parametrize('punctuation', [string.punctuation])
 @pytest.mark.parametrize('sample_proba', [0.5, 0.6, 0.7])
-def test_lm_sample_punctuation(lang_model, punctuation, filling_method, movie_sentiment_data, sample_proba):
+def test_lm_sample_punctuation(lang_model, punctuation, filling, movie_sentiment_data, sample_proba):
     """
     Check if the punctuation is not sampled when flag is set.
     """
@@ -435,7 +420,7 @@ def test_lm_sample_punctuation(lang_model, punctuation, filling_method, movie_se
         "sample_proba": sample_proba,
         "punctuation": punctuation,
         "stopwords": [],
-        "filling_method": filling_method,
+        "filling": filling,
         "sample_punctuation": False
     }
 

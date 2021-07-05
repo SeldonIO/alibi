@@ -1,10 +1,32 @@
+"""
+This module defines a wrapper for transformer-based masked language models used in `AnchorText` as a perturbation
+strategy. The `LanguageModel` base class defines basic functionalities as loading, storing, and predicting.
+
+Language model's tokenizers usually work at a subword level, and thus, a word can be split into subwords. For example,
+a word can be decomposed as: word = [head_token tail_token_1 tail_token_2 ... tail_token_k]. For language models
+such as DistilbertBaseUncased and BertBaseUncased, the tail tokens can be identified by a special prefix `##`.
+On the other hand, for RobertaBase only the head is prefixed with the special character `Ġ`, thus the tail tokens
+can be identified by the absence of the special token. In this module, we refer to a tail token as a subword prefix.
+We will use the notion of a subword to refer to either a `head` or a `tail` token.
+
+To generate interpretable perturbed instances, we do not mask subwords, but entire words. Note that this operation is
+equivalent to replacing the head token with the special mask token, and removing the tail tokens if they exist. Thus,
+the `LanguageModel` class offers additional functionalities such as: checking if a token is a subword prefix,
+selection of a word (head_token along with the tail_tokens), etc.
+
+Some language models can work with a limited number of tokens, thus the input text has to be split. Thus, a text will
+be split in head and tail, where the number of tokens in the head is less or equal to the maximum allowed number of
+tokens to be processed by the language model. In the `AnchorText` only the head is perturbed. To keep the results
+interpretable, we ensure that the head will not end with a subword, and will contain only full words.
+"""
+
 import abc
 import numpy as np
 from pathlib import Path
 from typing import List, Optional, Tuple, Union
 
-import tensorflow as tf  # type: ignore
-import transformers  # type: ignore
+import tensorflow as tf
+import transformers
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
 
@@ -21,13 +43,13 @@ class LanguageModel(abc.ABC):
             `transformers` package model path.
         preloading
             Whether to preload the online version of the transformer.
-            If `False`, a call to `load` method is expected.
+            If `False`, a call to `from_disk` method is expected.
         """
         self.model_path = model_path
         self.model, self.caller, self.tokenizer = None, None, None
 
         if preloading:
-            # set model
+            # set model (for performance reasons the `call` method is wrapped in tf.function)
             self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
             self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
 
@@ -43,7 +65,7 @@ class LanguageModel(abc.ABC):
         path
             Path to the checkpoint.
         """
-        # set model
+        # set model (for performance reasons the `call` method is wrapped in tf.function)
         self.model = TFAutoModelForMaskedLM.from_pretrained(path, local_files_only=True)
         self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
 
@@ -70,7 +92,14 @@ class LanguageModel(abc.ABC):
     @abc.abstractmethod
     def is_subword_prefix(self, token: str) -> bool:
         """
-        Checks if the given token in a subword.
+        Checks if the given token is a part of the tail of a word. Note that a word can
+        be split in multiple tokens (e.g., word = [head_token tail_token_1 tail_token_2 ... tail_token_k]).
+        Each language model has a convention on how to mark a tail token. For example
+        DistilbertBaseUncased and BertBaseUncased have the tail tokens prefixed with the special
+        set of characters `##`. On the other hand, for RobertaBase only the head token is prefixed
+        with the special character 'Ġ' and thus we need to check the absence of the prefix to identify
+        the tail tokens. We call those special characters SUBWORD_PREFIX. Due to different conventions,
+        this method has to be implemented for each language model. See module docstring for namings.
 
         Parameters
         ----------
@@ -79,51 +108,62 @@ class LanguageModel(abc.ABC):
 
         Returns
         -------
-        True if the given token is a subword. False otherwise.
+        True if the given token is a subword prefix. False otherwise.
         """
         pass
 
-    def select_entire_word(self, text: List[str], start_idx: int, punctuation: str) -> str:
+    def select_word(self,
+                    tokenized_text: List[str],
+                    start_idx: int,
+                    punctuation: str) -> str:
         """
-        Given a text and the starting index of a word, the function selects the entire word.
+        Given a tokenized text and the starting index of a word, the function selects the entire word.
+        Note that a word is composed of multiple tokens (e.g., word = [head_token tail_token_1
+        tail_token_2 ... tail_token_ k]. The tail tokens can be identified based on the
+        presence/absence of SUBWORD_PREFIX. See `is_subword_prefix` for more details.
 
         Parameters
         ----------
-        text
-            Full text.
+        tokenized_text
+            Tokenized text.
         start_idx
             Starting index of a word.
         punctuation
             String of punctuation to be considered. If it encounters a token
-             composed only of characters in `punctuation` it terminates the search.
+            composed only of characters in `punctuation` it terminates the search.
 
         Returns
         -------
-        The entire words (this includes the subwords that come after).
+        The word obtained by concatenation [head_token tail_token_1 tail_token_2 ... tail_token_k].
         """
         # define the ending index
         end_idx = start_idx + 1
 
-        while end_idx < len(text):
+        while end_idx < len(tokenized_text):
             # The second condition is necessary for models like Roberta.
             # If the second condition is not included, it can select words like: `word,` instead of `word`
-            if (not self.is_subword_prefix(text[end_idx])) or self.is_punctuation(text[end_idx], punctuation):
+            if (not self.is_subword_prefix(tokenized_text[end_idx])) or \
+                    self.is_punctuation(tokenized_text[end_idx], punctuation):
                 break
 
             end_idx += 1
 
         # convert the tokens into a string
-        word = self.tokenizer.convert_tokens_to_string(text[start_idx:end_idx])
+        word = self.tokenizer.convert_tokens_to_string(tokenized_text[start_idx:end_idx])
         return word
 
-    def is_stop_word(self, text: List[str], start_idx: int, punctuation: str, stopwords: Optional[List[str]]) -> bool:
+    def is_stop_word(self,
+                     tokenized_text: List[str],
+                     start_idx: int,
+                     punctuation: str,
+                     stopwords: Optional[List[str]]) -> bool:
         """
-        Checks if the given words starting at the given index is in the list of stopwords.
+        Checks if the given word starting at the given index is in the list of stopwords.
 
         Parameters
         ----------
-        text
-            Full text.
+        tokenized_text
+            Tokenized text.
         start_idx
             Starting index of a word.
         stopwords:
@@ -138,10 +178,10 @@ class LanguageModel(abc.ABC):
         if not stopwords:
             return False
 
-        if self.is_subword_prefix(text[start_idx]):
+        if self.is_subword_prefix(tokenized_text[start_idx]):
             return False
 
-        word = self.select_entire_word(text, start_idx=start_idx, punctuation=punctuation).strip()
+        word = self.select_word(tokenized_text, start_idx=start_idx, punctuation=punctuation).strip()
         return word.lower() in stopwords
 
     def is_punctuation(self, token: str, punctuation: str) -> bool:
@@ -171,7 +211,7 @@ class LanguageModel(abc.ABC):
         pass
 
     @property
-    def mask_token(self) -> int:
+    def mask_id(self) -> int:
         """
         Returns the mask token id
         """
@@ -202,7 +242,7 @@ class LanguageModel(abc.ABC):
         """
         text = text.strip()
         if len(text) == 0:
-            raise ValueError("The text is empty")
+            raise ValueError("The text is empty.")
 
         # data = `This is not a wordy sentence` -> tokens = [this, is, not, a, word, ##y, sentence, .]
         tokens: List[str] = self.tokenizer.tokenize(text)
@@ -233,7 +273,6 @@ class LanguageModel(abc.ABC):
 
         return head_text, tail_text, tokens[:head_num_tokens], tokens[head_num_tokens:]
 
-    @tf.autograph.experimental.do_not_convert
     def predict_batch_lm(self,
                          x: transformers.tokenization_utils_base.BatchEncoding,
                          vocab_size: int,
@@ -272,7 +311,7 @@ class LanguageModel(abc.ABC):
             if 'attention_mask' in x.keys():
                 x_batch['attention_mask'] = x['attention_mask'][istart:istop]
 
-            y[istart:istop] = self.caller(**x_batch)[0].numpy()
+            y[istart:istop] = self.caller(**x_batch).logits.numpy()
         return y
 
 
@@ -288,14 +327,14 @@ class DistilbertBaseUncased(LanguageModel):
         preloading
             See `LanguageModel` constructor.
         """
-        super(DistilbertBaseUncased, self).__init__("distilbert-base-uncased", preloading)
+        super().__init__("distilbert-base-uncased", preloading)
 
     @property
     def mask(self) -> str:
         return self.tokenizer.mask_token
 
     def is_subword_prefix(self, token: str) -> bool:
-        return DistilbertBaseUncased.SUBWORD_PREFIX in token
+        return token.startswith(DistilbertBaseUncased.SUBWORD_PREFIX)
 
 
 class BertBaseUncased(LanguageModel):
@@ -310,14 +349,14 @@ class BertBaseUncased(LanguageModel):
         preloading
             See `LanguageModel` constructor.
         """
-        super(BertBaseUncased, self).__init__("bert-base-uncased", preloading)
+        super().__init__("bert-base-uncased", preloading)
 
     @property
     def mask(self) -> str:
         return self.tokenizer.mask_token
 
     def is_subword_prefix(self, token: str) -> bool:
-        return BertBaseUncased.SUBWORD_PREFIX in token
+        return token.startswith(BertBaseUncased.SUBWORD_PREFIX)
 
 
 class RobertaBase(LanguageModel):
@@ -332,11 +371,11 @@ class RobertaBase(LanguageModel):
         preloading
             See `LanguageModel` constructor.
         """
-        super(RobertaBase, self).__init__("roberta-base", preloading)
+        super().__init__("roberta-base", preloading)
 
     @property
     def mask(self) -> str:
         return RobertaBase.SUBWORD_PREFIX + self.tokenizer.mask_token
 
     def is_subword_prefix(self, token: str) -> bool:
-        return RobertaBase.SUBWORD_PREFIX not in token
+        return not token.startswith(RobertaBase.SUBWORD_PREFIX)

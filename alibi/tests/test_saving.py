@@ -145,7 +145,7 @@ def atext_explainer_nlp(lr_classifier, english_spacy_model, movie_sentiment_data
                             preproc=movie_sentiment_data['preprocessor'])
     atext = AnchorText(nlp=english_spacy_model,
                        predictor=predictor,
-                       sampling_method="unknown")
+                       sampling_strategy="unknown")
     return atext
 
 
@@ -156,7 +156,7 @@ def atext_explainer_lm(lr_classifier, language_model, movie_sentiment_data):
                             preproc=movie_sentiment_data['preprocessor'])
     atext = AnchorText(language_model=language_model,
                        predictor=predictor,
-                       sampling_method="language_model",
+                       sampling_strategy="language_model",
                        sample_proba=1.0)
     return atext
 

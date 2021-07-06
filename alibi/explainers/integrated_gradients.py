@@ -449,6 +449,17 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
         layer.call = decorator(layer.call)
 
+    if isinstance(orig_dummy_input, list):
+        if isinstance(x, list):
+            orig_dummy_input = [np.repeat(inp, x[0].shape[0], axis=0) for inp in orig_dummy_input]
+        else:
+            orig_dummy_input = [np.repeat(inp, x.shape[0], axis=0) for inp in orig_dummy_input]
+    else:
+        if isinstance(x, list):
+            orig_dummy_input = np.repeat(orig_dummy_input, x[0].shape[0], axis=0)
+        else:
+            orig_dummy_input = np.repeat(orig_dummy_input, x.shape[0], axis=0)
+
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
         preds = _run_forward(model, orig_dummy_input, target, forward_kwargs=forward_kwargs)
@@ -737,8 +748,7 @@ class IntegratedGradients(Explainer):
         self._is_np = isinstance(X, np.ndarray)
 
         if self._is_list:
-            self.orig_dummy_input = [np.zeros((self.internal_batch_size,) + xx.shape[1:], dtype=xx.dtype)
-                                     for xx in X]  # type: ignore
+            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
             nb_samples = len(X[0])
             input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
@@ -763,7 +773,7 @@ class IntegratedGradients(Explainer):
                 baselines[i] = baseline  # type: ignore
 
         elif self._is_np:
-            self.orig_dummy_input = np.zeros((self.internal_batch_size,) + X.shape[1:], dtype=X.dtype)  # type: ignore
+            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
             input_dtypes = [X.dtype]  # type: ignore
             # Formatting baselines for models with a single input

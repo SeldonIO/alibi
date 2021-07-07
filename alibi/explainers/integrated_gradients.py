@@ -449,6 +449,10 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
         layer.call = decorator(layer.call)
 
+    #  Repeating the dummy input needed to initiate the model's forward call in order to ensure that
+    #  the number of dummy instances is the same as the number or real instance x in a batch.
+    #  This is necessary because having a different number of instances in `orig_dummy_input` and 'x'
+    #  might results in incorrect outcome for certain models.
     if isinstance(orig_dummy_input, list):
         if isinstance(x, list):
             orig_dummy_input = [np.repeat(inp, x[0].shape[0], axis=0) for inp in orig_dummy_input]
@@ -460,6 +464,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         else:
             orig_dummy_input = np.repeat(orig_dummy_input, x.shape[0], axis=0)
 
+    #  Calculating the gradients with respect to the layer.
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
         preds = _run_forward(model, orig_dummy_input, target, forward_kwargs=forward_kwargs)

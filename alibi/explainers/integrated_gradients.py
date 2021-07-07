@@ -732,7 +732,7 @@ class IntegratedGradients(Explainer):
             Instance for which integrated gradients attribution are computed.
         forward_kwargs
             Input keyword args. If it's not None, it must be a dict with numpy arrays as values.
-            The first dimension of the array must correspond to the number of examples.
+            The first dimension of the arrays must correspond to the number of examples.
             It will be repeated for each of n_steps along the integrated path.
             The attributions are not computed with respect to these arguments.
         baselines

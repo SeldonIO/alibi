@@ -161,6 +161,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
                             run_from_layer_inputs: bool = False,
                             select_target: bool = True) -> tf.Tensor:
     """
+    Function currently unused.
     Executes a forward call from an internal layer of the model to the model output.
 
     Parameters
@@ -172,14 +173,16 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
     orig_call
         Original `call` method of the layer.
     orig_dummy_input
-        Dummy input needed to initiate the model forward call.
-        The  layer's status is overwritten during the forward call.
+        Dummy input needed to initiate the model forward call. The number of instances in the dummy input must
+        be the same as the number of instances in x. The dummy input values play no role in the evaluation
+        as the  layer's status is overwritten during the forward call.
     x
         Layer's inputs. The layer's status is overwritten with `x` during the forward call.
     target
         Target for the output position to be returned.
     forward_kwargs
-        Input keyword args.
+        Input keyword args. It must be a dict with numpy arrays as values. If it's not None,
+        the first dimension of the arrays must correspond to the number of instances in x and orig_dummy_input.
     run_from_layer_inputs
         If True, the forward pass starts from the layer's inputs, if False it starts from the layer's outputs.
     select_target
@@ -728,7 +731,10 @@ class IntegratedGradients(Explainer):
         X
             Instance for which integrated gradients attribution are computed.
         forward_kwargs
-            Input keyword args.
+            Input keyword args. If it's not None, it must be a dict with numpy arrays as values.
+            The first dimension of the array must correspond to the number of examples.
+            It will be repeated for each of n_steps along the integrated path.
+            The attributions are not computed with respect to these arguments.
         baselines
             Baselines (starting point of the path integral) for each instance.
             If the passed value is an `np.ndarray` must have the same shape as X.

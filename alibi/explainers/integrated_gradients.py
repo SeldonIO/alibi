@@ -451,8 +451,9 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
     #  Repeating the dummy input needed to initiate the model's forward call in order to ensure that
     #  the number of dummy instances is the same as the number of real instances.
-    #  This is necessary in case `forward_kwargs` is not None. The number of instances in `forward_kwargs`
-    #  are the same as the number of instances in `x` by construction.
+    #  This is necessary in case `forward_kwargs` is not None. In that case, the model forward call  would crash
+    #  if the number of instances in `orig_dummy_input` is different from the number of instances in `forward_kwargs`.
+    #  The number of instances in `forward_kwargs` is the same as the number of instances in `x` by construction.
     if isinstance(orig_dummy_input, list):
         if isinstance(x, list):
             orig_dummy_input = [np.repeat(inp, x[0].shape[0], axis=0) for inp in orig_dummy_input]

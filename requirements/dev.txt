@@ -8,7 +8,7 @@ pytest-cov>=2.6.1, <3.0.0
 pytest-xdist>=1.28.0, <3.0.0 # for distributed testing, currently unused (see setup.cfg)s
 pytest-lazy-fixture>=0.6.3, <0.7.0
 codecov>=2.0.15, <3.0.0
-catboost>=0.23.0, <0.26.0
+catboost>=0.23.0, <0.27.0
 alibi-testing @ git+git://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
 ray>=0.8.7, <2.0.0
 # other

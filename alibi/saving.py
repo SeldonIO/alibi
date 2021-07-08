@@ -169,43 +169,59 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: Union[str, os.PathLike]) -
 
 
 def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: dict) -> 'AnchorText':
-    # load the spacy model
-    import spacy
-    nlp = spacy.load(Path(path, 'nlp'))
+    from alibi.explainers import AnchorText
 
+    # load explainer
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
 
-    explainer.nlp = nlp
+    perturb_opts = explainer.perturb_opts
+    sampling_strategy = explainer.sampling_strategy
+    nlp_sampling = [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]
 
-    # explainer._synonyms_generator contains spacy Lexemes which contain unserializable Cython constructs
-    # so we re-initialize the object here
-    # TODO: this is slow to re-initialize, try optimzing
-    from alibi.explainers.anchor_text import Neighbors
-    explainer._synonyms_generator = Neighbors(nlp_obj=nlp)
+    if sampling_strategy in nlp_sampling:
+        # load the spacy model
+        import spacy
+        model = spacy.load(Path(path, 'nlp'))
+    else:
+        # load language model
+        import alibi.utils.lang_model as lang_model
+        model_class = explainer.model_class
+        model = getattr(lang_model, model_class)(preloading=False)
+        model.from_disk(Path(path, 'language_model'))
+
+    # construct perturbation
+    perturbation = AnchorText.CLASS_SAMPLER[sampling_strategy](model, perturb_opts)
+
+    # set model, predictor, perturbation
+    explainer.model = model
     explainer.reset_predictor(predictor)
-
+    explainer.perturbation = perturbation
     return explainer
 
 
 def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> None:
-    # save the spacy model
-    nlp = explainer.nlp
-    nlp.to_disk(Path(path, 'nlp'))
+    from alibi.explainers import AnchorText
 
-    _synonyms_generator = explainer._synonyms_generator
+    model = explainer.model
     predictor = explainer.predictor
+    perturbation = explainer.perturbation
+    sampling_strategy = explainer.sampling_strategy
 
-    explainer.nlp = None
-    explainer._synonyms_generator = None
+    nlp_sampling = [AnchorText.SAMPLING_UNKNOWN, AnchorText.SAMPLING_SIMILARITY]
+    dir_name = 'nlp' if sampling_strategy in nlp_sampling else 'language_model'
+    model.to_disk(Path(path, dir_name))
+
+    explainer.model = None
     explainer.predictor = None
+    explainer.perturbation = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
 
-    explainer.nlp = nlp
-    explainer._synonyms_generator = _synonyms_generator
+    explainer.model = model
     explainer.predictor = predictor
+    explainer.perturbation = perturbation
 
 
 def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:

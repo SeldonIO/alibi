@@ -220,11 +220,11 @@ BibTeX entry:
 
 ```
 @software{alibi,
-  title = {Alibi: Algorithms for monitoring and explaining machine learning models},
-  author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru},
+  title = {Alibi: Algorithms for explaining machine learning models},
+  author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru, and Samoilescu, Robert-Florian},
   url = {https://github.com/SeldonIO/alibi},
-  version = {0.5.8},
-  date = {2021-04-29},
+  version = {0.6.0},
+  date = {2021-07-08},
   year = {2019}
 }
 ```

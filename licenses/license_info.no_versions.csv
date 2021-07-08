@@ -46,8 +46,8 @@
 "numpy","BSD"
 "oauthlib","BSD License"
 "opt-einsum","MIT"
-"packaging","Apache Software License
-"pandas","BSD"
+"packaging","Apache Software License; BSD License"
+"pandas","BSD License"
 "pathy","Apache Software License"
 "preshed","MIT License"
 "protobuf","3-Clause BSD License"
@@ -55,7 +55,7 @@
 "pyasn1-modules","BSD License"
 "pydantic","MIT License"
 "pyparsing","MIT License"
-"python-dateutil","BSD License
+"python-dateutil","Apache Software License; BSD License"
 "pytz","MIT License"
 "requests","Apache Software License"
 "requests-oauthlib","BSD License"
@@ -80,7 +80,7 @@
 "thinc","MIT License"
 "threadpoolctl","BSD License"
 "tifffile","BSD License"
-"tqdm","MIT License
+"tqdm","MIT License; Mozilla Public License 2.0 (MPL 2.0)"
 "typer","MIT License"
 "typing-extensions","Python Software Foundation License"
 "urllib3","MIT License"

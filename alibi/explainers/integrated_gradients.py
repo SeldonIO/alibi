@@ -161,6 +161,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
                             run_from_layer_inputs: bool = False,
                             select_target: bool = True) -> tf.Tensor:
     """
+    Function currently unused.
     Executes a forward call from an internal layer of the model to the model output.
 
     Parameters
@@ -172,14 +173,16 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
     orig_call
         Original `call` method of the layer.
     orig_dummy_input
-        Dummy input needed to initiate the model forward call.
-        The  layer's status is overwritten during the forward call.
+        Dummy input needed to initiate the model forward call. The number of instances in the dummy input must
+        be the same as the number of instances in x. The dummy input values play no role in the evaluation
+        as the  layer's status is overwritten during the forward call.
     x
         Layer's inputs. The layer's status is overwritten with `x` during the forward call.
     target
         Target for the output position to be returned.
     forward_kwargs
-        Input keyword args.
+        Input keyword args. It must be a dict with numpy arrays as values. If it's not None,
+        the first dimension of the arrays must correspond to the number of instances in x and orig_dummy_input.
     run_from_layer_inputs
         If True, the forward pass starts from the layer's inputs, if False it starts from the layer's outputs.
     select_target
@@ -449,6 +452,23 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
         layer.call = decorator(layer.call)
 
+    #  Repeating the dummy input needed to initiate the model's forward call in order to ensure that
+    #  the number of dummy instances is the same as the number of real instances.
+    #  This is necessary in case `forward_kwargs` is not None. In that case, the model forward call  would crash
+    #  if the number of instances in `orig_dummy_input` is different from the number of instances in `forward_kwargs`.
+    #  The number of instances in `forward_kwargs` is the same as the number of instances in `x` by construction.
+    if isinstance(orig_dummy_input, list):
+        if isinstance(x, list):
+            orig_dummy_input = [np.repeat(inp, x[0].shape[0], axis=0) for inp in orig_dummy_input]
+        else:
+            orig_dummy_input = [np.repeat(inp, x.shape[0], axis=0) for inp in orig_dummy_input]
+    else:
+        if isinstance(x, list):
+            orig_dummy_input = np.repeat(orig_dummy_input, x[0].shape[0], axis=0)
+        else:
+            orig_dummy_input = np.repeat(orig_dummy_input, x.shape[0], axis=0)
+
+    #  Calculating the gradients with respect to the layer.
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
         preds = _run_forward(model, orig_dummy_input, target, forward_kwargs=forward_kwargs)
@@ -711,7 +731,10 @@ class IntegratedGradients(Explainer):
         X
             Instance for which integrated gradients attribution are computed.
         forward_kwargs
-            Input keyword args.
+            Input keyword args. If it's not None, it must be a dict with numpy arrays as values.
+            The first dimension of the arrays must correspond to the number of examples.
+            It will be repeated for each of n_steps along the integrated path.
+            The attributions are not computed with respect to these arguments.
         baselines
             Baselines (starting point of the path integral) for each instance.
             If the passed value is an `np.ndarray` must have the same shape as X.
@@ -737,8 +760,7 @@ class IntegratedGradients(Explainer):
         self._is_np = isinstance(X, np.ndarray)
 
         if self._is_list:
-            self.orig_dummy_input = [np.zeros((self.internal_batch_size,) + xx.shape[1:], dtype=xx.dtype)
-                                     for xx in X]  # type: ignore
+            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
             nb_samples = len(X[0])
             input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
@@ -763,7 +785,7 @@ class IntegratedGradients(Explainer):
                 baselines[i] = baseline  # type: ignore
 
         elif self._is_np:
-            self.orig_dummy_input = np.zeros((self.internal_batch_size,) + X.shape[1:], dtype=X.dtype)  # type: ignore
+            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
             input_dtypes = [X.dtype]  # type: ignore
             # Formatting baselines for models with a single input

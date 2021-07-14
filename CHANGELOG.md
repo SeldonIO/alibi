@@ -1,5 +1,19 @@
 # Change Log
 
+## [v0.6.0](https://github.com/SeldonIO/alibi/tree/v0.6.0) (2021-07-08)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.8...v0.6.0)
+
+### Added
+- **New feature** `AnchorText` now supports sampling according to masked language models via the `transformers` library. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) and the [example](https://docs.seldon.io/projects/alibi/en/latest/examples/anchor_text_movie.html) for using the new functionality.
+- **Breaking change** due to the new masked language model sampling for `AnchorText` the public API for the constructor has changed. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) for a full description of the new API.
+- `AnchorTabular` now supports one-hot encoded categorical variables in addition to the default ordinal/label encoded representation of categorical variables.
+- `IntegratedGradients` changes to allow explaining a wider variety of models. In particular, a new `forward_kwargs` argument to `explain` allows passing additional arguments to the model and `attribute_to_layer_inputs` flag to allow calculating attributions with respect to layer input instead of output if set to `True`. The API and capabilities now track more closely to the [captum.ai](https://captum.ai/api/) `PyTorch` implementation.
+- [Example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_transformers.html) of using `IntegratedGradients` to explain `transformer` models.
+- Python 3.9 support.
+
+### Fixed
+- `IntegratedGradients` - fix the path definition for attributions calculated with respect to an internal layer. Previously the paths were defined in terms of the inputs and baselines, now they are correctly defined in terms of the corresponding layer input/output. 
+
 ## [v0.5.8](https://github.com/SeldonIO/alibi/tree/v0.5.8) (2021-04-29)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.7...v0.5.8)
 

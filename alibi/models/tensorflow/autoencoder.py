@@ -69,3 +69,18 @@ class AE(tf.keras.Model):
         z = self.encoder(x)
         x_hat = self.decoder(z)
         return x_hat
+
+
+class He_AE(tf.keras.Model):
+    def __init__(self,
+                 encoder_net: tf.keras.Model,
+                 decoder_net: tf.keras.Model,
+                 name: str = 'he_ae') -> None:
+        super().__init__(name=name)
+        self.encoder = encoder_net
+        self.decoder = decoder_net
+
+    def call(self, x: tf.Tensor) -> tf.Tensor:
+        z = self.encoder(x)
+        x_hat = self.decoder(z)
+        return x_hat

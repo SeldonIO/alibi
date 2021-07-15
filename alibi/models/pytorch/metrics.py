@@ -10,8 +10,8 @@ class Reduction(Enum):
 
 
 class LossContainer:
-    def __init__(self, loss):
-        self.name = "loss"
+    def __init__(self, loss, name: str):
+        self.name = name
         self.loss = loss
         self.total, self.count = 0, 0
 
@@ -57,10 +57,12 @@ class Metric:
 
 
 class AccuracyMetric(Metric):
-    def __init__(self):
-        super().__init__(reduction=Reduction.MEAN, name="accuracy")
+    def __init__(self, name: str = "accuracy"):
+        super().__init__(reduction=Reduction.MEAN, name=name)
 
-    def update_state(self, y_true: Union[torch.Tensor, np.ndarray], y_pred: [torch.Tensor, np.ndarray]):
+    def update_state(self,
+                     y_pred: [torch.Tensor, np.ndarray],
+                     y_true: Union[torch.Tensor, np.ndarray]):
         if isinstance(y_true, torch.Tensor):
             y_true = y_true.detach().cpu().numpy()
 

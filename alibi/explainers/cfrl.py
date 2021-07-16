@@ -121,11 +121,13 @@ class ReplayBuffer(object):
 
 
 class PTDataset(Dataset):
-    def __init__(self, x: np.ndarray, predict_func: Callable, num_classes: int, batch_size: int):
+    def __init__(self, x: np.ndarray, predict_func: Callable, conditional_func: Callable,
+                 num_classes: int, batch_size: int):
         super().__init__()
 
         self.x = x
         self.predict_func = predict_func
+        self.conditional_func = conditional_func
         self.num_classes = num_classes
         self.batch_size = batch_size
 
@@ -143,12 +145,14 @@ class PTDataset(Dataset):
     def __getitem__(self, idx):
         # generate random target class if no target specified
         # otherwise use the predefined target
-        self.num_classes = 4  # TODO: remove this
-        y_t = np.random.randint(low=0, high=self.num_classes + 1, size=1).item()
+        y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
+        c = self.conditional_func(self.x[idx:idx+1]).reshape(-1)
+
         return {
             "x": self.x[idx],
             "y_m": self.y_m[idx],
             "y_t": y_t,
+            "c": c,
         }
 
 
@@ -156,6 +160,7 @@ class TFDataset(keras.utils.Sequence):
     def __init__(self,
                  x: np.ndarray,
                  predict_func: Callable,
+                 conditional_func: Callable,
                  num_classes: int,
                  batch_size: int,
                  shuffle: bool = True) -> None:
@@ -163,6 +168,7 @@ class TFDataset(keras.utils.Sequence):
 
         self.x = x
         self.predict_func = predict_func
+        self.conditional_func = conditional_func
         self.num_classes = num_classes
         self.batch_size = batch_size
         self.shuffle = shuffle
@@ -187,13 +193,15 @@ class TFDataset(keras.utils.Sequence):
         return self.x.shape[0] // self.batch_size
 
     def __getitem__(self, idx):
-        self.num_classes = 4  # TODO: remove this
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
-        y_t = np.random.randint(low=0, high=self.num_classes + 1, size=self.batch_size)
+        y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
+        c = self.conditional_func(self.x[idx * self.batch_size: (idx + 1) * self.batch_size])
+
         return {
             "x": self.x[indexes],
             "y_m": self.y_m[indexes],
-            "y_t": y_t
+            "y_t": y_t,
+            "c": c
         }
 
 
@@ -235,11 +243,12 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
     @staticmethod
     def data_generator(x: np.ndarray,
                        predict_func: Callable,
+                       conditional_func: Callable,
                        num_classes: int,
                        batch_size: int,
                        shuffle: bool,
                        **kwargs):
-        return TFDataset(x=x, predict_func=predict_func, num_classes=num_classes,
+        return TFDataset(x=x, predict_func=predict_func, conditional_func=conditional_func, num_classes=num_classes,
                          batch_size=batch_size, shuffle=shuffle)
 
     @staticmethod
@@ -269,7 +278,8 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
 
         # concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation
         # for the projection network (policy)
-        state = [tf.reshape(z, (z.shape[0], -1)), y_m_ohe, y_t_ohe] + ([c] if c else [])
+        state = [tf.reshape(z, (z.shape[0], -1)), y_m_ohe, y_t_ohe] + \
+                ([tf.constant(c, dtype=tf.float32)] if (c is not None) else [])
         state = tf.concat(state, axis=1)
 
         # pass new input to the policy pi to get the encoding
@@ -298,7 +308,7 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         return z_cf_tilde
 
     @staticmethod
-    @tf.function()
+    # @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
@@ -344,14 +354,13 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
             z_cf = tf.tanh(actor(state, training=True))
             input_critic = tf.concat([state, z_cf], axis=1)
             output_critic = critic(input_critic, training=True)
-            loss_actor = -tf.reduce_mean(output_critic)
+            loss_actor = 0 #-tf.reduce_mean(output_critic)
 
             # update loss
             losses.update({"loss_actor": loss_actor})
 
             # decode the output of the actor
             x_cf = ae.decoder(z_cf, training=False)
-
             # compute sparsity losses
             loss_sparsity = sparsity_loss(x_cf, x)
             losses.update(loss_sparsity)
@@ -363,17 +372,23 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         # update by gradient descent
         grads_actor = tape_actor.gradient(loss_actor, actor.trainable_weights)
         optimizer_actor.apply_gradients(zip(grads_actor, actor.trainable_weights))
+        print(grads_actor[0])
 
         # return dictionary of losses for potential logging
         return losses
 
     @staticmethod
-    def to_numpy(x: Optional[Union[np.ndarray, torch.Tensor]]) -> Optional[np.ndarray]:
+    def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
         if x is not None:
             if isinstance(x, np.ndarray):
                 return x
+
             if isinstance(x, tf.Tensor):
                 return x.numpy()
+
+            if isinstance(x, list):
+                return [TFCounterfactualRLBackend.to_numpy(e) for e in x]
+
             return np.array(x)
         return None
 
@@ -382,12 +397,14 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
     @staticmethod
     def data_generator(x: np.ndarray,
                        predict_func: Callable,
+                       conditional_func: Callable,
                        num_classes: int,
                        batch_size: int,
                        shuffle: bool,
                        num_workers: int,
                        **kwargs):
-        dataset = PTDataset(x=x, predict_func=predict_func, num_classes=num_classes, batch_size=batch_size)
+        dataset = PTDataset(x=x, predict_func=predict_func, conditional_func=conditional_func,
+                            num_classes=num_classes, batch_size=batch_size)
         return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                           shuffle=shuffle, drop_last=True)
 
@@ -433,7 +450,7 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
 
         # concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation
         # for the projection network (policy)
-        state = [z.view(z.shape[0], -1), y_m_ohe, y_t_ohe] + ([c] if c else [])
+        state = [z.view(z.shape[0], -1), y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
         state = torch.cat(state, dim=1)
 
         # pass new input to the policy pi to get the encoding
@@ -496,7 +513,7 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
         r = torch.tensor(r).float().to(device)
 
         # define state
-        state = [z, y_m_ohe, y_t_ohe] + ([c] if c is not None else [])
+        state = [z, y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
         state = torch.cat(state, dim=1).to(device)
 
         # define input for critic and compute q values
@@ -541,12 +558,17 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
         return losses
 
     @staticmethod
-    def to_numpy(x: Optional[Union[np.ndarray, torch.Tensor]]) -> Optional[np.ndarray]:
+    def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
         if x is not None:
             if isinstance(x, np.ndarray):
                 return x
+
             if isinstance(x, torch.Tensor):
                 return x.detach().cpu().numpy()
+
+            if isinstance(x, list):
+                return [PTCounterfactualRLBackend.to_numpy(e) for e in x]
+
             return np.array(x)
         return None
 
@@ -629,8 +651,9 @@ class CounterfactualRL(Explainer, FitMixin):
             x: np.ndarray,
             predict_func: Callable,
             reward_func: Callable,
-            postprocessing_func: Callable,
+            postprocessing_funcs: List[Callable],
             sparsity_loss: Callable,
+            conditional_func: Callable,
             experience_callbacks: List[Callable] = [],
             train_callbacks: List[Callable] = []) -> "Explainer":
         """
@@ -661,7 +684,8 @@ class CounterfactualRL(Explainer, FitMixin):
         noise = NormalActionNoise(mu=self.params["noise_mu"], sigma=self.params["noise_sigma"])
 
         # Define data generator
-        data_generator = self.Backend.data_generator(x, predict_func=predict_func, **self.params)
+        data_generator = self.Backend.data_generator(x, predict_func=predict_func, conditional_func=conditional_func,
+                                                     **self.params)
         data_iter = iter(data_generator)
 
         for step in tqdm(range(self.params["train_steps"])):
@@ -680,6 +704,7 @@ class CounterfactualRL(Explainer, FitMixin):
             z = self.Backend.encode(x=data["x"], ae=self.ae, device=self.device)
             data.update({"z": z})
 
+
             # Compute counterfactual embedding.
             z_cf = self.Backend.generate_cf(ae=self.ae, actor=self.actor, predict_func=predict_func, step=step,
                                             device=self.device, **data, **self.params)
@@ -691,8 +716,10 @@ class CounterfactualRL(Explainer, FitMixin):
 
             # Decode counterfactual and apply postprocessing step to x_cf_tilde.
             x_cf_tilde = self.Backend.decode(ae=self.ae, z=data["z_cf_tilde"], device=self.device)
-            x_cf_tilde = postprocessing_func(self.Backend.to_numpy(x_cf_tilde),
-                                             self.Backend.to_numpy(data["c"]))
+            for pp_func in postprocessing_funcs:
+                x_cf_tilde = pp_func(self.Backend.to_numpy(x_cf_tilde),
+                                     self.Backend.to_numpy(data["x"]),
+                                     self.Backend.to_numpy(data["c"]))
             data.update({"x_cf_tilde": x_cf_tilde})
 
             # Compute reward. To compute reward, first we need to compute model's

@@ -320,14 +320,17 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         return z_cf_tilde
 
     @staticmethod
-    @tf.function()
+    # @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
                             optimizer_critic: keras.optimizers.Optimizer,
                             optimizer_actor: keras.optimizers.Optimizer,
                             sparsity_loss: Callable,
+                            consistency_loss: Callable,
+                            postprocessing_funcs: List[Callable],
                             coeff_sparsity: float,
+                            coeff_consistency: float,
                             num_classes: int,
                             x: np.ndarray,
                             z: np.ndarray,
@@ -381,6 +384,17 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
             # add sparsity loss to the overall actor loss
             for key in loss_sparsity.keys():
                 loss_actor += coeff_sparsity * loss_sparsity[key]
+
+            # compute consistency loss
+            loss_consistency = consistency_loss(z_cf_pred=z_cf,
+                                                x_cf_split=x_cf,
+                                                x_ohe=x,
+                                                cond=c,
+                                                ae=ae,
+                                                postprocessing_funcs=postprocessing_funcs)
+            losses.update(loss_consistency)
+            for key in loss_consistency.keys():
+                loss_actor += coeff_consistency * loss_consistency[key]
 
         # update by gradient descent
         grads_actor = tape_actor.gradient(loss_actor, actor.trainable_weights)
@@ -498,7 +512,10 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
                             optimizer_critic: torch.optim.Optimizer,
                             optimizer_actor: torch.optim.Optimizer,
                             sparsity_loss: Callable,
+                            consistency_loss: Callable,
+                            postprocessing_funcs: List[Callable],
                             coeff_sparsity: float,
+                            coeff_consistency: float,
                             num_classes: int,
                             x: np.ndarray,
                             z: np.ndarray,
@@ -562,6 +579,19 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
         for key in loss_sparsity.keys():
             loss_actor += coeff_sparsity * loss_sparsity[key]
 
+        # compute consistency loss
+        loss_consistency = consistency_loss(z_cf_pred=z_cf,
+                                            x_cf_split=x_cf,
+                                            x_ohe=x,
+                                            cond=c,
+                                            ae=ae,
+                                            postprocessing_funcs=postprocessing_funcs)
+        losses.update(loss_consistency)
+
+        # add consistency loss to the overall actor loss
+        for key in loss_consistency.keys():
+            loss_actor += coeff_consistency * loss_consistency[key]
+
         # update by gradient descent
         optimizer_actor.zero_grad()
         loss_actor.backward()
@@ -600,7 +630,8 @@ CounterfactualRLDefaults = {
     "update_after": 10,
     "backend_flag": "pytorch",
     "train_steps": 100000,
-    "coeff_sparsity": 1.5,
+    "coeff_sparsity": 0.5,
+    "coeff_consistency": 0.5,
     "noise_mu": 0,
     "noise_sigma": 0.1
 }
@@ -670,6 +701,7 @@ class CounterfactualRL(Explainer, FitMixin):
             reward_func: Callable,
             postprocessing_funcs: List[Callable],
             sparsity_loss: Callable,
+            consistency_loss: Callable,
             conditional_func: Callable,
             experience_callbacks: List[Callable] = [],
             train_callbacks: List[Callable] = []) -> "Explainer":
@@ -768,6 +800,8 @@ class CounterfactualRL(Explainer, FitMixin):
                                                               optimizer_critic=self.optimizer_critic,
                                                               optimizer_actor=self.optimizer_actor,
                                                               sparsity_loss=sparsity_loss,
+                                                              consistency_loss=consistency_loss,
+                                                              postprocessing_funcs=postprocessing_funcs,
                                                               device=self.device,
                                                               **sample,
                                                               **self.params)

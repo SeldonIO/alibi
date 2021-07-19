@@ -1,14 +1,17 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 
 import tensorflow as tf
+import tensorflow.keras as keras
 
 import numpy as np
-from typing import Dict, List, Union, Tuple
+from typing import Dict, List, Union, Tuple, Callable
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 
+from alibi.explainers.cfrl import PTCounterfactualRLBackend, TFCounterfactualRLBackend
 
 def conditional_dim(feature_names: List[str],
                     category_map: Dict[int, List[str]]) -> int:
@@ -309,7 +312,7 @@ def sample_categorical(x_ohe_hat_cat_split: List[np.ndarray],
 def sample(x_ohe_hat_split: List[np.ndarray],
            x_ohe: np.ndarray,
            cond: np.ndarray,
-           stats: Dict[int, Dict[str, int]],
+           stats: Dict[int, Dict[str, float]],
            category_map: Dict[int, List[str]]) -> List[np.ndarray]:
     """
     Samples an instance from the given reconstruction according to the conditional vector and
@@ -659,8 +662,90 @@ def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
 
         cat_loss /= len(x_ohe_cat_split)
 
-    return {"num_loss": num_loss, "cat_loss": wgt_cat * cat_loss}
+    return {"sparsity_num_loss": num_loss, "sparsity_cat_loss": wgt_cat * cat_loss}
 
+
+def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor,
+                                x_cf_split: List[torch.Tensor],
+                                x_ohe: torch.Tensor,
+                                cond: torch.Tensor,
+                                ae: nn.Module,
+                                postprocessing_funcs: List[Callable]):
+    """
+    Computes heterogeneous consistency loss.
+
+    Parameters
+    ----------
+    x_cf_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    cond
+        Conditional tensor.
+    z
+        Embedding tensor.
+    postprocessing_funcs
+        List of postprocessing functions
+
+    Returns
+    -------
+    Heterogeneous consistency loss.
+    """
+    x_cf = PTCounterfactualRLBackend.to_numpy(x_cf_split)
+    x = PTCounterfactualRLBackend.to_numpy(x_ohe)
+    cond = PTCounterfactualRLBackend.to_numpy(cond)
+
+    # post-process the counterfactual
+    for pp_func in postprocessing_funcs:
+        x_cf = pp_func(x_cf, x, cond)
+
+    # compute counterfactual embedding
+    x_cf = torch.Tensor(x_cf)
+
+    with torch.no_grad():
+        z_cf_true = ae.encode(x_cf)
+
+    # compute consistency loss
+    loss = F.mse_loss(z_cf_pred, z_cf_true)
+    return {"consistency_loss": loss}
+
+
+def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor,
+                                   x_cf_split: List[tf.Tensor],
+                                   x_ohe: tf.Tensor,
+                                   cond: tf.Tensor,
+                                   ae: keras.Model,
+                                   postprocessing_funcs: List[Callable]):
+    """
+    Computes heterogeneous consistency loss.
+
+    Parameters
+    ----------
+    x_cf_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    cond
+        Conditional tensor.
+    z_cf
+        Embedding tensor.
+    postprocessing_funcs
+        List of postprocessing functions
+
+    Returns
+    -------
+    Heterogeneous consistency loss.
+    """
+    x_cf = TFCounterfactualRLBackend.to_numpy(x_cf_split)
+    x = TFCounterfactualRLBackend.to_numpy(x_ohe)
+    cond = TFCounterfactualRLBackend.to_numpy(cond)
+
+    # post-process the counterfactual
+    for pp_func in postprocessing_funcs:
+        x_cf = pp_func(x_cf, x, cond)
+
+    # compute counterfactual embedding
+    z_cf_true = ae.encoder(x_cf)
+
+    # compute consistency loss
+    loss = tf.reduce_mean(tf.square(z_cf_pred - z_cf_true))
+    return {"consistency_loss": loss}
 
 
 def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[int, List[str]]):

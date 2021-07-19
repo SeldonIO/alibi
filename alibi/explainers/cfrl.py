@@ -96,7 +96,6 @@ class ReplayBuffer(object):
         Tuple containing a batch of states, a batch of actions and a batch of rewards.
         The batch size is the same as the one input.
         """
-
         # generate random indices to be sampled
         rand_idx = torch.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size, ))
 
@@ -121,11 +120,17 @@ class ReplayBuffer(object):
 
 
 class PTDataset(Dataset):
-    def __init__(self, x: np.ndarray, predict_func: Callable, conditional_func: Callable,
-                 num_classes: int, batch_size: int):
+    def __init__(self,
+                 x: np.ndarray,
+                 preprocessor: Callable,
+                 predict_func: Callable,
+                 conditional_func: Callable,
+                 num_classes: int,
+                 batch_size: int):
         super().__init__()
 
         self.x = x
+        self.preprocessor = preprocessor
         self.predict_func = predict_func
         self.conditional_func = conditional_func
         self.num_classes = num_classes
@@ -138,6 +143,9 @@ class PTDataset(Dataset):
         for i in range(n_minibatch):
             istart, istop = i * self.batch_size, min((i + 1) * self.batch_size, self.x.shape[0])
             self.y_m[istart:istop] = predict_func(self.x[istart:istop])
+
+        # preprocess data
+        self.x = self.preprocessor(self.x)
 
     def __len__(self):
         return self.x.shape[0]
@@ -159,14 +167,15 @@ class PTDataset(Dataset):
 class TFDataset(keras.utils.Sequence):
     def __init__(self,
                  x: np.ndarray,
+                 preprocessor: Callable,
                  predict_func: Callable,
                  conditional_func: Callable,
                  num_classes: int,
                  batch_size: int,
                  shuffle: bool = True) -> None:
         super().__init__()
-
         self.x = x
+        self.preprocessor = preprocessor
         self.predict_func = predict_func
         self.conditional_func = conditional_func
         self.num_classes = num_classes
@@ -180,6 +189,9 @@ class TFDataset(keras.utils.Sequence):
         for i in range(n_minibatch):
             istart, istop = i * self.batch_size, min((i + 1) * self.batch_size, self.x.shape[0])
             self.y_m[istart:istop] = predict_func(self.x[istart:istop])
+
+        # preprocess data
+        self.x = self.preprocessor(self.x)
 
         # generate shuffled indexes
         self.on_epoch_end()
@@ -196,7 +208,6 @@ class TFDataset(keras.utils.Sequence):
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
         y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
         c = self.conditional_func(self.x[idx * self.batch_size: (idx + 1) * self.batch_size])
-
         return {
             "x": self.x[indexes],
             "y_m": self.y_m[indexes],
@@ -242,14 +253,15 @@ class CounterfactualRLBackend(ABC):
 class TFCounterfactualRLBackend(CounterfactualRLBackend):
     @staticmethod
     def data_generator(x: np.ndarray,
+                       preprocessor: Callable,
                        predict_func: Callable,
                        conditional_func: Callable,
                        num_classes: int,
                        batch_size: int,
                        shuffle: bool,
                        **kwargs):
-        return TFDataset(x=x, predict_func=predict_func, conditional_func=conditional_func, num_classes=num_classes,
-                         batch_size=batch_size, shuffle=shuffle)
+        return TFDataset(x=x, preprocessor=preprocessor, predict_func=predict_func, conditional_func=conditional_func,
+                         num_classes=num_classes, batch_size=batch_size, shuffle=shuffle)
 
     @staticmethod
     def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, device: Optional[Any] = None):
@@ -308,7 +320,7 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         return z_cf_tilde
 
     @staticmethod
-    # @tf.function()
+    @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
@@ -354,13 +366,14 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
             z_cf = tf.tanh(actor(state, training=True))
             input_critic = tf.concat([state, z_cf], axis=1)
             output_critic = critic(input_critic, training=True)
-            loss_actor = 0 #-tf.reduce_mean(output_critic)
+            loss_actor = -tf.reduce_mean(output_critic)
 
             # update loss
             losses.update({"loss_actor": loss_actor})
 
             # decode the output of the actor
             x_cf = ae.decoder(z_cf, training=False)
+
             # compute sparsity losses
             loss_sparsity = sparsity_loss(x_cf, x)
             losses.update(loss_sparsity)
@@ -372,7 +385,6 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         # update by gradient descent
         grads_actor = tape_actor.gradient(loss_actor, actor.trainable_weights)
         optimizer_actor.apply_gradients(zip(grads_actor, actor.trainable_weights))
-        print(grads_actor[0])
 
         # return dictionary of losses for potential logging
         return losses
@@ -396,6 +408,7 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
 class PTCounterfactualRLBackend(CounterfactualRLBackend):
     @staticmethod
     def data_generator(x: np.ndarray,
+                       preprocessor: Callable,
                        predict_func: Callable,
                        conditional_func: Callable,
                        num_classes: int,
@@ -403,8 +416,8 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
                        shuffle: bool,
                        num_workers: int,
                        **kwargs):
-        dataset = PTDataset(x=x, predict_func=predict_func, conditional_func=conditional_func,
-                            num_classes=num_classes, batch_size=batch_size)
+        dataset = PTDataset(x=x, preprocessor=preprocessor, predict_func=predict_func,
+                            conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
         return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                           shuffle=shuffle, drop_last=True)
 
@@ -587,7 +600,7 @@ CounterfactualRLDefaults = {
     "update_after": 10,
     "backend_flag": "pytorch",
     "train_steps": 100000,
-    "coeff_sparsity": 7.5,
+    "coeff_sparsity": 1.5,
     "noise_mu": 0,
     "noise_sigma": 0.1
 }
@@ -595,11 +608,13 @@ CounterfactualRLDefaults = {
 
 class CounterfactualRL(Explainer, FitMixin):
     def __init__(self,
-                 ae: Union[keras.Sequential, nn.Sequential],
                  actor: Union[keras.Sequential, nn.Sequential],
                  critic: Union[keras.Sequential, nn.Sequential],
                  optimizer_actor: Union[keras.optimizers.Optimizer, torch.optim.Optimizer],
                  optimizer_critic: Union[keras.optimizers.Optimizer, torch.optim.Optimizer],
+                 ae: Union[keras.Sequential, nn.Sequential],
+                 preprocessor: Callable,
+                 inv_preprocessor: Callable,
                  backend: str = "pytorch",
                  **kwargs):
 
@@ -609,6 +624,8 @@ class CounterfactualRL(Explainer, FitMixin):
 
         # set auto-encoder
         self.ae = ae
+        self.preprocessor = preprocessor
+        self.inv_preprocessor = inv_preprocessor
 
         # set DDPG components
         self.actor = actor
@@ -684,7 +701,10 @@ class CounterfactualRL(Explainer, FitMixin):
         noise = NormalActionNoise(mu=self.params["noise_mu"], sigma=self.params["noise_sigma"])
 
         # Define data generator
-        data_generator = self.Backend.data_generator(x, predict_func=predict_func, conditional_func=conditional_func,
+        data_generator = self.Backend.data_generator(x=x,
+                                                     preprocessor=self.preprocessor,
+                                                     predict_func=predict_func,
+                                                     conditional_func=conditional_func,
                                                      **self.params)
         data_iter = iter(data_generator)
 
@@ -703,7 +723,6 @@ class CounterfactualRL(Explainer, FitMixin):
             # Compute input embedding.
             z = self.Backend.encode(x=data["x"], ae=self.ae, device=self.device)
             data.update({"z": z})
-
 
             # Compute counterfactual embedding.
             z_cf = self.Backend.generate_cf(ae=self.ae, actor=self.actor, predict_func=predict_func, step=step,
@@ -724,7 +743,7 @@ class CounterfactualRL(Explainer, FitMixin):
 
             # Compute reward. To compute reward, first we need to compute model's
             # prediction on the counterfactual generated.
-            y_m_cf_tilde = predict_func(self.Backend.to_numpy(data["x_cf_tilde"]))
+            y_m_cf_tilde = predict_func(self.inv_preprocessor(self.Backend.to_numpy(data["x_cf_tilde"])))
             r = reward_func(self.Backend.to_numpy(y_m_cf_tilde),
                             self.Backend.to_numpy(data["y_t"]))
             data.update({"r": r, "y_m_cf_tilde": y_m_cf_tilde})

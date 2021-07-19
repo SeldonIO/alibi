@@ -1,5 +1,13 @@
+import torch
+import torch.nn.functional as F
+
+import tensorflow as tf
+
 import numpy as np
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Union, Tuple
+
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
 
 
 def conditional_dim(feature_names: List[str],
@@ -24,8 +32,10 @@ def conditional_dim(feature_names: List[str],
     return 2 * num_attr + cat_attr
 
 
-def split_ohe(x_ohe: np.ndarray,
-              category_map: Dict[int, List[str]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+def split_ohe(x_ohe: Union[np.ndarray, torch.Tensor, tf.Tensor],
+              category_map: Dict[int, List[str]]
+              ) -> Tuple[List[Union[np.ndarray, torch.Tensor, tf.Tensor]],
+                         List[Union[np.ndarray, torch.Tensor, tf.Tensor]]]:
     """
     Splits a one-hot encoding array in a list of numerical heads and a list of categorical heads. Since by convention
     the numerical heads are merged in a single head, if the function returns a list of numerical heads, then the size
@@ -153,7 +163,7 @@ def categorical_condition(x_ohe: np.ndarray,
 
     # Create mask for each categorical column.
     for i, key in enumerate(immutable_map):
-        mask = x_ohe_cat_split[i]
+        mask = x_ohe_cat_split[i].copy()
 
         if not immutable_map[key]:
             mask += np.random.rand(*mask.shape) if conditional else np.ones_like(mask)
@@ -348,43 +358,443 @@ def sample(x_ohe_hat_split: List[np.ndarray],
     return sampled_num + sampled_cat
 
 
+def pytorch_sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
+                                  category_map: Dict[int, List[str]]) -> List[tf.Tensor]:
+    """
+    Samples differentiable reconstruction.
+
+    Parameters
+    ----------
+    x_ohe_hat_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.
+
+    Returns
+    -------
+    Differentiable reconstruction.
+    """
+    num_attr = len(x_ohe_hat_split) - len(category_map)
+    cat_attr = len(category_map)
+    x_out = []
+
+    # pass numerical attributes as they are
+    if num_attr > 0:
+        x_out.append(x_ohe_hat_split[0])
+
+    # sample categorical attributes
+    if cat_attr > 0:
+        for head in x_ohe_hat_split[-cat_attr:]:
+            out = torch.argmax(head, dim=1)
+
+            # transform to one-hot encoding
+            out = F.one_hot(out, num_classes=head.shape[1])
+            proba = F.softmax(head, dim=1)
+            out = out - proba.detach() + proba
+            x_out.append(out)
+
+    return x_out
+
+
+def tensorflow_sample_differentiable(x_ohe_hat_split: List[tf.Tensor],
+                                     category_map: Dict[int, List[str]]) -> List[tf.Tensor]:
+    """
+    Samples differentiable reconstruction.
+
+    Parameters
+    ----------
+    x_ohe_hat_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.
+
+    Returns
+    -------
+    Differentiable reconstruction.
+    """
+    num_attr = len(x_ohe_hat_split) - len(category_map)
+    cat_attr = len(category_map)
+    x_out = []
+
+    # pass numerical attributes as they are
+    if num_attr > 0:
+        x_out.append(x_ohe_hat_split[0])
+
+    # sample categorical attributes
+    if cat_attr > 0:
+        for head in x_ohe_hat_split[-cat_attr:]:
+            out = tf.argmax(head, axis=1)
+
+            # transform to one-hot encoding
+            out = tf.one_hot(out, depth=head.shape[1])
+            proba = tf.nn.softmax(head, axis=1)
+            out = out - tf.stop_gradient(proba) + proba
+            x_out.append(out)
+
+    return x_out
+
+
+def pytorch_l0_ohe(input: torch.Tensor,
+                   target: torch.Tensor,
+                   reduction: str = 'none') -> torch.Tensor:
+    """
+    Computes the L0 loss for a one-hot encoding representation.
+
+    Parameters
+    ----------
+    input
+        Input tensor.
+    target
+        Target tensor
+    reduction
+        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+
+    Returns
+    -------
+    L0 loss.
+    """
+    loss = torch.maximum(target - input, torch.zeros_like(input))
+
+    if reduction == 'none':
+        return loss
+
+    if reduction == 'mean':
+        return torch.mean(loss)
+
+    if reduction == 'sum':
+        return torch.sum(loss)
+
+    raise ValueError(f"Reduction {reduction} not implemented.")
+
+
+def tensorflow_l0_ohe(input: tf.Tensor,
+                      target: tf.Tensor,
+                      reduction: str = 'none') -> tf.Tensor:
+    """
+    Computes the L0 loss for a one-hot encoding representation.
+
+    Parameters
+    ----------
+    input
+        Input tensor.
+    target
+        Target tensor
+    reduction
+        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+
+    Returns
+    -------
+    L0 loss.
+    """
+
+    loss = tf.maximum(target - input, tf.zeros_like(input))
+
+    if reduction == 'none':
+        return loss
+
+    if reduction == 'mean':
+        tf.reduce_mean(loss)
+
+    if reduction == 'sum':
+        return tf.reduce_sum(loss)
+
+    raise ValueError(f"Reduction {reduction} not implemented.")
+
+
+def pytorch_l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') -> torch.Tensor:
+    """
+    Computes L1 loss.
+
+    Parameters
+    ----------
+    input
+        Input tensor.
+    target
+        Target tensor.
+    reduction
+        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+
+    Returns
+    -------
+    L1 loss.
+    """
+    return F.l1_loss(input=input, target=target,reduction=reduction)
+
+
+def tensorflow_l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.Tensor:
+    """
+    Computes the L1 loss.
+
+    Parameters
+    ----------
+    input
+       Input tensor.
+    target
+       Target tensor
+    reduction
+       Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+
+    Returns
+    -------
+    L1 loss.
+    """
+    loss = tf.abs(input - target)
+
+    if reduction == 'none':
+        return loss
+
+    if reduction == 'mean':
+        return tf.reduce_mean(loss)
+
+    if reduction == 'sum':
+        return tf.reduce_sum(loss)
+
+    raise ValueError(f"Reduction {reduction} not implemented.")
+
+
+def pytorch_he_sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
+                             x_ohe: torch.Tensor,
+                             category_map: Dict[int, List[str]],
+                             wgt_cat: float = 1.0):
+    """
+    Computes heterogeneous sparsity loss.
+
+    Parameters
+    ----------
+    x_ohe_hat_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    x_ohe
+        One-hot encoded representation of the input.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.
+    wgt_cat
+        Categorical loss weight.
+
+    Returns
+    -------
+    Heterogeneous sparsity loss.
+    """
+    # split the input into a list of tensor, where each element corresponds to a network head
+    x_ohe_num_split, x_ohe_cat_split = split_ohe(x_ohe=x_ohe, category_map=category_map)
+
+    # sample differentiable output
+    x_ohe_hat_split = pytorch_sample_differentiable(x_ohe_hat_split=x_ohe_hat_split,
+                                                    category_map=category_map)
+
+    # define numerical and categorical loss
+    num_loss, cat_loss = 0, 0
+    offset = 0
+
+    # compute numerical loss
+    if len(x_ohe_num_split) > 0:
+        offset = 1
+        num_loss = torch.mean(pytorch_l1_loss(input=x_ohe_hat_split[0],
+                                              target=x_ohe_num_split[0],
+                                              reduction='none'))
+
+    # compute categorical loss
+    if len(x_ohe_cat_split) > 0:
+        for i in range(len(x_ohe_cat_split)):
+            batch_size = x_ohe_hat_split[i].shape[0]
+            cat_loss += torch.sum(pytorch_l0_ohe(input=x_ohe_hat_split[i + offset],
+                                                 target=x_ohe_cat_split[i],
+                                                 reduction='none')) / batch_size
+
+        cat_loss /= len(x_ohe_cat_split)
+
+    return {"num_loss": num_loss, "cat_loss": wgt_cat * cat_loss}
+
+
+def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
+                                x_ohe: tf.Tensor,
+                                category_map: Dict[int, List[str]],
+                                wgt_cat: float = 1.0):
+    """
+    Computes heterogeneous sparsity loss.
+
+    Parameters
+    ----------
+    x_ohe_hat_split
+        List of one-hot encoded reconstructed columns form the auto-encoder.
+    x_ohe
+        One-hot encoded representation of the input.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.
+    wgt_cat
+        Categorical loss weight.
+
+    Returns
+    -------
+    Heterogeneous sparsity loss.
+    """
+    # split the input into a list of tensor, where each element corresponds to a network head
+    x_ohe_num_split, x_ohe_cat_split = split_ohe(x_ohe=x_ohe, category_map=category_map)
+
+    # sample differentiable output
+    x_ohe_hat_split = tensorflow_sample_differentiable(x_ohe_hat_split=x_ohe_hat_split,
+                                                       category_map=category_map)
+
+    # define numerical and categorical loss
+    num_loss, cat_loss = 0, 0
+    offset = 0
+
+    # compute numerical loss
+    if len(x_ohe_num_split) > 0:
+        offset = 1
+        num_loss = tf.reduce_mean(tensorflow_l1_loss(input=x_ohe_hat_split[0],
+                                                     target=x_ohe_num_split[0],
+                                                     reduction='none'))
+
+    # compute categorical loss
+    if len(x_ohe_cat_split) > 0:
+        for i in range(len(x_ohe_cat_split)):
+            batch_size = x_ohe_hat_split[i].shape[0]
+            cat_loss += tf.reduce_sum(tensorflow_l0_ohe(input=x_ohe_hat_split[i + offset],
+                                                        target=x_ohe_cat_split[i],
+                                                        reduction='none')) / batch_size
+
+        cat_loss /= len(x_ohe_cat_split)
+
+    return {"num_loss": num_loss, "cat_loss": wgt_cat * cat_loss}
+
+
+
+def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[int, List[str]]):
+    """
+    Heterogeneous dataset preprocessor. The numerical attributes are standardized and the categorical attirbutes
+    are one-hot encoded.
+
+    Parameters
+    ----------
+    x
+        Data to fit.
+    feature_names
+        List of feature names. This should be provided by the dataset.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.  This should be provided by the dataset.
+
+    Returns
+    -------
+    preprocessor
+        Data preprocessor.
+    inv_preprocessor
+        Inverse data preprocessor (e.g., inv_preprocessor(preprocssor(x)) = x)
+    """
+    # separate columns in numerical and categorical
+    categorical_ids = list(category_map.keys())
+    numerical_ids = [i for i in range(len(feature_names)) if i not in category_map.keys()]
+
+    # define standard scaler and one-hot encoding transformations
+    num_transf = StandardScaler()
+    cat_transf = OneHotEncoder(
+        categories=[range(len(x)) for x in category_map.values()],
+        handle_unknown="ignore"
+    )
+
+    # define preprocessor
+    preprocessor = ColumnTransformer(
+        transformers=[
+            ("num", num_transf, numerical_ids),
+            ("cat", cat_transf, categorical_ids)
+        ],
+        sparse_threshold=0
+    )
+    preprocessor.fit(x)
+
+    num_attr_ohe = len(numerical_ids)                            # number of numerical columns
+    cat_attr_ohe = sum([len(v) for v in category_map.values()])  # number of categorical columns
+
+    # define inverse preprocessor
+    def inv_preprocessor(x_ohe: np.ndarray):
+        x_inv = []
+
+        if "num" in preprocessor.named_transformers_:
+            num_transf = preprocessor.named_transformers_["num"]
+            x_inv.append(num_transf.inverse_transform(x_ohe[:, :num_attr_ohe]))
+
+        if "cat" in preprocessor.named_transformers_:
+            cat_transf = preprocessor.named_transformers_["cat"]
+            x_inv.append(cat_transf.inverse_transform(x_ohe[:, -cat_attr_ohe:]))
+
+        # concatenate all columns. at this point the columns are not ordered correctly
+        x_inv = np.concatenate(x_inv, axis=1)
+
+        # construct permutation to order the columns correctly
+        perm = [i for i in range(len(feature_names)) if i not in category_map.keys()]
+        perm += [i for i in range(len(feature_names)) if i in category_map.keys()]
+
+        inv_perm = [0] * len(perm)
+        for i in range(len(perm)):
+            inv_perm[perm[i]] = i
+
+        return x_inv[:, inv_perm]
+
+    return preprocessor.transform, inv_preprocessor
+
+
 if __name__ == "__main__":
-    ranges = {
-        0: [-1.0, 1.0],
-        1: [-0.0, 1.0],
+    x = np.random.randint(0, 3, (10, 5))
+    category_map = {
+        2: list(np.unique(x[:, 2])),
+        3: list(np.unique(x[:, 3])),
+        4: list(np.unique(x[:, 4]))
     }
+    feature_names = [0, 1, 2, 3, 4]
 
-    category_map = {2: ['a', 'b', 'c'], 3: ['a', 'b']}
-    immutable_map = {2: False, 3: True}
-    stats = {
-        0: {"min": 0, "max": 1},
-        1: {"min": 0, "max": 1}
-    }
+    preproc, inv_preproc = he_preprocessor(x, feature_names, category_map)
 
-    x_ohe = np.array([
-        [0.2, 0.3, 0, 0, 1, 0, 1],
-        [0.3, 0.7, 0, 1, 0, 1, 0],
-    ])
 
-    cond = generate_condition(x_ohe=x_ohe,
-                              ranges=ranges,
-                              category_map=category_map,
-                              immutable_map=immutable_map,
-                              conditional=True)
+    print(x)
+    print("=============")
+    print(inv_preproc(preproc(x)))
 
-    size = x_ohe.shape[0]
-    x_ohe_hat_split = [
-        np.random.rand(size, 2),
-        np.random.rand(size, 3),
-        np.random.rand(size, 2)
-    ]
-    print(np.concatenate(x_ohe_hat_split, axis=1))
-    print("================")
+    assert np.all(x == inv_preproc(preproc(x)))
 
-    x_ohe_sampled = sample(x_ohe_hat_split=x_ohe_hat_split,
-                           x_ohe=x_ohe,
-                           category_map=category_map,
-                           cond=cond,
-                           stats=stats)
-    print(x_ohe_sampled)
 
+    # ranges = {
+    #     0: [-1.0, 1.0],
+    #     1: [-0.0, 1.0],
+    # }
+    #
+    # category_map = {2: ['a', 'b', 'c'], 3: ['a', 'b']}
+    # immutable_map = {2: False, 3: True}
+    # stats = {
+    #     0: {"min": 0, "max": 1},
+    #     1: {"min": 0, "max": 1}
+    # }
+    #
+    # x_ohe = np.array([
+    #     [0.2, 0.3, 0, 0, 1, 0, 1],
+    #     [0.3, 0.7, 0, 1, 0, 1, 0],
+    # ], dtype=np.float32)
+    #
+    # cond = generate_condition(x_ohe=x_ohe,
+    #                           ranges=ranges,
+    #                           category_map=category_map,
+    #                           immutable_map=immutable_map,
+    #                           conditional=True)
+    #
+    # size = x_ohe.shape[0]
+    # x_ohe_hat_split = [
+    #     np.random.rand(size, 2).astype(np.float32),
+    #     np.random.rand(size, 3).astype(np.float32),
+    #     np.random.rand(size, 2).astype(np.float32)
+    # ]
+    #
+    # # x_ohe_hat_split = [tf.constant(x) for x in x_ohe_hat_split]
+    # # x_ohe = tf.constant(x_ohe)
+    # #
+    # # x_ohe_hat_split = tensorflow_sample_differentiable(x_ohe_hat_split=x_ohe_hat_split,
+    # #                                          category_map=category_map)
+    # # print(tensorflow_he_sparsity_loss(x_ohe_hat_split=x_ohe_hat_split, x_ohe=x_ohe, category_map=category_map))
+    #
+    # x_ohe_hat_split = [torch.tensor(x) for x in x_ohe_hat_split]
+    # x_ohe = torch.tensor(x_ohe)
+    # x_ohe_hat_split = pytorch_sample_differentiable(x_ohe_hat_split=x_ohe_hat_split,
+    #                                                 category_map=category_map)
+    # print(pytorch_he_sparsity_loss(x_ohe_hat_split, x_ohe, category_map=category_map))

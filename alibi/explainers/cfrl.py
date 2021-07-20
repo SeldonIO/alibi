@@ -461,7 +461,7 @@ class TFCounterfactualRLBackend:
         state = tf.concat(state, axis=1)
 
         # Pass the new input to the projection network (actor) to get the counterfactual embedding
-        z_cf = tf.tanh(actor(state, training=False))  # TODO: consider removing the tanh and include it in the model.
+        z_cf = actor(state, training=False)
         return z_cf
 
     @staticmethod
@@ -603,7 +603,7 @@ class TFCounterfactualRLBackend:
 
         with tf.GradientTape() as tape_actor:
             # Compute counterfactual embedding.
-            z_cf = tf.tanh(actor(state, training=True))       # TODO: consider removing tanh.
+            z_cf = actor(state, training=True)
 
             # Compute critic's output
             input_critic = tf.concat([state, z_cf], axis=1)
@@ -800,7 +800,7 @@ class PTCounterfactualRLBackend:
         state = torch.cat(state, dim=1)
 
         # Pass the new input to the projection network (actor) to get the counterfactual embedding
-        z_cf = torch.tanh(actor(state))  # TODO: consider removing the tanh and include it in the model.
+        z_cf = actor(state)
         return z_cf
 
     @staticmethod
@@ -956,7 +956,7 @@ class PTCounterfactualRLBackend:
         optimizer_critic.step()
 
         # Compute counterfactual embedding.
-        z_cf = torch.tanh(actor(state))    # TODO consider to remove tanh.
+        z_cf = actor(state)
 
         # Compute critic's output.
         critic.eval()

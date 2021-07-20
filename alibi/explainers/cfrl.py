@@ -31,7 +31,7 @@ class NormalActionNoise:
 
 class ReplayBuffer(object):
     def __init__(self, size=1000):
-        self.x = None
+        self.x, self.x_cf = None, None
         self.y_m, self.y_t = None, None
         self.z, self.z_cf_tilde = None, None
         self.c = None
@@ -43,6 +43,7 @@ class ReplayBuffer(object):
 
     def append(self,
                x: np.ndarray,
+               x_cf: np.ndarray,
                y_m: np.ndarray,
                y_t: np.ndarray,
                z: np.ndarray,
@@ -59,6 +60,7 @@ class ReplayBuffer(object):
             self.batch_size = x.shape[0]
 
             self.x = np.zeros((self.size * self.batch_size, *x.shape[1:]), dtype=np.float32)
+            self.x_cf = np.zeros((self.size * self.batch_size, *x_cf.shape[1:]), dtype=np.float32)
             self.y_m = np.zeros((self.size * self.batch_size, *y_m.shape[1:]), dtype=np.float32)
             self.y_t = np.zeros((self.size * self.batch_size, *y_t.shape[1:]), dtype=np.float32)
             self.z = np.zeros((self.size * self.batch_size, *z.shape[1:]), dtype=np.float32)
@@ -74,6 +76,7 @@ class ReplayBuffer(object):
 
         start = self.batch_size * self.idx
         self.x[start:start + self.batch_size] = x
+        self.x_cf[start:start + self.batch_size] = x_cf
         self.y_m[start:start + self.batch_size] = y_m
         self.y_t[start:start + self.batch_size] = y_t
         self.z[start:start + self.batch_size] = z
@@ -101,15 +104,17 @@ class ReplayBuffer(object):
 
         # extract data form buffers
         x = self.x[rand_idx]
+        x_cf = self.x_cf[rand_idx]
         y_m = self.y_m[rand_idx]
         y_t = self.y_t[rand_idx]
         z = self.z[rand_idx]
         z_cf_tilde = self.z_cf_tilde[rand_idx]
-        c = self.c[rand_idx] if self.c is not None else None
+        c = self.c[rand_idx] if (self.c is not None) else None
         r = self.r[rand_idx]
 
         return {
             "x": x,
+            "x_cf": x_cf,
             "y_m": y_m,
             "y_t": y_t,
             "z": z,
@@ -151,17 +156,22 @@ class PTDataset(Dataset):
         return self.x.shape[0]
 
     def __getitem__(self, idx):
-        # generate random target class if no target specified
-        # otherwise use the predefined target
-        y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
-        c = self.conditional_func(self.x[idx:idx+1]).reshape(-1)
+        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=4)  # TODO: remove this
 
-        return {
+        # generate random target class if no target specified
+        y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
+        data = {
             "x": self.x[idx],
             "y_m": self.y_m[idx],
             "y_t": y_t,
-            "c": c,
         }
+
+        # get conditional vector
+        c = self.conditional_func(self.x[idx:idx+1])
+        if c is not None:
+            data.update({"c": c.reshape(-1)})
+
+        return data
 
 
 class TFDataset(keras.utils.Sequence):
@@ -205,6 +215,8 @@ class TFDataset(keras.utils.Sequence):
         return self.x.shape[0] // self.batch_size
 
     def __getitem__(self, idx):
+        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=4) # TODO: remove this
+
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
         y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
         c = self.conditional_func(self.x[idx * self.batch_size: (idx + 1) * self.batch_size])
@@ -320,7 +332,7 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
         return z_cf_tilde
 
     @staticmethod
-    # @tf.function()
+    @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
@@ -328,11 +340,11 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
                             optimizer_actor: keras.optimizers.Optimizer,
                             sparsity_loss: Callable,
                             consistency_loss: Callable,
-                            postprocessing_funcs: List[Callable],
                             coeff_sparsity: float,
                             coeff_consistency: float,
                             num_classes: int,
                             x: np.ndarray,
+                            x_cf: np.ndarray,
                             z: np.ndarray,
                             z_cf_tilde: np.ndarray,
                             y_m: np.ndarray,
@@ -375,10 +387,10 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
             losses.update({"loss_actor": loss_actor})
 
             # decode the output of the actor
-            x_cf = ae.decoder(z_cf, training=False)
+            x_hat_cf = ae.decoder(z_cf, training=False)
 
             # compute sparsity losses
-            loss_sparsity = sparsity_loss(x_cf, x)
+            loss_sparsity = sparsity_loss(x_hat_cf, x)
             losses.update(loss_sparsity)
 
             # add sparsity loss to the overall actor loss
@@ -386,12 +398,7 @@ class TFCounterfactualRLBackend(CounterfactualRLBackend):
                 loss_actor += coeff_sparsity * loss_sparsity[key]
 
             # compute consistency loss
-            loss_consistency = consistency_loss(z_cf_pred=z_cf,
-                                                x_cf_split=x_cf,
-                                                x_ohe=x,
-                                                cond=c,
-                                                ae=ae,
-                                                postprocessing_funcs=postprocessing_funcs)
+            loss_consistency = consistency_loss(z_cf_pred=z_cf, x_cf=x_cf, ae=ae)
             losses.update(loss_consistency)
             for key in loss_consistency.keys():
                 loss_actor += coeff_consistency * loss_consistency[key]
@@ -513,11 +520,11 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
                             optimizer_actor: torch.optim.Optimizer,
                             sparsity_loss: Callable,
                             consistency_loss: Callable,
-                            postprocessing_funcs: List[Callable],
                             coeff_sparsity: float,
                             coeff_consistency: float,
                             num_classes: int,
                             x: np.ndarray,
+                            x_cf: np.ndarray,
                             z: np.ndarray,
                             z_cf_tilde: np.ndarray,
                             y_m: np.ndarray,
@@ -535,6 +542,7 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
 
         # transform data to tensors
         x = torch.tensor(x).float().to(device)
+        x_cf = torch.tensor(x_cf).float().to(device)
         z = torch.tensor(z.reshape(z.shape[0], -1)).float().to(device)                             # TODO: check the actual size
         z_cf_tilde = torch.tensor(z_cf_tilde.reshape(z_cf_tilde.shape[0], -1)).float().to(device)  # TODO: check the actual size
         y_m_ohe = F.one_hot(torch.tensor(y_m, dtype=torch.long), num_classes=num_classes).float().to(device)
@@ -569,10 +577,10 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
         losses.update({"loss_actor": loss_actor})
 
         # decode the output of the actor
-        x_cf = ae.decoder(z_cf)
+        x_hat_cf = ae.decoder(z_cf)
 
         # compute sparsity losses
-        loss_sparsity = sparsity_loss(x_cf, x)
+        loss_sparsity = sparsity_loss(x_hat_cf, x)
         losses.update(loss_sparsity)
 
         # add sparsity loss to the overall actor loss
@@ -581,11 +589,8 @@ class PTCounterfactualRLBackend(CounterfactualRLBackend):
 
         # compute consistency loss
         loss_consistency = consistency_loss(z_cf_pred=z_cf,
-                                            x_cf_split=x_cf,
-                                            x_ohe=x,
-                                            cond=c,
-                                            ae=ae,
-                                            postprocessing_funcs=postprocessing_funcs)
+                                            x_cf=x_cf,
+                                            ae=ae)
         losses.update(loss_consistency)
 
         # add consistency loss to the overall actor loss
@@ -766,12 +771,21 @@ class CounterfactualRL(Explainer, FitMixin):
             data.update({"z_cf_tilde": z_cf_tilde})
 
             # Decode counterfactual and apply postprocessing step to x_cf_tilde.
+            x_cf = self.Backend.decode(ae=self.ae, z=data["z_cf"], device=self.device)
             x_cf_tilde = self.Backend.decode(ae=self.ae, z=data["z_cf_tilde"], device=self.device)
+
             for pp_func in postprocessing_funcs:
+                x_cf = pp_func(self.Backend.to_numpy(x_cf),
+                               self.Backend.to_numpy(data["x"]),
+                               self.Backend.to_numpy(data["c"]))
                 x_cf_tilde = pp_func(self.Backend.to_numpy(x_cf_tilde),
                                      self.Backend.to_numpy(data["x"]),
                                      self.Backend.to_numpy(data["c"]))
-            data.update({"x_cf_tilde": x_cf_tilde})
+
+            data.update({
+                "x_cf": x_cf,
+                "x_cf_tilde": x_cf_tilde
+            })
 
             # Compute reward. To compute reward, first we need to compute model's
             # prediction on the counterfactual generated.
@@ -792,6 +806,8 @@ class CounterfactualRL(Explainer, FitMixin):
                 for i in range(self.params['update_every']):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
+                    if "c" not in sample:
+                        sample["c"] = None
 
                     # Update critic by one-step gradient descent.
                     losses = self.Backend.update_actor_critic(ae=self.ae,

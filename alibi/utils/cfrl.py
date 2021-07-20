@@ -666,11 +666,9 @@ def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
 
 
 def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor,
-                                x_cf_split: List[torch.Tensor],
-                                x_ohe: torch.Tensor,
-                                cond: torch.Tensor,
+                                x_cf: np.ndarray,
                                 ae: nn.Module,
-                                postprocessing_funcs: List[Callable]):
+                                **kwargs):
     """
     Computes heterogeneous consistency loss.
 
@@ -689,19 +687,8 @@ def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor,
     -------
     Heterogeneous consistency loss.
     """
-    x_cf = PTCounterfactualRLBackend.to_numpy(x_cf_split)
-    x = PTCounterfactualRLBackend.to_numpy(x_ohe)
-    cond = PTCounterfactualRLBackend.to_numpy(cond)
-
-    # post-process the counterfactual
-    for pp_func in postprocessing_funcs:
-        x_cf = pp_func(x_cf, x, cond)
-
-    # compute counterfactual embedding
-    x_cf = torch.Tensor(x_cf)
-
     with torch.no_grad():
-        z_cf_true = ae.encode(x_cf)
+        z_cf_true = ae.encoder(x_cf)
 
     # compute consistency loss
     loss = F.mse_loss(z_cf_pred, z_cf_true)
@@ -709,11 +696,9 @@ def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor,
 
 
 def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor,
-                                   x_cf_split: List[tf.Tensor],
-                                   x_ohe: tf.Tensor,
-                                   cond: tf.Tensor,
+                                   x_cf: np.ndarray,
                                    ae: keras.Model,
-                                   postprocessing_funcs: List[Callable]):
+                                   **kwargs):
     """
     Computes heterogeneous consistency loss.
 
@@ -732,14 +717,6 @@ def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor,
     -------
     Heterogeneous consistency loss.
     """
-    x_cf = TFCounterfactualRLBackend.to_numpy(x_cf_split)
-    x = TFCounterfactualRLBackend.to_numpy(x_ohe)
-    cond = TFCounterfactualRLBackend.to_numpy(cond)
-
-    # post-process the counterfactual
-    for pp_func in postprocessing_funcs:
-        x_cf = pp_func(x_cf, x, cond)
-
     # compute counterfactual embedding
     z_cf_true = ae.encoder(x_cf)
 

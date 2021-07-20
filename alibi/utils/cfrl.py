@@ -11,7 +11,33 @@ from typing import Dict, List, Union, Tuple, Callable
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 
-from alibi.explainers.cfrl import PTCounterfactualRLBackend, TFCounterfactualRLBackend
+
+def predict_batches(x: np.ndarray, predict_func: Callable, batch_size: int) -> np.ndarray:
+    """
+    Infer the classification labels of the input dataset. This is performed in batches.
+
+    Parameters
+    ----------
+    x
+        Input to be classified.
+    predict_func
+        Prediction function.
+    batch_size
+        Maximum batch size to be used during each inference step.
+
+    Returns
+    -------
+    Classification labels.
+    """
+    n_minibatch = int(np.ceil(x.shape[0] / batch_size))
+    y_m = np.zeros(x.shape[0])
+
+    for i in range(n_minibatch):
+        istart, istop = i * batch_size, min((i + 1) * batch_size, x.shape[0])
+        y_m[istart:istop] = predict_func(x[istart:istop])
+
+    return y_m
+
 
 def conditional_dim(feature_names: List[str],
                     category_map: Dict[int, List[str]]) -> int:
@@ -59,18 +85,16 @@ def split_ohe(x_ohe: Union[np.ndarray, torch.Tensor, tf.Tensor],
     x_ohe_cat_split
         List of categorical one-hot encoded heads.
     """
-
     x_ohe_num_split, x_ohe_cat_split = [], []
+    offset = 0
 
-    # Compute the number of columns spanned by the categorical one-hot encoded heads,
-    # and the number of columns spanned by the numerical heads.
+    # Compute the number of columns spanned by the categorical one-hot encoded heads, and the number of columns spanned
+    # by the numerical heads.
     cat_attr = int(np.sum([len(vals) for vals in category_map.values()]))
     num_attr = x_ohe.shape[1] - cat_attr
 
-    # If the number of numerical attributes is different than 0,
-    # then the first `num_attr` columns correspond to the numerical attributes
-    offset = 0
-
+    # If the number of numerical attributes is different than 0, then the first `num_attr` columns correspond to the
+    # numerical attributes
     if num_attr > 0:
         x_ohe_num_split.append(x_ohe[:, :num_attr])
         offset = num_attr
@@ -94,7 +118,7 @@ def numerical_condition(x_ohe: np.ndarray,
     ----------
     x_ohe
         One-hot encoding representation of the element(s) for which the conditional vector will be generated.
-        This argument is used to extract the number of conditional vector. The choice of x_ohe instead of a
+        This argument is used to extract the number of conditional vector. The choice of `x_ohe` instead of a
         `size` argument is for consistency purposes with `categorical_cond` function.
     ranges:
         Dictionary of ranges for numerical attributes. Each value is a list containing two elements, first one negative
@@ -211,7 +235,6 @@ def generate_condition(x_ohe: np.ndarray,
     cond
         Conditional vector.
     """
-
     # Generate numerical condition vector.
     num_cond = numerical_condition(x_ohe=x_ohe,
                                    ranges=ranges,
@@ -674,14 +697,12 @@ def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor,
 
     Parameters
     ----------
-    x_cf_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
-    cond
-        Conditional tensor.
-    z
-        Embedding tensor.
-    postprocessing_funcs
-        List of postprocessing functions
+    z_cf_pred
+        Predicted counterfactual embedding.
+    x_cf
+        Counterfactual reconstruction. This should be already post-processed.
+    ae
+        Pre-trained autoencoder.
 
     Returns
     -------
@@ -704,14 +725,12 @@ def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor,
 
     Parameters
     ----------
-    x_cf_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
-    cond
-        Conditional tensor.
-    z_cf
-        Embedding tensor.
-    postprocessing_funcs
-        List of postprocessing functions
+    z_cf_pred
+        Predicted counterfactual embedding.
+    x_cf
+        Counterfactual reconstruction. This should be already post-processed.
+    ae
+        Pre-trained autoencoder.
 
     Returns
     -------
@@ -799,23 +818,23 @@ def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[
     return preprocessor.transform, inv_preprocessor
 
 
-if __name__ == "__main__":
-    x = np.random.randint(0, 3, (10, 5))
-    category_map = {
-        2: list(np.unique(x[:, 2])),
-        3: list(np.unique(x[:, 3])),
-        4: list(np.unique(x[:, 4]))
-    }
-    feature_names = [0, 1, 2, 3, 4]
-
-    preproc, inv_preproc = he_preprocessor(x, feature_names, category_map)
-
-
-    print(x)
-    print("=============")
-    print(inv_preproc(preproc(x)))
-
-    assert np.all(x == inv_preproc(preproc(x)))
+# if __name__ == "__main__":
+#     x = np.random.randint(0, 3, (10, 5))
+#     category_map = {
+#         2: list(np.unique(x[:, 2])),
+#         3: list(np.unique(x[:, 3])),
+#         4: list(np.unique(x[:, 4]))
+#     }
+#     feature_names = [0, 1, 2, 3, 4]
+#
+#     preproc, inv_preproc = he_preprocessor(x, feature_names, category_map)
+#
+#
+#     print(x)
+#     print("=============")
+#     print(inv_preproc(preproc(x)))
+#
+#     assert np.all(x == inv_preproc(preproc(x)))
 
 
     # ranges = {

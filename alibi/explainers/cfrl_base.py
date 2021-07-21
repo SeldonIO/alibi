@@ -4,6 +4,7 @@ import numpy as np
 from tqdm import tqdm
 from copy import deepcopy
 from typing import Union, Any, Callable, Optional, Tuple, Dict, List
+from abc import ABC, abstractmethod
 
 import torch
 import torch.nn as nn
@@ -14,7 +15,6 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.utils.cfrl import predict_batches
 from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
 
@@ -192,7 +192,44 @@ class ReplayBuffer(object):
         }
 
 
-class PTDataset(Dataset):
+class CounterfactualRLDataset(ABC):
+    @staticmethod
+    def predict_batches(x: np.ndarray, predict_func: Callable, batch_size: int) -> np.ndarray:
+        """
+        Infer the classification labels of the input dataset. This is performed in batches.
+
+        Parameters
+        ----------
+        x
+            Input to be classified.
+        predict_func
+            Prediction function.
+        batch_size
+            Maximum batch size to be used during each inference step.
+
+        Returns
+        -------
+        Classification labels.
+        """
+        n_minibatch = int(np.ceil(x.shape[0] / batch_size))
+        y_m = np.zeros(x.shape[0])
+
+        for i in range(n_minibatch):
+            istart, istop = i * batch_size, min((i + 1) * batch_size, x.shape[0])
+            y_m[istart:istop] = predict_func(x[istart:istop])
+
+        return y_m
+
+    @abstractmethod
+    def __len__(self):
+        raise NotImplementedError
+
+    @abstractmethod
+    def __getitem__(self, item):
+        raise NotImplementedError
+
+
+class PTCounterfactualRLDataset(Dataset, CounterfactualRLDataset):
     """ Pytorch backend datasets. """
 
     def __init__(self,
@@ -224,7 +261,6 @@ class PTDataset(Dataset):
             Dimension of the batch used during training. The same batch size is used to infer the classification
             labels of the input dataset.
         """
-
         super().__init__()
 
         self.x = x
@@ -235,7 +271,9 @@ class PTDataset(Dataset):
         self.batch_size = batch_size
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = predict_batches(x=self.x, predict_func=self.predict_func, batch_size=self.batch_size)
+        self.y_m = PTCounterfactualRLDataset.predict_batches(x=self.x,
+                                                             predict_func=self.predict_func,
+                                                             batch_size=self.batch_size)
 
         # Preprocess the input data.
         self.x = self.preprocessor(self.x)
@@ -262,7 +300,7 @@ class PTDataset(Dataset):
         return data
 
 
-class TFDataset(keras.utils.Sequence):
+class TFCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
     """ Tensorflow backend datasets. """
 
     def __init__(self,
@@ -309,7 +347,9 @@ class TFDataset(keras.utils.Sequence):
         self.indexes = None
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = predict_batches(x=x, predict_func=predict_func, batch_size=batch_size)
+        self.y_m = TFCounterfactualRLDataset.predict_batches(x=self.x,
+                                                             predict_func=self.predict_func,
+                                                             batch_size=self.batch_size)
 
         # Preprocess data.
         self.x = self.preprocessor(self.x)
@@ -385,9 +425,9 @@ class TFCounterfactualRLBackend:
         shuffle
             Whether to shuffle the dataset each epoch. `True` by default.
         """
-        return TFDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
-                         conditional_func=conditional_func, num_classes=num_classes,
-                         batch_size=batch_size, shuffle=shuffle)
+        return TFCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
+                                         conditional_func=conditional_func, num_classes=num_classes,
+                                         batch_size=batch_size, shuffle=shuffle)
 
     @staticmethod
     def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
@@ -516,7 +556,7 @@ class TFCounterfactualRLBackend:
         return z_cf_tilde
 
     @staticmethod
-    @tf.function()
+    # @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
@@ -711,8 +751,8 @@ class PTCounterfactualRLBackend:
         num_workers
             Number of worker processes to be created.
         """
-        dataset = PTDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
-                            conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
+        dataset = PTCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
+                                            conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
         return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                           shuffle=shuffle, drop_last=True)
 
@@ -1038,7 +1078,7 @@ DEFAULT_PARAMS = {
     "batch_size": 128,
     "num_workers": 4,
     "shuffle": True,
-    "num_classes": 10,
+    "num_classes": 2,
     "exploration_steps": 100,
     "update_every": 1,
     "update_after": 10,
@@ -1055,6 +1095,8 @@ DEFAULT_PARAMS = {
 
 
 class CounterfactualRLBase(Explainer, FitMixin):
+    """ Counterfactual Reinforcement Learning Base. """
+
     PYTORCH = "pytorch"
     TENSORFLOW = "tensorflow"
 
@@ -1065,6 +1107,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                  predict_func: Callable,
                  coeff_sparsity: float,
                  coeff_consistency: float,
+                 num_classes: int,
                  backend: str = "tensorflow",
                  **kwargs):
         """
@@ -1097,6 +1140,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                                                         predict_func=predict_func,
                                                         coeff_sparsity=coeff_sparsity,
                                                         coeff_consistency=coeff_consistency,
+                                                        num_classes=num_classes,
                                                         backend=backend,
                                                         **kwargs)
 
@@ -1125,6 +1169,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                          predict_func: Callable,
                          coeff_sparsity: float,
                          coeff_consistency: float,
+                         num_classes: int,
                          backend: str,
                          **kwargs):
         """
@@ -1144,6 +1189,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Sparsity loss coefficient.
         coeff_consistency
             Consistency loss coefficient.
+        num_classes
+            Number of classes to consider.
         backend
             Deep learning backend: `tensorflow`|`pytorch`.
         """
@@ -1158,6 +1205,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             "predict_func": predict_func,
             "coeff_sparsity": coeff_sparsity,
             "coeff_consistency": coeff_consistency,
+            "num_classes": num_classes,
             "backend": backend
         })
 

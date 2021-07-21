@@ -153,5 +153,5 @@ class ADULTDecoder(nn.Module):
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         x = self.fc1(x)
-        xs = self.fcs(x)
+        xs = [fc(x) for fc in self.fcs]
         return xs

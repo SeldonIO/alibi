@@ -7,9 +7,6 @@ from typing import Callable, TYPE_CHECKING, Union
 import warnings
 
 import dill
-
-# do not extend pickle dispatch table so as not to change pickle behaviour
-dill.extend(use_dill=False)
 import numpy as np
 import tensorflow as tf
 
@@ -24,6 +21,9 @@ if TYPE_CHECKING:
     )
 
 from alibi.version import __version__
+
+# do not extend pickle dispatch table so as not to change pickle behaviour
+dill.extend(use_dill=False)
 
 thismodule = sys.modules[__name__]
 

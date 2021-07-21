@@ -7,6 +7,9 @@ from typing import Callable, TYPE_CHECKING, Union
 import warnings
 
 import dill
+
+# do not extend pickle dispatch table so as not to change pickle behaviour
+dill.extend(use_dill=False)
 import numpy as np
 import tensorflow as tf
 

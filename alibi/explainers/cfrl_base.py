@@ -1,7 +1,8 @@
 import os
+import logging
 import numpy as np
 from tqdm import tqdm
-from abc import abstractmethod, ABC
+from copy import deepcopy
 from typing import Union, Any, Callable, Optional, Tuple, Dict, List
 
 import torch
@@ -14,6 +15,10 @@ import tensorflow.keras as keras
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.utils.cfrl import predict_batches
+from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
+from alibi.models.pytorch.autoencoder import AE as PytorchAE
+
+logger = logging.getLogger(__name__)
 
 
 class NormalActionNoise:
@@ -349,7 +354,7 @@ class TFCounterfactualRLBackend:
 
     @staticmethod
     def data_generator(x: np.ndarray,
-                       preprocessor: Callable,
+                       ae_preprocessor: Callable,
                        predict_func: Callable,
                        conditional_func: Callable,
                        num_classes: int,
@@ -364,7 +369,7 @@ class TFCounterfactualRLBackend:
          x
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
-        preprocessor
+        ae_preprocessor
             Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
         predict_func
             Prediction function. The classifier function should expect the input in the original format and preprocess
@@ -380,8 +385,9 @@ class TFCounterfactualRLBackend:
         shuffle
             Whether to shuffle the dataset each epoch. `True` by default.
         """
-        return TFDataset(x=x, preprocessor=preprocessor, predict_func=predict_func, conditional_func=conditional_func,
-                         num_classes=num_classes, batch_size=batch_size, shuffle=shuffle)
+        return TFDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
+                         conditional_func=conditional_func, num_classes=num_classes,
+                         batch_size=batch_size, shuffle=shuffle)
 
     @staticmethod
     def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
@@ -625,7 +631,8 @@ class TFCounterfactualRLBackend:
                 loss_actor += coeff_sparsity * loss_sparsity[key]
 
             # Compute consistency loss and append consistency loss.
-            loss_consistency = consistency_loss(z_cf_pred=z_cf, x_cf=x_cf, ae=ae)
+            z_cf_tgt = ae.encoder(x_cf, training=False)
+            loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
             losses.update(loss_consistency)
 
             # Add consistency loss to the overall actor loss.
@@ -670,7 +677,7 @@ class TFCounterfactualRLBackend:
 class PTCounterfactualRLBackend:
     @staticmethod
     def data_generator(x: np.ndarray,
-                       preprocessor: Callable,
+                       ae_preprocessor: Callable,
                        predict_func: Callable,
                        conditional_func: Callable,
                        num_classes: int,
@@ -686,7 +693,7 @@ class PTCounterfactualRLBackend:
          x
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
-        preprocessor
+        ae_preprocessor
             Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
         predict_func
             Prediction function. The classifier function should expect the input in the original format and preprocess
@@ -704,14 +711,14 @@ class PTCounterfactualRLBackend:
         num_workers
             Number of worker processes to be created.
         """
-        dataset = PTDataset(x=x, preprocessor=preprocessor, predict_func=predict_func,
+        dataset = PTDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
                             conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
         return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                           shuffle=shuffle, drop_last=True)
 
     @staticmethod
     @torch.no_grad()
-    def encode(x: torch.Tensor, ae: nn.Module, device: torch.device):
+    def encode(x: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
         """
         Encodes the input tensor.
 
@@ -733,7 +740,7 @@ class PTCounterfactualRLBackend:
 
     @staticmethod
     @torch.no_grad()
-    def decode(z: torch.Tensor, ae: nn.Module, device: torch.device):
+    def decode(z: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
         """
         Decodes an embedding tensor.
 
@@ -979,7 +986,8 @@ class PTCounterfactualRLBackend:
             loss_actor += coeff_sparsity * loss_sparsity[key]
 
         # Compute consistency loss.
-        loss_consistency = consistency_loss(z_cf_pred=z_cf, x_cf=x_cf, ae=ae)
+        z_cf_tgt = PTCounterfactualRLBackend.encode(x=x_cf, ae=ae, device=device)
+        loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
         losses.update(loss_consistency)
 
         # Add consistency loss to the overall actor loss.
@@ -1022,7 +1030,7 @@ class PTCounterfactualRLBackend:
         return None
 
 
-CounterfactualRLDefaults = {
+DEFAULT_PARAMS = {
     "act_noise": 0.1,
     "act_low": -1.0,
     "act_high": 1.0,
@@ -1036,54 +1044,181 @@ CounterfactualRLDefaults = {
     "update_after": 10,
     "backend_flag": "pytorch",
     "train_steps": 100000,
-    "coeff_sparsity": 0.5,
-    "coeff_consistency": 0.5,
+    "ae_preprocessor": lambda x: x,
+    "ae_inv_preprocessor": lambda x: x,
+    "reward_func": lambda y_pred, y_true: y_pred == y_true,
+    "postprocessing_funcs": [lambda x_cf, x, c: x_cf],
+    "conditional_func": lambda x: None,
+    "experience_callbacks": [],
+    "train_callbacks": []
 }
 
 
-class CounterfactualRL(Explainer, FitMixin):
+class CounterfactualRLBase(Explainer, FitMixin):
+    PYTORCH = "pytorch"
+    TENSORFLOW = "tensorflow"
+
     def __init__(self,
+                 ae: Union[TensorflowAE, PytorchAE],
                  actor: Union[keras.Sequential, nn.Sequential],
                  critic: Union[keras.Sequential, nn.Sequential],
-                 optimizer_actor: Union[keras.optimizers.Optimizer, torch.optim.Optimizer],
-                 optimizer_critic: Union[keras.optimizers.Optimizer, torch.optim.Optimizer],
-                 ae: Union[keras.Sequential, nn.Sequential],
-                 preprocessor: Callable,
-                 inv_preprocessor: Callable,
-                 backend: str = "pytorch",
+                 predict_func: Callable,
+                 coeff_sparsity: float,
+                 coeff_consistency: float,
+                 backend: str = "tensorflow",
                  **kwargs):
+        """
+        Constructor.
 
-        # set backend variable
-        self.backend = backend
-        self.device = None
+        Parameters
+        ----------
+        ae
+            Pre-trained autoencoder.
+        actor
+            Actor network.
+        critic
+            Critic network.
+        predict_func.
+            Prediction function. This corresponds to the classifier.
+        coeff_sparsity
+            Sparsity loss coefficient.
+        coeff_consistency
+            Consistency loss coefficient.
+        backend
+            Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        """
+        if backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
+            raise ValueError(f"Backend {backend} not supported.")
 
-        # set auto-encoder
-        self.ae = ae
-        self.preprocessor = preprocessor
-        self.inv_preprocessor = inv_preprocessor
+        # validate arguments
+        self.params, all_params = self._validate_kwargs(ae=ae,
+                                                        actor=actor,
+                                                        critic=critic,
+                                                        predict_func=predict_func,
+                                                        coeff_sparsity=coeff_sparsity,
+                                                        coeff_consistency=coeff_consistency,
+                                                        backend=backend,
+                                                        **kwargs)
 
-        # set DDPG components
-        self.actor = actor
-        self.critic = critic
-        self.optimizer_actor = optimizer_actor
-        self.optimizer_critic = optimizer_critic
-
-        if self.backend == "pytorch":
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # If pytorch backend, then check if GPU is available
+        if self.params["backend"] == CounterfactualRLBase.PYTORCH:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            self.params.update({"device": device})
 
             # send auto-encoder to device
-            self.ae.to(self.device)
+            self.params["ae"].to(device)
 
             # sent actor and critic to device
-            self.actor.to(self.device)
-            self.critic.to(self.device)
-
-        # set default parameters
-        self.params = CounterfactualRLDefaults
-        self.params.update(kwargs)
+            self.params["actor"].to(device)
+            self.params["critic"].to(device)
 
         # Set backend according to the backend_flag.
         self.Backend = TFCounterfactualRLBackend if backend == "tensorflow" else PTCounterfactualRLBackend
+
+        # # update metadata
+        # self.meta['params'].update(**all_params)
+
+    def _validate_kwargs(self,
+                         ae: Union[TensorflowAE, PytorchAE],
+                         actor: Union[keras.Model, nn.Module],
+                         critic: Union[keras.Model, nn.Module],
+                         predict_func: Callable,
+                         coeff_sparsity: float,
+                         coeff_consistency: float,
+                         backend: str,
+                         **kwargs):
+        """
+        Validates arguments.
+
+        Parameters
+        ----------
+        ae
+            Pre-trained autoencoder.
+        actor
+            Actor network.
+        critic
+            Critic network.
+        predict_func.
+            Prediction function. This corresponds to the classifier.
+        coeff_sparsity
+            Sparsity loss coefficient.
+        coeff_consistency
+            Consistency loss coefficient.
+        backend
+            Deep learning backend: `tensorflow`|`pytorch`.
+        """
+        # Copy default parameters.
+        params = deepcopy(DEFAULT_PARAMS)
+
+        # Update parameters with mandatory arguments
+        params.update({
+            "ae": ae,
+            "actor": actor,
+            "critic": critic,
+            "predict_func": predict_func,
+            "coeff_sparsity": coeff_sparsity,
+            "coeff_consistency": coeff_consistency,
+            "backend": backend
+        })
+
+        # Address backend specific params.
+        # Add optimizers if not user-specified.
+        optimizers = ["optimizer_actor", "optimizer_critic"]
+
+        for optim in optimizers:
+            # If the optimizer is user-specified
+            if optim in kwargs:
+                params.update({optim: kwargs[optim]})
+                continue
+
+            # If the optimizer is not user-specified, it need to be initialized. The initialization is backend specific.
+            if backend == CounterfactualRLBase.TENSORFLOW:
+                params.update({optim: keras.optimizers.Adam(learning_rate=1e-3)})
+            else:
+                model_name = optim.split("_")[1]      # Extract model name.
+                model = params[model_name]            # Extract model.
+                params.update({optim: torch.optim.Adam(model.parameters(), lr=1e-3)})
+
+        # Add sparsity loss if not user-specified.
+        if "sparsity_loss" not in kwargs:
+            if backend == CounterfactualRLBase.TENSORFLOW:
+                # define tensorflow backend sparsity loss
+                def sparsity_loss(x_hat_cf: tf.Tensor, x: tf.Tensor) -> Dict[str, tf.Tensor]:
+                    return {"sparsity_loss": tf.reduce_mean(tf.abs(x_hat_cf - x))}
+            else:
+                # define pytorch backend sparsity loss
+                def sparsity_loss(x_hat_cf: torch.Tensor, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+                    return {"sparsity_loss": F.l1_loss(x_hat_cf, x)}
+
+            # update sparsity loss
+            params["sparsity_loss"] = sparsity_loss
+
+        # Add consistency loss if not user-specified. Although the implementation is not backend specific, it is
+        # included here to be consistent with the sparsity loss.
+        if "consistency_loss" not in kwargs:
+            def consistency_loss(z_cf_pred: Union[torch.Tensor, tf.Tensor], z_cf_tgt: Union[torch.Tensor, tf.Tensor]):
+                return {"consistency_loss": 0}
+
+            # update consistency loss
+            params["consistency_loss"] = consistency_loss
+
+        # Define dictionary of all parameters. Shallow copy of values.
+        all_params = params.copy()
+
+        # Validate arguments.
+        allowed_keys = set(params.keys())
+        provided_keys = set(kwargs.keys())
+        common_keys = allowed_keys & provided_keys
+
+        # Check if some provided keys are incorrect
+        if len(common_keys) < len(provided_keys):
+            incorrect_keys = ", ".join(provided_keys - common_keys)
+            logger.warning("The following keys are incorrect: " + incorrect_keys)
+
+        # Update default parameters and all parameters
+        params.update({key: kwargs[key] for key in common_keys})
+        all_params.update(kwargs)
+        return params, all_params
 
     def explain(self, X: Any) -> "Explanation":
         pass
@@ -1098,84 +1233,65 @@ class CounterfactualRL(Explainer, FitMixin):
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
 
-    def fit(self,
-            x: np.ndarray,
-            predict_func: Callable,
-            reward_func: Callable,
-            postprocessing_funcs: List[Callable],
-            sparsity_loss: Callable,
-            consistency_loss: Callable,
-            conditional_func: Callable,
-            experience_callbacks: List[Callable] = [],
-            train_callbacks: List[Callable] = []) -> "Explainer":
+    def fit(self, x: np.ndarray, ) -> "Explainer":
         """
         Fit the model agnostic counterfactual generator.
 
         Parameters
         ----------
         x
-            Training input data array.
-        predict_func
-            Prediction function. This corresponds to the classifier.
-        reward_func
-            Reward function.
-        experience_callbacks
-            List of callbacks that are called after each experience step.
-        train_callbacks
-            List of callbacks that are called after each training step.
+            Training data array.
 
         Returns
         -------
         self
             The explainer itself.
         """
-        # Define replay buffer (this will deal only with numpy arrays)
+        # Define replay buffer (this will deal only with numpy arrays).
         replay_buff = ReplayBuffer(size=self.params["replay_buffer_size"])
 
-        # define noise variable
+        # Define noise variable.
         noise = NormalActionNoise(mu=0, sigma=self.params["act_noise"])
 
-        # Define data generator
-        data_generator = self.Backend.data_generator(x=x,
-                                                     preprocessor=self.preprocessor,
-                                                     predict_func=predict_func,
-                                                     conditional_func=conditional_func,
-                                                     **self.params)
+        # Define data generator.
+        data_generator = self.Backend.data_generator(x=x, **self.params)
         data_iter = iter(data_generator)
 
         for step in tqdm(range(self.params["train_steps"])):
-            # sample training data
+            # Sample training data.
             try:
                 data = next(data_iter)
             except:
                 data_iter = iter(data_generator)
                 data = next(data_iter)
 
-            # add None condition if condition does not exist
+            # Add None condition if condition does not exist.
             if "c" not in data:
                 data["c"] = None
 
             # Compute input embedding.
-            z = self.Backend.encode(x=data["x"], ae=self.ae, device=self.device)
+            z = self.Backend.encode(x=data["x"], **self.params)
             data.update({"z": z})
 
             # Compute counterfactual embedding.
-            z_cf = self.Backend.generate_cf(ae=self.ae, actor=self.actor, predict_func=predict_func, step=step,
-                                            device=self.device, **data, **self.params)
+            z_cf = self.Backend.generate_cf(step=step, **data, **self.params)
             data.update({"z_cf": z_cf})
 
             # Add noise to the counterfactual embedding.
-            z_cf_tilde = self.Backend.add_noise(noise=noise, step=step, device=self.device, **data, **self.params)
+            z_cf_tilde = self.Backend.add_noise(noise=noise, step=step, **data, **self.params)
             data.update({"z_cf_tilde": z_cf_tilde})
 
             # Decode counterfactual and apply postprocessing step to x_cf_tilde.
-            x_cf = self.Backend.decode(ae=self.ae, z=data["z_cf"], device=self.device)
-            x_cf_tilde = self.Backend.decode(ae=self.ae, z=data["z_cf_tilde"], device=self.device)
+            x_cf = self.Backend.decode(z=data["z_cf"], **self.params)
+            x_cf_tilde = self.Backend.decode(z=data["z_cf_tilde"], **self.params)
 
-            for pp_func in postprocessing_funcs:
+            for pp_func in self.params["postprocessing_funcs"]:
+                # Post-process counterfactual.
                 x_cf = pp_func(self.Backend.to_numpy(x_cf),
                                self.Backend.to_numpy(data["x"]),
                                self.Backend.to_numpy(data["c"]))
+
+                # Post-process noised counterfactual.
                 x_cf_tilde = pp_func(self.Backend.to_numpy(x_cf_tilde),
                                      self.Backend.to_numpy(data["x"]),
                                      self.Backend.to_numpy(data["c"]))
@@ -1185,19 +1301,21 @@ class CounterfactualRL(Explainer, FitMixin):
                 "x_cf_tilde": x_cf_tilde
             })
 
-            # Compute reward. To compute reward, first we need to compute model's
-            # prediction on the counterfactual generated.
-            y_m_cf_tilde = predict_func(self.inv_preprocessor(self.Backend.to_numpy(data["x_cf_tilde"])))
-            r_tilde = reward_func(self.Backend.to_numpy(y_m_cf_tilde),
-                                  self.Backend.to_numpy(data["y_t"]))
+            # Compute model's prediction on the noised counterfactual
+            x_cf_tilde = self.params["ae_inv_preprocessor"](self.Backend.to_numpy(data["x_cf_tilde"]))
+            y_m_cf_tilde = self.params["predict_func"](x_cf_tilde)
+
+            # Compute reward.
+            r_tilde = self.params["reward_func"](self.Backend.to_numpy(y_m_cf_tilde),
+                                                 self.Backend.to_numpy(data["y_t"]))
             data.update({"r_tilde": r_tilde, "y_m_cf_tilde": y_m_cf_tilde})
 
             # Store experience in the replay buffer.
             data = {key: self.Backend.to_numpy(data[key]) for key in data.keys()}
             replay_buff.append(**data)
 
-            # call all experience_callbacks
-            for exp_cb in experience_callbacks:
+            # Call all experience callbacks.
+            for exp_cb in self.params["experience_callbacks"]:
                 exp_cb(step=step, model=self, sample=data)
 
             if step % self.params['update_every'] == 0 and step > self.params["update_after"]:
@@ -1208,23 +1326,13 @@ class CounterfactualRL(Explainer, FitMixin):
                         sample["c"] = None
 
                     # Update critic by one-step gradient descent.
-                    losses = self.Backend.update_actor_critic(ae=self.ae,
-                                                              critic=self.critic,
-                                                              actor=self.actor,
-                                                              optimizer_critic=self.optimizer_critic,
-                                                              optimizer_actor=self.optimizer_actor,
-                                                              sparsity_loss=sparsity_loss,
-                                                              consistency_loss=consistency_loss,
-                                                              postprocessing_funcs=postprocessing_funcs,
-                                                              device=self.device,
-                                                              **sample,
-                                                              **self.params)
+                    losses = self.Backend.update_actor_critic(**sample, **self.params)
 
-                    # convert all losses from tensors to floats
+                    # Convert all losses from tensors to numpy arrays.
                     losses = {key: self.Backend.to_numpy(losses[key]).item() for key in losses.keys()}
 
-                    # call all train_callbacks
-                    for train_cb in train_callbacks:
+                    # Call all train callbacks.
+                    for train_cb in self.params["train_callbacks"]:
                         train_cb(step=step, update=i, model=self, sample=sample, losses=losses)
 
         return self

@@ -2,10 +2,10 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 
-class Actor(keras.Model):
+class Actor(keras.layers.Layer):
     """ Actor network. """
 
-    def __init__(self, hidden_dim: int, output_dim: int):
+    def __init__(self, hidden_dim: int, output_dim: int, **kwargs):
         """
         Constructor.
 
@@ -16,7 +16,7 @@ class Actor(keras.Model):
         output_dim
             Output dimension
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.fc1 = keras.layers.Dense(hidden_dim)
         self.ln1 = keras.layers.LayerNormalization()
         self.fc2 = keras.layers.Dense(hidden_dim)
@@ -30,17 +30,17 @@ class Actor(keras.Model):
         return x
 
 
-class Critic(keras.Model):
+class Critic(keras.layers.Layer):
     """ Critic network. """
 
-    def __init__(self, hidden_dim: int):
+    def __init__(self, hidden_dim: int, **kwargs):
         """
         Constructor.
 
         hidden_dim
             Hidden dimension.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self.fc1 = keras.layers.Dense(hidden_dim)
         self.ln1 = keras.layers.LayerNormalization()
         self.fc2 = keras.layers.Dense(hidden_dim)

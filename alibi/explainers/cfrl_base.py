@@ -1128,9 +1128,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def __init__(self,
                  ae: Union[TensorflowAE, PytorchAE],
-                 actor: Union[keras.Sequential, nn.Sequential],
+                 actor: Union[keras.Sequential, nn.Sequential],  # TODO: make actor & critic optional
                  critic: Union[keras.Sequential, nn.Sequential],
-                 predict_func: Callable,
+                 predict_func: Callable,                         # TODO: move this first
                  coeff_sparsity: float,
                  coeff_consistency: float,
                  num_classes: int,
@@ -1222,7 +1222,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
         """
         # Copy default parameters.
         params = deepcopy(DEFAULT_PARAMS)
-
 
         # Update parameters with mandatory arguments
         params.update({
@@ -1455,6 +1454,29 @@ class CounterfactualRLBase(Explainer, FitMixin):
             x_cf = pp_func(x_cf, x, c)
 
         return self.params["ae_inv_preprocessor"](x_cf)
+
+
+class Postprocessing(ABC):
+    @abstractmethod
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> Any:
+        """
+        Post-processing function
+
+        Parameters
+        ----------
+        x_cf
+           List of counterfactual columns.
+        x
+           Input instance.
+        c
+           Conditional vector.
+
+        Returns
+        -------
+        x_cf
+            Post-processed x_cf.
+        """
+        raise NotImplemented
 
 
 class ExperienceCallback(ABC):

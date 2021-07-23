@@ -8,14 +8,15 @@ import tensorflow.keras as keras
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 
-from alibi.explainers.cfrl_base import CounterfactualRLBase
+from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
 from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
 
 import numpy as np
 import pandas as pd
+from itertools import count
+from scipy.special import softmax
 from functools import partial
-from abc import ABC, abstractmethod
 from typing import Tuple, List, Dict, Callable, Union, Any
 
 
@@ -272,7 +273,7 @@ def generate_condition(x_ohe: np.ndarray,
     return cond
 
 
-def sample_numerical(x_ohe_hat_num_split: List[np.ndarray],
+def sample_numerical(x_hat_num_split: List[np.ndarray],
                      x_ohe_num_split: List[np.ndarray],
                      cond_num_split: List[np.ndarray],
                      stats: Dict[int, Dict[str, float]]) -> List[np.ndarray]:
@@ -283,7 +284,7 @@ def sample_numerical(x_ohe_hat_num_split: List[np.ndarray],
 
     Parameters
     ----------
-    x_ohe_hat_num_split
+    x_hat_num_split
         List of reconstructed numerical heads from the auto-encoder. This list should contain a single element
         as all the numerical attributes are part of a singe linear layer output.
     x_ohe_num_split
@@ -302,7 +303,7 @@ def sample_numerical(x_ohe_hat_num_split: List[np.ndarray],
     x_ohe_hat_num
         List of clamped input vectors according to the conditional vectors and the dictionary of statistics .
     """
-    num_cols = x_ohe_hat_num_split[0].shape[1]    # number of numerical columns
+    num_cols = x_hat_num_split[0].shape[1]    # number of numerical columns
     sorted_cols = sorted(stats.keys())            # ensure that the column ids are sorted
 
     for i, col_id in zip(range(num_cols), sorted_cols):
@@ -314,15 +315,15 @@ def sample_numerical(x_ohe_hat_num_split: List[np.ndarray],
         rhs = x_ohe_num_split[0][:, i] + cond_num_split[0][:, 2 * i + 1] * (max - min)
 
         # Clamp output according to the conditional vector.
-        x_ohe_hat_num_split[0][:, i] = np.clip(x_ohe_hat_num_split[0][:, i], a_min=lhs, a_max=rhs)
+        x_hat_num_split[0][:, i] = np.clip(x_hat_num_split[0][:, i], a_min=lhs, a_max=rhs)
 
         # Clamp output according to the minimum and maximum value from the training set.
-        x_ohe_hat_num_split[0][:, i] = np.clip(x_ohe_hat_num_split[0][:, i], a_min=min, a_max=max)
+        x_hat_num_split[0][:, i] = np.clip(x_hat_num_split[0][:, i], a_min=min, a_max=max)
 
-    return x_ohe_hat_num_split
+    return x_hat_num_split
 
 
-def sample_categorical(x_ohe_hat_cat_split: List[np.ndarray],
+def sample_categorical(x_hat_cat_split: List[np.ndarray],
                        cond_cat_split: List[np.ndarray]) -> List[np.ndarray]:
     """
     Samples categorical attributes according to the conditional vector. This method sample conditional according to
@@ -330,8 +331,8 @@ def sample_categorical(x_ohe_hat_cat_split: List[np.ndarray],
 
     Parameters
     ----------
-    x_ohe_hat_cat_split
-        List of reconstructed categorical heads from the auto-encoder.
+    x_hat_cat_split
+        List of reconstructed categorical heads from the auto-encoder. The categorical columns contain logits.
     cond_cat_split
         List of conditional vector for categorical heads.
 
@@ -341,19 +342,22 @@ def sample_categorical(x_ohe_hat_cat_split: List[np.ndarray],
         List of one-hot encoded vectors sampled according to the conditional vector.
     """
     x_out = []                                             # initialize the returning list
-    rows = np.arange(x_ohe_hat_cat_split[0].shape[0])      # initialize the returning list
+    rows = np.arange(x_hat_cat_split[0].shape[0])      # initialize the returning list
 
-    for i in range(len(x_ohe_hat_cat_split)):
+    for i in range(len(x_hat_cat_split)):
+        # compute probability distribution
+        proba = softmax(x_hat_cat_split[i], axis=1)
+
         # sample the most probable outcome conditioned on the conditional vector
-        cols = np.argmax(cond_cat_split[i] * x_ohe_hat_cat_split[i], axis=1)
-        samples = np.zeros_like(x_ohe_hat_cat_split[i])
+        cols = np.argmax(cond_cat_split[i] * proba, axis=1)
+        samples = np.zeros_like(proba)
         samples[rows, cols] = 1
         x_out.append(samples)
 
     return x_out
 
 
-def sample(x_ohe_hat_split: List[np.ndarray],
+def sample(x_hat_split: List[np.ndarray],
            x_ohe: np.ndarray,
            cond: np.ndarray,
            stats: Dict[int, Dict[str, float]],
@@ -364,8 +368,8 @@ def sample(x_ohe_hat_split: List[np.ndarray],
 
     Parameters
     ----------
-    x_ohe_hat_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
+    x_hat_split
+        List of one-hot encoded reconstructed columns form the auto-encoder. The categorical columns contain logits.
     x_ohe
         One-hot encoded representation of the input.
     cond
@@ -392,14 +396,14 @@ def sample(x_ohe_hat_split: List[np.ndarray],
 
     if num_attr > 0:
         # sample numerical columns
-        sampled_num = sample_numerical(x_ohe_hat_num_split=x_ohe_hat_split[:num_attr],
+        sampled_num = sample_numerical(x_hat_num_split=x_hat_split[:num_attr],
                                        x_ohe_num_split=x_ohe_num_split,
                                        cond_num_split=cond_num_split,
                                        stats=stats)
 
     if cat_attr > 0:
         # sample categorical columns
-        sampled_cat = sample_categorical(x_ohe_hat_cat_split=x_ohe_hat_split[-cat_attr:],
+        sampled_cat = sample_categorical(x_hat_cat_split=x_hat_split[-cat_attr:],
                                          cond_cat_split=cond_cat_split)
 
     return sampled_num + sampled_cat
@@ -535,7 +539,6 @@ def tensorflow_l0_ohe(input: tf.Tensor,
     -------
     L0 loss.
     """
-
     loss = tf.maximum(target - input, tf.zeros_like(input))
 
     if reduction == 'none':
@@ -604,7 +607,8 @@ def tensorflow_l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'non
 def pytorch_he_sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
                              x_ohe: torch.Tensor,
                              category_map: Dict[int, List[str]],
-                             wgt_cat: float = 1.0):
+                             weight_num: float = 1.0,
+                             weight_cat: float = 1.0):
     """
     Computes heterogeneous sparsity loss.
 
@@ -617,7 +621,9 @@ def pytorch_he_sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
-    wgt_cat
+    weight_num
+        Numerical loss weight.
+    weight_cat
         Categorical loss weight.
 
     Returns
@@ -652,13 +658,14 @@ def pytorch_he_sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
 
         cat_loss /= len(x_ohe_cat_split)
 
-    return {"num_loss": num_loss, "cat_loss": wgt_cat * cat_loss}
+    return {"num_loss": weight_num * num_loss, "cat_loss": weight_cat * cat_loss}
 
 
 def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
                                 x_ohe: tf.Tensor,
                                 category_map: Dict[int, List[str]],
-                                wgt_cat: float = 1.0):
+                                weight_num: float = 1.0,
+                                weight_cat: float = 1.0):
     """
     Computes heterogeneous sparsity loss.
 
@@ -671,7 +678,9 @@ def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
-    wgt_cat
+    weight_num
+        Numerical loss weight.
+    weight_cat
         Categorical loss weight.
 
     Returns
@@ -706,7 +715,7 @@ def tensorflow_he_sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
 
         cat_loss /= len(x_ohe_cat_split)
 
-    return {"sparsity_num_loss": num_loss, "sparsity_cat_loss": wgt_cat * cat_loss}
+    return {"sparsity_num_loss": weight_num * num_loss, "sparsity_cat_loss": weight_cat * cat_loss}
 
 
 def pytorch_he_consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor, **kwargs):
@@ -756,7 +765,7 @@ def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: Union[np.ndar
 def he_preprocessor(x: np.ndarray,
                     feature_names: List[str],
                     category_map: Dict[int, List[str]],
-                    attr_types: Dict[int, type] = dict()):
+                    attr_types: Dict[int, type] = dict()) -> Tuple[Callable[[int, float], float]]: # TODO: check this out
     """
     Heterogeneous dataset preprocessor. The numerical attributes are standardized and the categorical attributes
     are one-hot encoded.
@@ -881,7 +890,8 @@ def conditional_vector(x: np.ndarray,
                        category_map: Dict[int, List[str]],
                        stats: Dict[int, Dict[str, float]],
                        ranges: Dict[str, List[float]] = dict(),
-                       immutable_attr: List[str] = list()) -> np.ndarray:
+                       immutable_attr: List[str] = list(),
+                       diverse=False) -> np.ndarray:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature. For example, if
     `Age`=26 and the attribute is allowed to increase up to 10 more years. Similar for categorical attributes,
@@ -907,9 +917,14 @@ def conditional_vector(x: np.ndarray,
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical attribute
         in the training set. Each key is an index of the column and each value is another dictionary containing `min`
         and `max` keys.
+    ranges
+        Dictionary of ranges for numerical attributes. Each value is a list containing two elements, first one negative
+        and the second one positive.
     immutable_attr
-        List of immutable attribues.
-
+        List of immutable attributes.
+    diverse
+        Whether to generate a diverse set of conditional vectors. A diverse set of conditional vector can generate
+        a diverse set of counterfactuals for a given input instance.
     Returns
     -------
     Conditional vector.
@@ -952,8 +967,12 @@ def conditional_vector(x: np.ndarray,
 
     # scale the numerical features in [0, 1] and add them to the conditional vector
     for i, (feature_id, feature_name) in enumerate(zip(num_features_ids, num_features_names)):
-        range_low = 0 if feature_name in immutable_attr else ranges.get(feature_name, -1)
-        range_high = 0 if feature_name in immutable_attr else ranges.get(feature_name, 1)
+        if feature_name in immutable_attr:
+            range_low, range_high = 0, 0
+        elif feature_name in ranges:
+            range_low, range_high = ranges[feature_name][0], ranges[feature_name][1]
+        else:
+            range_low, range_high = -1, 1
 
         if (feature_name in condition) and (feature_name not in immutable_attr):
             # mutable feature with conditioning
@@ -969,25 +988,38 @@ def conditional_vector(x: np.ndarray,
             x_low_ohe[:, i] = range_low
             x_high_ohe[:, i] = range_high
 
+        if diverse:
+            # not that this is still a feasible counterfactual
+            x_low_ohe[:, i] *= np.random.rand(*x_low_ohe[:, i].shape)
+            x_high_ohe[:, i] *= np.random.rand(*x_high_ohe[:, i].shape)
+
         # append feature conditioning
-        cond.append(x_low_ohe[:, i].reshape(-1, 1))
-        cond.append(x_high_ohe[:, i].reshape(-1, 1))
+        cond += [x_low_ohe[:, i].reshape(-1, 1), x_high_ohe[:, i].reshape(-1, 1)]
 
     # extract list of categorical one-hot encoded columns
     _, x_ohe_cat_split = split_ohe(x_ohe, category_map)
 
     # for each categorical feature add the masking vector
     for i, (feature_id, feature_name) in enumerate(zip(cat_features_ids, cat_feature_names)):
+        mask = np.zeros_like(x_ohe_cat_split[i])
+
         if feature_name not in immutable_attr:
             if feature_name in condition:
                 indexes = [category_map[feature_id].index(feature_value) for feature_value in condition[feature_name]]
-                x_ohe_cat_split[i][:, indexes] = 1
+                mask[:, indexes] = 1
             else:
                 # allow any value
-                x_ohe_cat_split[i][:] = 1
+                mask[:] = 1
+
+        if diverse:
+            # note that by masking random entries we still have a feasible counterfactual
+            mask *= np.random.randint(low=0, high=2, size=mask.shape)
+
+        # ensure that the original value is a possibility
+        mask = ((mask + x_ohe_cat_split[i]) > 0).astype(int)
 
         # append feature conditioning
-        cond.append(x_ohe_cat_split[i])
+        cond.append(mask)
 
     # concat all conditioning
     cond = np.concatenate(cond, axis=1)
@@ -1017,44 +1049,23 @@ def category_mapping(x: np.ndarray, category_map: Dict[int, List[str]]):
     return x.to_numpy()
 
 
-class Postprocessing(ABC):
-    @abstractmethod
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> Any:
-        """
-        Post-processing function
+class SamplePostprocessing(Postprocessing):
+    def __init__(self,  category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
+        super().__init__()
+        self.category_map = category_map
+        self.stats = stats
 
-        Parameters
-        ----------
-        x_cf
-           List of counterfactual columns.
-        x
-           Input instance.
-        c
-           Conditional vector.
-
-        Returns
-        -------
-        x_cf
-            Postprocessed x_cf.
-        """
-        raise NotImplemented
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
+        return sample(x_hat_split=x_cf,
+                      x_ohe=x,
+                      cond=c,
+                      stats=self.stats,
+                      category_map=self.category_map)
 
 
 class ConcatPostprocessing(Postprocessing):
     def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
         return np.concatenate(x_cf, axis=1)
-
-
-class CastPostProcesing(Postprocessing):
-    def __init__(self, attr_types: Dict[int, type]):
-        self.attr_types = attr_types
-
-    def __call__(self, x_cf: np.ndarray, x: np.ndarray, c: np.ndarray):
-        x_cf = x_cf.astype(object)
-
-        for i in self.attr_types:
-            x_cf[:, i] = x_cf[:, i].astype(self.attr_types[i])
-        return x
 
 
 class CounterfactualRLTabular(CounterfactualRLBase):
@@ -1072,11 +1083,13 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                  num_classes: int,
                  category_map: Dict[int, List[str]],
                  feature_names: List[str],
-                 stats: Dict[int, Dict[str, float]],
-                 ranges: Dict[str, Tuple[int, int]],
-                 immutable_attr: List[str],
-                 attr_types: Dict[int, type],
+                 stats: Dict[int, Dict[str, float]],  # TODO: infer it in the constructor
+                 ranges: Dict[str, Tuple[int, int]],  # TODO: infer it (make it optional)
+                 immutable_attr: List[str],           # TODO: ren
+                 attr_types: Dict[int, type],         # TODO: delete this
                  backend: str = "tensorflow",
+                 weight_num: float = 1.0,
+                 weight_cat: float = 1.0,
                  **kwargs):
         """
         Constructor.
@@ -1097,6 +1110,10 @@ class CounterfactualRLTabular(CounterfactualRLBase):
            Consistency loss coefficient.
         backend
            Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        weight_num
+            Numerical loss weight.
+        weight_cat
+            Categorical loss weight.
         """
         super().__init__(ae=ae, actor=actor, critic=critic, predict_func=predict_func, coeff_sparsity=coeff_sparsity,
                          coeff_consistency=coeff_consistency, num_classes=num_classes, backend=backend, **kwargs)
@@ -1112,10 +1129,12 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         self.params["immutable_attr"] = immutable_attr
         self.params["stats"] = stats
         self.params["attr_types"] = attr_types
+        self.params["weight_num"] = weight_num
+        self.params["weight_cat"] = weight_cat
 
         # Set postprocessing functions.
         self.params["postprocessing_funcs"] = [
-            partial(sample, stats=self.params["stats"], category_map=self.params["category_map"]),
+            SamplePostprocessing(stats=self.params["stats"], category_map=self.params["category_map"]),
             ConcatPostprocessing(),
         ]
 
@@ -1127,7 +1146,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
             # set sparsity loss
             self.params["sparsity_loss"] = partial(he_sparsity_loss,
-                                                   category_map=self.params["category_map"])
+                                                   category_map=self.params["category_map"],
+                                                   weight_num=weight_num,
+                                                   weight_cat=weight_cat)
 
         if "consistency_loss" not in kwargs:
             # select backend specific function
@@ -1143,32 +1164,116 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                                       ranges=self.params["ranges"],
                                                       immutable_attr=self.params["immutable_attr"])
 
-
-if __name__ == "__main__":
-    from alibi.datasets import fetch_adult
-
-    adult = fetch_adult()
-    x = adult.data
-    category_map = adult.category_map
-    feature_names = adult.feature_names
-    preprocessor, inv_preprocessor = he_preprocessor(x, feature_names, category_map)
-    stats = statistics(x, preprocessor, category_map)
+    def explain(self, x: np.ndarray, y_t: np.ndarray, c: Dict[str, List[Union[str, int]]]) -> "Explanation":
+        # TODO: check if `c` can be optional
+        # TODO: extend --- a condition for each instance
 
 
-    print(feature_names)
-    print(x[0])
-    print(category_map[feature_names.index('Workclass')])
+        # convert dictionary conditioning to array
+        c = conditional_vector(x=x,
+                               condition=c,
+                               preprocessor=self.params["ae_preprocessor"],
+                               feature_names=self.params["feature_names"],
+                               category_map=self.params["category_map"],
+                               stats=self.params["stats"],
+                               ranges=self.params["ranges"],
+                               immutable_attr=self.params["immutable_attr"])
+        return super().explain(x, y_t, c)
 
-    condition = {"Age": [-5, 20], "Workclass": ["State-gov", "?", "Local-gov"]}
-    immutable_attr = ['Education', 'Marital Status', 'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain',
-                      'Capital Loss', 'Hours per week', 'Country']
 
-    c = conditional_vector(x=x[:10],
-                           condition=condition,
-                           preprocessor=preprocessor,
-                           feature_names=feature_names,
-                           category_map=category_map,
-                           stats=stats,
-                           immutable_attr=immutable_attr)
+    # TODO: try to include this in the explain method, with a flag
+    def diversity(self,
+                  x: np.ndarray,
+                  y_t: np.ndarray,
+                  c: Dict[str, List[Union[str, int]]],
+                  num_samples: int = 1,
+                  batch_size: int = 100,
+                  patience: int = 1000,
+                  tolerance: float = 1e-3) -> np.ndarray:
 
-    print(c[:2])
+        # reshape input array
+        x = x.reshape(1, -1)
+
+        if x.shape[1] != len(self.params["feature_names"]):
+            raise ValueError("Only a single input can be passed.")
+
+        if len(y_t) != 1:
+            raise ValueError("Only a single label can be passed.")
+
+        # generate a batch of data
+        x = np.tile(x, (batch_size, 1))
+        y_t = np.tile(y_t, batch_size)
+
+        # define counterfactual buffer
+        cf_buff = None
+
+        from tqdm import tqdm
+        for i in tqdm(count()):
+            if i == patience:
+                break
+
+            if (cf_buff is not None) and (cf_buff.shape[0] >= num_samples):
+                break
+
+            # generate conditional vector
+            c_vec = conditional_vector(x=x,
+                                       condition=c,
+                                       preprocessor=self.params["ae_preprocessor"],
+                                       feature_names=self.params["feature_names"],
+                                       category_map=self.params["category_map"],
+                                       stats=self.params["stats"],
+                                       immutable_attr=self.params["immutable_attr"],
+                                       diverse=True)
+
+            # generate counterfactuals
+            x_cf = super().explain(x, y_t, c_vec)
+
+            # get prediction
+            y_cf_m = self.params["predict_func"](x_cf)
+
+            # select only counterfactuals where prediction matches the target
+            x_cf = x_cf[y_t == y_cf_m]
+            if x_cf.shape[0] == 0:
+                continue
+
+            # find unique counterfactuals
+            x_cf = np.unique(np.floor(x_cf / tolerance).astype(int), axis=0) * tolerance
+
+            # add them to the unique buffer but make sure not to add duplicates
+            if cf_buff is None:
+                cf_buff = x_cf
+            else:
+                cf_buff = np.concatenate([cf_buff, x_cf], axis=0)
+                cf_buff = np.unique(np.floor(cf_buff / tolerance).astype(int), axis=0) * tolerance
+
+        return cf_buff[:num_samples] if (cf_buff is not None) else np.array([])
+
+
+# if __name__ == "__main__":
+#     from alibi.datasets import fetch_adult
+#
+#     adult = fetch_adult()
+#     x = adult.data
+#     category_map = adult.category_map
+#     feature_names = adult.feature_names
+#     preprocessor, inv_preprocessor = he_preprocessor(x, feature_names, category_map)
+#     stats = statistics(x, preprocessor, category_map)
+#
+#
+#     print(feature_names)
+#     print(x[0])
+#     print(category_map[feature_names.index('Workclass')])
+#
+#     condition = {"Age": [-5, 20], "Workclass": ["State-gov", "?", "Local-gov"]}
+#     immutable_attr = ['Education', 'Marital Status', 'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain',
+#                       'Capital Loss', 'Hours per week', 'Country']
+#
+#     c = conditional_vector(x=x[:10],
+#                            condition=condition,
+#                            preprocessor=preprocessor,
+#                            feature_names=feature_names,
+#                            category_map=category_map,
+#                            stats=stats,
+#                            immutable_attr=immutable_attr)
+#
+#     print(c[:2])

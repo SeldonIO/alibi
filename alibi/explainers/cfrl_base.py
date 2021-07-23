@@ -282,7 +282,7 @@ class PTCounterfactualRLDataset(Dataset, CounterfactualRLDataset):
         return self.x.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=4)  # TODO: remove this
+        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
 
         # Generate random target class.
         y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
@@ -370,7 +370,7 @@ class TFCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         return self.x.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=4)  # TODO: remove this
+        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
 
         # Select indices to be returned.
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
@@ -387,6 +387,32 @@ class TFCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             "y_t": y_t,
             "c": c
         }
+
+
+class Postprocessing(ABC):
+    @abstractmethod
+    def __call__(self, x_cf, x, c: np.ndarray) -> Any:
+        """
+        Post-processing function
+
+        Parameters
+        ----------
+        x_cf
+            Counterfactual instance
+        x
+            Input instance.
+        c
+            Conditional vector.
+
+        Returns
+        -------
+        x_cf
+            Post-processed x_cf.
+        """
+        raise NotImplemented
+
+
+
 
 
 class TFCounterfactualRLBackend:
@@ -556,7 +582,7 @@ class TFCounterfactualRLBackend:
         return z_cf_tilde
 
     @staticmethod
-    # @tf.function()
+    @tf.function()
     def update_actor_critic(ae: keras.Model,
                             critic: keras.Model,
                             actor: keras.Model,
@@ -1197,6 +1223,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         # Copy default parameters.
         params = deepcopy(DEFAULT_PARAMS)
 
+
         # Update parameters with mandatory arguments
         params.update({
             "ae": ae,
@@ -1268,8 +1295,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
         all_params.update(kwargs)
         return params, all_params
 
-    def explain(self, X: Any) -> "Explanation":
-        pass
 
     @classmethod
     def load(cls, path: Union[str, os.PathLike], predictor: Any) -> "Explainer":
@@ -1384,3 +1409,98 @@ class CounterfactualRLBase(Explainer, FitMixin):
                         train_cb(step=step, update=i, model=self, sample=sample, losses=losses)
 
         return self
+
+    def explain(self, x: np.ndarray, y_t: np.ndarray, c: Optional[np.ndarray] = None) -> "Explanation":
+        """
+        Explains an input instance
+
+        Parameters
+        ----------
+        x
+            Instance to be explained.
+        y_t
+            Counterfactual target.
+        c
+            Conditional vector.
+
+        Returns
+        -------
+        x_cf
+            Conditional counterfactual instance.
+        """
+        # compute models prediction
+        y_m = self.params["predict_func"](x)
+
+        # apply autoencoder preprocessing step
+        x = self.params["ae_preprocessor"](x)
+
+        # backend specific tasks
+        if self.params["backend"] == CounterfactualRLBase.PYTORCH:
+            x = torch.tensor(x).to(self.params["device"])
+            y_m = torch.tensor(y_m).to(self.params["device"])
+            y_t = torch.tensor(y_t).to(self.params["device"])
+
+        # encode instance
+        z = self.Backend.encode(x, **self.params)
+
+        # generate counterfactual embedding
+        z_cf = self.Backend.generate_cf(z, y_m, y_t, c, **self.params)
+
+        # decode counterfactual
+        x_cf = self.Backend.decode(z_cf, **self.params)
+        x_cf = self.Backend.to_numpy(x_cf)
+
+        # apply postprocessing functions
+        for pp_func in self.params["postprocessing_funcs"]:
+            x_cf = pp_func(x_cf, x, c)
+
+        return self.params["ae_inv_preprocessor"](x_cf)
+
+
+class ExperienceCallback(ABC):
+    @abstractmethod
+    def __call__(self,
+                 step: int,
+                 model: CounterfactualRLBase,
+                 sample: Dict[str, np.ndarray]) -> None:
+        """
+        Experience call-back applied after gather an experience.
+
+        Parameters
+        ----------
+        step
+            Current experience step.
+        model
+            CounterfactualRLBase explainer.
+        sample
+            Dictionary of sample gathered in an experience. This includes dataset inputs and intermediate results
+            obtained during an experience.
+        """
+        raise NotImplemented
+
+
+class TrainingCallback(ABC):
+    @abstractmethod
+    def __call__(self,
+                 step: int,
+                 update: int,
+                 model: CounterfactualRLBase,
+                 sample: Dict[str, np.ndarray],
+                 losses: Dict[str, float]) -> None:
+        """
+        Training call-back applied after every training step.
+
+        Parameters
+        -----------
+        step
+            Current experience step.
+        update
+            Current update. The ration between the number experience steps and the number of training updates is bound to 1.
+        model
+            CounterfactualRLBase explainer.
+        sample
+            Dictionary of samples used for an update. This is sampled from the replay buffer.
+        losses
+            Dictionary of losses.
+        """
+        raise NotImplementedError

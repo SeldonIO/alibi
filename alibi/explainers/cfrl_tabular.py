@@ -13,8 +13,10 @@ from alibi.models.pytorch.autoencoder import AE as PytorchAE
 from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
 
 import numpy as np
+import pandas as pd
 from functools import partial
-from typing import Tuple, List, Dict, Callable, Union
+from abc import ABC, abstractmethod
+from typing import Tuple, List, Dict, Callable, Union, Any
 
 
 def conditional_dim(feature_names: List[str],
@@ -87,7 +89,10 @@ def split_ohe(x_ohe: Union[np.ndarray, torch.Tensor, tf.Tensor],
 
 
 def numerical_condition(x_ohe: np.ndarray,
-                        ranges: Dict[int, List[float]],
+                        feature_names: List[str],
+                        category_map: Dict[int, List[str]],
+                        ranges: Dict[str, List[float]],
+                        immutable_attr: List[str],
                         conditional: bool = True) -> np.ndarray:
     """
     Generates numerical attributes conditional vector.
@@ -98,9 +103,17 @@ def numerical_condition(x_ohe: np.ndarray,
         One-hot encoding representation of the element(s) for which the conditional vector will be generated.
         This argument is used to extract the number of conditional vector. The choice of `x_ohe` instead of a
         `size` argument is for consistency purposes with `categorical_cond` function.
+    feature_names
+        List of feature names. This should be provided by the dataset.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.
     ranges:
         Dictionary of ranges for numerical attributes. Each value is a list containing two elements, first one negative
         and the second one positive.
+    immutable_attr
+        Dictionary of immutable attributes. The keys are the column indexes and the values are booleans: `True` if
+        the attribute is immutable, `False` otherwise.
     conditional
         Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
         restrictions on the attribute value.
@@ -113,20 +126,31 @@ def numerical_condition(x_ohe: np.ndarray,
     num_cond = []
     size = x_ohe.shape[0]
 
-    for i in ranges:
+    for feature_id, feature_name in enumerate(feature_names):
+        # skip categorical features
+        if feature_id in category_map:
+            continue
+
+        if feature_name in immutable_attr:
+            # immutable feature
+            range_low, range_high = 0, 0
+        else:
+            range_low = ranges[feature_name][0] if feature_name in ranges else -1
+            range_high = ranges[feature_name][1] if feature_name in ranges else 1
+
         # Check if the ranges are valid.
-        if ranges[i][0] > 0:
-            raise ValueError(f"Lower bound range for {i} should be negative.")
-        if ranges[i][1] < 0:
-            raise ValueError(f"Upper bound range for {i} should be positive.")
+        if range_low > 0:
+            raise ValueError(f"Lower bound range for {feature_name} should be negative.")
+        if range_high < 0:
+            raise ValueError(f"Upper bound range for {feature_name} should be positive.")
 
         # Generate lower and upper bound coefficients.
         coeff_lower = np.random.beta(a=2, b=2, size=size).reshape(-1, 1) if conditional else np.ones((size, 1))
         coeff_upper = np.random.beta(a=2, b=2, size=size).reshape(-1, 1) if conditional else np.ones((size, 1))
 
         # Generate lower and upper bound conditionals.
-        num_cond.append(coeff_lower * ranges[i][0])
-        num_cond.append(coeff_upper * ranges[i][1])
+        num_cond.append(coeff_lower * range_low)
+        num_cond.append(coeff_upper * range_high)
 
     # Construct numerical conditional vector by concatenating all numerical conditions.
     num_cond = np.concatenate(num_cond, axis=1)
@@ -134,8 +158,9 @@ def numerical_condition(x_ohe: np.ndarray,
 
 
 def categorical_condition(x_ohe: np.ndarray,
+                          feature_names: List[str],
                           category_map: Dict[int, List],
-                          immutable_map: Dict[int, bool],
+                          immutable_attr: List[str],
                           conditional: bool = True) -> np.ndarray:
     """
     Generates categorical attributes conditional vector.
@@ -146,12 +171,13 @@ def categorical_condition(x_ohe: np.ndarray,
         One-hot encoding representation of the element(s) for which the conditional vector will be generated.
         The elements are required since some attributes can be immutable. In that case, the mask vector is the
         one-hot encoding itself for that particular attribute.
+    feature_names
+        List of feature names. This should be provided by the dataset.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
-    immutable_map
-        Dictionary of immutable map attributes. The keys are the column indexes and the values are booleans: `True` if
-        the attribute is immutable, `False` otherwise.
+    immutable_attr
+        List of immutable attributes.
     conditional
         Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
         restrictions on the attribute value.
@@ -162,28 +188,40 @@ def categorical_condition(x_ohe: np.ndarray,
         Conditional vector for categorical attributes.
     """
     cat_cond = []
+    cat_idx = 0
 
     # Split the one-hot representation into a list where each element corresponds to an attribute.
     _, x_ohe_cat_split = split_ohe(x_ohe, category_map)
 
     # Create mask for each categorical column.
-    for i, key in enumerate(immutable_map):
-        mask = x_ohe_cat_split[i].copy()
+    for feature_id, feature_name in enumerate(feature_names):
+        # skip numerical features
+        if feature_id not in category_map:
+            continue
 
-        if not immutable_map[key]:
+        # initialize mask with the original value
+        mask = x_ohe_cat_split[cat_idx].copy()
+
+        # if the feature is not immutable, add noise to modify the mask
+        if feature_name not in immutable_attr:
             mask += np.random.rand(*mask.shape) if conditional else np.ones_like(mask)
 
+        # construct binary mask
         mask = (mask > 0.5).astype(np.float32)
         cat_cond.append(mask)
+
+        # move to the next categorical index
+        cat_idx += 1
 
     cat_cond = np.concatenate(cat_cond, axis=1)
     return cat_cond
 
 
 def generate_condition(x_ohe: np.ndarray,
-                       ranges: Dict[int, List[float]],
+                       feature_names: List[str],
                        category_map: Dict[int, List[str]],
-                       immutable_map: Dict[int, bool],
+                       ranges: Dict[str, List[float]],
+                       immutable_attr: List[str],
                        conditional: bool = True) -> np.ndarray:
     """
     Generates conditional vector.
@@ -195,15 +233,16 @@ def generate_condition(x_ohe: np.ndarray,
         This method assumes that the input array, `x_ohe`, is encoded as follows: first columns correspond to the
         numerical attributes, and the rest are one-hot encodings of the categorical columns. The numerical and the
         categorical columns are ordered by the original column index( e.g. numerical = (1, 4), categorical=(0, 2, 3)).
-    ranges
-        Dictionary of ranges for numerical attributes. Each value is a list containing two elements, first one negative
-        and the second one positive.
+    feature_names
+        List of feature names.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
-    immutable_map
-        Dictionary of immutable map attributes. The keys are the column indexes and the values are booleans: `True` if
-        the attribute is immutable, `False` otherwise.
+    ranges
+        Dictionary of ranges for numerical attributes. Each value is a list containing two elements, first one negative
+        and the second one positive.
+    immutable_attr
+        List of immutable map attributes.
     conditional
         Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
         restrictions on the attribute value.
@@ -215,13 +254,17 @@ def generate_condition(x_ohe: np.ndarray,
     """
     # Generate numerical condition vector.
     num_cond = numerical_condition(x_ohe=x_ohe,
+                                   feature_names=feature_names,
+                                   category_map=category_map,
                                    ranges=ranges,
+                                   immutable_attr=immutable_attr,
                                    conditional=conditional)
 
     # Generate categorical condition vector.
     cat_cond = categorical_condition(x_ohe=x_ohe,
+                                     feature_names=feature_names,
                                      category_map=category_map,
-                                     immutable_map=immutable_map,
+                                     immutable_attr=immutable_attr,
                                      conditional=conditional)
 
     # Concatenate numerical and categorical conditional vectors.
@@ -524,7 +567,7 @@ def pytorch_l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 
     -------
     L1 loss.
     """
-    return F.l1_loss(input=input, target=target,reduction=reduction)
+    return F.l1_loss(input=input, target=target, reduction=reduction)
 
 
 def tensorflow_l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.Tensor:
@@ -710,7 +753,10 @@ def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: Union[np.ndar
     return {"consistency_loss": loss}
 
 
-def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[int, List[str]]):
+def he_preprocessor(x: np.ndarray,
+                    feature_names: List[str],
+                    category_map: Dict[int, List[str]],
+                    attr_types: Dict[int, type] = dict()):
     """
     Heterogeneous dataset preprocessor. The numerical attributes are standardized and the categorical attributes
     are one-hot encoded.
@@ -724,6 +770,8 @@ def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.  This should be provided by the dataset.
+    attr_types
+        Dictionary of type for numerical attributes.
 
     Returns
     -------
@@ -779,9 +827,234 @@ def he_preprocessor(x: np.ndarray, feature_names: List[str], category_map: Dict[
         for i in range(len(perm)):
             inv_perm[perm[i]] = i
 
-        return x_inv[:, inv_perm]
+        x_inv = x_inv[:, inv_perm].astype(object)
+        for i in range(len(feature_names)):
+            type = attr_types[i] if i in attr_types else int
+            x_inv[:, i] = x_inv[:, i].astype(type)
+
+        return x_inv
 
     return preprocessor.transform, inv_preprocessor
+
+
+def statistics(x: np.ndarray,
+               preprocessor: Callable,
+               category_map: Dict[int, List[str]]) -> Dict[int, Dict[str, float]]:
+    """
+    Computes statistics.
+
+    Parameters
+    ----------
+    x
+        Instances for which to compute statistic.
+    preprocessor
+        Data preprocessor. The preprocessor should standardize the numerical values and convert categorical ones
+        into one-hot encoding representation. By convention, numerical features should be first, followed by the
+        rest of categorical ones.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.  This should be provided by the dataset.
+
+    Returns
+    -------
+    Dictionary of statistics. For each numerical column, the minimum and maximum value is returned.
+    """
+    stats = dict()
+
+    # extract numerical features
+    num_features_ids = [id for id in range(x.shape[1]) if id not in category_map]
+
+    # preprocess data (standardize + one-hot encoding)
+    x_ohe = preprocessor(x)
+
+    for i, feature_id in enumerate(num_features_ids):
+        min, max = np.min(x_ohe[:, i]), np.max(x_ohe[:, i])
+        stats[feature_id] = {"min": min, "max": max}
+
+    return stats
+
+
+def conditional_vector(x: np.ndarray,
+                       condition: Dict[str, List[Union[int, str]]],
+                       preprocessor: Callable,
+                       feature_names: List[str],
+                       category_map: Dict[int, List[str]],
+                       stats: Dict[int, Dict[str, float]],
+                       ranges: Dict[str, List[float]] = dict(),
+                       immutable_attr: List[str] = list()) -> np.ndarray:
+    """
+    Generates a conditional vector. The condition is expressed a a delta change of the feature. For example, if
+    `Age`=26 and the attribute is allowed to increase up to 10 more years. Similar for categorical attributes,
+    the current value can be omitted.
+
+    Parameters
+    ----------
+    x
+        Instances for which to generate the conditional vector.
+    condition
+        Dictionary of conditions per feature. For numerical features it expects a rang that contains the original value.
+        For categorical features it expects a list of feature values per attribute that includes the original value.
+    preprocessor
+        Data preprocessor. The preprocessor should standardize the numerical values and convert categorical ones
+        into one-hot encoding representation. By convention, numerical features should be first, followed by the
+        rest of categorical ones.
+    feature_names
+        List of feature names. This should be provided by the dataset.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for an attribute.  This should be provided by the dataset.
+    stats
+        Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical attribute
+        in the training set. Each key is an index of the column and each value is another dictionary containing `min`
+        and `max` keys.
+    immutable_attr
+        List of immutable attribues.
+
+    Returns
+    -------
+    Conditional vector.
+    """
+    # reshape the vector
+    x = x.reshape(1, -1) if len(x.shape) == 1 else x
+
+    # extract numerical features
+    num_features_ids = [id for id in range(x.shape[1]) if id not in category_map]
+    num_features_names = [feature_names[id] for id in num_features_ids]
+
+    # extract categorical features
+    cat_features_ids = [id for id in range(x.shape[1]) if id in category_map]
+    cat_feature_names = [feature_names[id] for id in cat_features_ids]
+
+    # need to standardize numerical features. Thus, we use the preprocessor
+    x_low, x_high = x.copy(), x.copy()
+
+    for feature_id, feature_name in enumerate(feature_names):
+        if feature_id in category_map:
+            continue
+
+        if feature_name in condition:
+            if condition[feature_name][0] > 0:
+                raise ValueError(f"Lower bound on the conditional vector for {feature_name} should be negative.")
+
+            if condition[feature_name][1] < 0:
+                raise ValueError(f"Upper bound on the conditional vector for {feature_name} should be positive.")
+
+            x_low[:, feature_id] += condition[feature_name][0]
+            x_high[:, feature_id] += condition[feature_name][1]
+
+    # preprocess the vectors (standardize + one-hot encoding)
+    x_low_ohe = preprocessor(x_low)
+    x_high_ohe = preprocessor(x_high)
+    x_ohe = preprocessor(x)
+
+    # initialize conditional vector
+    cond = []
+
+    # scale the numerical features in [0, 1] and add them to the conditional vector
+    for i, (feature_id, feature_name) in enumerate(zip(num_features_ids, num_features_names)):
+        range_low = 0 if feature_name in immutable_attr else ranges.get(feature_name, -1)
+        range_high = 0 if feature_name in immutable_attr else ranges.get(feature_name, 1)
+
+        if (feature_name in condition) and (feature_name not in immutable_attr):
+            # mutable feature with conditioning
+            min, max = stats[feature_id]["min"], stats[feature_id]["max"]
+            x_low_ohe[:, i] = (x_low_ohe[:, i] - x_ohe[:, i]) / (max - min)
+            x_high_ohe[:, i] = (x_high_ohe[:, i] - x_ohe[:, i]) / (max - min)
+
+            # clip in [0, 1]
+            x_low_ohe[:, i] = np.clip(x_low_ohe[:, i], a_min=range_low, a_max=0)
+            x_high_ohe[:, i] = np.clip(x_high_ohe[:, i], a_min=0, a_max=range_high)
+        else:
+            # this means no conditioning
+            x_low_ohe[:, i] = range_low
+            x_high_ohe[:, i] = range_high
+
+        # append feature conditioning
+        cond.append(x_low_ohe[:, i].reshape(-1, 1))
+        cond.append(x_high_ohe[:, i].reshape(-1, 1))
+
+    # extract list of categorical one-hot encoded columns
+    _, x_ohe_cat_split = split_ohe(x_ohe, category_map)
+
+    # for each categorical feature add the masking vector
+    for i, (feature_id, feature_name) in enumerate(zip(cat_features_ids, cat_feature_names)):
+        if feature_name not in immutable_attr:
+            if feature_name in condition:
+                indexes = [category_map[feature_id].index(feature_value) for feature_value in condition[feature_name]]
+                x_ohe_cat_split[i][:, indexes] = 1
+            else:
+                # allow any value
+                x_ohe_cat_split[i][:] = 1
+
+        # append feature conditioning
+        cond.append(x_ohe_cat_split[i])
+
+    # concat all conditioning
+    cond = np.concatenate(cond, axis=1)
+    return cond
+
+
+def category_mapping(x: np.ndarray, category_map: Dict[int, List[str]]):
+    """
+    Applies a category mapping for the categorical attributes in the array.
+    Basically, transforms ints back to strings to be readable
+    Parameters
+    -----------
+    x
+        Array containing the columns to be mapped.
+    category_map
+        Dictionary of category mapping. Keys are columns
+        index, and values are list of attribute values.
+    Returns
+    -------
+    Transformed array.
+    """
+    x = pd.DataFrame(x)
+
+    for key in category_map:
+        x[key].replace(range(len(category_map[key])), category_map[key], inplace=True)
+
+    return x.to_numpy()
+
+
+class Postprocessing(ABC):
+    @abstractmethod
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> Any:
+        """
+        Post-processing function
+
+        Parameters
+        ----------
+        x_cf
+           List of counterfactual columns.
+        x
+           Input instance.
+        c
+           Conditional vector.
+
+        Returns
+        -------
+        x_cf
+            Postprocessed x_cf.
+        """
+        raise NotImplemented
+
+
+class ConcatPostprocessing(Postprocessing):
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
+        return np.concatenate(x_cf, axis=1)
+
+
+class CastPostProcesing(Postprocessing):
+    def __init__(self, attr_types: Dict[int, type]):
+        self.attr_types = attr_types
+
+    def __call__(self, x_cf: np.ndarray, x: np.ndarray, c: np.ndarray):
+        x_cf = x_cf.astype(object)
+
+        for i in self.attr_types:
+            x_cf[:, i] = x_cf[:, i].astype(self.attr_types[i])
+        return x
 
 
 class CounterfactualRLTabular(CounterfactualRLBase):
@@ -800,8 +1073,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                  category_map: Dict[int, List[str]],
                  feature_names: List[str],
                  stats: Dict[int, Dict[str, float]],
-                 ranges: Dict[int, Tuple[int, int]],
-                 immutable_map: Dict[int, bool],
+                 ranges: Dict[str, Tuple[int, int]],
+                 immutable_attr: List[str],
+                 attr_types: Dict[int, type],
                  backend: str = "tensorflow",
                  **kwargs):
         """
@@ -835,16 +1109,14 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         self.params["category_map"] = category_map
         self.params["feature_names"] = feature_names
         self.params["ranges"] = ranges
-        self.params["immutable_map"] = immutable_map
+        self.params["immutable_attr"] = immutable_attr
         self.params["stats"] = stats
-
-        def pp_concat(x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
-            return np.concatenate(x_cf, axis=1)
+        self.params["attr_types"] = attr_types
 
         # Set postprocessing functions.
         self.params["postprocessing_funcs"] = [
             partial(sample, stats=self.params["stats"], category_map=self.params["category_map"]),
-            pp_concat
+            ConcatPostprocessing(),
         ]
 
         if "sparsity_loss" not in kwargs:
@@ -866,6 +1138,37 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         if "conditional_func" not in kwargs:
             # set conditional function generator
             self.params["conditional_func"] = partial(generate_condition,
-                                                      ranges=self.params["ranges"],
+                                                      feature_names=self.params["feature_names"],
                                                       category_map=self.params["category_map"],
-                                                      immutable_map=self.params["immutable_map"])
+                                                      ranges=self.params["ranges"],
+                                                      immutable_attr=self.params["immutable_attr"])
+
+
+if __name__ == "__main__":
+    from alibi.datasets import fetch_adult
+
+    adult = fetch_adult()
+    x = adult.data
+    category_map = adult.category_map
+    feature_names = adult.feature_names
+    preprocessor, inv_preprocessor = he_preprocessor(x, feature_names, category_map)
+    stats = statistics(x, preprocessor, category_map)
+
+
+    print(feature_names)
+    print(x[0])
+    print(category_map[feature_names.index('Workclass')])
+
+    condition = {"Age": [-5, 20], "Workclass": ["State-gov", "?", "Local-gov"]}
+    immutable_attr = ['Education', 'Marital Status', 'Occupation', 'Relationship', 'Race', 'Sex', 'Capital Gain',
+                      'Capital Loss', 'Hours per week', 'Country']
+
+    c = conditional_vector(x=x[:10],
+                           condition=condition,
+                           preprocessor=preprocessor,
+                           feature_names=feature_names,
+                           category_map=category_map,
+                           stats=stats,
+                           immutable_attr=immutable_attr)
+
+    print(c[:2])

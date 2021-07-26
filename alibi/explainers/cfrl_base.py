@@ -6,55 +6,24 @@ from copy import deepcopy
 from typing import Union, Any, Callable, Optional, Tuple, Dict, List
 from abc import ABC, abstractmethod
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
-
-import tensorflow as tf
-import tensorflow.keras as keras
-
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
+from alibi.explainers.backends.cfrl_base import NormalActionNoise
 
+# TODO import those conditional
+from alibi.utils.frameworks import has_pytorch, has_tensorflow
+
+if has_pytorch:
+    # import pytorch backend
+    from alibi.explainers.backends.pytorch.cfrl_base import PtCounterfactualRLBaseBackend
+
+if has_tensorflow:
+    # import tensorflow backend
+    from alibi.explainers.backends.tensorflow.cfrl_base import TfCounterfactualRLBaseBackend
+
+# define logger
 logger = logging.getLogger(__name__)
-
-
-class NormalActionNoise:
-    """ Normal noise generator. """
-
-    def __init__(self, mu: float, sigma: float):
-        """
-        Constructor.
-
-        Parameters
-        ----------
-        mu
-            Mean of the normal noise.
-        sigma
-            Standard deviation of the noise.
-        """
-        self.mu = mu
-        self.sigma = sigma
-
-    def __call__(self, shape: Tuple[int, ...]):
-        """
-        Generates normal noise with the appropriate mean and standard deviation.
-
-        Parameters
-        ----------
-        shape
-            Shape of the tensor to be generated
-
-        Returns
-        -------
-        Normal noise with the appropriate mean, standard deviation and shape.
-        """
-        return self.mu + self.sigma * np.random.randn(*shape)
-
-    def __repr__(self):
-        return 'NormalActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
 
 
 class ReplayBuffer(object):
@@ -168,7 +137,7 @@ class ReplayBuffer(object):
         method. The batch size returned is the same as the one passed in the `append`.
         """
         # generate random indices to be sampled
-        rand_idx = torch.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size, ))
+        rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
 
         # extract data form buffers
         x = self.x[rand_idx]                                        # input array
@@ -192,910 +161,6 @@ class ReplayBuffer(object):
         }
 
 
-class CounterfactualRLDataset(ABC):
-    @staticmethod
-    def predict_batches(x: np.ndarray, predict_func: Callable, batch_size: int) -> np.ndarray:
-        """
-        Infer the classification labels of the input dataset. This is performed in batches.
-
-        Parameters
-        ----------
-        x
-            Input to be classified.
-        predict_func
-            Prediction function.
-        batch_size
-            Maximum batch size to be used during each inference step.
-
-        Returns
-        -------
-        Classification labels.
-        """
-        n_minibatch = int(np.ceil(x.shape[0] / batch_size))
-        y_m = np.zeros(x.shape[0])
-
-        for i in range(n_minibatch):
-            istart, istop = i * batch_size, min((i + 1) * batch_size, x.shape[0])
-            y_m[istart:istop] = predict_func(x[istart:istop])
-
-        return y_m
-
-    @abstractmethod
-    def __len__(self):
-        raise NotImplementedError
-
-    @abstractmethod
-    def __getitem__(self, item):
-        raise NotImplementedError
-
-
-class PTCounterfactualRLDataset(Dataset, CounterfactualRLDataset):
-    """ Pytorch backend datasets. """
-
-    def __init__(self,
-                 x: np.ndarray,
-                 preprocessor: Callable,
-                 predict_func: Callable,
-                 conditional_func: Callable,
-                 num_classes: int,
-                 batch_size: int) -> None:
-        """
-        Constructor.
-
-        Parameters
-        ----------
-        x
-            Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
-            the `preprocessor` function.
-        preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
-            Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
-        conditional_func
-            Conditional function generator. Given an preprocessed input array, the functions generates a conditional
-            array.
-        num_classes
-            Number of classes in the dataset.
-        batch_size
-            Dimension of the batch used during training. The same batch size is used to infer the classification
-            labels of the input dataset.
-        """
-        super().__init__()
-
-        self.x = x
-        self.preprocessor = preprocessor
-        self.predict_func = predict_func
-        self.conditional_func = conditional_func
-        self.num_classes = num_classes
-        self.batch_size = batch_size
-
-        # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = PTCounterfactualRLDataset.predict_batches(x=self.x,
-                                                             predict_func=self.predict_func,
-                                                             batch_size=self.batch_size)
-
-        # Preprocess the input data.
-        self.x = self.preprocessor(self.x)
-
-    def __len__(self):
-        return self.x.shape[0]
-
-    def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
-
-        # Generate random target class.
-        y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
-        data = {
-            "x": self.x[idx],
-            "y_m": self.y_m[idx],
-            "y_t": y_t,
-        }
-
-        # Construct conditional vector.
-        c = self.conditional_func(self.x[idx:idx+1])
-        if c is not None:
-            data.update({"c": c.reshape(-1)})
-
-        return data
-
-
-class TFCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
-    """ Tensorflow backend datasets. """
-
-    def __init__(self,
-                 x: np.ndarray,
-                 preprocessor: Callable,
-                 predict_func: Callable,
-                 conditional_func: Callable,
-                 num_classes: int,
-                 batch_size: int,
-                 shuffle: bool = True) -> None:
-        """
-        Constructor.
-
-        Parameters
-        ----------
-        x
-            Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
-            the `preprocessor` function.
-        preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
-            Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
-        conditional_func
-            Conditional function generator. Given an preprocesed input array, the functions generates a conditional
-            array.
-        num_classes
-            Number of classes in the dataset.
-        batch_size
-            Dimension of the batch used during training. The same batch size is used to infer the classification
-            labels of the input dataset.
-        shuffle
-            Whether to shuffle the dataset each epoch. `True` by default.
-        """
-        super().__init__()
-
-        self.x = x
-        self.preprocessor = preprocessor
-        self.predict_func = predict_func
-        self.conditional_func = conditional_func
-        self.num_classes = num_classes
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.indexes = None
-
-        # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = TFCounterfactualRLDataset.predict_batches(x=self.x,
-                                                             predict_func=self.predict_func,
-                                                             batch_size=self.batch_size)
-
-        # Preprocess data.
-        self.x = self.preprocessor(self.x)
-
-        # Generate shuffled indexes.
-        self.on_epoch_end()
-
-    def on_epoch_end(self) -> None:
-        """
-        This method is called every epoch and performs dataset shuffling.
-        """
-        self.indexes = np.arange(self.x.shape[0])
-
-        if self.shuffle:
-            np.random.shuffle(self.indexes)
-
-    def __len__(self) -> int:
-        return self.x.shape[0] // self.batch_size
-
-    def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
-
-        # Select indices to be returned.
-        indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
-
-        # Generate random target.
-        y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
-
-        # compute conditional vector.
-        c = self.conditional_func(self.x[idx * self.batch_size: (idx + 1) * self.batch_size])
-
-        return {
-            "x": self.x[indexes],
-            "y_m": self.y_m[indexes],
-            "y_t": y_t,
-            "c": c
-        }
-
-
-class Postprocessing(ABC):
-    @abstractmethod
-    def __call__(self, x_cf, x, c: np.ndarray) -> Any:
-        """
-        Post-processing function
-
-        Parameters
-        ----------
-        x_cf
-            Counterfactual instance
-        x
-            Input instance.
-        c
-            Conditional vector.
-
-        Returns
-        -------
-        x_cf
-            Post-processed x_cf.
-        """
-        raise NotImplemented
-
-
-
-
-
-class TFCounterfactualRLBackend:
-    """ Tensorflow training backend. """
-
-    @staticmethod
-    def data_generator(x: np.ndarray,
-                       ae_preprocessor: Callable,
-                       predict_func: Callable,
-                       conditional_func: Callable,
-                       num_classes: int,
-                       batch_size: int,
-                       shuffle: bool = True,
-                       **kwargs):
-        """
-        Constructs a tensorflow data generator.
-
-        Parameters
-        ----------
-         x
-            Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
-            the `preprocessor` function.
-        ae_preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
-            Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
-        conditional_func
-            Conditional function generator. Given an preprocesed input array, the functions generates a conditional
-            array.
-        num_classes
-            Number of classes in the dataset.
-        batch_size
-            Dimension of the batch used during training. The same batch size is used to infer the classification
-            labels of the input dataset.
-        shuffle
-            Whether to shuffle the dataset each epoch. `True` by default.
-        """
-        return TFCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
-                                         conditional_func=conditional_func, num_classes=num_classes,
-                                         batch_size=batch_size, shuffle=shuffle)
-
-    @staticmethod
-    def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
-        """
-        Encodes the input tensor.
-
-        Parameters
-        ----------
-        x
-            Input to be encoded.
-        ae
-            Pre-trained autoencoder.
-
-        Returns
-        -------
-        Input encoding.
-        """
-        return ae.encoder(x, training=False)
-
-    @staticmethod
-    def decode(z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
-        """
-        Decodes an embedding tensor.
-
-        Parameters
-        ----------
-        z
-            Embedding tensor to be decoded.
-        ae
-            Pre-trained autoencoder.
-
-        Returns
-        -------
-        Embedding tensor decoding.
-        """
-        return ae.decoder(z, training=False)
-
-    @staticmethod
-    def generate_cf(z: Union[np.ndarray, tf.Tensor],
-                    y_m: Union[np.ndarray, tf.Tensor],
-                    y_t: Union[np.ndarray, tf.Tensor],
-                    c: Optional[Union[np.ndarray, tf.Tensor]],
-                    num_classes: int,
-                    actor: keras.Model,
-                    **kwargs) -> Tuple[torch.Tensor, ...]:
-        """
-        Generates counterfactual embedding.
-
-        Parameters
-        ----------
-        z
-            Input embedding tensor.
-        y_m
-            Input classification label.
-        y_t
-            Target counterfactual classification label.
-        c
-            Conditional tensor.
-        num_classes
-            Number of classes to be considered.
-        actor
-            Actor network. The model generates the counterfactual embedding.
-
-        Returns
-        -------
-        z_cf
-            Counterfactual embedding.
-        """
-
-        # Transform to one hot encoding model's prediction and the given target
-        y_m_ohe = tf.one_hot(tf.cast(y_m, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
-        y_t_ohe = tf.one_hot(tf.cast(y_t, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
-
-        # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-        state = [tf.reshape(z, (z.shape[0], -1)), y_m_ohe, y_t_ohe] + \
-                ([tf.constant(c, dtype=tf.float32)] if (c is not None) else [])
-        state = tf.concat(state, axis=1)
-
-        # Pass the new input to the projection network (actor) to get the counterfactual embedding
-        z_cf = actor(state, training=False)
-        return z_cf
-
-    @staticmethod
-    def add_noise(z_cf: Union[tf.Tensor, np.ndarray],
-                  noise: NormalActionNoise,
-                  act_low: float,
-                  act_high: float,
-                  step: int,
-                  exploration_steps: int,
-                  **kwargs) -> tf.Tensor:
-        """
-        Add noise to the counterfactual embedding.
-
-        Parameters
-        ----------
-        z_cf
-            Counterfactual embedding.
-        noise
-            Noise generator object.
-        act_low
-            Noise lower bound.
-        act_high
-            Noise upper bound.
-        step
-            Training step.
-        exploration_steps
-            Number of exploration steps. For the first `exploration_steps`, the noised counterfactul embedding
-            is sampled uniformly at random.
-
-        Returns
-        -------
-        z_cf_tilde
-            Noised counterfactual embedding.
-        """
-        # Generate noise.
-        eps = noise(z_cf.shape)
-
-        if step > exploration_steps:
-            z_cf_tilde = z_cf + eps
-            z_cf_tilde = tf.clip_by_value(z_cf_tilde, clip_value_min=act_low, clip_value_max=act_high)
-        else:
-            # for the first exploration_steps, the action is sampled from a uniform distribution between
-            # [act_low, act_high] to encourage exploration. After that, the algorithm returns to the normal exploration.
-            z_cf_tilde = tf.random.uniform(z_cf.shape, minval=act_low, maxval=act_high)
-
-        return z_cf_tilde
-
-    @staticmethod
-    @tf.function()
-    def update_actor_critic(ae: keras.Model,
-                            critic: keras.Model,
-                            actor: keras.Model,
-                            optimizer_critic: keras.optimizers.Optimizer,
-                            optimizer_actor: keras.optimizers.Optimizer,
-                            sparsity_loss: Callable,
-                            consistency_loss: Callable,
-                            coeff_sparsity: float,
-                            coeff_consistency: float,
-                            num_classes: int,
-                            x: np.ndarray,
-                            x_cf: np.ndarray,
-                            z: np.ndarray,
-                            z_cf_tilde: np.ndarray,
-                            y_m: np.ndarray,
-                            y_t: np.ndarray,
-                            c: Optional[np.ndarray],
-                            r_tilde: np.ndarray,
-                            **kwargs) -> Dict[str, Any]:
-        """
-        Training step. Updates actor and critic networks including additional losses.
-
-        Parameters
-        ----------
-        ae
-            Pre-trained autoencoder.
-        critic
-            Critic network.
-        actor
-            Actor network.
-        optimizer_critic
-            Critic's optimizer.
-        optimizer_actor
-            Actor's optimizer.
-        sparsity_loss
-            Sparsity loss function.
-        consistency_loss
-            Consistency loss function.
-        coeff_sparsity
-            Sparsity loss coefficient.
-        coeff_consistency
-            Consistency loss coefficient
-        num_classes
-            Number of classes to be considered.
-        x
-            Input array.
-        x_cf
-            Counterfactual array.
-        z
-            Input embedding.
-        z_cf_tilde
-            Noised counterfactual embedding.
-        y_m
-            Input classification label.
-        y_t
-            Target counterfactual classification label.
-        c
-            Conditional tensor.
-        r_tilde
-            Noised counterfactual reward.
-
-        Returns
-        -------
-        Dictionary of losses.
-        """
-        # Define dictionary of losses.
-        losses: Dict[str, float] = dict()
-
-        # Transform classification labels into one-hot encoding.
-        y_m_ohe = tf.one_hot(tf.cast(y_m, tf.int32), depth=num_classes, dtype=tf.float32)
-        y_t_ohe = tf.one_hot(tf.cast(y_t, tf.int32), depth=num_classes, dtype=tf.float32)
-
-        # Define state by concatenating the input embedding, the classification label, the target label, and optionally
-        # the conditional vector if exists.
-        state = [z, y_m_ohe, y_t_ohe] + ([c] if c is not None else [])
-        state = tf.concat(state, axis=1)
-
-        # Define input for critic and compute q-values.
-        with tf.GradientTape() as tape_critic:
-            input_critic = tf.concat([state, z_cf_tilde], axis=1)
-            output_critic = tf.squeeze(critic(input_critic, training=True), axis=1)
-            loss_critic = tf.reduce_mean(tf.square(output_critic - r_tilde))
-
-        # Append critic's loss.
-        losses.update({"loss_critic": loss_critic})
-
-        # Update critic by gradient step.
-        grads_critic = tape_critic.gradient(loss_critic, critic.trainable_weights)
-        optimizer_critic.apply_gradients(zip(grads_critic, critic.trainable_weights))
-
-        with tf.GradientTape() as tape_actor:
-            # Compute counterfactual embedding.
-            z_cf = actor(state, training=True)
-
-            # Compute critic's output
-            input_critic = tf.concat([state, z_cf], axis=1)
-            output_critic = critic(input_critic, training=True)
-
-            # Compute actors' loss.
-            loss_actor = -tf.reduce_mean(output_critic)
-            losses.update({"loss_actor": loss_actor})
-
-            # Decode the counterfactual embedding.
-            x_hat_cf = ae.decoder(z_cf, training=False)
-
-            # Compute sparsity losses and append sparsity loss.
-            loss_sparsity = sparsity_loss(x_hat_cf, x)
-            losses.update(loss_sparsity)
-
-            # Add sparsity loss to the overall actor loss.
-            for key in loss_sparsity.keys():
-                loss_actor += coeff_sparsity * loss_sparsity[key]
-
-            # Compute consistency loss and append consistency loss.
-            z_cf_tgt = ae.encoder(x_cf, training=False)
-            loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
-            losses.update(loss_consistency)
-
-            # Add consistency loss to the overall actor loss.
-            for key in loss_consistency.keys():
-                loss_actor += coeff_consistency * loss_consistency[key]
-
-        # Update by gradient descent.
-        grads_actor = tape_actor.gradient(loss_actor, actor.trainable_weights)
-        optimizer_actor.apply_gradients(zip(grads_actor, actor.trainable_weights))
-
-        # Return dictionary of losses for potential logging
-        return losses
-
-    @staticmethod
-    def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
-        """
-        Converts given tensor to numpy array.
-
-        Parameters
-        ----------
-        x
-            Input tensor to be converted to numpy array.
-
-        Returns
-        -------
-        Numpy representation of the input tensor.
-        """
-        if x is not None:
-            if isinstance(x, np.ndarray):
-                return x
-
-            if isinstance(x, tf.Tensor):
-                return x.numpy()
-
-            if isinstance(x, list):
-                return [TFCounterfactualRLBackend.to_numpy(e) for e in x]
-
-            return np.array(x)
-        return None
-
-
-class PTCounterfactualRLBackend:
-    @staticmethod
-    def data_generator(x: np.ndarray,
-                       ae_preprocessor: Callable,
-                       predict_func: Callable,
-                       conditional_func: Callable,
-                       num_classes: int,
-                       batch_size: int,
-                       shuffle: bool,
-                       num_workers: int,
-                       **kwargs):
-        """
-        Constructs a tensorflow data generator.
-
-        Parameters
-        ----------
-         x
-            Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
-            the `preprocessor` function.
-        ae_preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
-            Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
-        conditional_func
-            Conditional function generator. Given an preprocesed input array, the functions generates a conditional
-            array.
-        num_classes
-            Number of classes in the dataset.
-        batch_size
-            Dimension of the batch used during training. The same batch size is used to infer the classification
-            labels of the input dataset.
-        shuffle
-            Whether to shuffle the dataset each epoch. `True` by default.
-        num_workers
-            Number of worker processes to be created.
-        """
-        dataset = PTCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
-                                            conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
-        return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
-                          shuffle=shuffle, drop_last=True)
-
-    @staticmethod
-    @torch.no_grad()
-    def encode(x: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
-        """
-        Encodes the input tensor.
-
-        Parameters
-        ----------
-        x
-            Input to be encoded.
-        ae
-            Pre-trained autoencoder.
-        device
-            Device to send data to.
-
-        Returns
-        -------
-        Input encoding.
-        """
-        ae.eval()
-        return ae.encoder(x.float().to(device))
-
-    @staticmethod
-    @torch.no_grad()
-    def decode(z: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
-        """
-        Decodes an embedding tensor.
-
-        Parameters
-        ----------
-        z
-            Embedding tensor to be decoded.
-        ae
-            Pre-trained autoencoder.
-        device
-            Device to sent data to.
-
-        Returns
-        -------
-        Embedding tensor decoding.
-        """
-        ae.eval()
-        return ae.decoder(z.float().to(device))
-
-    @staticmethod
-    @torch.no_grad()
-    def generate_cf(z: torch.Tensor,
-                    y_m: torch.Tensor,
-                    y_t: torch.Tensor,
-                    c: Optional[torch.Tensor],
-                    num_classes: int,
-                    ae: nn.Module,
-                    actor: nn.Module,
-                    device: torch.device,
-                    **kwargs) -> Tuple[torch.Tensor, ...]:
-        """
-        Generates counterfactual embedding.
-
-        Parameters
-        ----------
-        z
-            Input embedding tensor.
-        y_m
-            Input classification label.
-        y_t
-            Target counterfactual classification label.
-        c
-            Conditional tensor.
-        num_classes
-            Number of classes to be considered.
-        actor
-            Actor network. The model generates the counterfactual embedding.
-
-        Returns
-        -------
-        z_cf
-            Counterfactual embedding.
-        """
-        # Set autoencoder and actor to evaluation mode.
-        ae.eval()
-        actor.eval()
-
-        # Transform classification labels into one-hot encoding.
-        y_m_ohe = F.one_hot(y_m.long(), num_classes=num_classes).float().to(device)
-        y_t_ohe = F.one_hot(y_t.long(), num_classes=num_classes).float().to(device)
-
-        # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-        state = [z.view(z.shape[0], -1), y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
-        state = torch.cat(state, dim=1)
-
-        # Pass the new input to the projection network (actor) to get the counterfactual embedding
-        z_cf = actor(state)
-        return z_cf
-
-    @staticmethod
-    def add_noise(z_cf: torch.Tensor,
-                  noise: NormalActionNoise,
-                  act_low: float,
-                  act_high: float,
-                  step: int,
-                  exploration_steps: int,
-                  device: torch.device,
-                  **kwargs) -> torch.Tensor:
-        """
-        Add noise to the counterfactual embedding.
-
-        Parameters
-        ----------
-        z_cf
-           Counterfactual embedding.
-        noise
-           Noise generator object.
-        act_low
-            Action lower bound.
-        act_high
-            Action upper bound.
-        step
-           Training step.
-        exploration_steps
-           Number of exploration steps. For the first `exploration_steps`, the noised counterfactul embedding
-           is sampled uniformly at random.
-        device
-            Device to send data to.
-
-        Returns
-        -------
-        z_cf_tilde
-           Noised counterfactual embedding.
-        """
-        # Generate noise.
-        eps = torch.tensor(noise(z_cf.shape)).float().to(device)
-
-        if step > exploration_steps:
-            z_cf_tilde = z_cf + eps
-            z_cf_tilde = torch.clamp(z_cf_tilde, min=act_low, max=act_high)
-        else:
-            # for the first exploration_steps, the action is sampled from a uniform distribution between
-            # [act_low, act_high] to encourage exploration. After that, the algorithm returns to the normal exploration.
-            z_cf_tilde = (act_low + (act_high - act_low) * torch.rand_like(z_cf)).to(device)
-
-        return z_cf_tilde
-
-    @staticmethod
-    def update_actor_critic(ae: nn.Module,
-                            critic: nn.Module,
-                            actor: nn.Module,
-                            optimizer_critic: torch.optim.Optimizer,
-                            optimizer_actor: torch.optim.Optimizer,
-                            sparsity_loss: Callable,
-                            consistency_loss: Callable,
-                            coeff_sparsity: float,
-                            coeff_consistency: float,
-                            num_classes: int,
-                            x: np.ndarray,
-                            x_cf: np.ndarray,
-                            z: np.ndarray,
-                            z_cf_tilde: np.ndarray,
-                            y_m: np.ndarray,
-                            y_t: np.ndarray,
-                            c: Optional[np.ndarray],
-                            r_tilde: np.ndarray,
-                            device: torch.device,
-                            **kwargs):
-        """
-        Training step. Updates actor and critic networks including additional losses.
-
-        Parameters
-        ----------
-        ae
-            Pre-trained autoencoder.
-        critic
-            Critic network.
-        actor
-            Actor network.
-        optimizer_critic
-            Critic's optimizer.
-        optimizer_actor
-            Actor's optimizer.
-        sparsity_loss
-            Sparsity loss function.
-        consistency_loss
-            Consistency loss function.
-        coeff_sparsity
-            Sparsity loss coefficient.
-        coeff_consistency
-            Consistency loss coefficient
-        num_classes
-            Number of classes to be considered.
-        x
-            Input array.
-        x_cf
-            Counterfactual array.
-        z
-            Input embedding.
-        z_cf_tilde
-            Noised counterfactual embedding.
-        y_m
-            Input classification label.
-        y_t
-            Target counterfactual classification label.
-        c
-            Conditional tensor.
-        r_tilde
-            Noised counterfactual reward.
-
-        Returns
-        -------
-        Dictionary of losses.
-        """
-
-        # Set autoencoder to evaluation mode.
-        ae.eval()
-
-        # Set actor and critic to training mode.
-        actor.train()
-        critic.train()
-
-        # Define dictionary of losses.
-        losses: Dict[str, float] = dict()
-
-        # Transform data to tensors and it device
-        x = torch.tensor(x).float().to(device)
-        x_cf = torch.tensor(x_cf).float().to(device)
-        z = torch.tensor(z).float().to(device)
-        z_cf_tilde = torch.tensor(z_cf_tilde).float().to(device)
-        y_m_ohe = F.one_hot(torch.tensor(y_m, dtype=torch.long), num_classes=num_classes).float().to(device)
-        y_t_ohe = F.one_hot(torch.tensor(y_t, dtype=torch.long), num_classes=num_classes).float().to(device)
-        c = torch.tensor(c).float().to(device) if (c is not None) else None
-        r_tilde = torch.tensor(r_tilde).float().to(device)
-
-        # Define state by concatenating the input embedding, the classification label, the target label, and optionally
-        # the conditional vector if exists.
-        state = [z, y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
-        state = torch.cat(state, dim=1).to(device)
-
-        # Define input for critic, compute q-values and append critic's loss.
-        input_critic = torch.cat([state, z_cf_tilde], dim=1).float()
-        output_critic = critic(input_critic).squeeze(1)
-        loss_critic = F.mse_loss(output_critic, r_tilde)
-        losses.update({"loss_critic": loss_critic.item()})
-
-        # Update critic by gradient step.
-        optimizer_critic.zero_grad()
-        loss_critic.backward()
-        optimizer_critic.step()
-
-        # Compute counterfactual embedding.
-        z_cf = actor(state)
-
-        # Compute critic's output.
-        critic.eval()
-        input_critic = torch.cat([state, z_cf], dim=1)
-        output_critic = critic(input_critic)
-
-        # Compute actor's loss.
-        loss_actor = -torch.mean(output_critic)
-        losses.update({"loss_actor": loss_actor})
-
-        # Decode the output of the actor.
-        x_hat_cf = ae.decoder(z_cf)
-
-        # Compute sparsity losses.
-        loss_sparsity = sparsity_loss(x_hat_cf, x)
-        losses.update(loss_sparsity)
-
-        # Add sparsity loss to the overall actor's loss.
-        for key in loss_sparsity.keys():
-            loss_actor += coeff_sparsity * loss_sparsity[key]
-
-        # Compute consistency loss.
-        z_cf_tgt = PTCounterfactualRLBackend.encode(x=x_cf, ae=ae, device=device)
-        loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
-        losses.update(loss_consistency)
-
-        # Add consistency loss to the overall actor loss.
-        for key in loss_consistency.keys():
-            loss_actor += coeff_consistency * loss_consistency[key]
-
-        # Update by gradient descent.
-        optimizer_actor.zero_grad()
-        loss_actor.backward()
-        optimizer_actor.step()
-
-        # Return dictionary of losses for potential logging.
-        return losses
-
-    @staticmethod
-    def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
-        """
-        Converts given tensor to numpy array.
-
-        Parameters
-        ----------
-        x
-            Input tensor to be converted to numpy array.
-
-        Returns
-        -------
-        Numpy representation of the input tensor.
-        """
-        if x is not None:
-            if isinstance(x, np.ndarray):
-                return x
-
-            if isinstance(x, torch.Tensor):
-                return x.detach().cpu().numpy()
-
-            if isinstance(x, list):
-                return [PTCounterfactualRLBackend.to_numpy(e) for e in x]
-
-            return np.array(x)
-        return None
-
-
 DEFAULT_PARAMS = {
     "act_noise": 0.1,
     "act_low": -1.0,
@@ -1108,16 +173,94 @@ DEFAULT_PARAMS = {
     "exploration_steps": 100,
     "update_every": 1,
     "update_after": 10,
-    "backend_flag": "pytorch",
     "train_steps": 100000,
+    "backend": "tensorflow",
     "ae_preprocessor": lambda x: x,
     "ae_inv_preprocessor": lambda x: x,
     "reward_func": lambda y_pred, y_true: y_pred == y_true,
-    "postprocessing_funcs": [lambda x_cf, x, c: x_cf],
+    "postprocessing_funcs": [],
     "conditional_func": lambda x: None,
     "experience_callbacks": [],
-    "train_callbacks": []
+    "train_callbacks": [],
+    "actor": None,
+    "critic": None,
+    "optimizer_actor": None,
+    "optimizer_critic": None,
+    "actor_hidden_dim": 256,
+    "critic_hidden_dim": 256,
 }
+"""
+Default Counterfactual with Reinforcement Learning parameters.
+
+    - ``'act_noise'``: float, standard deviation for the normal noise added to the actor for exploration.
+    
+    - ``'act_low'``: float, minimum action value. Each action component takes values between `[act_low, act_high]`.
+    
+    - ``'act_high'``: float, maximum action value. Each action component takes values between `[act_low, act_high]`.
+    
+    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory 
+    allocated is proportional with the `size` * `batch_size`.
+    
+    - ``'batch_size'``: int, training batch size.
+    
+    - ``'num_workers'``: int, number of workers used by the data loader if `pytorch` backend is selected.
+    
+    - ``'shuffle'``: bool, whether to shuffle the datasets every epoch.
+    
+    - ``'num_classes'``: int, number of classes to be considered.
+    
+    - ``'latent_dim'``: int, autoencoder latent dimension.
+    
+    - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the
+    counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
+    
+    - ``'update_every'``: int, number of steps that should elapse between gradient updates. Regardless of the
+    waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
+    
+    - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that
+    the replay buffers is full enough for useful updates.
+    
+    - ``'backend'``: str, backend to be used: `tensorflow`|`pytorch`. Default `tensorflow`. 
+    
+    - ``'train_steps'``: int, number of train steps (interactions).
+    
+    - ``'ae_preprocessor'``: Callable, autoencoder data preprocessors. Transforms the input data into the format
+    expected by the autoencoder. By default, the identity function.
+    
+    - ``'ae_inv_preprocessor'``: Callable, autoencoder data inverse preprocessor. Transforms data from the autoencoder
+    expected format to the original input format. Before calling the prediction function, the data is inverse 
+    preprocessed to match the original input format. By default, the identity function.
+     
+    - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction
+    label matches the target label. Note that this is element-wise, so a tensor is expected to be returned.
+    
+    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in 
+    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as 
+    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional vector, 
+    and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the following 
+    functions. By default, no post-processing is applied (empty list).
+    
+    - ``'conditional_func'``: Callable, generates a conditional vector given a input instance. By default, the function
+    returns `None` which is equivalent to no conditioning.
+    
+    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each 
+    experience step. 
+    
+    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training 
+    step.
+    
+    - ``'actor'``: Optional[keras.Model, torch.nn.Module], actor network.
+    
+    - ``'critic;``: Optional[keras.Model, torch.nn.Module], critic network.
+    
+    - ``'optimizer_actor'``: Optional[keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
+    
+    - ``'optimizer_critic'``: Optional[keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
+    
+    - ``'actor_hidden_dim'``: int, actor hidden layer dimension.
+    
+    - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
+"""
 
 
 class CounterfactualRLBase(Explainer, FitMixin):
@@ -1127,10 +270,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
     TENSORFLOW = "tensorflow"
 
     def __init__(self,
-                 ae: Union[TensorflowAE, PytorchAE],
-                 actor: Union[keras.Sequential, nn.Sequential],  # TODO: make actor & critic optional
-                 critic: Union[keras.Sequential, nn.Sequential],
-                 predict_func: Callable,                         # TODO: move this first
+                 predict_func: Callable,
+                 ae,
+                 latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
                  num_classes: int,
@@ -1141,14 +283,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         Parameters
         ----------
+        predict_func
+            Prediction function. This corresponds to the classifier.
         ae
             Pre-trained autoencoder.
-        actor
-            Actor network.
-        critic
-            Critic network.
-        predict_func.
-            Prediction function. This corresponds to the classifier.
+        latent_dim
+            Autoencoder latent dimension,
         coeff_sparsity
             Sparsity loss coefficient.
         coeff_consistency
@@ -1156,43 +296,48 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         """
-        if backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
-            raise ValueError(f"Backend {backend} not supported.")
+        # clean backend flag
+        backend = backend.strip().lower()
+
+        # check if pytorch/tensorflow backend supported
+        if (backend == CounterfactualRLBase.PYTORCH and not has_pytorch) or \
+                (backend == CounterfactualRLBase.TENSORFLOW and not has_tensorflow):
+            raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
+                              f' with {backend} backend.')
+
+        # allow only pytorch and tensorflow
+        elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
+            raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
+
+        # Set backend according to the backend_flag.
+        self.Backend = TfCounterfactualRLBaseBackend if backend == "tensorflow" else PtCounterfactualRLBaseBackend
 
         # validate arguments
-        self.params, all_params = self._validate_kwargs(ae=ae,
-                                                        actor=actor,
-                                                        critic=critic,
-                                                        predict_func=predict_func,
+        self.params, all_params = self._validate_kwargs(predict_func=predict_func,
+                                                        ae=ae,
+                                                        latent_dim=latent_dim,
                                                         coeff_sparsity=coeff_sparsity,
                                                         coeff_consistency=coeff_consistency,
                                                         num_classes=num_classes,
                                                         backend=backend,
                                                         **kwargs)
 
-        # If pytorch backend, then check if GPU is available
+        # If pytorch backend, the if GPU available, send everything to GPU
         if self.params["backend"] == CounterfactualRLBase.PYTORCH:
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            self.params.update({"device": device})
+            from alibi.explainers.backends.pytorch import get_device
+            self.params.update({"device": get_device()})
 
-            # send auto-encoder to device
-            self.params["ae"].to(device)
+            # Send auto-encoder to device.
+            self.params["ae"].to(self.params["device"])
 
-            # sent actor and critic to device
-            self.params["actor"].to(device)
-            self.params["critic"].to(device)
-
-        # Set backend according to the backend_flag.
-        self.Backend = TFCounterfactualRLBackend if backend == "tensorflow" else PTCounterfactualRLBackend
-
-        # # update metadata
-        # self.meta['params'].update(**all_params)
+            # Sent actor and critic to device.
+            self.params["actor"].to(self.params["device"])
+            self.params["critic"].to(self.params["device"])
 
     def _validate_kwargs(self,
-                         ae: Union[TensorflowAE, PytorchAE],
-                         actor: Union[keras.Model, nn.Module],
-                         critic: Union[keras.Model, nn.Module],
                          predict_func: Callable,
+                         ae: Union[TensorflowAE, PytorchAE],
+                         latent_dim: float,
                          coeff_sparsity: float,
                          coeff_consistency: float,
                          num_classes: int,
@@ -1203,14 +348,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         Parameters
         ----------
-        ae
-            Pre-trained autoencoder.
-        actor
-            Actor network.
-        critic
-            Critic network.
         predict_func.
             Prediction function. This corresponds to the classifier.
+        ae
+            Pre-trained autoencoder.
+        latent_dim
+            Autoencoder latent dimension.
         coeff_sparsity
             Sparsity loss coefficient.
         coeff_consistency
@@ -1226,55 +369,52 @@ class CounterfactualRLBase(Explainer, FitMixin):
         # Update parameters with mandatory arguments
         params.update({
             "ae": ae,
-            "actor": actor,
-            "critic": critic,
+            "latent_dim": latent_dim,
             "predict_func": predict_func,
             "coeff_sparsity": coeff_sparsity,
             "coeff_consistency": coeff_consistency,
             "num_classes": num_classes,
-            "backend": backend
+            "backend": backend,
         })
 
-        # Address backend specific params.
+        # Add actor if not user-specified.
+        not_specified = {"actor": False, "critic": False}
+        if "actor" not in kwargs:
+            not_specified["actor"] = True
+            params["actor"] = self.Backend.get_actor(hidden_dim=params["actor_hidden_dim"],
+                                                     output_dim=params["latent_dim"])
+
+        if "critic" not in kwargs:
+            not_specified["critic"] = True
+            params["critic"] = self.Backend.get_critic(hidden_dim=params["critic_hidden_dim"])
+
         # Add optimizers if not user-specified.
         optimizers = ["optimizer_actor", "optimizer_critic"]
 
         for optim in optimizers:
-            # If the optimizer is user-specified
+            # extract model in question
+            model_name = optim.split("_")[1]
+            model = params[model_name]
+
+            # If the optimizer is user-specified, just update the params
             if optim in kwargs:
                 params.update({optim: kwargs[optim]})
-                continue
+                if self.params["backend"] == CounterfactualRLBase.PYTORCH and not_specified[model_name]:
+                    raise ValueError(f"Can not specify {optim} when {model_name} not specified for pytorch backend.")
 
             # If the optimizer is not user-specified, it need to be initialized. The initialization is backend specific.
-            if backend == CounterfactualRLBase.TENSORFLOW:
-                params.update({optim: keras.optimizers.Adam(learning_rate=1e-3)})
+            elif params['backend'] == CounterfactualRLBase.TENSORFLOW:
+                params.update({optim: self.Backend.get_optimizer()})
             else:
-                model_name = optim.split("_")[1]      # Extract model name.
-                model = params[model_name]            # Extract model.
-                params.update({optim: torch.optim.Adam(model.parameters(), lr=1e-3)})
+                params.update({optim: self.Backend.get_optimizer(model)})
 
         # Add sparsity loss if not user-specified.
-        if "sparsity_loss" not in kwargs:
-            if backend == CounterfactualRLBase.TENSORFLOW:
-                # define tensorflow backend sparsity loss
-                def sparsity_loss(x_hat_cf: tf.Tensor, x: tf.Tensor) -> Dict[str, tf.Tensor]:
-                    return {"sparsity_loss": tf.reduce_mean(tf.abs(x_hat_cf - x))}
-            else:
-                # define pytorch backend sparsity loss
-                def sparsity_loss(x_hat_cf: torch.Tensor, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-                    return {"sparsity_loss": F.l1_loss(x_hat_cf, x)}
+        params["sparsity_loss"] = self.Backend.sparsity_loss if "sparsity_loss" not in kwargs \
+            else kwargs["sparsity_loss"]
 
-            # update sparsity loss
-            params["sparsity_loss"] = sparsity_loss
-
-        # Add consistency loss if not user-specified. Although the implementation is not backend specific, it is
-        # included here to be consistent with the sparsity loss.
-        if "consistency_loss" not in kwargs:
-            def consistency_loss(z_cf_pred: Union[torch.Tensor, tf.Tensor], z_cf_tgt: Union[torch.Tensor, tf.Tensor]):
-                return {"consistency_loss": 0}
-
-            # update consistency loss
-            params["consistency_loss"] = consistency_loss
+        # Add consistency loss if not user-specified.
+        params["consistency_loss"] = self.Backend.consistency_loss if "consistency_loss" not in kwargs \
+            else kwargs["consistency_loss"]
 
         # Define dictionary of all parameters. Shallow copy of values.
         all_params = params.copy()
@@ -1293,7 +433,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
         params.update({key: kwargs[key] for key in common_keys})
         all_params.update(kwargs)
         return params, all_params
-
 
     @classmethod
     def load(cls, path: Union[str, os.PathLike], predictor: Any) -> "Explainer":
@@ -1433,11 +572,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
         # apply autoencoder preprocessing step
         x = self.params["ae_preprocessor"](x)
 
-        # backend specific tasks
-        if self.params["backend"] == CounterfactualRLBase.PYTORCH:
-            x = torch.tensor(x).to(self.params["device"])
-            y_m = torch.tensor(y_m).to(self.params["device"])
-            y_t = torch.tensor(y_t).to(self.params["device"])
+        # convert to tensors
+        x = self.Backend.to_tensor(x, **self.params)
+        y_m = self.Backend.to_tensor(y_m, **self.params)
+        y_t = self.Backend.to_tensor(y_t, **self.params)
 
         # encode instance
         z = self.Backend.encode(x, **self.params)

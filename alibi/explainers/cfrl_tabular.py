@@ -747,11 +747,10 @@ def tensorflow_he_consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: Union[np.ndar
     Parameters
     ----------
     z_cf_pred
-        Predicted counterfactual embedding.
-    x_cf
-        Counterfactual reconstruction. This should be already post-processed.
-    ae
-        Pre-trained autoencoder.
+            Counterfactual embedding prediction.
+    z_cf_tgt
+        Counterfactual embedding target.
+
 
     Returns
     -------

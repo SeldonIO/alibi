@@ -6,25 +6,23 @@ import torch.nn.functional as F
 class Actor(nn.Module):
     """ Actor network """
 
-    def __init__(self, input_dim: int, hidden_dim: int, output_dim: int) -> None:
+    def __init__(self, hidden_dim: int, output_dim: int) -> None:
         """
         Constructor.
 
         Parameters
         ----------
-        input_dim
-            Input dimension.
         hidden_dim
             Hidden dimension.
         output_dim
             Output dimension
         """
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.ln1 = nn.LayerNorm(hidden_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc1 = nn.LazyLinear(hidden_dim)
+        self.ln1 = nn.LayerNorm(hidden_dim)
+        self.fc2 = nn.LazyLinear(hidden_dim)
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, output_dim)
+        self.fc3 = nn.LazyLinear(output_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.ln1(self.fc1(x)))
@@ -36,23 +34,21 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """ Critic network """
 
-    def __init__(self, input_dim: int, hidden_dim: int):
+    def __init__(self, hidden_dim: int):
         """
         Constructor.
 
         Parameters
         ----------
-        input_dim
-            Input dimension.
         hidden_dim
             Hidden dimension.
         """
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc1 = nn.LazyLinear(hidden_dim)
         self.ln1 = nn.LayerNorm(hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        self.fc2 = nn.LazyLinear(hidden_dim)
         self.ln2 = nn.LayerNorm(hidden_dim)
-        self.fc3 = nn.Linear(hidden_dim, 1)
+        self.fc3 = nn.LazyLinear(1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.ln1(self.fc1(x)))

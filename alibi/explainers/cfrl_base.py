@@ -26,6 +26,42 @@ if has_tensorflow:
 logger = logging.getLogger(__name__)
 
 
+class NormalActionNoise:
+    """ Normal noise generator. """
+
+    def __init__(self, mu: float, sigma: float):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        mu
+            Mean of the normal noise.
+        sigma
+            Standard deviation of the noise.
+        """
+        self.mu = mu
+        self.sigma = sigma
+
+    def __call__(self, shape: Tuple[int, ...]):
+        """
+        Generates normal noise with the appropriate mean and standard deviation.
+
+        Parameters
+        ----------
+        shape
+            Shape of the tensor to be generated
+
+        Returns
+        -------
+        Normal noise with the appropriate mean, standard deviation and shape.
+        """
+        return self.mu + self.sigma * np.random.randn(*shape)
+
+    def __repr__(self):
+        return 'NormalActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
+
+
 class ReplayBuffer(object):
     """
     Circular experience replay buffer for `CounterfactualRL`(DDPG). When the buffer is filled, then the oldest
@@ -309,8 +345,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
             raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
-        # Set backend according to the backend_flag.
-        self.Backend = TfCounterfactualRLBaseBackend if backend == "tensorflow" else PtCounterfactualRLBaseBackend
+        # select backend
+        self.backend = self._select_backend(backend, **kwargs)
 
         # validate arguments
         self.params, all_params = self._validate_kwargs(predict_func=predict_func,
@@ -333,6 +369,19 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # Sent actor and critic to device.
             self.params["actor"].to(self.params["device"])
             self.params["critic"].to(self.params["device"])
+
+    def _select_backend(self, backend, **kwargs):
+        """
+        Selects the backend accoriding to the `backend` flag.
+
+        Parameters
+        ---------
+        backend
+            Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        """
+        # Set backend according to the backend_flag.
+        self.backend = TfCounterfactualRLBaseBackend() if backend == "tensorflow" \
+            else PtCounterfactualRLBaseBackend()
 
     def _validate_kwargs(self,
                          predict_func: Callable,
@@ -381,12 +430,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
         not_specified = {"actor": False, "critic": False}
         if "actor" not in kwargs:
             not_specified["actor"] = True
-            params["actor"] = self.Backend.get_actor(hidden_dim=params["actor_hidden_dim"],
+            params["actor"] = self.backend.get_actor(hidden_dim=params["actor_hidden_dim"],
                                                      output_dim=params["latent_dim"])
 
         if "critic" not in kwargs:
             not_specified["critic"] = True
-            params["critic"] = self.Backend.get_critic(hidden_dim=params["critic_hidden_dim"])
+            params["critic"] = self.backend.get_critic(hidden_dim=params["critic_hidden_dim"])
 
         # Add optimizers if not user-specified.
         optimizers = ["optimizer_actor", "optimizer_critic"]
@@ -404,16 +453,16 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
             # If the optimizer is not user-specified, it need to be initialized. The initialization is backend specific.
             elif params['backend'] == CounterfactualRLBase.TENSORFLOW:
-                params.update({optim: self.Backend.get_optimizer()})
+                params.update({optim: self.backend.get_optimizer()})
             else:
-                params.update({optim: self.Backend.get_optimizer(model)})
+                params.update({optim: self.backend.get_optimizer(model)})
 
         # Add sparsity loss if not user-specified.
-        params["sparsity_loss"] = self.Backend.sparsity_loss if "sparsity_loss" not in kwargs \
+        params["sparsity_loss"] = self.backend.sparsity_loss if "sparsity_loss" not in kwargs \
             else kwargs["sparsity_loss"]
 
         # Add consistency loss if not user-specified.
-        params["consistency_loss"] = self.Backend.consistency_loss if "consistency_loss" not in kwargs \
+        params["consistency_loss"] = self.backend.consistency_loss if "consistency_loss" not in kwargs \
             else kwargs["consistency_loss"]
 
         # Define dictionary of all parameters. Shallow copy of values.
@@ -465,7 +514,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         noise = NormalActionNoise(mu=0, sigma=self.params["act_noise"])
 
         # Define data generator.
-        data_generator = self.Backend.data_generator(x=x, **self.params)
+        data_generator = self.backend.data_generator(x=x, **self.params)
         data_iter = iter(data_generator)
 
         for step in tqdm(range(self.params["train_steps"])):
@@ -481,31 +530,31 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 data["c"] = None
 
             # Compute input embedding.
-            z = self.Backend.encode(x=data["x"], **self.params)
+            z = self.backend.encode(x=data["x"], **self.params)
             data.update({"z": z})
 
             # Compute counterfactual embedding.
-            z_cf = self.Backend.generate_cf(step=step, **data, **self.params)
+            z_cf = self.backend.generate_cf(step=step, **data, **self.params)
             data.update({"z_cf": z_cf})
 
             # Add noise to the counterfactual embedding.
-            z_cf_tilde = self.Backend.add_noise(noise=noise, step=step, **data, **self.params)
+            z_cf_tilde = self.backend.add_noise(noise=noise, step=step, **data, **self.params)
             data.update({"z_cf_tilde": z_cf_tilde})
 
             # Decode counterfactual and apply postprocessing step to x_cf_tilde.
-            x_cf = self.Backend.decode(z=data["z_cf"], **self.params)
-            x_cf_tilde = self.Backend.decode(z=data["z_cf_tilde"], **self.params)
+            x_cf = self.backend.decode(z=data["z_cf"], **self.params)
+            x_cf_tilde = self.backend.decode(z=data["z_cf_tilde"], **self.params)
 
             for pp_func in self.params["postprocessing_funcs"]:
                 # Post-process counterfactual.
-                x_cf = pp_func(self.Backend.to_numpy(x_cf),
-                               self.Backend.to_numpy(data["x"]),
-                               self.Backend.to_numpy(data["c"]))
+                x_cf = pp_func(self.backend.to_numpy(x_cf),
+                               self.backend.to_numpy(data["x"]),
+                               self.backend.to_numpy(data["c"]))
 
                 # Post-process noised counterfactual.
-                x_cf_tilde = pp_func(self.Backend.to_numpy(x_cf_tilde),
-                                     self.Backend.to_numpy(data["x"]),
-                                     self.Backend.to_numpy(data["c"]))
+                x_cf_tilde = pp_func(self.backend.to_numpy(x_cf_tilde),
+                                     self.backend.to_numpy(data["x"]),
+                                     self.backend.to_numpy(data["c"]))
 
             data.update({
                 "x_cf": x_cf,
@@ -513,16 +562,16 @@ class CounterfactualRLBase(Explainer, FitMixin):
             })
 
             # Compute model's prediction on the noised counterfactual
-            x_cf_tilde = self.params["ae_inv_preprocessor"](self.Backend.to_numpy(data["x_cf_tilde"]))
+            x_cf_tilde = self.params["ae_inv_preprocessor"](self.backend.to_numpy(data["x_cf_tilde"]))
             y_m_cf_tilde = self.params["predict_func"](x_cf_tilde)
 
             # Compute reward.
-            r_tilde = self.params["reward_func"](self.Backend.to_numpy(y_m_cf_tilde),
-                                                 self.Backend.to_numpy(data["y_t"]))
+            r_tilde = self.params["reward_func"](self.backend.to_numpy(y_m_cf_tilde),
+                                                 self.backend.to_numpy(data["y_t"]))
             data.update({"r_tilde": r_tilde, "y_m_cf_tilde": y_m_cf_tilde})
 
             # Store experience in the replay buffer.
-            data = {key: self.Backend.to_numpy(data[key]) for key in data.keys()}
+            data = {key: self.backend.to_numpy(data[key]) for key in data.keys()}
             replay_buff.append(**data)
 
             # Call all experience callbacks.
@@ -537,10 +586,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
                         sample["c"] = None
 
                     # Update critic by one-step gradient descent.
-                    losses = self.Backend.update_actor_critic(**sample, **self.params)
+                    losses = self.backend.update_actor_critic(**sample, **self.params)
 
                     # Convert all losses from tensors to numpy arrays.
-                    losses = {key: self.Backend.to_numpy(losses[key]).item() for key in losses.keys()}
+                    losses = {key: self.backend.to_numpy(losses[key]).item() for key in losses.keys()}
 
                     # Call all train callbacks.
                     for train_cb in self.params["train_callbacks"]:
@@ -573,19 +622,19 @@ class CounterfactualRLBase(Explainer, FitMixin):
         x = self.params["ae_preprocessor"](x)
 
         # convert to tensors
-        x = self.Backend.to_tensor(x, **self.params)
-        y_m = self.Backend.to_tensor(y_m, **self.params)
-        y_t = self.Backend.to_tensor(y_t, **self.params)
+        x = self.backend.to_tensor(x, **self.params)
+        y_m = self.backend.to_tensor(y_m, **self.params)
+        y_t = self.backend.to_tensor(y_t, **self.params)
 
         # encode instance
-        z = self.Backend.encode(x, **self.params)
+        z = self.backend.encode(x, **self.params)
 
         # generate counterfactual embedding
-        z_cf = self.Backend.generate_cf(z, y_m, y_t, c, **self.params)
+        z_cf = self.backend.generate_cf(z, y_m, y_t, c, **self.params)
 
         # decode counterfactual
-        x_cf = self.Backend.decode(z_cf, **self.params)
-        x_cf = self.Backend.to_numpy(x_cf)
+        x_cf = self.backend.decode(z_cf, **self.params)
+        x_cf = self.backend.to_numpy(x_cf)
 
         # apply postprocessing functions
         for pp_func in self.params["postprocessing_funcs"]:

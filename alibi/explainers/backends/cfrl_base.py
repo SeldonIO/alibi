@@ -40,37 +40,68 @@ class CounterfactualRLDataset(ABC):
         raise NotImplementedError
 
 
-class NormalActionNoise:
-    """ Normal noise generator. """
+class CounterfactualRLBaseBackend(ABC):
+    """ Backend interface. """
 
-    def __init__(self, mu: float, sigma: float):
-        """
-        Constructor.
+    @staticmethod
+    @abstractmethod
+    def get_optimizer(model, lr):
+        pass
 
-        Parameters
-        ----------
-        mu
-            Mean of the normal noise.
-        sigma
-            Standard deviation of the noise.
-        """
-        self.mu = mu
-        self.sigma = sigma
+    @staticmethod
+    @abstractmethod
+    def get_actor(hidden_dim, output_dim):
+        pass
 
-    def __call__(self, shape: Tuple[int, ...]):
-        """
-        Generates normal noise with the appropriate mean and standard deviation.
+    @staticmethod
+    @abstractmethod
+    def get_critic(hidden_dim):
+        pass
 
-        Parameters
-        ----------
-        shape
-            Shape of the tensor to be generated
+    @staticmethod
+    @abstractmethod
+    def sparsity_loss(x_hat_cf, x):
+        pass
 
-        Returns
-        -------
-        Normal noise with the appropriate mean, standard deviation and shape.
-        """
-        return self.mu + self.sigma * np.random.randn(*shape)
+    @staticmethod
+    @abstractmethod
+    def data_generator(x, ae_preprocessor, predict_func, conditional_func, num_classes,
+                       batch_size, shuffle, num_workers):
+        pass
 
-    def __repr__(self):
-        return 'NormalActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
+    @staticmethod
+    @abstractmethod
+    def encode(x, ae):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def decode(z, ae):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def generate_cf(z, y_m, y_t, c, num_classes, actor):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def add_noise(z_cf, noise, act_low, act_high, step, exploration_steps, device):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def update_actor_critic(ae, critic, actor, optimizer_critic, optimizer_actor, sparsity_loss, consistency_loss,
+                            coeff_sparsity, coeff_consistency, num_classes, x, x_cf, z, z_cf_tilde, y_m, y_t,
+                            c, r_tilde, device):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def to_numpy(x):
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def to_tensor(x):
+        pass

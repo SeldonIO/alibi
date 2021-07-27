@@ -3,10 +3,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
-from typing import List, Dict, Callable, Union, Optional
+from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
-from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset, NormalActionNoise
+from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset, CounterfactualRLBaseBackend
 from alibi.models.pytorch.actor_critic import Actor, Critic
+
+if TYPE_CHECKING:
+    from alibi.explainers.cfrl_base import NormalActionNoise
 
 
 class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
@@ -80,7 +83,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         return data
 
 
-class PtCounterfactualRLBaseBackend:
+class PtCounterfactualRLBaseBackend(CounterfactualRLBaseBackend):
     @staticmethod
     def get_device() -> torch.device:
         """
@@ -104,14 +107,12 @@ class PtCounterfactualRLBaseBackend:
         return torch.optim.Adam(model.parameters(), lr=lr)
 
     @staticmethod
-    def get_actor(input_dim: int, hidden_dim: int, output_dim: int) -> nn.Module:
+    def get_actor(hidden_dim: int, output_dim: int, **kwargs) -> nn.Module:
         """
         Constructs the actor network.
 
         Parameters
         ----------
-        input_dim
-            Actor's input dimension
         hidden_dim
             Actor's hidden dimension
         output_dim
@@ -121,17 +122,15 @@ class PtCounterfactualRLBaseBackend:
         -------
         Actor network.
         """
-        return Actor(input_dim=input_dim, hidden_dim=hidden_dim, output_dim=output_dim)
+        return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
     @staticmethod
-    def get_critic(input_dim: int, hidden_dim: int):
+    def get_critic(hidden_dim: int):
         """
         Constructs the critic network.
 
         Parameters
         ----------
-        input_dim
-            Critic's input dimension.
         hidden_dim:
             Critic's hidden dimension.
 
@@ -139,7 +138,7 @@ class PtCounterfactualRLBaseBackend:
         -------
         Critic network.
         """
-        return Critic(input_dim=input_dim, hidden_dim=hidden_dim)
+        return Critic(hidden_dim=hidden_dim)
 
     @staticmethod
     def sparsity_loss(x_hat_cf: torch.Tensor, x: torch.Tensor) -> Dict[str, torch.Tensor]:
@@ -214,7 +213,8 @@ class PtCounterfactualRLBaseBackend:
             Number of worker processes to be created.
         """
         dataset = PtCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
-                                            conditional_func=conditional_func, num_classes=num_classes, batch_size=batch_size)
+                                            conditional_func=conditional_func, num_classes=num_classes,
+                                            batch_size=batch_size)
         return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                           shuffle=shuffle, drop_last=True)
 
@@ -314,7 +314,7 @@ class PtCounterfactualRLBaseBackend:
 
     @staticmethod
     def add_noise(z_cf: torch.Tensor,
-                  noise: NormalActionNoise,
+                  noise: 'NormalActionNoise',
                   act_low: float,
                   act_high: float,
                   step: int,
@@ -422,12 +422,13 @@ class PtCounterfactualRLBaseBackend:
             Conditional tensor.
         r_tilde
             Noised counterfactual reward.
+        device
+            Torch device object.
 
         Returns
         -------
         Dictionary of losses.
         """
-
         # Set autoencoder to evaluation mode.
         ae.eval()
 

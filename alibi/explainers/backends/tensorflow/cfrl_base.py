@@ -1,10 +1,13 @@
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
-from typing import Any, List, Dict, Callable, Union, Optional
+from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
-from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset, NormalActionNoise
+from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset, CounterfactualRLBaseBackend
 from alibi.models.tensorflow.actor_critic import Actor, Critic
+
+if TYPE_CHECKING:
+    from alibi.explainers.cfrl_base import NormalActionNoise
 
 
 class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
@@ -96,13 +99,20 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         }
 
 
-class TfCounterfactualRLBaseBackend:
+class TfCounterfactualRLBaseBackend(CounterfactualRLBaseBackend):
     """ Tensorflow training backend. """
 
     @staticmethod
-    def get_optimizer(lr: float = 1e-3) -> keras.optimizers.Optimizer:
+    def get_optimizer(model: Optional[keras.Model] = None, lr: float = 1e-3) -> keras.optimizers.Optimizer:
         """
         Constructs default Adam optimizer.
+
+        Parameters
+        ----------
+        model
+            Model to get the optimizer for. Not required for `tensorflow` backend.
+        lr
+            Learning rate.
 
         Returns
         -------
@@ -299,7 +309,7 @@ class TfCounterfactualRLBaseBackend:
 
     @staticmethod
     def add_noise(z_cf: Union[tf.Tensor, np.ndarray],
-                  noise: NormalActionNoise,
+                  noise: 'NormalActionNoise',
                   act_low: float,
                   act_high: float,
                   step: int,

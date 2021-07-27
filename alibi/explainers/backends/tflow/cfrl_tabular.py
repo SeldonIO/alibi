@@ -1,9 +1,9 @@
 from alibi.explainers.backends.cfrl_tabular import *
-from alibi.explainers.backends.pytorch.cfrl_base import *
+from alibi.explainers.backends.tflow.cfrl_base import *
 
 
-def sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
-                          category_map: Dict[int, List[str]]) -> List[torch.Tensor]:
+def sample_differentiable(x_ohe_hat_split: List[tf.Tensor],
+                          category_map: Dict[int, List[str]]) -> List[tf.Tensor]:
     """
     Samples differentiable reconstruction.
 
@@ -30,20 +30,20 @@ def sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
     # sample categorical attributes
     if cat_attr > 0:
         for head in x_ohe_hat_split[-cat_attr:]:
-            out = torch.argmax(head, dim=1)
+            out = tf.argmax(head, axis=1)
 
             # transform to one-hot encoding
-            out = F.one_hot(out, num_classes=head.shape[1])
-            proba = F.softmax(head, dim=1)
-            out = out - proba.detach() + proba
+            out = tf.one_hot(out, depth=head.shape[1])
+            proba = tf.nn.softmax(head, axis=1)
+            out = out - tf.stop_gradient(proba) + proba
             x_out.append(out)
 
     return x_out
 
 
-def l0_ohe(input: torch.Tensor,
-           target: torch.Tensor,
-           reduction: str = 'none') -> torch.Tensor:
+def l0_ohe(input: tf.Tensor,
+           target: tf.Tensor,
+           reduction: str = 'none') -> tf.Tensor:
     """
     Computes the L0 loss for a one-hot encoding representation.
 
@@ -60,45 +60,56 @@ def l0_ohe(input: torch.Tensor,
     -------
     L0 loss.
     """
-    loss = torch.maximum(target - input, torch.zeros_like(input))
+    loss = tf.maximum(target - input, tf.zeros_like(input))
 
     if reduction == 'none':
         return loss
 
     if reduction == 'mean':
-        return torch.mean(loss)
+        tf.reduce_mean(loss)
 
     if reduction == 'sum':
-        return torch.sum(loss)
+        return tf.reduce_sum(loss)
 
     raise ValueError(f"Reduction {reduction} not implemented.")
 
 
-def l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') -> torch.Tensor:
+def l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.Tensor:
     """
-    Computes L1 loss.
+    Computes the L1 loss.
 
     Parameters
     ----------
     input
-        Input tensor.
+       Input tensor.
     target
-        Target tensor.
+       Target tensor
     reduction
-        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+       Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
 
     Returns
     -------
     L1 loss.
     """
-    return F.l1_loss(input=input, target=target, reduction=reduction)
+    loss = tf.abs(input - target)
+
+    if reduction == 'none':
+        return loss
+
+    if reduction == 'mean':
+        return tf.reduce_mean(loss)
+
+    if reduction == 'sum':
+        return tf.reduce_sum(loss)
+
+    raise ValueError(f"Reduction {reduction} not implemented.")
 
 
-def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
-                  x_ohe: torch.Tensor,
-                  category_map: Dict[int, List[str]],
-                  weight_num: float = 1.0,
-                  weight_cat: float = 1.0):
+def sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
+                     x_ohe: tf.Tensor,
+                     category_map: Dict[int, List[str]],
+                     weight_num: float = 1.0,
+                     weight_cat: float = 1.0):
     """
     Computes heterogeneous sparsity loss.
 
@@ -135,41 +146,39 @@ def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
     # compute numerical loss
     if len(x_ohe_num_split) > 0:
         offset = 1
-        num_loss = torch.mean(l1_loss(input=x_ohe_hat_split[0],
-                                      target=x_ohe_num_split[0],
-                                      reduction='none'))
+        num_loss = tf.reduce_mean(l1_loss(input=x_ohe_hat_split[0],
+                                          target=x_ohe_num_split[0],
+                                          reduction='none'))
 
     # compute categorical loss
     if len(x_ohe_cat_split) > 0:
         for i in range(len(x_ohe_cat_split)):
             batch_size = x_ohe_hat_split[i].shape[0]
-            cat_loss += torch.sum(l0_ohe(input=x_ohe_hat_split[i + offset],
-                                         target=x_ohe_cat_split[i],
-                                         reduction='none')) / batch_size
+            cat_loss += tf.reduce_sum(l0_ohe(input=x_ohe_hat_split[i + offset],
+                                             target=x_ohe_cat_split[i],
+                                             reduction='none')) / batch_size
 
         cat_loss /= len(x_ohe_cat_split)
 
-    return {"num_loss": weight_num * num_loss, "cat_loss": weight_cat * cat_loss}
+    return {"sparsity_num_loss": weight_num * num_loss, "sparsity_cat_loss": weight_cat * cat_loss}
 
 
-def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor, **kwargs):
+def consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: Union[np.ndarray, tf.Tensor], **kwargs):
     """
     Computes heterogeneous consistency loss.
 
     Parameters
     ----------
     z_cf_pred
-        Predicted counterfactual embedding.
-    x_cf
-        Counterfactual reconstruction. This should be already post-processed.
-    ae
-        Pre-trained autoencoder.
+            Counterfactual embedding prediction.
+    z_cf_tgt
+        Counterfactual embedding target.
+
 
     Returns
     -------
     Heterogeneous consistency loss.
     """
     # compute consistency loss
-    loss = F.mse_loss(z_cf_pred, z_cf_tgt)
+    loss = tf.reduce_mean(tf.square(z_cf_pred - z_cf_tgt))
     return {"consistency_loss": loss}
-

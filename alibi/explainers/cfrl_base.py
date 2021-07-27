@@ -9,18 +9,16 @@ from abc import ABC, abstractmethod
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
-from alibi.explainers.backends.cfrl_base import NormalActionNoise
 
-# TODO import those conditional
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if has_pytorch:
     # import pytorch backend
-    from alibi.explainers.backends.pytorch.cfrl_base import PtCounterfactualRLBaseBackend
+    import alibi.explainers.backends.pytorch.cfrl_base as pytorch_base_backend
 
 if has_tensorflow:
     # import tensorflow backend
-    from alibi.explainers.backends.tensorflow.cfrl_base import TfCounterfactualRLBaseBackend
+    import alibi.explainers.backends.tflow.cfrl_base as tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -123,11 +121,11 @@ class ReplayBuffer(object):
         r_tilde
             Noised counterfactual reward array.
         """
-        # initialize the buffers
+        # Initialize the buffers.
         if self.x is None:
             self.batch_size = x.shape[0]
 
-            # allocate memory
+            # Allocate memory.
             self.x = np.zeros((self.size * self.batch_size, *x.shape[1:]), dtype=np.float32)
             self.x_cf = np.zeros((self.size * self.batch_size, *x_cf.shape[1:]), dtype=np.float32)
             self.y_m = np.zeros((self.size * self.batch_size, *y_m.shape[1:]), dtype=np.float32)
@@ -140,14 +138,14 @@ class ReplayBuffer(object):
             if c is not None:
                 self.c = np.zeros((self.size * self.batch_size, *c.shape[1:]), dtype=np.float32)
 
-        # increase the length of the buffer if not full
+        # Increase the length of the buffer if not full.
         if self.len < self.size:
             self.len += 1
 
-        # compute the first position where to add most recent experience
+        # Compute the first position where to add most recent experience.
         start = self.batch_size * self.idx
 
-        # add new data / replace old experience (note that a full batch is added at once)
+        # Add new data / replace old experience (note that a full batch is added at once).
         self.x[start:start + self.batch_size] = x
         self.x_cf[start:start + self.batch_size] = x_cf
         self.y_m[start:start + self.batch_size] = y_m
@@ -163,7 +161,7 @@ class ReplayBuffer(object):
         # we start replacing old batches.
         self.idx = (self.idx + 1) % self.size
 
-    def sample(self) -> Dict[str, np.ndarray]:
+    def sample(self) -> Dict[str, Optional[np.ndarray]]:
         """
         Sample a batch of experience form the replay buffer.
 
@@ -172,10 +170,10 @@ class ReplayBuffer(object):
         A batch experience. For a description of the keys/values returned, see parameter descriptions in `append`
         method. The batch size returned is the same as the one passed in the `append`.
         """
-        # generate random indices to be sampled
+        # Generate random indices to be sampled.
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
 
-        # extract data form buffers
+        # Extract data form buffers.
         x = self.x[rand_idx]                                        # input array
         x_cf = self.x_cf[rand_idx]                                  # counterfactual
         y_m = self.y_m[rand_idx]                                    # model's prediction
@@ -197,7 +195,7 @@ class ReplayBuffer(object):
         }
 
 
-DEFAULT_PARAMS = {
+DEFAULT_BASE_PARAMS = {
     "act_noise": 0.1,
     "act_low": -1.0,
     "act_high": 1.0,
@@ -229,72 +227,72 @@ DEFAULT_PARAMS = {
 Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'act_noise'``: float, standard deviation for the normal noise added to the actor for exploration.
-    
+
     - ``'act_low'``: float, minimum action value. Each action component takes values between `[act_low, act_high]`.
-    
+
     - ``'act_high'``: float, maximum action value. Each action component takes values between `[act_low, act_high]`.
-    
-    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory 
+
+    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory
     allocated is proportional with the `size` * `batch_size`.
-    
+
     - ``'batch_size'``: int, training batch size.
-    
+
     - ``'num_workers'``: int, number of workers used by the data loader if `pytorch` backend is selected.
-    
+
     - ``'shuffle'``: bool, whether to shuffle the datasets every epoch.
-    
+
     - ``'num_classes'``: int, number of classes to be considered.
-    
+
     - ``'latent_dim'``: int, autoencoder latent dimension.
-    
+
     - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
-    
+
     - ``'update_every'``: int, number of steps that should elapse between gradient updates. Regardless of the
     waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
-    
+
     - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that
     the replay buffers is full enough for useful updates.
-    
-    - ``'backend'``: str, backend to be used: `tensorflow`|`pytorch`. Default `tensorflow`. 
-    
+
+    - ``'backend'``: str, backend to be used: `tensorflow`|`pytorch`. Default `tensorflow`.
+
     - ``'train_steps'``: int, number of train steps (interactions).
-    
+
     - ``'ae_preprocessor'``: Callable, autoencoder data preprocessors. Transforms the input data into the format
     expected by the autoencoder. By default, the identity function.
-    
+
     - ``'ae_inv_preprocessor'``: Callable, autoencoder data inverse preprocessor. Transforms data from the autoencoder
-    expected format to the original input format. Before calling the prediction function, the data is inverse 
+    expected format to the original input format. Before calling the prediction function, the data is inverse
     preprocessed to match the original input format. By default, the identity function.
-     
+
     - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction
     label matches the target label. Note that this is element-wise, so a tensor is expected to be returned.
-    
-    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in 
-    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as 
-    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional vector, 
-    and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the following 
+
+    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in
+    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as
+    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional vector,
+    and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the following
     functions. By default, no post-processing is applied (empty list).
-    
+
     - ``'conditional_func'``: Callable, generates a conditional vector given a input instance. By default, the function
     returns `None` which is equivalent to no conditioning.
-    
-    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each 
-    experience step. 
-    
-    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training 
+
+    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each
+    experience step.
+
+    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training
     step.
-    
+
     - ``'actor'``: Optional[keras.Model, torch.nn.Module], actor network.
-    
+
     - ``'critic;``: Optional[keras.Model, torch.nn.Module], critic network.
-    
+
     - ``'optimizer_actor'``: Optional[keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
-    
+
     - ``'optimizer_critic'``: Optional[keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
-    
+
     - ``'actor_hidden_dim'``: int, actor hidden layer dimension.
-    
+
     - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
 """
 
@@ -332,23 +330,23 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         """
-        # clean backend flag
+        # Clean backend flag.
         backend = backend.strip().lower()
 
-        # check if pytorch/tensorflow backend supported
+        # Check if pytorch/tensorflow backend supported.
         if (backend == CounterfactualRLBase.PYTORCH and not has_pytorch) or \
                 (backend == CounterfactualRLBase.TENSORFLOW and not has_tensorflow):
             raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
                               f' with {backend} backend.')
 
-        # allow only pytorch and tensorflow
+        # Allow only pytorch and tensorflow.
         elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
             raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
-        # select backend
+        # Select backend.
         self.backend = self._select_backend(backend, **kwargs)
 
-        # validate arguments
+        # Validate arguments.
         self.params, all_params = self._validate_kwargs(predict_func=predict_func,
                                                         ae=ae,
                                                         latent_dim=latent_dim,
@@ -360,7 +358,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # If pytorch backend, the if GPU available, send everything to GPU
         if self.params["backend"] == CounterfactualRLBase.PYTORCH:
-            from alibi.explainers.backends.pytorch import get_device
+            from alibi.explainers.backends.pytorch.cfrl_base import get_device
             self.params.update({"device": get_device()})
 
             # Send auto-encoder to device.
@@ -372,16 +370,14 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def _select_backend(self, backend, **kwargs):
         """
-        Selects the backend accoriding to the `backend` flag.
+        Selects the backend according to the `backend` flag.
 
         Parameters
         ---------
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         """
-        # Set backend according to the backend_flag.
-        self.backend = TfCounterfactualRLBaseBackend() if backend == "tensorflow" \
-            else PtCounterfactualRLBaseBackend()
+        return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
     def _validate_kwargs(self,
                          predict_func: Callable,
@@ -413,7 +409,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Deep learning backend: `tensorflow`|`pytorch`.
         """
         # Copy default parameters.
-        params = deepcopy(DEFAULT_PARAMS)
+        params = deepcopy(DEFAULT_BASE_PARAMS)
 
         # Update parameters with mandatory arguments
         params.update({
@@ -521,7 +517,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # Sample training data.
             try:
                 data = next(data_iter)
-            except:
+            except Exception:
                 data_iter = iter(data_generator)
                 data = next(data_iter)
 
@@ -582,6 +578,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 for i in range(self.params['update_every']):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
+
                     if "c" not in sample:
                         sample["c"] = None
 
@@ -615,31 +612,32 @@ class CounterfactualRLBase(Explainer, FitMixin):
         x_cf
             Conditional counterfactual instance.
         """
-        # compute models prediction
+        # Compute models prediction.
         y_m = self.params["predict_func"](x)
 
-        # apply autoencoder preprocessing step
+        # Apply autoencoder preprocessing step.
         x = self.params["ae_preprocessor"](x)
 
-        # convert to tensors
+        # Convert to tensors.
         x = self.backend.to_tensor(x, **self.params)
         y_m = self.backend.to_tensor(y_m, **self.params)
         y_t = self.backend.to_tensor(y_t, **self.params)
 
-        # encode instance
+        # Encode instance.
         z = self.backend.encode(x, **self.params)
 
-        # generate counterfactual embedding
+        # Generate counterfactual embedding.
         z_cf = self.backend.generate_cf(z, y_m, y_t, c, **self.params)
 
-        # decode counterfactual
+        # Decode counterfactual.
         x_cf = self.backend.decode(z_cf, **self.params)
         x_cf = self.backend.to_numpy(x_cf)
 
-        # apply postprocessing functions
+        # Apply postprocessing functions.
         for pp_func in self.params["postprocessing_funcs"]:
             x_cf = pp_func(x_cf, x, c)
 
+        # TODO construct explanation
         return self.params["ae_inv_preprocessor"](x_cf)
 
 
@@ -663,7 +661,7 @@ class Postprocessing(ABC):
         x_cf
             Post-processed x_cf.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class ExperienceCallback(ABC):
@@ -685,7 +683,7 @@ class ExperienceCallback(ABC):
             Dictionary of sample gathered in an experience. This includes dataset inputs and intermediate results
             obtained during an experience.
         """
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class TrainingCallback(ABC):
@@ -704,7 +702,8 @@ class TrainingCallback(ABC):
         step
             Current experience step.
         update
-            Current update. The ration between the number experience steps and the number of training updates is bound to 1.
+            Current update. The ration between the number experience steps and the number of training updates is
+            bound to 1.
         model
             CounterfactualRLBase explainer.
         sample

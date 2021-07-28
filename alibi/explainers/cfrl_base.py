@@ -1,13 +1,13 @@
 import os
 import logging
 import numpy as np
-from tqdm import tqdm
+from tqdm import tqdm  # type: ignore
 from copy import deepcopy
 from typing import Union, Any, Callable, Optional, Tuple, Dict, List
 from abc import ABC, abstractmethod
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
+from alibi.models.tflow.autoencoder import AE as TensorflowAE
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
 
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
@@ -296,6 +296,26 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
 """
 
+_PARAM_TYPES = {
+    "primitives": [
+        "act_noise", "act_low", "act_high", "replay_buffer_size", "batch_size", "num_workers", "shuffle",
+        "num_classes", "exploration_steps", "update_every", "update_after", "train_steps", "backend",
+        "actor_hidden_dim", "critic_hidden_dim",
+    ],
+    "complex": [
+        "ae_preprocessor", "ae_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
+        "experience_callbacks", "train_callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic",
+        "ae", "predict_func", "sparsity_loss", "consistency_loss"
+    ]
+}
+"""
+Parameter types for serialization
+
+    - ''`primitives`'': List[str], list of parameters having primitive data types.
+
+    - ''`complex`'': List[str], list of parameters having complex data types (e.g., functions, models, optimizers etc.)
+"""
+
 
 class CounterfactualRLBase(Explainer, FitMixin):
     """ Counterfactual Reinforcement Learning Base. """
@@ -330,6 +350,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         """
+        super().__init__(meta=CounterfactualRLBase._serialize_params(deepcopy(DEFAULT_BASE_PARAMS)))
+
         # Clean backend flag.
         backend = backend.strip().lower()
 
@@ -367,6 +389,66 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # Sent actor and critic to device.
             self.params["actor"].to(self.params["device"])
             self.params["critic"].to(self.params["device"])
+
+        # update meta-data
+        self.meta.update(CounterfactualRLBase._serialize_params(all_params))
+
+    @staticmethod
+    def _serialize_params(params: Dict[str, Any]):
+        """
+        Parameter serialization. The function replaces object by human-readable representation
+
+        Parameters
+        ----------
+        params
+            Dictionary of parameters to be serialized.
+
+        Returns
+        -------
+        Human-readable replacement of data.
+        """
+        meta = dict()
+
+        for param, value in params.items():
+            if param in _PARAM_TYPES["primitives"]:
+                # primitive types are passed as they are
+                meta.update({param: value})
+
+            elif param in _PARAM_TYPES["complex"]:
+                if isinstance(value, list):
+                    # each complex element in the list is serialized by replacing it with a name
+                    meta.update({param: [CounterfactualRLBase._get_name(v) for v in value]})
+                else:
+                    # complex element is serialized by replacing it with a name
+                    meta.update({param: CounterfactualRLBase._get_name(value)})
+            else:
+                # Unknown parameters are passed as they are. TODO: think of a better way to handle this.
+                meta.update({param: value})
+
+        return meta
+
+    @staticmethod
+    def _get_name(a: Any) -> str:
+        """
+        Constructs a name for the given object. If the object has as built-in name, the name is return.
+        If the object has a built-in class name, the name of the class is returned. Otherwise `unknown` is returned.
+
+        Parameters
+        ----------
+        a
+            Object to give the name for.
+
+        Returns
+        -------
+        Name of the object.
+        """
+        if hasattr(a, "__name__"):
+            return a.__name__
+
+        if hasattr(a, "__class__"):
+            return str(a.__class__)
+
+        return "unknown"
 
     def _select_backend(self, backend, **kwargs):
         """
@@ -594,29 +676,56 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         return self
 
-    def explain(self, x: np.ndarray, y_t: np.ndarray, c: Optional[np.ndarray] = None) -> "Explanation":
+    def explain(self,
+                X: np.ndarray,
+                y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
+                c: Any = None) -> Explanation:
         """
         Explains an input instance
 
         Parameters
         ----------
-        x
-            Instance to be explained.
+        X
+            Instances to be explained.
         y_t
-            Counterfactual target.
+            Counterfactual targets.
         c
             Conditional vector.
 
         Returns
         -------
-        x_cf
-            Conditional counterfactual instance.
+        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+        corresponding labels, targets and additional metadata.
+        """
+        results = self.compute_counterfactual(X=X, y_t=y_t, c=c)
+        return self.build_explanation(**results)
+
+    def compute_counterfactual(self,
+                               X: np.ndarray,
+                               y_t: np.ndarray,
+                               c: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
+        """
+        Compute counterfactual instance for a given input, target and condition vector
+
+        Parameters
+        ----------
+        X
+            Instances to be explained.
+        y_t
+            Counterfactual targets.
+        c
+            Conditional vector.
+
+        Returns
+        -------
+        Dictionary containing the input instances in the original format, input classification labels, counterfactual
+        instances in the original format, counterfactual classification labels, target labels, conditional vectors.
         """
         # Compute models prediction.
-        y_m = self.params["predict_func"](x)
+        y_m = self.params["predict_func"](X)
 
         # Apply autoencoder preprocessing step.
-        x = self.params["ae_preprocessor"](x)
+        x = self.params["ae_preprocessor"](X)
 
         # Convert to tensors.
         x = self.backend.to_tensor(x, **self.params)
@@ -637,8 +746,56 @@ class CounterfactualRLBase(Explainer, FitMixin):
         for pp_func in self.params["postprocessing_funcs"]:
             x_cf = pp_func(x_cf, x, c)
 
-        # TODO construct explanation
-        return self.params["ae_inv_preprocessor"](x_cf)
+        # Apply inverse autoencoder pre-processor.
+        X_cf = self.params["ae_inv_preprocessor"](x_cf)
+
+        # Classify counterfactual instances.
+        y_m_cf = self.params["predict_func"](X_cf)
+
+        # convert tensors to numpy
+        y_m = self.backend.to_numpy(y_m)
+        y_t = self.backend.to_numpy(y_t)
+
+        return {
+            "X": X,              # input instances
+            "y_m": y_m,          # input classification labels
+            "X_cf": X_cf,        # counterfactual instances
+            "y_m_cf": y_m_cf,    # counterfactual classification labels
+            "y_t": y_t,          # target labels
+            "c": c               # conditional vectors
+        }
+
+    def build_explanation(self,
+                          X: np.ndarray,
+                          y_m: np.ndarray,
+                          X_cf: np.ndarray,
+                          y_m_cf: np.ndarray,
+                          y_t: np.ndarray,
+                          c: Any) -> Explanation:
+        """
+        Builds the explanation of the current object.
+
+        Parameters
+        ----------
+        X
+            Inputs instance in the original format.
+        y_m
+            Inputs classification labels.
+        X_cf
+            Counterfactuals instances in the original format.
+        y_m_cf
+            Counterfactuals classification labels.
+        y_t
+            Target labels.
+        c
+            Condition
+        Returns
+        -------
+        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+        corresponding labels, targets and additional metadata.
+        """
+        data = {"orig": {"X": X, "class": y_m}, "cf": {"X": X_cf, "class": y_m_cf}, "target": y_t, "condition": c}
+        return Explanation(meta=self.meta, data=data)
 
 
 class Postprocessing(ABC):

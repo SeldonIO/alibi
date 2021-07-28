@@ -1,7 +1,8 @@
 import torch
 import numpy as np
 from enum import Enum
-from typing import  Dict, Union
+from abc import ABC, abstractmethod
+from typing import Dict, Union
 
 
 class Reduction(Enum):
@@ -32,11 +33,17 @@ class LossContainer:
         self.count = 0
 
 
-class Metric:
+class Metric(ABC):
     def __init__(self, reduction: Reduction = Reduction.MEAN, name: str = "unknown"):
         self.reduction = reduction
         self.name = name
         self.total, self.count = 0, 0
+
+    @abstractmethod
+    def compute_metric(self,
+                       y_pred: Union[torch.Tensor, np.ndarray],
+                       y_true: Union[torch.Tensor, np.ndarray]):
+        pass
 
     def update_state(self, values: np.ndarray):
         self.total += values.sum()
@@ -60,9 +67,20 @@ class AccuracyMetric(Metric):
     def __init__(self, name: str = "accuracy"):
         super().__init__(reduction=Reduction.MEAN, name=name)
 
-    def update_state(self,
-                     y_pred: [torch.Tensor, np.ndarray],
-                     y_true: Union[torch.Tensor, np.ndarray]):
+    def compute_metric(self,
+                       y_pred: Union[torch.Tensor, np.ndarray],
+                       y_true: Union[torch.Tensor, np.ndarray]) -> None:
+        """
+        Computes accuracy metric given the predicted label and the true label.
+
+        Parameters
+        ----------
+        y_pred
+            Predicted label.
+        y_true
+            True label.
+        """
+
         if isinstance(y_true, torch.Tensor):
             y_true = y_true.detach().cpu().numpy()
 
@@ -77,5 +95,5 @@ class AccuracyMetric(Metric):
         if y_pred.shape != y_true.shape:
             raise ValueError("The shape of the prediction and labels do not match")
 
-        matches = (y_pred == y_true)
+        matches = np.array(y_pred == y_true)
         super().update_state(matches)

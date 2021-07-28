@@ -1,7 +1,7 @@
+from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
 from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing
 from alibi.explainers.backends.cfrl_tabular import sample, conditional_vector, statistics
-from alibi.api.interfaces import Explainer, Explanation
 
 import numpy as np
 from itertools import count
@@ -150,21 +150,21 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         return super().fit(x)
 
     def explain(self,
-                x: np.ndarray,
-                y_t: np.ndarray,
-                c: Optional[List[Dict[str, List[Union[str, int]]]]] = None,
+                X: np.ndarray,
+                y_t: np.ndarray = None,  # TODO remove default value (mypy error)
+                c: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
                 diversity: bool = False,
                 num_samples: int = 1,
                 batch_size: int = 100,
                 patience: int = 1000,
-                tolerance: float = 1e-3) -> "Explanation":
+                tolerance: float = 1e-3) -> Explanation:
 
         """
         Computes counterfactuals for the given instances conditioned on the target and the conditional vector.
 
         Parameters
         ----------
-        x
+        X
             Input instances to generate counterfactuals for.
         y_t
             Target labels.
@@ -183,46 +183,46 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         tolerance
             Tolerance to distinguish two counterfactual instances.
         """
-        if len(x.shape) > 2:
+        if len(X.shape) > 2:
             raise ValueError("The input should be a 2D array.")
 
         # Reshape the input vector to have be 2D.
-        x = np.atleast_2d(x)
+        X = np.atleast_2d(X)
 
         # Check if the number of features matches the expected one.
-        if x.shape[1] != len(self.params["feature_names"]):
+        if X.shape[1] != len(self.params["feature_names"]):
             raise ValueError(f"Unexpected number of features. The expected number "
-                             f"is {len(self.params['feature_names'])}, but the input has {x.shape[1]} features.")
+                             f"is {len(self.params['feature_names'])}, but the input has {X.shape[1]} features.")
 
         # Check if diversity flag is on.
         if diversity:
-            return self._diversity(x=x,
-                                   y_t=y_t,
-                                   c=c,
-                                   num_samples=num_samples,
-                                   batch_size=batch_size,
-                                   patience=patience,
-                                   tolerance=tolerance)
+            return self.diversity(X=X,
+                                  y_t=y_t,
+                                  c=c,
+                                  num_samples=num_samples,
+                                  batch_size=batch_size,
+                                  patience=patience,
+                                  tolerance=tolerance)
 
         # Check the number of target labels.
-        if y_t.shape[0] != 1 and y_t.shape[0] != x.shape[0]:
+        if y_t.shape[0] != 1 and y_t.shape[0] != X.shape[0]:
             raise ValueError("The number target labels should be 1 or equals the number of samples in x.")
 
         # Repeat the same label to match the number of input instances.
         if y_t.shape[0] == 1:
-            y_t = np.tile(y_t, x.shape[0])
+            y_t = np.tile(y_t, X.shape[0])
 
         # Define conditional vector if `None`.
         if c is None:
             c = [dict()]
 
         # Check the number of conditions.
-        if len(c) != 1 and len(c) != x.shape[0]:
+        if len(c) != 1 and len(c) != X.shape[0]:
             raise ValueError("The number of conditions should be 1 or equals the number of samples in x.")
 
         # If only one condition is passed.
         if len(c) == 1:
-            c_vec = self.params["conditional_vector"](x=x,
+            c_vec = self.params["conditional_vector"](x=X,
                                                       condition=c[0],
                                                       stats=self.params["stats"])
         else:
@@ -231,25 +231,25 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
             for i in range(len(c)):
                 # Generate conditional vector for each instance. Note that this depends on the input instance.
-                c_vecs.append(self.params["conditional_vector"](x=np.atleast_2d(x[i]),
+                c_vecs.append(self.params["conditional_vector"](x=np.atleast_2d(X[i]),
                                                                 condition=c[i],
                                                                 stats=self.params["stats"]))
 
             # Concatenate all conditional vectors.
             c_vec = np.concatenate(c_vecs, axis=0)
-        return super().explain(x, y_t, c_vec)
 
-    def _diversity(self,
-                   x: np.ndarray,
-                   y_t: np.ndarray,
-                   c: Optional[List[Dict[str, List[Union[str, int]]]]],
-                   num_samples: int = 1,
-                   batch_size: int = 100,
-                   patience: int = 1000,
-                   tolerance: float = 1e-3) -> np.ndarray:
+        explanation = super().explain(X, y_t, c_vec)
+        explanation.data.update({"condition": c})
+        return explanation
 
-        # Reshape input array.
-        x = x.reshape(1, -1)
+    def diversity(self,
+                  X: np.ndarray,
+                  y_t: np.ndarray,
+                  c: Optional[List[Dict[str, List[Union[str, float]]]]],
+                  num_samples: int = 1,
+                  batch_size: int = 100,
+                  patience: int = 1000,
+                  tolerance: float = 1e-3) -> Explanation:
 
         # Check the number of labels.
         if y_t.shape[0] != 1:
@@ -260,21 +260,21 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             raise ValueError("Only a single condition can be passed")
 
         # Generate a batch of data.
-        x = np.tile(x, (batch_size, 1))
+        X_repeated = np.tile(X, (batch_size, 1))
         y_t = np.tile(y_t, batch_size)
 
         # Define counterfactual buffer.
-        cf_buff = None
+        X_cf_buff = None
 
         for i in count():
             if i == patience:
                 break
 
-            if (cf_buff is not None) and (cf_buff.shape[0] >= num_samples):
+            if (X_cf_buff is not None) and (X_cf_buff.shape[0] >= num_samples):
                 break
 
             # Generate conditional vector.
-            c_vec = conditional_vector(x=x,
+            c_vec = conditional_vector(x=X_repeated,
                                        condition=c[0],
                                        preprocessor=self.params["ae_preprocessor"],
                                        feature_names=self.params["feature_names"],
@@ -284,25 +284,27 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                        diverse=True)
 
             # Generate counterfactuals.
-            x_cf = super().explain(x, y_t, c_vec)
-
-            # Get prediction.
-            y_cf_m = self.params["predict_func"](x_cf)
+            results = self.compute_counterfactual(X=X_repeated, y_t=y_t, c=c_vec)
+            X_cf, y_m_cf = results["X_cf"], results["y_m_cf"]
 
             # Select only counterfactuals where prediction matches the target.
-            x_cf = x_cf[y_t == y_cf_m]
-            if x_cf.shape[0] == 0:
+            X_cf = X_cf[y_t == y_m_cf]
+            if X_cf.shape[0] == 0:
                 continue
 
             # Find unique counterfactuals.
-            x_cf = np.unique(np.floor(x_cf / tolerance).astype(int), axis=0) * tolerance
+            _, indices = np.unique(np.floor(X_cf / tolerance).astype(int), return_index=True, axis=0)
 
             # Add them to the unique buffer but make sure not to add duplicates.
-            if cf_buff is None:
-                cf_buff = x_cf
+            if X_cf_buff is None:
+                X_cf_buff = X_cf[indices]
             else:
-                cf_buff = np.concatenate([cf_buff, x_cf], axis=0)
-                cf_buff = np.unique(np.floor(cf_buff / tolerance).astype(int), axis=0) * tolerance
+                X_cf_buff = np.concatenate([X_cf_buff, X_cf[indices]], axis=0)
+                _, indices = np.unique(np.floor(X_cf_buff / tolerance).astype(int), axis=0)
+                X_cf_buff = X_cf_buff[indices]
 
-        # TODO construct explanation
-        return cf_buff[:num_samples] if (cf_buff is not None) else np.array([])
+        # build explanation
+        X_cf = X_cf_buff[:num_samples] if (X_cf_buff is not None) else np.array([])
+        y_m_cf = self.params["predict_func"](X_cf) if X_cf.shape[0] != 0 else np.array([])
+        y_m = self.params["predict_func"](X)
+        return self.build_explanation(X=X, y_m=y_m, X_cf=X_cf, y_m_cf=y_m_cf, y_t=y_t, c=c)

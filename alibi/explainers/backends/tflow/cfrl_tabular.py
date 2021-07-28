@@ -1,5 +1,10 @@
-from alibi.explainers.backends.cfrl_tabular import *
-from alibi.explainers.backends.tflow.cfrl_base import *
+from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
+from alibi.explainers.backends.tflow.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
+    encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor  # noqa: F403, F401
+
+import numpy as np
+import tensorflow as tf
+from typing import List, Dict, Union
 
 
 def sample_differentiable(x_ohe_hat_split: List[tf.Tensor],
@@ -106,16 +111,16 @@ def l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.T
 
 
 def sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
-                     x_ohe: tf.Tensor,
-                     category_map: Dict[int, List[str]],
-                     weight_num: float = 1.0,
-                     weight_cat: float = 1.0):
+                  x_ohe: tf.Tensor,
+                  category_map: Dict[int, List[str]],
+                  weight_num: float = 1.0,
+                  weight_cat: float = 1.0):
     """
     Computes heterogeneous sparsity loss.
 
     Parameters
     ----------
-    x_ohe_hat_split
+ 9:8   x_ohe_hat_split
         List of one-hot encoded reconstructed columns form the auto-encoder.
     x_ohe
         One-hot encoded representation of the input.
@@ -140,7 +145,7 @@ def sparsity_loss(x_ohe_hat_split: List[tf.Tensor],
                                             category_map=category_map)
 
     # define numerical and categorical loss
-    num_loss, cat_loss = 0, 0
+    num_loss, cat_loss = 0., 0.
     offset = 0
 
     # compute numerical loss

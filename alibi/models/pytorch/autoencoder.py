@@ -1,5 +1,8 @@
-from alibi.models.pytorch.model import *
-from alibi.models.pytorch.metrics import *
+import torch
+import torch.nn as nn
+
+from alibi.models.pytorch.model import Model
+from typing import List
 
 
 class AE(Model):

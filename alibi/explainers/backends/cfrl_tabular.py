@@ -28,8 +28,8 @@ def conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]
     return 2 * num_feat + cat_feat
 
 
-def split_ohe(x_ohe: np.ndarray,
-              category_map: Dict[int, List[str]]) -> Tuple[List[np.ndarray], List[np.ndarray]]:
+def split_ohe(x_ohe,
+              category_map: Dict[int, List[str]]) -> Tuple[List, List]:
     """
     Splits a one-hot encoding array in a list of numerical heads and a list of categorical heads. Since by
     convention the numerical heads are merged in a single head, if the function returns a list of numerical heads,
@@ -38,7 +38,7 @@ def split_ohe(x_ohe: np.ndarray,
     Parameters
     ----------
     x_ohe
-        One-hot encoding representation.
+        One-hot encoding representation. This can be any type of tensor: np.ndarray, torch.Tensor, tf.Tensor.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the
         possible values of a feature.
@@ -50,6 +50,8 @@ def split_ohe(x_ohe: np.ndarray,
     x_ohe_cat_split
         List of categorical one-hot encoded heads.
     """
+    assert hasattr(x_ohe, "shape"), "x_ohe needs to have `shape` attribute."
+
     x_ohe_num_split, x_ohe_cat_split = [], []
     offset = 0
 
@@ -533,7 +535,7 @@ def conditional_vector(x: np.ndarray,
     Parameters
     ----------
     x
-        Instances for which to generate the conditional vector.
+        Instances for which to generate the conditional vector in the original input format.
     condition
         Dictionary of conditions per feature. For numerical features it expects a range that contains the original
         value. For categorical features it expects a list of feature values per features that includes the original

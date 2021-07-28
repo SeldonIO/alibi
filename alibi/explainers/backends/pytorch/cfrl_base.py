@@ -8,6 +8,7 @@ from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.pytorch.actor_critic import Actor, Critic
+from alibi.models.pytorch.autoencoder import AE
 
 if TYPE_CHECKING:
     from alibi.explainers.cfrl_base import NormalActionNoise
@@ -219,7 +220,7 @@ def data_generator(x: np.ndarray,
 
 
 @torch.no_grad()
-def encode(x: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
+def encode(x: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     """
     Encodes the input tensor.
 
@@ -241,7 +242,7 @@ def encode(x: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
 
 
 @torch.no_grad()
-def decode(z: torch.Tensor, ae: nn.Module, device: torch.device, **kwargs):
+def decode(z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     """
     Decodes an embedding tensor.
 
@@ -309,7 +310,7 @@ def generate_cf(z: torch.Tensor,
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
     state = [z.view(z.shape[0], -1), y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
-    state = torch.cat(state, dim=1)
+    state = torch.cat(state, dim=1)  # type: ignore
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
     z_cf = actor(state)
@@ -364,7 +365,7 @@ def add_noise(z_cf: torch.Tensor,
     return z_cf_tilde
 
 
-def update_actor_critic(ae: nn.Module,
+def update_actor_critic(ae: AE,
                         critic: nn.Module,
                         actor: nn.Module,
                         optimizer_critic: torch.optim.Optimizer,
@@ -443,24 +444,24 @@ def update_actor_critic(ae: nn.Module,
     losses: Dict[str, float] = dict()
 
     # Transform data to tensors and it device
-    x = torch.tensor(x).float().to(device)
-    x_cf = torch.tensor(x_cf).float().to(device)
-    z = torch.tensor(z).float().to(device)
-    z_cf_tilde = torch.tensor(z_cf_tilde).float().to(device)
-    y_m_ohe = F.one_hot(torch.tensor(y_m, dtype=torch.long), num_classes=num_classes).float().to(device)
-    y_t_ohe = F.one_hot(torch.tensor(y_t, dtype=torch.long), num_classes=num_classes).float().to(device)
-    c = torch.tensor(c).float().to(device) if (c is not None) else None
-    r_tilde = torch.tensor(r_tilde).float().to(device)
+    x = torch.tensor(x).float().to(device)                                                                # type: ignore
+    x_cf = torch.tensor(x_cf).float().to(device)                                                          # type: ignore
+    z = torch.tensor(z).float().to(device)                                                                # type: ignore
+    z_cf_tilde = torch.tensor(z_cf_tilde).float().to(device)                                              # type: ignore
+    y_m_ohe = F.one_hot(torch.tensor(y_m, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
+    y_t_ohe = F.one_hot(torch.tensor(y_t, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
+    c = torch.tensor(c).float().to(device) if (c is not None) else None                                   # type: ignore
+    r_tilde = torch.tensor(r_tilde).float().to(device)                                                    # type: ignore
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [z, y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
-    state = torch.cat(state, dim=1).to(device)
+    state = [z, y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])  # type: ignore
+    state = torch.cat(state, dim=1).to(device)                                           # type: ignore
 
     # Define input for critic, compute q-values and append critic's loss.
-    input_critic = torch.cat([state, z_cf_tilde], dim=1).float()
-    output_critic = critic(input_critic).squeeze(1)
-    loss_critic = F.mse_loss(output_critic, r_tilde)
+    input_critic = torch.cat([state, z_cf_tilde], dim=1).float()  # type: ignore
+    output_critic = critic(input_critic).squeeze(1)               # type: ignore
+    loss_critic = F.mse_loss(output_critic, r_tilde)              # type: ignore
     losses.update({"loss_critic": loss_critic.item()})
 
     # Update critic by gradient step.
@@ -473,12 +474,12 @@ def update_actor_critic(ae: nn.Module,
 
     # Compute critic's output.
     critic.eval()
-    input_critic = torch.cat([state, z_cf], dim=1)
+    input_critic = torch.cat([state, z_cf], dim=1)  # type: ignore
     output_critic = critic(input_critic)
 
     # Compute actor's loss.
     loss_actor = -torch.mean(output_critic)
-    losses.update({"loss_actor": loss_actor})
+    losses.update({"loss_actor": loss_actor.item()})
 
     # Decode the output of the actor.
     x_hat_cf = ae.decoder(z_cf)
@@ -492,7 +493,7 @@ def update_actor_critic(ae: nn.Module,
         loss_actor += coeff_sparsity * loss_sparsity[key]
 
     # Compute consistency loss.
-    z_cf_tgt = encode(x=x_cf, ae=ae, device=device)
+    z_cf_tgt = encode(x=x_cf, ae=ae, device=device)  # type: ignore
     loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
     losses.update(loss_consistency)
 
@@ -509,7 +510,7 @@ def update_actor_critic(ae: nn.Module,
     return losses
 
 
-def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
+def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
     Converts given tensor to numpy array.
 

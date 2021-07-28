@@ -1,5 +1,10 @@
-from alibi.explainers.backends.cfrl_tabular import *
-from alibi.explainers.backends.pytorch.cfrl_base import *
+from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
+from alibi.explainers.backends.tflow.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
+    encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor  # noqa: F403, F401
+
+import torch
+import torch.nn.functional as F
+from typing import List, Dict
 
 
 def sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
@@ -129,7 +134,7 @@ def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
                                             category_map=category_map)
 
     # define numerical and categorical loss
-    num_loss, cat_loss = 0, 0
+    num_loss, cat_loss = torch.tensor(0.), torch.tensor(0.)
     offset = 0
 
     # compute numerical loss
@@ -172,4 +177,3 @@ def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor, **kwargs):
     # compute consistency loss
     loss = F.mse_loss(z_cf_pred, z_cf_tgt)
     return {"consistency_loss": loss}
-

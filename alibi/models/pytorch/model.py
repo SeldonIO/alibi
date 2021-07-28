@@ -26,7 +26,7 @@ class Model(nn.Module):
     def compile(self,
                 optimizer: optim.Optimizer,
                 loss: Union[Callable, List[Callable]],
-                loss_weights: Optional[Union[float, List[float]]] = None,
+                loss_weights: Optional[List[float]] = None,
                 metrics: Optional[List[Metric]] = None):
         """
         Compiles a model by setting the optimizer and the loss.
@@ -39,8 +39,9 @@ class Model(nn.Module):
             Loss function to be used.
         """
         self.optimizer = optimizer
-        self.metrics = [] if metrics is None else metrics
-        self.loss_weights = [] if loss_weights is None else loss_weights
+        self.metrics = [] if (metrics is None) else metrics
+        self.loss_weights = [] if (loss_weights is None) else loss_weights
+        self.loss: Union[LossContainer, List[LossContainer]]
 
         if isinstance(loss, list):
             # check if the number of weights is the same as the number of partial losses
@@ -90,7 +91,10 @@ class Model(nn.Module):
                      y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Tuple[torch.Tensor, Dict[str, Any]]:
         # compute loss
         if isinstance(self.loss, list):
-            loss = 0
+            assert isinstance(y_pred, list)
+            assert isinstance(y_true, list)
+
+            loss = torch.tensor(0.)
             results = dict()
 
             for i, partial_loss in enumerate(self.loss):
@@ -101,8 +105,12 @@ class Model(nn.Module):
             # compute total loss
             results.update({"loss": sum(results.values())})
         else:
+            assert isinstance(y_pred, torch.Tensor)
+            assert isinstance(y_true, torch.Tensor)
+
             loss = self.loss(y_pred, y_true)
             results = self.loss.result()
+
         return loss, results
 
     def compute_metrics(self,
@@ -120,8 +128,11 @@ class Model(nn.Module):
                 results.update(result)
 
         else:  # this is just for one head
+            assert isinstance(y_pred, torch.Tensor)
+            assert isinstance(y_true, torch.Tensor)
+
             for metric in self.metrics:
-                metric.update_state(y_pred=y_pred, y_true=y_true)
+                metric.compute_metric(y_pred=y_pred, y_true=y_true)
                 results.update(metric.result())
 
         return results
@@ -142,10 +153,11 @@ class Model(nn.Module):
 
         # send tensors to device
         x = x.to(self.device)
-        y_true = [y_i.to(self.device) for y_i in y] if isinstance(y, list) else y.to(self.device)
+        y_true: Union[torch.Tensor, List[torch.Tensor]] = \
+            [y_i.to(self.device) for y_i in y] if isinstance(y, list) else y.to(self.device)
 
         # compute output
-        y_pred = self.forward(x)
+        y_pred: Union[torch.Tensor, List[torch.Tensor]] = self.forward(x)
 
         # validate prediction and labels
         self.validate_prediction_labels(y_pred=y_pred, y_true=y_true)
@@ -166,7 +178,7 @@ class Model(nn.Module):
     @torch.no_grad()
     def test_step(self,
                   x: torch.Tensor,
-                  y: Union[torch.Tensor, List[torch.tensor]]):
+                  y: Union[torch.Tensor, List[torch.Tensor]]):
         """
         Performs a test step.
 
@@ -182,10 +194,11 @@ class Model(nn.Module):
 
         # sent tensors to device
         x = x.to(self.device)
-        y_true = [y_i.to(self.device) for y_i in y] if isinstance(y, list) else y.to(self.device)
+        y_true: Union[torch.Tensor, List[torch.Tensor]] = \
+            [y_i.to(self.device) for y_i in y] if isinstance(y, list) else y.to(self.device)
 
         # compute output
-        y_pred = self.forward(x)
+        y_pred: torch.Tensor = self.forward(x)
 
         # validate prediction and labels
         self.validate_prediction_labels(y_pred=y_pred, y_true=y_true)

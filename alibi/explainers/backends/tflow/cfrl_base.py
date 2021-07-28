@@ -4,7 +4,7 @@ import tensorflow.keras as keras
 from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
-from alibi.models.tensorflow.actor_critic import Actor, Critic
+from alibi.models.tflow.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:
     from alibi.explainers.cfrl_base import NormalActionNoise
@@ -54,7 +54,6 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         self.num_classes = num_classes
         self.batch_size = batch_size
         self.shuffle = shuffle
-        self.indexes = None
 
         # Infer the classification labels of the input dataset. This is performed in batches.
         self.y_m = TfCounterfactualRLDataset.predict_batches(x=self.x,
@@ -224,7 +223,7 @@ def data_generator(x: np.ndarray,
                                      batch_size=batch_size, shuffle=shuffle)
 
 
-def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
+def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Tensor:
     """
     Encodes the input tensor.
 
@@ -296,7 +295,7 @@ def generate_cf(z: Union[np.ndarray, tf.Tensor],
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
     state = [tf.reshape(z, (z.shape[0], -1)), y_m_ohe, y_t_ohe] + \
-            ([tf.constant(c, dtype=tf.float32)] if (c is not None) else [])
+        ([tf.constant(c, dtype=tf.float32)] if (c is not None) else [])
     state = tf.concat(state, axis=1)
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
@@ -480,7 +479,7 @@ def update_actor_critic(ae: keras.Model,
     return losses
 
 
-def to_numpy(x: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[List[np.ndarray], np.ndarray]]:
+def to_numpy(x: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
     Converts given tensor to numpy array.
 
@@ -507,7 +506,7 @@ def to_numpy(x: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[
     return None
 
 
-def to_tensor(x: Union[np.array, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
+def to_tensor(x: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
     """
     Converts tensor to tf.Tensor
 

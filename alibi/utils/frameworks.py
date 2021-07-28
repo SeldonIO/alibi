@@ -1,5 +1,3 @@
-# https://github.com/SeldonIO/alibi-detect/blob/master/alibi_detect/utils/frameworks.py
-
 try:
     import tensorflow as tf  # noqa
     has_tensorflow = True

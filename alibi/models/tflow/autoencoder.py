@@ -59,5 +59,3 @@ class HeAE(AE):
 
     def call(self, x: tf.Tensor, **kwargs) -> List[tf.Tensor]:
         return super().call(x, **kwargs)
-
-

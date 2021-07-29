@@ -1,6 +1,6 @@
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing
+from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, _PARAM_TYPES
 from alibi.explainers.backends.cfrl_tabular import sample, conditional_vector, statistics
 
 import numpy as np
@@ -34,6 +34,10 @@ class SamplePostprocessing(Postprocessing):
 class ConcatPostprocessing(Postprocessing):
     def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
         return np.concatenate(x_cf, axis=1)
+
+
+# update parameter types for the tabular case
+_PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 
 
 class CounterfactualRLTabular(CounterfactualRLBase):
@@ -123,7 +127,10 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                                         ranges=self.params["ranges"],
                                                         immutable_features=self.params["immutable_features"])
 
-    def _select_backend(self, backend, **kwargs):
+        # update metadata
+        self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
+
+    def select_backend(self, backend, **kwargs):
         """
         Selects the backend according to the `backend` flag.
 
@@ -147,6 +154,10 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             ConcatPostprocessing(),
         ]
 
+        # update metadata
+        self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
+
+        # call base class fit
         return super().fit(x)
 
     def explain(self,

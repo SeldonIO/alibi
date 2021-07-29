@@ -1,7 +1,8 @@
+import os
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
-from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
+from typing import Any, Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.tflow.actor_critic import Actor, Critic
@@ -98,7 +99,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         }
 
 
-def get_optimizer(model: Optional[keras.Model] = None, lr: float = 1e-3) -> keras.optimizers.Optimizer:
+def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) -> keras.optimizers.Optimizer:
     """
     Constructs default Adam optimizer.
 
@@ -521,3 +522,202 @@ def to_tensor(x: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
         return tf.constant(x)
 
     return None
+
+
+def save_model(path: Union[str, os.PathLike],
+               model: keras.layers.Layer,
+               optimizer: Optional[keras.optimizers.Optimizer] = None) -> None:
+    """
+    Saves a model and its optimizer.
+
+    Parameters
+    ----------
+    path
+        Path to the saving location.
+    model
+        Model to be saved.
+    optimizer
+        Optimizer to be saved.
+    """
+    to_save = {"model": model.get_weights()}
+
+    if optimizer is not None:
+        to_save.update({"optimizer": optimizer.get_weights()})
+
+    np.save(path, to_save)
+
+
+def load_model(path: str,
+               model: keras.layers.Layer,
+               optimizer: Optional[keras.optimizers.Optimizer] = None
+               ) -> Tuple[keras.layers.Layer, keras.optimizers.Optimizer]:
+    """
+    Loads a model and its optimizer.
+
+    Parameters
+    ----------
+    path
+        Path to the loading location.
+    model
+        Model to be loaded
+    optimizer
+        Optimizer to be loaded. If `None`, the optimizer will not be loaded.
+
+    Returns
+    -------
+    Tuple of loaded model and its loaded optimizer.
+    """
+    weights = np.load(path, allow_pickle=True)
+
+    # Load model's weights.
+    model.set_weights(weights["model"])
+
+    if optimizer is not None:
+        # Define dummy zero grads.
+        zero_grads = [tf.zeros_like(w) for w in model.trainable_weights]
+
+        # Save current state of the weights
+        old_weights = [tf.identity(w) for w in model.trainable_weights]
+
+        # Apply gradients.
+        optimizer.apply_gradients(zip(zero_grads, model.trainable_weights))
+
+        # Reload the variables
+        [w_new.assign(w_old) for w_new, w_old in zip(model.trainable_weights, old_weights)]
+
+        # Finally set the weights of the optimizer
+        optimizer.set_weights(weights["optimizer"])
+
+    return model, optimizer
+
+
+def load_model_with_defaults(path: str,
+                             model: Optional[keras.layers.Layer] = None,
+                             optimizer: Optional[keras.layers.Layer] = None,
+                             hidden_dim: Optional[int] = None,
+                             output_dim: Optional[int] = None,
+                             lr: Optional[float] = None,
+                             get_default_model: Optional[Callable] = None,
+                             get_default_optimizer: Optional[Callable] = None
+                             ) -> Tuple[keras.layers.Layer, keras.optimizers.Optimizer]:
+    """
+    Loads the actor/critic networks depending on the arguments.
+
+    Parameters
+    ----------
+    path
+        Path to the loading location.
+    model
+        Actor model to be loaded.
+    optimizer
+        Actor optimizer to be loaded.
+    hidden_dim
+        Actor hidden dimension.
+    output_dim
+        Actor output dimension.
+    lr
+        Optimizer learning rate.
+    get_default_model
+        Function that returns the default architecture of the model.
+    get_default_optimizer
+        Function that returns the default optimizer of the model.
+
+    Returns
+    -------
+    Tuple of loaded actor model and optimizer.
+    """
+    # Load default architecture if not specified.
+    if model is None:
+        if hidden_dim is None:
+            raise ValueError("Model's hidden dimension can not be `None` when the model is not specified.")
+
+        if output_dim is None:
+            raise ValueError("Model's output dimension can not be `None` when the models is not specified.")
+
+        if get_default_model is None:
+            raise ValueError('Default model function can not be `None` when the model is not specified.')
+
+        # Get the default architecture
+        model = get_default_model(hidden_dim=hidden_dim, output_dim=output_dim)
+
+    # Load the default optimizer if not specified.
+    if optimizer is None:
+        if lr is None:
+            raise ValueError("Learning rate can not be `None` when the optimizers is not specified.")
+
+        if get_default_optimizer is None:
+            raise ValueError("Default model optimizer function can not be `None` when the model is not specified.")
+
+        # Get default optimizer
+        optimizer = get_default_optimizer(model=model, lr=lr)
+
+    # Load from checkpoint
+    return load_model(path=path, model=model, optimizer=optimizer)
+
+
+def load_actor(path: str,
+               model: Optional[keras.layers.Layer] = None,
+               optimizer: Optional[keras.layers.Layer] = None,
+               hidden_dim: Optional[int] = None,
+               output_dim: Optional[int] = None,
+               lr: Optional[float] = None) -> Tuple[keras.layers.Layer, keras.optimizers.Optimizer]:
+    """
+    Loads the actor model.
+
+    Parameters
+    ----------
+    path
+        Path to the loading location.
+    model
+        Actor model to be loaded.
+    optimizer
+        Actor optimizer to be loaded.
+    hidden_dim
+        Actor hidden dimension.
+    output_dim
+        Actor output dimension.
+    lr
+        Optimizer learning rate.
+    """
+    return load_model_with_defaults(path=path,
+                                    model=model,
+                                    optimizer=optimizer,
+                                    hidden_dim=hidden_dim,
+                                    output_dim=output_dim,
+                                    lr=lr,
+                                    get_default_model=get_actor,
+                                    get_default_optimizer=get_optimizer)
+
+
+def load_critic(path: str,
+               model: Optional[keras.layers.Layer] = None,
+               optimizer: Optional[keras.layers.Layer] = None,
+               hidden_dim: Optional[int] = None,
+               output_dim: Optional[int] = None,
+               lr: Optional[float] = None) -> Tuple[keras.layers.Layer, keras.optimizers.Optimizer]:
+    """
+    Loads the critic model.
+
+    Parameters
+    ----------
+    path
+        Path to the loading location.
+    model
+        Actor model to be loaded.
+    optimizer
+        Actor optimizer to be loaded.
+    hidden_dim
+        Actor hidden dimension.
+    output_dim
+        Actor output dimension.
+    lr
+        Optimizer learning rate.
+    """
+    return load_model_with_defaults(path=path,
+                                    model=model,
+                                    optimizer=optimizer,
+                                    hidden_dim=hidden_dim,
+                                    output_dim=output_dim,
+                                    lr=lr,
+                                    get_default_model=get_critic,
+                                    get_default_optimizer=get_optimizer)

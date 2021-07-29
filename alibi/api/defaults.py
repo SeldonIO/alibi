@@ -222,3 +222,20 @@ DEFAULT_DATA_INTGRAD = {
 """
 Default IntegratedGradients data.
 """
+
+
+DEFAULT_META_CFRL = {"name": None,
+                     "type": ["blackbox"],
+                     "explanations": ["local"],
+                     "params": {}}  # type: dict
+"""
+Default CounterfactualRL metadata.
+"""
+
+DEFAULT_DATA_CFRL = {"orig": None,
+                     "cf": None,
+                     "target": None,
+                     "condition": None}  # type: dict
+"""
+Default CounterfactualRL data.
+"""

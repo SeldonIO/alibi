@@ -234,6 +234,87 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
     _simple_save(explainer, path)
 
 
+def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+    # get backend module
+    backend = explainer.backend
+
+    # save autoencoder
+    ae = explainer.params["ae"]
+    backend.save_model(path=Path(path, "ae.npy"),
+                       model=explainer.params["ae"])
+
+    # save actor
+    actor = explainer.params["actor"]
+    optimizer_actor = explainer.params["optimizer_actor"]
+    backend.save_model(path=Path(path, "actor.npy"),
+                       model=explainer.params["actor"],
+                       optimizer=explainer.params["optimizer_actor"])
+
+    # save critic
+    critic = explainer.params["critic"]
+    optimizer_critic = explainer.params["optimizer_critic"]
+    backend.save_model(path=Path(path, "critic.npy"),
+                       model=explainer.params["critic"],
+                       optimizer=explainer.params["optimizer_critic"])
+
+    # save locally prediction function
+    predict_func = explainer.params["predict_func"]
+
+    # set autoencoder, actor, critic, prediction_func, and backend to `None`
+    explainer.params["ae"] = None
+    explainer.params["actor"] = None
+    explainer.params["critic"] = None
+    explainer.params["optimizer_actor"] = None
+    explainer.params["optimizer_critic"] = None
+    explainer.params["predict_func"] = None
+    explainer.backend = None
+
+    # Save explainer. All the pre/post-processing function will be saved in the explainer.
+    # TODO: find a better way? (I think this is ok if the functions are not too complex)
+    with open(Path(path, "explainer.dill"), 'wb') as f:
+        dill.dump(explainer, f)
+
+    # set autoencoder, actor and critic back
+    explainer.params["ae"] = ae
+    explainer.params["actor"] = actor
+    explainer.params["optimizer_actor"] = optimizer_actor
+    explainer.params["critic"] = critic
+    explainer.params["optimizer_critic"] = optimizer_critic
+    explainer.params["predict_func"] = predict_func
+    explainer.backend = backend
+
+
+def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
+                               predictor: Callable,
+                               meta: dict,
+                               ae,
+                               actor=None,
+                               critic=None,
+                               optimizer_actor=None,
+                               optimizer_critic=None) -> 'CounterfactualRLBase':
+    # load explainer
+    with Path(path, "explainer.dill", "rb") as f:
+        explainer = dill.load(f)
+
+    # load backend
+    from alibi.utils.frameworks import has_pytorch, has_tensorflow
+    from alibi.explainers import CounterfactualRLBase
+
+    # TODO: double check if pytorch available? (this should be already in the constructor)
+    if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW:
+        import alibi.explainers.backends.tflow.cfrl_base as backend
+
+    if explainer.params["backend"] == CounterfactualRLBase.PYTORCH:
+        import alibi.explainers.backends.pytorch.cfrl_base as backend
+    else:
+        raise ImportError("Backend")
+
+
+
+    # load autoencoder
+
+
+
 class NumpyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(

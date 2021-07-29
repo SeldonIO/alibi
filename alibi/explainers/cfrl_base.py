@@ -6,6 +6,7 @@ from copy import deepcopy
 from typing import Union, Any, Callable, Optional, Tuple, Dict, List
 from abc import ABC, abstractmethod
 
+from alibi.api.defaults import DEFAULT_META_CFRL, DEFAULT_DATA_CFRL
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.models.tflow.autoencoder import AE as TensorflowAE
 from alibi.models.pytorch.autoencoder import AE as PytorchAE
@@ -220,6 +221,8 @@ DEFAULT_BASE_PARAMS = {
     "critic": None,
     "optimizer_actor": None,
     "optimizer_critic": None,
+    "lr_actor": 1e-3,
+    "lr_critic": 1e-3,
     "actor_hidden_dim": 256,
     "critic_hidden_dim": 256,
 }
@@ -290,6 +293,10 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'optimizer_actor'``: Optional[keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
 
     - ``'optimizer_critic'``: Optional[keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
+    
+    - ``'lr_actor'``: float, actor learning rate.
+    
+    - ``'lr_critic'``: float, critic learning rate.
 
     - ``'actor_hidden_dim'``: int, actor hidden layer dimension.
 
@@ -305,7 +312,7 @@ _PARAM_TYPES = {
     "complex": [
         "ae_preprocessor", "ae_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
         "experience_callbacks", "train_callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic",
-        "ae", "predict_func", "sparsity_loss", "consistency_loss"
+        "ae", "predict_func", "sparsity_loss", "consistency_loss",
     ]
 }
 """
@@ -350,33 +357,25 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         """
-        super().__init__(meta=CounterfactualRLBase._serialize_params(deepcopy(DEFAULT_BASE_PARAMS)))
+        super().__init__(meta=deepcopy(DEFAULT_META_CFRL))
 
         # Clean backend flag.
         backend = backend.strip().lower()
 
-        # Check if pytorch/tensorflow backend supported.
-        if (backend == CounterfactualRLBase.PYTORCH and not has_pytorch) or \
-                (backend == CounterfactualRLBase.TENSORFLOW and not has_tensorflow):
-            raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
-                              f' with {backend} backend.')
 
-        # Allow only pytorch and tensorflow.
-        elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
-            raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
         # Select backend.
-        self.backend = self._select_backend(backend, **kwargs)
+        self.backend = self.select_backend(backend, **kwargs)
 
         # Validate arguments.
-        self.params, all_params = self._validate_kwargs(predict_func=predict_func,
-                                                        ae=ae,
-                                                        latent_dim=latent_dim,
-                                                        coeff_sparsity=coeff_sparsity,
-                                                        coeff_consistency=coeff_consistency,
-                                                        num_classes=num_classes,
-                                                        backend=backend,
-                                                        **kwargs)
+        self.params, all_params = self.validate_kwargs(predict_func=predict_func,
+                                                       ae=ae,
+                                                       latent_dim=latent_dim,
+                                                       coeff_sparsity=coeff_sparsity,
+                                                       coeff_consistency=coeff_consistency,
+                                                       num_classes=num_classes,
+                                                       backend=backend,
+                                                       **kwargs)
 
         # If pytorch backend, the if GPU available, send everything to GPU
         if self.params["backend"] == CounterfactualRLBase.PYTORCH:
@@ -390,11 +389,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
             self.params["actor"].to(self.params["device"])
             self.params["critic"].to(self.params["device"])
 
-        # update meta-data
-        self.meta.update(CounterfactualRLBase._serialize_params(all_params))
+        # update meta-data with all parameters passed (correct and incorrect)
+        self.meta["params"].update(CounterfactualRLBase.serialize_params(all_params))
 
     @staticmethod
-    def _serialize_params(params: Dict[str, Any]):
+    def serialize_params(params: Dict[str, Any]):
         """
         Parameter serialization. The function replaces object by human-readable representation
 
@@ -417,10 +416,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
             elif param in _PARAM_TYPES["complex"]:
                 if isinstance(value, list):
                     # each complex element in the list is serialized by replacing it with a name
-                    meta.update({param: [CounterfactualRLBase._get_name(v) for v in value]})
+                    meta.update({param: [CounterfactualRLBase.get_name(v) for v in value]})
                 else:
                     # complex element is serialized by replacing it with a name
-                    meta.update({param: CounterfactualRLBase._get_name(value)})
+                    meta.update({param: CounterfactualRLBase.get_name(value)})
             else:
                 # Unknown parameters are passed as they are. TODO: think of a better way to handle this.
                 meta.update({param: value})
@@ -428,7 +427,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return meta
 
     @staticmethod
-    def _get_name(a: Any) -> str:
+    def get_name(a: Any) -> str:
         """
         Constructs a name for the given object. If the object has as built-in name, the name is return.
         If the object has a built-in class name, the name of the class is returned. Otherwise `unknown` is returned.
@@ -450,7 +449,27 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         return "unknown"
 
-    def _select_backend(self, backend, **kwargs):
+    def verify_backend(self, backend):
+        """
+        Verifies if the backend is supported.
+
+        Parameters
+        ----------
+        backend
+            Backend to be checked.
+        """
+
+        # Check if pytorch/tensorflow backend supported.
+        if (backend == CounterfactualRLBase.PYTORCH and not has_pytorch) or \
+                (backend == CounterfactualRLBase.TENSORFLOW and not has_tensorflow):
+            raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
+                              f' with {backend} backend.')
+
+        # Allow only pytorch and tensorflow.
+        elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
+            raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
+
+    def select_backend(self, backend, **kwargs):
         """
         Selects the backend according to the `backend` flag.
 
@@ -461,15 +480,15 @@ class CounterfactualRLBase(Explainer, FitMixin):
         """
         return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
-    def _validate_kwargs(self,
-                         predict_func: Callable,
-                         ae: Union[TensorflowAE, PytorchAE],
-                         latent_dim: float,
-                         coeff_sparsity: float,
-                         coeff_consistency: float,
-                         num_classes: int,
-                         backend: str,
-                         **kwargs):
+    def validate_kwargs(self,
+                        predict_func: Callable,
+                        ae: Union[TensorflowAE, PytorchAE],
+                        latent_dim: float,
+                        coeff_sparsity: float,
+                        coeff_consistency: float,
+                        num_classes: int,
+                        backend: str,
+                        **kwargs):
         """
         Validates arguments.
 
@@ -522,6 +541,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # extract model in question
             model_name = optim.split("_")[1]
             model = params[model_name]
+            lr = params["lr_" + model_name]
 
             # If the optimizer is user-specified, just update the params
             if optim in kwargs:
@@ -531,9 +551,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
             # If the optimizer is not user-specified, it need to be initialized. The initialization is backend specific.
             elif params['backend'] == CounterfactualRLBase.TENSORFLOW:
-                params.update({optim: self.backend.get_optimizer()})
+                params.update({optim: self.backend.get_optimizer(lr=lr)})
             else:
-                params.update({optim: self.backend.get_optimizer(model)})
+                params.update({optim: self.backend.get_optimizer(model=model, lr=lr)})
 
         # Add sparsity loss if not user-specified.
         params["sparsity_loss"] = self.backend.sparsity_loss if "sparsity_loss" not in kwargs \
@@ -794,7 +814,19 @@ class CounterfactualRLBase(Explainer, FitMixin):
         `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
         corresponding labels, targets and additional metadata.
         """
-        data = {"orig": {"X": X, "class": y_m}, "cf": {"X": X_cf, "class": y_m_cf}, "target": y_t, "condition": c}
+        data = deepcopy(DEFAULT_DATA_CFRL)
+
+        # update original input entrance
+        data["orig"] = {}
+        data["orig"].update({"X": X, "class": y_m})
+
+        # update counterfactual entrance
+        data["cf"] = {}
+        data["cf"].update({"X": X_cf, "class": y_m_cf})
+
+        # update target and condition
+        data["target"] = y_t
+        data["condition"] = c
         return Explanation(meta=self.meta, data=data)
 
 
@@ -821,8 +853,12 @@ class Postprocessing(ABC):
         raise NotImplementedError
 
 
-class ExperienceCallback(ABC):
-    @abstractmethod
+class ExperienceCallback:
+    """
+    Experience callback class. This is not an ABC since it can not be pickled.
+    TODO: Maybe go for something else?
+    """
+
     def __call__(self,
                  step: int,
                  model: CounterfactualRLBase,
@@ -843,8 +879,12 @@ class ExperienceCallback(ABC):
         raise NotImplementedError
 
 
-class TrainingCallback(ABC):
-    @abstractmethod
+class TrainingCallback():
+    """
+    Training callback class. This is not an ABC since it can not be pickled.
+    TODO: Maybe go for something else?
+    """
+
     def __call__(self,
                  step: int,
                  update: int,

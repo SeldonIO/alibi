@@ -46,27 +46,27 @@ class SampleTabularPostprocessing(Postprocessing):
         self.category_map = category_map
         self.stats = stats
 
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> List[np.ndarray]:
+    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: np.ndarray) -> List[np.ndarray]:
         """
         Performs counterfactual conditional sampling acording to the conditional vector and the original input.
 
         Parameters
         ----------
-        x_cf
+        X_cf
             Decoder reconstruction of the counterfactual instance. The decoded instance is a list where each
             element in the list correspond to the reconstruction of a feature.
-        x
+        X
             Input instance.
-        c
+        C
             Conditional vector.
 
         Returns
         -------
         Conditional sampled counterfactual instance.
         """
-        return sample(x_hat_split=x_cf,
-                      x_ohe=x,
-                      cond=c,
+        return sample(X_hat_split=X_cf,
+                      X_ohe=X,
+                      C=C,
                       stats=self.stats,
                       category_map=self.category_map)
 
@@ -74,24 +74,24 @@ class SampleTabularPostprocessing(Postprocessing):
 class ConcatTabularPostprocessing(Postprocessing):
     """ Tabular feature columns concatenation post-processing. """
 
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> np.ndarray:
+    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: np.ndarray) -> np.ndarray:
         """
         Performs a concatenation of the counterfactual feature columns along the axis 1.
 
         Parameters
         ----------
-        x_cf
+        X_cf
             List of counterfactual feature columns.
-        x
+        X
             Input instance. Not used. Included for consistency.
-        c
+        C
             Conditional vector. Not used. Included for consistency.
 
         Returns
         -------
         Concatenation of the counterfactual feature columns.
         """
-        return np.concatenate(x_cf, axis=1)
+        return np.concatenate(X_cf, axis=1)
 
 
 # update parameter types for the tabular case
@@ -228,10 +228,10 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         """
         return tensorflow_tabular_backend if backend == "tensorflow" else pytorch_tabular_backend
 
-    def fit(self, x: np.ndarray) -> 'Explainer':
+    def fit(self, X: np.ndarray) -> 'Explainer':
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
-        self.params["stats"] = statistics(x=x,
+        self.params["stats"] = statistics(X=X,
                                           preprocessor=self.params["ae_preprocessor"],
                                           category_map=self.params["category_map"])
 
@@ -245,12 +245,12 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
 
         # call base class fit
-        return super().fit(x)
+        return super().fit(X)
 
     def explain(self,
                 X: np.ndarray,
-                y_t: np.ndarray = None,  # TODO remove default value (mypy error)
-                c: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
+                Y_t: np.ndarray = None,  # TODO remove default value (mypy error)
+                C: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
                 batch_size: int = 100,
                 diversity: bool = False,
                 num_samples: int = 1,
@@ -264,9 +264,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         ----------
         X
             Input instances to generate counterfactuals for.
-        y_t
+        Y_t
             Target labels.
-        c
+        C
             List of conditional dictionaries.
         diversity
             Whether to generate diverse counterfactual set for the given instance. Only supported for a single
@@ -298,63 +298,63 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         # Check if diversity flag is on.
         if diversity:
             return self.diversity(X=X,
-                                  y_t=y_t,
-                                  c=c,
+                                  Y_t=Y_t,
+                                  C=C,
                                   num_samples=num_samples,
                                   batch_size=batch_size,
                                   patience=patience,
                                   tolerance=tolerance)
 
         # Define conditional vector if `None`.
-        if c is None:
-            c = [dict()]
+        if C is None:
+            C = [dict()]
 
         # Check the number of conditions.
-        if len(c) != 1 and len(c) != X.shape[0]:
+        if len(C) != 1 and len(C) != X.shape[0]:
             raise ValueError("The number of conditions should be 1 or equals the number of samples in x.")
 
         # If only one condition is passed.
-        if len(c) == 1:
-            c_vec = self.params["conditional_vector"](x=X,
-                                                      condition=c[0],
+        if len(C) == 1:
+            C_vec = self.params["conditional_vector"](X=X,
+                                                      condition=C[0],
                                                       stats=self.params["stats"])
         else:
             # If multiple conditions were passed.
-            c_vecs = []
+            C_vecs = []
 
-            for i in range(len(c)):
+            for i in range(len(C)):
                 # Generate conditional vector for each instance. Note that this depends on the input instance.
-                c_vecs.append(self.params["conditional_vector"](x=np.atleast_2d(X[i]),
-                                                                condition=c[i],
+                C_vecs.append(self.params["conditional_vector"](X=np.atleast_2d(X[i]),
+                                                                condition=C[i],
                                                                 stats=self.params["stats"]))
 
             # Concatenate all conditional vectors.
-            c_vec = np.concatenate(c_vecs, axis=0)
+            C_vec = np.concatenate(C_vecs, axis=0)
 
-        explanation = super().explain(X=X, y_t=y_t, c=c_vec, batch_size=batch_size)
-        explanation.data.update({"condition": c})
+        explanation = super().explain(X=X, Y_t=Y_t, C=C_vec, batch_size=batch_size)
+        explanation.data.update({"condition": C})
         return explanation
 
     def diversity(self,
                   X: np.ndarray,
-                  y_t: np.ndarray,
-                  c: Optional[List[Dict[str, List[Union[str, float]]]]],
+                  Y_t: np.ndarray,
+                  C: Optional[List[Dict[str, List[Union[str, float]]]]],
                   num_samples: int = 1,
                   batch_size: int = 100,
                   patience: int = 1000,
                   tolerance: float = 1e-3) -> Explanation:
 
         # Check the number of labels.
-        if y_t.shape[0] != 1:
+        if Y_t.shape[0] != 1:
             raise ValueError("Only a single label can be passed.")
 
         # Check the number of conditions.
-        if len(c) != 1:
+        if len(C) != 1:
             raise ValueError("Only a single condition can be passed")
 
         # Generate a batch of data.
         X_repeated = np.tile(X, (batch_size, 1))
-        y_t = np.tile(y_t, batch_size)
+        Y_t = np.tile(Y_t, batch_size)
 
         # Define counterfactual buffer.
         X_cf_buff = None
@@ -367,8 +367,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                 break
 
             # Generate conditional vector.
-            c_vec = conditional_vector(x=X_repeated,
-                                       condition=c[0],
+            C_vec = conditional_vector(X=X_repeated,
+                                       condition=C[0],
                                        preprocessor=self.params["ae_preprocessor"],
                                        feature_names=self.params["feature_names"],
                                        category_map=self.params["category_map"],
@@ -377,11 +377,11 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                        diverse=True)
 
             # Generate counterfactuals.
-            results = self.compute_counterfactual(X=X_repeated, y_t=y_t, c=c_vec)
-            X_cf, y_m_cf = results["X_cf"], results["y_m_cf"]
+            results = self.compute_counterfactual(X=X_repeated, Y_t=Y_t, C=C_vec)
+            X_cf, Y_m_cf = results["X_cf"], results["Y_m_cf"]
 
             # Select only counterfactuals where prediction matches the target.
-            X_cf = X_cf[y_t == y_m_cf]
+            X_cf = X_cf[Y_t == Y_m_cf]
             if X_cf.shape[0] == 0:
                 continue
 
@@ -398,6 +398,6 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # build explanation
         X_cf = X_cf_buff[:num_samples] if (X_cf_buff is not None) else np.array([])
-        y_m_cf = self.params["predictor"](X_cf) if X_cf.shape[0] != 0 else np.array([])
-        y_m = self.params["predictor"](X)
-        return self.build_explanation(X=X, y_m=y_m, X_cf=X_cf, y_m_cf=y_m_cf, y_t=y_t, c=c)
+        Y_m_cf = self.params["predictor"](X_cf) if X_cf.shape[0] != 0 else np.array([])
+        Y_m = self.params["predictor"](X)
+        return self.build_explanation(X=X, Y_m=Y_m, X_cf=X_cf, Y_m_cf=Y_m_cf, Y_t=Y_t, C=C)

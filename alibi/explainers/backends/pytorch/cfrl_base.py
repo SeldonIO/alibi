@@ -20,7 +20,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
     """ Pytorch backend datasets. """
 
     def __init__(self,
-                 x: np.ndarray,
+                 X: np.ndarray,
                  preprocessor: Callable,
                  predictor: Callable,
                  conditional_func: Callable,
@@ -31,7 +31,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
 
         Parameters
         ----------
-        x
+        X
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
         preprocessor
@@ -50,7 +50,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         """
         super().__init__()
 
-        self.x = x
+        self.X = X
         self.preprocessor = preprocessor
         self.predictor = predictor
         self.conditional_func = conditional_func
@@ -58,31 +58,31 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         self.batch_size = batch_size
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = PtCounterfactualRLDataset.predict_batches(x=self.x,
+        self.Y_m = PtCounterfactualRLDataset.predict_batches(X=self.X,
                                                              predictor=self.predictor,
                                                              batch_size=self.batch_size)
 
         # Preprocess the input data.
-        self.x = self.preprocessor(self.x)
+        self.X = self.preprocessor(self.X)
 
     def __len__(self):
-        return self.x.shape[0]
+        return self.X.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
         self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
 
         # Generate random target class.
-        y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
+        Y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
         data = {
-            "x": self.x[idx],
-            "y_m": self.y_m[idx],
-            "y_t": y_t,
+            "X": self.X[idx],
+            "Y_m": self.Y_m[idx],
+            "Y_t": Y_t,
         }
 
         # Construct conditional vector.
-        c = self.conditional_func(self.x[idx:idx+1])
-        if c is not None:
-            data.update({"c": c.reshape(-1)})
+        C = self.conditional_func(self.X[idx:idx + 1])
+        if C is not None:
+            data.update({"c": C.reshape(-1)})
 
         return data
 
@@ -143,33 +143,33 @@ def get_critic(hidden_dim: int):
     return Critic(hidden_dim=hidden_dim)
 
 
-def sparsity_loss(x_hat_cf: torch.Tensor, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+def sparsity_loss(X_hat_cf: torch.Tensor, X: torch.Tensor) -> Dict[str, torch.Tensor]:
     """
     Default L1 sparsity loss.
 
     Parameters
     ----------
-    x_hat_cf
+    X_hat_cf
         Autoencoder counterfactual reconstruction.
-    x
+    X
         Input instance
 
     Returns
     -------
     L1 sparsity loss.
     """
-    return {"sparsity_loss": F.l1_loss(x_hat_cf, x)}
+    return {"sparsity_loss": F.l1_loss(X_hat_cf, X)}
 
 
-def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor):
+def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor):
     """
     Default 0 consistency loss.
 
     Parameters
     ----------
-    z_cf_pred
+    Z_cf_pred
         Counterfactual embedding prediction.
-    z_cf_tgt
+    Z_cf_tgt
         Counterfactual embedding target.
 
     Returns
@@ -179,7 +179,7 @@ def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor):
     return {"consistency_loss": 0}
 
 
-def data_generator(x: np.ndarray,
+def data_generator(X: np.ndarray,
                    ae_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
@@ -193,7 +193,7 @@ def data_generator(x: np.ndarray,
 
     Parameters
     ----------
-     x
+     X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     ae_preprocessor
@@ -214,7 +214,7 @@ def data_generator(x: np.ndarray,
     num_workers
         Number of worker processes to be created.
     """
-    dataset = PtCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predictor=predictor,
+    dataset = PtCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
                                         conditional_func=conditional_func, num_classes=num_classes,
                                         batch_size=batch_size)
     return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
@@ -222,13 +222,13 @@ def data_generator(x: np.ndarray,
 
 
 @torch.no_grad()
-def encode(x: torch.Tensor, ae: AE, device: torch.device, **kwargs):
+def encode(X: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     """
     Encodes the input tensor.
 
     Parameters
     ----------
-    x
+    X
         Input to be encoded.
     ae
         Pre-trained autoencoder.
@@ -240,17 +240,17 @@ def encode(x: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     Input encoding.
     """
     ae.eval()
-    return ae.encoder(x.float().to(device))
+    return ae.encoder(X.float().to(device))
 
 
 @torch.no_grad()
-def decode(z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
+def decode(Z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     """
     Decodes an embedding tensor.
 
     Parameters
     ----------
-    z
+    Z
         Embedding tensor to be decoded.
     ae
         Pre-trained autoencoder.
@@ -262,14 +262,14 @@ def decode(z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     Embedding tensor decoding.
     """
     ae.eval()
-    return ae.decoder(z.float().to(device))
+    return ae.decoder(Z.float().to(device))
 
 
 @torch.no_grad()
-def generate_cf(z: torch.Tensor,
-                y_m: torch.Tensor,
-                y_t: torch.Tensor,
-                c: Optional[torch.Tensor],
+def generate_cf(Z: torch.Tensor,
+                Y_m: torch.Tensor,
+                Y_t: torch.Tensor,
+                C: Optional[torch.Tensor],
                 num_classes: int,
                 ae: nn.Module,
                 actor: nn.Module,
@@ -280,13 +280,13 @@ def generate_cf(z: torch.Tensor,
 
     Parameters
     ----------
-    z
+    Z
         Input embedding tensor.
-    y_m
+    Y_m
         Input classification label.
-    y_t
+    Y_t
         Target counterfactual classification label.
-    c
+    C
         Conditional tensor.
     num_classes
         Number of classes to be considered.
@@ -299,7 +299,7 @@ def generate_cf(z: torch.Tensor,
 
     Returns
     -------
-    z_cf
+    Z_cf
         Counterfactual embedding.
     """
     # Set autoencoder and actor to evaluation mode.
@@ -307,19 +307,19 @@ def generate_cf(z: torch.Tensor,
     actor.eval()
 
     # Transform classification labels into one-hot encoding.
-    y_m_ohe = F.one_hot(y_m.long(), num_classes=num_classes).float().to(device)
-    y_t_ohe = F.one_hot(y_t.long(), num_classes=num_classes).float().to(device)
+    Y_m_ohe = F.one_hot(Y_m.long(), num_classes=num_classes).float().to(device)
+    Y_t_ohe = F.one_hot(Y_t.long(), num_classes=num_classes).float().to(device)
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [z.view(z.shape[0], -1), y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])
+    state = [Z.view(Z.shape[0], -1), Y_m_ohe, Y_t_ohe] + ([C.float().to(device)] if (C is not None) else [])
     state = torch.cat(state, dim=1)  # type: ignore
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
-    z_cf = actor(state)
-    return z_cf
+    Z_cf = actor(state)
+    return Z_cf
 
 
-def add_noise(z_cf: torch.Tensor,
+def add_noise(Z_cf: torch.Tensor,
               noise: 'NormalActionNoise',
               act_low: float,
               act_high: float,
@@ -332,7 +332,7 @@ def add_noise(z_cf: torch.Tensor,
 
     Parameters
     ----------
-    z_cf
+    Z_cf
        Counterfactual embedding.
     noise
        Noise generator object.
@@ -350,21 +350,21 @@ def add_noise(z_cf: torch.Tensor,
 
     Returns
     -------
-    z_cf_tilde
+    Z_cf_tilde
        Noised counterfactual embedding.
     """
     # Generate noise.
-    eps = torch.tensor(noise(z_cf.shape)).float().to(device)
+    eps = torch.tensor(noise(Z_cf.shape)).float().to(device)
 
     if step > exploration_steps:
-        z_cf_tilde = z_cf + eps
-        z_cf_tilde = torch.clamp(z_cf_tilde, min=act_low, max=act_high)
+        Z_cf_tilde = Z_cf + eps
+        Z_cf_tilde = torch.clamp(Z_cf_tilde, min=act_low, max=act_high)
     else:
         # for the first exploration_steps, the action is sampled from a uniform distribution between
         # [act_low, act_high] to encourage exploration. After that, the algorithm returns to the normal exploration.
-        z_cf_tilde = (act_low + (act_high - act_low) * torch.rand_like(z_cf)).to(device)
+        Z_cf_tilde = (act_low + (act_high - act_low) * torch.rand_like(Z_cf)).to(device)
 
-    return z_cf_tilde
+    return Z_cf_tilde
 
 
 def update_actor_critic(ae: AE,
@@ -377,14 +377,14 @@ def update_actor_critic(ae: AE,
                         coeff_sparsity: float,
                         coeff_consistency: float,
                         num_classes: int,
-                        x: np.ndarray,
-                        x_cf: np.ndarray,
-                        z: np.ndarray,
-                        z_cf_tilde: np.ndarray,
-                        y_m: np.ndarray,
-                        y_t: np.ndarray,
-                        c: Optional[np.ndarray],
-                        r_tilde: np.ndarray,
+                        X: np.ndarray,
+                        X_cf: np.ndarray,
+                        Z: np.ndarray,
+                        Z_cf_tilde: np.ndarray,
+                        Y_m: np.ndarray,
+                        Y_t: np.ndarray,
+                        C: Optional[np.ndarray],
+                        R_tilde: np.ndarray,
                         device: torch.device,
                         **kwargs):
     """
@@ -412,21 +412,21 @@ def update_actor_critic(ae: AE,
         Consistency loss coefficient
     num_classes
         Number of classes to be considered.
-    x
+    X
         Input array.
-    x_cf
+    X_cf
         Counterfactual array.
-    z
+    Z
         Input embedding.
-    z_cf_tilde
+    Z_cf_tilde
         Noised counterfactual embedding.
-    y_m
+    Y_m
         Input classification label.
-    y_t
+    Y_t
         Target counterfactual classification label.
-    c
+    C
         Conditional tensor.
-    r_tilde
+    R_tilde
         Noised counterfactual reward.
     device
         Torch device object.
@@ -446,24 +446,24 @@ def update_actor_critic(ae: AE,
     losses: Dict[str, float] = dict()
 
     # Transform data to tensors and it device
-    x = torch.tensor(x).float().to(device)                                                                # type: ignore
-    x_cf = torch.tensor(x_cf).float().to(device)                                                          # type: ignore
-    z = torch.tensor(z).float().to(device)                                                                # type: ignore
-    z_cf_tilde = torch.tensor(z_cf_tilde).float().to(device)                                              # type: ignore
-    y_m_ohe = F.one_hot(torch.tensor(y_m, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
-    y_t_ohe = F.one_hot(torch.tensor(y_t, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
-    c = torch.tensor(c).float().to(device) if (c is not None) else None                                   # type: ignore
-    r_tilde = torch.tensor(r_tilde).float().to(device)                                                    # type: ignore
+    X = torch.tensor(X).float().to(device)                                                                # type: ignore
+    X_cf = torch.tensor(X_cf).float().to(device)                                                          # type: ignore
+    Z = torch.tensor(Z).float().to(device)                                                                # type: ignore
+    Z_cf_tilde = torch.tensor(Z_cf_tilde).float().to(device)                                              # type: ignore
+    Y_m_ohe = F.one_hot(torch.tensor(Y_m, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
+    Y_t_ohe = F.one_hot(torch.tensor(Y_t, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
+    C = torch.tensor(C).float().to(device) if (C is not None) else None                                   # type: ignore
+    R_tilde = torch.tensor(R_tilde).float().to(device)                                                    # type: ignore
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [z, y_m_ohe, y_t_ohe] + ([c.float().to(device)] if (c is not None) else [])  # type: ignore
+    state = [Z, Y_m_ohe, Y_t_ohe] + ([C.float().to(device)] if (C is not None) else [])  # type: ignore
     state = torch.cat(state, dim=1).to(device)                                           # type: ignore
 
     # Define input for critic, compute q-values and append critic's loss.
-    input_critic = torch.cat([state, z_cf_tilde], dim=1).float()  # type: ignore
+    input_critic = torch.cat([state, Z_cf_tilde], dim=1).float()  # type: ignore
     output_critic = critic(input_critic).squeeze(1)               # type: ignore
-    loss_critic = F.mse_loss(output_critic, r_tilde)              # type: ignore
+    loss_critic = F.mse_loss(output_critic, R_tilde)              # type: ignore
     losses.update({"loss_critic": loss_critic.item()})
 
     # Update critic by gradient step.
@@ -472,11 +472,11 @@ def update_actor_critic(ae: AE,
     optimizer_critic.step()
 
     # Compute counterfactual embedding.
-    z_cf = actor(state)
+    Z_cf = actor(state)
 
     # Compute critic's output.
     critic.eval()
-    input_critic = torch.cat([state, z_cf], dim=1)  # type: ignore
+    input_critic = torch.cat([state, Z_cf], dim=1)  # type: ignore
     output_critic = critic(input_critic)
 
     # Compute actor's loss.
@@ -484,10 +484,10 @@ def update_actor_critic(ae: AE,
     losses.update({"loss_actor": loss_actor.item()})
 
     # Decode the output of the actor.
-    x_hat_cf = ae.decoder(z_cf)
+    x_hat_cf = ae.decoder(Z_cf)
 
     # Compute sparsity losses.
-    loss_sparsity = sparsity_loss(x_hat_cf, x)
+    loss_sparsity = sparsity_loss(x_hat_cf, X)
     losses.update(loss_sparsity)
 
     # Add sparsity loss to the overall actor's loss.
@@ -495,8 +495,8 @@ def update_actor_critic(ae: AE,
         loss_actor += coeff_sparsity * loss_sparsity[key]
 
     # Compute consistency loss.
-    z_cf_tgt = encode(x=x_cf, ae=ae, device=device)  # type: ignore
-    loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
+    Z_cf_tgt = encode(X=X_cf, ae=ae, device=device)  # type: ignore
+    loss_consistency = consistency_loss(z_cf_pred=Z_cf, z_cf_tgt=Z_cf_tgt)
     losses.update(loss_consistency)
 
     # Add consistency loss to the overall actor loss.
@@ -512,35 +512,35 @@ def update_actor_critic(ae: AE,
     return losses
 
 
-def to_numpy(x: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List, np.ndarray]]:
+def to_numpy(X: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
     Converts given tensor to numpy array.
 
     Parameters
     ----------
-    x
+    X
         Input tensor to be converted to numpy array.
 
     Returns
     -------
     Numpy representation of the input tensor.
     """
-    if x is not None:
-        if isinstance(x, np.ndarray):
-            return x
+    if X is not None:
+        if isinstance(X, np.ndarray):
+            return X
 
-        if isinstance(x, torch.Tensor):
-            return x.detach().cpu().numpy()
+        if isinstance(X, torch.Tensor):
+            return X.detach().cpu().numpy()
 
-        if isinstance(x, list):
-            return [to_numpy(e) for e in x]
+        if isinstance(X, list):
+            return [to_numpy(e) for e in X]
 
-        return np.array(x)
+        return np.array(X)
 
     return None
 
 
-def to_tensor(x: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs) -> Optional[torch.Tensor]:
+def to_tensor(X: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs) -> Optional[torch.Tensor]:
     """
     Converts tensor to torch.Tensor
 
@@ -548,11 +548,11 @@ def to_tensor(x: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs
     -------
     torch.Tensor conversion.
     """
-    if x is not None:
-        if isinstance(x, torch.Tensor):
-            return x.to(device)
+    if X is not None:
+        if isinstance(X, torch.Tensor):
+            return X.to(device)
 
-        return torch.tensor(x).to(device)
+        return torch.tensor(X).to(device)
 
     return None
 

@@ -8,14 +8,14 @@ import torch.nn.functional as F
 from typing import List, Dict
 
 
-def sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
+def sample_differentiable(X_ohe_hat_split: List[torch.Tensor],
                           category_map: Dict[int, List[str]]) -> List[torch.Tensor]:
     """
     Samples differentiable reconstruction.
 
     Parameters
     ----------
-    x_ohe_hat_split
+    X_ohe_hat_split
         List of one-hot encoded reconstructed columns form the auto-encoder.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
@@ -25,26 +25,26 @@ def sample_differentiable(x_ohe_hat_split: List[torch.Tensor],
     -------
     Differentiable reconstruction.
     """
-    num_attr = len(x_ohe_hat_split) - len(category_map)
+    num_attr = len(X_ohe_hat_split) - len(category_map)
     cat_attr = len(category_map)
-    x_out = []
+    X_out = []
 
     # pass numerical attributes as they are
     if num_attr > 0:
-        x_out.append(x_ohe_hat_split[0])
+        X_out.append(X_ohe_hat_split[0])
 
     # sample categorical attributes
     if cat_attr > 0:
-        for head in x_ohe_hat_split[-cat_attr:]:
+        for head in X_ohe_hat_split[-cat_attr:]:
             out = torch.argmax(head, dim=1)
 
             # transform to one-hot encoding
             out = F.one_hot(out, num_classes=head.shape[1])
             proba = F.softmax(head, dim=1)
             out = out - proba.detach() + proba
-            x_out.append(out)
+            X_out.append(out)
 
-    return x_out
+    return X_out
 
 
 def l0_ohe(input: torch.Tensor,
@@ -100,8 +100,8 @@ def l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') 
     return F.l1_loss(input=input, target=target, reduction=reduction)
 
 
-def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
-                  x_ohe: torch.Tensor,
+def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
+                  X_ohe: torch.Tensor,
                   category_map: Dict[int, List[str]],
                   weight_num: float = 1.0,
                   weight_cat: float = 1.0):
@@ -110,9 +110,9 @@ def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
 
     Parameters
     ----------
-    x_ohe_hat_split
+    X_ohe_hat_split
         List of one-hot encoded reconstructed columns form the auto-encoder.
-    x_ohe
+    X_ohe
         One-hot encoded representation of the input.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
@@ -127,11 +127,11 @@ def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
     Heterogeneous sparsity loss.
     """
     # split the input into a list of tensor, where each element corresponds to a network head
-    x_ohe_num_split, x_ohe_cat_split = split_ohe(x_ohe=x_ohe,
+    X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
                                                  category_map=category_map)
 
     # sample differentiable output
-    x_ohe_hat_split = sample_differentiable(x_ohe_hat_split=x_ohe_hat_split,
+    X_ohe_hat_split = sample_differentiable(X_ohe_hat_split=X_ohe_hat_split,
                                             category_map=category_map)
 
     # define numerical and categorical loss
@@ -139,32 +139,32 @@ def sparsity_loss(x_ohe_hat_split: List[torch.Tensor],
     offset = 0
 
     # compute numerical loss
-    if len(x_ohe_num_split) > 0:
+    if len(X_ohe_num_split) > 0:
         offset = 1
-        num_loss = torch.mean(l1_loss(input=x_ohe_hat_split[0],
-                                      target=x_ohe_num_split[0],
+        num_loss = torch.mean(l1_loss(input=X_ohe_hat_split[0],
+                                      target=X_ohe_num_split[0],
                                       reduction='none'))
 
     # compute categorical loss
-    if len(x_ohe_cat_split) > 0:
-        for i in range(len(x_ohe_cat_split)):
-            batch_size = x_ohe_hat_split[i].shape[0]
-            cat_loss += torch.sum(l0_ohe(input=x_ohe_hat_split[i + offset],
-                                         target=x_ohe_cat_split[i],
+    if len(X_ohe_cat_split) > 0:
+        for i in range(len(X_ohe_cat_split)):
+            batch_size = X_ohe_hat_split[i].shape[0]
+            cat_loss += torch.sum(l0_ohe(input=X_ohe_hat_split[i + offset],
+                                         target=X_ohe_cat_split[i],
                                          reduction='none')) / batch_size
 
-        cat_loss /= len(x_ohe_cat_split)
+        cat_loss /= len(X_ohe_cat_split)
 
     return {"num_loss": weight_num * num_loss, "cat_loss": weight_cat * cat_loss}
 
 
-def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor, **kwargs):
+def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):
     """
     Computes heterogeneous consistency loss.
 
     Parameters
     ----------
-    z_cf_pred
+    Z_cf_pred
         Predicted counterfactual embedding.
     x_cf
         Counterfactual reconstruction. This should be already post-processed.
@@ -176,5 +176,5 @@ def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor, **kwargs):
     Heterogeneous consistency loss.
     """
     # compute consistency loss
-    loss = F.mse_loss(z_cf_pred, z_cf_tgt)
+    loss = F.mse_loss(Z_cf_pred, Z_cf_tgt)
     return {"consistency_loss": loss}

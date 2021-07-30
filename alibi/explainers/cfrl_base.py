@@ -81,11 +81,11 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.X, self.x_cf = None, None           # buffers for the input and the counterfactuals
-        self.y_m, self.y_t = None, None          # buffers for the model's prediction and counterfactual target
-        self.z, self.z_cf_tilde = None, None     # buffers for the input embedding and noised counterfactual embedding
-        self.c = None                            # buffer for the conditional tensor
-        self.r_tilde = None                      # buffer for the noised counterfactual reward tensor
+        self.X, self.X_cf = None, None           # buffers for the input and the counterfactuals
+        self.Y_m, self.Y_t = None, None          # buffers for the model's prediction and counterfactual target
+        self.Z, self.Z_cf_tilde = None, None     # buffers for the input embedding and noised counterfactual embedding
+        self.C = None                            # buffer for the conditional tensor
+        self.R_tilde = None                      # buffer for the noised counterfactual reward tensor
 
         self.idx = 0                             # cursor for the buffer
         self.len = 0                             # current length of the buffer
@@ -93,14 +93,14 @@ class ReplayBuffer:
         self.batch_size = None                   # batch size (inferred during `append`)
 
     def append(self,
-               x: np.ndarray,
-               x_cf: np.ndarray,
-               y_m: np.ndarray,
-               y_t: np.ndarray,
-               z: np.ndarray,
-               z_cf_tilde: np.ndarray,
-               c: Optional[np.ndarray],
-               r_tilde: np.ndarray,
+               X: np.ndarray,
+               X_cf: np.ndarray,
+               Y_m: np.ndarray,
+               Y_t: np.ndarray,
+               Z: np.ndarray,
+               Z_cf_tilde: np.ndarray,
+               C: Optional[np.ndarray],
+               R_tilde: np.ndarray,
                **kwargs) -> None:
         """
         Adds experience to the replay buffer. When the buffer is filled, then the oldest experience is replaced
@@ -108,39 +108,39 @@ class ReplayBuffer:
 
         Parameters
         ----------
-        x
+        X
             Input array.
-        x_cf
+        X_cf
             Counterfactual array.
-        y_m
+        Y_m
             Model's prediction class of x.
-        y_t
+        Y_t
             Counterfactual target class.
-        z
+        Z
             Input's embedding.
-        z_cf_tilde
+        Z_cf_tilde
             Noised counterfactual embedding.
-        c
+        C
             Conditional array.
-        r_tilde
+        R_tilde
             Noised counterfactual reward array.
         """
         # Initialize the buffers.
         if self.X is None:
-            self.batch_size = x.shape[0]
+            self.batch_size = X.shape[0]
 
             # Allocate memory.
-            self.X = np.zeros((self.size * self.batch_size, *x.shape[1:]), dtype=np.float32)
-            self.x_cf = np.zeros((self.size * self.batch_size, *x_cf.shape[1:]), dtype=np.float32)
-            self.y_m = np.zeros((self.size * self.batch_size, *y_m.shape[1:]), dtype=np.float32)
-            self.y_t = np.zeros((self.size * self.batch_size, *y_t.shape[1:]), dtype=np.float32)
-            self.z = np.zeros((self.size * self.batch_size, *z.shape[1:]), dtype=np.float32)
-            self.z_cf_tilde = np.zeros((self.size * self.batch_size, *z_cf_tilde.shape[1:]), dtype=np.float32)
-            self.r_tilde = np.zeros((self.size * self.batch_size, *r_tilde.shape[1:]), dtype=np.float32)
+            self.X = np.zeros((self.size * self.batch_size, *X.shape[1:]), dtype=np.float32)
+            self.X_cf = np.zeros((self.size * self.batch_size, *X_cf.shape[1:]), dtype=np.float32)
+            self.Y_m = np.zeros((self.size * self.batch_size, *Y_m.shape[1:]), dtype=np.float32)
+            self.Y_t = np.zeros((self.size * self.batch_size, *Y_t.shape[1:]), dtype=np.float32)
+            self.Z = np.zeros((self.size * self.batch_size, *Z.shape[1:]), dtype=np.float32)
+            self.Z_cf_tilde = np.zeros((self.size * self.batch_size, *Z_cf_tilde.shape[1:]), dtype=np.float32)
+            self.R_tilde = np.zeros((self.size * self.batch_size, *R_tilde.shape[1:]), dtype=np.float32)
 
             # Conditional tensor can be `None` when no condition is included. If it is not `None`, allocate memory.
-            if c is not None:
-                self.c = np.zeros((self.size * self.batch_size, *c.shape[1:]), dtype=np.float32)
+            if C is not None:
+                self.C = np.zeros((self.size * self.batch_size, *C.shape[1:]), dtype=np.float32)
 
         # Increase the length of the buffer if not full.
         if self.len < self.size:
@@ -150,16 +150,16 @@ class ReplayBuffer:
         start = self.batch_size * self.idx
 
         # Add new data / replace old experience (note that a full batch is added at once).
-        self.X[start:start + self.batch_size] = x
-        self.x_cf[start:start + self.batch_size] = x_cf
-        self.y_m[start:start + self.batch_size] = y_m
-        self.y_t[start:start + self.batch_size] = y_t
-        self.z[start:start + self.batch_size] = z
-        self.z_cf_tilde[start:start + self.batch_size] = z_cf_tilde
-        self.r_tilde[start:start + self.batch_size] = r_tilde
+        self.X[start:start + self.batch_size] = X
+        self.X_cf[start:start + self.batch_size] = X_cf
+        self.Y_m[start:start + self.batch_size] = Y_m
+        self.Y_t[start:start + self.batch_size] = Y_t
+        self.Z[start:start + self.batch_size] = Z
+        self.Z_cf_tilde[start:start + self.batch_size] = Z_cf_tilde
+        self.R_tilde[start:start + self.batch_size] = R_tilde
 
-        if c is not None:
-            self.c[start:start + self.batch_size] = c
+        if C is not None:
+            self.C[start:start + self.batch_size] = C
 
         # Compute the next index. Not that if the buffer reached its maximum capacity, for the next iteration
         # we start replacing old batches.
@@ -178,24 +178,24 @@ class ReplayBuffer:
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
 
         # Extract data form buffers.
-        x = self.X[rand_idx]                                        # input array
-        x_cf = self.x_cf[rand_idx]                                  # counterfactual
-        y_m = self.y_m[rand_idx]                                    # model's prediction
-        y_t = self.y_t[rand_idx]                                    # counterfactual target
-        z = self.z[rand_idx]                                        # input embedding
-        z_cf_tilde = self.z_cf_tilde[rand_idx]                      # noised counterfactual embedding
-        c = self.c[rand_idx] if (self.c is not None) else None      # conditional array if exists
-        r_tilde = self.r_tilde[rand_idx]                            # noised counterfactual reward
+        X = self.X[rand_idx]                                        # input array
+        X_cf = self.X_cf[rand_idx]                                  # counterfactual
+        Y_m = self.Y_m[rand_idx]                                    # model's prediction
+        Y_t = self.Y_t[rand_idx]                                    # counterfactual target
+        Z = self.Z[rand_idx]                                        # input embedding
+        Z_cf_tilde = self.Z_cf_tilde[rand_idx]                      # noised counterfactual embedding
+        C = self.C[rand_idx] if (self.C is not None) else None      # conditional array if exists
+        R_tilde = self.R_tilde[rand_idx]                            # noised counterfactual reward
 
         return {
-            "x": x,
-            "x_cf": x_cf,
-            "y_m": y_m,
-            "y_t": y_t,
-            "z": z,
-            "z_cf_tilde": z_cf_tilde,
-            "c": c,
-            "r_tilde": r_tilde
+            "X": X,
+            "X_cf": X_cf,
+            "Y_m": Y_m,
+            "Y_t": Y_t,
+            "Z": Z,
+            "Z_cf_tilde": Z_cf_tilde,
+            "C": C,
+            "R_tilde": R_tilde
         }
 
 
@@ -386,6 +386,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                                                        coeff_consistency=coeff_consistency,
                                                        num_classes=num_classes,
                                                        backend=backend,
+                                                       seed=seed,
                                                        **kwargs)
 
         # If pytorch backend, the if GPU available, send everything to GPU
@@ -606,13 +607,13 @@ class CounterfactualRLBase(Explainer, FitMixin):
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
 
-    def fit(self, x: np.ndarray, ) -> "Explainer":
+    def fit(self, X: np.ndarray, ) -> "Explainer":
         """
         Fit the model agnostic counterfactual generator.
 
         Parameters
         ----------
-        x
+        X
             Training data array.
 
         Returns
@@ -627,7 +628,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         noise = NormalActionNoise(mu=0, sigma=self.params["act_noise"])
 
         # Define data generator.
-        data_generator = self.backend.data_generator(x=x, **self.params)
+        data_generator = self.backend.data_generator(X=X, **self.params)
         data_iter = iter(data_generator)
 
         for step in tqdm(range(self.params["train_steps"])):
@@ -639,49 +640,49 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 data = next(data_iter)
 
             # Add None condition if condition does not exist.
-            if "c" not in data:
-                data["c"] = None
+            if "C" not in data:
+                data["C"] = None
 
             # Compute input embedding.
-            z = self.backend.encode(x=data["x"], **self.params)
-            data.update({"z": z})
+            Z = self.backend.encode(X=data["X"], **self.params)
+            data.update({"Z": Z})
 
             # Compute counterfactual embedding.
-            z_cf = self.backend.generate_cf(step=step, **data, **self.params)
-            data.update({"z_cf": z_cf})
+            Z_cf = self.backend.generate_cf(step=step, **data, **self.params)
+            data.update({"Z_cf": Z_cf})
 
             # Add noise to the counterfactual embedding.
-            z_cf_tilde = self.backend.add_noise(noise=noise, step=step, **data, **self.params)
-            data.update({"z_cf_tilde": z_cf_tilde})
+            Z_cf_tilde = self.backend.add_noise(noise=noise, step=step, **data, **self.params)
+            data.update({"Z_cf_tilde": Z_cf_tilde})
 
             # Decode counterfactual and apply postprocessing step to x_cf_tilde.
-            x_cf = self.backend.decode(z=data["z_cf"], **self.params)
-            x_cf_tilde = self.backend.decode(z=data["z_cf_tilde"], **self.params)
+            X_cf = self.backend.decode(Z=data["Z_cf"], **self.params)
+            X_cf_tilde = self.backend.decode(Z=data["Z_cf_tilde"], **self.params)
 
             for pp_func in self.params["postprocessing_funcs"]:
                 # Post-process counterfactual.
-                x_cf = pp_func(self.backend.to_numpy(x_cf),
-                               self.backend.to_numpy(data["x"]),
-                               self.backend.to_numpy(data["c"]))
+                X_cf = pp_func(self.backend.to_numpy(X_cf),
+                               self.backend.to_numpy(data["X"]),
+                               self.backend.to_numpy(data["C"]))
 
                 # Post-process noised counterfactual.
-                x_cf_tilde = pp_func(self.backend.to_numpy(x_cf_tilde),
-                                     self.backend.to_numpy(data["x"]),
-                                     self.backend.to_numpy(data["c"]))
+                X_cf_tilde = pp_func(self.backend.to_numpy(X_cf_tilde),
+                                     self.backend.to_numpy(data["X"]),
+                                     self.backend.to_numpy(data["C"]))
 
             data.update({
-                "x_cf": x_cf,
-                "x_cf_tilde": x_cf_tilde
+                "X_cf": X_cf,
+                "X_cf_tilde": X_cf_tilde
             })
 
             # Compute model's prediction on the noised counterfactual
-            x_cf_tilde = self.params["ae_inv_preprocessor"](self.backend.to_numpy(data["x_cf_tilde"]))
-            y_m_cf_tilde = self.params["predictor"](x_cf_tilde)
+            X_cf_tilde = self.params["ae_inv_preprocessor"](self.backend.to_numpy(data["X_cf_tilde"]))
+            Y_m_cf_tilde = self.params["predictor"](X_cf_tilde)
 
             # Compute reward.
-            r_tilde = self.params["reward_func"](self.backend.to_numpy(y_m_cf_tilde),
-                                                 self.backend.to_numpy(data["y_t"]))
-            data.update({"r_tilde": r_tilde, "y_m_cf_tilde": y_m_cf_tilde})
+            R_tilde = self.params["reward_func"](self.backend.to_numpy(Y_m_cf_tilde),
+                                                 self.backend.to_numpy(data["Y_t"]))
+            data.update({"R_tilde": R_tilde, "Y_m_cf_tilde": Y_m_cf_tilde})
 
             # Store experience in the replay buffer.
             data = {key: self.backend.to_numpy(data[key]) for key in data.keys()}
@@ -696,8 +697,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
 
-                    if "c" not in sample:
-                        sample["c"] = None
+                    if "C" not in sample:
+                        sample["C"] = None
 
                     # Update critic by one-step gradient descent.
                     losses = self.backend.update_actor_critic(**sample, **self.params)
@@ -713,8 +714,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def explain(self,
                 X: np.ndarray,
-                y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
-                c: Any = None,
+                Y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
+                C: Any = None,
                 batch_size: int = 100) -> Explanation:
         """
         Explains an input instance
@@ -723,9 +724,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
         ----------
         X
             Instances to be explained.
-        y_t
+        Y_t
             Counterfactual targets.
-        c
+        C
             Conditional vector.
         batch_size
             Batch size to be used in a forward pass.
@@ -737,19 +738,19 @@ class CounterfactualRLBase(Explainer, FitMixin):
         corresponding labels, targets and additional metadata.
         """
         # Check the number of target labels.
-        if y_t.shape[0] != 1 and y_t.shape[0] != X.shape[0]:
+        if Y_t.shape[0] != 1 and Y_t.shape[0] != X.shape[0]:
             raise ValueError("The number target labels should be 1 or equals the number of samples in X.")
 
-        if (c is not None) and c.shape[0] != 1 and c.shape[0] != X.shape[0]:
+        if (C is not None) and C.shape[0] != 1 and C.shape[0] != X.shape[0]:
             raise ValueError("The number of conditional vectors should be 1 or equals the number if samples in X,")
 
         # Repeat the same label to match the number of input instances.
-        if y_t.shape[0] == 1:
-            y_t = np.tile(y_t, X.shape[0])
+        if Y_t.shape[0] == 1:
+            Y_t = np.tile(Y_t, X.shape[0])
 
         # Repeat the same conditional vectors to match the number of input instances.
-        if (c is not None) and c.shape[0] == 1:
-            c = np.tile(c, X.shape[0])
+        if (C is not None) and C.shape[0] == 1:
+            C = np.tile(C, X.shape[0])
 
         # Perform prediction in mini-batches.
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
@@ -758,8 +759,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
             results = self.compute_counterfactual(X=X[istart:istop],
-                                                  y_t=y_t[istart:istop],
-                                                  c=c[istart:istop] if (c is not None) else c)
+                                                  Y_t=Y_t[istart:istop],
+                                                  C=C[istart:istop] if (C is not None) else C)
             # initialize the dict
             if not all_results:
                 all_results = results
@@ -774,8 +775,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def compute_counterfactual(self,
                                X: np.ndarray,
-                               y_t: np.ndarray,
-                               c: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
+                               Y_t: np.ndarray,
+                               C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
         """
         Compute counterfactual instance for a given input, target and condition vector
 
@@ -783,9 +784,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
         ----------
         X
             Instances to be explained.
-        y_t
+        Y_t
             Counterfactual targets.
-        c
+        C
             Conditional vector.
 
         Returns
@@ -794,56 +795,57 @@ class CounterfactualRLBase(Explainer, FitMixin):
         instances in the original format, counterfactual classification labels, target labels, conditional vectors.
         """
         # Compute models prediction.
-        y_m = self.params["predictor"](X)
+        X_orig = X
+        Y_m = self.params["predictor"](X_orig)
 
         # Apply autoencoder preprocessing step.
-        x = self.params["ae_preprocessor"](X)
+        X = self.params["ae_preprocessor"](X_orig)
 
         # Convert to tensors.
-        x = self.backend.to_tensor(x, **self.params)
-        y_m = self.backend.to_tensor(y_m, **self.params)
-        y_t = self.backend.to_tensor(y_t, **self.params)
+        X = self.backend.to_tensor(X, **self.params)
+        Y_m = self.backend.to_tensor(Y_m, **self.params)
+        Y_t = self.backend.to_tensor(Y_t, **self.params)
 
         # Encode instance.
-        z = self.backend.encode(x, **self.params)
+        Z = self.backend.encode(X, **self.params)
 
         # Generate counterfactual embedding.
-        z_cf = self.backend.generate_cf(z, y_m, y_t, c, **self.params)
+        Z_cf = self.backend.generate_cf(Z, Y_m, Y_t, C, **self.params)
 
         # Decode counterfactual.
-        x_cf = self.backend.decode(z_cf, **self.params)
-        x_cf = self.backend.to_numpy(x_cf)
+        X_cf = self.backend.decode(Z_cf, **self.params)
+        X_cf = self.backend.to_numpy(X_cf)
 
         # Apply postprocessing functions.
         for pp_func in self.params["postprocessing_funcs"]:
-            x_cf = pp_func(x_cf, x, c)
+            X_cf = pp_func(X_cf, X, C)
 
         # Apply inverse autoencoder pre-processor.
-        X_cf = self.params["ae_inv_preprocessor"](x_cf)
+        X_cf = self.params["ae_inv_preprocessor"](X_cf)
 
         # Classify counterfactual instances.
         y_m_cf = self.params["predictor"](X_cf)
 
         # convert tensors to numpy
-        y_m = self.backend.to_numpy(y_m)
-        y_t = self.backend.to_numpy(y_t)
+        Y_m = self.backend.to_numpy(Y_m)
+        Y_t = self.backend.to_numpy(Y_t)
 
         return {
-            "X": X,              # input instances
-            "y_m": y_m,          # input classification labels
+            "X": X_orig,         # input instances
+            "Y_m": Y_m,          # input classification labels
             "X_cf": X_cf,        # counterfactual instances
-            "y_m_cf": y_m_cf,    # counterfactual classification labels
-            "y_t": y_t,          # target labels
-            "c": c               # conditional vectors
+            "Y_m_cf": y_m_cf,    # counterfactual classification labels
+            "Y_t": Y_t,          # target labels
+            "C": C               # conditional vectors
         }
 
     def build_explanation(self,
                           X: np.ndarray,
-                          y_m: np.ndarray,
+                          Y_m: np.ndarray,
                           X_cf: np.ndarray,
-                          y_m_cf: np.ndarray,
-                          y_t: np.ndarray,
-                          c: Any) -> Explanation:
+                          Y_m_cf: np.ndarray,
+                          Y_t: np.ndarray,
+                          C: Any) -> Explanation:
         """
         Builds the explanation of the current object.
 
@@ -851,15 +853,15 @@ class CounterfactualRLBase(Explainer, FitMixin):
         ----------
         X
             Inputs instance in the original format.
-        y_m
+        Y_m
             Inputs classification labels.
         X_cf
             Counterfactuals instances in the original format.
-        y_m_cf
+        Y_m_cf
             Counterfactuals classification labels.
-        y_t
+        Y_t
             Target labels.
-        c
+        C
             Condition
         Returns
         -------
@@ -870,41 +872,41 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # update original input entrance
         data["orig"] = {}
-        data["orig"].update({"X": X, "class": y_m})
+        data["orig"].update({"X": X, "class": Y_m})
 
         # update counterfactual entrance
         data["cf"] = {}
-        data["cf"].update({"X": X_cf, "class": y_m_cf})
+        data["cf"].update({"X": X_cf, "class": Y_m_cf})
 
         # update target and condition
-        data["target"] = y_t
-        data["condition"] = c
+        data["target"] = Y_t
+        data["condition"] = C
         return Explanation(meta=self.meta, data=data)
 
 
 class Postprocessing(ABC):
     @abstractmethod
-    def __call__(self, x_cf: Union[np.ndarray, List[np.ndarray]], x: np.ndarray, c: np.ndarray) -> Any:
+    def __call__(self, X_cf: Union[np.ndarray, List[np.ndarray]], X: np.ndarray, C: np.ndarray) -> Any:
         """
         Post-processing function
 
         Parameters
         ----------
-        x_cf
+        X_cf
            Counterfactual instance. The datatype depends on the output of the decoder. For example, for an image
            dataset, the output is `np.ndarray`. For a tabular dataset, the output is `List[np.ndarray]` where each
            element of the list corresponds to a feature. This corresponds to the decoder's output from the
            heterogeneous autoencoder (see :py:class:`alibi.models.tensorflow.autoencoder.HeAE` and
            :py:class:`alibi.models.pytorch.autoencoder.HeAE`).
-        x
+        X
            Input instance.
-        c
+        C
            Conditional vector.
 
         Returns
         -------
-        x_cf
-            Post-processed x_cf.
+        X_cf
+            Post-processed X_cf.
         """
         pass
 

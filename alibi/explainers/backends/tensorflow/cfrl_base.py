@@ -16,7 +16,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
     """ Tensorflow backend datasets. """
 
     def __init__(self,
-                 x: np.ndarray,
+                 X: np.ndarray,
                  preprocessor: Callable,
                  predictor: Callable,
                  conditional_func: Callable,
@@ -28,7 +28,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
 
         Parameters
         ----------
-        x
+        X
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
         preprocessor
@@ -49,7 +49,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         """
         super().__init__()
 
-        self.x = x
+        self.X = X
         self.preprocessor = preprocessor
         self.predictor = predictor
         self.conditional_func = conditional_func
@@ -58,12 +58,12 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         self.shuffle = shuffle
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = TfCounterfactualRLDataset.predict_batches(x=self.x,
+        self.y_m = TfCounterfactualRLDataset.predict_batches(X=self.X,
                                                              predictor=self.predictor,
                                                              batch_size=self.batch_size)
 
         # Preprocess data.
-        self.x = self.preprocessor(self.x)
+        self.X = self.preprocessor(self.X)
 
         # Generate shuffled indexes.
         self.on_epoch_end()
@@ -72,13 +72,13 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         """
         This method is called every epoch and performs dataset shuffling.
         """
-        self.indexes = np.arange(self.x.shape[0])
+        self.indexes = np.arange(self.X.shape[0])
 
         if self.shuffle:
             np.random.shuffle(self.indexes)
 
     def __len__(self) -> int:
-        return self.x.shape[0] // self.batch_size
+        return self.X.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
         self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
@@ -87,16 +87,16 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
 
         # Generate random target.
-        y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
+        Y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
 
         # compute conditional vector.
-        c = self.conditional_func(self.x[idx * self.batch_size: (idx + 1) * self.batch_size])
+        C = self.conditional_func(self.X[idx * self.batch_size: (idx + 1) * self.batch_size])
 
         return {
-            "x": self.x[indexes],
-            "y_m": self.y_m[indexes],
-            "y_t": y_t,
-            "c": c
+            "X": self.X[indexes],
+            "Y_m": self.y_m[indexes],
+            "Y_t": Y_t,
+            "C": C
         }
 
 
@@ -152,33 +152,33 @@ def get_critic(hidden_dim: int) -> keras.layers.Layer:
     return Critic(hidden_dim=hidden_dim)
 
 
-def sparsity_loss(x_hat_cf: tf.Tensor, x: tf.Tensor) -> Dict[str, tf.Tensor]:
+def sparsity_loss(X_hat_cf: tf.Tensor, X: tf.Tensor) -> Dict[str, tf.Tensor]:
     """
     Default L1 sparsity loss.
 
     Parameters
     ----------
-    x_hat_cf
+    X_hat_cf
         Autoencoder counterfactual reconstruction.
-    x
+    X
         Input instance
 
     Returns
     -------
     L1 sparsity loss.
     """
-    return {"sparsity_loss": tf.reduce_mean(tf.abs(x_hat_cf - x))}
+    return {"sparsity_loss": tf.reduce_mean(tf.abs(X_hat_cf - X))}
 
 
-def consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: tf.Tensor):
+def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: tf.Tensor):
     """
     Default 0 consistency loss.
 
     Parameters
     ----------
-    z_cf_pred
+    Z_cf_pred
         Counterfactual embedding prediction.
-    z_cf_tgt
+    Z_cf_tgt
         Counterfactual embedding target.
 
     Returns
@@ -188,7 +188,7 @@ def consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: tf.Tensor):
     return {"consistency_loss": 0}
 
 
-def data_generator(x: np.ndarray,
+def data_generator(X: np.ndarray,
                    ae_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
@@ -201,7 +201,7 @@ def data_generator(x: np.ndarray,
 
     Parameters
     ----------
-     x
+     X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     ae_preprocessor
@@ -220,18 +220,18 @@ def data_generator(x: np.ndarray,
     shuffle
         Whether to shuffle the dataset each epoch. `True` by default.
     """
-    return TfCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predictor=predictor,
+    return TfCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
                                      conditional_func=conditional_func, num_classes=num_classes,
                                      batch_size=batch_size, shuffle=shuffle)
 
 
-def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Tensor:
+def encode(X: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Tensor:
     """
     Encodes the input tensor.
 
     Parameters
     ----------
-    x
+    X
         Input to be encoded.
     ae
         Pre-trained autoencoder.
@@ -240,16 +240,16 @@ def encode(x: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Ten
     -------
     Input encoding.
     """
-    return ae.encoder(x, training=False)
+    return ae.encoder(X, training=False)
 
 
-def decode(z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
+def decode(Z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
     """
     Decodes an embedding tensor.
 
     Parameters
     ----------
-    z
+    Z
         Embedding tensor to be decoded.
     ae
         Pre-trained autoencoder.
@@ -258,13 +258,13 @@ def decode(z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
     -------
     Embedding tensor decoding.
     """
-    return ae.decoder(z, training=False)
+    return ae.decoder(Z, training=False)
 
 
-def generate_cf(z: Union[np.ndarray, tf.Tensor],
-                y_m: Union[np.ndarray, tf.Tensor],
-                y_t: Union[np.ndarray, tf.Tensor],
-                c: Optional[Union[np.ndarray, tf.Tensor]],
+def generate_cf(Z: Union[np.ndarray, tf.Tensor],
+                Y_m: Union[np.ndarray, tf.Tensor],
+                Y_t: Union[np.ndarray, tf.Tensor],
+                C: Optional[Union[np.ndarray, tf.Tensor]],
                 num_classes: int,
                 actor: keras.Model,
                 **kwargs) -> tf.Tensor:
@@ -273,13 +273,13 @@ def generate_cf(z: Union[np.ndarray, tf.Tensor],
 
     Parameters
     ----------
-    z
+    Z
         Input embedding tensor.
-    y_m
+    Y_m
         Input classification label.
-    y_t
+    Y_t
         Target counterfactual classification label.
-    c
+    C
         Conditional tensor.
     num_classes
         Number of classes to be considered.
@@ -288,24 +288,24 @@ def generate_cf(z: Union[np.ndarray, tf.Tensor],
 
     Returns
     -------
-    z_cf
+    Z_cf
         Counterfactual embedding.
     """
     # Transform to one hot encoding model's prediction and the given target
-    y_m_ohe = tf.one_hot(tf.cast(y_m, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
-    y_t_ohe = tf.one_hot(tf.cast(y_t, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
+    Y_m_ohe = tf.one_hot(tf.cast(Y_m, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
+    Y_t_ohe = tf.one_hot(tf.cast(Y_t, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [tf.reshape(z, (z.shape[0], -1)), y_m_ohe, y_t_ohe] + \
-        ([tf.constant(c, dtype=tf.float32)] if (c is not None) else [])
+    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m_ohe, Y_t_ohe] + \
+            ([tf.constant(C, dtype=tf.float32)] if (C is not None) else [])
     state = tf.concat(state, axis=1)
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
-    z_cf = actor(state, training=False)
-    return z_cf
+    Z_cf = actor(state, training=False)
+    return Z_cf
 
 
-def add_noise(z_cf: Union[tf.Tensor, np.ndarray],
+def add_noise(Z_cf: Union[tf.Tensor, np.ndarray],
               noise: 'NormalActionNoise',
               act_low: float,
               act_high: float,
@@ -317,7 +317,7 @@ def add_noise(z_cf: Union[tf.Tensor, np.ndarray],
 
     Parameters
     ----------
-    z_cf
+    Z_cf
         Counterfactual embedding.
     noise
         Noise generator object.
@@ -333,21 +333,21 @@ def add_noise(z_cf: Union[tf.Tensor, np.ndarray],
 
     Returns
     -------
-    z_cf_tilde
+    Z_cf_tilde
         Noised counterfactual embedding.
     """
     # Generate noise.
-    eps = noise(z_cf.shape)
+    eps = noise(Z_cf.shape)
 
     if step > exploration_steps:
-        z_cf_tilde = z_cf + eps
-        z_cf_tilde = tf.clip_by_value(z_cf_tilde, clip_value_min=act_low, clip_value_max=act_high)
+        Z_cf_tilde = Z_cf + eps
+        Z_cf_tilde = tf.clip_by_value(Z_cf_tilde, clip_value_min=act_low, clip_value_max=act_high)
     else:
         # for the first exploration_steps, the action is sampled from a uniform distribution between
         # [act_low, act_high] to encourage exploration. After that, the algorithm returns to the normal exploration.
-        z_cf_tilde = tf.random.uniform(z_cf.shape, minval=act_low, maxval=act_high)
+        Z_cf_tilde = tf.random.uniform(Z_cf.shape, minval=act_low, maxval=act_high)
 
-    return z_cf_tilde
+    return Z_cf_tilde
 
 
 @tf.function()
@@ -361,14 +361,14 @@ def update_actor_critic(ae: keras.Model,
                         coeff_sparsity: float,
                         coeff_consistency: float,
                         num_classes: int,
-                        x: np.ndarray,
-                        x_cf: np.ndarray,
-                        z: np.ndarray,
-                        z_cf_tilde: np.ndarray,
-                        y_m: np.ndarray,
-                        y_t: np.ndarray,
-                        c: Optional[np.ndarray],
-                        r_tilde: np.ndarray,
+                        X: np.ndarray,
+                        X_cf: np.ndarray,
+                        Z: np.ndarray,
+                        Z_cf_tilde: np.ndarray,
+                        Y_m: np.ndarray,
+                        Y_t: np.ndarray,
+                        C: Optional[np.ndarray],
+                        R_tilde: np.ndarray,
                         **kwargs) -> Dict[str, Any]:
     """
     Training step. Updates actor and critic networks including additional losses.
@@ -395,21 +395,21 @@ def update_actor_critic(ae: keras.Model,
         Consistency loss coefficient
     num_classes
         Number of classes to be considered.
-    x
+    X
         Input array.
-    x_cf
+    X_cf
         Counterfactual array.
-    z
+    Z
         Input embedding.
-    z_cf_tilde
+    Z_cf_tilde
         Noised counterfactual embedding.
-    y_m
+    Y_m
         Input classification label.
-    y_t
+    Y_t
         Target counterfactual classification label.
-    c
+    C
         Conditional tensor.
-    r_tilde
+    R_tilde
         Noised counterfactual reward.
 
     Returns
@@ -420,19 +420,19 @@ def update_actor_critic(ae: keras.Model,
     losses: Dict[str, float] = dict()
 
     # Transform classification labels into one-hot encoding.
-    y_m_ohe = tf.one_hot(tf.cast(y_m, tf.int32), depth=num_classes, dtype=tf.float32)
-    y_t_ohe = tf.one_hot(tf.cast(y_t, tf.int32), depth=num_classes, dtype=tf.float32)
+    Y_m_ohe = tf.one_hot(tf.cast(Y_m, tf.int32), depth=num_classes, dtype=tf.float32)
+    Y_t_ohe = tf.one_hot(tf.cast(Y_t, tf.int32), depth=num_classes, dtype=tf.float32)
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [z, y_m_ohe, y_t_ohe] + ([c] if c is not None else [])
+    state = [Z, Y_m_ohe, Y_t_ohe] + ([C] if C is not None else [])
     state = tf.concat(state, axis=1)
 
     # Define input for critic and compute q-values.
     with tf.GradientTape() as tape_critic:
-        input_critic = tf.concat([state, z_cf_tilde], axis=1)
+        input_critic = tf.concat([state, Z_cf_tilde], axis=1)
         output_critic = tf.squeeze(critic(input_critic, training=True), axis=1)
-        loss_critic = tf.reduce_mean(tf.square(output_critic - r_tilde))
+        loss_critic = tf.reduce_mean(tf.square(output_critic - R_tilde))
 
     # Append critic's loss.
     losses.update({"loss_critic": loss_critic})
@@ -443,10 +443,10 @@ def update_actor_critic(ae: keras.Model,
 
     with tf.GradientTape() as tape_actor:
         # Compute counterfactual embedding.
-        z_cf = actor(state, training=True)
+        Z_cf = actor(state, training=True)
 
         # Compute critic's output
-        input_critic = tf.concat([state, z_cf], axis=1)
+        input_critic = tf.concat([state, Z_cf], axis=1)
         output_critic = critic(input_critic, training=True)
 
         # Compute actors' loss.
@@ -454,10 +454,10 @@ def update_actor_critic(ae: keras.Model,
         losses.update({"loss_actor": loss_actor})
 
         # Decode the counterfactual embedding.
-        x_hat_cf = ae.decoder(z_cf, training=False)
+        X_hat_cf = ae.decoder(Z_cf, training=False)
 
         # Compute sparsity losses and append sparsity loss.
-        loss_sparsity = sparsity_loss(x_hat_cf, x)
+        loss_sparsity = sparsity_loss(X_hat_cf, X)
         losses.update(loss_sparsity)
 
         # Add sparsity loss to the overall actor loss.
@@ -465,8 +465,8 @@ def update_actor_critic(ae: keras.Model,
             loss_actor += coeff_sparsity * loss_sparsity[key]
 
         # Compute consistency loss and append consistency loss.
-        z_cf_tgt = ae.encoder(x_cf, training=False)
-        loss_consistency = consistency_loss(z_cf_pred=z_cf, z_cf_tgt=z_cf_tgt)
+        Z_cf_tgt = ae.encoder(X_cf, training=False)
+        loss_consistency = consistency_loss(Z_cf_pred=Z_cf, Z_cf_tgt=Z_cf_tgt)
         losses.update(loss_consistency)
 
         # Add consistency loss to the overall actor loss.
@@ -481,34 +481,34 @@ def update_actor_critic(ae: keras.Model,
     return losses
 
 
-def to_numpy(x: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[List, np.ndarray]]:
+def to_numpy(X: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
     Converts given tensor to numpy array.
 
     Parameters
     ----------
-    x
+    X
         Input tensor to be converted to numpy array.
 
     Returns
     -------
     Numpy representation of the input tensor.
     """
-    if x is not None:
-        if isinstance(x, np.ndarray):
-            return x
+    if X is not None:
+        if isinstance(X, np.ndarray):
+            return X
 
-        if isinstance(x, tf.Tensor):
-            return x.numpy()
+        if isinstance(X, tf.Tensor):
+            return X.numpy()
 
-        if isinstance(x, list):
-            return [to_numpy(e) for e in x]
+        if isinstance(X, list):
+            return [to_numpy(e) for e in X]
 
-        return np.array(x)
+        return np.array(X)
     return None
 
 
-def to_tensor(x: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
+def to_tensor(X: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
     """
     Converts tensor to tf.Tensor
 
@@ -516,11 +516,11 @@ def to_tensor(x: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
     -------
     tf.Tensor conversion.
     """
-    if x is not None:
-        if isinstance(x, tf.Tensor):
-            return x
+    if X is not None:
+        if isinstance(X, tf.Tensor):
+            return X
 
-        return tf.constant(x)
+        return tf.constant(X)
 
     return None
 

@@ -1,8 +1,10 @@
+from abc import ABC
+
 import tensorflow as tf
 import tensorflow.keras as keras
 
 
-class Actor(keras.layers.Layer):
+class Actor(keras.Model, ABC):
     """ Actor network. """
 
     def __init__(self, hidden_dim: int, output_dim: int, **kwargs):
@@ -30,7 +32,7 @@ class Actor(keras.layers.Layer):
         return x
 
 
-class Critic(keras.layers.Layer):
+class Critic(keras.Model, ABC):
     """ Critic network. """
 
     def __init__(self, hidden_dim: int, **kwargs):

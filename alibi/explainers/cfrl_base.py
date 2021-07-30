@@ -293,9 +293,9 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'optimizer_actor'``: Optional[keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
 
     - ``'optimizer_critic'``: Optional[keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
-    
+
     - ``'lr_actor'``: float, actor learning rate.
-    
+
     - ``'lr_critic'``: float, critic learning rate.
 
     - ``'actor_hidden_dim'``: int, actor hidden layer dimension.
@@ -338,6 +338,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                  coeff_consistency: float,
                  num_classes: int,
                  backend: str = "tensorflow",
+                 seed: int = 0,
                  **kwargs):
         """
         Constructor.
@@ -362,10 +363,14 @@ class CounterfactualRLBase(Explainer, FitMixin):
         # Clean backend flag.
         backend = backend.strip().lower()
 
-
+        # Verify backend installed
+        CounterfactualRLBase.verify_backend(backend)
 
         # Select backend.
         self.backend = self.select_backend(backend, **kwargs)
+
+        # Set seed for reproducibility.
+        self.backend.set_seed(seed)
 
         # Validate arguments.
         self.params, all_params = self.validate_kwargs(predict_func=predict_func,
@@ -449,7 +454,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         return "unknown"
 
-    def verify_backend(self, backend):
+    @staticmethod
+    def verify_backend(backend):
         """
         Verifies if the backend is supported.
 
@@ -586,7 +592,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return super().load(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
-        pass
+        self.params["predict_func"] = predictor
+        self.meta.update(CounterfactualRLBase.serialize_params(self.params))
 
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
@@ -699,7 +706,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
     def explain(self,
                 X: np.ndarray,
                 y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
-                c: Any = None) -> Explanation:
+                c: Any = None,
+                batch_size: int = 100) -> Explanation:
         """
         Explains an input instance
 
@@ -711,14 +719,50 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Counterfactual targets.
         c
             Conditional vector.
+        batch_size
+            Batch size to be used in a forward pass.
+
 
         Returns
         -------
         `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
         corresponding labels, targets and additional metadata.
         """
-        results = self.compute_counterfactual(X=X, y_t=y_t, c=c)
-        return self.build_explanation(**results)
+        # Check the number of target labels.
+        if y_t.shape[0] != 1 and y_t.shape[0] != X.shape[0]:
+            raise ValueError("The number target labels should be 1 or equals the number of samples in X.")
+
+        if (c is not None) and c.shape[0] != 1 and c.shape[0] != X.shape[0]:
+            raise ValueError("The number of conditional vectors should be 1 or equals the number if samples in X,")
+
+        # Repeat the same label to match the number of input instances.
+        if y_t.shape[0] == 1:
+            y_t = np.tile(y_t, X.shape[0])
+
+        # Repeat the same conditional vectors to match the number of input instances.
+        if (c is not None) and c.shape[0] == 1:
+            c = np.tile(c, X.shape[0])
+
+        # Perform prediction in mini-batches.
+        n_minibatch = int(np.ceil(X.shape[0] / batch_size))
+        all_results: Dict[str, np.ndarray] = {}
+
+        for i in range(n_minibatch):
+            istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
+            results = self.compute_counterfactual(X=X[istart:istop],
+                                                  y_t=y_t[istart:istop],
+                                                  c=c[istart:istop] if (c is not None) else c)
+            # initialize the dict
+            if not all_results:
+                all_results = results
+                continue
+
+            # append the new batch off results
+            for key in all_results:
+                if all_results[key] is not None:
+                    all_results[key] = np.concatenate([all_results[key], results[key]], axis=0)
+
+        return self.build_explanation(**all_results)
 
     def compute_counterfactual(self,
                                X: np.ndarray,
@@ -879,7 +923,7 @@ class ExperienceCallback:
         raise NotImplementedError
 
 
-class TrainingCallback():
+class TrainingCallback:
     """
     Training callback class. This is not an ABC since it can not be pickled.
     TODO: Maybe go for something else?

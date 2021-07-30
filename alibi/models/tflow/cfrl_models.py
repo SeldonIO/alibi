@@ -36,7 +36,7 @@ class MNISTClassifier(keras.Model, ABC):
         return x
 
 
-class MNISTEncoder(keras.layers.Layer):
+class MNISTEncoder(keras.Model, ABC):
     """ MNIST encoder. """
 
     def __init__(self, latent_dim: int, **kwargs) -> None:
@@ -67,7 +67,7 @@ class MNISTEncoder(keras.layers.Layer):
         return x
 
 
-class MNISTDecoder(keras.layers.Layer):
+class MNISTDecoder(keras.Model, ABC):
     """ MNIST decoder. """
 
     def __init__(self, **kwargs) -> None:
@@ -93,7 +93,7 @@ class MNISTDecoder(keras.layers.Layer):
         return x
 
 
-class ADULTEncoder(keras.layers.Layer):
+class ADULTEncoder(keras.Model, ABC):
     """ ADULT encoder. """
 
     def __init__(self, hidden_dim: int, latent_dim: int, **kwargs):
@@ -109,15 +109,16 @@ class ADULTEncoder(keras.layers.Layer):
         """
         super().__init__(**kwargs)
 
-        self.fc1 = keras.layers.Dense(hidden_dim, activation='relu')
-        self.fc2 = keras.layers.Dense(latent_dim, activation='tanh')
+        self.fc1 = keras.layers.Dense(hidden_dim)
+        self.fc2 = keras.layers.Dense(latent_dim)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
-        x = self.fc2(self.fc1(x))
+        x = tf.nn.relu(self.fc1(x))
+        x = tf.nn.tanh(self.fc2(x))
         return x
 
 
-class ADULTDecoder(keras.layers.Layer):
+class ADULTDecoder(keras.Model, ABC):
     def __init__(self, hidden_dim: int, output_dims: List[int], **kwargs):
         """
         Constructor.
@@ -131,10 +132,10 @@ class ADULTDecoder(keras.layers.Layer):
         """
         super().__init__(**kwargs)
 
-        self.fc1 = keras.layers.Dense(hidden_dim, activation='relu')
+        self.fc1 = keras.layers.Dense(hidden_dim)
         self.fcs = [keras.layers.Dense(dim) for dim in output_dims]
 
     def call(self, x: tf.Tensor, **kwargs) -> List[tf.Tensor]:
-        x = self.fc1(x)
+        x = tf.nn.relu(self.fc1(x))
         xs = [fc(x) for fc in self.fcs]
         return xs

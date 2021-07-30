@@ -8,8 +8,8 @@ class AE(keras.Model):
     """ Autoencoder. """
 
     def __init__(self,
-                 encoder: keras.layers.Layer,
-                 decoder: keras.layers.Layer,
+                 encoder: keras.Model,
+                 decoder: keras.Model,
                  **kwargs) -> None:
         """
         Constructor. Combine encoder and decoder in AE
@@ -35,8 +35,8 @@ class HeAE(AE):
     """ Heterogeneous autoencoder. """
 
     def __init__(self,
-                 encoder: tf.keras.layers.Layer,
-                 decoder: tf.keras.layers.Layer,
+                 encoder: keras.Model,
+                 decoder: keras.Model,
                  **kwargs) -> None:
         """
         Constructor. Combine encoder and decoder in HeAE.
@@ -51,6 +51,9 @@ class HeAE(AE):
         super().__init__(encoder=encoder, decoder=decoder, **kwargs)
 
     def build(self, input_shape: Tuple[int, ...]):
+        super().build(input_shape)
+
+        # check if the output is a list
         input = tf.zeros(input_shape)
         output = self.call(input)
 

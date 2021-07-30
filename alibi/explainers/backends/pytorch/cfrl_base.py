@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
+import os
+import random
 import numpy as np
 from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
@@ -553,3 +555,55 @@ def to_tensor(x: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs
         return torch.tensor(x).to(device)
 
     return None
+
+
+def save_model(path: Union[str, os.PathLike], model: nn.Module) -> None:
+    """
+    Saves a model and its optimizer.
+
+    Parameters
+    ----------
+    path
+        Path to the saving location.
+    model
+        Model to be saved.
+    """
+    torch.save(model, path)
+
+
+def load_model(path: Union[str, os.PathLike]) -> nn.Module:
+    """
+    Loads a model and its optimizer.
+
+    Parameters
+    ----------
+    path
+        Path to the loading location.
+
+    Returns
+    -------
+    Loaded model.
+    """
+    model = torch.load(path)
+    model.eval()
+    return model
+
+
+def seed(seed: int = 13):
+    """
+    Sets a seed to ensure reproducibility
+    Parameters
+    ----------
+    seed
+        seed to be set
+    """
+
+    # torch related
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+    # others
+    np.random.seed(seed)
+    random.seed(seed)

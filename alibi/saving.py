@@ -17,7 +17,9 @@ if TYPE_CHECKING:
         AnchorText,
         IntegratedGradients,
         KernelShap,
-        TreeShap
+        TreeShap,
+        CounterfactualRLBase,
+        CounterfactualRLTabular
     )
 
 from alibi.version import __version__
@@ -235,27 +237,28 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
 
 
 def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+    from alibi.explainers import CounterfactualRLBase
+    CounterfactualRLBase.verify_backend(explainer.params["backend"])
+
     # get backend module
     backend = explainer.backend
 
+    # define extension
+    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
+
     # save autoencoder
     ae = explainer.params["ae"]
-    backend.save_model(path=Path(path, "ae.npy"),
-                       model=explainer.params["ae"])
+    backend.save_model(path=Path(path, "ae" + ext), model=explainer.params["ae"])
 
     # save actor
     actor = explainer.params["actor"]
-    optimizer_actor = explainer.params["optimizer_actor"]
-    backend.save_model(path=Path(path, "actor.npy"),
-                       model=explainer.params["actor"],
-                       optimizer=explainer.params["optimizer_actor"])
+    optimizer_actor = explainer.params["optimizer_actor"]    # TODO: save the actor optimizer?
+    backend.save_model(path=Path(path, "actor" + ext), model=explainer.params["actor"])
 
     # save critic
     critic = explainer.params["critic"]
-    optimizer_critic = explainer.params["optimizer_critic"]
-    backend.save_model(path=Path(path, "critic.npy"),
-                       model=explainer.params["critic"],
-                       optimizer=explainer.params["optimizer_critic"])
+    optimizer_critic = explainer.params["optimizer_critic"]  # TODO: save the critic optimizer?
+    backend.save_model(path=Path(path, "critic" + ext), model=explainer.params["critic"])
 
     # save locally prediction function
     predict_func = explainer.params["predict_func"]
@@ -277,8 +280,8 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     # set autoencoder, actor and critic back
     explainer.params["ae"] = ae
     explainer.params["actor"] = actor
-    explainer.params["optimizer_actor"] = optimizer_actor
     explainer.params["critic"] = critic
+    explainer.params["optimizer_actor"] = optimizer_actor
     explainer.params["optimizer_critic"] = optimizer_critic
     explainer.params["predict_func"] = predict_func
     explainer.backend = backend
@@ -286,33 +289,48 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
 
 def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
                                predictor: Callable,
-                               meta: dict,
-                               ae,
-                               actor=None,
-                               critic=None,
-                               optimizer_actor=None,
-                               optimizer_critic=None) -> 'CounterfactualRLBase':
+                               meta: dict) -> 'CounterfactualRLBase':
+
     # load explainer
-    with Path(path, "explainer.dill", "rb") as f:
+    with open(Path(path, "explainer.dill"), "rb") as f:
         explainer = dill.load(f)
 
     # load backend
-    from alibi.utils.frameworks import has_pytorch, has_tensorflow
     from alibi.explainers import CounterfactualRLBase
+    CounterfactualRLBase.verify_backend(explainer.params["backend"])
 
-    # TODO: double check if pytorch available? (this should be already in the constructor)
+    # select backend module
     if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW:
         import alibi.explainers.backends.tflow.cfrl_base as backend
-
-    if explainer.params["backend"] == CounterfactualRLBase.PYTORCH:
-        import alibi.explainers.backends.pytorch.cfrl_base as backend
     else:
-        raise ImportError("Backend")
+        import alibi.explainers.backends.pytorch.cfrl_base as backend  # type: ignore
+
+    # define extension
+    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
+
+    # load the autoencoder
+    explainer.params["ae"] = backend.load_model(Path(path, "ae" + ext))
+
+    # load the actor and critic
+    explainer.params["actor"] = backend.load_model(Path(path, "actor" + ext))
+    explainer.params["critic"] = backend.load_model(Path(path, "critic" + ext))
+
+    # reset backend
+    explainer.backend = backend
+
+    # reset predictor
+    explainer.reset_predictor(predictor)
+    return explainer
 
 
+def _save_CounterfactualRLTabular(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+    _save_CounterfactualRLBase(explainer=explainer, path=path)
 
-    # load autoencoder
 
+def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
+                                  predictor: Callable,
+                                  meta: dict) -> 'CounterfactualRLTabular':
+    return _load_CounterfactualRLBase(path=path, predictor=predictor, meta=meta)
 
 
 class NumpyEncoder(json.JSONEncoder):

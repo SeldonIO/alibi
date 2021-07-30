@@ -54,11 +54,12 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                  num_classes: int,
                  category_map: Dict[int, List[str]],
                  feature_names: List[str],
-                 ranges: Optional[Dict[str, Tuple[int, int]]] = None,  # TODO: infer it (make it optional)
+                 ranges: Optional[Dict[str, Tuple[int, int]]] = None,
                  immutable_features: Optional[List[str]] = None,
-                 backend: str = "tensorflow",
                  weight_num: float = 1.0,
                  weight_cat: float = 1.0,
+                 backend: str = "tensorflow",
+                 seed: int = 0,
                  **kwargs):
         """
         Constructor.
@@ -164,9 +165,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                 X: np.ndarray,
                 y_t: np.ndarray = None,  # TODO remove default value (mypy error)
                 c: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
+                batch_size: int = 100,
                 diversity: bool = False,
                 num_samples: int = 1,
-                batch_size: int = 100,
                 patience: int = 1000,
                 tolerance: float = 1e-3) -> Explanation:
 
@@ -194,6 +195,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         tolerance
             Tolerance to distinguish two counterfactual instances.
         """
+        import logging
+        logging.getLogger('tensorflow').setLevel(logging.FATAL)
+
         if len(X.shape) > 2:
             raise ValueError("The input should be a 2D array.")
 
@@ -214,14 +218,6 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                   batch_size=batch_size,
                                   patience=patience,
                                   tolerance=tolerance)
-
-        # Check the number of target labels.
-        if y_t.shape[0] != 1 and y_t.shape[0] != X.shape[0]:
-            raise ValueError("The number target labels should be 1 or equals the number of samples in x.")
-
-        # Repeat the same label to match the number of input instances.
-        if y_t.shape[0] == 1:
-            y_t = np.tile(y_t, X.shape[0])
 
         # Define conditional vector if `None`.
         if c is None:
@@ -249,7 +245,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             # Concatenate all conditional vectors.
             c_vec = np.concatenate(c_vecs, axis=0)
 
-        explanation = super().explain(X, y_t, c_vec)
+        explanation = super().explain(X=X, y_t=y_t, c=c_vec, batch_size=batch_size)
         explanation.data.update({"condition": c})
         return explanation
 
@@ -311,7 +307,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                 X_cf_buff = X_cf[indices]
             else:
                 X_cf_buff = np.concatenate([X_cf_buff, X_cf[indices]], axis=0)
-                _, indices = np.unique(np.floor(X_cf_buff / tolerance).astype(int), axis=0)
+                _, indices = np.unique(np.floor(X_cf_buff / tolerance).astype(int), return_index=True, axis=0)
                 X_cf_buff = X_cf_buff[indices]
 
         # build explanation

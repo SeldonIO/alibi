@@ -287,6 +287,24 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     explainer.backend = backend
 
 
+def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
+                                  predictor: Callable,
+                                  explainer):
+    # define extension
+    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
+
+    # load the autoencoder
+    explainer.params["ae"] = explainer.backend.load_model(Path(path, "ae" + ext))
+
+    # load the actor and critic
+    explainer.params["actor"] = explainer.backend.load_model(Path(path, "actor" + ext))
+    explainer.params["critic"] = explainer.backend.load_model(Path(path, "critic" + ext))
+
+    # reset predictor
+    explainer.reset_predictor(predictor)
+    return explainer
+
+
 def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
                                predictor: Callable,
                                meta: dict) -> 'CounterfactualRLBase':
@@ -305,22 +323,11 @@ def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
     else:
         import alibi.explainers.backends.pytorch.cfrl_base as backend  # type: ignore
 
-    # define extension
-    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
-
-    # load the autoencoder
-    explainer.params["ae"] = backend.load_model(Path(path, "ae" + ext))
-
-    # load the actor and critic
-    explainer.params["actor"] = backend.load_model(Path(path, "actor" + ext))
-    explainer.params["critic"] = backend.load_model(Path(path, "critic" + ext))
-
-    # reset backend
+    # set explainer backend
     explainer.backend = backend
 
-    # reset predictor
-    explainer.reset_predictor(predictor)
-    return explainer
+    # load the rest of the explainer
+    return _helper_load_CounterfactualRL(path, predictor, explainer)
 
 
 def _save_CounterfactualRLTabular(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
@@ -330,7 +337,25 @@ def _save_CounterfactualRLTabular(explainer: 'CounterfactualRLBase', path: Union
 def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
                                   predictor: Callable,
                                   meta: dict) -> 'CounterfactualRLTabular':
-    return _load_CounterfactualRLBase(path=path, predictor=predictor, meta=meta)
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+
+    # load backend
+    from alibi.explainers import CounterfactualRLBase
+    CounterfactualRLBase.verify_backend(explainer.params["backend"])
+
+    # select backend module
+    if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW:
+        import alibi.explainers.backends.tflow.cfrl_tabular as backend
+    else:
+        import alibi.explainers.backends.pytorch.cfrl_tabular as backend  # type: ignore
+
+    # set explainer backend
+    explainer.backend = backend
+
+    # load the rest of the explainer
+    return _helper_load_CounterfactualRL(path, predictor, explainer)
 
 
 class NumpyEncoder(json.JSONEncoder):

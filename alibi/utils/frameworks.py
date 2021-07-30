@@ -1,3 +1,11 @@
+from enum import Enum
+
+
+class Framework(str, Enum):
+    PYTORCH = "pytorch"
+    TENSORFLOW = "tensorflow"
+
+
 try:
     import tensorflow as tf  # noqa
     has_tensorflow = True
@@ -9,3 +17,8 @@ try:
     has_pytorch = True
 except ImportError:
     has_pytorch = False
+
+
+if __name__ == "__main__":
+    print(Framework.PYTORCH.value == "pytorch")
+    print(Framework.TENSORFLOW)

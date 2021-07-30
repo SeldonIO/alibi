@@ -3,15 +3,16 @@ import logging
 import numpy as np
 from tqdm import tqdm  # type: ignore
 from copy import deepcopy
-from typing import Union, Any, Callable, Optional, Tuple, Dict, List
+from typing import Union, Any, Callable, Optional, Tuple, Dict, List, TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 from alibi.api.defaults import DEFAULT_META_CFRL, DEFAULT_DATA_CFRL
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.models.tflow.autoencoder import AE as TensorflowAE
-from alibi.models.pytorch.autoencoder import AE as PytorchAE
+from alibi.utils.frameworks import has_pytorch, has_tensorflow, Framework
 
-from alibi.utils.frameworks import has_pytorch, has_tensorflow
+if TYPE_CHECKING:
+    from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
+    from alibi.models.pytorch.autoencoder import AE as PytorchAE
 
 if has_pytorch:
     # import pytorch backend
@@ -19,7 +20,7 @@ if has_pytorch:
 
 if has_tensorflow:
     # import tensorflow backend
-    import alibi.explainers.backends.tflow.cfrl_base as tensorflow_base_backend
+    import alibi.explainers.backends.tensorflow.cfrl_base as tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 class NormalActionNoise:
     """ Normal noise generator. """
 
-    def __init__(self, mu: float, sigma: float):
+    def __init__(self, mu: float, sigma: float) -> None:
         """
         Constructor.
 
@@ -42,7 +43,7 @@ class NormalActionNoise:
         self.mu = mu
         self.sigma = sigma
 
-    def __call__(self, shape: Tuple[int, ...]):
+    def __call__(self, shape: Tuple[int, ...]) -> np.ndarray:
         """
         Generates normal noise with the appropriate mean and standard deviation.
 
@@ -57,17 +58,19 @@ class NormalActionNoise:
         """
         return self.mu + self.sigma * np.random.randn(*shape)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return 'NormalActionNoise(mu={}, sigma={})'.format(self.mu, self.sigma)
 
 
-class ReplayBuffer(object):
+class ReplayBuffer:
     """
     Circular experience replay buffer for `CounterfactualRL`(DDPG). When the buffer is filled, then the oldest
-    experience is replaced by the new one (FIFO).
+    experience is replaced by the new one (FIFO). The experience batch size is kept constant and inferred when
+    the first batch of data is stored. Allowing flexible batch size can generate Tensorflow warning due to
+    the `tf.function` retracing, which can lead to a drop in performance.
     """
 
-    def __init__(self, size=1000):
+    def __init__(self, size: int = 1000) -> None:
         """
         Constructor.
 
@@ -78,7 +81,7 @@ class ReplayBuffer(object):
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.x, self.x_cf = None, None           # buffers for the input and the counterfactuals
+        self.X, self.x_cf = None, None           # buffers for the input and the counterfactuals
         self.y_m, self.y_t = None, None          # buffers for the model's prediction and counterfactual target
         self.z, self.z_cf_tilde = None, None     # buffers for the input embedding and noised counterfactual embedding
         self.c = None                            # buffer for the conditional tensor
@@ -123,11 +126,11 @@ class ReplayBuffer(object):
             Noised counterfactual reward array.
         """
         # Initialize the buffers.
-        if self.x is None:
+        if self.X is None:
             self.batch_size = x.shape[0]
 
             # Allocate memory.
-            self.x = np.zeros((self.size * self.batch_size, *x.shape[1:]), dtype=np.float32)
+            self.X = np.zeros((self.size * self.batch_size, *x.shape[1:]), dtype=np.float32)
             self.x_cf = np.zeros((self.size * self.batch_size, *x_cf.shape[1:]), dtype=np.float32)
             self.y_m = np.zeros((self.size * self.batch_size, *y_m.shape[1:]), dtype=np.float32)
             self.y_t = np.zeros((self.size * self.batch_size, *y_t.shape[1:]), dtype=np.float32)
@@ -147,7 +150,7 @@ class ReplayBuffer(object):
         start = self.batch_size * self.idx
 
         # Add new data / replace old experience (note that a full batch is added at once).
-        self.x[start:start + self.batch_size] = x
+        self.X[start:start + self.batch_size] = x
         self.x_cf[start:start + self.batch_size] = x_cf
         self.y_m[start:start + self.batch_size] = y_m
         self.y_t[start:start + self.batch_size] = y_t
@@ -175,7 +178,7 @@ class ReplayBuffer(object):
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
 
         # Extract data form buffers.
-        x = self.x[rand_idx]                                        # input array
+        x = self.X[rand_idx]                                        # input array
         x_cf = self.x_cf[rand_idx]                                  # counterfactual
         y_m = self.y_m[rand_idx]                                    # model's prediction
         y_t = self.y_t[rand_idx]                                    # counterfactual target
@@ -303,7 +306,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
 """
 
-_PARAM_TYPES = {
+PARAM_TYPES = {
     "primitives": [
         "act_noise", "act_low", "act_high", "replay_buffer_size", "batch_size", "num_workers", "shuffle",
         "num_classes", "exploration_steps", "update_every", "update_after", "train_steps", "backend",
@@ -312,7 +315,7 @@ _PARAM_TYPES = {
     "complex": [
         "ae_preprocessor", "ae_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
         "experience_callbacks", "train_callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic",
-        "ae", "predict_func", "sparsity_loss", "consistency_loss",
+        "ae", "predictor", "sparsity_loss", "consistency_loss",
     ]
 }
 """
@@ -327,12 +330,9 @@ Parameter types for serialization
 class CounterfactualRLBase(Explainer, FitMixin):
     """ Counterfactual Reinforcement Learning Base. """
 
-    PYTORCH = "pytorch"
-    TENSORFLOW = "tensorflow"
-
     def __init__(self,
-                 predict_func: Callable,
-                 ae,
+                 predictor: Callable,
+                 ae: Union['TensorflowAE', 'PytorchAE'],
                  latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
@@ -345,18 +345,24 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         Parameters
         ----------
-        predict_func
+        predictor
             Prediction function. This corresponds to the classifier.
         ae
             Pre-trained autoencoder.
         latent_dim
-            Autoencoder latent dimension,
+            Autoencoder latent dimension.
         coeff_sparsity
             Sparsity loss coefficient.
         coeff_consistency
             Consistency loss coefficient.
+        num_classes
+            Number of classes to be considered
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        seed
+            Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
+        kwargs
+            Used to replace any default parameter from :py:data:`alibi.expaliners.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
         super().__init__(meta=deepcopy(DEFAULT_META_CFRL))
 
@@ -373,7 +379,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         self.backend.set_seed(seed)
 
         # Validate arguments.
-        self.params, all_params = self.validate_kwargs(predict_func=predict_func,
+        self.params, all_params = self.validate_kwargs(predictor=predictor,
                                                        ae=ae,
                                                        latent_dim=latent_dim,
                                                        coeff_sparsity=coeff_sparsity,
@@ -383,7 +389,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                                                        **kwargs)
 
         # If pytorch backend, the if GPU available, send everything to GPU
-        if self.params["backend"] == CounterfactualRLBase.PYTORCH:
+        if self.params["backend"] == Framework.PYTORCH:
             from alibi.explainers.backends.pytorch.cfrl_base import get_device
             self.params.update({"device": get_device()})
 
@@ -398,7 +404,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         self.meta["params"].update(CounterfactualRLBase.serialize_params(all_params))
 
     @staticmethod
-    def serialize_params(params: Dict[str, Any]):
+    def serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Parameter serialization. The function replaces object by human-readable representation
 
@@ -414,11 +420,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
         meta = dict()
 
         for param, value in params.items():
-            if param in _PARAM_TYPES["primitives"]:
+            if param in PARAM_TYPES["primitives"]:
                 # primitive types are passed as they are
                 meta.update({param: value})
 
-            elif param in _PARAM_TYPES["complex"]:
+            elif param in PARAM_TYPES["complex"]:
                 if isinstance(value, list):
                     # each complex element in the list is serialized by replacing it with a name
                     meta.update({param: [CounterfactualRLBase.get_name(v) for v in value]})
@@ -466,13 +472,13 @@ class CounterfactualRLBase(Explainer, FitMixin):
         """
 
         # Check if pytorch/tensorflow backend supported.
-        if (backend == CounterfactualRLBase.PYTORCH and not has_pytorch) or \
-                (backend == CounterfactualRLBase.TENSORFLOW and not has_tensorflow):
+        if (backend == Framework.PYTORCH and not has_pytorch) or \
+                (backend == Framework.TENSORFLOW and not has_tensorflow):
             raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
                               f' with {backend} backend.')
 
         # Allow only pytorch and tensorflow.
-        elif backend not in [CounterfactualRLBase.PYTORCH, CounterfactualRLBase.TENSORFLOW]:
+        elif backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
             raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
     def select_backend(self, backend, **kwargs):
@@ -487,20 +493,21 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
     def validate_kwargs(self,
-                        predict_func: Callable,
-                        ae: Union[TensorflowAE, PytorchAE],
+                        predictor: Callable,
+                        ae: Union['TensorflowAE', 'PytorchAE'],
                         latent_dim: float,
                         coeff_sparsity: float,
                         coeff_consistency: float,
                         num_classes: int,
                         backend: str,
+                        seed: int,
                         **kwargs):
         """
         Validates arguments.
 
         Parameters
         ----------
-        predict_func.
+        predictor.
             Prediction function. This corresponds to the classifier.
         ae
             Pre-trained autoencoder.
@@ -522,11 +529,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
         params.update({
             "ae": ae,
             "latent_dim": latent_dim,
-            "predict_func": predict_func,
+            "predictor": predictor,
             "coeff_sparsity": coeff_sparsity,
             "coeff_consistency": coeff_consistency,
             "num_classes": num_classes,
             "backend": backend,
+            "seed": seed,
         })
 
         # Add actor if not user-specified.
@@ -552,11 +560,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # If the optimizer is user-specified, just update the params
             if optim in kwargs:
                 params.update({optim: kwargs[optim]})
-                if self.params["backend"] == CounterfactualRLBase.PYTORCH and not_specified[model_name]:
+                if self.params["backend"] == Framework.PYTORCH and not_specified[model_name]:
                     raise ValueError(f"Can not specify {optim} when {model_name} not specified for pytorch backend.")
 
             # If the optimizer is not user-specified, it need to be initialized. The initialization is backend specific.
-            elif params['backend'] == CounterfactualRLBase.TENSORFLOW:
+            elif params['backend'] == Framework.TENSORFLOW:
                 params.update({optim: self.backend.get_optimizer(lr=lr)})
             else:
                 params.update({optim: self.backend.get_optimizer(model=model, lr=lr)})
@@ -592,7 +600,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return super().load(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
-        self.params["predict_func"] = predictor
+        self.params["predictor"] = predictor
         self.meta.update(CounterfactualRLBase.serialize_params(self.params))
 
     def save(self, path: Union[str, os.PathLike]) -> None:
@@ -626,7 +634,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             # Sample training data.
             try:
                 data = next(data_iter)
-            except Exception:
+            except StopIteration:
                 data_iter = iter(data_generator)
                 data = next(data_iter)
 
@@ -668,7 +676,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
             # Compute model's prediction on the noised counterfactual
             x_cf_tilde = self.params["ae_inv_preprocessor"](self.backend.to_numpy(data["x_cf_tilde"]))
-            y_m_cf_tilde = self.params["predict_func"](x_cf_tilde)
+            y_m_cf_tilde = self.params["predictor"](x_cf_tilde)
 
             # Compute reward.
             r_tilde = self.params["reward_func"](self.backend.to_numpy(y_m_cf_tilde),
@@ -786,7 +794,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         instances in the original format, counterfactual classification labels, target labels, conditional vectors.
         """
         # Compute models prediction.
-        y_m = self.params["predict_func"](X)
+        y_m = self.params["predictor"](X)
 
         # Apply autoencoder preprocessing step.
         x = self.params["ae_preprocessor"](X)
@@ -814,7 +822,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         X_cf = self.params["ae_inv_preprocessor"](x_cf)
 
         # Classify counterfactual instances.
-        y_m_cf = self.params["predict_func"](X_cf)
+        y_m_cf = self.params["predictor"](X_cf)
 
         # convert tensors to numpy
         y_m = self.backend.to_numpy(y_m)
@@ -876,14 +884,18 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
 class Postprocessing(ABC):
     @abstractmethod
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> Any:
+    def __call__(self, x_cf: Union[np.ndarray, List[np.ndarray]], x: np.ndarray, c: np.ndarray) -> Any:
         """
         Post-processing function
 
         Parameters
         ----------
         x_cf
-           List of counterfactual columns.
+           Counterfactual instance. The datatype depends on the output of the decoder. For example, for an image
+           dataset, the output is `np.ndarray`. For a tabular dataset, the output is `List[np.ndarray]` where each
+           element of the list corresponds to a feature. This corresponds to the decoder's output from the
+           heterogeneous autoencoder (see :py:class:`alibi.models.tensorflow.autoencoder.HeAE` and
+           :py:class:`alibi.models.pytorch.autoencoder.HeAE`).
         x
            Input instance.
         c
@@ -894,7 +906,7 @@ class Postprocessing(ABC):
         x_cf
             Post-processed x_cf.
         """
-        raise NotImplementedError
+        pass
 
 
 class ExperienceCallback:
@@ -920,7 +932,7 @@ class ExperienceCallback:
             Dictionary of sample gathered in an experience. This includes dataset inputs and intermediate results
             obtained during an experience.
         """
-        raise NotImplementedError
+        pass
 
 
 class TrainingCallback:
@@ -952,4 +964,4 @@ class TrainingCallback:
         losses
             Dictionary of losses.
         """
-        raise NotImplementedError
+        pass

@@ -1,12 +1,16 @@
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, _PARAM_TYPES
+from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, PARAM_TYPES
 from alibi.explainers.backends.cfrl_tabular import sample, conditional_vector, statistics
 
 import numpy as np
 from itertools import count
 from functools import partial
-from typing import Tuple, List, Dict, Callable, Union, Optional
+from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from alibi.models.tensorflow.autoencoder import HeAE as TensorflowHeAE
+    from alibi.models.pytorch.autoencoder import HeAE as PytorchHeAE
 
 if has_pytorch:
     # import pytorch backend
@@ -14,16 +18,52 @@ if has_pytorch:
 
 if has_tensorflow:
     # import tensorflow backend
-    import alibi.explainers.backends.tflow.cfrl_tabular as tensorflow_tabular_backend
+    import alibi.explainers.backends.tensorflow.cfrl_tabular as tensorflow_tabular_backend
 
 
-class SamplePostprocessing(Postprocessing):
+class SampleTabularPostprocessing(Postprocessing):
+    """
+    Tabular sampling post-processing. Given the output of the heterogeneous autoencoder the post-processing
+    functions samples the output according to the conditional vector. Note that the original input instance
+    is required to perform the conditional sampling.
+    """
+
     def __init__(self,  category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        category_map
+            Dictionary of category mapping. The keys are column indexes and the values are lists containing the
+            possible feature values.
+        stats
+            Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
+            feature in the training set. Each key is an index of the column and each value is another dictionary
+            containing `min` and `max` keys.
+        """
         super().__init__()
         self.category_map = category_map
         self.stats = stats
 
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> List[np.ndarray]:
+        """
+        Performs counterfactual conditional sampling acording to the conditional vector and the original input.
+
+        Parameters
+        ----------
+        x_cf
+            Decoder reconstruction of the counterfactual instance. The decoded instance is a list where each
+            element in the list correspond to the reconstruction of a feature.
+        x
+            Input instance.
+        c
+            Conditional vector.
+
+        Returns
+        -------
+        Conditional sampled counterfactual instance.
+        """
         return sample(x_hat_split=x_cf,
                       x_ohe=x,
                       cond=c,
@@ -31,31 +71,49 @@ class SamplePostprocessing(Postprocessing):
                       category_map=self.category_map)
 
 
-class ConcatPostprocessing(Postprocessing):
-    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray):
+class ConcatTabularPostprocessing(Postprocessing):
+    """ Tabular feature columns concatenation post-processing. """
+
+    def __call__(self, x_cf: List[np.ndarray], x: np.ndarray, c: np.ndarray) -> np.ndarray:
+        """
+        Performs a concatenation of the counterfactual feature columns along the axis 1.
+
+        Parameters
+        ----------
+        x_cf
+            List of counterfactual feature columns.
+        x
+            Input instance. Not used. Included for consistency.
+        c
+            Conditional vector. Not used. Included for consistency.
+
+        Returns
+        -------
+        Concatenation of the counterfactual feature columns.
+        """
         return np.concatenate(x_cf, axis=1)
 
 
 # update parameter types for the tabular case
-_PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
+PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 
 
 class CounterfactualRLTabular(CounterfactualRLBase):
     """ Counterfactual Reinforcement Learning Tabular. """
 
     def __init__(self,
-                 ae,
+                 predictor: Callable,
+                 ae: Union['TensorflowHeAE', 'PytorchHeAE'],
                  latent_dim: int,
                  ae_preprocessor: Callable,
                  ae_inv_preprocessor: Callable,
-                 predict_func: Callable,
                  coeff_sparsity: float,
                  coeff_consistency: float,
                  num_classes: int,
-                 category_map: Dict[int, List[str]],
                  feature_names: List[str],
-                 ranges: Optional[Dict[str, Tuple[int, int]]] = None,
+                 category_map: Dict[int, List[str]],
                  immutable_features: Optional[List[str]] = None,
+                 ranges: Optional[Dict[str, Tuple[int, int]]] = None,
                  weight_num: float = 1.0,
                  weight_cat: float = 1.0,
                  backend: str = "tensorflow",
@@ -66,27 +124,55 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         Parameters
         ----------
+        predictor.
+           Prediction function. This corresponds to the classifier.
         ae
            Pre-trained autoencoder.
-        actor
-           Actor network.
-        critic
-           Critic network.
-        predict_func.
-           Prediction function. This corresponds to the classifier.
+        latent_dim
+            Autoencoder latent dimension.
+        ae_preprocessor
+            Autoencoder data pre-processor. Depending on the input format, the pre-processor can normalize
+            numerical attributes, transform label encoding to one-hot encoding etc.
+        ae_inv_preprocessor
+            Autoencoder data inverse pre-processor. This is the invers function of the pre-processor. It can
+            denormalize numerical attributes, transfrom one-hot encoding to label encoding, feature type casting etc.
         coeff_sparsity
            Sparsity loss coefficient.
         coeff_consistency
            Consistency loss coefficient.
-        backend
-           Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        num_classes
+            Number of classes to be considered.
+        feature_names
+            List of feature names. This should be provided by the dataset.
+        category_map
+            Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+            values for a feature. This should be provided by the dataset.
+        immutable_features
+            List of immutable features.
+        ranges
+            Numerical feature ranges. Note that exist numerical features such as `Age`, which are  allowed to increase
+            only. We denote those by `inc_feat`. Similarly, there exist features  allowed to decrease only. We denote
+            them by `dec_feat`. Finally, there are some free feature, which we denote by `free_feat`. With the previous
+            notation, we can define `range = {'inc_feat': [0, 1], 'dec_feat': [-1, 0], 'free_feat': [-1, 1]}`.
+            `free_feat` can be omitted, as any unspecified feature is considered free. Having the ranges of a feature
+            `{'feat': [a_low, a_high}`, when sampling is performed the numerical value will be clipped between
+            `[a_low * (max_val - min_val), a_high * [max_val - min_val]]`, where `a_low` and `a_high` are the minimum
+            and maximum values the feature `feat`. This implies that `a_low` and `a_high` are not restricted to {-1, 0}
+            and {0, 1}, but can be any float number in-between `[-1, 0]` and `[0, 1]`.
         weight_num
             Numerical loss weight.
         weight_cat
             Categorical loss weight.
+        backend
+           Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+        seed
+            Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
+        kwargs
+            Used to replace any default parameter from :py:data:`alibi.expaliners.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
-        super().__init__(ae=ae, latent_dim=latent_dim, predict_func=predict_func, coeff_sparsity=coeff_sparsity,
-                         coeff_consistency=coeff_consistency, num_classes=num_classes, backend=backend, **kwargs)
+        super().__init__(ae=ae, latent_dim=latent_dim, predictor=predictor, coeff_sparsity=coeff_sparsity,
+                         coeff_consistency=coeff_consistency, num_classes=num_classes, backend=backend, seed=seed,
+                         **kwargs)
 
         # Set ae preprocessor and inverse preprocessor.
         self.params["ae_preprocessor"] = ae_preprocessor
@@ -151,8 +237,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # Set postprocessing functions. Needs `stats`.
         self.params["postprocessing_funcs"] = [
-            SamplePostprocessing(stats=self.params["stats"], category_map=self.params["category_map"]),
-            ConcatPostprocessing(),
+            SampleTabularPostprocessing(stats=self.params["stats"], category_map=self.params["category_map"]),
+            ConcatTabularPostprocessing(),
         ]
 
         # update metadata
@@ -312,6 +398,6 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # build explanation
         X_cf = X_cf_buff[:num_samples] if (X_cf_buff is not None) else np.array([])
-        y_m_cf = self.params["predict_func"](X_cf) if X_cf.shape[0] != 0 else np.array([])
-        y_m = self.params["predict_func"](X)
+        y_m_cf = self.params["predictor"](X_cf) if X_cf.shape[0] != 0 else np.array([])
+        y_m = self.params["predictor"](X)
         return self.build_explanation(X=X, y_m=y_m, X_cf=X_cf, y_m_cf=y_m_cf, y_t=y_t, c=c)

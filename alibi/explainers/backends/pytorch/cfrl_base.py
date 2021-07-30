@@ -22,7 +22,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
     def __init__(self,
                  x: np.ndarray,
                  preprocessor: Callable,
-                 predict_func: Callable,
+                 predictor: Callable,
                  conditional_func: Callable,
                  num_classes: int,
                  batch_size: int) -> None:
@@ -36,9 +36,9 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
             the `preprocessor` function.
         preprocessor
             Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
+        predictor
             Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
+            it internally in the `predictor` if necessary.
         conditional_func
             Conditional function generator. Given an preprocessed input array, the functions generates a conditional
             array.
@@ -52,14 +52,14 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
 
         self.x = x
         self.preprocessor = preprocessor
-        self.predict_func = predict_func
+        self.predictor = predictor
         self.conditional_func = conditional_func
         self.num_classes = num_classes
         self.batch_size = batch_size
 
         # Infer the classification labels of the input dataset. This is performed in batches.
         self.y_m = PtCounterfactualRLDataset.predict_batches(x=self.x,
-                                                             predict_func=self.predict_func,
+                                                             predictor=self.predictor,
                                                              batch_size=self.batch_size)
 
         # Preprocess the input data.
@@ -181,7 +181,7 @@ def consistency_loss(z_cf_pred: torch.Tensor, z_cf_tgt: torch.Tensor):
 
 def data_generator(x: np.ndarray,
                    ae_preprocessor: Callable,
-                   predict_func: Callable,
+                   predictor: Callable,
                    conditional_func: Callable,
                    num_classes: int,
                    batch_size: int,
@@ -198,9 +198,9 @@ def data_generator(x: np.ndarray,
         the `preprocessor` function.
     ae_preprocessor
         Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-    predict_func
+    predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
-        it internally in the `predict_func` if necessary.
+        it internally in the `predictor` if necessary.
     conditional_func
         Conditional function generator. Given an preprocesed input array, the functions generates a conditional
         array.
@@ -214,7 +214,7 @@ def data_generator(x: np.ndarray,
     num_workers
         Number of worker processes to be created.
     """
-    dataset = PtCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
+    dataset = PtCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predictor=predictor,
                                         conditional_func=conditional_func, num_classes=num_classes,
                                         batch_size=batch_size)
     return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,

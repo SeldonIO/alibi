@@ -237,6 +237,7 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
 
 
 def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+    from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
     CounterfactualRLBase.verify_backend(explainer.params["backend"])
 
@@ -244,7 +245,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     backend = explainer.backend
 
     # define extension
-    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
+    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
     # save autoencoder
     ae = explainer.params["ae"]
@@ -261,7 +262,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     backend.save_model(path=Path(path, "critic" + ext), model=explainer.params["critic"])
 
     # save locally prediction function
-    predict_func = explainer.params["predict_func"]
+    predictor = explainer.params["predictor"]
 
     # set autoencoder, actor, critic, prediction_func, and backend to `None`
     explainer.params["ae"] = None
@@ -269,7 +270,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     explainer.params["critic"] = None
     explainer.params["optimizer_actor"] = None
     explainer.params["optimizer_critic"] = None
-    explainer.params["predict_func"] = None
+    explainer.params["predictor"] = None
     explainer.backend = None
 
     # Save explainer. All the pre/post-processing function will be saved in the explainer.
@@ -283,7 +284,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     explainer.params["critic"] = critic
     explainer.params["optimizer_actor"] = optimizer_actor
     explainer.params["optimizer_critic"] = optimizer_critic
-    explainer.params["predict_func"] = predict_func
+    explainer.params["predictor"] = predictor
     explainer.backend = backend
 
 
@@ -291,7 +292,8 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
                                   predictor: Callable,
                                   explainer):
     # define extension
-    ext = ".tf" if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW else ".pth"
+    from alibi.utils.frameworks import Framework
+    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
     # load the autoencoder
     explainer.params["ae"] = explainer.backend.load_model(Path(path, "ae" + ext))
@@ -314,12 +316,13 @@ def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
         explainer = dill.load(f)
 
     # load backend
+    from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
     CounterfactualRLBase.verify_backend(explainer.params["backend"])
 
     # select backend module
-    if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW:
-        import alibi.explainers.backends.tflow.cfrl_base as backend
+    if explainer.params["backend"] == Framework.TENSORFLOW:
+        import alibi.explainers.backends.tensorflow.cfrl_base as backend
     else:
         import alibi.explainers.backends.pytorch.cfrl_base as backend  # type: ignore
 
@@ -342,12 +345,13 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
         explainer = dill.load(f)
 
     # load backend
+    from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
     CounterfactualRLBase.verify_backend(explainer.params["backend"])
 
     # select backend module
-    if explainer.params["backend"] == CounterfactualRLBase.TENSORFLOW:
-        import alibi.explainers.backends.tflow.cfrl_tabular as backend
+    if explainer.params["backend"] == Framework.TENSORFLOW:
+        import alibi.explainers.backends.tensorflow.cfrl_tabular as backend
     else:
         import alibi.explainers.backends.pytorch.cfrl_tabular as backend  # type: ignore
 

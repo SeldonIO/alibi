@@ -6,7 +6,7 @@ import tensorflow.keras as keras
 from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
-from alibi.models.tflow.actor_critic import Actor, Critic
+from alibi.models.tensorflow.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:
     from alibi.explainers.cfrl_base import NormalActionNoise
@@ -18,7 +18,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
     def __init__(self,
                  x: np.ndarray,
                  preprocessor: Callable,
-                 predict_func: Callable,
+                 predictor: Callable,
                  conditional_func: Callable,
                  num_classes: int,
                  batch_size: int,
@@ -33,9 +33,9 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             the `preprocessor` function.
         preprocessor
             Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-        predict_func
+        predictor
             Prediction function. The classifier function should expect the input in the original format and preprocess
-            it internally in the `predict_func` if necessary.
+            it internally in the `predictor` if necessary.
         conditional_func
             Conditional function generator. Given an preprocesed input array, the functions generates a conditional
             array.
@@ -51,7 +51,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
 
         self.x = x
         self.preprocessor = preprocessor
-        self.predict_func = predict_func
+        self.predictor = predictor
         self.conditional_func = conditional_func
         self.num_classes = num_classes
         self.batch_size = batch_size
@@ -59,7 +59,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
 
         # Infer the classification labels of the input dataset. This is performed in batches.
         self.y_m = TfCounterfactualRLDataset.predict_batches(x=self.x,
-                                                             predict_func=self.predict_func,
+                                                             predictor=self.predictor,
                                                              batch_size=self.batch_size)
 
         # Preprocess data.
@@ -190,7 +190,7 @@ def consistency_loss(z_cf_pred: tf.Tensor, z_cf_tgt: tf.Tensor):
 
 def data_generator(x: np.ndarray,
                    ae_preprocessor: Callable,
-                   predict_func: Callable,
+                   predictor: Callable,
                    conditional_func: Callable,
                    num_classes: int,
                    batch_size: int,
@@ -206,9 +206,9 @@ def data_generator(x: np.ndarray,
         the `preprocessor` function.
     ae_preprocessor
         Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
-    predict_func
+    predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
-        it internally in the `predict_func` if necessary.
+        it internally in the `predictor` if necessary.
     conditional_func
         Conditional function generator. Given an preprocesed input array, the functions generates a conditional
         array.
@@ -220,7 +220,7 @@ def data_generator(x: np.ndarray,
     shuffle
         Whether to shuffle the dataset each epoch. `True` by default.
     """
-    return TfCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predict_func=predict_func,
+    return TfCounterfactualRLDataset(x=x, preprocessor=ae_preprocessor, predictor=predictor,
                                      conditional_func=conditional_func, num_classes=num_classes,
                                      batch_size=batch_size, shuffle=shuffle)
 

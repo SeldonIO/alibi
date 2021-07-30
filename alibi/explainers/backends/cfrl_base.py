@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 class CounterfactualRLDataset(ABC):
     @staticmethod
-    def predict_batches(x: np.ndarray, predict_func: Callable, batch_size: int) -> np.ndarray:
+    def predict_batches(x: np.ndarray, predictor: Callable, batch_size: int) -> np.ndarray:
         """
         Infer the classification labels of the input dataset. This is performed in batches.
 
@@ -13,7 +13,7 @@ class CounterfactualRLDataset(ABC):
         ----------
         x
             Input to be classified.
-        predict_func
+        predictor
             Prediction function.
         batch_size
             Maximum batch size to be used during each inference step.
@@ -27,14 +27,14 @@ class CounterfactualRLDataset(ABC):
 
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, x.shape[0])
-            y_m[istart:istop] = predict_func(x[istart:istop])
+            y_m[istart:istop] = predictor(x[istart:istop])
 
         return y_m
 
     @abstractmethod
     def __len__(self):
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def __getitem__(self, item):
-        raise NotImplementedError
+        pass

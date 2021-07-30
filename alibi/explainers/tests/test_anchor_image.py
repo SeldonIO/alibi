@@ -67,3 +67,33 @@ def test_anchor_image(models, mnist_data):
     assert len(np.unique(explanation.segments)) == len(np.unique(sampler.segments))
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
+
+
+@pytest.mark.parametrize(
+    "models",
+    [("mnist-cnn-tf2.2.0",)],
+    ids="model={}".format,
+    indirect=True,
+)
+def test_stateless_explainer(models, mnist_data):
+    predict_fn = lambda x: models[0].predict(x)  # noqa: E731
+    image_shape = (28, 28, 1)
+    segmentation_fn = "slic"
+    segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
+
+    explainer = AnchorImage(
+        predict_fn,
+        image_shape,
+        segmentation_fn=segmentation_fn,
+        segmentation_kwargs=segmentation_kwargs,
+    )
+
+    x_train = mnist_data["X_train"]
+    image = x_train[0]
+    threshold = 0.95
+
+    before_explain = explainer.__dict__
+    explainer.explain(image, threshold=threshold, n_covered_ex=3)
+    after_explain = explainer.__dict__
+
+    assert before_explain == after_explain

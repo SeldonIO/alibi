@@ -256,7 +256,6 @@ class AnchorImage(Explainer):
             verbose_every=verbose_every,
             **kwargs,
         )  # type: Any
-        self.mab = mab
 
         return self.build_explanation(
             image, result, sampler.instance_label, params, sampler

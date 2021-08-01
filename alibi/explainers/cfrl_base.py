@@ -16,11 +16,11 @@ if TYPE_CHECKING:
 
 if has_pytorch:
     # import pytorch backend
-    import alibi.explainers.backends.pytorch.cfrl_base as pytorch_base_backend
+    from alibi.explainers.backends.pytorch import cfrl_base as pytorch_base_backend
 
 if has_tensorflow:
     # import tensorflow backend
-    import alibi.explainers.backends.tensorflow.cfrl_base as tensorflow_base_backend
+    from alibi.explainers.backends.tensorflow import cfrl_base as tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -767,12 +767,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
             results = self.compute_counterfactual(X=X[istart:istop],
                                                   Y_t=Y_t[istart:istop],
                                                   C=C[istart:istop] if (C is not None) else C)
-            # initialize the dict
+            # Initialize the dict.
             if not all_results:
                 all_results = results
                 continue
 
-            # append the new batch off results
+            # Append the new batch off results.
             for key in all_results:
                 if all_results[key] is not None:
                     all_results[key] = np.concatenate([all_results[key], results[key]], axis=0)

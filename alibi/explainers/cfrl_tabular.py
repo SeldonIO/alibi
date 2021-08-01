@@ -14,11 +14,11 @@ if TYPE_CHECKING:
 
 if has_pytorch:
     # import pytorch backend
-    import alibi.explainers.backends.pytorch.cfrl_tabular as pytorch_tabular_backend
+    from alibi.explainers.backends.pytorch import cfrl_tabular as pytorch_tabular_backend
 
 if has_tensorflow:
     # import tensorflow backend
-    import alibi.explainers.backends.tensorflow.cfrl_tabular as tensorflow_tabular_backend
+    from alibi.explainers.backends.tensorflow import cfrl_tabular as tensorflow_tabular_backend
 
 
 class SampleTabularPostprocessing(Postprocessing):

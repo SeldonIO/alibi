@@ -58,9 +58,9 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         self.shuffle = shuffle
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = TfCounterfactualRLDataset.predict_batches(X=self.X,
-                                                             predictor=self.predictor,
-                                                             batch_size=self.batch_size)
+        self.y_m = self.predict_batches(X=self.X,
+                                        predictor=self.predictor,
+                                        batch_size=self.batch_size)
 
         # Preprocess data.
         self.X = self.preprocessor(self.X)
@@ -81,7 +81,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         return self.X.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
+        # self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
 
         # Select indices to be returned.
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]

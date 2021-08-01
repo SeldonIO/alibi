@@ -7,7 +7,7 @@ from sklearn.compose import ColumnTransformer  # type: ignore
 from scipy.special import softmax  # type: ignore
 
 
-def conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]) -> int:
+def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]) -> int:
     """
     Computes the dimension of the conditional vector
 
@@ -75,14 +75,22 @@ def split_ohe(X_ohe,
     return X_ohe_num_split, X_ohe_cat_split
 
 
-def numerical_condition(X_ohe: np.ndarray,
-                        feature_names: List[str],
-                        category_map: Dict[int, List[str]],
-                        ranges: Dict[str, List[float]],
-                        immutable_features: List[str],
-                        conditional: bool = True) -> np.ndarray:
+def get_numerical_condition(X_ohe: np.ndarray,
+                            feature_names: List[str],
+                            category_map: Dict[int, List[str]],
+                            ranges: Dict[str, List[float]],
+                            immutable_features: List[str],
+                            conditional: bool = True) -> np.ndarray:
     """
-    Generates numerical features conditional vector.
+    Generates numerical features conditional vector. For numerical features with a minimum value `a_min` and a
+    maximum value `a_max`, we include in the conidtional vector the values `-p_min`, `p_max`, where `p_min, p_max`
+    are in `[0, 1]`. The range `[-p_min, p_max]` encodes a shift and scale-invariant representation of the interval
+    `[a - p_min * (a_max - a_min), a + p_max * (a_max - a_min)], where `a` is the original feature value. During
+    training, `p_min` and `p_max` are sampled from `Beta(2, 2)` for each unconstrained feature. Immutable features
+    can be encoded by `p_min = p_max = 0` or listedn in `immutable_features` list. Features allowed to increas or
+    decrease only correspond to setting `p_min = 0` or `p_max = 0`, respectively. For example, allowing the `age`
+    feature to increas by up to 5 years is encoded by taking `p_min = 0`, `p_max=0.1`, assuming the minimum age of `10`
+    and the maximum age of `60` years in the training set: `5 = 0.1 * (60 - 10)`.
 
     Parameters
     ----------
@@ -143,13 +151,18 @@ def numerical_condition(X_ohe: np.ndarray,
     return np.concatenate(num_cond, axis=1)
 
 
-def categorical_condition(X_ohe: np.ndarray,
-                          feature_names: List[str],
-                          category_map: Dict[int, List],
-                          immutable_features: List[str],
-                          conditional: bool = True) -> np.ndarray:
+def get_categorical_condition(X_ohe: np.ndarray,
+                              feature_names: List[str],
+                              category_map: Dict[int, List],
+                              immutable_features: List[str],
+                              conditional: bool = True) -> np.ndarray:
     """
-    Generates categorical features conditional vector.
+    Generates categorical features conditional vector. For a categorical feature of cardinality `K`, we conditon the
+    subset of allowed feature through a binary mask of dimension `K`. When training the counterfactual generator,
+    the mask values are sampled from `Bern(0.5)`. For immutable features, only the original inpute feature value is
+    set to one in the binary mask. For example, the immutability of the `marital_status` having the current
+    value `married` is encoded through the binary sequence `[1, 0, 0]`, given an ordering of the possible feature
+    values `[married, unmarried, divorced]`.
 
     Parameters
     ----------
@@ -238,19 +251,19 @@ def generate_condition(X_ohe: np.ndarray,
     Conditional vector.
     """
     # Generate numerical condition vector.
-    C_num = numerical_condition(X_ohe=X_ohe,
-                                feature_names=feature_names,
-                                category_map=category_map,
-                                ranges=ranges,
-                                immutable_features=immutable_features,
-                                conditional=conditional)
+    C_num = get_numerical_condition(X_ohe=X_ohe,
+                                    feature_names=feature_names,
+                                    category_map=category_map,
+                                    ranges=ranges,
+                                    immutable_features=immutable_features,
+                                    conditional=conditional)
 
     # Generate categorical condition vector.
-    C_cat = categorical_condition(X_ohe=X_ohe,
-                                  feature_names=feature_names,
-                                  category_map=category_map,
-                                  immutable_features=immutable_features,
-                                  conditional=conditional)
+    C_cat = get_categorical_condition(X_ohe=X_ohe,
+                                      feature_names=feature_names,
+                                      category_map=category_map,
+                                      immutable_features=immutable_features,
+                                      conditional=conditional)
 
     # Concatenate numerical and categorical conditional vectors.
     return np.concatenate([C_num, C_cat], axis=1)
@@ -393,11 +406,11 @@ def sample(X_hat_split: List[np.ndarray],
     return sampled_num + sampled_cat
 
 
-def he_preprocessor(X: np.ndarray,
-                    feature_names: List[str],
-                    category_map: Dict[int, List[str]],
-                    feature_types: Dict[int, type] = dict()
-                    ) -> Tuple[Callable[[np.ndarray], np.ndarray],
+def get_he_preprocessor(X: np.ndarray,
+                        feature_names: List[str],
+                        category_map: Dict[int, List[str]],
+                        feature_types: Dict[int, type] = dict()
+                        ) -> Tuple[Callable[[np.ndarray], np.ndarray],
                                Callable[[np.ndarray], np.ndarray]]:
     """
     Heterogeneous dataset preprocessor. The numerical features are standardized and the categorical features
@@ -447,7 +460,7 @@ def he_preprocessor(X: np.ndarray,
     cat_feat_ohe = sum([len(v) for v in category_map.values()])  # number of categorical columns
 
     # define inverse preprocessor
-    def inv_preprocessor(x_ohe: np.ndarray):
+    def get_inv_preprocessor(x_ohe: np.ndarray):
         X_inv = []
 
         if "num" in preprocessor.named_transformers_:
@@ -476,12 +489,12 @@ def he_preprocessor(X: np.ndarray,
 
         return np_X_inv
 
-    return preprocessor.transform, inv_preprocessor
+    return preprocessor.transform, get_inv_preprocessor
 
 
-def statistics(X: np.ndarray,
-               preprocessor: Callable[[np.ndarray], np.ndarray],
-               category_map: Dict[int, List[str]]) -> Dict[int, Dict[str, float]]:
+def get_statistics(X: np.ndarray,
+                   preprocessor: Callable[[np.ndarray], np.ndarray],
+                   category_map: Dict[int, List[str]]) -> Dict[int, Dict[str, float]]:
     """
     Computes statistics.
 
@@ -516,15 +529,22 @@ def statistics(X: np.ndarray,
     return stats
 
 
-def conditional_vector(X: np.ndarray,
-                       condition: Dict[str, List[Union[float, str]]],
-                       preprocessor: Callable[[np.ndarray], np.ndarray],
-                       feature_names: List[str],
-                       category_map: Dict[int, List[str]],
-                       stats: Dict[int, Dict[str, float]],
-                       ranges: Dict[str, List[float]] = dict(),
-                       immutable_features: List[str] = list(),
-                       diverse=False) -> np.ndarray:
+
+def get_numerical_conditiona_vector():
+    pass
+
+def get_categorical_conditional_vector():
+    pass
+
+def get_conditional_vector(X: np.ndarray,
+                           condition: Dict[str, List[Union[float, str]]],
+                           preprocessor: Callable[[np.ndarray], np.ndarray],
+                           feature_names: List[str],
+                           category_map: Dict[int, List[str]],
+                           stats: Dict[int, Dict[str, float]],
+                           ranges: Dict[str, List[float]] = dict(),
+                           immutable_features: List[str] = list(),
+                           diverse=False) -> np.ndarray:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature. For example, if
     `Age`=26 and the feature is allowed to increase up to 10 more years. Similar for categorical features,
@@ -660,7 +680,7 @@ def conditional_vector(X: np.ndarray,
     return np.concatenate(C, axis=1)
 
 
-def category_mapping(X: np.ndarray, category_map: Dict[int, List[str]]):
+def apply_category_mapping(X: np.ndarray, category_map: Dict[int, List[str]]) -> np.ndarray:
     """
     Applies a category mapping for the categorical feature in the array. It transforms ints back to strings
     to be readable

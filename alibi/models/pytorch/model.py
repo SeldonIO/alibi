@@ -1,3 +1,11 @@
+"""
+This module tries to provided a class wrapper to mimic the TensorFlow API of `tensorflow.keras.Model`. It
+is intended to simplify the training of a model through methods like compile, fit and evaluate which allow the user
+to define custom loss functions, optimizers, evaluation metrics, train a model and evaluate it. Currently it is
+used internally to test the functionalities for the Pytorch backend. To be discussed if the module will be exposed
+to the user in future versions.
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -6,16 +14,6 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 from typing import List, Dict, Callable, Union, Tuple, Any, Optional
 from alibi.models.pytorch.metrics import Metric, LossContainer
-
-
-class NamedModule(nn.Module):
-    def __init__(self, module: nn.Module, name: str):
-        super().__init__()
-        self.module = module
-        self.name = name
-
-    def forward(self, *input):
-        return self.module(*input)
 
 
 class Model(nn.Module):
@@ -27,16 +25,22 @@ class Model(nn.Module):
                 optimizer: optim.Optimizer,
                 loss: Union[Callable, List[Callable]],
                 loss_weights: Optional[List[float]] = None,
-                metrics: Optional[List[Metric]] = None):
+                metrics: Optional[List[Metric]] = None) -> 'Model':
         """
-        Compiles a model by setting the optimizer and the loss.
+        Compiles a model by setting the optimizer and the loss functions, loss weights and metrics to monitor
+        the training of the model..
 
         Parameters
         ----------
         optimizer
             Optimizer to be used.
         loss
-            Loss function to be used.
+            Loss function to be used. Can be a list of the loss function which will be weighted and summed up to
+            compute the total loss.
+        loss_weights
+            Weights corresponding to each loss function. Only used if the `loss` argument is a  list.
+        metrics
+            Metrics used to monitor the training process.
         """
         self.optimizer = optimizer
         self.metrics = [] if (metrics is None) else metrics
@@ -54,9 +58,21 @@ class Model(nn.Module):
         else:
             self.loss = LossContainer(loss, name="loss")
 
+        return self
+
     def validate_prediction_labels(self,
                                    y_pred: Union[torch.Tensor, List[torch.Tensor]],
                                    y_true: Union[torch.Tensor, List[torch.Tensor]]):
+        """
+        Validates the loss functions, loss weights, training labels and prediction labels.
+
+        Parameters
+        ---------
+        y_pred
+            Prediction labels.
+        y_true
+            True labels.
+        """
         if isinstance(self.loss, list):
             # check that prediction is a list
             if not isinstance(y_pred, list):
@@ -73,6 +89,9 @@ class Model(nn.Module):
             # check if the number of output heads matches the number of output losses
             if len(y_pred) != len(self.loss):
                 raise ValueError("Number of model's heads differs from the number of losses.")
+
+            if len(self.loss_weights) != 0 and (len(self.loss_weights) != len(self.loss)):
+                raise ValueError("Number of loss weights should be equal to the number of losses.")
         else:
             # check that the prediction is not a list
             if isinstance(y_pred, list):
@@ -88,7 +107,22 @@ class Model(nn.Module):
 
     def compute_loss(self,
                      y_pred: Union[torch.Tensor, List[torch.Tensor]],
-                     y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Tuple[torch.Tensor, Dict[str, Any]]:
+                     y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Tuple[torch.Tensor, Dict[str, float]]:
+        """
+        Computes the loss given the prediction labels and the true labels.
+
+        Parameters
+        ---------
+        y_pred
+            Prediction labels.
+        y_true
+            True labels.
+
+        Returns
+        -------
+        A tuple consisting of the total loss computed as a weighted sum of individual losses and a dictionary
+        of individual losses used of logging.
+        """
         # compute loss
         if isinstance(self.loss, list):
             assert isinstance(y_pred, list)
@@ -115,7 +149,17 @@ class Model(nn.Module):
 
     def compute_metrics(self,
                         y_pred: Union[torch.Tensor, List[torch.Tensor]],
-                        y_true: Union[torch.Tensor, List[torch.Tensor]]):
+                        y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[str, float]:
+        """
+        Computes the metrics given the prediction labels and the true labels.
+
+        Parameters
+        ----------
+        y_pred
+            Prediction labels.
+        y_true
+            True labels.
+        """
         results = dict()
 
         if isinstance(self.metrics, dict):
@@ -212,6 +256,20 @@ class Model(nn.Module):
         return results
 
     def fit(self, trainloader: DataLoader, epochs: int) -> Dict[str, float]:
+        """
+        Fit method. Equivalent of a training loop.
+
+        Parameters
+        ----------
+        trainloader
+            Training data loader.
+        epochs
+            Number of epochs to train the model.
+
+        Returns
+        -------
+        Final epoch monitoring metrics.
+        """
         for epoch in range(epochs):
             print("Epoch %d/%d" % (epoch, epochs))
 
@@ -233,6 +291,18 @@ class Model(nn.Module):
         return metrics_vals
 
     def evaluate(self, testloader: DataLoader) -> Dict[str, float]:
+        """
+        Evaluation function. The function reports the evaluation metrics used for monitoring the training loop.
+
+        Parameters
+        ----------
+        testloader
+            Test dataloader.
+
+        Returns
+        -------
+        Evaluation metrics.
+        """
         self._reset_loss()
         self._reset_metrics()
 
@@ -251,12 +321,27 @@ class Model(nn.Module):
 
     @staticmethod
     def _metrics_to_str(metrics: Dict[str, float]) -> str:
+        """
+        Converts a dictionary of metrics into a string for logging purposes.
+
+        Parameters
+        ----------
+        metrics
+            Dictionary of metrics to be converted into a string.
+
+        Returns
+        -------
+        String representation of the metrics.
+        """
         str_losses = ''
         for key in metrics:
             str_losses += "%s: %.4f\t" % (key, metrics[key])
         return str_losses
 
     def _reset_loss(self):
+        """
+        Rests the losses. Called at the beginning of each epoch.
+        """
         if isinstance(self.loss, list):
             for partial_loss in self.loss:
                 partial_loss.reset()
@@ -264,12 +349,21 @@ class Model(nn.Module):
             self.loss.reset()
 
     def _reset_metrics(self):
+        """
+        Resets the monitoring metrics. Called at the beginning of each epoch.
+        """
         metrics = self.metrics.values() if isinstance(self.metrics, dict) else self.metrics
         for metric in metrics:
             metric.reset()
 
     def save_weights(self, path: str) -> None:
+        """
+        Save the weight of the current model.
+        """
         torch.save(self.state_dict(), path)
 
     def load_weights(self, path: str) -> None:
+        """
+        Loads the weight of the current model.
+        """
         self.load_state_dict(torch.load(path))

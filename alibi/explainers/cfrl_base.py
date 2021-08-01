@@ -328,7 +328,10 @@ Parameter types for serialization
 
 
 class CounterfactualRLBase(Explainer, FitMixin):
-    """ Counterfactual Reinforcement Learning Base. """
+    """
+     Counterfactual Reinforcement Learning Base.
+     TODO: check if all tensors are upperca
+    """
 
     def __init__(self,
                  predictor: Callable,

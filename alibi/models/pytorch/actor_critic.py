@@ -4,7 +4,11 @@ import torch.nn.functional as F
 
 
 class Actor(nn.Module):
-    """ Actor network """
+    """
+    Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
+    The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and
+    tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
+    """
 
     def __init__(self, hidden_dim: int, output_dim: int) -> None:
         """
@@ -32,7 +36,11 @@ class Actor(nn.Module):
 
 
 class Critic(nn.Module):
-    """ Critic network """
+    """
+    Critic network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
+    The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and
+    tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
+    """
 
     def __init__(self, hidden_dim: int):
         """

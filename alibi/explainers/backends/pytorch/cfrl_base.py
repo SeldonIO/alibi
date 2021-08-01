@@ -58,9 +58,9 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         self.batch_size = batch_size
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.Y_m = PtCounterfactualRLDataset.predict_batches(X=self.X,
-                                                             predictor=self.predictor,
-                                                             batch_size=self.batch_size)
+        self.Y_m = self.predict_batches(X=self.X,
+                                        predictor=self.predictor,
+                                        batch_size=self.batch_size)
 
         # Preprocess the input data.
         self.X = self.preprocessor(self.X)
@@ -69,7 +69,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
+        # self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
 
         # Generate random target class.
         Y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
@@ -109,7 +109,7 @@ def get_optimizer(model: nn.Module, lr: float = 1e-3) -> torch.optim.Optimizer:
     return torch.optim.Adam(model.parameters(), lr=lr)
 
 
-def get_actor(hidden_dim: int, output_dim: int, **kwargs) -> nn.Module:
+def get_actor(hidden_dim: int, output_dim: int) -> nn.Module:
     """
     Constructs the actor network.
 
@@ -127,7 +127,7 @@ def get_actor(hidden_dim: int, output_dim: int, **kwargs) -> nn.Module:
     return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
 
-def get_critic(hidden_dim: int):
+def get_critic(hidden_dim: int) -> nn.Module:
     """
     Constructs the critic network.
 

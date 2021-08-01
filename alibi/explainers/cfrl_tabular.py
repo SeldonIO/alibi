@@ -1,7 +1,7 @@
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
 from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, PARAM_TYPES
-from alibi.explainers.backends.cfrl_tabular import sample, conditional_vector, statistics
+from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
 
 import numpy as np
 from itertools import count
@@ -207,7 +207,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # Set testing conditional function generator if not user-specified.
         if "conditional_vector" not in kwargs:
-            self.params["conditional_vector"] = partial(conditional_vector,
+            self.params["conditional_vector"] = partial(get_conditional_vector,
                                                         preprocessor=self.params["ae_preprocessor"],
                                                         feature_names=self.params["feature_names"],
                                                         category_map=self.params["category_map"],
@@ -228,12 +228,26 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         """
         return tensorflow_tabular_backend if backend == "tensorflow" else pytorch_tabular_backend
 
+    def validate_dataset(self, X: np.ndarray) -> np.ndarray:
+        if len(X.shape) > 2:
+            raise ValueError("The input should be a 2D array.")
+
+        # Reshape the input vector to have be 2D.
+        X = np.atleast_2d(X)
+
+        # Check if the number of features matches the expected one.
+        if X.shape[1] != len(self.params["feature_names"]):
+            raise ValueError(f"Unexpected number of features. The expected number "
+                             f"is {len(self.params['feature_names'])}, but the input has {X.shape[1]} features.")
+
+        return X
+
     def fit(self, X: np.ndarray) -> 'Explainer':
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
-        self.params["stats"] = statistics(X=X,
-                                          preprocessor=self.params["ae_preprocessor"],
-                                          category_map=self.params["category_map"])
+        self.params["stats"] = get_statistics(X=X,
+                                              preprocessor=self.params["ae_preprocessor"],
+                                              category_map=self.params["category_map"])
 
         # Set postprocessing functions. Needs `stats`.
         self.params["postprocessing_funcs"] = [
@@ -243,6 +257,9 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # update metadata
         self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
+
+        # validate dataset
+        X = self.validate_dataset(X)
 
         # call base class fit
         return super().fit(X)
@@ -281,19 +298,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         tolerance
             Tolerance to distinguish two counterfactual instances.
         """
-        import logging
-        logging.getLogger('tensorflow').setLevel(logging.FATAL)
-
-        if len(X.shape) > 2:
-            raise ValueError("The input should be a 2D array.")
-
-        # Reshape the input vector to have be 2D.
-        X = np.atleast_2d(X)
-
-        # Check if the number of features matches the expected one.
-        if X.shape[1] != len(self.params["feature_names"]):
-            raise ValueError(f"Unexpected number of features. The expected number "
-                             f"is {len(self.params['feature_names'])}, but the input has {X.shape[1]} features.")
+        # validate dataset
+        X = self.validate_dataset(X)
 
         # Check if diversity flag is on.
         if diversity:
@@ -367,14 +373,14 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                 break
 
             # Generate conditional vector.
-            C_vec = conditional_vector(X=X_repeated,
-                                       condition=C[0],
-                                       preprocessor=self.params["ae_preprocessor"],
-                                       feature_names=self.params["feature_names"],
-                                       category_map=self.params["category_map"],
-                                       stats=self.params["stats"],
-                                       immutable_features=self.params["immutable_features"],
-                                       diverse=True)
+            C_vec = get_conditional_vector(X=X_repeated,
+                                           condition=C[0],
+                                           preprocessor=self.params["ae_preprocessor"],
+                                           feature_names=self.params["feature_names"],
+                                           category_map=self.params["category_map"],
+                                           stats=self.params["stats"],
+                                           immutable_features=self.params["immutable_features"],
+                                           diverse=True)
 
             # Generate counterfactuals.
             results = self.compute_counterfactual(X=X_repeated, Y_t=Y_t, C=C_vec)

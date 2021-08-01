@@ -5,7 +5,11 @@ from typing import List, Tuple
 
 
 class AE(keras.Model):
-    """ Autoencoder. """
+    """
+    Autoencoder. Standard autoencoder architecture. The model is composed from two submodules, the encoder and
+    the decoder. The forward pass consist of passing the input to the encoder, obtain the input embedding and
+    pass the embedding through the decoder. The abstraction can be used for multiple data modalities.
+    """
 
     def __init__(self,
                  encoder: keras.Model,
@@ -32,7 +36,11 @@ class AE(keras.Model):
 
 
 class HeAE(AE):
-    """ Heterogeneous autoencoder. """
+    """
+    Heterogeneous autoencoder. The model follows the standard autoencoder architecture and includes and additional
+    type check to ensure that the output of the model is a list of tensors. For more details, see
+    :py:class:`alibi.models.pytorch.autoencoder.AE`.
+    """
 
     def __init__(self,
                  encoder: keras.Model,

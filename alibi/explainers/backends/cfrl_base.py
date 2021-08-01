@@ -7,7 +7,7 @@ class CounterfactualRLDataset(ABC):
     @staticmethod
     def predict_batches(X: np.ndarray, predictor: Callable, batch_size: int) -> np.ndarray:
         """
-        Infer the classification labels of the input dataset. This is performed in batches.
+        Predict the classification labels of the input dataset. This is performed in batches.
 
         Parameters
         ----------

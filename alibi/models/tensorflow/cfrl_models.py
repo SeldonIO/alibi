@@ -1,12 +1,15 @@
-from abc import ABC
-
 import tensorflow as tf
 import tensorflow.keras as keras
 from typing import List
 
 
-class MNISTClassifier(keras.Model, ABC):
-    """ MNIST classifier. """
+class MNISTClassifier(keras.Model):
+    """
+    MNIST classifier used in the experiments for Counterfactual with Reinforcement Learning. The model consists of two
+    convolutional layers having 64 and 32 channels and a kernel size of 2 with ReLU nonlinearities, followed by
+    maxpooling of size 2 and dropout of 0.3. The convolutional block is followed by a fully connected layer of 256 with
+    ReLU nonlinearity, and finally a fully connected layer is used to predict the class logits (10 in MNIST case).
+    """
 
     def __init__(self, output_dim: int = 10, **kwargs) -> None:
         """
@@ -36,8 +39,15 @@ class MNISTClassifier(keras.Model, ABC):
         return x
 
 
-class MNISTEncoder(keras.Model, ABC):
-    """ MNIST encoder. """
+class MNISTEncoder(keras.Model):
+    """
+    MNIST encoder used in the experiments for the Counterfactual with Reinforcement Learning. The model
+    consists of 3 convolutional layers having 16, 8 and 8 channels and a kernel size of 3, with ReLU nonlinearities.
+    Each convolutional layer is followed by a maxpooling layer of size 2. Finally, a fully connected layer
+    follows the convolutional block with a tanh nonlinearity. The tanh clips the output between [-1, 1], required
+    in the DDPG algorithm (e.g., [act_low, act_high]). The embedding dimension used in the paper is 32, although
+    this can vary.
+    """
 
     def __init__(self, latent_dim: int, **kwargs) -> None:
         """
@@ -67,8 +77,14 @@ class MNISTEncoder(keras.Model, ABC):
         return x
 
 
-class MNISTDecoder(keras.Model, ABC):
-    """ MNIST decoder. """
+class MNISTDecoder(keras.Model):
+    """
+    MNIST decoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of a fully
+    connected layer of 128 units with ReLU activation followed by a convolutional block. The convolutional block
+    consists fo 4 convolutional layers having 8, 8, 8  and 1 channels and a kernel size of 3.Each convolutional layer,
+    except the last one, has ReLU nonlinearities and is followed by an upsampling layer of size 2. The final layers
+    uses a sigmoid activation to clip the output values in [0, 1].
+    """
 
     def __init__(self, **kwargs) -> None:
         """ Constructor. """
@@ -93,8 +109,13 @@ class MNISTDecoder(keras.Model, ABC):
         return x
 
 
-class ADULTEncoder(keras.Model, ABC):
-    """ ADULT encoder. """
+class ADULTEncoder(keras.Model):
+    """
+    ADULT encoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of
+    two fully connected layers with ReLU and tanh nonlinearities. The tanh nonlinearity clips the embedding in [-1, 1]
+    as required in the DDPG algorith (e.g., [act_low, act_high]). The layers' dimensions used in the paper are
+    128 and 15, although those can vary as they were selected to generalize across many datasets.
+    """
 
     def __init__(self, hidden_dim: int, latent_dim: int, **kwargs):
         """
@@ -108,7 +129,6 @@ class ADULTEncoder(keras.Model, ABC):
             Latent dimension.
         """
         super().__init__(**kwargs)
-
         self.fc1 = keras.layers.Dense(hidden_dim)
         self.fc2 = keras.layers.Dense(latent_dim)
 
@@ -118,7 +138,13 @@ class ADULTEncoder(keras.Model, ABC):
         return x
 
 
-class ADULTDecoder(keras.Model, ABC):
+class ADULTDecoder(keras.Model):
+    """
+    ADULT decoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of
+    of a fully connected layer with ReLU nonlinearity, and a multiheaded layer, one for each categorical feature and
+    a single head for the rest of numerical features. The hidden dimension used in the paper is 128.
+    """
+
     def __init__(self, hidden_dim: int, output_dims: List[int], **kwargs):
         """
         Constructor.

@@ -1,4 +1,11 @@
 from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
+
+# The following methods are included since `alibi.explainers.backends.pytorch.cfrl_tabular` is an extension to the
+# `alibi.explainers.backends.pytorch.cfrl_base.py`. In the explainer class `alibi.explainers.cfrl_tabular` the
+# access to the backend specific methods is performed through `self.backend` which is of `types.ModuleType`. Since
+# some of the methods imported below are common for both data modalities and are access through `self.backend`
+# we import them here, without being used explicitly in this module.
+
 from alibi.explainers.backends.tensorflow.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
     encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor, set_seed, \
     save_model, load_model  # noqa: F403, F401

@@ -296,8 +296,8 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
     Y_t_ohe = tf.one_hot(tf.cast(Y_t, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m_ohe, Y_t_ohe] + \
-            ([tf.constant(C, dtype=tf.float32)] if (C is not None) else [])
+    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m_ohe, Y_t_ohe] +\
+        ([tf.constant(C, dtype=tf.float32)] if (C is not None) else [])
     state = tf.concat(state, axis=1)
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding

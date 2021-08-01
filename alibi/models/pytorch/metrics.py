@@ -35,7 +35,7 @@ class LossContainer:
         """
         self.name = name
         self.loss = loss
-        self.total, self.count = 0, 0
+        self.total, self.count = 0., 0
 
     def __call__(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """

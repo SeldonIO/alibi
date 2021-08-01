@@ -81,16 +81,19 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.X, self.X_cf = None, None           # buffers for the input and the counterfactuals
-        self.Y_m, self.Y_t = None, None          # buffers for the model's prediction and counterfactual target
-        self.Z, self.Z_cf_tilde = None, None     # buffers for the input embedding and noised counterfactual embedding
-        self.C = None                            # buffer for the conditional tensor
-        self.R_tilde = None                      # buffer for the noised counterfactual reward tensor
+        self.X: np.ndarray              # buffer for the inputs
+        self.X_cf: np.ndarray           # buffer for the counterfactuals
+        self.Y_m: np.ndarray            # buffer for the model's prediction
+        self.Y_t: np.ndarray            # buffer for the counterfactual targets
+        self.Z: np.ndarray              # buffer for the input embedding
+        self.Z_cf_tilde: np.ndarray     # buffer for the noised counterfactual embedding
+        self.C: Optional[np.ndarray]    # buffer for the conditional tensor
+        self.R_tilde: np.ndarray        # buffer for the noised counterfactual reward tensor
 
-        self.idx = 0                             # cursor for the buffer
-        self.len = 0                             # current length of the buffer
-        self.size = size                         # buffer's maximum capacity
-        self.batch_size = None                   # batch size (inferred during `append`)
+        self.idx = 0                    # cursor for the buffer
+        self.len = 0                    # current length of the buffer
+        self.size = size                # buffer's maximum capacity
+        self.batch_size = 0             # batch size (inferred during `append`)
 
     def append(self,
                X: np.ndarray,
@@ -889,7 +892,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
 class Postprocessing(ABC):
     @abstractmethod
-    def __call__(self, X_cf: Union[np.ndarray, List[np.ndarray]], X: np.ndarray, C: np.ndarray) -> Any:
+    def __call__(self, X_cf: Any, X: np.ndarray, C: np.ndarray) -> Any:
         """
         Post-processing function
 

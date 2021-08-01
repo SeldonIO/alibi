@@ -12,7 +12,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 from tqdm import tqdm
-from typing import List, Dict, Callable, Union, Tuple, Any, Optional
+from typing import List, Dict, Callable, Union, Tuple, Optional
 from alibi.models.pytorch.metrics import Metric, LossContainer
 
 

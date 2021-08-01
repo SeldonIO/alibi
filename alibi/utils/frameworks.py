@@ -17,8 +17,3 @@ try:
     has_pytorch = True
 except ImportError:
     has_pytorch = False
-
-
-if __name__ == "__main__":
-    print(Framework.PYTORCH.value == "pytorch")
-    print(Framework.TENSORFLOW)

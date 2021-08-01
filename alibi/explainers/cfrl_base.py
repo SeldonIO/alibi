@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from tqdm import tqdm  # type: ignore
 from copy import deepcopy
-from typing import Union, Any, Callable, Optional, Tuple, Dict, List, TYPE_CHECKING
+from typing import Union, Any, Callable, Optional, Tuple, Dict, TYPE_CHECKING
 from abc import ABC, abstractmethod
 
 from alibi.api.defaults import DEFAULT_META_CFRL, DEFAULT_DATA_CFRL
@@ -81,14 +81,14 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.X: np.ndarray              # buffer for the inputs
-        self.X_cf: np.ndarray           # buffer for the counterfactuals
-        self.Y_m: np.ndarray            # buffer for the model's prediction
-        self.Y_t: np.ndarray            # buffer for the counterfactual targets
-        self.Z: np.ndarray              # buffer for the input embedding
-        self.Z_cf_tilde: np.ndarray     # buffer for the noised counterfactual embedding
-        self.C: Optional[np.ndarray]    # buffer for the conditional tensor
-        self.R_tilde: np.ndarray        # buffer for the noised counterfactual reward tensor
+        self.X: Optional[np.ndarray] = None              # buffer for the inputs
+        self.X_cf: Optional[np.ndarray] = None           # buffer for the counterfactuals
+        self.Y_m: Optional[np.ndarray] = None            # buffer for the model's prediction
+        self.Y_t: Optional[np.ndarray] = None            # buffer for the counterfactual targets
+        self.Z: Optional[np.ndarray] = None              # buffer for the input embedding
+        self.Z_cf_tilde: Optional[np.ndarray] = None     # buffer for the noised counterfactual embedding
+        self.C: Optional[np.ndarray] = None              # buffer for the conditional tensor
+        self.R_tilde: Optional[np.ndarray] = None        # buffer for the noised counterfactual reward tensor
 
         self.idx = 0                    # cursor for the buffer
         self.len = 0                    # current length of the buffer

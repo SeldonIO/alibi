@@ -1,7 +1,6 @@
 import pytest
 
 import numpy as np
-from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers import AnchorImage
 from alibi.explainers.anchor_image_sampler import AnchorImageSampler
 

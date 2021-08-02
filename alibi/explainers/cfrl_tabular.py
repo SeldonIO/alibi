@@ -9,8 +9,8 @@ from functools import partial
 from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from alibi.models.tensorflow.autoencoder import HeAE as TensorflowHeAE
-    from alibi.models.pytorch.autoencoder import HeAE as PytorchHeAE
+    import torch.nn as nn
+    import tensorflow.keras as keras
 
 if has_pytorch:
     # import pytorch backend
@@ -103,13 +103,13 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
     def __init__(self,
                  predictor: Callable,
-                 ae: Union['TensorflowHeAE', 'PytorchHeAE'],
+                 encoder: Union['keras.Model', 'nn.Module'],
+                 decoder: Union['keras.Model', 'nn.Module'],
                  latent_dim: int,
-                 ae_preprocessor: Callable,
-                 ae_inv_preprocessor: Callable,
+                 encoder_preprocessor: Callable,
+                 decoder_inv_preprocessor: Callable,
                  coeff_sparsity: float,
                  coeff_consistency: float,
-                 num_classes: int,
                  feature_names: List[str],
                  category_map: Dict[int, List[str]],
                  immutable_features: Optional[List[str]] = None,
@@ -126,22 +126,22 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         ----------
         predictor.
            Prediction function. This corresponds to the classifier.
-        ae
-           Pre-trained autoencoder.
+        encoder
+            Pretrained encoder network.
+        decoder
+            Pretrained decoder network.
         latent_dim
             Autoencoder latent dimension.
-        ae_preprocessor
+        encoder_preprocessor
             Autoencoder data pre-processor. Depending on the input format, the pre-processor can normalize
             numerical attributes, transform label encoding to one-hot encoding etc.
-        ae_inv_preprocessor
+        decoder_inv_preprocessor
             Autoencoder data inverse pre-processor. This is the invers function of the pre-processor. It can
             denormalize numerical attributes, transfrom one-hot encoding to label encoding, feature type casting etc.
         coeff_sparsity
            Sparsity loss coefficient.
         coeff_consistency
            Consistency loss coefficient.
-        num_classes
-            Number of classes to be considered.
         feature_names
             List of feature names. This should be provided by the dataset.
         category_map
@@ -170,13 +170,13 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         kwargs
             Used to replace any default parameter from :py:data:`alibi.expaliners.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
-        super().__init__(ae=ae, latent_dim=latent_dim, predictor=predictor, coeff_sparsity=coeff_sparsity,
-                         coeff_consistency=coeff_consistency, num_classes=num_classes, backend=backend, seed=seed,
-                         **kwargs)
+        super().__init__(encoder=encoder, decoder=decoder, latent_dim=latent_dim, predictor=predictor,
+                         coeff_sparsity=coeff_sparsity, coeff_consistency=coeff_consistency, backend=backend,
+                         seed=seed, **kwargs)
 
-        # Set ae preprocessor and inverse preprocessor.
-        self.params["ae_preprocessor"] = ae_preprocessor
-        self.params["ae_inv_preprocessor"] = ae_inv_preprocessor
+        # Set encoder preprocessor and decoder inverse preprocessor.
+        self.params["encoder_preprocessor"] = encoder_preprocessor
+        self.params["decoder_inv_preprocessor"] = decoder_inv_preprocessor
 
         # Set dataset specific arguments.
         self.params["category_map"] = category_map
@@ -208,7 +208,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         # Set testing conditional function generator if not user-specified.
         if "conditional_vector" not in kwargs:
             self.params["conditional_vector"] = partial(get_conditional_vector,
-                                                        preprocessor=self.params["ae_preprocessor"],
+                                                        preprocessor=self.params["encoder_preprocessor"],
                                                         feature_names=self.params["feature_names"],
                                                         category_map=self.params["category_map"],
                                                         ranges=self.params["ranges"],
@@ -251,7 +251,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
         self.params["stats"] = get_statistics(X=X,
-                                              preprocessor=self.params["ae_preprocessor"],
+                                              preprocessor=self.params["encoder_preprocessor"],
                                               category_map=self.params["category_map"])
 
         # Set postprocessing functions. Needs `stats`.
@@ -413,7 +413,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             # Generate conditional vector.
             C_vec = get_conditional_vector(X=X_repeated,
                                            condition=C[0],
-                                           preprocessor=self.params["ae_preprocessor"],
+                                           preprocessor=self.params["encoder_preprocessor"],
                                            feature_names=self.params["feature_names"],
                                            category_map=self.params["category_map"],
                                            stats=self.params["stats"],

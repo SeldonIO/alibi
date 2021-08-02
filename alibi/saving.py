@@ -247,9 +247,11 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     # define extension
     ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
-    # save autoencoder
-    ae = explainer.params["ae"]
-    backend.save_model(path=Path(path, "ae" + ext), model=explainer.params["ae"])
+    # save encoder and decoder (autoencoder components)
+    encoder = explainer.params["encoder"]
+    decoder = explainer.params["decoder"]
+    backend.save_model(path=Path(path, "encoder" + ext), model=explainer.params["encoder"])
+    backend.save_model(path=Path(path, "decoder" + ext), model=explainer.params["decoder"])
 
     # save actor
     actor = explainer.params["actor"]
@@ -264,8 +266,9 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     # save locally prediction function
     predictor = explainer.params["predictor"]
 
-    # set autoencoder, actor, critic, prediction_func, and backend to `None`
-    explainer.params["ae"] = None
+    # set encoder, decoder, actor, critic, prediction_func, and backend to `None`
+    explainer.params["encoder"] = None
+    explainer.params["decoder"] = None
     explainer.params["actor"] = None
     explainer.params["critic"] = None
     explainer.params["optimizer_actor"] = None
@@ -278,8 +281,9 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     with open(Path(path, "explainer.dill"), 'wb') as f:
         dill.dump(explainer, f)
 
-    # set autoencoder, actor and critic back
-    explainer.params["ae"] = ae
+    # set back encoder, decoder, actor and critic back
+    explainer.params["encoder"] = encoder
+    explainer.params["decoder"] = decoder
     explainer.params["actor"] = actor
     explainer.params["critic"] = critic
     explainer.params["optimizer_actor"] = optimizer_actor
@@ -295,8 +299,9 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
     from alibi.utils.frameworks import Framework
     ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
-    # load the autoencoder
-    explainer.params["ae"] = explainer.backend.load_model(Path(path, "ae" + ext))
+    # load the encoder and decoder (autoencoder components)
+    explainer.params["encoder"] = explainer.backend.load_model(Path(path, "encoder" + ext))
+    explainer.params["decoder"] = explainer.backend.load_model(Path(path, "decoder" + ext))
 
     # load the actor and critic
     explainer.params["actor"] = explainer.backend.load_model(Path(path, "actor" + ext))

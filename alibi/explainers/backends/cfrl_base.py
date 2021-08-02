@@ -124,6 +124,3 @@ class CounterfactualRLDataset(ABC):
     @abstractmethod
     def __getitem__(self, item):
         pass
-
-
-

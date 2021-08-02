@@ -31,7 +31,8 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
         preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
+            Preprocessor function. This function correspond to the preprocessing steps applied to the
+            encoder/autoencoder model.
         predictor
             Prediction function. The classifier function should expect the input in the original format and preprocess
             it internally in the `predictor` if necessary.
@@ -200,7 +201,7 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: tf.Tensor):
 
 
 def data_generator(X: np.ndarray,
-                   ae_preprocessor: Callable,
+                   encoder_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
                    batch_size: int,
@@ -214,8 +215,9 @@ def data_generator(X: np.ndarray,
      X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
-    ae_preprocessor
-        Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
+    encoder_preprocessor
+        Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/autoencoder
+        model.
     predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
         it internally in the `predictor` if necessary.
@@ -228,11 +230,11 @@ def data_generator(X: np.ndarray,
     shuffle
         Whether to shuffle the dataset each epoch. `True` by default.
     """
-    return TfCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
+    return TfCounterfactualRLDataset(X=X, preprocessor=encoder_preprocessor, predictor=predictor,
                                      conditional_func=conditional_func, batch_size=batch_size, shuffle=shuffle)
 
 
-def encode(X: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Tensor:
+def encode(X: Union[tf.Tensor, np.ndarray], encoder: keras.Model, **kwargs) -> tf.Tensor:
     """
     Encodes the input tensor.
 
@@ -240,17 +242,17 @@ def encode(X: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Ten
     ----------
     X
         Input to be encoded.
-    ae
-        Pre-trained autoencoder.
+    encoder
+        Pretrained encoder network.
 
     Returns
     -------
     Input encoding.
     """
-    return ae.encoder(X, training=False)
+    return encoder(X, training=False)
 
 
-def decode(Z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
+def decode(Z: Union[tf.Tensor, np.ndarray], decoder: keras.Model, **kwargs):
     """
     Decodes an embedding tensor.
 
@@ -258,14 +260,14 @@ def decode(Z: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs):
     ----------
     Z
         Embedding tensor to be decoded.
-    ae
-        Pre-trained autoencoder.
+    decoder
+        Pretrained decoder network.
 
     Returns
     -------
     Embedding tensor decoding.
     """
-    return ae.decoder(Z, training=False)
+    return decoder(Z, training=False)
 
 
 def generate_cf(Z: Union[np.ndarray, tf.Tensor],
@@ -355,7 +357,8 @@ def add_noise(Z_cf: Union[tf.Tensor, np.ndarray],
 
 
 @tf.function()
-def update_actor_critic(ae: keras.Model,
+def update_actor_critic(encoder: keras.Model,
+                        decoder: keras.Model,
                         critic: keras.Model,
                         actor: keras.Model,
                         optimizer_critic: keras.optimizers.Optimizer,
@@ -378,8 +381,10 @@ def update_actor_critic(ae: keras.Model,
 
     Parameters
     ----------
-    ae
-        Pre-trained autoencoder.
+    encoder
+        Pretrained encoder network.
+    decoder
+        Pretrained decoder network.
     critic
         Critic network.
     actor
@@ -455,7 +460,7 @@ def update_actor_critic(ae: keras.Model,
         losses.update({"loss_actor": loss_actor})
 
         # Decode the counterfactual embedding.
-        X_hat_cf = ae.decoder(Z_cf, training=False)
+        X_hat_cf = decoder(Z_cf, training=False)
 
         # Compute sparsity losses and append sparsity loss.
         loss_sparsity = sparsity_loss(X_hat_cf, X)
@@ -466,7 +471,7 @@ def update_actor_critic(ae: keras.Model,
             loss_actor += coeff_sparsity * loss_sparsity[key]
 
         # Compute consistency loss and append consistency loss.
-        Z_cf_tgt = ae.encoder(X_cf, training=False)
+        Z_cf_tgt = encoder(X_cf, training=False)
         loss_consistency = consistency_loss(Z_cf_pred=Z_cf, Z_cf_tgt=Z_cf_tgt)
         losses.update(loss_consistency)
 

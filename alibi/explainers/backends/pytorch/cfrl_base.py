@@ -10,7 +10,6 @@ from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.pytorch.actor_critic import Actor, Critic
-from alibi.models.pytorch.autoencoder import AE
 
 if TYPE_CHECKING:
     from alibi.explainers.cfrl_base import NormalActionNoise
@@ -192,7 +191,7 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor):
 
 
 def data_generator(X: np.ndarray,
-                   ae_preprocessor: Callable,
+                   encoder_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
                    batch_size: int,
@@ -207,8 +206,9 @@ def data_generator(X: np.ndarray,
      X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
-    ae_preprocessor
-        Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
+    encoder_preprocessor
+        Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/autoencoder
+        model.
     predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
         it internally in the `predictor` if necessary.
@@ -223,14 +223,14 @@ def data_generator(X: np.ndarray,
     num_workers
         Number of worker processes to be created.
     """
-    dataset = PtCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
+    dataset = PtCounterfactualRLDataset(X=X, preprocessor=encoder_preprocessor, predictor=predictor,
                                         conditional_func=conditional_func, batch_size=batch_size)
     return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                       shuffle=shuffle, drop_last=True)
 
 
 @torch.no_grad()
-def encode(X: torch.Tensor, ae: AE, device: torch.device, **kwargs):
+def encode(X: torch.Tensor, encoder: nn.Module, device: torch.device, **kwargs):
     """
     Encodes the input tensor.
 
@@ -238,8 +238,8 @@ def encode(X: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     ----------
     X
         Input to be encoded.
-    ae
-        Pre-trained autoencoder.
+    encoder
+        Pretrained encoder network.
     device
         Device to send data to.
 
@@ -247,12 +247,12 @@ def encode(X: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     -------
     Input encoding.
     """
-    ae.eval()
-    return ae.encoder(X.float().to(device))
+    encoder.eval()
+    return encoder(X.float().to(device))
 
 
 @torch.no_grad()
-def decode(Z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
+def decode(Z: torch.Tensor, decoder: nn.Module, device: torch.device, **kwargs):
     """
     Decodes an embedding tensor.
 
@@ -260,8 +260,8 @@ def decode(Z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     ----------
     Z
         Embedding tensor to be decoded.
-    ae
-        Pre-trained autoencoder.
+    decoder
+        Pretrained decoder network.
     device
         Device to sent data to.
 
@@ -269,8 +269,8 @@ def decode(Z: torch.Tensor, ae: AE, device: torch.device, **kwargs):
     -------
     Embedding tensor decoding.
     """
-    ae.eval()
-    return ae.decoder(Z.float().to(device))
+    decoder.eval()
+    return decoder(Z.float().to(device))
 
 
 @torch.no_grad()
@@ -278,7 +278,8 @@ def generate_cf(Z: torch.Tensor,
                 Y_m: torch.Tensor,
                 Y_t: torch.Tensor,
                 C: Optional[torch.Tensor],
-                ae: nn.Module,
+                encoder: nn.Module,
+                decoder: nn.Module,
                 actor: nn.Module,
                 device: torch.device,
                 **kwargs) -> torch.Tensor:
@@ -295,8 +296,10 @@ def generate_cf(Z: torch.Tensor,
         Target counterfactual classification label.
     C
         Conditional tensor.
-    ae
-        Pre-trained autoencoder.
+    encoder
+        Pretrained encoder network.
+    decoder
+        Pretrained decoder network.
     actor
         Actor network. The model generates the counterfactual embedding.
     device
@@ -308,7 +311,8 @@ def generate_cf(Z: torch.Tensor,
         Counterfactual embedding.
     """
     # Set autoencoder and actor to evaluation mode.
-    ae.eval()
+    encoder.eval()
+    decoder.eval()
     actor.eval()
 
     # Send labels and targets to device.
@@ -372,7 +376,8 @@ def add_noise(Z_cf: torch.Tensor,
     return Z_cf_tilde
 
 
-def update_actor_critic(ae: AE,
+def update_actor_critic(encoder: nn.Module,
+                        decoder: nn.Module,
                         critic: nn.Module,
                         actor: nn.Module,
                         optimizer_critic: torch.optim.Optimizer,
@@ -396,8 +401,10 @@ def update_actor_critic(ae: AE,
 
     Parameters
     ----------
-    ae
-        Pre-trained autoencoder.
+    encoder
+        Pretrained encoder network.
+    decoder
+        Pretrained decoder network.
     critic
         Critic network.
     actor
@@ -438,7 +445,8 @@ def update_actor_critic(ae: AE,
     Dictionary of losses.
     """
     # Set autoencoder to evaluation mode.
-    ae.eval()
+    encoder.eval()
+    decoder.eval()
 
     # Set actor and critic to training mode.
     actor.train()
@@ -486,7 +494,7 @@ def update_actor_critic(ae: AE,
     losses.update({"loss_actor": loss_actor.item()})
 
     # Decode the output of the actor.
-    x_hat_cf = ae.decoder(Z_cf)
+    x_hat_cf = decoder(Z_cf)
 
     # Compute sparsity losses.
     loss_sparsity = sparsity_loss(x_hat_cf, X)
@@ -497,7 +505,7 @@ def update_actor_critic(ae: AE,
         loss_actor += coeff_sparsity * loss_sparsity[key]
 
     # Compute consistency loss.
-    Z_cf_tgt = encode(X=X_cf, ae=ae, device=device)  # type: ignore
+    Z_cf_tgt = encode(X=X_cf, encoder=encoder, device=device)  # type: ignore
     loss_consistency = consistency_loss(z_cf_pred=Z_cf, z_cf_tgt=Z_cf_tgt)
     losses.update(loss_consistency)
 

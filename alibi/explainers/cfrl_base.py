@@ -13,8 +13,8 @@ from alibi.explainers.backends.cfrl_base import identity_function, generate_empt
     get_classification_reward, get_hard_distribution
 
 if TYPE_CHECKING:
-    from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
-    from alibi.models.pytorch.autoencoder import AE as PytorchAE
+    import torch.nn as nn
+    import tensorflow.keras as keras
 
 if has_pytorch:
     # import pytorch backend
@@ -214,8 +214,8 @@ DEFAULT_BASE_PARAMS = {
     "update_after": 10,
     "train_steps": 100000,
     "backend": "tensorflow",
-    "ae_preprocessor": identity_function,
-    "ae_inv_preprocessor": identity_function,
+    "encoder_preprocessor": identity_function,
+    "decoder_inv_preprocessor": identity_function,
     "reward_func": get_classification_reward,
     "postprocessing_funcs": [],
     "conditional_func": generate_empty_condition,
@@ -263,12 +263,12 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'train_steps'``: int, number of train steps (interactions).
 
-    - ``'ae_preprocessor'``: Callable, autoencoder data preprocessors. Transforms the input data into the format
-    expected by the autoencoder. By default, the identity function.
+    - ``'encoder_preprocessor'``: Callable, encoder/autoencoder data preprocessors. Transforms the input data into the
+    format expected by the autoencoder. By default, the identity function.
 
-    - ``'ae_inv_preprocessor'``: Callable, autoencoder data inverse preprocessor. Transforms data from the autoencoder
-    expected format to the original input format. Before calling the prediction function, the data is inverse
-    preprocessed to match the original input format. By default, the identity function.
+    - ``'decoder_inv_preprocessor'``: Callable, decoder/autoencoder data inverse preprocessor. Transforms data from the
+    autoencoder expected format to the original input format. Before calling the prediction function, the data is
+    inverse preprocessed to match the original input format. By default, the identity function.
 
     - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction
     label matches the target label. Note that this is element-wise, so a tensor is expected to be returned.
@@ -312,9 +312,9 @@ PARAM_TYPES = {
         "critic_hidden_dim",
     ],
     "complex": [
-        "ae_preprocessor", "ae_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
+        "encoder_preprocessor", "decoder_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
         "experience_callbacks", "train_callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic",
-        "ae", "predictor", "sparsity_loss", "consistency_loss",
+        "encoder", "decoder", "predictor", "sparsity_loss", "consistency_loss",
     ]
 }
 """
@@ -334,7 +334,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def __init__(self,
                  predictor: Callable,
-                 ae: Union['TensorflowAE', 'PytorchAE'],
+                 encoder: Union['keras.Model', 'nn.Module'],
+                 decoder: Union['keras.Model', 'nn.Module'],
                  latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
@@ -348,8 +349,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
         ----------
         predictor
             Prediction function. This corresponds to the classifier.
-        ae
-            Pre-trained autoencoder.
+        encoder
+            Pretrained encoder network.
+        decoder
+            Pretrained decoder network.
         latent_dim
             Autoencoder latent dimension.
         coeff_sparsity
@@ -379,7 +382,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # Validate arguments.
         self.params, all_params = self._validate_kwargs(predictor=predictor,
-                                                        ae=ae,
+                                                        encoder=encoder,
+                                                        decoder=decoder,
                                                         latent_dim=latent_dim,
                                                         coeff_sparsity=coeff_sparsity,
                                                         coeff_consistency=coeff_consistency,
@@ -392,8 +396,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
             from alibi.explainers.backends.pytorch.cfrl_base import get_device
             self.params.update({"device": get_device()})
 
-            # Send auto-encoder to device.
-            self.params["ae"].to(self.params["device"])
+            # Send encoder and decoder to device.
+            self.params["encoder"].to(self.params["device"])
+            self.params["decoder"].to(self.params["device"])
 
             # Sent actor and critic to device.
             self.params["actor"].to(self.params["device"])
@@ -493,7 +498,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def _validate_kwargs(self,
                          predictor: Callable,
-                         ae: Union['TensorflowAE', 'PytorchAE'],
+                         encoder: Union['keras.Model', 'nn.Module'],
+                         decoder: Union['keras.Model', 'nn.Module'],
                          latent_dim: float,
                          coeff_sparsity: float,
                          coeff_consistency: float,
@@ -507,8 +513,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
         ----------
         predictor.
             Prediction function. This corresponds to the classifier.
-        ae
-            Pre-trained autoencoder.
+        encoder
+            Pretrained encoder network.
+        decoder
+            Pretrained decoder network.
         latent_dim
             Autoencoder latent dimension.
         coeff_sparsity
@@ -523,7 +531,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # Update parameters with mandatory arguments
         params.update({
-            "ae": ae,
+            "encoder": encoder,
+            "decoder": decoder,
             "latent_dim": latent_dim,
             "predictor": predictor,
             "coeff_sparsity": coeff_sparsity,
@@ -670,7 +679,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             })
 
             # Compute model's prediction on the noised counterfactual
-            X_cf_tilde = self.params["ae_inv_preprocessor"](self.backend.to_numpy(data["X_cf_tilde"]))
+            X_cf_tilde = self.params["decoder_inv_preprocessor"](self.backend.to_numpy(data["X_cf_tilde"]))
             Y_m_cf_tilde = self.params["predictor"](X_cf_tilde)
 
             # Compute reward.
@@ -854,7 +863,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Y_t = Y_t.reshape(-1, 1)
 
         # Apply autoencoder preprocessing step.
-        X = self.params["ae_preprocessor"](X_orig)
+        X = self.params["encoder_preprocessor"](X_orig)
 
         # Convert to tensors.
         X = self.backend.to_tensor(X, **self.params)
@@ -876,7 +885,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             X_cf = pp_func(X_cf, X, C)
 
         # Apply inverse autoencoder pre-processor.
-        X_cf = self.params["ae_inv_preprocessor"](X_cf)
+        X_cf = self.params["decoder_inv_preprocessor"](X_cf)
 
         # Classify counterfactual instances.
         Y_m_cf = self.params["predictor"](X_cf)

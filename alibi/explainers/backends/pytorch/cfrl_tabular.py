@@ -175,8 +175,6 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):
         Predicted counterfactual embedding.
     x_cf
         Counterfactual reconstruction. This should be already post-processed.
-    ae
-        Pre-trained autoencoder.
 
     Returns
     -------

@@ -239,7 +239,7 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
 def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
     from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase.verify_backend(explainer.params["backend"])
+    CounterfactualRLBase._verify_backend(explainer.params["backend"])
 
     # get backend module
     backend = explainer.backend
@@ -318,7 +318,7 @@ def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
     # load backend
     from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase.verify_backend(explainer.params["backend"])
+    CounterfactualRLBase._verify_backend(explainer.params["backend"])
 
     # select backend module
     if explainer.params["backend"] == Framework.TENSORFLOW:
@@ -347,7 +347,7 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
     # load backend
     from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase.verify_backend(explainer.params["backend"])
+    CounterfactualRLBase._verify_backend(explainer.params["backend"])
 
     # select backend module
     if explainer.params["backend"] == Framework.TENSORFLOW:

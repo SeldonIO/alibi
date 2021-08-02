@@ -9,6 +9,8 @@ from abc import ABC, abstractmethod
 from alibi.api.defaults import DEFAULT_META_CFRL, DEFAULT_DATA_CFRL
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.utils.frameworks import has_pytorch, has_tensorflow, Framework
+from alibi.explainers.backends.cfrl_base import identity_function, generate_empty_condition,\
+    get_classification_reward, get_hard_distribution
 
 if TYPE_CHECKING:
     from alibi.models.tensorflow.autoencoder import AE as TensorflowAE
@@ -81,14 +83,11 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.X: Optional[np.ndarray] = None              # buffer for the inputs
-        self.X_cf: Optional[np.ndarray] = None           # buffer for the counterfactuals
-        self.Y_m: Optional[np.ndarray] = None            # buffer for the model's prediction
-        self.Y_t: Optional[np.ndarray] = None            # buffer for the counterfactual targets
-        self.Z: Optional[np.ndarray] = None              # buffer for the input embedding
-        self.Z_cf_tilde: Optional[np.ndarray] = None     # buffer for the noised counterfactual embedding
-        self.C: Optional[np.ndarray] = None              # buffer for the conditional tensor
-        self.R_tilde: Optional[np.ndarray] = None        # buffer for the noised counterfactual reward tensor
+        self.X, self.X_cf = None, None              # buffers for the inputs and counterfactuals
+        self.Y_m, self.Y_t = None, None             # buffer for the model's predictions and targets
+        self.Z, self.Z_cf_tilde = None, None        # buffer for the input embedding and noised cf embeddings
+        self.C = None                               # buffer for the conditional tensor
+        self.R_tilde = None                         # buffer for the noised counterfactual reward tensor
 
         self.idx = 0                    # cursor for the buffer
         self.len = 0                    # current length of the buffer
@@ -210,17 +209,16 @@ DEFAULT_BASE_PARAMS = {
     "batch_size": 128,
     "num_workers": 4,
     "shuffle": True,
-    "num_classes": 2,
     "exploration_steps": 100,
     "update_every": 1,
     "update_after": 10,
     "train_steps": 100000,
     "backend": "tensorflow",
-    "ae_preprocessor": lambda x: x,
-    "ae_inv_preprocessor": lambda x: x,
-    "reward_func": lambda y_pred, y_true: y_pred == y_true,
+    "ae_preprocessor": identity_function,
+    "ae_inv_preprocessor": identity_function,
+    "reward_func": get_classification_reward,
     "postprocessing_funcs": [],
-    "conditional_func": lambda x: None,
+    "conditional_func": generate_empty_condition,
     "experience_callbacks": [],
     "train_callbacks": [],
     "actor": None,
@@ -249,8 +247,6 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'num_workers'``: int, number of workers used by the data loader if `pytorch` backend is selected.
 
     - ``'shuffle'``: bool, whether to shuffle the datasets every epoch.
-
-    - ``'num_classes'``: int, number of classes to be considered.
 
     - ``'latent_dim'``: int, autoencoder latent dimension.
 
@@ -312,8 +308,8 @@ Default Counterfactual with Reinforcement Learning parameters.
 PARAM_TYPES = {
     "primitives": [
         "act_noise", "act_low", "act_high", "replay_buffer_size", "batch_size", "num_workers", "shuffle",
-        "num_classes", "exploration_steps", "update_every", "update_after", "train_steps", "backend",
-        "actor_hidden_dim", "critic_hidden_dim",
+        "exploration_steps", "update_every", "update_after", "train_steps", "backend", "actor_hidden_dim",
+        "critic_hidden_dim",
     ],
     "complex": [
         "ae_preprocessor", "ae_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
@@ -333,7 +329,7 @@ Parameter types for serialization
 class CounterfactualRLBase(Explainer, FitMixin):
     """
      Counterfactual Reinforcement Learning Base.
-     TODO: check if all tensors are upperca
+     TODO: check if all tensors are uppercase
     """
 
     def __init__(self,
@@ -342,7 +338,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
                  latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
-                 num_classes: int,
                  backend: str = "tensorflow",
                  seed: int = 0,
                  **kwargs):
@@ -361,8 +356,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Sparsity loss coefficient.
         coeff_consistency
             Consistency loss coefficient.
-        num_classes
-            Number of classes to be considered
         backend
             Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
         seed
@@ -376,24 +369,23 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend = backend.strip().lower()
 
         # Verify backend installed
-        CounterfactualRLBase.verify_backend(backend)
+        CounterfactualRLBase._verify_backend(backend)
 
         # Select backend.
-        self.backend = self.select_backend(backend, **kwargs)
+        self.backend = self._select_backend(backend, **kwargs)
 
         # Set seed for reproducibility.
         self.backend.set_seed(seed)
 
         # Validate arguments.
-        self.params, all_params = self.validate_kwargs(predictor=predictor,
-                                                       ae=ae,
-                                                       latent_dim=latent_dim,
-                                                       coeff_sparsity=coeff_sparsity,
-                                                       coeff_consistency=coeff_consistency,
-                                                       num_classes=num_classes,
-                                                       backend=backend,
-                                                       seed=seed,
-                                                       **kwargs)
+        self.params, all_params = self._validate_kwargs(predictor=predictor,
+                                                        ae=ae,
+                                                        latent_dim=latent_dim,
+                                                        coeff_sparsity=coeff_sparsity,
+                                                        coeff_consistency=coeff_consistency,
+                                                        backend=backend,
+                                                        seed=seed,
+                                                        **kwargs)
 
         # If pytorch backend, the if GPU available, send everything to GPU
         if self.params["backend"] == Framework.PYTORCH:
@@ -407,7 +399,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             self.params["actor"].to(self.params["device"])
             self.params["critic"].to(self.params["device"])
 
-        # update meta-data with all parameters passed (correct and incorrect)
+        # Update meta-data with all parameters passed (correct and incorrect).
         self.meta["params"].update(CounterfactualRLBase.serialize_params(all_params))
 
     @staticmethod
@@ -434,10 +426,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
             elif param in PARAM_TYPES["complex"]:
                 if isinstance(value, list):
                     # each complex element in the list is serialized by replacing it with a name
-                    meta.update({param: [CounterfactualRLBase.get_name(v) for v in value]})
+                    meta.update({param: [CounterfactualRLBase._get_name(v) for v in value]})
                 else:
                     # complex element is serialized by replacing it with a name
-                    meta.update({param: CounterfactualRLBase.get_name(value)})
+                    meta.update({param: CounterfactualRLBase._get_name(value)})
             else:
                 # Unknown parameters are passed as they are. TODO: think of a better way to handle this.
                 meta.update({param: value})
@@ -445,7 +437,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return meta
 
     @staticmethod
-    def get_name(a: Any) -> str:
+    def _get_name(a: Any) -> str:
         """
         Constructs a name for the given object. If the object has as built-in name, the name is return.
         If the object has a built-in class name, the name of the class is returned. Otherwise `unknown` is returned.
@@ -468,7 +460,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return "unknown"
 
     @staticmethod
-    def verify_backend(backend):
+    def _verify_backend(backend):
         """
         Verifies if the backend is supported.
 
@@ -488,7 +480,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         elif backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
             raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
-    def select_backend(self, backend, **kwargs):
+    def _select_backend(self, backend, **kwargs):
         """
         Selects the backend according to the `backend` flag.
 
@@ -499,16 +491,15 @@ class CounterfactualRLBase(Explainer, FitMixin):
         """
         return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
-    def validate_kwargs(self,
-                        predictor: Callable,
-                        ae: Union['TensorflowAE', 'PytorchAE'],
-                        latent_dim: float,
-                        coeff_sparsity: float,
-                        coeff_consistency: float,
-                        num_classes: int,
-                        backend: str,
-                        seed: int,
-                        **kwargs):
+    def _validate_kwargs(self,
+                         predictor: Callable,
+                         ae: Union['TensorflowAE', 'PytorchAE'],
+                         latent_dim: float,
+                         coeff_sparsity: float,
+                         coeff_consistency: float,
+                         backend: str,
+                         seed: int,
+                         **kwargs):
         """
         Validates arguments.
 
@@ -524,8 +515,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Sparsity loss coefficient.
         coeff_consistency
             Consistency loss coefficient.
-        num_classes
-            Number of classes to consider.
         backend
             Deep learning backend: `tensorflow`|`pytorch`.
         """
@@ -539,7 +528,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
             "predictor": predictor,
             "coeff_sparsity": coeff_sparsity,
             "coeff_consistency": coeff_consistency,
-            "num_classes": num_classes,
             "backend": backend,
             "seed": seed,
         })
@@ -718,6 +706,48 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         return self
 
+    @staticmethod
+    def _validate_target(Y_t: np.ndarray):
+        """
+        Validate the targets by checking the dimensions.
+
+        Parameters
+        ----------
+        Y_t
+            Targets to be checked.
+        """
+        if len(Y_t.shape) not in [1, 2]:
+            raise ValueError(f"Target shape should be at least 1 and at most 2. Found {len(Y_t.shape)} instead.")
+
+    @staticmethod
+    def _validate_condition(C: np.ndarray):
+        """
+        Validate condition vector.
+
+        Parameters
+        ----------
+        C
+            Condition vector.
+        """
+        if (C is not None) and len(C.shape) != 2:
+            raise ValueError(f"Condition vector shape should be 2. Found {len(C.shape)} instead.")
+
+    @staticmethod
+    def _is_classification(pred: np.ndarray) -> bool:
+        """
+        Check if the prediction task is classification by looking at the model's prediction shape.
+
+        Parameters
+        ----------
+        pred
+            Model's prediction.
+
+        Returns
+        -------
+        `True` if the prediction has shape of 2 and the second dimension bigger grater than 1. `False` otherwise.
+        """
+        return len(pred.shape) == 2 and pred.shape[1] > 1
+
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
@@ -743,20 +773,28 @@ class CounterfactualRLBase(Explainer, FitMixin):
         `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
         corresponding labels, targets and additional metadata.
         """
+        # General validation.
+        self._validate_target(Y_t)
+        self._validate_condition(C)
+
         # Check the number of target labels.
         if Y_t.shape[0] != 1 and Y_t.shape[0] != X.shape[0]:
             raise ValueError("The number target labels should be 1 or equals the number of samples in X.")
 
+        # Check the number of conditional vectors
         if (C is not None) and C.shape[0] != 1 and C.shape[0] != X.shape[0]:
-            raise ValueError("The number of conditional vectors should be 1 or equals the number if samples in X,")
+            raise ValueError("The number of conditional vectors should be 1 or equals the number if samples in X.")
+
+        # Transform target into a 2D array.
+        Y_t = Y_t.reshape(Y_t.shape[0], -1)
 
         # Repeat the same label to match the number of input instances.
         if Y_t.shape[0] == 1:
-            Y_t = np.tile(Y_t, X.shape[0])
+            Y_t = np.tile(Y_t, (X.shape[0], 1))
 
         # Repeat the same conditional vectors to match the number of input instances.
-        if (C is not None) and C.shape[0] == 1:
-            C = np.tile(C, X.shape[0])
+        if C is not None:
+            C = np.tile(C, (X.shape[0], 1))
 
         # Perform prediction in mini-batches.
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
@@ -764,9 +802,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
-            results = self.compute_counterfactual(X=X[istart:istop],
-                                                  Y_t=Y_t[istart:istop],
-                                                  C=C[istart:istop] if (C is not None) else C)
+            results = self._compute_counterfactual(X=X[istart:istop],
+                                                   Y_t=Y_t[istart:istop],
+                                                   C=C[istart:istop] if (C is not None) else C)
             # Initialize the dict.
             if not all_results:
                 all_results = results
@@ -777,12 +815,12 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 if all_results[key] is not None:
                     all_results[key] = np.concatenate([all_results[key], results[key]], axis=0)
 
-        return self.build_explanation(**all_results)
+        return self._build_explanation(**all_results)
 
-    def compute_counterfactual(self,
-                               X: np.ndarray,
-                               Y_t: np.ndarray,
-                               C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
+    def _compute_counterfactual(self,
+                                X: np.ndarray,
+                                Y_t: np.ndarray,
+                                C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
         """
         Compute counterfactual instance for a given input, target and condition vector
 
@@ -800,9 +838,20 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Dictionary containing the input instances in the original format, input classification labels, counterfactual
         instances in the original format, counterfactual classification labels, target labels, conditional vectors.
         """
-        # Compute models prediction.
+        # Save original input for later usage.
         X_orig = X
+
+        # Compute models prediction.
         Y_m = self.params["predictor"](X_orig)
+
+        # Check if the prediction task is classification. Please refer to
+        # `alibi.explainers.backends.cfrl_base.CounterfactualRLDataset` for a justification.
+        if self._is_classification(pred=Y_m):
+            Y_m = get_hard_distribution(Y=Y_m, num_classes=Y_m.shape[1])
+            Y_t = get_hard_distribution(Y=Y_t, num_classes=Y_m.shape[1])
+        else:
+            Y_m = Y_m.reshape(-1, 1)
+            Y_t = Y_t.reshape(-1, 1)
 
         # Apply autoencoder preprocessing step.
         X = self.params["ae_preprocessor"](X_orig)
@@ -830,28 +879,34 @@ class CounterfactualRLBase(Explainer, FitMixin):
         X_cf = self.params["ae_inv_preprocessor"](X_cf)
 
         # Classify counterfactual instances.
-        y_m_cf = self.params["predictor"](X_cf)
+        Y_m_cf = self.params["predictor"](X_cf)
 
-        # convert tensors to numpy
+        # Convert tensors to numpy.
         Y_m = self.backend.to_numpy(Y_m)
         Y_t = self.backend.to_numpy(Y_t)
+
+        # If the prediction is a classification task.
+        if self._is_classification(pred=Y_m):
+            Y_m = np.argmax(Y_m, axis=1)
+            Y_t = np.argmax(Y_t, axis=1)
+            Y_m_cf = np.argmax(Y_m_cf, axis=1)
 
         return {
             "X": X_orig,         # input instances
             "Y_m": Y_m,          # input classification labels
             "X_cf": X_cf,        # counterfactual instances
-            "Y_m_cf": y_m_cf,    # counterfactual classification labels
+            "Y_m_cf": Y_m_cf,    # counterfactual classification labels
             "Y_t": Y_t,          # target labels
             "C": C               # conditional vectors
         }
 
-    def build_explanation(self,
-                          X: np.ndarray,
-                          Y_m: np.ndarray,
-                          X_cf: np.ndarray,
-                          Y_m_cf: np.ndarray,
-                          Y_t: np.ndarray,
-                          C: Any) -> Explanation:
+    def _build_explanation(self,
+                           X: np.ndarray,
+                           Y_m: np.ndarray,
+                           X_cf: np.ndarray,
+                           Y_m_cf: np.ndarray,
+                           Y_t: np.ndarray,
+                           C: Any) -> Explanation:
         """
         Builds the explanation of the current object.
 
@@ -868,7 +923,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Target labels.
         C
-            Condition
+            Condition vector.
+
         Returns
         -------
         `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
@@ -878,14 +934,14 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # update original input entrance
         data["orig"] = {}
-        data["orig"].update({"X": X, "class": Y_m})
+        data["orig"].update({"X": X, "class": Y_m.reshape(-1, 1)})
 
         # update counterfactual entrance
         data["cf"] = {}
-        data["cf"].update({"X": X_cf, "class": Y_m_cf})
+        data["cf"].update({"X": X_cf, "class": Y_m_cf.reshape(-1, 1)})
 
         # update target and condition
-        data["target"] = Y_t
+        data["target"] = Y_t.reshape(-1, 1)
         data["condition"] = C
         return Explanation(meta=self.meta, data=data)
 

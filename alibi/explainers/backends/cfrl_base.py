@@ -1,6 +1,82 @@
 import numpy as np
-from typing import Callable
+from typing import Callable, Any, Optional
 from abc import ABC, abstractmethod
+
+
+def identity_function(X: Any) -> Any:
+    """
+    Identity function.
+
+    Parameters
+    ----------
+    X
+        Input instance.
+
+    Returns
+    -------
+    X, the input instance
+    """
+    return X
+
+
+def generate_empty_condition(X: Any) -> None:
+    """
+    Empty conditioning.
+
+    Parameters
+    ----------
+    X
+        Input instance.
+
+    Returns
+    --------
+    None
+    """
+    return None
+
+
+def get_classification_reward(Y_pred: np.ndarray, Y_true: np.ndarray):
+    if len(Y_pred.shape) != 2:
+        raise ValueError("Prediction labels should be a 2D array for classification task.")
+
+    if len(Y_true.shape) != 2:
+        raise ValueError("Target labels should be a 2D array for classification task.")
+
+    Y_pred = np.argmax(Y_pred, axis=1)
+    Y_true = np.argmax(Y_true, axis=1)
+    return Y_pred == Y_true
+
+
+def get_hard_distribution(Y: np.ndarray, num_classes: Optional[int] = None) -> np.ndarray:
+    """
+    Constructs the hard label distribution (one-hot encoding).
+
+    Parameters
+    ----------
+    Y
+        Prediction array. Can be soft or hard label distribution, or a label.
+    num_classes
+        Number of classes to be considered.
+
+    Returns
+    -------
+    Hard label distribution (one-hot encoding)
+    """
+    if len(Y.shape) == 1 or (len(Y.shape) == 2 and Y.shape[1] == 1):
+        if num_classes is None:
+            raise ValueError("Number of classes has to be specified to transform the labels into one-hot encoding.")
+
+        Y = Y.reshape(-1).astype(np.int32)
+        Y_ohe = np.zeros((Y.shape[0], num_classes))
+        Y_ohe[np.arange(Y.shape[0]), Y] = 1
+        return Y_ohe
+
+    if len(Y.shape) != 2:
+        raise ValueError(f"Expected a 2D array, but the input array has a dimension of {len(Y.shape)}")
+
+    Y_ohe = np.zeros_like(Y)
+    Y_ohe[np.arange(Y.shape[0]), np.argmax(Y, axis=1)] = 1
+    return Y_ohe
 
 
 class CounterfactualRLDataset(ABC):
@@ -23,12 +99,22 @@ class CounterfactualRLDataset(ABC):
         Classification labels.
         """
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
-        Y_m = np.zeros(X.shape[0])
+        Y_m = []
 
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
-            Y_m[istart:istop] = predictor(X[istart:istop])
+            preds = predictor(X[istart:istop])
 
+            # Check if the prediction task is classification. We do this by checking if the last dimension of
+            # the prediction is grater than 1. Note that this makes the assumption that the regression task has only
+            # a single output (multi-output regression exists too). To be addressed in the future.
+            if len(preds.shape) == 2 and preds.shape[-1] > 1:
+                preds = get_hard_distribution(preds)
+
+            # Add predictions to the model predictions buffer.
+            Y_m.append(preds)
+
+        Y_m = np.concatenate(Y_m, axis=0)
         return Y_m
 
     @abstractmethod
@@ -38,3 +124,6 @@ class CounterfactualRLDataset(ABC):
     @abstractmethod
     def __getitem__(self, item):
         pass
+
+
+

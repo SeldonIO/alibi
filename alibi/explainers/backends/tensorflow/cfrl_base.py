@@ -20,7 +20,6 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
                  preprocessor: Callable,
                  predictor: Callable,
                  conditional_func: Callable,
-                 num_classes: int,
                  batch_size: int,
                  shuffle: bool = True) -> None:
         """
@@ -39,8 +38,6 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         conditional_func
             Conditional function generator. Given an preprocesed input array, the functions generates a conditional
             array.
-        num_classes
-            Number of classes in the dataset.
         batch_size
             Dimension of the batch used during training. The same batch size is used to infer the classification
             labels of the input dataset.
@@ -53,14 +50,24 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         self.preprocessor = preprocessor
         self.predictor = predictor
         self.conditional_func = conditional_func
-        self.num_classes = num_classes
         self.batch_size = batch_size
         self.shuffle = shuffle
 
         # Infer the classification labels of the input dataset. This is performed in batches.
-        self.y_m = self.predict_batches(X=self.X,
+        self.Y_m = self.predict_batches(X=self.X,
                                         predictor=self.predictor,
                                         batch_size=self.batch_size)
+
+        # Define number of classes for classification & minimum and maximum labels for regression
+        self.num_classes: Optional[int] = None
+        self.max_m: Optional[float] = None
+        self.min_m: Optional[float] = None
+
+        if self.Y_m.shape[1] > 1:
+            self.num_classes = self.Y_m.shape[1]
+        else:
+            self.min_m = np.min(self.Y_m)
+            self.max_n = np.max(self.Y_m)
 
         # Preprocess data.
         self.X = self.preprocessor(self.X)
@@ -81,20 +88,24 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         return self.X.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        # self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
+        if self.num_classes is not None:
+            # Generate random targets for classification task.
+            tgts = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
+            Y_t = np.zeros((self.batch_size, self.num_classes))
+            Y_t[np.arange(self.batch_size), tgts] = 1
+        else:
+            # Generate random target for regression task
+            Y_t = np.random.uniform(low=self.min_m, high=self.max_m, size=(1, 1))
 
         # Select indices to be returned.
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
-
-        # Generate random target.
-        Y_t = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
 
         # compute conditional vector.
         C = self.conditional_func(self.X[idx * self.batch_size: (idx + 1) * self.batch_size])
 
         return {
             "X": self.X[indexes],
-            "Y_m": self.y_m[indexes],
+            "Y_m": self.Y_m[indexes],
             "Y_t": Y_t,
             "C": C
         }
@@ -192,7 +203,6 @@ def data_generator(X: np.ndarray,
                    ae_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
-                   num_classes: int,
                    batch_size: int,
                    shuffle: bool = True,
                    **kwargs):
@@ -212,8 +222,6 @@ def data_generator(X: np.ndarray,
     conditional_func
         Conditional function generator. Given an preprocesed input array, the functions generates a conditional
         array.
-    num_classes
-        Number of classes in the dataset.
     batch_size
         Dimension of the batch used during training. The same batch size is used to infer the classification
         labels of the input dataset.
@@ -221,8 +229,7 @@ def data_generator(X: np.ndarray,
         Whether to shuffle the dataset each epoch. `True` by default.
     """
     return TfCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
-                                     conditional_func=conditional_func, num_classes=num_classes,
-                                     batch_size=batch_size, shuffle=shuffle)
+                                     conditional_func=conditional_func, batch_size=batch_size, shuffle=shuffle)
 
 
 def encode(X: Union[tf.Tensor, np.ndarray], ae: keras.Model, **kwargs) -> tf.Tensor:
@@ -265,7 +272,6 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
                 Y_m: Union[np.ndarray, tf.Tensor],
                 Y_t: Union[np.ndarray, tf.Tensor],
                 C: Optional[Union[np.ndarray, tf.Tensor]],
-                num_classes: int,
                 actor: keras.Model,
                 **kwargs) -> tf.Tensor:
     """
@@ -281,8 +287,6 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
         Target counterfactual classification label.
     C
         Conditional tensor.
-    num_classes
-        Number of classes to be considered.
     actor
         Actor network. The model generates the counterfactual embedding.
 
@@ -291,13 +295,13 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
     Z_cf
         Counterfactual embedding.
     """
-    # Transform to one hot encoding model's prediction and the given target
-    Y_m_ohe = tf.one_hot(tf.cast(Y_m, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
-    Y_t_ohe = tf.one_hot(tf.cast(Y_t, dtype=tf.int32), depth=num_classes, dtype=tf.float32)
+    # Convert labels, targets and conditiont float32
+    Y_m = tf.cast(Y_m, dtype=tf.float32)
+    Y_t = tf.cast(Y_t, dtype=tf.float32)
+    C = tf.constant(C, dtype=tf.float32) if (C is not None) else C
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m_ohe, Y_t_ohe] +\
-        ([tf.constant(C, dtype=tf.float32)] if (C is not None) else [])
+    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m, Y_t] + ([C] if (C is not None) else [])
     state = tf.concat(state, axis=1)
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
@@ -360,7 +364,6 @@ def update_actor_critic(ae: keras.Model,
                         consistency_loss: Callable,
                         coeff_sparsity: float,
                         coeff_consistency: float,
-                        num_classes: int,
                         X: np.ndarray,
                         X_cf: np.ndarray,
                         Z: np.ndarray,
@@ -393,8 +396,6 @@ def update_actor_critic(ae: keras.Model,
         Sparsity loss coefficient.
     coeff_consistency
         Consistency loss coefficient
-    num_classes
-        Number of classes to be considered.
     X
         Input array.
     X_cf
@@ -419,13 +420,13 @@ def update_actor_critic(ae: keras.Model,
     # Define dictionary of losses.
     losses: Dict[str, float] = dict()
 
-    # Transform classification labels into one-hot encoding.
-    Y_m_ohe = tf.one_hot(tf.cast(Y_m, tf.int32), depth=num_classes, dtype=tf.float32)
-    Y_t_ohe = tf.one_hot(tf.cast(Y_t, tf.int32), depth=num_classes, dtype=tf.float32)
+    # Transform labels and target to float32
+    Y_m = tf.cast(Y_m, dtype=tf.float32)
+    Y_t = tf.cast(Y_t, dtype=tf.float32)
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [Z, Y_m_ohe, Y_t_ohe] + ([C] if C is not None else [])
+    state = [Z, Y_m, Y_t] + ([C] if C is not None else [])
     state = tf.concat(state, axis=1)
 
     # Define input for critic and compute q-values.

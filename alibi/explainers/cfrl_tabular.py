@@ -217,7 +217,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         # update metadata
         self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
 
-    def select_backend(self, backend, **kwargs):
+    def _select_backend(self, backend, **kwargs):
         """
         Selects the backend according to the `backend` flag.
 
@@ -228,12 +228,17 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         """
         return tensorflow_tabular_backend if backend == "tensorflow" else pytorch_tabular_backend
 
-    def validate_dataset(self, X: np.ndarray) -> np.ndarray:
-        if len(X.shape) > 2:
-            raise ValueError("The input should be a 2D array.")
+    def _validate_input(self, X: np.ndarray):
+        """
+        Validates the input instances by checking the appropriate dimensions.
 
-        # Reshape the input vector to have be 2D.
-        X = np.atleast_2d(X)
+        Parameters
+        ----------
+        X
+            Input instances.
+        """
+        if len(X.shape) != 2:
+            raise ValueError(f"The input should be a 2D array. Found {len(X.shape)}D instead.")
 
         # Check if the number of features matches the expected one.
         if X.shape[1] != len(self.params["feature_names"]):
@@ -259,7 +264,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
 
         # validate dataset
-        X = self.validate_dataset(X)
+        self._validate_input(X)
 
         # call base class fit
         return super().fit(X)
@@ -298,18 +303,19 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         tolerance
             Tolerance to distinguish two counterfactual instances.
         """
-        # validate dataset
-        X = self.validate_dataset(X)
+        # General validation.
+        self._validate_input(X)
+        self._validate_target(Y_t)
 
         # Check if diversity flag is on.
         if diversity:
-            return self.diversity(X=X,
-                                  Y_t=Y_t,
-                                  C=C,
-                                  num_samples=num_samples,
-                                  batch_size=batch_size,
-                                  patience=patience,
-                                  tolerance=tolerance)
+            return self._diversity(X=X,
+                                   Y_t=Y_t,
+                                   C=C,
+                                   num_samples=num_samples,
+                                   batch_size=batch_size,
+                                   patience=patience,
+                                   tolerance=tolerance)
 
         # Define conditional vector if `None`.
         if C is None:
@@ -341,26 +347,58 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         explanation.data.update({"condition": C})
         return explanation
 
-    def diversity(self,
-                  X: np.ndarray,
-                  Y_t: np.ndarray,
-                  C: Optional[List[Dict[str, List[Union[str, float]]]]],
-                  num_samples: int = 1,
-                  batch_size: int = 100,
-                  patience: int = 1000,
-                  tolerance: float = 1e-3) -> Explanation:
+    def _diversity(self,
+                   X: np.ndarray,
+                   Y_t: np.ndarray,
+                   C: Optional[List[Dict[str, List[Union[str, float]]]]],
+                   num_samples: int = 1,
+                   batch_size: int = 100,
+                   patience: int = 1000,
+                   tolerance: float = 1e-3) -> Explanation:
+        """
+        Generates a set of diverse counterfactuals given a single instance, target and conditioninig.
+
+        Parameters
+        ----------
+        X
+            Input instance.
+        Y_t
+            Target label.
+        C
+            Conditioning.
+        num_samples
+            Number of counterfactual samples to be generated.
+        batch_size
+            Batch size used at inference.
+        num_samples
+            Number of diversity samples to be generated. Considered only if `diversity=True`.
+        batch_size
+            Batch size to use when generating counterfactuals.
+        patience
+            Maximum number of iterations to perform diversity search stops. If -1, the search stops only if
+            the desired number of samples has been found.
+        tolerance
+            Tolerance to distinguish two counterfactual instances.
+
+        Returns
+        -------
+        Explanation object containing the diverse counterfactuals.
+        """
+        # Check the number of inputs
+        if X.shape[0] != 1:
+            raise ValueError("Only a single input instance can be passed.")
 
         # Check the number of labels.
         if Y_t.shape[0] != 1:
             raise ValueError("Only a single label can be passed.")
 
         # Check the number of conditions.
-        if len(C) != 1:
-            raise ValueError("Only a single condition can be passed")
+        if len(C) > 1:
+            raise ValueError("At most, one condition can be passed.")
 
         # Generate a batch of data.
         X_repeated = np.tile(X, (batch_size, 1))
-        Y_t = np.tile(Y_t, batch_size)
+        Y_t = np.tile(np.atleast_2d(Y_t), (batch_size, 1))
 
         # Define counterfactual buffer.
         X_cf_buff = None
@@ -383,8 +421,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                            diverse=True)
 
             # Generate counterfactuals.
-            results = self.compute_counterfactual(X=X_repeated, Y_t=Y_t, C=C_vec)
-            X_cf, Y_m_cf = results["X_cf"], results["Y_m_cf"]
+            results = self._compute_counterfactual(X=X_repeated, Y_t=Y_t, C=C_vec)
+            X_cf, Y_m_cf, Y_t = results["X_cf"], results["Y_m_cf"], results["Y_t"]
 
             # Select only counterfactuals where prediction matches the target.
             X_cf = X_cf[Y_t == Y_m_cf]
@@ -402,8 +440,21 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                 _, indices = np.unique(np.floor(X_cf_buff / tolerance).astype(int), return_index=True, axis=0)
                 X_cf_buff = X_cf_buff[indices]
 
-        # build explanation
+        # Construct counterfactuals to the explanation.
         X_cf = X_cf_buff[:num_samples] if (X_cf_buff is not None) else np.array([])
+
+        # Compute model's prediction on the counterfactual instances
         Y_m_cf = self.params["predictor"](X_cf) if X_cf.shape[0] != 0 else np.array([])
+        if self._is_classification(pred=Y_m_cf):
+            Y_m_cf = np.argmax(Y_m_cf, axis=1)
+
+        # Compute model's prediction on the original input.
         Y_m = self.params["predictor"](X)
-        return self.build_explanation(X=X, Y_m=Y_m, X_cf=X_cf, Y_m_cf=Y_m_cf, Y_t=Y_t, C=C)
+        if self._is_classification(Y_m):
+            Y_m = np.argmax(Y_m, axis=1)
+
+        # Update target representation if necessary.
+        if self._is_classification(Y_t):
+            Y_t = np.argmax(Y_t, axis=1)
+
+        return self._build_explanation(X=X, Y_m=Y_m, X_cf=X_cf, Y_m_cf=Y_m_cf, Y_t=Y_t, C=C)

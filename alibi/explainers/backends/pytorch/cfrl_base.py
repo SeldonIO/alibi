@@ -24,7 +24,6 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
                  preprocessor: Callable,
                  predictor: Callable,
                  conditional_func: Callable,
-                 num_classes: int,
                  batch_size: int) -> None:
         """
         Constructor.
@@ -42,8 +41,6 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         conditional_func
             Conditional function generator. Given an preprocessed input array, the functions generates a conditional
             array.
-        num_classes
-            Number of classes in the dataset.
         batch_size
             Dimension of the batch used during training. The same batch size is used to infer the classification
             labels of the input dataset.
@@ -54,13 +51,23 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         self.preprocessor = preprocessor
         self.predictor = predictor
         self.conditional_func = conditional_func
-        self.num_classes = num_classes
         self.batch_size = batch_size
 
-        # Infer the classification labels of the input dataset. This is performed in batches.
+        # Infer the labels of the input dataset. This is performed in batches.
         self.Y_m = self.predict_batches(X=self.X,
                                         predictor=self.predictor,
                                         batch_size=self.batch_size)
+
+        # Define number of classes for classification & minimum and maximum labels for regression
+        self.num_classes: Optional[int] = None
+        self.min_m: Optional[float] = None
+        self.max_m: Optional[float] = None
+
+        if self.Y_m.shape[1] > 1:
+            self.num_classes = self.Y_m.shape[1]
+        else:
+            self.min_m = np.min(self.Y_m)
+            self.max_m = np.max(self.Y_m)
 
         # Preprocess the input data.
         self.X = self.preprocessor(self.X)
@@ -69,10 +76,15 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        # self.num_classes = np.clip(self.num_classes, a_min=0, a_max=2)  # TODO: remove this
+        if self.num_classes is not None:
+            # Generate random target for classification task
+            tgt = np.random.randint(low=0, high=self.num_classes, size=1)
+            Y_t = np.zeros((1, self.num_classes))
+            Y_t[0, tgt] = 1
+        else:
+            # Generate random target for regression task.
+            Y_t = np.random.uniform(low=self.min_m, high=self.max_m, size=(1, 1))
 
-        # Generate random target class.
-        Y_t = np.random.randint(low=0, high=self.num_classes, size=1).item()
         data = {
             "X": self.X[idx],
             "Y_m": self.Y_m[idx],
@@ -183,7 +195,6 @@ def data_generator(X: np.ndarray,
                    ae_preprocessor: Callable,
                    predictor: Callable,
                    conditional_func: Callable,
-                   num_classes: int,
                    batch_size: int,
                    shuffle: bool,
                    num_workers: int,
@@ -204,8 +215,6 @@ def data_generator(X: np.ndarray,
     conditional_func
         Conditional function generator. Given an preprocesed input array, the functions generates a conditional
         array.
-    num_classes
-        Number of classes in the dataset.
     batch_size
         Dimension of the batch used during training. The same batch size is used to infer the classification
         labels of the input dataset.
@@ -215,8 +224,7 @@ def data_generator(X: np.ndarray,
         Number of worker processes to be created.
     """
     dataset = PtCounterfactualRLDataset(X=X, preprocessor=ae_preprocessor, predictor=predictor,
-                                        conditional_func=conditional_func, num_classes=num_classes,
-                                        batch_size=batch_size)
+                                        conditional_func=conditional_func, batch_size=batch_size)
     return DataLoader(dataset=dataset, batch_size=batch_size, num_workers=num_workers,
                       shuffle=shuffle, drop_last=True)
 
@@ -270,7 +278,6 @@ def generate_cf(Z: torch.Tensor,
                 Y_m: torch.Tensor,
                 Y_t: torch.Tensor,
                 C: Optional[torch.Tensor],
-                num_classes: int,
                 ae: nn.Module,
                 actor: nn.Module,
                 device: torch.device,
@@ -288,8 +295,6 @@ def generate_cf(Z: torch.Tensor,
         Target counterfactual classification label.
     C
         Conditional tensor.
-    num_classes
-        Number of classes to be considered.
     ae
         Pre-trained autoencoder.
     actor
@@ -306,12 +311,12 @@ def generate_cf(Z: torch.Tensor,
     ae.eval()
     actor.eval()
 
-    # Transform classification labels into one-hot encoding.
-    Y_m_ohe = F.one_hot(Y_m.long(), num_classes=num_classes).float().to(device)
-    Y_t_ohe = F.one_hot(Y_t.long(), num_classes=num_classes).float().to(device)
+    # Send labels and targets to device.
+    Y_m = Y_m.float().to(device)
+    Y_t = Y_t.float().to(device)
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [Z.view(Z.shape[0], -1), Y_m_ohe, Y_t_ohe] + ([C.float().to(device)] if (C is not None) else [])
+    state = [Z.view(Z.shape[0], -1), Y_m, Y_t] + ([C.float().to(device)] if (C is not None) else [])
     state = torch.cat(state, dim=1)  # type: ignore
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
@@ -376,7 +381,6 @@ def update_actor_critic(ae: AE,
                         consistency_loss: Callable,
                         coeff_sparsity: float,
                         coeff_consistency: float,
-                        num_classes: int,
                         X: np.ndarray,
                         X_cf: np.ndarray,
                         Z: np.ndarray,
@@ -410,8 +414,6 @@ def update_actor_critic(ae: AE,
         Sparsity loss coefficient.
     coeff_consistency
         Consistency loss coefficient
-    num_classes
-        Number of classes to be considered.
     X
         Input array.
     X_cf
@@ -446,19 +448,19 @@ def update_actor_critic(ae: AE,
     losses: Dict[str, float] = dict()
 
     # Transform data to tensors and it device
-    X = torch.tensor(X).float().to(device)                                                                # type: ignore
-    X_cf = torch.tensor(X_cf).float().to(device)                                                          # type: ignore
-    Z = torch.tensor(Z).float().to(device)                                                                # type: ignore
-    Z_cf_tilde = torch.tensor(Z_cf_tilde).float().to(device)                                              # type: ignore
-    Y_m_ohe = F.one_hot(torch.tensor(Y_m, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
-    Y_t_ohe = F.one_hot(torch.tensor(Y_t, dtype=torch.long), num_classes=num_classes).float().to(device)  # type: ignore
-    C = torch.tensor(C).float().to(device) if (C is not None) else None                                   # type: ignore
-    R_tilde = torch.tensor(R_tilde).float().to(device)                                                    # type: ignore
+    X = torch.tensor(X).float().to(device)                                  # type: ignore
+    X_cf = torch.tensor(X_cf).float().to(device)                            # type: ignore
+    Z = torch.tensor(Z).float().to(device)                                  # type: ignore
+    Z_cf_tilde = torch.tensor(Z_cf_tilde).float().to(device)                # type: ignore
+    Y_m = torch.tensor(Y_m).float().to(device)                              # type: ignore
+    Y_t = torch.tensor(Y_t).float().to(device)                              # type: ignore
+    C = torch.tensor(C).float().to(device) if (C is not None) else None     # type: ignore
+    R_tilde = torch.tensor(R_tilde).float().to(device)                      # type: ignore
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [Z, Y_m_ohe, Y_t_ohe] + ([C.float().to(device)] if (C is not None) else [])  # type: ignore
-    state = torch.cat(state, dim=1).to(device)                                           # type: ignore
+    state = [Z, Y_m, Y_t] + ([C.float().to(device)] if (C is not None) else [])  # type: ignore
+    state = torch.cat(state, dim=1).to(device)                                   # type: ignore
 
     # Define input for critic, compute q-values and append critic's loss.
     input_critic = torch.cat([state, Z_cf_tilde], dim=1).float()  # type: ignore

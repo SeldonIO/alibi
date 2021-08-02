@@ -24,6 +24,9 @@ if TYPE_CHECKING:
 
 from alibi.version import __version__
 
+# do not extend pickle dispatch table so as not to change pickle behaviour
+dill.extend(use_dill=False)
+
 thismodule = sys.modules[__name__]
 
 NOT_SUPPORTED = ["DistributedAnchorTabular",

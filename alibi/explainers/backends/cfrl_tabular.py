@@ -51,7 +51,6 @@ def split_ohe(X_ohe,
         List of categorical one-hot encoded heads.
     """
     assert hasattr(X_ohe, "shape"), "X_ohe needs to have `shape` attribute."
-
     X_ohe_num_split, X_ohe_cat_split = [], []
     offset = 0
 

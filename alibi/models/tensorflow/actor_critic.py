@@ -1,10 +1,8 @@
-from abc import ABC
-
 import tensorflow as tf
 import tensorflow.keras as keras
 
 
-class Actor(keras.Model, ABC):
+class Actor(keras.Model):
     """
     Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
     The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and
@@ -36,7 +34,7 @@ class Actor(keras.Model, ABC):
         return x
 
 
-class Critic(keras.Model, ABC):
+class Critic(keras.Model):
     """
     Critic network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
     The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and

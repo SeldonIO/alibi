@@ -78,8 +78,8 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         if self.num_classes is not None:
             # Generate random target for classification task
             tgt = np.random.randint(low=0, high=self.num_classes, size=1)
-            Y_t = np.zeros((1, self.num_classes))
-            Y_t[0, tgt] = 1
+            Y_t = np.zeros(self.num_classes)
+            Y_t[tgt] = 1
         else:
             # Generate random target for regression task.
             Y_t = np.random.uniform(low=self.min_m, high=self.max_m, size=(1, 1))
@@ -93,7 +93,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         # Construct conditional vector.
         C = self.conditional_func(self.X[idx:idx + 1])
         if C is not None:
-            data.update({"c": C.reshape(-1)})
+            data.update({"C": C.reshape(-1)})
 
         return data
 
@@ -506,7 +506,7 @@ def update_actor_critic(encoder: nn.Module,
 
     # Compute consistency loss.
     Z_cf_tgt = encode(X=X_cf, encoder=encoder, device=device)  # type: ignore
-    loss_consistency = consistency_loss(z_cf_pred=Z_cf, z_cf_tgt=Z_cf_tgt)
+    loss_consistency = consistency_loss(Z_cf_pred=Z_cf, Z_cf_tgt=Z_cf_tgt)
     losses.update(loss_consistency)
 
     # Add consistency loss to the overall actor loss.
@@ -599,7 +599,7 @@ def load_model(path: Union[str, os.PathLike]) -> nn.Module:
     return model
 
 
-def seed(seed: int = 13):
+def set_seed(seed: int = 13):
     """
     Sets a seed to ensure reproducibility
     Parameters

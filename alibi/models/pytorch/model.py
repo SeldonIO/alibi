@@ -25,7 +25,7 @@ class Model(nn.Module):
                 optimizer: optim.Optimizer,
                 loss: Union[Callable, List[Callable]],
                 loss_weights: Optional[List[float]] = None,
-                metrics: Optional[List[Metric]] = None) -> 'Model':
+                metrics: Optional[List[Metric]] = None):
         """
         Compiles a model by setting the optimizer and the loss functions, loss weights and metrics to monitor
         the training of the model..
@@ -57,8 +57,6 @@ class Model(nn.Module):
                 self.loss.append(LossContainer(partial_loss, name=f"output_{i+1}_loss"))
         else:
             self.loss = LossContainer(loss, name="loss")
-
-        return self
 
     def validate_prediction_labels(self,
                                    y_pred: Union[torch.Tensor, List[torch.Tensor]],
@@ -128,7 +126,7 @@ class Model(nn.Module):
             assert isinstance(y_pred, list)
             assert isinstance(y_true, list)
 
-            loss = torch.tensor(0.)
+            loss = torch.tensor(0).to(self.device)   # necessary for mypy otherwise use `type: ignore`
             results = dict()
 
             for i, partial_loss in enumerate(self.loss):
@@ -165,7 +163,7 @@ class Model(nn.Module):
         if isinstance(self.metrics, dict):
             for name in self.metrics:
                 i = int(name.split("_")[1]) - 1  # name is of the form output_1_... . Maybe we use re?
-                self.metrics[name].update_state(y_pred=y_pred[i], y_true=y_true[i])
+                self.metrics[name].compute_metric(y_pred=y_pred[i], y_true=y_true[i])
 
                 # add output prefix in front of the results
                 result = {name + "_" + key: val for key, val in self.metrics[name].result().items()}

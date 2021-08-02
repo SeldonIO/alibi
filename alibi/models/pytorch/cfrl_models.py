@@ -133,22 +133,20 @@ class ADULTEncoder(nn.Module):
     128 and 15, although those can vary as they were selected to generalize across many datasets.
     """
 
-    def __init__(self, input_dim: int, hidden_dim: int, latent_dim: int):
+    def __init__(self, hidden_dim: int, latent_dim: int):
         """
         Constructor.
 
         Parameters
         ----------
-        input_dim
-            Input dimension.
         hidden_dim
             Hidden dimension.
         latent_dim
             Latent dimension.
         """
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc2 = nn.Linear(hidden_dim, latent_dim)
+        self.fc1 = nn.LazyLinear(hidden_dim)
+        self.fc2 = nn.LazyLinear(latent_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.fc1(x))
@@ -163,22 +161,20 @@ class ADULTDecoder(nn.Module):
     a single head for the rest of numerical features. The hidden dimension used in the paper is 128.
     """
 
-    def __init__(self, latent_dim: int, hidden_dim: int, output_dims: List[int]):
+    def __init__(self, hidden_dim: int, output_dims: List[int]):
         """
         Constructor.
 
         Parameters
         ----------
-        latent_dim
-            Latent dimension.
         hidden_dim
             Hidden dimension.
         output_dims
             List of output dimensions.
         """
         super().__init__()
-        self.fc1 = nn.Linear(latent_dim, hidden_dim)
-        self.fcs = nn.ModuleList([nn.Linear(hidden_dim, dim) for dim in output_dims])
+        self.fc1 = nn.LazyLinear(hidden_dim)
+        self.fcs = nn.ModuleList([nn.LazyLinear(dim) for dim in output_dims])
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         x = self.fc1(x)

@@ -83,11 +83,14 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
             method.
         """
-        self.X, self.X_cf = None, None              # buffers for the inputs and counterfactuals
-        self.Y_m, self.Y_t = None, None             # buffer for the model's predictions and targets
-        self.Z, self.Z_cf_tilde = None, None        # buffer for the input embedding and noised cf embeddings
-        self.C = None                               # buffer for the conditional tensor
-        self.R_tilde = None                         # buffer for the noised counterfactual reward tensor
+        self.X: Optional[np.ndarray] = None            # buffer for the inputs
+        self.X_cf: Optional[np.ndarray] = None         # buffer for the counterfactuals
+        self.Y_m: Optional[np.ndarray] = None          # buffer for the model's prediction
+        self.Y_t: Optional[np.ndarray] = None          # buffer for the counterfactual targets
+        self.Z: Optional[np.ndarray] = None            # buffer for the input embedding
+        self.Z_cf_tilde: Optional[np.ndarray] = None   # buffer for the noised counterfactual embedding
+        self.C: Optional[np.ndarray] = None            # buffer for the conditional tensor
+        self.R_tilde: Optional[np.ndarray] = None      # buffer for the noised counterfactual reward tensor
 
         self.idx = 0                    # cursor for the buffer
         self.len = 0                    # current length of the buffer
@@ -869,6 +872,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         X = self.backend.to_tensor(X, **self.params)
         Y_m = self.backend.to_tensor(Y_m, **self.params)
         Y_t = self.backend.to_tensor(Y_t, **self.params)
+        C = self.backend.to_tensor(C, **self.params)
 
         # Encode instance.
         Z = self.backend.encode(X, **self.params)
@@ -878,7 +882,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # Decode counterfactual.
         X_cf = self.backend.decode(Z_cf, **self.params)
+
+        # Convert to numpy for prosprocessing
         X_cf = self.backend.to_numpy(X_cf)
+        X = self.backend.to_numpy(X)
+        C = self.backend.to_numpy(C)
 
         # Apply postprocessing functions.
         for pp_func in self.params["postprocessing_funcs"]:

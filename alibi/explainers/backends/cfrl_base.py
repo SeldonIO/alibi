@@ -114,8 +114,7 @@ class CounterfactualRLDataset(ABC):
             # Add predictions to the model predictions buffer.
             Y_m.append(preds)
 
-        Y_m = np.concatenate(Y_m, axis=0)
-        return Y_m
+        return np.concatenate(Y_m, axis=0)
 
     @abstractmethod
     def __len__(self):

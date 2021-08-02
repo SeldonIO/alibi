@@ -6,7 +6,7 @@ from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition
 # some of the methods imported below are common for both data modalities and are access through `self.backend`
 # we import them here, without being used explicitly in this module.
 
-from alibi.explainers.backends.tensorflow.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
+from alibi.explainers.backends.pytorch.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
     encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor, set_seed, \
     save_model, load_model  # noqa: F403, F401
 
@@ -128,6 +128,7 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
         Numerical loss weight.
     weight_cat
         Categorical loss weight.
+    device
 
     Returns
     -------
@@ -142,13 +143,13 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
                                             category_map=category_map)
 
     # define numerical and categorical loss
-    num_loss, cat_loss = torch.tensor(0.), torch.tensor(0.)
+    num_loss, cat_loss = 0., 0.
     offset = 0
 
     # compute numerical loss
     if len(X_ohe_num_split) > 0:
         offset = 1
-        num_loss = torch.mean(l1_loss(input=X_ohe_hat_split[0],
+        num_loss = torch.mean(l1_loss(input=X_ohe_hat_split[0],  # type: ignore
                                       target=X_ohe_num_split[0],
                                       reduction='none'))
 
@@ -156,7 +157,7 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
     if len(X_ohe_cat_split) > 0:
         for i in range(len(X_ohe_cat_split)):
             batch_size = X_ohe_hat_split[i].shape[0]
-            cat_loss += torch.sum(l0_ohe(input=X_ohe_hat_split[i + offset],
+            cat_loss += torch.sum(l0_ohe(input=X_ohe_hat_split[i + offset],  # type: ignore
                                          target=X_ohe_cat_split[i],
                                          reduction='none')) / batch_size
 

@@ -54,7 +54,7 @@ def test_sampler(models, mnist_data):
     assert superpixels_mask.sum(axis=1).any() <= segmentation_kwargs["n_segments"]
     assert superpixels_mask.any() <= 1
 
-    cov_true, cov_false, labels, data, coverage, _ = sampler.sample(
+    cov_true, cov_false, labels, data, coverage, _ = sampler(
         (0, ()), num_samples
     )
     assert data.shape[0] == labels.shape[0]

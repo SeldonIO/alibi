@@ -48,7 +48,7 @@ class AnchorImageSampler:
         self.segment_labels = list(np.unique(self.segments))
         self.instance_label = self.predictor(image[np.newaxis, ...])[0]
 
-    def sample(
+    def __call__(
         self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True
     ) -> List[Union[np.ndarray, float, int]]:
         """

@@ -1,3 +1,8 @@
+"""
+This module contains utility function for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
+for the Pytorch backend.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

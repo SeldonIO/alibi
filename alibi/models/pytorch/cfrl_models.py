@@ -1,3 +1,8 @@
+"""
+This module contains the Pytorch implementation of models used for the Counterfactual with Reinforcement Learning
+experiments for both data modalities (image and tabular).
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

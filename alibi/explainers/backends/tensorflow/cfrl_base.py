@@ -1,3 +1,8 @@
+"""
+This module contains utility function for the Counterfactual with Reinforcement Learning base class (`cfrl_base`)
+for the Tensorflow backend.
+"""
+
 import os
 import random
 import numpy as np
@@ -101,7 +106,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         # Select indices to be returned.
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
 
-        # compute conditional vector.
+        # Compute conditional vector.
         C = self.conditional_func(self.X[idx * self.batch_size: (idx + 1) * self.batch_size])
 
         return {
@@ -300,7 +305,7 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
     # Convert labels, targets and conditiont float32
     Y_m = tf.cast(Y_m, dtype=tf.float32)
     Y_t = tf.cast(Y_t, dtype=tf.float32)
-    C = tf.constant(C, dtype=tf.float32) if (C is not None) else C
+    C = tf.cast(C, dtype=tf.float32) if (C is not None) else C
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
     state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m, Y_t] + ([C] if (C is not None) else [])
@@ -354,6 +359,89 @@ def add_noise(Z_cf: Union[tf.Tensor, np.ndarray],
         Z_cf_tilde = tf.random.uniform(Z_cf.shape, minval=act_low, maxval=act_high)
 
     return Z_cf_tilde
+
+
+def initialize_optimizer(optimizer: keras.optimizers.Optimizer, model: keras.Model) -> None:
+    """
+    Initializes an optimizer given a model.
+
+    Parameters
+    ----------
+    optimizer
+        Optimizer to be initialized.
+    model
+        Model to be optimized
+    """
+
+    # Dummy zero gradients.
+    zero_grads = [tf.zeros_like(w) for w in model.trainable_weights]
+
+    # Apply gradients which don't do nothing.
+    optimizer.apply_gradients(zip(zero_grads, model.trainable_weights))
+
+
+def initialize_optimizers(optimizer_actor, optimizer_critic, actor, critic, **kwargs) -> None:
+    """
+    Initializes the actor and critic optimizers.
+
+    Parameters
+    ----------
+    optimizer_actor
+        Actor optimizer to be initialized.
+    optimizer_critic
+        Critic optimizer to be initialized.
+    actor
+        Actor model to be optimized.
+    critic
+        Critic model to be optimized.
+    """
+    initialize_optimizer(optimizer=optimizer_actor, model=actor)
+    initialize_optimizer(optimizer=optimizer_critic, model=critic)
+
+
+def initialize_actor_critic(actor, critic, Z, Z_cf_tilde, Y_m, Y_t, C, **kwargs):
+    """
+    Initialize actor and critic layers by passing a dummy zero tensor.
+
+    Parameters
+    ----------
+    actor
+        Actor model.
+    critic
+        Critic model.
+    Z
+        Input embedding.
+    Z_cf_tilde
+        Noised counterfactual embedding.
+    Y_m
+        Input classification label.
+    Y_t
+        Target counterfactual classification label.
+    C
+        Conditional tensor.
+    """
+    # Define zero data.
+    Z = tf.zeros((1, *Z.shape[1:]), dtype=tf.float32)
+    Z_cf_tilde = tf.zeros((1, *Z_cf_tilde.shape[1:]), dtype=tf.float32)
+    Y_m = tf.zeros((1, *Y_m.shape[1:]), dtype=tf.float32)
+    Y_t = tf.zeros((1, *Y_t.shape[1:]), dtype=tf.float32)
+
+    # Define actor input.
+    actor_input = [Z, Y_m, Y_t]
+
+    if C is not None:
+        C = tf.zeros((1, *C.shape[1:]), dtype=tf.float32)
+        actor_input += [C]
+
+    actor_input = tf.concat(actor_input, axis=1)
+
+    # Define critic input.
+    critic_input = [actor_input, Z_cf_tilde]
+    critic_input = tf.concat(critic_input, axis=1)
+
+    # Build actor and critic.
+    actor(actor_input)
+    critic(critic_input)
 
 
 @tf.function()

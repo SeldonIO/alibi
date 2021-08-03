@@ -1,3 +1,9 @@
+"""
+This module contains a Pytorch general implementation of an autoencoder, by combining the encoder and the decoder
+module. In addition it provides an implementation of a heterogeneous autoencoder which includes a type checking of the
+output.
+"""
+
 import torch
 import torch.nn as nn
 

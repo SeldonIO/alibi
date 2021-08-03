@@ -1,3 +1,8 @@
+"""
+This module contains the Tensorflow implementation of models used for the Counterfactual with Reinforcement Learning
+experiments for both data modalities (image and tabular).
+"""
+
 import tensorflow as tf
 import tensorflow.keras as keras
 from typing import List

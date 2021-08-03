@@ -1,3 +1,8 @@
+"""
+This module contains utility function for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
+for the Pytorch backend.
+"""
+
 from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
 
 # The following methods are included since `alibi.explainers.backends.pytorch.cfrl_tabular` is an extension to the

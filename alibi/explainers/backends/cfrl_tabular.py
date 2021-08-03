@@ -1,10 +1,19 @@
+"""
+This module contains utility function for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
+that are common for both Tensorflow and Pytorch backends.
+"""
+
 import numpy as np
 import pandas as pd  # type: ignore
-from typing import List, Dict, Union, Tuple, Callable
+from typing import List, Dict, Union, Tuple, Callable, TYPE_CHECKING
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder  # type: ignore
 from sklearn.compose import ColumnTransformer  # type: ignore
 from scipy.special import softmax  # type: ignore
+
+if TYPE_CHECKING:
+    import torch
+    import tensorflow as tf
 
 
 def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]) -> int:
@@ -28,7 +37,7 @@ def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[s
     return 2 * num_feat + cat_feat
 
 
-def split_ohe(X_ohe,
+def split_ohe(X_ohe: Union[np.ndarray, 'torch.Tensor', 'tf.Tensor'],
               category_map: Dict[int, List[str]]) -> Tuple[List, List]:
     """
     Splits a one-hot encoding array in a list of numerical heads and a list of categorical heads. Since by

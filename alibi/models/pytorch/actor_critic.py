@@ -1,3 +1,9 @@
+"""
+This module contains the Pytorch implementation of actor-critic networks used in the Counterfactual with Reinforcement
+Learning for both data modalities. The models' architectures follow the standard actor-critic design and can have
+broader use-cases.
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

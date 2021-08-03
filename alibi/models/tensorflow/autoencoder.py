@@ -1,13 +1,18 @@
+"""
+This module contains a Tensorflow general implementation of an autoencoder, by combining the encoder and the decoder
+module. In addition it provides an implementation of a heterogeneous autoencoder which includes a type checking of the
+output.
+"""
+
 import tensorflow as tf
 import tensorflow.keras as keras
-
 from typing import List, Tuple
 
 
 class AE(keras.Model):
     """
     Autoencoder. Standard autoencoder architecture. The model is composed from two submodules, the encoder and
-    the decoder. The forward pass consist of passing the input to the encoder, obtain the input embedding and
+    the decoder. The forward pass consists of passing the input to the encoder, obtain the input embedding and
     pass the embedding through the decoder. The abstraction can be used for multiple data modalities.
     """
 

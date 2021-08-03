@@ -627,6 +627,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
         self
             The explainer itself.
         """
+        # Define boolean flag for initializing actor and critic network for Tensorflow backend.
+        initialize_actor_critic = False
+
         # Define replay buffer (this will deal only with numpy arrays).
         replay_buff = ReplayBuffer(size=self.params["replay_buffer_size"])
 
@@ -702,6 +705,15 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 for i in range(self.params['update_every']):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
+
+                    # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
+                    # explainer object and call fit multiple times. If the models are not reinitailized, the
+                    # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
+                    # This is due to @tf.function and building the model for the first time in a compiled function
+                    if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:
+                        self.backend.initialize_actor_critic(**sample, **self.params)
+                        self.backend.initialize_optimizers(**sample, **self.params)
+                        initialize_actor_critic = True
 
                     if "C" not in sample:
                         sample["C"] = None
@@ -883,7 +895,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         # Decode counterfactual.
         X_cf = self.backend.decode(Z_cf, **self.params)
 
-        # Convert to numpy for prosprocessing
+        # Convert to numpy for postprocessing
         X_cf = self.backend.to_numpy(X_cf)
         X = self.backend.to_numpy(X)
         C = self.backend.to_numpy(C)

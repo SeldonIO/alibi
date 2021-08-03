@@ -49,7 +49,6 @@ def scale_image(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:
 class AnchorImageSampler:
     def __init__(
         self,
-        # TODO: Should we call `predictor`, `prediction_fn` instead?
         predictor: Callable,
         segmentation_fn: Callable,
         custom_segmentation: bool,

@@ -4,6 +4,7 @@ import numpy as np
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers.anchor_image import AnchorImage, AnchorImageSampler, scale_image
 
+
 def test_scale_image():
     image_shape = (28, 28, 1)
     scaling_offset = 260
@@ -71,6 +72,7 @@ def test_sampler(models, mnist_data):
     assert data.shape[1] == len(np.unique(sampler.segments))
     assert coverage == -1
 
+
 @pytest.mark.parametrize(
     "models",
     [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",)],
@@ -137,5 +139,3 @@ def test_anchor_image(models, mnist_data):
     assert len(np.unique(explanation.segments)) == len(np.unique(sampler.segments))
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
-
-

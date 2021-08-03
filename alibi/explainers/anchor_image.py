@@ -21,6 +21,7 @@ DEFAULT_SEGMENTATION_KWARGS = {
     'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
 }
 
+
 def scale_image(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:
     """
     Scales an image in a specified range.

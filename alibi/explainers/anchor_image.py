@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from functools import partial
-from typing import Any, Callable
+from typing import Any, Callable, List, Union, Tuple
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.api.interfaces import Explainer, Explanation

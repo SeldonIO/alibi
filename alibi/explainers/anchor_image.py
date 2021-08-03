@@ -139,27 +139,24 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
-    def explain(
-        self,  # type: ignore
-        image: np.ndarray,
-        p_sample: float = 0.5,
-        threshold: float = 0.95,
-        delta: float = 0.1,
-        tau: float = 0.15,
-        batch_size: int = 100,
-        coverage_samples: int = 10000,
-        beam_size: int = 1,
-        stop_on_first: bool = False,
-        max_anchor_size: int = None,
-        min_samples_start: int = 100,
-        n_covered_ex: int = 10,
-        binary_cache_size: int = 10000,
-        cache_margin: int = 1000,
-        verbose: bool = False,
-        verbose_every: int = 1,
-        **kwargs: Any
-    ) -> Explanation:
-
+    def explain(self,  # type: ignore
+                image: np.ndarray,
+                p_sample: float = 0.5,
+                threshold: float = 0.95,
+                delta: float = 0.1,
+                tau: float = 0.15,
+                batch_size: int = 100,
+                coverage_samples: int = 10000,
+                beam_size: int = 1,
+                stop_on_first: bool = False,
+                max_anchor_size: int = None,
+                min_samples_start: int = 100,
+                n_covered_ex: int = 10,
+                binary_cache_size: int = 10000,
+                cache_margin: int = 1000,
+                verbose: bool = False,
+                verbose_every: int = 1,
+                **kwargs: Any) -> Explanation:
         """
         Explain instance and return anchor with metadata.
 

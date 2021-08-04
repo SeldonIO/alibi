@@ -417,7 +417,7 @@ def sample(X_hat_split: List[np.ndarray],
 def get_he_preprocessor(X: np.ndarray,
                         feature_names: List[str],
                         category_map: Dict[int, List[str]],
-                        feature_types: Dict[int, type] = dict()
+                        feature_types: Dict[str, type] = dict()
                         ) -> Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]:
     """
     Heterogeneous dataset preprocessor. The numerical features are standardized and the categorical features
@@ -490,8 +490,8 @@ def get_he_preprocessor(X: np.ndarray,
             inv_perm[perm[i]] = i
 
         np_X_inv = np_X_inv[:, inv_perm].astype(object)
-        for i in range(len(feature_names)):
-            type = feature_types[i] if i in feature_types else int
+        for i, fn in enumerate(feature_names):
+            type = feature_types[fn] if fn in feature_types else int
             np_X_inv[:, i] = np_X_inv[:, i].astype(type)
 
         return np_X_inv

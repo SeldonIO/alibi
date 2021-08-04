@@ -242,7 +242,7 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'act_high'``: float, maximum action value. Each action component takes values between `[act_low, act_high]`.
 
-    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory
+    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory \
     allocated is proportional with the `size` * `batch_size`.
 
     - ``'batch_size'``: int, training batch size.
@@ -253,42 +253,42 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'latent_dim'``: int, autoencoder latent dimension.
 
-    - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the
+    - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the \
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
 
-    - ``'update_every'``: int, number of steps that should elapse between gradient updates. Regardless of the
+    - ``'update_every'``: int, number of steps that should elapse between gradient updates. Regardless of the \
     waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
 
-    - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that
+    - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that \
     the replay buffers is full enough for useful updates.
 
     - ``'backend'``: str, backend to be used: `tensorflow`|`pytorch`. Default `tensorflow`.
 
     - ``'train_steps'``: int, number of train steps (interactions).
 
-    - ``'encoder_preprocessor'``: Callable, encoder/autoencoder data preprocessors. Transforms the input data into the
+    - ``'encoder_preprocessor'``: Callable, encoder/autoencoder data preprocessors. Transforms the input data into the \
     format expected by the autoencoder. By default, the identity function.
 
-    - ``'decoder_inv_preprocessor'``: Callable, decoder/autoencoder data inverse preprocessor. Transforms data from the
-    autoencoder expected format to the original input format. Before calling the prediction function, the data is
+    - ``'decoder_inv_preprocessor'``: Callable, decoder/autoencoder data inverse preprocessor. Transforms data from \
+    the autoencoder expected format to the original input format. Before calling the prediction function, the data is \
     inverse preprocessed to match the original input format. By default, the identity function.
 
-    - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction
+    - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction \
     label matches the target label. Note that this is element-wise, so a tensor is expected to be returned.
 
-    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in
-    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as
-    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional vector,
-    and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the following
-    functions. By default, no post-processing is applied (empty list).
+    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in \
+    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as \
+    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional \
+    vector, and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the \
+    following functions. By default, no post-processing is applied (empty list).
 
-    - ``'conditional_func'``: Callable, generates a conditional vector given a input instance. By default, the function
-    returns `None` which is equivalent to no conditioning.
+    - ``'conditional_func'``: Callable, generates a conditional vector given a input instance. By default, the \
+    function returns `None` which is equivalent to no conditioning.
 
-    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each
+    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each \
     experience step.
 
-    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training
+    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training \
     step.
 
     - ``'actor'``: Optional[keras.Model, torch.nn.Module], actor network.

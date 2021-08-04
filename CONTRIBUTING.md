@@ -77,7 +77,7 @@ Checklist to run through before a PR is considered complete:
  - New functionality has appropriate [tests](#testing) (functions/methods have unit tests, end-to-end functionality is also tested).
  - The runtime of the whole test suite on [CI](#ci) is comparable to that of before the PR.
  - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
- - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.nb`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](../doc/README.md) for more information.
+ - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](../doc/README.md) for more information.
  - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
  - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, and `requirements/doc.txt` for documentation dependencies).
 

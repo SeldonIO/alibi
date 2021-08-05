@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]) -> int:
     """
-    Computes the dimension of the conditional vector
+    Computes the dimension of the conditional vector.
 
     Parameters
     ----------
@@ -258,23 +258,30 @@ def generate_condition(X_ohe: np.ndarray,
     -------
     Conditional vector.
     """
+    # Define conditional vector buffer
+    C = []
+
     # Generate numerical condition vector.
-    C_num = generate_numerical_condition(X_ohe=X_ohe,
-                                         feature_names=feature_names,
-                                         category_map=category_map,
-                                         ranges=ranges,
-                                         immutable_features=immutable_features,
-                                         conditional=conditional)
+    if len(feature_names) > len(category_map):
+        C_num = generate_numerical_condition(X_ohe=X_ohe,
+                                             feature_names=feature_names,
+                                             category_map=category_map,
+                                             ranges=ranges,
+                                             immutable_features=immutable_features,
+                                             conditional=conditional)
+        C.append(C_num)
 
     # Generate categorical condition vector.
-    C_cat = generate_categorical_condition(X_ohe=X_ohe,
-                                           feature_names=feature_names,
-                                           category_map=category_map,
-                                           immutable_features=immutable_features,
-                                           conditional=conditional)
+    if len(category_map):
+        C_cat = generate_categorical_condition(X_ohe=X_ohe,
+                                               feature_names=feature_names,
+                                               category_map=category_map,
+                                               immutable_features=immutable_features,
+                                               conditional=conditional)
+        C.append(C_cat)
 
     # Concatenate numerical and categorical conditional vectors.
-    return np.concatenate([C_num, C_cat], axis=1)
+    return np.concatenate(C, axis=1)
 
 
 def sample_numerical(X_hat_num_split: List[np.ndarray],
@@ -364,8 +371,8 @@ def sample_categorical(X_hat_cat_split: List[np.ndarray],
 def sample(X_hat_split: List[np.ndarray],
            X_ohe: np.ndarray,
            C: np.ndarray,
-           stats: Dict[int, Dict[str, float]],
-           category_map: Dict[int, List[str]]) -> List[np.ndarray]:
+           category_map: Dict[int, List[str]],
+           stats: Dict[int, Dict[str, float]]) -> List[np.ndarray]:
     """
     Samples an instance from the given reconstruction according to the conditional vector and
     the dictionary of statistics.
@@ -373,18 +380,19 @@ def sample(X_hat_split: List[np.ndarray],
     Parameters
     ----------
     X_hat_split
-        List of one-hot encoded reconstructed columns form the auto-encoder. The categorical columns contain logits.
+        List of reconstructed columns form the auto-encoder. The categorical columns contain logits.
     X_ohe
         One-hot encoded representation of the input.
     C
         Conditional vector.
+    category_map
+        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
+        values for a feature.
     stats
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
         feature in the training set. Each key is an index of the column and each value is another dictionary
         containing `min` and `max` keys.
-    category_map
-        Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
-        values for a feature.
+
 
     Returns
     -------
@@ -467,16 +475,16 @@ def get_he_preprocessor(X: np.ndarray,
     cat_feat_ohe = sum([len(v) for v in category_map.values()])  # number of categorical columns
 
     # define inverse preprocessor
-    def get_inv_preprocessor(x_ohe: np.ndarray):
+    def get_inv_preprocessor(X_ohe: np.ndarray):
         X_inv = []
 
-        if "num" in preprocessor.named_transformers_:
+        if "num" in preprocessor.named_transformers_ and len(numerical_ids):
             num_transf = preprocessor.named_transformers_["num"]
-            X_inv.append(num_transf.inverse_transform(x_ohe[:, :num_feat_ohe]))
+            X_inv.append(num_transf.inverse_transform(X_ohe[:, :num_feat_ohe]))
 
-        if "cat" in preprocessor.named_transformers_:
+        if "cat" in preprocessor.named_transformers_ and len(categorical_ids):
             cat_transf = preprocessor.named_transformers_["cat"]
-            X_inv.append(cat_transf.inverse_transform(x_ohe[:, -cat_feat_ohe:]))
+            X_inv.append(cat_transf.inverse_transform(X_ohe[:, -cat_feat_ohe:]))
 
         # concatenate all columns. at this point the columns are not ordered correctly
         np_X_inv = np.concatenate(X_inv, axis=1)
@@ -491,7 +499,7 @@ def get_he_preprocessor(X: np.ndarray,
 
         np_X_inv = np_X_inv[:, inv_perm].astype(object)
         for i, fn in enumerate(feature_names):
-            type = feature_types[fn] if fn in feature_types else int
+            type = feature_types[fn] if fn in feature_types else float
             np_X_inv[:, i] = np_X_inv[:, i].astype(type)
 
         return np_X_inv
@@ -735,9 +743,11 @@ def get_conditional_vector(X: np.ndarray,
                            diverse=False) -> np.ndarray:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
+
     For numerical features, if the `Age` feature is allowed to increase up to 10 more years, the delta change is
     `[0, 10]`.  If the `Hours per week` is allowed to decrease down to `-5` and increases up to `+10`, then the
     delta change is `[-5, +10]`. Note that the interval must go include `0`.
+
     For categorical feature, if the `Occupation` can change to `Blue-Collar` or `White-Collar` the delta change
     is `['Blue-Collar', 'White-Collar']`. Note that the original value is optional as it is included by default.
 

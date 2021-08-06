@@ -13,8 +13,8 @@ from alibi.explainers.backends.cfrl_base import identity_function, generate_empt
     get_classification_reward, get_hard_distribution
 
 if TYPE_CHECKING:
-    import torch.nn as nn
-    import tensorflow.keras as keras
+    import torch
+    import tensorflow as tf
 
 if has_pytorch:
     # import pytorch backend
@@ -66,7 +66,7 @@ class NormalActionNoise:
 
 class ReplayBuffer:
     """
-    Circular experience replay buffer for `CounterfactualRL`(DDPG). When the buffer is filled, then the oldest
+    Circular experience replay buffer for `CounterfactualRL` (DDPG). When the buffer is filled, then the oldest
     experience is replaced by the new one (FIFO). The experience batch size is kept constant and inferred when
     the first batch of data is stored. Allowing flexible batch size can generate Tensorflow warning due to
     the `tf.function` retracing, which can lead to a drop in performance.
@@ -80,8 +80,7 @@ class ReplayBuffer:
         ----------
         size
             Dimension of the buffer in batch size. This that the total memory allocated is proportional with the
-            `size` * `batch_size`, where `batch_size` is inferred from the input tensors passed in the `append`
-            method.
+            `size` * `batch_size`, where `batch_size` is inferred from the first tensors to be stored.
         """
         self.X: Optional[np.ndarray] = None            # buffer for the inputs
         self.X_cf: Optional[np.ndarray] = None         # buffer for the counterfactuals
@@ -176,8 +175,9 @@ class ReplayBuffer:
 
         Returns
         --------
-        A batch experience. For a description of the keys/values returned, see parameter descriptions in `append`
-        method. The batch size returned is the same as the one passed in the `append`.
+            A batch experience. For a description of the keys/values returned, see parameter descriptions in
+            :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same as
+            the one passed in the `append`.
         """
         # Generate random indices to be sampled.
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
@@ -251,8 +251,6 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'shuffle'``: bool, whether to shuffle the datasets every epoch.
 
-    - ``'latent_dim'``: int, autoencoder latent dimension.
-
     - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the \
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
 
@@ -262,28 +260,29 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that \
     the replay buffers is full enough for useful updates.
 
-    - ``'backend'``: str, backend to be used: `tensorflow`|`pytorch`. Default `tensorflow`.
+    - ``'backend'``: str, backend to be used: `tensorflow|pytorch`. Default `tensorflow`.
 
-    - ``'train_steps'``: int, number of train steps (interactions).
+    - ``'train_steps'``: int, number of train steps.
 
     - ``'encoder_preprocessor'``: Callable, encoder/autoencoder data preprocessors. Transforms the input data into the \
     format expected by the autoencoder. By default, the identity function.
 
     - ``'decoder_inv_preprocessor'``: Callable, decoder/autoencoder data inverse preprocessor. Transforms data from \
-    the autoencoder expected format to the original input format. Before calling the prediction function, the data is \
+    the autoencoder output format to the original input format. Before calling the prediction function, the data is \
     inverse preprocessed to match the original input format. By default, the identity function.
 
-    - ``'reward_func'``: Callable, element-wise reward function. By default, checks if the counterfactual prediction \
-    label matches the target label. Note that this is element-wise, so a tensor is expected to be returned.
+    - ``'reward_func'``: Callable, element-wise reward function. By default, considers classification task and \
+    checks if the counterfactual prediction label matches the target label. Note that this is element-wise, so a \
+    tensor is expected to be returned.
 
-    - ``'postprocessing_funcs'``: List[Postprocessing], post-processing list of functions. The function are applied in \
-    the order, from low to high index. Non-differentiable postprocessing can be applied. The function expects as \
-    arguments `x_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional \
-    vector, and returns the post-processed counterfactual instance `x_cf_pp` which is passed as `x_cf` for the \
+    - ``'postprocessing_funcs'``: List[Postprocessing], list of post-processing functions. The function are applied in \
+    the order, from low to high index. Non-differentiable post-processing can be applied. The function expects as \
+    arguments `X_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional \
+    vector, and returns the post-processed counterfactual instance `X_cf_pp` which is passed as `X_cf` for the \
     following functions. By default, no post-processing is applied (empty list).
 
-    - ``'conditional_func'``: Callable, generates a conditional vector given a input instance. By default, the \
-    function returns `None` which is equivalent to no conditioning.
+    - ``'conditional_func'``: Callable, generates a conditional vector given a pre-processed input instance. By \
+    default, the function returns `None` which is equivalent to no conditioning.
 
     - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each \
     experience step.
@@ -291,13 +290,13 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training \
     step.
 
-    - ``'actor'``: Optional[keras.Model, torch.nn.Module], actor network.
+    - ``'actor'``: Optional[tf.keras.Model, torch.nn.Module], actor network.
 
-    - ``'critic;``: Optional[keras.Model, torch.nn.Module], critic network.
+    - ``'critic;``: Optional[tf.keras.Model, torch.nn.Module], critic network.
 
-    - ``'optimizer_actor'``: Optional[keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
+    - ``'optimizer_actor'``: Optional[tf.keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
 
-    - ``'optimizer_critic'``: Optional[keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
+    - ``'optimizer_critic'``: Optional[tf.keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
 
     - ``'lr_actor'``: float, actor learning rate.
 
@@ -308,7 +307,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
 """
 
-PARAM_TYPES = {
+_PARAM_TYPES = {
     "primitives": [
         "act_noise", "act_low", "act_high", "replay_buffer_size", "batch_size", "num_workers", "shuffle",
         "exploration_steps", "update_every", "update_after", "train_steps", "backend", "actor_hidden_dim",
@@ -323,22 +322,19 @@ PARAM_TYPES = {
 """
 Parameter types for serialization
 
-    - ''`primitives`'': List[str], list of parameters having primitive data types.
+    - ``'primitives'``: List[str], list of parameters having primitive data types.
 
-    - ''`complex`'': List[str], list of parameters having complex data types (e.g., functions, models, optimizers etc.)
+    - ``'complex'``: List[str], list of parameters having complex data types (e.g., functions, models, optimizers etc.)
 """
 
 
 class CounterfactualRLBase(Explainer, FitMixin):
-    """
-     Counterfactual Reinforcement Learning Base.
-     TODO: check if all tensors are uppercase
-    """
+    """ Counterfactual Reinforcement Learning Base. """
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: Union['keras.Model', 'nn.Module'],
-                 decoder: Union['keras.Model', 'nn.Module'],
+                 encoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                 decoder: Union['tf.keras.Model', 'torch.nn.Module'],
                  latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
@@ -351,7 +347,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            Prediction function. This corresponds to the classifier.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         encoder
             Pretrained encoder network.
         decoder
@@ -363,11 +359,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
         coeff_consistency
             Consistency loss coefficient.
         backend
-            Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+            Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         seed
             Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
         kwargs
-            Used to replace any default parameter from :py:data:`alibi.expaliners.cfrl_base.DEFAULT_BASE_PARAMS`.
+            Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
         super().__init__(meta=deepcopy(DEFAULT_META_CFRL))
 
@@ -408,10 +404,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
             self.params["critic"].to(self.params["device"])
 
         # Update meta-data with all parameters passed (correct and incorrect).
-        self.meta["params"].update(CounterfactualRLBase.serialize_params(all_params))
+        self.meta["params"].update(CounterfactualRLBase._serialize_params(all_params))
 
     @staticmethod
-    def serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
+    def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
         Parameter serialization. The function replaces object by human-readable representation
 
@@ -427,11 +423,11 @@ class CounterfactualRLBase(Explainer, FitMixin):
         meta = dict()
 
         for param, value in params.items():
-            if param in PARAM_TYPES["primitives"]:
+            if param in _PARAM_TYPES["primitives"]:
                 # primitive types are passed as they are
                 meta.update({param: value})
 
-            elif param in PARAM_TYPES["complex"]:
+            elif param in _PARAM_TYPES["complex"]:
                 if isinstance(value, list):
                     # each complex element in the list is serialized by replacing it with a name
                     meta.update({param: [CounterfactualRLBase._get_name(v) for v in value]})
@@ -495,14 +491,14 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Parameters
         ---------
         backend
-            Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+            Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         """
         return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
     def _validate_kwargs(self,
                          predictor: Callable,
-                         encoder: Union['keras.Model', 'nn.Module'],
-                         decoder: Union['keras.Model', 'nn.Module'],
+                         encoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                         decoder: Union['tf.keras.Model', 'torch.nn.Module'],
                          latent_dim: float,
                          coeff_sparsity: float,
                          coeff_consistency: float,
@@ -515,7 +511,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Parameters
         ----------
         predictor.
-            Prediction function. This corresponds to the classifier.
+            A callable that takes a tensor of N data points as inputs and returns N outputs.
         encoder
             Pretrained encoder network.
         decoder
@@ -527,7 +523,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         coeff_consistency
             Consistency loss coefficient.
         backend
-            Deep learning backend: `tensorflow`|`pytorch`.
+            Deep learning backend: `tensorflow` | `pytorch`.
         """
         # Copy default parameters.
         params = deepcopy(DEFAULT_BASE_PARAMS)
@@ -607,8 +603,16 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return super().load(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
+        """
+        Resets the predictor to be explained.
+
+        Parameters
+        ----------
+        predictor
+            New predictor to be set.
+        """
         self.params["predictor"] = predictor
-        self.meta.update(CounterfactualRLBase.serialize_params(self.params))
+        self.meta["params"].update(CounterfactualRLBase._serialize_params(self.params))
 
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
@@ -664,7 +668,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             Z_cf_tilde = self.backend.add_noise(noise=noise, step=step, **data, **self.params)
             data.update({"Z_cf_tilde": Z_cf_tilde})
 
-            # Decode counterfactual and apply postprocessing step to x_cf_tilde.
+            # Decode counterfactual and apply postprocessing step to X_cf_tilde.
             X_cf = self.backend.decode(Z=data["Z_cf"], **self.params)
             X_cf_tilde = self.backend.decode(Z=data["Z_cf_tilde"], **self.params)
 
@@ -787,14 +791,14 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Counterfactual targets.
         C
-            Conditional vector.
+            Conditional vectors.
         batch_size
             Batch size to be used in a forward pass.
 
 
         Returns
         -------
-        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the \
         corresponding labels, targets and additional metadata.
         """
         # General validation.
@@ -829,6 +833,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             results = self._compute_counterfactual(X=X[istart:istop],
                                                    Y_t=Y_t[istart:istop],
                                                    C=C[istart:istop] if (C is not None) else C)
+
             # Initialize the dict.
             if not all_results:
                 all_results = results
@@ -859,8 +864,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         Returns
         -------
-        Dictionary containing the input instances in the original format, input classification labels, counterfactual
-        instances in the original format, counterfactual classification labels, target labels, conditional vectors.
+            Dictionary containing the input instances in the original format, input classification labels,
+            counterfactual instances in the original format, counterfactual classification labels, target labels,
+            conditional vectors.
         """
         # Save original input for later usage.
         X_orig = X
@@ -956,8 +962,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         Returns
         -------
-        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
-        corresponding labels, targets and additional metadata.
+            `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+            corresponding labels, targets and additional metadata.
         """
         data = deepcopy(DEFAULT_DATA_CFRL)
 
@@ -1003,10 +1009,8 @@ class Postprocessing(ABC):
 
 
 class ExperienceCallback:
-    """
-    Experience callback class. This is not an ABC since it can not be pickled.
-    TODO: Maybe go for something else?
-    """
+    """ Experience callback class. """
+    # This is not an ABC since it can not be pickled.
 
     def __call__(self,
                  step: int,
@@ -1029,10 +1033,8 @@ class ExperienceCallback:
 
 
 class TrainingCallback:
-    """
-    Training callback class. This is not an ABC since it can not be pickled.
-    TODO: Maybe go for something else?
-    """
+    """ Training callback class. """
+    # This is not an ABC since it can not be pickled.
 
     def __call__(self,
                  step: int,

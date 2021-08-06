@@ -318,7 +318,6 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
 def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
                                predictor: Callable,
                                meta: dict) -> 'CounterfactualRLBase':
-
     # load explainer
     with open(Path(path, "explainer.dill"), "rb") as f:
         explainer = dill.load(f)

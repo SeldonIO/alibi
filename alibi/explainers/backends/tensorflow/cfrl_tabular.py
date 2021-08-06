@@ -35,7 +35,7 @@ def sample_differentiable(X_ohe_hat_split: List[tf.Tensor],
 
     Returns
     -------
-    Differentiable reconstruction.
+        Differentiable reconstruction.
     """
     num_attr = len(X_ohe_hat_split) - len(category_map)
     cat_attr = len(category_map)
@@ -76,7 +76,7 @@ def l0_ohe(input: tf.Tensor,
 
     Returns
     -------
-    L0 loss.
+        L0 loss.
     """
     loss = tf.maximum(target - input, tf.zeros_like(input))
 
@@ -107,7 +107,7 @@ def l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.T
 
     Returns
     -------
-    L1 loss.
+        L1 loss.
     """
     loss = tf.abs(input - target)
 
@@ -147,7 +147,7 @@ def sparsity_loss(X_ohe_hat_split: List[tf.Tensor],
 
     Returns
     -------
-    Heterogeneous sparsity loss.
+        Heterogeneous sparsity loss.
     """
     # split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
@@ -195,7 +195,7 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: Union[np.ndarray, tf.Tensor
 
     Returns
     -------
-    Heterogeneous consistency loss.
+        Heterogeneous consistency loss.
     """
     # compute consistency loss
     loss = tf.reduce_mean(tf.square(Z_cf_pred - Z_cf_tgt))

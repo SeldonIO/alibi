@@ -1,6 +1,6 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning base class (`cfrl_base`)
-that are common for both Tensorflow and Pytorch backends.
+This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+:py:class:`alibi.explainers.cfrl_base`, that are common for both Tensorflow and Pytorch backends.
 """
 
 import numpy as np
@@ -19,7 +19,8 @@ def identity_function(X: Any) -> Any:
 
     Returns
     -------
-    X, the input instance
+    X
+        The input instance.
     """
     return X
 
@@ -35,7 +36,7 @@ def generate_empty_condition(X: Any) -> None:
 
     Returns
     --------
-    None
+        None
     """
     return None
 
@@ -51,11 +52,11 @@ def get_classification_reward(Y_pred: np.ndarray, Y_true: np.ndarray):
     Y_pred
         Prediction output as a distribution over the possible classes.
     Y_true
-        True lable as a distribution over the possible classes.
+        True label as a distribution over the possible classes.
 
     Returns
     -------
-    Classification reward per instance: 1 if th most likely classes match, 0 otherwise.
+        Classification reward per instance. 1 if th most likely classes match, 0 otherwise.
     """
     if len(Y_pred.shape) != 2:
         raise ValueError("Prediction labels should be a 2D array for classification task.")
@@ -81,7 +82,7 @@ def get_hard_distribution(Y: np.ndarray, num_classes: Optional[int] = None) -> n
 
     Returns
     -------
-    Hard label distribution (one-hot encoding)
+        Hard label distribution (one-hot encoding)
     """
     if len(Y.shape) == 1 or (len(Y.shape) == 2 and Y.shape[1] == 1):
         if num_classes is None:
@@ -117,7 +118,7 @@ class CounterfactualRLDataset(ABC):
 
         Returns
         -------
-        Classification labels.
+            Classification labels.
         """
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
         Y_m = []

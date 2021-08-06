@@ -2,6 +2,9 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 import numpy as np
+from numpy.testing import assert_allclose
+from typing import Union, List
+
 import tensorflow as tf
 import tensorflow.keras as keras
 from alibi.explainers import CounterfactualRLTabular
@@ -33,7 +36,7 @@ def test_he_preprocessor(dataset):
 
     # Test if the inverse preprocessor maps the ohe back to the original input.
     inv_X = inv_preprocessor(X_ohe)
-    assert np.linalg.norm(X - inv_X) < 1e-4
+    assert_allclose(X.astype(np.float32), inv_X.astype(np.float32))
 
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
@@ -163,7 +166,7 @@ def test_sample(dataset, seed):
     """ Test sampling reconstruction. """
 
     # Unpack dataset.
-    X = dataset["X_train"][:5]
+    X = dataset["X_train"]
     feature_names = dataset["metadata"]["feature_names"]
     category_map = dataset["metadata"].get("category_map", {})
 
@@ -219,7 +222,7 @@ def test_sample(dataset, seed):
     X_hat = inv_preprocessor(np.concatenate(X_hat_ohe_split, axis=1))
     for i, fn in enumerate(feature_names):
         if fn in immutable_attributes:
-            assert np.linalg.norm(X[:, i] - X_hat[:, i]) < 1e-4
+            assert_allclose(X[:, i].astype(np.float32), X_hat[:, i].astype(np.float32))
 
 
 @pytest.mark.parametrize('Y_shape, num_classes', [(5, None), (10, None), (1, 5)])
@@ -256,14 +259,17 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
         models[0].layers[2]
     ])
 
-    # Need to define a decorator for the decoder to return a list of tensors
-    def call_decorator(call):
-        def inner(inputs, *args, **kwargs):
-            return [call(inputs, *args, **kwargs)]
-        return inner
+    # need to define a wrapper for the decoder to return a list of tensors
+    class DecoderList(tf.keras.Model):
+        def __init__(self, decoder: tf.keras.Model, **kwargs):
+            super().__init__(**kwargs)
+            self.decoder = decoder
+
+        def call(self, input: Union[tf.Tensor, List[tf.Tensor]], **kwargs):
+            return [self.decoder(input, **kwargs)]
 
     # Redefine the call method to return a list of tensors.
-    decoder.call = call_decorator(decoder.call)
+    decoder = DecoderList(decoder)
 
     # Define predictor.
     predictor = lambda x: rf_classifier[0].predict_proba(x)  # noqa: E731

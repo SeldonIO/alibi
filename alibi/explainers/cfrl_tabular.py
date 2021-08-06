@@ -1,6 +1,6 @@
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, PARAM_TYPES
+from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, _PARAM_TYPES
 from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
 
 import numpy as np
@@ -9,8 +9,8 @@ from functools import partial
 from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
-    import torch.nn as nn
-    import tensorflow.keras as keras
+    import torch
+    import tensorflow as tf
 
 if has_pytorch:
     # import pytorch backend
@@ -62,7 +62,7 @@ class SampleTabularPostprocessing(Postprocessing):
 
         Returns
         -------
-        Conditional sampled counterfactual instance.
+            Conditional sampled counterfactual instance.
         """
         return sample(X_hat_split=X_cf,
                       X_ohe=X,
@@ -89,13 +89,13 @@ class ConcatTabularPostprocessing(Postprocessing):
 
         Returns
         -------
-        Concatenation of the counterfactual feature columns.
+            Concatenation of the counterfactual feature columns.
         """
         return np.concatenate(X_cf, axis=1)
 
 
 # update parameter types for the tabular case
-PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
+_PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 
 
 class CounterfactualRLTabular(CounterfactualRLBase):
@@ -103,8 +103,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: Union['keras.Model', 'nn.Module'],
-                 decoder: Union['keras.Model', 'nn.Module'],
+                 encoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                 decoder: Union['tf.keras.Model', 'torch.nn.Module'],
                  latent_dim: int,
                  encoder_preprocessor: Callable,
                  decoder_inv_preprocessor: Callable,
@@ -125,11 +125,11 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         Parameters
         ----------
         predictor.
-           Prediction function. This corresponds to the classifier.
+           A callable that takes a tensor of N data points as inputs and returns N outputs.
         encoder
-            Pretrained encoder network.
+            Pretrained heterogeneous encoder network.
         decoder
-            Pretrained decoder network.
+            Pretrained heterogeneous decoder network. The output of the decoder must be a list of tensors.
         latent_dim
             Autoencoder latent dimension.
         encoder_preprocessor
@@ -164,11 +164,11 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         weight_cat
             Categorical loss weight.
         backend
-           Deep learning backend: `tensorflow`|`pytorch`. Default `tensorflow`.
+           Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         seed
             Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
         kwargs
-            Used to replace any default parameter from :py:data:`alibi.expaliners.cfrl_base.DEFAULT_BASE_PARAMS`.
+            Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
         super().__init__(encoder=encoder, decoder=decoder, latent_dim=latent_dim, predictor=predictor,
                          coeff_sparsity=coeff_sparsity, coeff_consistency=coeff_consistency, backend=backend,
@@ -215,7 +215,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                                         immutable_features=self.params["immutable_features"])
 
         # update metadata
-        self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
+        self.meta["params"].update(CounterfactualRLTabular._serialize_params(self.params))
 
     def _select_backend(self, backend, **kwargs):
         """
@@ -224,7 +224,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         Parameters
         ----------
         backend
-            Deep learning backend. `tensorflow`|`pytorch`. Default `tensorflow`.
+            Deep learning backend. `tensorflow` | `pytorch`. Default `tensorflow`.
         """
         return tensorflow_tabular_backend if backend == "tensorflow" else pytorch_tabular_backend
 
@@ -261,7 +261,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         ]
 
         # update metadata
-        self.meta["params"].update(CounterfactualRLTabular.serialize_params(self.params))
+        self.meta["params"].update(CounterfactualRLTabular._serialize_params(self.params))
 
         # validate dataset
         self._validate_input(X)
@@ -382,7 +382,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         Returns
         -------
-        Explanation object containing the diverse counterfactuals.
+            Explanation object containing the diverse counterfactuals.
         """
         # Check the number of inputs
         if X.shape[0] != 1:

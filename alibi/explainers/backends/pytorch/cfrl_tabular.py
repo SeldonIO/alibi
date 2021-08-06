@@ -1,6 +1,6 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
-for the Pytorch backend.
+This module contains utility function for the Counterfactual with Reinforcement Learning tabular class,
+:py:class:`alibi.explainers.cfrl_tabular`, for the Pytorch backend.
 """
 
 from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
@@ -35,7 +35,7 @@ def sample_differentiable(X_ohe_hat_split: List[torch.Tensor],
 
     Returns
     -------
-    Differentiable reconstruction.
+        Differentiable reconstruction.
     """
     num_attr = len(X_ohe_hat_split) - len(category_map)
     cat_attr = len(category_map)
@@ -76,7 +76,7 @@ def l0_ohe(input: torch.Tensor,
 
     Returns
     -------
-    L0 loss.
+        L0 loss.
     """
     loss = torch.maximum(target - input, torch.zeros_like(input))
 
@@ -107,7 +107,7 @@ def l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') 
 
     Returns
     -------
-    L1 loss.
+        L1 loss.
     """
     return F.l1_loss(input=input, target=target, reduction=reduction)
 
@@ -133,11 +133,10 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
         Numerical loss weight.
     weight_cat
         Categorical loss weight.
-    device
 
     Returns
     -------
-    Heterogeneous sparsity loss.
+        Heterogeneous sparsity loss.
     """
     # split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
@@ -179,12 +178,12 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):
     ----------
     Z_cf_pred
         Predicted counterfactual embedding.
-    x_cf
-        Counterfactual reconstruction. This should be already post-processed.
+    Z_cf_tgt
+        Counterfactual embedding target.
 
     Returns
     -------
-    Heterogeneous consistency loss.
+        Heterogeneous consistency loss.
     """
     # compute consistency loss
     loss = F.mse_loss(Z_cf_pred, Z_cf_tgt)

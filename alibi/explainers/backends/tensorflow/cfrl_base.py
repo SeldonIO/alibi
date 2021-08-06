@@ -1,6 +1,6 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning base class (`cfrl_base`)
-for the Tensorflow backend.
+This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+:py:class:`alibi.explainers.cfrl_base`, for the Tensorflow backend.
 """
 
 import os
@@ -42,7 +42,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             Prediction function. The classifier function should expect the input in the original format and preprocess
             it internally in the `predictor` if necessary.
         conditional_func
-            Conditional function generator. Given an preprocesed input array, the functions generates a conditional
+            Conditional function generator. Given an pre-processed input array, the functions generates a conditional
             array.
         batch_size
             Dimension of the batch used during training. The same batch size is used to infer the classification
@@ -82,9 +82,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         self.on_epoch_end()
 
     def on_epoch_end(self) -> None:
-        """
-        This method is called every epoch and performs dataset shuffling.
-        """
+        """ This method is called every epoch and performs dataset shuffling. """
         self.indexes = np.arange(self.X.shape[0])
 
         if self.shuffle:
@@ -130,7 +128,7 @@ def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) 
 
     Returns
     -------
-    Default optimizer.
+        Default optimizer.
     """
     return keras.optimizers.Adam(learning_rate=lr)
 
@@ -148,7 +146,7 @@ def get_actor(hidden_dim: int, output_dim: int) -> keras.layers.Layer:
 
     Returns
     -------
-    Actor network.
+        Actor network.
     """
     return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
@@ -164,7 +162,7 @@ def get_critic(hidden_dim: int) -> keras.layers.Layer:
 
     Returns
     -------
-    Critic network.
+        Critic network.
     """
     return Critic(hidden_dim=hidden_dim)
 
@@ -182,7 +180,7 @@ def sparsity_loss(X_hat_cf: tf.Tensor, X: tf.Tensor) -> Dict[str, tf.Tensor]:
 
     Returns
     -------
-    L1 sparsity loss.
+        L1 sparsity loss.
     """
     return {"sparsity_loss": tf.reduce_mean(tf.abs(X_hat_cf - X))}
 
@@ -200,7 +198,7 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: tf.Tensor):
 
     Returns
     -------
-    0 consistency loss.
+        0 consistency loss.
     """
     return {"consistency_loss": 0}
 
@@ -217,7 +215,7 @@ def data_generator(X: np.ndarray,
 
     Parameters
     ----------
-     X
+    X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     encoder_preprocessor
@@ -227,7 +225,7 @@ def data_generator(X: np.ndarray,
         Prediction function. The classifier function should expect the input in the original format and preprocess
         it internally in the `predictor` if necessary.
     conditional_func
-        Conditional function generator. Given an preprocesed input array, the functions generates a conditional
+        Conditional function generator. Given an preprocessed input array, the functions generates a conditional
         array.
     batch_size
         Dimension of the batch used during training. The same batch size is used to infer the classification
@@ -252,7 +250,7 @@ def encode(X: Union[tf.Tensor, np.ndarray], encoder: keras.Model, **kwargs) -> t
 
     Returns
     -------
-    Input encoding.
+        Input encoding.
     """
     return encoder(X, training=False)
 
@@ -270,7 +268,7 @@ def decode(Z: Union[tf.Tensor, np.ndarray], decoder: keras.Model, **kwargs):
 
     Returns
     -------
-    Embedding tensor decoding.
+        Embedding tensor decoding.
     """
     return decoder(Z, training=False)
 
@@ -339,7 +337,7 @@ def add_noise(Z_cf: Union[tf.Tensor, np.ndarray],
     step
         Training step.
     exploration_steps
-        Number of exploration steps. For the first `exploration_steps`, the noised counterfactul embedding
+        Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding
         is sampled uniformly at random.
 
     Returns
@@ -508,7 +506,7 @@ def update_actor_critic(encoder: keras.Model,
 
     Returns
     -------
-    Dictionary of losses.
+        Dictionary of losses.
     """
     # Define dictionary of losses.
     losses: Dict[str, float] = dict()
@@ -586,7 +584,7 @@ def to_numpy(X: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[
 
     Returns
     -------
-    Numpy representation of the input tensor.
+        Numpy representation of the input tensor.
     """
     if X is not None:
         if isinstance(X, np.ndarray):
@@ -608,7 +606,7 @@ def to_tensor(X: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
 
     Returns
     -------
-    tf.Tensor conversion.
+        tf.Tensor conversion.
     """
     if X is not None:
         if isinstance(X, tf.Tensor):

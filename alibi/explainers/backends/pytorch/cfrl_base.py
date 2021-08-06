@@ -1,6 +1,6 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
-for the Pytorch backend.
+This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+:py:class:`alibi.explainers.cfrl_base` for the Pytorch backend.
 """
 
 import torch
@@ -109,7 +109,7 @@ def get_device() -> torch.device:
 
     Returns
     -------
-    Device to be used.
+        Device to be used.
     """
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -120,7 +120,7 @@ def get_optimizer(model: nn.Module, lr: float = 1e-3) -> torch.optim.Optimizer:
 
     Returns
     -------
-    Default optimizer.
+        Default optimizer.
     """
     return torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -138,7 +138,7 @@ def get_actor(hidden_dim: int, output_dim: int) -> nn.Module:
 
     Returns
     -------
-    Actor network.
+        Actor network.
     """
     return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
@@ -154,7 +154,7 @@ def get_critic(hidden_dim: int) -> nn.Module:
 
     Returns
     -------
-    Critic network.
+        Critic network.
     """
     return Critic(hidden_dim=hidden_dim)
 
@@ -172,7 +172,7 @@ def sparsity_loss(X_hat_cf: torch.Tensor, X: torch.Tensor) -> Dict[str, torch.Te
 
     Returns
     -------
-    L1 sparsity loss.
+        L1 sparsity loss.
     """
     return {"sparsity_loss": F.l1_loss(X_hat_cf, X)}
 
@@ -190,7 +190,7 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor):
 
     Returns
     -------
-    0 consistency loss.
+        0 consistency loss.
     """
     return {"consistency_loss": 0}
 
@@ -208,7 +208,7 @@ def data_generator(X: np.ndarray,
 
     Parameters
     ----------
-     X
+    X
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     encoder_preprocessor
@@ -218,7 +218,7 @@ def data_generator(X: np.ndarray,
         Prediction function. The classifier function should expect the input in the original format and preprocess
         it internally in the `predictor` if necessary.
     conditional_func
-        Conditional function generator. Given an preprocesed input array, the functions generates a conditional
+        Conditional function generator. Given an preprocessed input array, the functions generates a conditional
         array.
     batch_size
         Dimension of the batch used during training. The same batch size is used to infer the classification
@@ -250,7 +250,7 @@ def encode(X: torch.Tensor, encoder: nn.Module, device: torch.device, **kwargs):
 
     Returns
     -------
-    Input encoding.
+        Input encoding.
     """
     encoder.eval()
     return encoder(X.float().to(device))
@@ -272,7 +272,7 @@ def decode(Z: torch.Tensor, decoder: nn.Module, device: torch.device, **kwargs):
 
     Returns
     -------
-    Embedding tensor decoding.
+        Embedding tensor decoding.
     """
     decoder.eval()
     return decoder(Z.float().to(device))
@@ -324,7 +324,7 @@ def generate_cf(Z: torch.Tensor,
     Y_m = Y_m.float().to(device)
     Y_t = Y_t.float().to(device)
 
-    # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
+    # Concatenate Z_mean, Y_m_ohe, Y_t_ohe to create the input representation for the projection network (actor).
     state = [Z.view(Z.shape[0], -1), Y_m, Y_t] + ([C.float().to(device)] if (C is not None) else [])
     state = torch.cat(state, dim=1)  # type: ignore
 
@@ -357,7 +357,7 @@ def add_noise(Z_cf: torch.Tensor,
     step
        Training step.
     exploration_steps
-       Number of exploration steps. For the first `exploration_steps`, the noised counterfactul embedding
+       Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding
        is sampled uniformly at random.
     device
         Device to send data to.
@@ -447,7 +447,7 @@ def update_actor_critic(encoder: nn.Module,
 
     Returns
     -------
-    Dictionary of losses.
+        Dictionary of losses.
     """
     # Set autoencoder to evaluation mode.
     encoder.eval()
@@ -499,10 +499,10 @@ def update_actor_critic(encoder: nn.Module,
     losses.update({"loss_actor": loss_actor.item()})
 
     # Decode the output of the actor.
-    x_hat_cf = decoder(Z_cf)
+    X_hat_cf = decoder(Z_cf)
 
     # Compute sparsity losses.
-    loss_sparsity = sparsity_loss(x_hat_cf, X)
+    loss_sparsity = sparsity_loss(X_hat_cf, X)
     losses.update(loss_sparsity)
 
     # Add sparsity loss to the overall actor's loss.
@@ -538,7 +538,7 @@ def to_numpy(X: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Uni
 
     Returns
     -------
-    Numpy representation of the input tensor.
+        Numpy representation of the input tensor.
     """
     if X is not None:
         if isinstance(X, np.ndarray):
@@ -561,7 +561,7 @@ def to_tensor(X: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs
 
     Returns
     -------
-    torch.Tensor conversion.
+        torch.Tensor conversion.
     """
     if X is not None:
         if isinstance(X, torch.Tensor):
@@ -597,7 +597,7 @@ def load_model(path: Union[str, os.PathLike]) -> nn.Module:
 
     Returns
     -------
-    Loaded model.
+        Loaded model.
     """
     model = torch.load(path)
     model.eval()
@@ -607,6 +607,7 @@ def load_model(path: Union[str, os.PathLike]) -> nn.Module:
 def set_seed(seed: int = 13):
     """
     Sets a seed to ensure reproducibility
+
     Parameters
     ----------
     seed

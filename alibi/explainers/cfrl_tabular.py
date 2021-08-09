@@ -207,14 +207,12 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
         # Set testing conditional function generator if not user-specified.
         if "conditional_vector" not in kwargs:
-            from alibi.explainers.backends.cfrl_base import generate_empty_condition
-            self.params["conditiional_vector"] = generate_empty_condition
-            # self.params["conditional_vector"] = partial(get_conditional_vector,
-            #                                             preprocessor=self.params["encoder_preprocessor"],
-            #                                             feature_names=self.params["feature_names"],
-            #                                             category_map=self.params["category_map"],
-            #                                             ranges=self.params["ranges"],
-            #                                             immutable_features=self.params["immutable_features"])
+            self.params["conditional_vector"] = partial(get_conditional_vector,
+                                                        preprocessor=self.params["encoder_preprocessor"],
+                                                        feature_names=self.params["feature_names"],
+                                                        category_map=self.params["category_map"],
+                                                        ranges=self.params["ranges"],
+                                                        immutable_features=self.params["immutable_features"])
 
         # update metadata
         self.meta["params"].update(CounterfactualRLTabular._serialize_params(self.params))

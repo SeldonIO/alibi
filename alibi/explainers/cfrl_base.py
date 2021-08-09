@@ -214,8 +214,7 @@ DEFAULT_BASE_PARAMS = {
     "reward_func": get_classification_reward,
     "postprocessing_funcs": [],
     "conditional_func": generate_empty_condition,
-    "experience_callbacks": [],
-    "train_callbacks": [],
+    "callbacks": [],
     "actor": None,
     "critic": None,
     "optimizer_actor": None,
@@ -276,11 +275,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'conditional_func'``: Callable, generates a conditional vector given a pre-processed input instance. By \
     default, the function returns `None` which is equivalent to no conditioning.
 
-    - ``'experience_callbacks'``: List[ExperienceCallback], list of callback function applied at the end of each \
-    experience step.
-
-    - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training \
-    step.
+    - ``'callbacks'``: List[Callback], list of callback functions applied at the end of each training step.
 
     - ``'actor'``: Optional[Union[tf.keras.Model, torch.nn.Module]], actor network.
 
@@ -307,8 +302,8 @@ _PARAM_TYPES = {
     ],
     "complex": [
         "encoder_preprocessor", "decoder_inv_preprocessor", "reward_func", "postprocessing_funcs", "conditional_func",
-        "experience_callbacks", "train_callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic",
-        "encoder", "decoder", "predictor", "sparsity_loss", "consistency_loss",
+        "callbacks", "actor", "critic", "optimizer_actor", "optimizer_critic", "encoder", "decoder", "predictor",
+        "sparsity_loss", "consistency_loss",
     ]
 }
 """
@@ -682,23 +677,19 @@ class CounterfactualRLBase(Explainer, FitMixin):
             data = {key: self.backend.to_numpy(data[key]) for key in data.keys()}
             replay_buff.append(**data)
 
-            # Call all experience callbacks.
-            for exp_cb in self.params["experience_callbacks"]:
-                exp_cb(step=step, model=self, sample=data)
-
             if step % self.params['update_every'] == 0 and step > self.params["update_after"]:
                 for i in range(self.params['update_every']):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
 
-                    # # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
-                    # # explainer object and call fit multiple times. If the models are not reinitialized, the
-                    # # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
-                    # # This is due to @tf.function and building the model for the first time in a compiled function
-                    # if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:
-                    #     self.backend.initialize_actor_critic(**sample, **self.params)
-                    #     self.backend.initialize_optimizers(**sample, **self.params)
-                    #     initialize_actor_critic = True
+                    # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
+                    # explainer object and call fit multiple times. If the models are not reinitialized, the
+                    # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
+                    # This is due to @tf.function and building the model for the first time in a compiled function
+                    if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:
+                        self.backend.initialize_actor_critic(**sample, **self.params)
+                        self.backend.initialize_optimizers(**sample, **self.params)
+                        initialize_actor_critic = True
 
                     if "C" not in sample:
                         sample["C"] = None
@@ -706,7 +697,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     # Decode counterfactual. This procedure has to be done here and not in the experience loop
                     # since the actor is updating but old experience is used. Thus, the decoding of the counterfactual
                     # will not correspond to the latest actor network. Remember that the counterfactual is used
-                    # for the consistency loss.
+                    # for the consistency loss. The counterfactual generation is performed here due to @tf.function
+                    # which does not allow all post-processing functions.
                     Z_cf = self.backend.generate_cf(Z=self.backend.to_tensor(sample["Z"], **self.params),
                                                     Y_m=self.backend.to_tensor(sample["Y_m"], **self.params),
                                                     Y_t=self.backend.to_tensor(sample["Y_t"], **self.params),
@@ -729,9 +721,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     # Convert all losses from tensors to numpy arrays.
                     losses = {key: self.backend.to_numpy(losses[key]).item() for key in losses.keys()}
 
-                    # Call all train callbacks.
-                    for train_cb in self.params["train_callbacks"]:
-                        train_cb(step=step, update=i, model=self, sample=sample, losses=losses)
+                    # Call all callbacks.
+                    for callback in self.params["callbacks"]:
+                        callback(step=step, update=i, model=self, sample=sample, losses=losses)
 
         return self
 
@@ -1009,31 +1001,7 @@ class Postprocessing(ABC):
         pass
 
 
-class ExperienceCallback:
-    """ Experience callback class. """
-    # This is not an ABC since it can not be pickled.
-
-    def __call__(self,
-                 step: int,
-                 model: CounterfactualRLBase,
-                 sample: Dict[str, np.ndarray]) -> None:
-        """
-        Experience call-back applied after gather an experience.
-
-        Parameters
-        ----------
-        step
-            Current experience step.
-        model
-            CounterfactualRLBase explainer.
-        sample
-            Dictionary of sample gathered in an experience. This includes dataset inputs and intermediate results
-            obtained during an experience.
-        """
-        pass
-
-
-class TrainingCallback:
+class Callback:
     """ Training callback class. """
     # This is not an ABC since it can not be pickled.
 

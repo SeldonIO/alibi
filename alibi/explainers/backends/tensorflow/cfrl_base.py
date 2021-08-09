@@ -105,7 +105,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
 
         # Compute conditional vector.
-        C = self.conditional_func(self.X[idx * self.batch_size: (idx + 1) * self.batch_size])
+        C = self.conditional_func(self.X[idx * self.batch_size:(idx + 1) * self.batch_size])
 
         return {
             "X": self.X[indexes],
@@ -539,7 +539,7 @@ def update_actor_critic(encoder: keras.Model,
 
         # Compute critic's output
         input_critic = tf.concat([state, Z_cf], axis=1)
-        output_critic = critic(input_critic, training=True)
+        output_critic = critic(input_critic, training=False)
 
         # Compute actors' loss.
         loss_actor = -tf.reduce_mean(output_critic)

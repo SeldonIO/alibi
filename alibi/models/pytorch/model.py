@@ -126,7 +126,7 @@ class Model(nn.Module):
             assert isinstance(y_pred, list)
             assert isinstance(y_true, list)
 
-            loss = torch.tensor(0).to(self.device)   # necessary for mypy otherwise use `type: ignore`
+            loss = torch.tensor(0.).to(self.device)   # necessary for mypy otherwise use `type: ignore`
             results = dict()
 
             for i, partial_loss in enumerate(self.loss):

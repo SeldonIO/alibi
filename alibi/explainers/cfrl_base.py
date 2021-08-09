@@ -290,13 +290,13 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'train_callbacks'``: List[TrainingCallback], list of callback functions applied at the end of each training \
     step.
 
-    - ``'actor'``: Optional[tf.keras.Model, torch.nn.Module], actor network.
+    - ``'actor'``: Optional[Union[tf.keras.Model, torch.nn.Module]], actor network.
 
-    - ``'critic;``: Optional[tf.keras.Model, torch.nn.Module], critic network.
+    - ``'critic;``: Optional[Union[tf.keras.Model, torch.nn.Module]], critic network.
 
-    - ``'optimizer_actor'``: Optional[tf.keras.optimizers.Optimizer, torch.optim.Optimizer], actor optimizer.
+    - ``'optimizer_actor'``: Optional[Union[tf.keras.optimizers.Optimizer, torch.optim.Optimizer]], actor optimizer.
 
-    - ``'optimizer_critic'``: Optional[tf.keras.optimizer.Optimizer, torch.optim.Optimizer], critic optimizer.
+    - ``'optimizer_critic'``: Optional[Union[tf.keras.optimizer.Optimizer, torch.optim.Optimizer]], critic optimizer.
 
     - ``'lr_actor'``: float, actor learning rate.
 
@@ -333,8 +333,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: Union['tf.keras.Model', 'torch.nn.Module'],
-                 decoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                 encoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                 decoder: 'Union[tf.keras.Model, torch.nn.Module]',
                  latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
@@ -380,15 +380,15 @@ class CounterfactualRLBase(Explainer, FitMixin):
         self.backend.set_seed(seed)
 
         # Validate arguments.
-        self.params, all_params = self._validate_kwargs(predictor=predictor,
-                                                        encoder=encoder,
-                                                        decoder=decoder,
-                                                        latent_dim=latent_dim,
-                                                        coeff_sparsity=coeff_sparsity,
-                                                        coeff_consistency=coeff_consistency,
-                                                        backend=backend,
-                                                        seed=seed,
-                                                        **kwargs)
+        self.params = self._validate_kwargs(predictor=predictor,
+                                            encoder=encoder,
+                                            decoder=decoder,
+                                            latent_dim=latent_dim,
+                                            coeff_sparsity=coeff_sparsity,
+                                            coeff_consistency=coeff_consistency,
+                                            backend=backend,
+                                            seed=seed,
+                                            **kwargs)
 
         # If pytorch backend, the if GPU available, send everything to GPU
         if self.params["backend"] == Framework.PYTORCH:
@@ -404,7 +404,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             self.params["critic"].to(self.params["device"])
 
         # Update meta-data with all parameters passed (correct and incorrect).
-        self.meta["params"].update(CounterfactualRLBase._serialize_params(all_params))
+        self.meta["params"].update(CounterfactualRLBase._serialize_params(self.params))
 
     @staticmethod
     def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -497,8 +497,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def _validate_kwargs(self,
                          predictor: Callable,
-                         encoder: Union['tf.keras.Model', 'torch.nn.Module'],
-                         decoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                         encoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                         decoder: 'Union[tf.keras.Model, torch.nn.Module]',
                          latent_dim: float,
                          coeff_sparsity: float,
                          coeff_consistency: float,
@@ -580,9 +580,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
         params["consistency_loss"] = self.backend.consistency_loss if "consistency_loss" not in kwargs \
             else kwargs["consistency_loss"]
 
-        # Define dictionary of all parameters. Shallow copy of values.
-        all_params = params.copy()
-
         # Validate arguments.
         allowed_keys = set(params.keys())
         provided_keys = set(kwargs.keys())
@@ -595,8 +592,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
         # Update default parameters and all parameters
         params.update({key: kwargs[key] for key in common_keys})
-        all_params.update(kwargs)
-        return params, all_params
+        return params
 
     @classmethod
     def load(cls, path: Union[str, os.PathLike], predictor: Any) -> "Explainer":
@@ -649,6 +645,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
             try:
                 data = next(data_iter)
             except StopIteration:
+                if hasattr(data_generator, "on_epoch_end"):
+                    data_generator.on_epoch_end()
+
                 data_iter = iter(data_generator)
                 data = next(data_iter)
 
@@ -711,7 +710,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     sample = replay_buff.sample()
 
                     # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
-                    # explainer object and call fit multiple times. If the models are not reinitailized, the
+                    # explainer object and call fit multiple times. If the models are not reinitialized, the
                     # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
                     # This is due to @tf.function and building the model for the first time in a compiled function
                     if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:

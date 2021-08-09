@@ -182,6 +182,6 @@ class ADULTDecoder(nn.Module):
         self.fcs = nn.ModuleList([nn.LazyLinear(dim) for dim in output_dims])
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
-        x = self.fc1(x)
+        x = F.relu(self.fc1(x))
         xs = [fc(x) for fc in self.fcs]
         return xs

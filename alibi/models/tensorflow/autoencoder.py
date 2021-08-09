@@ -35,8 +35,8 @@ class AE(keras.Model):
         self.decoder = decoder
 
     def call(self, x: tf.Tensor, **kwargs):
-        z = self.encoder(x)
-        x_hat = self.decoder(z)
+        z = self.encoder(x, **kwargs)
+        x_hat = self.decoder(z, **kwargs)
         return x_hat
 
 

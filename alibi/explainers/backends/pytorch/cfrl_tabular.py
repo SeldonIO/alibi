@@ -20,15 +20,15 @@ import torch.nn.functional as F
 from typing import List, Dict
 
 
-def sample_differentiable(X_ohe_hat_split: List[torch.Tensor],
+def sample_differentiable(X_hat_split: List[torch.Tensor],
                           category_map: Dict[int, List[str]]) -> List[torch.Tensor]:
     """
     Samples differentiable reconstruction.
 
     Parameters
     ----------
-    X_ohe_hat_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
+    X_hat_split
+        List of reconstructed columns form the auto-encoder.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
@@ -37,17 +37,17 @@ def sample_differentiable(X_ohe_hat_split: List[torch.Tensor],
     -------
         Differentiable reconstruction.
     """
-    num_attr = len(X_ohe_hat_split) - len(category_map)
+    num_attr = len(X_hat_split) - len(category_map)
     cat_attr = len(category_map)
     X_out = []
 
-    # pass numerical attributes as they are
+    # Pass numerical attributes as they are
     if num_attr > 0:
-        X_out.append(X_ohe_hat_split[0])
+        X_out.append(X_hat_split[0])
 
-    # sample categorical attributes
+    # Sample categorical attributes
     if cat_attr > 0:
-        for head in X_ohe_hat_split[-cat_attr:]:
+        for head in X_hat_split[-cat_attr:]:
             out = torch.argmax(head, dim=1)
 
             # transform to one-hot encoding
@@ -78,6 +78,7 @@ def l0_ohe(input: torch.Tensor,
     -------
         L0 loss.
     """
+    # Order matters. Maybe consider clipping a bit higher?
     loss = torch.maximum(target - input, torch.zeros_like(input))
 
     if reduction == 'none':
@@ -112,7 +113,7 @@ def l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') 
     return F.l1_loss(input=input, target=target, reduction=reduction)
 
 
-def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
+def sparsity_loss(X_hat_split: List[torch.Tensor],
                   X_ohe: torch.Tensor,
                   category_map: Dict[int, List[str]],
                   weight_num: float = 1.0,
@@ -122,7 +123,7 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
 
     Parameters
     ----------
-    X_ohe_hat_split
+    X_hat_split
         List of one-hot encoded reconstructed columns form the auto-encoder.
     X_ohe
         One-hot encoded representation of the input.
@@ -138,26 +139,26 @@ def sparsity_loss(X_ohe_hat_split: List[torch.Tensor],
     -------
         Heterogeneous sparsity loss.
     """
-    # split the input into a list of tensor, where each element corresponds to a network head
+    # Split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
                                                  category_map=category_map)
 
-    # sample differentiable output
-    X_ohe_hat_split = sample_differentiable(X_ohe_hat_split=X_ohe_hat_split,
+    # Sample differentiable output
+    X_ohe_hat_split = sample_differentiable(X_hat_split=X_hat_split,
                                             category_map=category_map)
 
-    # define numerical and categorical loss
+    # Define numerical and categorical loss
     num_loss, cat_loss = 0., 0.
     offset = 0
 
-    # compute numerical loss
+    # Compute numerical loss
     if len(X_ohe_num_split) > 0:
         offset = 1
         num_loss = torch.mean(l1_loss(input=X_ohe_hat_split[0],  # type: ignore
                                       target=X_ohe_num_split[0],
                                       reduction='none'))
 
-    # compute categorical loss
+    # Compute categorical loss
     if len(X_ohe_cat_split) > 0:
         for i in range(len(X_ohe_cat_split)):
             batch_size = X_ohe_hat_split[i].shape[0]
@@ -185,6 +186,6 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):
     -------
         Heterogeneous consistency loss.
     """
-    # compute consistency loss
+    # Compute consistency loss
     loss = F.mse_loss(Z_cf_pred, Z_cf_tgt)
     return {"consistency_loss": loss}

@@ -242,7 +242,7 @@ def test_hard_distribution(Y_shape, num_classes):
 def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     # Define explainer constants
     LATENT_DIM = 2
-    COEFF_SPARSITY = 0.1
+    COEFF_SPARSITY = 0.0
     COEFF_CONSISTENCY = 0.0
     TRAIN_STEPS = 1000
     BATCH_SIZE = 100

@@ -28,14 +28,14 @@ class Actor(keras.Model):
         """
         super().__init__(**kwargs)
         self.fc1 = keras.layers.Dense(hidden_dim)
-        self.ln1 = keras.layers.LayerNormalization()
+        self.ln1 = keras.layers.LayerNormalization(epsilon=1e-5, center=True, scale=True)
         self.fc2 = keras.layers.Dense(hidden_dim)
-        self.ln2 = keras.layers.LayerNormalization()
+        self.ln2 = keras.layers.LayerNormalization(epsilon=1e-5, center=True, scale=True)
         self.fc3 = keras.layers.Dense(output_dim)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
-        x = tf.nn.relu(self.ln1(self.fc1(x)))
-        x = tf.nn.relu(self.ln2(self.fc2(x)))
+        x = tf.nn.relu(self.ln1(self.fc1(x), **kwargs))
+        x = tf.nn.relu(self.ln2(self.fc2(x), **kwargs))
         x = tf.nn.tanh(self.fc3(x))
         return x
 
@@ -56,13 +56,13 @@ class Critic(keras.Model):
         """
         super().__init__(**kwargs)
         self.fc1 = keras.layers.Dense(hidden_dim)
-        self.ln1 = keras.layers.LayerNormalization()
+        self.ln1 = keras.layers.LayerNormalization(epsilon=1e-5, center=True, scale=True)
         self.fc2 = keras.layers.Dense(hidden_dim)
-        self.ln2 = keras.layers.LayerNormalization()
+        self.ln2 = keras.layers.LayerNormalization(epsilon=1e-5, center=True, scale=True)
         self.fc3 = keras.layers.Dense(1)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
-        x = tf.nn.relu(self.ln1(self.fc1(x)))
-        x = tf.nn.relu(self.ln2(self.fc2(x)))
+        x = tf.nn.relu(self.ln1(self.fc1(x), **kwargs))
+        x = tf.nn.relu(self.ln2(self.fc2(x), **kwargs))
         x = self.fc3(x)
         return x

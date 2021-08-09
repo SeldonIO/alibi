@@ -374,7 +374,7 @@ def add_noise(Z_cf: torch.Tensor,
         Z_cf_tilde = Z_cf + eps
         Z_cf_tilde = torch.clamp(Z_cf_tilde, min=act_low, max=act_high)
     else:
-        # for the first exploration_steps, the action is sampled from a uniform distribution between
+        # For the first exploration_steps, the action is sampled from a uniform distribution between
         # [act_low, act_high] to encourage exploration. After that, the algorithm returns to the normal exploration.
         Z_cf_tilde = (act_low + (act_high - act_low) * torch.rand_like(Z_cf)).to(device)
 
@@ -613,13 +613,12 @@ def set_seed(seed: int = 13):
     seed
         seed to be set
     """
+    # Others
+    np.random.seed(seed)
+    random.seed(seed)
 
-    # torch related
+    # Torch related
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
-
-    # others
-    np.random.seed(seed)
-    random.seed(seed)

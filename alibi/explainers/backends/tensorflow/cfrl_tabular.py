@@ -20,15 +20,15 @@ import tensorflow as tf
 from typing import List, Dict, Union
 
 
-def sample_differentiable(X_ohe_hat_split: List[tf.Tensor],
+def sample_differentiable(X_hat_split: List[tf.Tensor],
                           category_map: Dict[int, List[str]]) -> List[tf.Tensor]:
     """
     Samples differentiable reconstruction.
 
     Parameters
     ----------
-    X_ohe_hat_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
+    X_hat_split
+        List of reconstructed columns form the auto-encoder.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the possible
         values for an attribute.
@@ -37,20 +37,20 @@ def sample_differentiable(X_ohe_hat_split: List[tf.Tensor],
     -------
         Differentiable reconstruction.
     """
-    num_attr = len(X_ohe_hat_split) - len(category_map)
+    num_attr = len(X_hat_split) - len(category_map)
     cat_attr = len(category_map)
     X_out = []
 
-    # pass numerical attributes as they are
+    # Pass numerical attributes as they are
     if num_attr > 0:
-        X_out.append(X_ohe_hat_split[0])
+        X_out.append(X_hat_split[0])
 
-    # sample categorical attributes
+    # Sample categorical attributes
     if cat_attr > 0:
-        for head in X_ohe_hat_split[-cat_attr:]:
+        for head in X_hat_split[-cat_attr:]:
             out = tf.argmax(head, axis=1)
 
-            # transform to one-hot encoding
+            # Transform to one-hot encoding
             out = tf.one_hot(out, depth=head.shape[1])
             proba = tf.nn.softmax(head, axis=1)
             out = out - tf.stop_gradient(proba) + proba
@@ -78,7 +78,8 @@ def l0_ohe(input: tf.Tensor,
     -------
         L0 loss.
     """
-    loss = tf.maximum(target - input, tf.zeros_like(input))
+    # Order matters. Maybe consider clipping a bit higher?
+    loss = tf.maximum(tf.zeros_like(input), target - input)
 
     if reduction == 'none':
         return loss
@@ -123,7 +124,7 @@ def l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.T
     raise ValueError(f"Reduction {reduction} not implemented.")
 
 
-def sparsity_loss(X_ohe_hat_split: List[tf.Tensor],
+def sparsity_loss(X_hat_split: List[tf.Tensor],
                   X_ohe: tf.Tensor,
                   category_map: Dict[int, List[str]],
                   weight_num: float = 1.0,
@@ -133,8 +134,8 @@ def sparsity_loss(X_ohe_hat_split: List[tf.Tensor],
 
     Parameters
     ----------
-    X_ohe_hat_split
-        List of one-hot encoded reconstructed columns form the auto-encoder.
+    X_hat_split
+        List of reconstructed columns form the auto-encoder.
     X_ohe
         One-hot encoded representation of the input.
     category_map
@@ -149,26 +150,26 @@ def sparsity_loss(X_ohe_hat_split: List[tf.Tensor],
     -------
         Heterogeneous sparsity loss.
     """
-    # split the input into a list of tensor, where each element corresponds to a network head
+    # Split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
                                                  category_map=category_map)
 
-    # sample differentiable output
-    X_ohe_hat_split = sample_differentiable(X_ohe_hat_split=X_ohe_hat_split,
+    # Sample differentiable output
+    X_ohe_hat_split = sample_differentiable(X_hat_split=X_hat_split,
                                             category_map=category_map)
 
-    # define numerical and categorical loss
+    # Define numerical and categorical loss
     num_loss, cat_loss = 0., 0.
     offset = 0
 
-    # compute numerical loss
+    # Compute numerical loss
     if len(X_ohe_num_split) > 0:
         offset = 1
         num_loss = tf.reduce_mean(l1_loss(input=X_ohe_hat_split[0],
                                           target=X_ohe_num_split[0],
                                           reduction='none'))
 
-    # compute categorical loss
+    # Compute categorical loss
     if len(X_ohe_cat_split) > 0:
         for i in range(len(X_ohe_cat_split)):
             batch_size = X_ohe_hat_split[i].shape[0]
@@ -197,6 +198,6 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: Union[np.ndarray, tf.Tensor
     -------
         Heterogeneous consistency loss.
     """
-    # compute consistency loss
+    # Compute consistency loss
     loss = tf.reduce_mean(tf.square(Z_cf_pred - Z_cf_tgt))
     return {"consistency_loss": loss}

@@ -37,7 +37,7 @@ def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[s
     return 2 * num_feat + cat_feat
 
 
-def split_ohe(X_ohe: Union[np.ndarray, 'torch.Tensor', 'tf.Tensor'],
+def split_ohe(X_ohe: 'Union[np.ndarray, torch.Tensor, tf.Tensor]',
               category_map: Dict[int, List[str]]) -> Tuple[List, List]:
     """
     Splits a one-hot encoding array in a list of numerical heads and a list of categorical heads. Since by
@@ -201,22 +201,22 @@ def generate_categorical_condition(X_ohe: np.ndarray,
 
     # Create mask for each categorical column.
     for feature_id, feature_name in enumerate(feature_names):
-        # skip numerical features
+        # Skip numerical features
         if feature_id not in category_map:
             continue
 
-        # initialize mask with the original value
+        # Initialize mask with the original value
         mask = X_ohe_cat_split[cat_idx].copy()
 
-        # if the feature is not immutable, add noise to modify the mask
+        # If the feature is not immutable, add noise to modify the mask
         if feature_name not in immutable_features:
             mask += np.random.rand(*mask.shape) if conditional else np.ones_like(mask)
 
-        # construct binary mask
+        # Construct binary mask
         mask = (mask > 0.5).astype(np.float32)
         C_cat.append(mask)
 
-        # move to the next categorical index
+        # Move to the next categorical index
         cat_idx += 1
 
     return np.concatenate(C_cat, axis=1)
@@ -406,14 +406,14 @@ def sample(X_hat_split: List[np.ndarray],
     num_feat, cat_feat = len(X_ohe_num_split), len(X_ohe_cat_split)
 
     if num_feat > 0:
-        # sample numerical columns
+        # Sample numerical columns
         X_ohe_hat_split += sample_numerical(X_hat_num_split=X_hat_split[:num_feat],
                                             X_ohe_num_split=X_ohe_num_split,
                                             C_num_split=C_num_split,
                                             stats=stats)
 
     if cat_feat > 0:
-        # sample categorical columns
+        # Sample categorical columns
         X_ohe_hat_split += sample_categorical(X_hat_cat_split=X_hat_split[-cat_feat:],
                                               C_cat_split=C_cat_split)
 
@@ -448,18 +448,18 @@ def get_he_preprocessor(X: np.ndarray,
     inv_preprocessor
         Inverse data preprocessor (e.g., `inv_preprocessor(preprocssor(x)) = x` )
     """
-    # separate columns in numerical and categorical
+    # Separate columns in numerical and categorical
     categorical_ids = list(category_map.keys())
     numerical_ids = [i for i in range(len(feature_names)) if i not in category_map.keys()]
 
-    # define standard scaler and one-hot encoding transformations
+    # Define standard scaler and one-hot encoding transformations
     num_transf = StandardScaler()
     cat_transf = OneHotEncoder(
         categories=[range(len(x)) for x in category_map.values()],
         handle_unknown="ignore"
     )
 
-    # define preprocessor
+    # Define preprocessor
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", num_transf, numerical_ids),
@@ -472,7 +472,7 @@ def get_he_preprocessor(X: np.ndarray,
     num_feat_ohe = len(numerical_ids)  # number of numerical columns
     cat_feat_ohe = sum([len(v) for v in category_map.values()])  # number of categorical columns
 
-    # define inverse preprocessor
+    # Define inverse preprocessor
     def get_inv_preprocessor(X_ohe: np.ndarray):
         X_inv = []
 
@@ -484,10 +484,10 @@ def get_he_preprocessor(X: np.ndarray,
             cat_transf = preprocessor.named_transformers_["cat"]
             X_inv.append(cat_transf.inverse_transform(X_ohe[:, -cat_feat_ohe:]))
 
-        # concatenate all columns. at this point the columns are not ordered correctly
+        # Concatenate all columns. at this point the columns are not ordered correctly
         np_X_inv = np.concatenate(X_inv, axis=1)
 
-        # construct permutation to order the columns correctly
+        # Construct permutation to order the columns correctly
         perm = [i for i in range(len(feature_names)) if i not in category_map.keys()]
         perm += [i for i in range(len(feature_names)) if i in category_map.keys()]
 
@@ -529,10 +529,10 @@ def get_statistics(X: np.ndarray,
     """
     stats = dict()
 
-    # extract numerical features
+    # Extract numerical features
     num_features_ids = [id for id in range(X.shape[1]) if id not in category_map]
 
-    # preprocess data (standardize + one-hot encoding)
+    # Preprocess data (standardize + one-hot encoding)
     X_ohe = preprocessor(X)
 
     for i, feature_id in enumerate(num_features_ids):
@@ -591,11 +591,11 @@ def get_numerical_conditional_vector(X: np.ndarray,
     -------
         List of conditional vectors for each numerical feature.
     """
-    # extract numerical features
+    # Extract numerical features
     num_features_ids = [id for id in range(X.shape[1]) if id not in category_map]
     num_features_names = [feature_names[id] for id in num_features_ids]
 
-    # need to standardize numerical features. Thus, we use the preprocessor
+    # Need to standardize numerical features. Thus, we use the preprocessor
     X_low, X_high = X.copy(), X.copy()
 
     for feature_id, feature_name in enumerate(feature_names):
@@ -612,7 +612,7 @@ def get_numerical_conditional_vector(X: np.ndarray,
             X_low[:, feature_id] += condition[feature_name][0]
             X_high[:, feature_id] += condition[feature_name][1]
 
-    # preprocess the vectors (standardize + one-hot encoding)
+    # Preprocess the vectors (standardize + one-hot encoding)
     X_low_ohe = preprocessor(X_low)
     X_high_ohe = preprocessor(X_high)
     X_ohe = preprocessor(X)
@@ -620,7 +620,7 @@ def get_numerical_conditional_vector(X: np.ndarray,
     # Initialize conditional vector buffer.
     C = []
 
-    # scale the numerical features in [0, 1] and add them to the conditional vector
+    # Scale the numerical features in [0, 1] and add them to the conditional vector
     for i, (feature_id, feature_name) in enumerate(zip(num_features_ids, num_features_names)):
         if feature_name in immutable_features:
             range_low, range_high = 0., 0.
@@ -630,25 +630,25 @@ def get_numerical_conditional_vector(X: np.ndarray,
             range_low, range_high = -1., 1.
 
         if (feature_name in condition) and (feature_name not in immutable_features):
-            # mutable feature with conditioning
+            # Mutable feature with conditioning
             min, max = stats[feature_id]["min"], stats[feature_id]["max"]
             X_low_ohe[:, i] = (X_low_ohe[:, i] - X_ohe[:, i]) / (max - min)
             X_high_ohe[:, i] = (X_high_ohe[:, i] - X_ohe[:, i]) / (max - min)
 
-            # clip in [0, 1]
+            # Clip in [0, 1]
             X_low_ohe[:, i] = np.clip(X_low_ohe[:, i], a_min=range_low, a_max=0)
             X_high_ohe[:, i] = np.clip(X_high_ohe[:, i], a_min=0, a_max=range_high)
         else:
-            # this means no conditioning
+            # This means no conditioning
             X_low_ohe[:, i] = range_low
             X_high_ohe[:, i] = range_high
 
         if diverse:
-            # not that this is still a feasible counterfactual
+            # Note that this is still a feasible counterfactual
             X_low_ohe[:, i] *= np.random.rand(*X_low_ohe[:, i].shape)
             X_high_ohe[:, i] *= np.random.rand(*X_high_ohe[:, i].shape)
 
-        # append feature conditioning
+        # Append feature conditioning
         C += [X_low_ohe[:, i].reshape(-1, 1), X_high_ohe[:, i].reshape(-1, 1)]
 
     return C
@@ -700,11 +700,11 @@ def get_categorical_conditional_vector(X: np.ndarray,
     cat_features_ids = [id for id in range(X.shape[1]) if id in category_map]
     cat_feature_names = [feature_names[id] for id in cat_features_ids]
 
-    # extract list of categorical one-hot encoded columns
+    # Extract list of categorical one-hot encoded columns
     X_ohe = preprocessor(X)
     _, X_ohe_cat_split = split_ohe(X_ohe, category_map)
 
-    # for each categorical feature add the masking vector
+    # For each categorical feature add the masking vector
     for i, (feature_id, feature_name) in enumerate(zip(cat_features_ids, cat_feature_names)):
         mask = np.zeros_like(X_ohe_cat_split[i])
 
@@ -714,17 +714,17 @@ def get_categorical_conditional_vector(X: np.ndarray,
                            condition[feature_name]]  # conversion to str because of mypy (can be also float)
                 mask[:, indexes] = 1
             else:
-                # allow any value
+                # Allow any value
                 mask[:] = 1
 
         if diverse:
-            # note that by masking random entries we still have a feasible counterfactual
+            # Note that by masking random entries we still have a feasible counterfactual
             mask *= np.random.randint(low=0, high=2, size=mask.shape)
 
-        # ensure that the original value is a possibility
+        # Ensure that the original value is a possibility
         mask = ((mask + X_ohe_cat_split[i]) > 0).astype(int)
 
-        # append feature conditioning
+        # Append feature conditioning
         C.append(mask)
 
     return C

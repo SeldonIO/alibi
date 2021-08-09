@@ -103,8 +103,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: Union['tf.keras.Model', 'torch.nn.Module'],
-                 decoder: Union['tf.keras.Model', 'torch.nn.Module'],
+                 encoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                 decoder: 'Union[tf.keras.Model, torch.nn.Module]',
                  latent_dim: int,
                  encoder_preprocessor: Callable,
                  decoder_inv_preprocessor: Callable,
@@ -412,7 +412,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
             # Generate conditional vector.
             C_vec = get_conditional_vector(X=X_repeated,
-                                           condition=C[0],
+                                           condition=C[0] if len(C) else {},
                                            preprocessor=self.params["encoder_preprocessor"],
                                            feature_names=self.params["feature_names"],
                                            category_map=self.params["category_map"],

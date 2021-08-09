@@ -83,7 +83,6 @@ class ReplayBuffer:
             `size` * `batch_size`, where `batch_size` is inferred from the first tensors to be stored.
         """
         self.X: Optional[np.ndarray] = None            # buffer for the inputs
-        self.X_cf: Optional[np.ndarray] = None         # buffer for the counterfactuals
         self.Y_m: Optional[np.ndarray] = None          # buffer for the model's prediction
         self.Y_t: Optional[np.ndarray] = None          # buffer for the counterfactual targets
         self.Z: Optional[np.ndarray] = None            # buffer for the input embedding
@@ -98,7 +97,6 @@ class ReplayBuffer:
 
     def append(self,
                X: np.ndarray,
-               X_cf: np.ndarray,
                Y_m: np.ndarray,
                Y_t: np.ndarray,
                Z: np.ndarray,
@@ -114,8 +112,6 @@ class ReplayBuffer:
         ----------
         X
             Input array.
-        X_cf
-            Counterfactual array.
         Y_m
             Model's prediction class of x.
         Y_t
@@ -135,7 +131,6 @@ class ReplayBuffer:
 
             # Allocate memory.
             self.X = np.zeros((self.size * self.batch_size, *X.shape[1:]), dtype=np.float32)
-            self.X_cf = np.zeros((self.size * self.batch_size, *X_cf.shape[1:]), dtype=np.float32)
             self.Y_m = np.zeros((self.size * self.batch_size, *Y_m.shape[1:]), dtype=np.float32)
             self.Y_t = np.zeros((self.size * self.batch_size, *Y_t.shape[1:]), dtype=np.float32)
             self.Z = np.zeros((self.size * self.batch_size, *Z.shape[1:]), dtype=np.float32)
@@ -155,7 +150,6 @@ class ReplayBuffer:
 
         # Add new data / replace old experience (note that a full batch is added at once).
         self.X[start:start + self.batch_size] = X
-        self.X_cf[start:start + self.batch_size] = X_cf
         self.Y_m[start:start + self.batch_size] = Y_m
         self.Y_t[start:start + self.batch_size] = Y_t
         self.Z[start:start + self.batch_size] = Z
@@ -184,7 +178,6 @@ class ReplayBuffer:
 
         # Extract data form buffers.
         X = self.X[rand_idx]                                        # input array
-        X_cf = self.X_cf[rand_idx]                                  # counterfactual
         Y_m = self.Y_m[rand_idx]                                    # model's prediction
         Y_t = self.Y_t[rand_idx]                                    # counterfactual target
         Z = self.Z[rand_idx]                                        # input embedding
@@ -194,7 +187,6 @@ class ReplayBuffer:
 
         return {
             "X": X,
-            "X_cf": X_cf,
             "Y_m": Y_m,
             "Y_t": Y_t,
             "Z": Z,
@@ -660,32 +652,22 @@ class CounterfactualRLBase(Explainer, FitMixin):
             data.update({"Z": Z})
 
             # Compute counterfactual embedding.
-            Z_cf = self.backend.generate_cf(step=step, **data, **self.params)
+            Z_cf = self.backend.generate_cf(**data, **self.params)
             data.update({"Z_cf": Z_cf})
 
             # Add noise to the counterfactual embedding.
             Z_cf_tilde = self.backend.add_noise(noise=noise, step=step, **data, **self.params)
             data.update({"Z_cf_tilde": Z_cf_tilde})
 
-            # Decode counterfactual and apply postprocessing step to X_cf_tilde.
-            X_cf = self.backend.decode(Z=data["Z_cf"], **self.params)
+            # Decode noised counterfactual and apply postprocessing step to X_cf_tilde.
             X_cf_tilde = self.backend.decode(Z=data["Z_cf_tilde"], **self.params)
 
             for pp_func in self.params["postprocessing_funcs"]:
-                # Post-process counterfactual.
-                X_cf = pp_func(self.backend.to_numpy(X_cf),
-                               self.backend.to_numpy(data["X"]),
-                               self.backend.to_numpy(data["C"]))
-
                 # Post-process noised counterfactual.
                 X_cf_tilde = pp_func(self.backend.to_numpy(X_cf_tilde),
                                      self.backend.to_numpy(data["X"]),
                                      self.backend.to_numpy(data["C"]))
-
-            data.update({
-                "X_cf": X_cf,
-                "X_cf_tilde": X_cf_tilde
-            })
+            data.update({"X_cf_tilde": X_cf_tilde})
 
             # Compute model's prediction on the noised counterfactual
             X_cf_tilde = self.params["decoder_inv_preprocessor"](self.backend.to_numpy(data["X_cf_tilde"]))
@@ -709,17 +691,37 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     # Sample batch of experience form the replay buffer.
                     sample = replay_buff.sample()
 
-                    # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
-                    # explainer object and call fit multiple times. If the models are not reinitialized, the
-                    # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
-                    # This is due to @tf.function and building the model for the first time in a compiled function
-                    if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:
-                        self.backend.initialize_actor_critic(**sample, **self.params)
-                        self.backend.initialize_optimizers(**sample, **self.params)
-                        initialize_actor_critic = True
+                    # # Initialize actor and critic. This is required for tensorflow in order to reinitialize the
+                    # # explainer object and call fit multiple times. If the models are not reinitialized, the
+                    # # error: "tf.function-decorated function tried to create variables on non-first call" is raised.
+                    # # This is due to @tf.function and building the model for the first time in a compiled function
+                    # if not initialize_actor_critic and self.params["backend"] == Framework.TENSORFLOW:
+                    #     self.backend.initialize_actor_critic(**sample, **self.params)
+                    #     self.backend.initialize_optimizers(**sample, **self.params)
+                    #     initialize_actor_critic = True
 
                     if "C" not in sample:
                         sample["C"] = None
+
+                    # Decode counterfactual. This procedure has to be done here and not in the experience loop
+                    # since the actor is updating but old experience is used. Thus, the decoding of the counterfactual
+                    # will not correspond to the latest actor network. Remember that the counterfactual is used
+                    # for the consistency loss.
+                    Z_cf = self.backend.generate_cf(Z=self.backend.to_tensor(sample["Z"], **self.params),
+                                                    Y_m=self.backend.to_tensor(sample["Y_m"], **self.params),
+                                                    Y_t=self.backend.to_tensor(sample["Y_t"], **self.params),
+                                                    C=self.backend.to_tensor(sample["C"], **self.params),
+                                                    **self.params)
+                    X_cf = self.backend.decode(Z=Z_cf, **self.params)
+
+                    for pp_func in self.params["postprocessing_funcs"]:
+                        # Post-process counterfactual.
+                        X_cf = pp_func(self.backend.to_numpy(X_cf),
+                                       self.backend.to_numpy(sample["X"]),
+                                       self.backend.to_numpy(sample["C"]))
+
+                    # Add counterfactual instance to the sample to be used in the update function for consistency loss
+                    sample.update({"Z_cf": Z_cf, "X_cf": X_cf})
 
                     # Update critic by one-step gradient descent.
                     losses = self.backend.update_actor_critic(**sample, **self.params)

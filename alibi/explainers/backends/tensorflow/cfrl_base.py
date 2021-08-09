@@ -99,7 +99,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             Y_t[np.arange(self.batch_size), tgts] = 1
         else:
             # Generate random target for regression task
-            Y_t = np.random.uniform(low=self.min_m, high=self.max_m, size=(1, 1))
+            Y_t = np.random.uniform(low=self.min_m, high=self.max_m, size=(self.batch_size, 1))
 
         # Select indices to be returned.
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
@@ -130,7 +130,7 @@ def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) 
     -------
         Default optimizer.
     """
-    return keras.optimizers.Adam(learning_rate=lr)
+    return keras.optimizers.Adam(learning_rate=lr, epsilon=1e-8)
 
 
 def get_actor(hidden_dim: int, output_dim: int) -> keras.layers.Layer:
@@ -511,9 +511,10 @@ def update_actor_critic(encoder: keras.Model,
     # Define dictionary of losses.
     losses: Dict[str, float] = dict()
 
-    # Transform labels and target to float32
+    # Transform labels, target and condition to float32
     Y_m = tf.cast(Y_m, dtype=tf.float32)
     Y_t = tf.cast(Y_t, dtype=tf.float32)
+    C = tf.cast(C, dtype=tf.float32) if (C is not None) else None
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
@@ -537,7 +538,7 @@ def update_actor_critic(encoder: keras.Model,
         # Compute counterfactual embedding.
         Z_cf = actor(state, training=True)
 
-        # Compute critic's output
+        # Compute critic's output.
         input_critic = tf.concat([state, Z_cf], axis=1)
         output_critic = critic(input_critic, training=False)
 
@@ -569,7 +570,7 @@ def update_actor_critic(encoder: keras.Model,
     grads_actor = tape_actor.gradient(loss_actor, actor.trainable_weights)
     optimizer_actor.apply_gradients(zip(grads_actor, actor.trainable_weights))
 
-    # Return dictionary of losses for potential logging
+    # Return dictionary of losses for potential logging.
     return losses
 
 

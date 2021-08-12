@@ -105,7 +105,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         indexes = self.indexes[idx * self.batch_size:(idx + 1) * self.batch_size]
 
         # Compute conditional vector.
-        C = self.conditional_func(self.X[idx * self.batch_size:(idx + 1) * self.batch_size])
+        C = self.conditional_func(self.X[indexes])
 
         return {
             "X": self.X[indexes],
@@ -130,7 +130,7 @@ def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) 
     -------
         Default optimizer.
     """
-    return keras.optimizers.Adam(learning_rate=lr, epsilon=1e-8)
+    return keras.optimizers.Adam(learning_rate=lr)
 
 
 def get_actor(hidden_dim: int, output_dim: int) -> keras.layers.Layer:
@@ -306,7 +306,7 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
     C = tf.cast(C, dtype=tf.float32) if (C is not None) else C
 
     # Concatenate z_mean, y_m_ohe, y_t_ohe to create the input representation for the projection network (actor).
-    state = [tf.reshape(Z, (Z.shape[0], -1)), Y_m, Y_t] + ([C] if (C is not None) else [])
+    state = [Z, Y_m, Y_t] + ([C] if (C is not None) else [])
     state = tf.concat(state, axis=1)
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
@@ -528,7 +528,7 @@ def update_actor_critic(encoder: keras.Model,
         loss_critic = tf.reduce_mean(tf.square(output_critic - R_tilde))
 
     # Append critic's loss.
-    losses.update({"loss_critic": loss_critic})
+    losses.update({"critic_loss": loss_critic})
 
     # Update critic by gradient step.
     grads_critic = tape_critic.gradient(loss_critic, critic.trainable_weights)
@@ -544,7 +544,7 @@ def update_actor_critic(encoder: keras.Model,
 
         # Compute actors' loss.
         loss_actor = -tf.reduce_mean(output_critic)
-        losses.update({"loss_actor": loss_actor})
+        losses.update({"actor_loss": loss_actor})
 
         # Decode the counterfactual embedding.
         X_hat_cf = decoder(Z_cf, training=False)

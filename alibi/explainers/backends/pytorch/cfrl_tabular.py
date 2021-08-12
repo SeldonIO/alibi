@@ -78,8 +78,9 @@ def l0_ohe(input: torch.Tensor,
     -------
         L0 loss.
     """
-    # Order matters. Maybe consider clipping a bit higher?
-    loss = torch.maximum(target - input, torch.zeros_like(input))
+    # Order matters as the gradient of zeros will still flow if reversed order. Maybe consider clipping a bit higher?
+    eps = 1e-7 / input.shape[1]
+    loss = torch.maximum(target - input, eps + torch.zeros_like(input)).sum(dim=1)
 
     if reduction == 'none':
         return loss
@@ -161,14 +162,12 @@ def sparsity_loss(X_hat_split: List[torch.Tensor],
     # Compute categorical loss
     if len(X_ohe_cat_split) > 0:
         for i in range(len(X_ohe_cat_split)):
-            batch_size = X_ohe_hat_split[i].shape[0]
-            cat_loss += torch.sum(l0_ohe(input=X_ohe_hat_split[i + offset],  # type: ignore
-                                         target=X_ohe_cat_split[i],
-                                         reduction='none')) / batch_size
-
+            cat_loss += torch.mean(l0_ohe(input=X_ohe_hat_split[i + offset],  # type: ignore
+                                          target=X_ohe_cat_split[i],
+                                          reduction='none'))
         cat_loss /= len(X_ohe_cat_split)
 
-    return {"num_loss": weight_num * num_loss, "cat_loss": weight_cat * cat_loss}
+    return {"sparsity_num_loss": weight_num * num_loss, "sparsity_cat_loss": weight_cat * cat_loss}
 
 
 def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):

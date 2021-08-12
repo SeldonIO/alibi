@@ -168,10 +168,10 @@ class ReplayBuffer:
         Sample a batch of experience form the replay buffer.
 
         Returns
-        --------
-            A batch experience. For a description of the keys/values returned, see parameter descriptions in
-            :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same as
-            the one passed in the `append`.
+        -------
+            A batch experience. For a description of the keys and values returned, see parameter descriptions \
+            in :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same \
+            as the one passed in the :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append`.
         """
         # Generate random indices to be sampled.
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
@@ -201,7 +201,7 @@ DEFAULT_BASE_PARAMS = {
     "act_low": -1.0,
     "act_high": 1.0,
     "replay_buffer_size": 1000,
-    "batch_size": 128,
+    "batch_size": 100,
     "num_workers": 4,
     "shuffle": True,
     "exploration_steps": 100,
@@ -251,7 +251,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that \
     the replay buffers is full enough for useful updates.
 
-    - ``'backend'``: str, backend to be used: `tensorflow|pytorch`. Default `tensorflow`.
+    - ``'backend'``: str, backend to be used: `tensorflow` | `pytorch`. Default `tensorflow`.
 
     - ``'train_steps'``: int, number of train steps.
 
@@ -268,7 +268,7 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'postprocessing_funcs'``: List[Postprocessing], list of post-processing functions. The function are applied in \
     the order, from low to high index. Non-differentiable post-processing can be applied. The function expects as \
-    arguments `X_cf` - the counterfactual instance, `x` - the original input instance and `c` - the conditional \
+    arguments `X_cf` - the counterfactual instance, `X` - the original input instance and `C` - the conditional \
     vector, and returns the post-processed counterfactual instance `X_cf_pp` which is passed as `X_cf` for the \
     following functions. By default, no post-processing is applied (empty list).
 
@@ -322,9 +322,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
                  predictor: Callable,
                  encoder: 'Union[tf.keras.Model, torch.nn.Module]',
                  decoder: 'Union[tf.keras.Model, torch.nn.Module]',
-                 latent_dim: int,
                  coeff_sparsity: float,
                  coeff_consistency: float,
+                 latent_dim: Optional[int] = None,
                  backend: str = "tensorflow",
                  seed: int = 0,
                  **kwargs):
@@ -334,17 +334,20 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a tensor of N data points as inputs and returns N outputs. For classification task,
+            the second dimension of the output should match the number of classes. Thus, the output can be either
+            a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
+            performance since `argmax` is applied to the predictor's output.
         encoder
             Pretrained encoder network.
         decoder
             Pretrained decoder network.
-        latent_dim
-            Autoencoder latent dimension.
         coeff_sparsity
             Sparsity loss coefficient.
         coeff_consistency
             Consistency loss coefficient.
+        latent_dim
+            Autoencoder latent dimension. Can be omitted if the actor network is user specified.
         backend
             Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         seed
@@ -704,8 +707,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
                                                     Y_t=self.backend.to_tensor(sample["Y_t"], **self.params),
                                                     C=self.backend.to_tensor(sample["C"], **self.params),
                                                     **self.params)
-                    X_cf = self.backend.decode(Z=Z_cf, **self.params)
 
+                    X_cf = self.backend.decode(Z=Z_cf, **self.params)
                     for pp_func in self.params["postprocessing_funcs"]:
                         # Post-process counterfactual.
                         X_cf = pp_func(self.backend.to_numpy(X_cf),
@@ -724,7 +727,6 @@ class CounterfactualRLBase(Explainer, FitMixin):
                     # Call all callbacks.
                     for callback in self.params["callbacks"]:
                         callback(step=step, update=i, model=self, sample=sample, losses=losses)
-
         return self
 
     @staticmethod
@@ -772,7 +774,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
-                C: Any = None,
+                C: Optional[Any] = None,
                 batch_size: int = 100) -> Explanation:
         """
         Explains an input instance
@@ -784,10 +786,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Counterfactual targets.
         C
-            Conditional vectors.
+            Conditional vectors. If `None`, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns `None`).
         batch_size
-            Batch size to be used in a forward pass.
-
+            Batch size to be used when generating counterfactuals.
 
         Returns
         -------
@@ -821,7 +823,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
         all_results: Dict[str, np.ndarray] = {}
 
-        for i in range(n_minibatch):
+        for i in tqdm(range(n_minibatch)):
             istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
             results = self._compute_counterfactual(X=X[istart:istop],
                                                    Y_t=Y_t[istart:istop],
@@ -853,7 +855,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Counterfactual targets.
         C
-            Conditional vector.
+            Conditional vector. If `None`, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns `None`).
 
         Returns
         -------
@@ -951,7 +954,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Target labels.
         C
-            Condition vector.
+            Condition vector. If `None`, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns `None`).
 
         Returns
         -------
@@ -976,7 +980,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
 class Postprocessing(ABC):
     @abstractmethod
-    def __call__(self, X_cf: Any, X: np.ndarray, C: np.ndarray) -> Any:
+    def __call__(self, X_cf: Any, X: np.ndarray, C: Optional[np.ndarray]) -> Any:
         """
         Post-processing function
 
@@ -991,7 +995,8 @@ class Postprocessing(ABC):
         X
            Input instance.
         C
-           Conditional vector.
+           Conditional vector. If `None`, it means that no conditioning was used during training (i.e. the
+           `conditional_func` returns `None`).
 
         Returns
         -------
@@ -1001,10 +1006,10 @@ class Postprocessing(ABC):
         pass
 
 
-class Callback:
+class Callback(ABC):
     """ Training callback class. """
-    # This is not an ABC since it can not be pickled.
 
+    @abstractmethod
     def __call__(self,
                  step: int,
                  update: int,
@@ -1012,20 +1017,58 @@ class Callback:
                  sample: Dict[str, np.ndarray],
                  losses: Dict[str, float]) -> None:
         """
-        Training call-back applied after every training step.
+        Training callback applied after every training step.
 
         Parameters
         -----------
         step
             Current experience step.
         update
-            Current update. The ration between the number experience steps and the number of training updates is
+            Current update step. The ration between the number experience steps and the number of training updates is
             bound to 1.
         model
-            CounterfactualRLBase explainer.
+            CounterfactualRLBase explainer. All the parameters defined in
+            :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS` can be accessed through 'model.params'.
         sample
-            Dictionary of samples used for an update. This is sampled from the replay buffer.
+            Dictionary of samples used for an update which contains
+
+                - ``'X'``: input instances.
+
+                - ``'Y_m'``: predictor outputs for the input instances.
+
+                - ``'Y_t'``: target outputs.
+
+                - ``'Z'``: input embeddings.
+
+                - ``'Z_cf_tilde'``: noised counterfactual embeddings.
+
+                - ``'X_cf_tilde'``: noised counterfactual instances obtained ofter decoding the noised counterfactual \
+                embeddings `Z_cf_tilde` and apply post-processing functions.
+
+                - ``'C'``: conditional vector.
+
+                - ``'R_tilde'``: reward obtained for the noised counterfactual instances.
+
+                - ``'Z_cf'``: counterfactual embeddings.
+
+                - ``'X_cf'``: counterfactual instances obtained after decoding the countefactual embeddings `Z_cf` and \
+                apply post-processing functions.
         losses
-            Dictionary of losses.
+            Dictionary of losses which contains
+
+                - ``'loss_actor'``: actor network loss.
+
+                - ``'loss_critic'``: critic network loss.
+
+                - ``'sparsity_loss'``: sparsity loss for the \
+                :py:class:`alibi.explainers.cfrl_base.CounterfactualRLBase` class.
+
+                - ``'sparsity_num_loss'``: numerical features sparsity loss for the \
+                :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
+
+                - ``'sparsity_cat_loss'``: categorical features sparsity loss for the \
+                :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
+
+                - ``'consistency_loss'``: consistency loss if used.
         """
         pass

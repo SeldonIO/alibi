@@ -320,12 +320,13 @@ def generate_cf(Z: torch.Tensor,
     decoder.eval()
     actor.eval()
 
-    # Send labels and targets to device.
+    # Send labels, targets and conditional vector to device.
     Y_m = Y_m.float().to(device)
     Y_t = Y_t.float().to(device)
+    C = C.float().to(device) if (C is not None) else None
 
     # Concatenate Z_mean, Y_m_ohe, Y_t_ohe to create the input representation for the projection network (actor).
-    state = [Z.view(Z.shape[0], -1), Y_m, Y_t] + ([C.float().to(device)] if (C is not None) else [])
+    state = [Z, Y_m, Y_t] + ([C] if (C is not None) else [])
     state = torch.cat(state, dim=1)  # type: ignore
 
     # Pass the new input to the projection network (actor) to get the counterfactual embedding
@@ -472,14 +473,14 @@ def update_actor_critic(encoder: nn.Module,
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
-    state = [Z, Y_m, Y_t] + ([C.float().to(device)] if (C is not None) else [])  # type: ignore
-    state = torch.cat(state, dim=1).to(device)                                   # type: ignore
+    state = [Z, Y_m, Y_t] + ([C] if (C is not None) else [])  # type: ignore
+    state = torch.cat(state, dim=1).to(device)                # type: ignore
 
     # Define input for critic, compute q-values and append critic's loss.
     input_critic = torch.cat([state, Z_cf_tilde], dim=1).float()  # type: ignore
     output_critic = critic(input_critic).squeeze(1)               # type: ignore
     loss_critic = F.mse_loss(output_critic, R_tilde)              # type: ignore
-    losses.update({"loss_critic": loss_critic.item()})
+    losses.update({"critic_loss": loss_critic.item()})
 
     # Update critic by gradient step.
     optimizer_critic.zero_grad()
@@ -496,7 +497,7 @@ def update_actor_critic(encoder: nn.Module,
 
     # Compute actor's loss.
     loss_actor = -torch.mean(output_critic)
-    losses.update({"loss_actor": loss_actor.item()})
+    losses.update({"actor_loss": loss_actor.item()})
 
     # Decode the output of the actor.
     X_hat_cf = decoder(Z_cf)

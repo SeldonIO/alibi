@@ -66,7 +66,7 @@ class HeAE(AE):
     def build(self, input_shape: Tuple[int, ...]):
         super().build(input_shape)
 
-        # check if the output is a list
+        # Check if the output is a list
         input = tf.zeros(input_shape)
         output = self.call(input)
 

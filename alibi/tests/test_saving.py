@@ -423,7 +423,7 @@ def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
         # check metadata. loading can change the class, so we have to remove the encoder, decoder, actor and critic
         # see: https://www.tensorflow.org/api_docs/python/tf/saved_model/load for more details
         # also have to remove the optimizers since those are not saved.
-        keys_to_remove = ['encoder', 'decoder', 'actor', 'critic', 'optimizer_actor', 'optimizer_critic']
+        keys_to_remove = ['encoder', 'decoder', 'actor', 'critic', 'optimizer_actor', 'optimizer_critic', 'callbacks']
         for key in keys_to_remove:
             cfrl_explainer.meta["params"].pop(key)
             cfrl_explainer1.meta["params"].pop(key)

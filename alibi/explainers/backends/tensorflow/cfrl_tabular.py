@@ -78,8 +78,9 @@ def l0_ohe(input: tf.Tensor,
     -------
         L0 loss.
     """
-    # Order matters. Maybe consider clipping a bit higher?
-    loss = tf.maximum(tf.zeros_like(input), target - input)
+    # Order matters as the gradient of zeros will still flow if reversed order. Maybe consider clipping a bit higher?
+    eps = 1e-7 / input.shape[1]
+    loss = tf.reduce_sum(tf.maximum(eps + tf.zeros_like(input), target - input), axis=1)
 
     if reduction == 'none':
         return loss
@@ -172,10 +173,9 @@ def sparsity_loss(X_hat_split: List[tf.Tensor],
     # Compute categorical loss
     if len(X_ohe_cat_split) > 0:
         for i in range(len(X_ohe_cat_split)):
-            batch_size = X_ohe_hat_split[i].shape[0]
-            cat_loss += tf.reduce_sum(l0_ohe(input=X_ohe_hat_split[i + offset],
-                                             target=X_ohe_cat_split[i],
-                                             reduction='none')) / batch_size
+            cat_loss += tf.reduce_mean(l0_ohe(input=X_ohe_hat_split[i + offset],
+                                              target=X_ohe_cat_split[i],
+                                              reduction='none'))
 
         cat_loss /= len(X_ohe_cat_split)
 

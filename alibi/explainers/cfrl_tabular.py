@@ -4,6 +4,7 @@ from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, _PA
 from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
 
 import numpy as np
+from tqdm import tqdm
 from itertools import count
 from functools import partial
 from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
@@ -46,7 +47,7 @@ class SampleTabularPostprocessing(Postprocessing):
         self.category_map = category_map
         self.stats = stats
 
-    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: np.ndarray) -> List[np.ndarray]:
+    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: Optional[np.ndarray]) -> List[np.ndarray]:
         """
         Performs counterfactual conditional sampling acording to the conditional vector and the original input.
 
@@ -74,7 +75,7 @@ class SampleTabularPostprocessing(Postprocessing):
 class ConcatTabularPostprocessing(Postprocessing):
     """ Tabular feature columns concatenation post-processing. """
 
-    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: np.ndarray) -> np.ndarray:
+    def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: Optional[np.ndarray]) -> np.ndarray:
         """
         Performs a concatenation of the counterfactual feature columns along the axis 1.
 
@@ -105,7 +106,6 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                  predictor: Callable,
                  encoder: 'Union[tf.keras.Model, torch.nn.Module]',
                  decoder: 'Union[tf.keras.Model, torch.nn.Module]',
-                 latent_dim: int,
                  encoder_preprocessor: Callable,
                  decoder_inv_preprocessor: Callable,
                  coeff_sparsity: float,
@@ -116,6 +116,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                  ranges: Optional[Dict[str, Tuple[int, int]]] = None,
                  weight_num: float = 1.0,
                  weight_cat: float = 1.0,
+                 latent_dim: Optional[int] = None,
                  backend: str = "tensorflow",
                  seed: int = 0,
                  **kwargs):
@@ -125,13 +126,14 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         Parameters
         ----------
         predictor.
-           A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a tensor of N data points as inputs and returns N outputs. For classification task,
+            the second dimension of the output should match the number of classes. Thus, the output can be either
+            a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
+            performance since `argmax` is applied to the predictor's output.
         encoder
             Pretrained heterogeneous encoder network.
         decoder
             Pretrained heterogeneous decoder network. The output of the decoder must be a list of tensors.
-        latent_dim
-            Autoencoder latent dimension.
         encoder_preprocessor
             Autoencoder data pre-processor. Depending on the input format, the pre-processor can normalize
             numerical attributes, transform label encoding to one-hot encoding etc.
@@ -163,6 +165,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             Numerical loss weight.
         weight_cat
             Categorical loss weight.
+        latent_dim
+            Autoencoder latent dimension. Can be omitted if the actor network is user specified.
         backend
            Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         seed
@@ -272,7 +276,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO remove default value (mypy error)
-                C: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
+                C: Optional[List[Dict[str, List[Union[str, float]]]]] = [],
                 batch_size: int = 100,
                 diversity: bool = False,
                 num_samples: int = 1,
@@ -289,7 +293,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         Y_t
             Target labels.
         C
-            List of conditional dictionaries.
+            List of conditional dictionaries. If `None`, it means that no conditioning was used during training
+            (i.e. the `conditional_func` returns `None`).
         diversity
             Whether to generate diverse counterfactual set for the given instance. Only supported for a single
             input instance.
@@ -317,8 +322,13 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                    patience=patience,
                                    tolerance=tolerance)
 
-        # Define conditional vector if `None`.
+        # If the conditional vector is `None`. This is equivalent of no conditioning at all, not even during training.
         if C is None:
+            return super().explain(X=X, Y_t=Y_t, C=C, batch_size=batch_size)
+
+        # Define conditional vector if an empty list. This is equivalent of no conditioning, but the conditional
+        # vector was used during training.
+        if len(C) == 0:
             C = [dict()]
 
         # Check the number of conditions.
@@ -356,7 +366,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                    patience: int = 1000,
                    tolerance: float = 1e-3) -> Explanation:
         """
-        Generates a set of diverse counterfactuals given a single instance, target and conditioninig.
+        Generates a set of diverse counterfactuals given a single instance, target and conditioning.
 
         Parameters
         ----------
@@ -365,7 +375,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         Y_t
             Target label.
         C
-            Conditioning.
+            List of conditional dictionaries. If `None`, it means that no conditioning was used during training
+            (i.e. the `conditional_func` returns `None`).
         num_samples
             Number of counterfactual samples to be generated.
         batch_size
@@ -384,6 +395,15 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         -------
             Explanation object containing the diverse counterfactuals.
         """
+        # Check if condition. If no conditioning was used during training, the method can not generate a diverse
+        # set of counterfactual instances
+        if C is None:
+            raise ValueError("A diverse set of counterfactual can not be generated if a `None` conditioning is "
+                             "used during training. Use the `explain` method to generate a counterfactual. The "
+                             "generation process is deterministic in its core. If conditioning is used during training "
+                             "a diverse set of counterfactual can be generated by restricting each feature condition "
+                             "to a subset to remain feasible.")
+
         # Check the number of inputs
         if X.shape[0] != 1:
             raise ValueError("Only a single input instance can be passed.")
@@ -393,7 +413,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             raise ValueError("Only a single label can be passed.")
 
         # Check the number of conditions.
-        if len(C) > 1:
+        if (C is not None) and len(C) > 1:
             raise ValueError("At most, one condition can be passed.")
 
         # Generate a batch of data.
@@ -403,7 +423,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
         # Define counterfactual buffer.
         X_cf_buff = None
 
-        for i in count():
+        for i in tqdm(count()):
             if i == patience:
                 break
 

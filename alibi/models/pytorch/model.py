@@ -118,8 +118,8 @@ class Model(nn.Module):
 
         Returns
         -------
-        A tuple consisting of the total loss computed as a weighted sum of individual losses and a dictionary
-        of individual losses used of logging.
+            A tuple consisting of the total loss computed as a weighted sum of individual losses and a dictionary \
+            of individual losses used of logging.
         """
         # compute loss
         if isinstance(self.loss, list):
@@ -266,7 +266,7 @@ class Model(nn.Module):
 
         Returns
         -------
-        Final epoch monitoring metrics.
+            Final epoch monitoring metrics.
         """
         for epoch in range(epochs):
             print("Epoch %d/%d" % (epoch, epochs))
@@ -299,7 +299,7 @@ class Model(nn.Module):
 
         Returns
         -------
-        Evaluation metrics.
+            Evaluation metrics.
         """
         self._reset_loss()
         self._reset_metrics()
@@ -329,7 +329,7 @@ class Model(nn.Module):
 
         Returns
         -------
-        String representation of the metrics.
+            String representation of the metrics.
         """
         str_losses = ''
         for key in metrics:

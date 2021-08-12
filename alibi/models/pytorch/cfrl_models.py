@@ -95,7 +95,7 @@ class MNISTDecoder(nn.Module):
     """
     MNIST decoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of a fully
     connected layer of 128 units with ReLU activation followed by a convolutional block. The convolutional block
-    consists fo 4 convolutional layers having 8, 8, 8  and 1 channels and a kernel size of 3.Each convolutional layer,
+    consists fo 4 convolutional layers having 8, 8, 8  and 1 channels and a kernel size of 3. Each convolutional layer,
     except the last one, has ReLU nonlinearities and is followed by an upsampling layer of size 2. The final layers
     uses a sigmoid activation to clip the output values in [0, 1].
     """
@@ -134,7 +134,7 @@ class ADULTEncoder(nn.Module):
     """
     ADULT encoder used in the Counterfactual with Reinforcement Learning experiments. The model consists of
     two fully connected layers with ReLU and tanh nonlinearities. The tanh nonlinearity clips the embedding in [-1, 1]
-    as required in the DDPG algorith (e.g., [act_low, act_high]). The layers' dimensions used in the paper are
+    as required in the DDPG algorithm (e.g., [act_low, act_high]). The layers' dimensions used in the paper are
     128 and 15, although those can vary as they were selected to generalize across many datasets.
     """
 

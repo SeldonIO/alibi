@@ -269,6 +269,9 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     # save locally prediction function
     predictor = explainer.params["predictor"]
 
+    # save callbacks
+    callbacks = explainer.params["callbacks"]  # TODO: what to do with the callbacks?
+
     # set encoder, decoder, actor, critic, prediction_func, and backend to `None`
     explainer.params["encoder"] = None
     explainer.params["decoder"] = None
@@ -277,6 +280,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     explainer.params["optimizer_actor"] = None
     explainer.params["optimizer_critic"] = None
     explainer.params["predictor"] = None
+    explainer.params["callbacks"] = None
     explainer.backend = None
 
     # Save explainer. All the pre/post-processing function will be saved in the explainer.
@@ -292,6 +296,7 @@ def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[st
     explainer.params["optimizer_actor"] = optimizer_actor
     explainer.params["optimizer_critic"] = optimizer_critic
     explainer.params["predictor"] = predictor
+    explainer.params["callbacks"] = callbacks
     explainer.backend = backend
 
 

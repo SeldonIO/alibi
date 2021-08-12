@@ -5,7 +5,7 @@ This module contains utility function for the Counterfactual with Reinforcement 
 
 import numpy as np
 import pandas as pd  # type: ignore
-from typing import List, Dict, Union, Tuple, Callable, TYPE_CHECKING
+from typing import List, Dict, Union, Tuple, Callable, Optional, TYPE_CHECKING
 
 from sklearn.preprocessing import StandardScaler, OneHotEncoder  # type: ignore
 from sklearn.compose import ColumnTransformer  # type: ignore
@@ -76,7 +76,7 @@ def split_ohe(X_ohe: 'Union[np.ndarray, torch.Tensor, tf.Tensor]',
 
     # If there exist categorical features, then extract them one by one
     if cat_feat > 0:
-        for id in category_map:
+        for id in sorted(category_map.keys()):
             X_ohe_cat_split.append(X_ohe[:, offset:offset + len(category_map[id])])
             offset += len(category_map[id])
 
@@ -320,12 +320,13 @@ def sample_numerical(X_hat_num_split: List[np.ndarray],
         # Extract the minimum and the maximum value for the current column from the training set.
         min, max = stats[col_id]["min"], stats[col_id]["max"]
 
-        # Extract the minimum and the maximum value according to the conditional vector.
-        lhs = X_ohe_num_split[0][:, i] + C_num_split[0][:, 2 * i] * (max - min)
-        rhs = X_ohe_num_split[0][:, i] + C_num_split[0][:, 2 * i + 1] * (max - min)
+        if C_num_split is not None:
+            # Extract the minimum and the maximum value according to the conditional vector.
+            lhs = X_ohe_num_split[0][:, i] + C_num_split[0][:, 2 * i] * (max - min)
+            rhs = X_ohe_num_split[0][:, i] + C_num_split[0][:, 2 * i + 1] * (max - min)
 
-        # Clamp output according to the conditional vector.
-        X_hat_num_split[0][:, i] = np.clip(X_hat_num_split[0][:, i], a_min=lhs, a_max=rhs)
+            # Clamp output according to the conditional vector.
+            X_hat_num_split[0][:, i] = np.clip(X_hat_num_split[0][:, i], a_min=lhs, a_max=rhs)
 
         # Clamp output according to the minimum and maximum value from the training set.
         X_hat_num_split[0][:, i] = np.clip(X_hat_num_split[0][:, i], a_min=min, a_max=max)
@@ -357,9 +358,10 @@ def sample_categorical(X_hat_cat_split: List[np.ndarray],
     for i in range(len(X_hat_cat_split)):
         # compute probability distribution
         proba = softmax(X_hat_cat_split[i], axis=1)
+        proba = proba * C_cat_split[i] if (C_cat_split is not None) else proba
 
         # sample the most probable outcome conditioned on the conditional vector
-        cols = np.argmax(C_cat_split[i] * proba, axis=1)
+        cols = np.argmax(proba, axis=1)
         samples = np.zeros_like(proba)
         samples[rows, cols] = 1
         X_ohe_hat_cat.append(samples)
@@ -369,7 +371,7 @@ def sample_categorical(X_hat_cat_split: List[np.ndarray],
 
 def sample(X_hat_split: List[np.ndarray],
            X_ohe: np.ndarray,
-           C: np.ndarray,
+           C: Optional[np.ndarray],
            category_map: Dict[int, List[str]],
            stats: Dict[int, Dict[str, float]]) -> List[np.ndarray]:
     """
@@ -400,7 +402,7 @@ def sample(X_hat_split: List[np.ndarray],
         corresponding to the numerical features, and the rest are one-hot encodings of the categorical columns.
     """
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe, category_map)
-    C_num_split, C_cat_split = split_ohe(C, category_map)
+    C_num_split, C_cat_split = split_ohe(C, category_map) if (C is not None) else (None, None)
 
     X_ohe_hat_split = []  # list of sampled numerical columns and sampled categorical columns
     num_feat, cat_feat = len(X_ohe_num_split), len(X_ohe_cat_split)
@@ -446,7 +448,7 @@ def get_he_preprocessor(X: np.ndarray,
     preprocessor
         Data preprocessor.
     inv_preprocessor
-        Inverse data preprocessor (e.g., `inv_preprocessor(preprocssor(x)) = x` )
+        Inverse data preprocessor (e.g., `inv_preprocessor(preprocessor(x)) = x` )
     """
     # Separate columns in numerical and categorical
     categorical_ids = list(category_map.keys())
@@ -478,11 +480,15 @@ def get_he_preprocessor(X: np.ndarray,
 
         if "num" in preprocessor.named_transformers_ and len(numerical_ids):
             num_transf = preprocessor.named_transformers_["num"]
-            X_inv.append(num_transf.inverse_transform(X_ohe[:, :num_feat_ohe]))
+            X_ohe_num = X_ohe[:, :num_feat_ohe] if preprocessor.transformers[0][0] == "num" else \
+                X_ohe[:, -num_feat_ohe:]
+            X_inv.append(num_transf.inverse_transform(X_ohe_num))
 
         if "cat" in preprocessor.named_transformers_ and len(categorical_ids):
             cat_transf = preprocessor.named_transformers_["cat"]
-            X_inv.append(cat_transf.inverse_transform(X_ohe[:, -cat_feat_ohe:]))
+            X_ohe_cat = X_ohe[:, :cat_feat_ohe] if preprocessor.transformers[0][0] == "cat" else \
+                X_ohe[:, -cat_feat_ohe:]
+            X_inv.append(cat_transf.inverse_transform(X_ohe_cat))
 
         # Concatenate all columns. at this point the columns are not ordered correctly
         np_X_inv = np.concatenate(X_inv, axis=1)
@@ -726,7 +732,6 @@ def get_categorical_conditional_vector(X: np.ndarray,
 
         # Append feature conditioning
         C.append(mask)
-
     return C
 
 

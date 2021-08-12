@@ -11,7 +11,7 @@ import tensorflow.keras as keras
 class Actor(keras.Model):
     """
     Actor network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-    The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and
+    The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
     tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
     """
 
@@ -43,7 +43,7 @@ class Actor(keras.Model):
 class Critic(keras.Model):
     """
     Critic network. The network follows the standard actor-critic architecture used in Deep Reinforcement Learning.
-    The model is used in Counterfactual with Reinforcement Learning (CF-RL) for both data modalities (images and
+    The model is used in Counterfactual with Reinforcement Learning (CFRL) for both data modalities (images and
     tabular). The hidden dimension used for the all experiments is 256, which is a common choice in most benchmarks.
     """
 
@@ -56,9 +56,9 @@ class Critic(keras.Model):
         """
         super().__init__(**kwargs)
         self.fc1 = keras.layers.Dense(hidden_dim)
-        self.ln1 = keras.layers.LayerNormalization(epsilon=1e-5)
+        self.ln1 = keras.layers.LayerNormalization()
         self.fc2 = keras.layers.Dense(hidden_dim)
-        self.ln2 = keras.layers.LayerNormalization(epsilon=1e-5)
+        self.ln2 = keras.layers.LayerNormalization()
         self.fc3 = keras.layers.Dense(1)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:

@@ -1,6 +1,6 @@
 """
 This module contains a loss wrapper and a definition of various monitoring metrics used during training. The model
-to be trained inherits form :py:class:`alibi.explainer.models.pytorch.model.Model` and represents a simplified
+to be trained inherits form :py:class:`alibi.explainers.models.pytorch.model.Model` and represents a simplified
 version of the `tensorflow.keras` API for training and monitoring the model. Currently it is used internally to test
 the functionalities for the Pytorch backend. To be discussed if the module will be exposed to the user in future
 versions.

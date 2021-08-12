@@ -72,7 +72,7 @@ def test_split_ohe(dataset):
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
                                      lazy_fixture("boston_data")])
-def test_generate_numerical_condition(dataset):
+def test_get_numerical_condition(dataset):
     """ Test the training numerical conditional generator. """
 
     # Unpack dataset
@@ -117,7 +117,7 @@ def test_generate_numerical_condition(dataset):
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
                                      lazy_fixture("boston_data")])
-def test_generate_categorical_condition(dataset):
+def test_get_categorical_condition(dataset):
     """ Test the training categorical conditional generator. """
 
     # Unpack dataset
@@ -244,7 +244,7 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     LATENT_DIM = 2
     COEFF_SPARSITY = 0.0
     COEFF_CONSISTENCY = 0.0
-    TRAIN_STEPS = 1000
+    TRAIN_STEPS = 100
     BATCH_SIZE = 100
 
     # Define encoder. `tanh` is added to work with DDPG.
@@ -287,6 +287,7 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
                                         feature_names=iris_data["metadata"].get("feature_names"),
                                         ranges=dict(),
                                         immutable_features=[],
+                                        conditional_func=lambda x: None,
                                         train_steps=TRAIN_STEPS,
                                         batch_size=BATCH_SIZE,
                                         backend="tensorflow")
@@ -317,10 +318,4 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
     explainer.fit(X=iris_data["X_train"])
 
     # Construct explanation object.
-    explanation = explainer.explain(X=iris_data["X_test"], Y_t=np.array([0]))
-
-    # Compute counterfactual accuracy.
-    from sklearn.metrics import accuracy_score
-    accuracy = accuracy_score(explanation.data["cf"]["class"].reshape(-1),
-                              explanation.data["target"].reshape(-1))
-    assert accuracy > 0.9
+    explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)

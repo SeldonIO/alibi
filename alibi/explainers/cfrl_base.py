@@ -716,7 +716,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
                                        self.backend.to_numpy(sample["C"]))
 
                     # Add counterfactual instance to the sample to be used in the update function for consistency loss
-                    sample.update({"Z_cf": Z_cf, "X_cf": X_cf})
+                    sample.update({"Z_cf": self.backend.to_numpy(Z_cf),
+                                   "X_cf": self.backend.to_numpy(X_cf)})
 
                     # Update critic by one-step gradient descent.
                     losses = self.backend.update_actor_critic(**sample, **self.params)

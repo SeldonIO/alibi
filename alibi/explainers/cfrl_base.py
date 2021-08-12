@@ -731,7 +731,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         return self
 
     @staticmethod
-    def _validate_target(Y_t: np.ndarray):
+    def _validate_target(Y_t: Optional[np.ndarray]):
         """
         Validate the targets by checking the dimensions.
 
@@ -740,6 +740,9 @@ class CounterfactualRLBase(Explainer, FitMixin):
         Y_t
             Targets to be checked.
         """
+        if Y_t is None:
+            raise ValueError("Target can not be `None`.")
+
         if len(Y_t.shape) not in [1, 2]:
             raise ValueError(f"Target shape should be at least 1 and at most 2. Found {len(Y_t.shape)} instead.")
 

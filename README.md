@@ -219,12 +219,14 @@ If you use alibi in your research, please consider citing it.
 BibTeX entry:
 
 ```
-@software{alibi,
-  title = {Alibi: Algorithms for explaining machine learning models},
-  author = {Klaise, Janis and Van Looveren, Arnaud and Vacanti, Giovanni and Coca, Alexandru, and Samoilescu, Robert-Florian},
-  url = {https://github.com/SeldonIO/alibi},
-  version = {0.6.0},
-  date = {2021-07-08},
-  year = {2019}
+@article{JMLR:v22:21-0017,
+  author  = {Janis Klaise and Arnaud Van Looveren and Giovanni Vacanti and Alexandru Coca},
+  title   = {Alibi Explain: Algorithms for Explaining Machine Learning Models},
+  journal = {Journal of Machine Learning Research},
+  year    = {2021},
+  volume  = {22},
+  number  = {181},
+  pages   = {1-7},
+  url     = {http://jmlr.org/papers/v22/21-0017.html}
 }
 ```

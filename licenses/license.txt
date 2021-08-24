@@ -1423,7 +1423,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 catalogue
-2.0.4
+2.0.6
 MIT License
 MIT License
 
@@ -1475,7 +1475,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.0.3
+2.0.4
 MIT License
 MIT License
 
@@ -1498,6 +1498,11 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+clang
+5.0
+University of Illinois/NCSA Open Source License
+UNKNOWN
 
 click
 7.1.2
@@ -1887,7 +1892,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-1.34.0
+1.35.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2093,11 +2098,12 @@ Apache Software License
 
 
 google-auth-oauthlib
-0.4.4
+0.4.5
 Apache Software License
-                            Apache License
+
+                                 Apache License
                            Version 2.0, January 2004
-                        https://www.apache.org/licenses/
+                        http://www.apache.org/licenses/
 
    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
@@ -2289,7 +2295,7 @@ Apache Software License
    you may not use this file except in compliance with the License.
    You may obtain a copy of the License at
 
-       https://www.apache.org/licenses/LICENSE-2.0
+       http://www.apache.org/licenses/LICENSE-2.0
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
@@ -2505,7 +2511,7 @@ Apache Software License
 
 
 grpcio
-1.34.1
+1.39.0
 Apache Software License
 
                                  Apache License
@@ -3043,13 +3049,90 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 immutables
-0.15
+0.16
 Apache Software License
-Copyright (C) 2017-present MagicStack Inc.
+The Immutables project is provided under the Apache 2.0 license.  See
+LICENSE-APACHE for the full text of the license.
+
+Additionally, this software contains the following code distributed a
+different license (refer to the specific files for details):
+
+  immutables/pythoncapi_compat.h  (MIT License)
+
+
+importlib-metadata
+4.6.4
+Apache Software License
+Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+joblib
+1.0.1
+BSD License
+BSD 3-Clause License
+
+Copyright (c) 2008-2016, The joblib developers.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the copyright holder nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+keras
+2.6.0
+Apache Software License
+Copyright 2015-present The Keras Authors.  All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
 
                                  Apache License
                            Version 2.0, January 2004
-                        http://www.apache.org/licenses/
+                        https://www.apache.org/licenses/
 
    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
 
@@ -3224,89 +3307,6 @@ Copyright (C) 2017-present MagicStack Inc.
 
    END OF TERMS AND CONDITIONS
 
-   APPENDIX: How to apply the Apache License to your work.
-
-      To apply the Apache License to your work, attach the following
-      boilerplate notice, with the fields enclosed by brackets "[]"
-      replaced with your own identifying information. (Don't include
-      the brackets!)  The text should be enclosed in the appropriate
-      comment syntax for the file format. We also recommend that a
-      file or class name and description of purpose be included on the
-      same "printed page" as the copyright notice for easier
-      identification within third-party archives.
-
-   Copyright [yyyy] [name of copyright owner]
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
-
-importlib-metadata
-4.6.1
-Apache Software License
-Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-
-joblib
-1.0.1
-BSD License
-BSD 3-Clause License
-
-Copyright (c) 2008-2016, The joblib developers.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-* Redistributions of source code must retain the above copyright notice, this
-  list of conditions and the following disclaimer.
-
-* Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation
-  and/or other materials provided with the distribution.
-
-* Neither the name of the copyright holder nor the names of its
-  contributors may be used to endorse or promote products derived from
-  this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-keras-nightly
-2.5.0.dev2021032900
-Apache Software License
-UNKNOWN
-
 kiwisolver
 1.3.1
 BSD License
@@ -3384,7 +3384,7 @@ to indicate the copyright and license terms:
 
 
 llvmlite
-0.36.0
+0.37.0
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -3413,7 +3413,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.4.2
+3.4.3
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -3584,7 +3584,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.53.1
+0.54.0
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -4595,7 +4595,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.3.1
+1.3.2
 BSD License
 BSD 3-Clause License
 
@@ -5057,7 +5057,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 regex
-2021.7.6
+2021.8.21
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -5634,7 +5634,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.7.0
+1.7.1
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc.  2003-2019, SciPy Developers.
 All rights reserved.
@@ -6603,7 +6603,7 @@ SOFTWARE.
 
 
 smart-open
-5.1.0
+5.2.0
 MIT License
 The MIT License (MIT)
 
@@ -6630,7 +6630,7 @@ SOFTWARE.
 
 
 spacy
-3.1.1
+3.1.2
 MIT License
 The MIT License (MIT)
 
@@ -6734,7 +6734,7 @@ THE SOFTWARE.
 
 
 tensorboard
-2.5.0
+2.6.0
 Apache Software License
 # TensorBoard License
 
@@ -7316,10 +7316,8 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.5.0
+2.6.0
 Apache Software License
-Copyright 2019 The TensorFlow Authors.  All rights reserved.
-
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -7522,9 +7520,10 @@ Copyright 2019 The TensorFlow Authors.  All rights reserved.
    See the License for the specific language governing permissions and
    limitations under the License.
 
-MIT License
+------------------
+Files: third_party/compute_library/...
 
-Copyright (c) 2017-2021 Arm Limited
+MIT License
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -7544,6 +7543,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
+------------------
+Files: ACKNOWLEDGEMENTS
 LICENSE
 
 Redistribution and use in source and binary forms, with or without
@@ -7567,9 +7568,44 @@ modification, are permitted provided that the following conditions are met:
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+------------------
+Files: third_party/hexagon
+
+Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted (subject to the limitations in the
+disclaimer below) provided that the following conditions are met:
+
+   * Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+
+   * Redistributions in binary form must reproduce the above
+     copyright notice, this list of conditions and the following
+     disclaimer in the documentation and/or other materials provided
+     with the distribution.
+
+   * Neither the name of The Linux Foundation nor the names of its
+     contributors may be used to endorse or promote products derived
+     from this software without specific prior written permission.
+
+NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 tensorflow-estimator
-2.5.0
+2.6.0
 Apache Software License
 UNKNOWN
 
@@ -7653,7 +7689,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2021.7.2
+2021.8.8
 BSD License
 BSD 3-Clause License
 
@@ -7693,7 +7729,7 @@ Apache Software License
 UNKNOWN
 
 tqdm
-4.61.2
+4.62.2
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -7747,7 +7783,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.9.1
+4.9.2
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 

@@ -67,3 +67,17 @@ the docs will be built under `doc/_build/html`. Detail information about documen
 
 ## CI
 All PRs triger a CI job to run linting, type checking, tests, and build docs. The CI script is located [here](https://github.com/SeldonIO/alibi/blob/master/.github/workflows/ci.yml) and should be considered the source of truth for running the various development commands.
+
+## PR checklist
+Checklist to run through before a PR is considered complete:
+ - All functions/methods/classes/modules have docstrings and all parameters are documented.
+ - All functions/methods have type hints for arguments and return types.
+ - Any new public functionality is exposed in the right place (e.g. `explainers.__init__` for new explanation methods).  
+ - [linting](#linter) and [type-checking](#type-checking) passes.
+ - New functionality has appropriate [tests](#testing) (functions/methods have unit tests, end-to-end functionality is also tested).
+ - The runtime of the whole test suite on [CI](#ci) is comparable to that of before the PR.
+ - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
+ - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](doc/README.md) for more information.
+ - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
+ - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, and `requirements/doc.txt` for documentation dependencies).
+

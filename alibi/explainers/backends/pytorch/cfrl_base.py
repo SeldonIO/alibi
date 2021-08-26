@@ -1,5 +1,5 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base` for the Pytorch backend.
 """
 

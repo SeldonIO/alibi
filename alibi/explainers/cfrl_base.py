@@ -14,7 +14,7 @@ from alibi.explainers.backends.cfrl_base import identity_function, generate_empt
 
 if TYPE_CHECKING:
     import torch
-    import tensorflow as tf
+    import tensorflow
 
 if has_pytorch:
     # import pytorch backend
@@ -277,13 +277,15 @@ Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'callbacks'``: List[Callback], list of callback functions applied at the end of each training step.
 
-    - ``'actor'``: Optional[Union[tf.keras.Model, torch.nn.Module]], actor network.
+    - ``'actor'``: Optional[Union[tensorflow.keras.Model, torch.nn.Module]], actor network.
 
-    - ``'critic;``: Optional[Union[tf.keras.Model, torch.nn.Module]], critic network.
+    - ``'critic;``: Optional[Union[tensorflow.keras.Model, torch.nn.Module]], critic network.
 
-    - ``'optimizer_actor'``: Optional[Union[tf.keras.optimizers.Optimizer, torch.optim.Optimizer]], actor optimizer.
+    - ``'optimizer_actor'``: Optional[Union[tensorflow.keras.optimizers.Optimizer, torch.optim.Optimizer]], actor \
+    optimizer.
 
-    - ``'optimizer_critic'``: Optional[Union[tf.keras.optimizer.Optimizer, torch.optim.Optimizer]], critic optimizer.
+    - ``'optimizer_critic'``: Optional[Union[tensorflow.keras.optimizer.Optimizer, torch.optim.Optimizer]], critic \
+    optimizer.
 
     - ``'lr_actor'``: float, actor learning rate.
 
@@ -320,8 +322,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: 'Union[tf.keras.Model, torch.nn.Module]',
-                 decoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                 encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  coeff_sparsity: float,
                  coeff_consistency: float,
                  latent_dim: Optional[int] = None,
@@ -487,8 +489,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def _validate_kwargs(self,
                          predictor: Callable,
-                         encoder: 'Union[tf.keras.Model, torch.nn.Module]',
-                         decoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                         encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                         decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                          latent_dim: float,
                          coeff_sparsity: float,
                          coeff_consistency: float,
@@ -636,6 +638,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
                 data = next(data_iter)
             except StopIteration:
                 if hasattr(data_generator, "on_epoch_end"):
+                    # This is just for tensorflow backend.
                     data_generator.on_epoch_end()
 
                 data_iter = iter(data_generator)

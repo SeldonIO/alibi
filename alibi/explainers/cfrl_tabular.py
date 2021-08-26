@@ -11,7 +11,7 @@ from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import torch
-    import tensorflow as tf
+    import tensorflow
 
 if has_pytorch:
     # import pytorch backend
@@ -104,8 +104,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
 
     def __init__(self,
                  predictor: Callable,
-                 encoder: 'Union[tf.keras.Model, torch.nn.Module]',
-                 decoder: 'Union[tf.keras.Model, torch.nn.Module]',
+                 encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  encoder_preprocessor: Callable,
                  decoder_inv_preprocessor: Callable,
                  coeff_sparsity: float,
@@ -276,7 +276,7 @@ class CounterfactualRLTabular(CounterfactualRLBase):
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO remove default value (mypy error)
-                C: Optional[List[Dict[str, List[Union[str, float]]]]] = [],
+                C: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
                 batch_size: int = 100,
                 diversity: bool = False,
                 num_samples: int = 1,
@@ -294,7 +294,8 @@ class CounterfactualRLTabular(CounterfactualRLBase):
             Target labels.
         C
             List of conditional dictionaries. If `None`, it means that no conditioning was used during training
-            (i.e. the `conditional_func` returns `None`).
+            (i.e. the `conditional_func` returns `None`). If conditioning was used during training but no conditioning
+            is desired for the current input, an empty list is expected.
         diversity
             Whether to generate diverse counterfactual set for the given instance. Only supported for a single
             input instance.

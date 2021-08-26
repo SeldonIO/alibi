@@ -182,6 +182,12 @@ Key:
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ord.html)
 
+- Model-agnostic Counterfactual Explanations via RL([Samoilescu et al., 2021](https://arxiv.org/abs/2106.02597))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html)
+  - Examples:
+    [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cfrl_mnist.html),
+    [Adult income](https://docs.seldon.io/projects/alibi/en/latest/examples/cfrl_adult.html)
+
 - Integrated Gradients ([Sundararajan et al., 2017](https://arxiv.org/abs/1703.01365))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html),
   - Examples:

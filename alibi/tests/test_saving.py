@@ -409,7 +409,7 @@ def test_save_TreeShap(tree_explainer, rf_classifier, iris_data):
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
     X = iris_data['X_test']
-    exp0 = cfrl_explainer.explain(X=X, Y_t=np.array([0]))
+    exp0 = cfrl_explainer.explain(X=X, Y_t=np.array([0]), C=[])
 
     with tempfile.TemporaryDirectory() as temp_dir:
         # save explainer
@@ -420,16 +420,17 @@ def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
         cfrl_explainer1 = load_explainer(temp_dir, predictor=predictor)
         assert isinstance(cfrl_explainer1, CounterfactualRLTabular)
 
-        # check metadata. loading can change the class, so we have to remove the encoder, decoder, actor and critic
-        # see: https://www.tensorflow.org/api_docs/python/tf/saved_model/load for more details
-        # also have to remove the optimizers since those are not saved.
+        # Check metadata. Loading a model can change its class, so we have to remove the encoder, decoder,
+        # actor and critic metadata which are the class name.
+        # See: https://www.tensorflow.org/api_docs/python/tf/saved_model/load for more details.
+        # Also have to remove the optimizers and callbacks since those are not saved.
         keys_to_remove = ['encoder', 'decoder', 'actor', 'critic', 'optimizer_actor', 'optimizer_critic', 'callbacks']
         for key in keys_to_remove:
             cfrl_explainer.meta["params"].pop(key)
             cfrl_explainer1.meta["params"].pop(key)
         assert cfrl_explainer.meta == cfrl_explainer1.meta
 
-        exp1 = cfrl_explainer1.explain(X=X, Y_t=np.array([0]))
+        exp1 = cfrl_explainer1.explain(X=X, Y_t=np.array([0]), C=[])
         assert exp0.meta == exp1.meta
 
         # cfrl is determinstic

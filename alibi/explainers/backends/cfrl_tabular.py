@@ -1,5 +1,5 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning tabular class,
+This module contains utility functions for the Counterfactual with Reinforcement Learning tabular class,
 :py:class:`alibi.explainers.cfrl_tabular`, that are common for both Tensorflow and Pytorch backends.
 """
 
@@ -311,7 +311,7 @@ def sample_numerical(X_hat_num_split: List[np.ndarray],
     Returns
     -------
     X_ohe_hat_num
-        List of clamped input vectors according to the conditional vectors and the dictionary of statistics .
+        List of clamped input vectors according to the conditional vectors and the dictionary of statistics.
     """
     num_cols = X_hat_num_split[0].shape[1]  # number of numerical columns
     sorted_cols = sorted(stats.keys())  # ensure that the column ids are sorted
@@ -425,7 +425,7 @@ def sample(X_hat_split: List[np.ndarray],
 def get_he_preprocessor(X: np.ndarray,
                         feature_names: List[str],
                         category_map: Dict[int, List[str]],
-                        feature_types: Dict[str, type] = dict()
+                        feature_types: Dict[str, type] = None
                         ) -> Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]:
     """
     Heterogeneous dataset preprocessor. The numerical features are standardized and the categorical features
@@ -450,6 +450,9 @@ def get_he_preprocessor(X: np.ndarray,
     inv_preprocessor
         Inverse data preprocessor (e.g., `inv_preprocessor(preprocessor(x)) = x` )
     """
+    if feature_types is None:
+        feature_types = dict()
+
     # Separate columns in numerical and categorical
     categorical_ids = list(category_map.keys())
     numerical_ids = [i for i in range(len(feature_names)) if i not in category_map.keys()]
@@ -554,8 +557,8 @@ def get_numerical_conditional_vector(X: np.ndarray,
                                      feature_names: List[str],
                                      category_map: Dict[int, List[str]],
                                      stats: Dict[int, Dict[str, float]],
-                                     ranges: Dict[str, List[float]] = dict(),
-                                     immutable_features: List[str] = list(),
+                                     ranges: Dict[str, List[float]] = None,
+                                     immutable_features: List[str] = None,
                                      diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
@@ -597,6 +600,12 @@ def get_numerical_conditional_vector(X: np.ndarray,
     -------
         List of conditional vectors for each numerical feature.
     """
+    if ranges is None:
+        ranges = dict()
+
+    if immutable_features is None:
+        immutable_features = list()
+
     # Extract numerical features
     num_features_ids = [id for id in range(X.shape[1]) if id not in category_map]
     num_features_names = [feature_names[id] for id in num_features_ids]
@@ -665,7 +674,7 @@ def get_categorical_conditional_vector(X: np.ndarray,
                                        preprocessor: Callable[[np.ndarray], np.ndarray],
                                        feature_names: List[str],
                                        category_map: Dict[int, List[str]],
-                                       immutable_features: List[str] = list(),
+                                       immutable_features: List[str] = None,
                                        diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
@@ -699,6 +708,9 @@ def get_categorical_conditional_vector(X: np.ndarray,
     -------
         List of conditional vectors for each categorical feature.
     """
+    if immutable_features is None:
+        immutable_features = list()
+
     # Define conditional vector buffer
     C = []
 
@@ -741,8 +753,8 @@ def get_conditional_vector(X: np.ndarray,
                            feature_names: List[str],
                            category_map: Dict[int, List[str]],
                            stats: Dict[int, Dict[str, float]],
-                           ranges: Dict[str, List[float]] = dict(),
-                           immutable_features: List[str] = list(),
+                           ranges: Dict[str, List[float]] = None,
+                           immutable_features: List[str] = None,
                            diverse=False) -> np.ndarray:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
@@ -788,6 +800,12 @@ def get_conditional_vector(X: np.ndarray,
     -------
         Conditional vector.
     """
+    if ranges is None:
+        ranges = dict()
+
+    if immutable_features is None:
+        immutable_features = list()
+
     # Reshape the vector.
     X = X.reshape(1, -1) if len(X.shape) == 1 else X
 

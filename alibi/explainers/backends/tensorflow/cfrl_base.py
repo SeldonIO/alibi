@@ -1,5 +1,5 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base`, for the Tensorflow backend.
 """
 
@@ -300,7 +300,7 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
     Z_cf
         Counterfactual embedding.
     """
-    # Convert labels, targets and conditiont float32
+    # Convert labels, targets and condition float32
     Y_m = tf.cast(Y_m, dtype=tf.float32)
     Y_t = tf.cast(Y_t, dtype=tf.float32)
     C = tf.cast(C, dtype=tf.float32) if (C is not None) else C
@@ -643,7 +643,7 @@ def load_model(path: Union[str, os.PathLike]) -> keras.Model:
 
     Returns
     -------
-    Loaded model.
+        Loaded model.
     """
     return keras.models.load_model(path, compile=False)
 

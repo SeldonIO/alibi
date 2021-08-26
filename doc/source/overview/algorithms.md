@@ -18,6 +18,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
+|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
 |[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
@@ -64,6 +65,15 @@ interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb),
 [tabular example](../examples/cfproto_housing.nblink),
 [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb),
 [image classification](../examples/cfproto_mnist.ipynb).
+
+**Model-agnostic Counterfactual Explanations via RL**: transform the optimization procedure into an end-to-end 
+learnable process, allowing to generate batches of counterfactual instances in a single forward pass. The method 
+is model-agnostic (does not assume differentiability) and relies only on feedback from model predictions, allows for 
+generating target-conditional counterfactual instances, flexible feature range constraints for numerical and categorical
+attributes, including the immutability of protected features (e.g. gender, race) and can be easily extended to other 
+data modalities such as images. [Documentation](../methods/CFRL.ipynb), 
+[tabular_example](../examples/cfrl_adult.nblink),
+[image_classification](../examples/cfrl_mnist.nblink).
 
 **Integrated gradients**: attribute an importance score to each element of the input or an internal layer of the the model  
 with respect to a given baseline. The attributions are calculated as the path integral of the model gradients along a 

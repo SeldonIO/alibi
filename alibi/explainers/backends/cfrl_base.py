@@ -1,5 +1,5 @@
 """
-This module contains utility function for the Counterfactual with Reinforcement Learning base class,
+This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base`, that are common for both Tensorflow and Pytorch backends.
 """
 
@@ -56,7 +56,7 @@ def get_classification_reward(Y_pred: np.ndarray, Y_true: np.ndarray):
 
     Returns
     -------
-        Classification reward per instance. 1 if th most likely classes match, 0 otherwise.
+        Classification reward per instance. 1 if the most likely classes match, 0 otherwise.
     """
     if len(Y_pred.shape) != 2:
         raise ValueError("Prediction labels should be a 2D array for classification task.")
@@ -82,7 +82,7 @@ def get_hard_distribution(Y: np.ndarray, num_classes: Optional[int] = None) -> n
 
     Returns
     -------
-        Hard label distribution (one-hot encoding)
+        Hard label distribution (one-hot encoding).
     """
     if len(Y.shape) == 1 or (len(Y.shape) == 2 and Y.shape[1] == 1):
         if num_classes is None:

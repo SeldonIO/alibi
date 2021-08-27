@@ -605,7 +605,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
 
-    def fit(self, X: np.ndarray, ) -> "Explainer":
+    def fit(self, X: np.ndarray) -> "Explainer":
         """
         Fit the model agnostic counterfactual generator.
 
@@ -780,8 +780,8 @@ class CounterfactualRLBase(Explainer, FitMixin):
 
     def explain(self,
                 X: np.ndarray,
-                Y_t: np.ndarray = None,  # TODO: remove default value (mypy error)
-                C: Optional[Any] = None,
+                Y_t: np.ndarray = None,   # TODO: remove default value (mypy error. explanation in the validation step)
+                C: Optional[Any] = None,  # TODO: narrow down the type from `Any` (explanation in the validation step)
                 batch_size: int = 100) -> Explanation:
         """
         Explains an input instance
@@ -804,6 +804,13 @@ class CounterfactualRLBase(Explainer, FitMixin):
         corresponding labels, targets and additional metadata.
         """
         # General validation.
+        #
+        # If `Y_t` doesn't have the default value `None` I will get a warning saying that "Signature of method does not
+        # match the signature of class" (Liskov substitution principle). That's why `Y_t` can be None but None is not a
+        # valid value since the target must be specified.
+        #
+        # `C` can be in fact only `np.ndarray`, but for the tabular case a `Dict[str, List]` is expected.
+        # Similar behavior as in the previous comment.
         self._validate_target(Y_t)
         self._validate_condition(C)
 

@@ -319,3 +319,200 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
 
     # Construct explanation object.
     explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
+
+
+@pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])
+@pytest.mark.parametrize('dataset', [lazy_fixture("adult_data")])
+def test_sample_differentiable(dataset, backend):
+    SIZE = 100
+    feature_names = dataset["metadata"]["feature_names"]
+    category_map = dataset["metadata"].get("category_map", {})
+
+    # define number of numerical
+    num_features = len(feature_names) - len(category_map)
+
+    # define random autoencoder reconstruction
+    X_hat_split = []
+
+    # generate numerical feature reconstruction
+    X_hat_split.append(np.random.randn(SIZE, num_features).astype(np.float32))
+
+    # for each categorical feature generate random reconstruction
+    for cat_col in category_map:
+        X_hat_split.append(np.random.rand(SIZE, len(category_map[cat_col])).astype(np.float32))
+
+    if backend == "tensorflow":
+        from alibi.explainers.backends.tensorflow.cfrl_base import to_tensor, to_numpy
+        from alibi.explainers.backends.tensorflow.cfrl_tabular import sample_differentiable
+        device = None
+    else:
+        import torch
+        from alibi.explainers.backends.pytorch.cfrl_base import to_tensor, to_numpy
+        from alibi.explainers.backends.pytorch.cfrl_tabular import sample_differentiable
+        device = torch.device("cpu")
+
+    for i in range(len(X_hat_split)):
+        X_hat_split[i] = to_tensor(X_hat_split[i], device=device)
+
+    # sample output differentiable
+    X_ohe_split = sample_differentiable(X_hat_split, category_map)
+
+    # convert back to numpy arrays
+    X_ohe_split = to_numpy(X_ohe_split)
+    X_hat_split = to_numpy(X_hat_split)
+
+    # check if the numerical feature are unchanged
+    assert_allclose(X_ohe_split[0], X_hat_split[0])
+
+    # check the categorical ones
+    for i in range(1, len(X_ohe_split)):
+        assert np.all(np.argmax(X_ohe_split[i], axis=1) == np.argmax(X_hat_split[i], axis=1))
+        assert np.all(X_ohe_split[i][np.arange(SIZE), np.argmax(X_ohe_split[i], axis=1)] == 1)
+        assert np.all(np.sum(X_ohe_split[i], axis=1) == 1)
+
+
+@pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])
+@pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
+def test_l0_loss(reduction, backend):
+    NUM_CLASSES = 5
+    NUM_SAMPLES = 1000
+
+    def generate_random_labels():
+        y = np.random.randint(0, NUM_CLASSES, size=NUM_SAMPLES)
+        y_ohe = np.zeros((NUM_SAMPLES, NUM_CLASSES), dtype=np.float32)
+        y_ohe[np.arange(NUM_SAMPLES), y] = 1
+        assert np.all(np.sum(y_ohe, axis=1) == 1)
+        return y, y_ohe
+
+    y1, y1_ohe = generate_random_labels()
+    y2, y2_ohe = generate_random_labels()
+
+    if backend == 'tensorflow':
+        from alibi.explainers.backends.tensorflow.cfrl_base import to_tensor, to_numpy
+        from alibi.explainers.backends.tensorflow.cfrl_tabular import l0_ohe
+        device = None
+    else:
+        import torch
+        from alibi.explainers.backends.pytorch.cfrl_base import to_tensor, to_numpy
+        from alibi.explainers.backends.pytorch.cfrl_tabular import l0_ohe
+        device = torch.device("cpu")
+
+    y1_ohe, y2_ohe = to_tensor(y1_ohe, device=device), to_tensor(y2_ohe, device=device)
+    l0_ohe_loss = l0_ohe(y1_ohe, y2_ohe, reduction=reduction)
+    l0_ohe_loss = to_numpy(l0_ohe_loss)
+    l0_loss = (y1 != y2)
+
+    if reduction == 'none':
+        assert_allclose(l0_loss, l0_ohe_loss, atol=1e-5)
+    elif reduction == 'sum':
+        assert np.isclose(np.mean(l0_loss), l0_ohe_loss / NUM_SAMPLES)
+    else:
+        assert np.isclose(np.mean(l0_loss), l0_ohe_loss)
+
+
+@pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])
+@pytest.mark.parametrize('reduction', ['none', 'mean', 'sum'])
+def test_l1_loss(reduction, backend):
+    NUM_SAMPLES = 100
+    SIZE = 10
+
+    # generate random tensors
+    y1 = np.random.randn(NUM_SAMPLES, SIZE)
+    y2 = np.random.randn(NUM_SAMPLES, SIZE)
+
+    if backend == 'tensorflow':
+        from alibi.explainers.backends.tensorflow.cfrl_tabular import l1_loss
+        from alibi.explainers.backends.tensorflow.cfrl_base import to_tensor, to_numpy
+        device = None
+    else:
+        import torch
+        from alibi.explainers.backends.pytorch.cfrl_tabular import l1_loss
+        from alibi.explainers.backends.pytorch.cfrl_base import to_tensor, to_numpy
+        device = torch.device("cpu")
+
+    y1_tensor, y2_tensor = to_tensor(y1, device=device), to_tensor(y2, device=device)
+    l1_backend = l1_loss(y1_tensor, y2_tensor, reduction=reduction)
+    l1_backend = to_numpy(l1_backend)
+    l1 = np.abs(y1 - y2)
+
+    if reduction == 'none':
+        assert_allclose(l1, l1_backend)
+    elif reduction == 'sum':
+        assert np.isclose(np.sum(l1), l1_backend)
+    else:
+        assert np.isclose(np.mean(l1), l1_backend)
+
+
+@pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])
+def test_consistency_loss(backend):
+    NUM_SAMPLES = 100
+    SIZE = 10
+
+    z1 = np.random.randn(NUM_SAMPLES, SIZE)
+    z2 = np.random.randn(NUM_SAMPLES, SIZE)
+
+    if backend == 'tensorflow':
+        from alibi.explainers.backends.tensorflow.cfrl_tabular import consistency_loss
+        from alibi.explainers.backends.tensorflow.cfrl_base import to_tensor, to_numpy
+        device = None
+    else:
+        import torch
+        from alibi.explainers.backends.pytorch.cfrl_tabular import consistency_loss
+        from alibi.explainers.backends.pytorch.cfrl_base import to_tensor, to_numpy
+        device = torch.device("cpu")
+
+    z1_tensor, z2_tensor = to_tensor(z1, device=device), to_tensor(z2, device=device)
+    closs_backend = consistency_loss(z1_tensor, z2_tensor)["consistency_loss"]
+    closs_backend = to_numpy(closs_backend)
+    closs = np.mean((z1 - z2)**2)
+    assert np.isclose(closs, closs_backend)
+
+
+@pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])
+@pytest.mark.parametrize('dataset', [lazy_fixture("adult_data")])
+def test_sparsity_loss(dataset, backend):
+    SIZE = 100
+    feature_names = dataset["metadata"]["feature_names"]
+    category_map = dataset["metadata"].get("category_map", {})
+
+    # define number of numerical
+    num_features = len(feature_names) - len(category_map)
+
+    # define random autoencoder reconstruction and ohe
+    X_hat_split = []
+    X_ohe_split = []
+
+    # generate numerical feature reconstruction
+    X_num = np.random.randn(SIZE, num_features).astype(np.float32)
+    X_hat_split.append(X_num)
+    X_ohe_split.append(X_num)
+
+    # for each categorical feature generate random reconstruction
+    for cat_col in category_map:
+        X_cat = np.random.rand(SIZE, len(category_map[cat_col])).astype(np.float32)
+        X_hat_split.append(X_cat)
+
+        X_ohe_cat = np.zeros_like(X_cat)
+        X_ohe_cat[np.arange(SIZE), np.argmax(X_cat, axis=1)] = 1
+        X_ohe_split.append(X_ohe_cat)
+
+    if backend == 'tensorflow':
+        from alibi.explainers.backends.tensorflow.cfrl_tabular import sparsity_loss
+        from alibi.explainers.backends.tensorflow.cfrl_base import to_tensor, to_numpy
+        device = None
+    else:
+        import torch
+        from alibi.explainers.backends.pytorch.cfrl_tabular import sparsity_loss
+        from alibi.explainers.backends.pytorch.cfrl_base import to_tensor, to_numpy
+        device = torch.device('cpu')
+
+    for i in range(len(X_hat_split)):
+        X_hat_split[i] = to_tensor(X_hat_split[i], device=device)
+
+    X_ohe = np.concatenate(X_ohe_split, axis=1)
+    X_ohe = to_tensor(X_ohe, device=device)
+
+    losses = sparsity_loss(X_hat_split, X_ohe, category_map)
+    losses = {key: to_numpy(val) for key, val in losses.items()}
+    assert np.isclose(losses["sparsity_num_loss"], 0, atol=1e-5)
+    assert np.isclose(losses["sparsity_cat_loss"], 0, atol=1e-5)

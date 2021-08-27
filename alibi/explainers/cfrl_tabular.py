@@ -323,9 +323,25 @@ class CounterfactualRLTabular(CounterfactualRLBase):
                                    patience=patience,
                                    tolerance=tolerance)
 
+        # Get conditioning for a zero input. Used for a sanity check of the user-specified conditioning.
+        X_zeros = np.zeros((1, X.shape[1]))
+        C_zeros = self.params["conditional_func"](X_zeros)
+
         # If the conditional vector is `None`. This is equivalent of no conditioning at all, not even during training.
         if C is None:
+            # Check if the conditional function actually a `None` conditioning
+            if C_zeros is not None:
+                raise ValueError("A `None` conditioning is not a valid input when training with conditioning. "
+                                 "If no feature conditioning is desired for the given input, `C` is expected to be an "
+                                 "empty list. A `None` conditioning is valid only when no conditioning was used "
+                                 "during training (i.e. `conditional_func` returns `None`).")
+
             return super().explain(X=X, Y_t=Y_t, C=C, batch_size=batch_size)
+
+        elif C_zeros is None:
+            raise ValueError("Conditioning different than `None` is not a valid input when training without "
+                             "conditioning. If feature conditioning is desired, consider defining an appropriate "
+                             "`conditional_func` that does not return `None`.")
 
         # Define conditional vector if an empty list. This is equivalent of no conditioning, but the conditional
         # vector was used during training.

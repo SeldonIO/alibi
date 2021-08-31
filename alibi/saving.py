@@ -18,7 +18,7 @@ if TYPE_CHECKING:
         IntegratedGradients,
         KernelShap,
         TreeShap,
-        CounterfactualRLBase,
+        CounterfactualRL,
         CounterfactualRLTabular
     )
 
@@ -239,10 +239,10 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
     _simple_save(explainer, path)
 
 
-def _save_CounterfactualRLBase(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+def _save_CounterfactualRLBase(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
     from alibi.utils.frameworks import Framework
-    from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase._verify_backend(explainer.params["backend"])
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
 
     # get backend module
     backend = explainer.backend
@@ -322,15 +322,15 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
 
 def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
                                predictor: Callable,
-                               meta: dict) -> 'CounterfactualRLBase':
+                               meta: dict) -> 'CounterfactualRL':
     # load explainer
     with open(Path(path, "explainer.dill"), "rb") as f:
         explainer = dill.load(f)
 
     # load backend
     from alibi.utils.frameworks import Framework
-    from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase._verify_backend(explainer.params["backend"])
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
 
     # select backend module
     if explainer.params["backend"] == Framework.TENSORFLOW:
@@ -345,7 +345,7 @@ def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
     return _helper_load_CounterfactualRL(path, predictor, explainer)
 
 
-def _save_CounterfactualRLTabular(explainer: 'CounterfactualRLBase', path: Union[str, os.PathLike]) -> None:
+def _save_CounterfactualRLTabular(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
     _save_CounterfactualRLBase(explainer=explainer, path=path)
 
 
@@ -358,8 +358,8 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
     # load backend
     from alibi.utils.frameworks import Framework
-    from alibi.explainers import CounterfactualRLBase
-    CounterfactualRLBase._verify_backend(explainer.params["backend"])
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
 
     # select backend module
     if explainer.params["backend"] == Framework.TENSORFLOW:

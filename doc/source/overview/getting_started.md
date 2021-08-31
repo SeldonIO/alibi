@@ -28,7 +28,7 @@ alibi.explainers.__all__
  'CEM',
  'CounterFactual',
  'CounterFactualProto',
- 'CounterfactualRLBase',
+ 'CounterfactualRL',
  'CounterfactualRLTabular',
  'KernelShap',
  'plot_ale',

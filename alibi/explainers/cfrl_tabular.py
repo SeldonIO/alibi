@@ -1,6 +1,6 @@
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRLBase, Postprocessing, _PARAM_TYPES
+from alibi.explainers.cfrl_base import CounterfactualRL, Postprocessing, _PARAM_TYPES
 from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
 
 import numpy as np
@@ -99,7 +99,7 @@ class ConcatTabularPostprocessing(Postprocessing):
 _PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 
 
-class CounterfactualRLTabular(CounterfactualRLBase):
+class CounterfactualRLTabular(CounterfactualRL):
     """ Counterfactual Reinforcement Learning Tabular. """
 
     def __init__(self,

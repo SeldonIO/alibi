@@ -10,7 +10,7 @@ from .cem import CEM
 from .cfproto import CounterFactualProto
 from .counterfactual import CounterFactual
 from .integrated_gradients import IntegratedGradients
-from .cfrl_base import CounterfactualRLBase
+from .cfrl_base import CounterfactualRL
 from .cfrl_tabular import CounterfactualRLTabular
 
 __all__ = ["ALE",
@@ -21,7 +21,7 @@ __all__ = ["ALE",
            "CEM",
            "CounterFactual",
            "CounterFactualProto",
-           "CounterfactualRLBase",
+           "CounterfactualRL",
            "CounterfactualRLTabular",
            "plot_ale",
            "IntegratedGradients",

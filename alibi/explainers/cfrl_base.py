@@ -317,8 +317,8 @@ Parameter types for serialization
 """
 
 
-class CounterfactualRLBase(Explainer, FitMixin):
-    """ Counterfactual Reinforcement Learning Base. """
+class CounterfactualRL(Explainer, FitMixin):
+    """ Counterfactual Reinforcement Learning. """
 
     def __init__(self,
                  predictor: Callable,
@@ -363,7 +363,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
         backend = backend.strip().lower()
 
         # Verify backend installed
-        CounterfactualRLBase._verify_backend(backend)
+        CounterfactualRL._verify_backend(backend)
 
         # Select backend.
         self.backend = self._select_backend(backend, **kwargs)
@@ -396,7 +396,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             self.params["critic"].to(self.params["device"])
 
         # Update meta-data with all parameters passed (correct and incorrect).
-        self.meta["params"].update(CounterfactualRLBase._serialize_params(self.params))
+        self.meta["params"].update(CounterfactualRL._serialize_params(self.params))
 
     @staticmethod
     def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
@@ -422,10 +422,10 @@ class CounterfactualRLBase(Explainer, FitMixin):
             elif param in _PARAM_TYPES["complex"]:
                 if isinstance(value, list):
                     # each complex element in the list is serialized by replacing it with a name
-                    meta.update({param: [CounterfactualRLBase._get_name(v) for v in value]})
+                    meta.update({param: [CounterfactualRL._get_name(v) for v in value]})
                 else:
                     # complex element is serialized by replacing it with a name
-                    meta.update({param: CounterfactualRLBase._get_name(value)})
+                    meta.update({param: CounterfactualRL._get_name(value)})
             else:
                 # Unknown parameters are passed as they are. TODO: think of a better way to handle this.
                 meta.update({param: value})
@@ -600,7 +600,7 @@ class CounterfactualRLBase(Explainer, FitMixin):
             New predictor to be set.
         """
         self.params["predictor"] = predictor
-        self.meta["params"].update(CounterfactualRLBase._serialize_params(self.params))
+        self.meta["params"].update(CounterfactualRL._serialize_params(self.params))
 
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
@@ -1027,7 +1027,7 @@ class Callback(ABC):
     def __call__(self,
                  step: int,
                  update: int,
-                 model: CounterfactualRLBase,
+                 model: CounterfactualRL,
                  sample: Dict[str, np.ndarray],
                  losses: Dict[str, float]) -> None:
         """

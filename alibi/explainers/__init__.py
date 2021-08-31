@@ -21,10 +21,10 @@ __all__ = ["ALE",
            "CEM",
            "CounterFactual",
            "CounterFactualProto",
+           "CounterfactualRLBase",
+           "CounterfactualRLTabular",
            "plot_ale",
            "IntegratedGradients",
-           "CounterfactualRLBase",
-           "CounterfactualRLTabular"
            ]
 
 try:

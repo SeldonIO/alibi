@@ -27,9 +27,12 @@ alibi.explainers.__all__
  'AnchorImage',
  'CEM',
  'CounterFactual',
- 'CounterFactualProto'
+ 'CounterFactualProto',
+ 'CounterfactualRLBase',
+ 'CounterfactualRLTabular',
  'KernelShap',
- 'plot_ale'] 
+ 'plot_ale',
+ 'IntegratedGradients'] 
 ```
 
 For gauging model confidence:
@@ -51,6 +54,7 @@ For detailed information on the methods:
     * [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb)
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
+    * [Counterfactuals with RL](../methods/CFRL.ipynb)
     * [Kernel SHAP](../methods/KernelSHAP.ipynb)
     * [Integrated gradients](../methods/IntegratedGradients.ipynb)
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)

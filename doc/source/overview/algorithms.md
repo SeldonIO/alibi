@@ -66,7 +66,7 @@ interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb),
 [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb),
 [image classification](../examples/cfproto_mnist.ipynb).
 
-**Model-agnostic Counterfactual Explanations via RL**: transform the optimization procedure into an end-to-end 
+**Model-agnostic Counterfactual Explanations with RL**: transform the optimization procedure into an end-to-end 
 learnable process, allowing to generate batches of counterfactual instances in a single forward pass. The method 
 is model-agnostic (does not assume differentiability) and relies only on feedback from model predictions, allows for 
 generating target-conditional counterfactual instances, flexible feature range constraints for numerical and categorical

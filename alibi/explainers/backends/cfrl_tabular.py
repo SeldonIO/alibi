@@ -381,7 +381,7 @@ def sample(X_hat_split: List[np.ndarray],
     Parameters
     ----------
     X_hat_split
-        List of reconstructed columns form the auto-encoder. The categorical columns contain logits.
+        List of reconstructed columns from the auto-encoder. The categorical columns contain logits.
     X_ohe
         One-hot encoded representation of the input.
     C
@@ -397,8 +397,8 @@ def sample(X_hat_split: List[np.ndarray],
     Returns
     -------
     X_ohe_hat_split
-        Most probable reconstruction sample the autoencoder, sampled according to the conditional vector and the
-        dictionary of statistics. This method assumes that the input array, `X_ohe` , has the first columns
+        Most probable reconstruction sample according to the autoencoder, sampled according to the conditional vector
+        and the dictionary of statistics. This method assumes that the input array, `X_ohe` , has the first columns
         corresponding to the numerical features, and the rest are one-hot encodings of the categorical columns.
     """
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe, category_map)

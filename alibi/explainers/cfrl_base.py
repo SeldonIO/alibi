@@ -1041,7 +1041,7 @@ class Callback(ABC):
             Current update step. The ration between the number experience steps and the number of training updates is
             bound to 1.
         model
-            CounterfactualRLBase explainer. All the parameters defined in
+            CounterfactualRL explainer. All the parameters defined in
             :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS` can be accessed through 'model.params'.
         sample
             Dictionary of samples used for an update which contains
@@ -1075,7 +1075,7 @@ class Callback(ABC):
                 - ``'loss_critic'``: critic network loss.
 
                 - ``'sparsity_loss'``: sparsity loss for the \
-                :py:class:`alibi.explainers.cfrl_base.CounterfactualRLBase` class.
+                :py:class:`alibi.explainers.cfrl_base.CounterfactualRL` class.
 
                 - ``'sparsity_num_loss'``: numerical features sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.

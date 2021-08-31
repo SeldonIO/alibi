@@ -239,7 +239,7 @@ def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> Non
     _simple_save(explainer, path)
 
 
-def _save_CounterfactualRLBase(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
+def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
     from alibi.utils.frameworks import Framework
     from alibi.explainers import CounterfactualRL
     CounterfactualRL._verify_backend(explainer.params["backend"])
@@ -320,9 +320,9 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
     return explainer
 
 
-def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
-                               predictor: Callable,
-                               meta: dict) -> 'CounterfactualRL':
+def _load_CounterfactualRL(path: Union[str, os.PathLike],
+                           predictor: Callable,
+                           meta: dict) -> 'CounterfactualRL':
     # load explainer
     with open(Path(path, "explainer.dill"), "rb") as f:
         explainer = dill.load(f)
@@ -346,7 +346,7 @@ def _load_CounterfactualRLBase(path: Union[str, os.PathLike],
 
 
 def _save_CounterfactualRLTabular(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
-    _save_CounterfactualRLBase(explainer=explainer, path=path)
+    _save_CounterfactualRL(explainer=explainer, path=path)
 
 
 def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],

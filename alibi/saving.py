@@ -17,7 +17,9 @@ if TYPE_CHECKING:
         AnchorText,
         IntegratedGradients,
         KernelShap,
-        TreeShap
+        TreeShap,
+        CounterfactualRL,
+        CounterfactualRLTabular
     )
 
 from alibi.version import __version__
@@ -235,6 +237,141 @@ def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> 
 def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> None:
     # TODO: save internal shap objects using native pickle?
     _simple_save(explainer, path)
+
+
+def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
+    from alibi.utils.frameworks import Framework
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
+
+    # get backend module
+    backend = explainer.backend
+
+    # define extension
+    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
+
+    # save encoder and decoder (autoencoder components)
+    encoder = explainer.params["encoder"]
+    decoder = explainer.params["decoder"]
+    backend.save_model(path=Path(path, "encoder" + ext), model=explainer.params["encoder"])
+    backend.save_model(path=Path(path, "decoder" + ext), model=explainer.params["decoder"])
+
+    # save actor
+    actor = explainer.params["actor"]
+    optimizer_actor = explainer.params["optimizer_actor"]    # TODO: save the actor optimizer?
+    backend.save_model(path=Path(path, "actor" + ext), model=explainer.params["actor"])
+
+    # save critic
+    critic = explainer.params["critic"]
+    optimizer_critic = explainer.params["optimizer_critic"]  # TODO: save the critic optimizer?
+    backend.save_model(path=Path(path, "critic" + ext), model=explainer.params["critic"])
+
+    # save locally prediction function
+    predictor = explainer.params["predictor"]
+
+    # save callbacks
+    callbacks = explainer.params["callbacks"]  # TODO: what to do with the callbacks?
+
+    # set encoder, decoder, actor, critic, prediction_func, and backend to `None`
+    explainer.params["encoder"] = None
+    explainer.params["decoder"] = None
+    explainer.params["actor"] = None
+    explainer.params["critic"] = None
+    explainer.params["optimizer_actor"] = None
+    explainer.params["optimizer_critic"] = None
+    explainer.params["predictor"] = None
+    explainer.params["callbacks"] = None
+    explainer.backend = None
+
+    # Save explainer. All the pre/post-processing function will be saved in the explainer.
+    # TODO: find a better way? (I think this is ok if the functions are not too complex)
+    with open(Path(path, "explainer.dill"), 'wb') as f:
+        dill.dump(explainer, f)
+
+    # set back encoder, decoder, actor and critic back
+    explainer.params["encoder"] = encoder
+    explainer.params["decoder"] = decoder
+    explainer.params["actor"] = actor
+    explainer.params["critic"] = critic
+    explainer.params["optimizer_actor"] = optimizer_actor
+    explainer.params["optimizer_critic"] = optimizer_critic
+    explainer.params["predictor"] = predictor
+    explainer.params["callbacks"] = callbacks
+    explainer.backend = backend
+
+
+def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
+                                  predictor: Callable,
+                                  explainer):
+    # define extension
+    from alibi.utils.frameworks import Framework
+    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
+
+    # load the encoder and decoder (autoencoder components)
+    explainer.params["encoder"] = explainer.backend.load_model(Path(path, "encoder" + ext))
+    explainer.params["decoder"] = explainer.backend.load_model(Path(path, "decoder" + ext))
+
+    # load the actor and critic
+    explainer.params["actor"] = explainer.backend.load_model(Path(path, "actor" + ext))
+    explainer.params["critic"] = explainer.backend.load_model(Path(path, "critic" + ext))
+
+    # reset predictor
+    explainer.reset_predictor(predictor)
+    return explainer
+
+
+def _load_CounterfactualRL(path: Union[str, os.PathLike],
+                           predictor: Callable,
+                           meta: dict) -> 'CounterfactualRL':
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+
+    # load backend
+    from alibi.utils.frameworks import Framework
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
+
+    # select backend module
+    if explainer.params["backend"] == Framework.TENSORFLOW:
+        import alibi.explainers.backends.tensorflow.cfrl_base as backend
+    else:
+        import alibi.explainers.backends.pytorch.cfrl_base as backend  # type: ignore
+
+    # set explainer backend
+    explainer.backend = backend
+
+    # load the rest of the explainer
+    return _helper_load_CounterfactualRL(path, predictor, explainer)
+
+
+def _save_CounterfactualRLTabular(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:
+    _save_CounterfactualRL(explainer=explainer, path=path)
+
+
+def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
+                                  predictor: Callable,
+                                  meta: dict) -> 'CounterfactualRLTabular':
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+
+    # load backend
+    from alibi.utils.frameworks import Framework
+    from alibi.explainers import CounterfactualRL
+    CounterfactualRL._verify_backend(explainer.params["backend"])
+
+    # select backend module
+    if explainer.params["backend"] == Framework.TENSORFLOW:
+        import alibi.explainers.backends.tensorflow.cfrl_tabular as backend
+    else:
+        import alibi.explainers.backends.pytorch.cfrl_tabular as backend  # type: ignore
+
+    # set explainer backend
+    explainer.backend = backend
+
+    # load the rest of the explainer
+    return _helper_load_CounterfactualRL(path, predictor, explainer)
 
 
 class NumpyEncoder(json.JSONEncoder):

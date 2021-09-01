@@ -6,6 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import tempfile
 import tensorflow as tf
+from typing import List, Union
 
 from alibi.explainers import (
     ALE,
@@ -14,7 +15,8 @@ from alibi.explainers import (
     AnchorText,
     IntegratedGradients,
     KernelShap,
-    TreeShap
+    TreeShap,
+    CounterfactualRLTabular
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -109,6 +111,28 @@ def mnist_predictor():
 
 
 @pytest.fixture(scope='module')
+def iris_ae(iris_data):
+    from alibi.models.tensorflow.autoencoder import AE
+
+    # define encoder
+    encoder = tf.keras.Sequential([
+        tf.keras.layers.Dense(2),
+        tf.keras.layers.Activation('tanh')
+    ])
+
+    # define decoder
+    decoder = tf.keras.Sequential([
+        tf.keras.layers.Dense(4)
+    ])
+
+    # define autoencoder, compile and fit
+    ae = AE(encoder=encoder, decoder=decoder)
+    ae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.MeanSquaredError())
+    ae.fit(iris_data['X_train'], iris_data['X_train'], epochs=1)
+    return ae
+
+
+@pytest.fixture(scope='module')
 def ale_explainer(iris_data, lr_classifier):
     ale = ALE(predictor=lr_classifier.predict_proba,
               feature_names=iris_data['metadata']['feature_names'])
@@ -192,6 +216,52 @@ def tree_explainer(rf_classifier, iris_data):
                         feature_names=iris_data['metadata']['feature_names'])
     treeshap.fit(iris_data['X_train'])
     return treeshap
+
+
+@pytest.fixture(scope='module')
+def cfrl_explainer(rf_classifier, iris_ae, iris_data):
+    # define explainer constants
+    LATENT_DIM = 2
+    COEFF_SPARSITY = 0.1
+    COEFF_CONSISTENCY = 0.0
+    TRAIN_STEPS = 100
+    BATCH_SIZE = 100
+
+    # need to define a wrapper for the decoder to return a list of tensors
+    class DecoderList(tf.keras.Model):
+        def __init__(self, decoder: tf.keras.Model, **kwargs):
+            super().__init__(**kwargs)
+            self.decoder = decoder
+
+        def call(self, input: Union[tf.Tensor, List[tf.Tensor]], **kwargs):
+            return [self.decoder(input, **kwargs)]
+
+    # redefine the call method to return a list of tensors.
+    iris_ae.decoder = DecoderList(iris_ae.decoder)
+
+    # define predictor.
+    predictor = lambda x: rf_classifier[0].predict_proba(x)  # noqa: E731
+
+    # define explainer.
+    explainer = CounterfactualRLTabular(encoder=iris_ae.encoder,
+                                        decoder=iris_ae.decoder,
+                                        latent_dim=LATENT_DIM,
+                                        encoder_preprocessor=lambda x: x,
+                                        decoder_inv_preprocessor=lambda x: x,
+                                        predictor=predictor,
+                                        coeff_sparsity=COEFF_SPARSITY,
+                                        coeff_consistency=COEFF_CONSISTENCY,
+                                        category_map=iris_data["metadata"].get("category_map", dict()),
+                                        feature_names=iris_data["metadata"].get("feature_names"),
+                                        ranges=dict(),
+                                        immutable_features=[],
+                                        train_steps=TRAIN_STEPS,
+                                        batch_size=BATCH_SIZE,
+                                        backend="tensorflow")
+
+    # fit the explainer
+    explainer.fit(X=iris_data['X_train'])
+    return explainer
 
 
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -334,3 +404,35 @@ def test_save_TreeShap(tree_explainer, rf_classifier, iris_data):
 
         # TreeShap is deterministic
         assert_allclose(exp0.shap_values[0], exp1.shap_values[0])
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
+    X = iris_data['X_test']
+    exp0 = cfrl_explainer.explain(X=X, Y_t=np.array([0]), C=[])
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # save explainer
+        cfrl_explainer.save(temp_dir)
+
+        # define predictor and load the explainer
+        predictor = lambda x: rf_classifier[0].predict_proba(x)  # noqa: E731
+        cfrl_explainer1 = load_explainer(temp_dir, predictor=predictor)
+        assert isinstance(cfrl_explainer1, CounterfactualRLTabular)
+
+        # Check metadata. Loading a model can change its class, so we have to remove the encoder, decoder,
+        # actor and critic metadata which are the class name.
+        # See: https://www.tensorflow.org/api_docs/python/tf/saved_model/load for more details.
+        # Also have to remove the optimizers and callbacks since those are not saved.
+        keys_to_remove = ['encoder', 'decoder', 'actor', 'critic', 'optimizer_actor', 'optimizer_critic', 'callbacks']
+        for key in keys_to_remove:
+            cfrl_explainer.meta["params"].pop(key)
+            cfrl_explainer1.meta["params"].pop(key)
+        assert cfrl_explainer.meta == cfrl_explainer1.meta
+
+        exp1 = cfrl_explainer1.explain(X=X, Y_t=np.array([0]), C=[])
+        assert exp0.meta == exp1.meta
+
+        # cfrl is determinstic
+        assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32))
+        assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32))

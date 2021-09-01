@@ -123,6 +123,7 @@ The following tables summarize the possible use cases for each method.
 |[CEM](https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
 |[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
+|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
 |[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
@@ -180,6 +181,12 @@ Key:
     [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_housing.html),
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/latest/examples/cfproto_cat_adult_ord.html)
+
+- Model-agnostic Counterfactual Explanations via RL([Samoilescu et al., 2021](https://arxiv.org/abs/2106.02597))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html)
+  - Examples:
+    [MNIST](https://docs.seldon.io/projects/alibi/en/latest/examples/cfrl_mnist.html),
+    [Adult income](https://docs.seldon.io/projects/alibi/en/latest/examples/cfrl_adult.html)
 
 - Integrated Gradients ([Sundararajan et al., 2017](https://arxiv.org/abs/1703.01365))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html),

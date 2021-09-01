@@ -15,3 +15,7 @@ ray>=0.8.7, <2.0.0
 pre-commit>=1.20.0, <3.0.0
 tox>=3.21.0, <4.0.0 # used to generate licence info via `make licenses`
 twine>3.2.0, <4.0.0
+# pytorch
+torch>=1.9.0, <2.0.0
+torchvision>=0.2.2, <0.10.0
+

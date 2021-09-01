@@ -23,6 +23,7 @@
    methods/CEM.ipynb
    methods/CF.ipynb
    methods/CFProto.ipynb
+   methods/CFRL.ipynb
    methods/IntegratedGradients.ipynb
    methods/KernelSHAP.ipynb
    methods/LinearityMeasure.ipynb
@@ -47,6 +48,8 @@
    examples/cfproto_housing.ipynb
    examples/cfproto_cat_adult_ohe.ipynb
    examples/cfproto_cat_adult_ord.ipynb
+   examples/cfrl_mnist.ipynb
+   examples/cfrl_adult.ipynb
    examples/kernel_shap_wine_intro
    examples/kernel_shap_wine_lr
    examples/kernel_shap_adult_lr

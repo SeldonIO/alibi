@@ -6,7 +6,7 @@ import tensorflow as tf
 
 from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.explainers.counterfactual import _define_func
-from alibi.explainers import CounterFactual
+from alibi.explainers import Counterfactual
 
 
 @pytest.fixture
@@ -20,7 +20,7 @@ def logistic_iris():
 def cf_iris_explainer(request, logistic_iris):
     X, y, lr = logistic_iris
     predict_fn = lr.predict_proba
-    cf_explainer = CounterFactual(predict_fn=predict_fn, shape=(1, 4),
+    cf_explainer = Counterfactual(predict_fn=predict_fn, shape=(1, 4),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
 
@@ -30,7 +30,7 @@ def cf_iris_explainer(request, logistic_iris):
 
 @pytest.fixture
 def keras_mnist_cf_explainer(request, models):
-    cf_explainer = CounterFactual(predict_fn=models[0], shape=(1, 28, 28, 1),
+    cf_explainer = Counterfactual(predict_fn=models[0], shape=(1, 28, 28, 1),
                                   target_class=request.param, lam_init=1e-1, max_iter=1000,
                                   max_lam_steps=10)
     yield models[0], cf_explainer

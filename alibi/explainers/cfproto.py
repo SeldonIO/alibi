@@ -17,7 +17,18 @@ from alibi.utils.tf import argmax_grad, argmin_grad, one_hot_grad, round_grad
 logger = logging.getLogger(__name__)
 
 
-class CounterFactualProto(Explainer, FitMixin):
+class CounterFactualProto:
+    # TODO: remove this class in an upcoming release
+    warning_msg = 'The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.'
+    import warnings
+    warnings.warn(warning_msg, FutureWarning)
+
+    def __new__(cls, *args, **kwargs):
+        cls.warnings.warn(cls.warning_msg, FutureWarning)
+        return CounterfactualProto(*args, **kwargs)
+
+
+class CounterfactualProto(Explainer, FitMixin):
 
     def __init__(self,
                  predict: Union[Callable, tf.keras.Model],
@@ -644,7 +655,7 @@ class CounterFactualProto(Explainer, FitMixin):
 
     def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
             w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
-            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> "CounterFactualProto":
+            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> "CounterfactualProto":
         """
         Get prototypes for each class using the encoder or k-d trees.
         The prototypes are used for the encoder loss term or to calculate the optional trust scores.

@@ -31,8 +31,8 @@ thismodule = sys.modules[__name__]
 
 NOT_SUPPORTED = ["DistributedAnchorTabular",
                  "CEM",
-                 "CounterFactual",
-                 "CounterFactualProto"]
+                 "Counterfactual",
+                 "CounterfactualProto"]
 
 
 def load_explainer(path: Union[str, os.PathLike], predictor) -> 'Explainer':

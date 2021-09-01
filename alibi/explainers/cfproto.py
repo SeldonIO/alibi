@@ -17,15 +17,13 @@ from alibi.utils.tf import argmax_grad, argmin_grad, one_hot_grad, round_grad
 logger = logging.getLogger(__name__)
 
 
-class CounterFactualProto:
-    # TODO: remove this class in an upcoming release
+def CounterFactualProto(*args, **kwargs):
+    # TODO: remove this function in an upcoming release
     warning_msg = 'The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.'
     import warnings
     warnings.warn(warning_msg, FutureWarning)
 
-    def __new__(cls, *args, **kwargs):
-        cls.warnings.warn(cls.warning_msg, FutureWarning)
-        return CounterfactualProto(*args, **kwargs)
+    return CounterfactualProto(*args, **kwargs)
 
 
 class CounterfactualProto(Explainer, FitMixin):

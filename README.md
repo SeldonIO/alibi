@@ -8,7 +8,7 @@
 ![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue.svg)
 [![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
 ![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)
-[![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](https://join.slack.com/t/seldondev/shared_invite/zt-3wr7wfvl-LmRVGcwxsA47P9rPUYWcog)
+[![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](https://join.slack.com/t/seldondev/shared_invite/zt-vejg6ttd-ksZiQs3O_HOtPQsen_labg)
 ---
 [Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation.
 The focus of the library is to provide high-quality implementations of black-box, white-box, local and global

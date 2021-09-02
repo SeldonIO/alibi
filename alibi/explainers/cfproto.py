@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 
 
 def CounterFactualProto(*args, **kwargs):
+    """
+    The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.
+    """
     # TODO: remove this function in an upcoming release
     warning_msg = 'The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.'
     import warnings

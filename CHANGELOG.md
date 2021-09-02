@@ -1,5 +1,21 @@
 # Change Log
 
+## [v0.6.1](https://github.com/SeldonIO/alibi/tree/v0.6.1) (2021-09-02)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.0...v0.6.1)
+
+### Added
+- **New feature** An implementation of [Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning](https://arxiv.org/abs/2106.02597) is now available via `alibi.explainers.CounterfactualRL` and `alibi.explainers.CounterfactualRLTabular` classes. The method is model-agnostic and the implementation is written in both PyTorch and TensorFlow. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html) for more information.
+
+### Changed
+- **Future breaking change** The names of `CounterFactual` and `CounterFactualProto` classes have been changed to `Counterfactual` and `CounterfactualProto` respectively for consistency and correctness. The old class names continue working for now but emit a deprecation warning message and will be removed in an upcoming version.
+- `dill` behaviour was changed to not extend the `pickle` protocol so that standard usage of `pickle` in a session with `alibi` does not change expected `pickle` behaviour. See [discussion](https://github.com/SeldonIO/alibi/issues/447).
+- `AnchorImage` internals refactored to avoid persistent state between `explain` calls.
+
+### Development
+- A PR checklist is available under [CONTRIBUTING.md](../CONTRIBUTING.md#pr-checklist). In the future many of these may be turned into automated checks.
+- `pandoc` version for docs building updated to `1.19.2` which is what is used on `readthedocs`.
+- Citation updated to the JMLR paper.
+
 ## [v0.6.0](https://github.com/SeldonIO/alibi/tree/v0.6.0) (2021-07-08)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.8...v0.6.0)
 

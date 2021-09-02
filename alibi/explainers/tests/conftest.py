@@ -337,7 +337,7 @@ def pytest_collection_modifyitems(config, items):
 def disable_tf2():
     """
     Fixture for disabling TF2.x functionality for test functions which
-    rely on TF1.x style code (CounterFactual, CEM, CFProto).
+    rely on TF1.x style code (Counterfactual, CEM, CounterfactualProto).
 
     Because of restrictions in TF, the teardown does not contain code
     to enable v2 behaviour back. Instead, we need to run two sets of

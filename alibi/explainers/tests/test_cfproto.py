@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import tensorflow as tf
 from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
-from alibi.explainers import CounterFactualProto
+from alibi.explainers import CounterfactualProto
 from alibi.utils.mapping import ohe_to_ord, ord_to_num
 
 
@@ -15,7 +15,7 @@ def tf_keras_iris_explainer(request, models, iris_data):
         enc = None
 
     shape = (1, 4)
-    cf_explainer = CounterFactualProto(model, shape, gamma=100, theta=100,
+    cf_explainer = CounterfactualProto(model, shape, gamma=100, theta=100,
                                        ae_model=ae, enc_model=enc, use_kdtree=request.param[0],
                                        max_iterations=1000, c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(X_train.min(axis=0).reshape(shape),
@@ -86,7 +86,7 @@ def test_tf_keras_iris_explainer(disable_tf2, iris_data, tf_keras_iris_explainer
 def tf_keras_adult_explainer(request, models, adult_data):
     shape = (1, 57)
     cat_vars_ohe = adult_data['metadata']['cat_vars_ohe']
-    cf_explainer = CounterFactualProto(models[0], shape, beta=.01, cat_vars=cat_vars_ohe, ohe=True,
+    cf_explainer = CounterfactualProto(models[0], shape, beta=.01, cat_vars=cat_vars_ohe, ohe=True,
                                        use_kdtree=request.param[0], max_iterations=1000,
                                        c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12))))

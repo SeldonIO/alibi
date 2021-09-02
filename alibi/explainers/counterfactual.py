@@ -60,7 +60,19 @@ def _define_func(predict_fn: Callable,
     return func, target_class
 
 
-class CounterFactual(Explainer):
+def CounterFactual(*args, **kwargs):
+    """
+    The class name `CounterFactual` is deprecated, please use `Counterfactual`.
+    """
+    # TODO: remove this function in an upcoming release
+    warning_msg = 'The class name `CounterFactual` is deprecated, please use `Counterfactual`.'
+    import warnings
+    warnings.warn(warning_msg, FutureWarning)
+
+    return Counterfactual(*args, **kwargs)
+
+
+class Counterfactual(Explainer):
 
     def __init__(self,
                  predict_fn: Union[Callable, tf.keras.Model],
@@ -288,7 +300,7 @@ class CounterFactual(Explainer):
 
     def fit(self,
             X: np.ndarray,
-            y: Optional[np.ndarray]) -> "CounterFactual":
+            y: Optional[np.ndarray]) -> "Counterfactual":
         """
         Fit method - currently unused as the counterfactual search is fully unsupervised.
 

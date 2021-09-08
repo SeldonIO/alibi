@@ -19,6 +19,10 @@ build_docs:
 	# sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
 	$(MAKE) -C doc html
 
+.PHONY: build_latex
+build_latex: ## Build the documentation into a pdf
+	$(MAKE) -C doc latexpdf
+
 .PHONY: clean_docs
 clean_docs:
 	$(MAKE) -C doc clean

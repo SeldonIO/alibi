@@ -17,12 +17,12 @@ mypy:
 .PHONY: build_docs
 build_docs:
 	# readthedocs.org build command
-	python -m sphinx -T -b html -d _build/doctrees -D language=en doc/source  doc/_build/html
+	sphinx-build -T -b html -d _build/doctrees -D language=en doc/source  doc/_build/html
 
 .PHONY: build_latex
 build_latex: ## Build the documentation into a pdf
 	# readthedocs.org build command
-	python -m sphinx -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex
+	sphinx-build -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex
 	latexmk -pdf -f -dvi- -ps- -jobname-alibi -interaction=nonstopmode doc/_build/latex/*
 
 .PHONY: clean_docs

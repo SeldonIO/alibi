@@ -63,19 +63,25 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Create and activate virtualenv to use for docs build
+      - name: Setup tmate session for debugging
+        uses: mxschmitt/action-tmate@v3
+        with:
+          limit-access-to-actor: true
+      - name: Create a virtualenv to use for docs build
         run: |
           python3.8 -m virtualenv $HOME/docs
-          . $HOME/docs/bin/activate
       - name: Install dependencies
         run: |
+          . $HOME/docs/bin/activate
           python -m pip install -r requirements/docs.txt
           python -m pip freeze
       - name: Build documentation to html
         run: |
+          . $HOME/docs/bin/activate
           make build_docs
       - name: Build documentation to pdf via latex
         run: |
+          . $HOME/docs/bin/activate
           make build_latex
 
   licenses:

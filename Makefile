@@ -23,7 +23,7 @@ build_docs:
 build_latex: ## Build the documentation into a pdf
 	# readthedocs.org build command
 	python -m sphinx -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex
-	latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode -cd doc/_build/latex
+	latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode -cd doc/_build/latex/alibi.tex
 
 .PHONY: clean_docs
 clean_docs:

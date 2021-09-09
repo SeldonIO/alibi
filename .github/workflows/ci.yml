@@ -63,10 +63,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: Create virtualenv to use for docs build
+      - name: Create and activate virtualenv to use for docs build
         run: |
           python3.8 -m virtualenv $HOME/docs
-          alias python=$HOME/docs/bin/python
+          source $HOME/docs/bin/activate
       - name: Install dependencies
         run: |
           python -m pip install -r requirements/docs.txt

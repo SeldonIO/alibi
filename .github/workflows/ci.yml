@@ -67,6 +67,7 @@ jobs:
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
+          sudo: false
       - name: Create a virtualenv to use for docs build
         run: |
           python3.8 -m virtualenv $HOME/docs

@@ -22,8 +22,10 @@ build_docs:
 .PHONY: build_latex
 build_latex: ## Build the documentation into a pdf
 	# readthedocs.org build command
-	python -m sphinx -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex
-	latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode -cd doc/_build/latex/alibi.tex
+	# explicit cd here due to a bug in latexmk 4.41
+	python -m sphinx -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex && \
+	cd doc/_build/latex && \
+	latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode
 
 .PHONY: clean_docs
 clean_docs:

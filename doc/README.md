@@ -19,10 +19,6 @@ to install this is using conda:
 
 Note: the older version of pandoc is used because this is available on `readthedocs.org` where we host our docs, the newer version fixes a lot of bugs, but using a newer version locally is misleading as to whether the docs will render properly on RTD, also see [gotchas](#gotchas-when-writing-notebooks-as-examples).
 
-Finally install the `alibi` package:
-
-`make -C .. install`
-
 We are now ready to build the docs:
 
 `make html`

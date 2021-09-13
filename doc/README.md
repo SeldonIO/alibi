@@ -21,9 +21,9 @@ Note: the older version of pandoc is used because this is available on `readthed
 
 We are now ready to build the docs:
 
-`make html`
+`make -C .. build_docs`
 
-Note this can take some time as some of the notebooks may be executed
+This calls the sphinx html builder command defined in the main repo [Makefile](../Makefile). Note this can take some time as some of the notebooks may be executed
 during the build process. The resulting documentation is located in the
 `_build` directory with `_build/html/index.html` marking the homepage.
 

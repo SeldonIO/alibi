@@ -19,15 +19,11 @@ to install this is using conda:
 
 Note: the older version of pandoc is used because this is available on `readthedocs.org` where we host our docs, the newer version fixes a lot of bugs, but using a newer version locally is misleading as to whether the docs will render properly on RTD, also see [gotchas](#gotchas-when-writing-notebooks-as-examples).
 
-Finally install the `alibi` package:
-
-`make -C .. install`
-
 We are now ready to build the docs:
 
-`make html`
+`make -C .. build_docs`
 
-Note this can take some time as some of the notebooks may be executed
+This calls the sphinx html builder command defined in the main repo [Makefile](../Makefile). Note this can take some time as some of the notebooks may be executed
 during the build process. The resulting documentation is located in the
 `_build` directory with `_build/html/index.html` marking the homepage.
 
@@ -61,6 +57,6 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.
 * Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==1.19.2` used both on CI and `readthedocs.org` machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
 * Avoid using underscores in alternative text for images, e.g. instead of `![my_pic](my_pic.png)` use `![my-pic](my_pic.png)`, this is due to the old version of `pandoc==1.19.2` used on `reathedocs.org`.
-* When embedding images in notebooks which are linked to via a `.nblink` file, an `extra-media` key needs to be added in the `.nblink` file. See the [nbsphinx-link](https://github.com/vidartf/nbsphinx-link) docs, or [alibi_detect_deploy.nblink](https://github.com/SeldonIO/alibi-detect/blob/master/doc/source/examples/alibi_detect_deploy.nblink) for an example in alibi-detect.
 * Avoid nesting markdown markups, e.g. italicising a hyperlink, this might not render
+* ~~When embedding images in notebooks which are linked to via a `.nblink` file, an `extra-media` key needs to be added in the `.nblink` file. See the [nbsphinx-link](https://github.com/vidartf/nbsphinx-link) docs, or [alibi_detect_deploy.nblink](https://github.com/SeldonIO/alibi-detect/blob/master/doc/source/examples/alibi_detect_deploy.nblink) for an example in alibi-detect.~~ Prefer using the following to produce self-contained notebooks:
 * To add a static image to an example, use the syntax `![my-image.png](attachment:my_image.png)`. Ensure the image is located in the `examples/` folder. This will embed the actual binary image into the example notebook so that the notebook is self-contained and renders properly on the static docs.

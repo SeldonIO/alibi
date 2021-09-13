@@ -55,22 +55,30 @@ jobs:
 
   docs:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
+
+    container:
+      image: readthedocs/build:latest
+      options: --user root
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
+      - name: Create a virtualenv to use for docs build
+        run: |
+          python3.8 -m virtualenv $HOME/docs
       - name: Install dependencies
         run: |
-          sudo apt-get install pandoc
-          pip install -r requirements/docs.txt
-          pip freeze
-      - name: Build documentation
+          . $HOME/docs/bin/activate
+          python -m pip install -r requirements/docs.txt
+          python -m pip freeze
+      - name: Build documentation to html
         run: |
+          . $HOME/docs/bin/activate
           make build_docs
+      - name: Build documentation to pdf via latex
+        run: |
+          . $HOME/docs/bin/activate
+          make build_latex
 
   licenses:
 

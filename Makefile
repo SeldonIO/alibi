@@ -16,8 +16,16 @@ mypy:
 
 .PHONY: build_docs
 build_docs:
-	# sphinx-apidoc -o doc/source/api alibi '**/*test*' -M
-	$(MAKE) -C doc html
+	# readthedocs.org build command
+	python -m sphinx -T -b html -d _build/doctrees -D language=en doc/source  doc/_build/html
+
+.PHONY: build_latex
+build_latex: ## Build the documentation into a pdf
+	# readthedocs.org build command
+	# explicit cd here due to a bug in latexmk 4.41
+	python -m sphinx -b latex -d _build/doctrees -D language=en doc/source doc/_build/latex && \
+	cd doc/_build/latex && \
+	latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode
 
 .PHONY: clean_docs
 clean_docs:

@@ -2,7 +2,7 @@
 # core dependencies
 sphinx>=2.1.2, <3.0.0 # m2r breaks with sphinx 3.0
 sphinx-autodoc-typehints>=1.6.0, <1.11.0 # later versions depend on sphinx 3.0
-sphinx-rtd-theme>=0.5.2, <0.6.0
+sphinx-rtd-theme>=0.5.2, <1.1.0
 m2r>=0.2.1, <0.3.0 # TODO: unmaintained, deprecate (currently useful for `mdinclude` directive)
 sphinxcontrib-apidoc>=0.3.0, <0.4.0
 nbsphinx>=0.8.5, <0.9.0

@@ -13,6 +13,7 @@ on:
       - master
     paths:
       - 'examples/**/*.ipynb'
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   test_single_notebook:

@@ -50,8 +50,8 @@ jobs:
           pip install --upgrade pip setuptools
           pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
           pip install --upgrade --upgrade-strategy eager -e .
-          pip install --upgrade --upgrade-strategy-eager -e .[examples]
-          pip install --upgrade --upgrade-strategy-eager -e .[ray]
+          pip install --upgrade --upgrade-strategy eager -e .[examples]
+          pip install --upgrade --upgrade-strategy eager -e .[ray]
           pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
           pip freeze

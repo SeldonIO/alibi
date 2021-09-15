@@ -6,9 +6,13 @@ on:
   push:
     branches:
       - master
+    paths:
+      - 'examples/**/*.ipynb'
   pull_request:
     branches:
       - master
+    paths:
+      - 'examples/**/*.ipynb'
 
 jobs:
   test_single_notebook:
@@ -27,7 +31,6 @@ jobs:
       - name: Setup tmate debugging session
         uses: mxschmitt/action-tmate@v3
         with:
-          sudo: false
           limit-access-to-actor: true
 
       - name: Check for new or changed .ipynb files
@@ -38,6 +41,7 @@ jobs:
             examples/*.ipynb
 
       - name: Set up Python ${{ matrix.python-version }}
+        if: steps.changed-ipynb.outputs.any_changed == 'true'
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}

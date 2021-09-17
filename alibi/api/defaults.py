@@ -7,7 +7,8 @@ Explainer class.
 DEFAULT_META_ANCHOR = {"name": None,
                        "type": ["blackbox"],
                        "explanations": ["local"],
-                       "params": {}}
+                       "params": {},
+                       "version": None}
 """
 Default anchor metadata.
 """
@@ -33,7 +34,8 @@ Default anchor image data.
 DEFAULT_META_CEM = {"name": None,
                     "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
-                    "params": {}}
+                    "params": {},
+                    "version": None}
 """
 Default CEM metadata.
 """
@@ -54,7 +56,8 @@ Default CEM data.
 DEFAULT_META_CF = {"name": None,
                    "type": ["blackbox", "tensorflow", "keras"],
                    "explanations": ["local"],
-                   "params": {}}
+                   "params": {},
+                   "version": None}
 """
 Default counterfactual metadata.
 """
@@ -72,7 +75,8 @@ Default counterfactual data.
 DEFAULT_META_CFP = {"name": None,
                     "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
-                    "params": {}}
+                    "params": {},
+                    "version": None}
 """
 Default counterfactual prototype metadata.
 """
@@ -108,7 +112,8 @@ DEFAULT_META_KERNEL_SHAP = {
     "type": ["blackbox"],
     "task": None,
     "explanations": ["local", "global"],
-    "params": dict.fromkeys(KERNEL_SHAP_PARAMS)
+    "params": dict.fromkeys(KERNEL_SHAP_PARAMS),
+    "version": None
 }  # type: dict
 """
 Default KernelShap metadata.
@@ -135,7 +140,8 @@ DEFAULT_META_ALE = {
     "name": None,
     "type": ["blackbox"],
     "explanations": ["global"],
-    "params": {}
+    "params": {},
+    "version": None
 }  # type: dict
 """
 Default ALE metadata.
@@ -174,7 +180,8 @@ DEFAULT_META_TREE_SHAP = {
     "type": ["whitebox"],
     "task": None,  # updates with 'classification' or 'regression'
     "explanations": ["local", "global"],
-    "params": dict.fromkeys(TREE_SHAP_PARAMS)
+    "params": dict.fromkeys(TREE_SHAP_PARAMS),
+    "version": None
 }  # type: dict
 """
 Default TreeShap metadata.
@@ -205,7 +212,8 @@ DEFAULT_META_INTGRAD = {
     "name": None,
     "type": ["whitebox"],
     "explanations": ["local"],
-    "params": {}
+    "params": {},
+    "version": None
 }  # type: dict
 """
 Default IntegratedGradients metadata.
@@ -223,11 +231,11 @@ DEFAULT_DATA_INTGRAD = {
 Default IntegratedGradients data.
 """
 
-
 DEFAULT_META_CFRL = {"name": None,
                      "type": ["blackbox"],
                      "explanations": ["local"],
-                     "params": {}}  # type: dict
+                     "params": {},
+                     "version": None}  # type: dict
 """
 Default CounterfactualRL metadata.
 """

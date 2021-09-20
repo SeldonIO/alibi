@@ -38,5 +38,5 @@ jobs:
 
       - name: Run notebooks
         run: |
-          pytest --nbmake examples/**/*.ipynb
+          pytest --nbmake examples/*.ipynb
 #          pytest -rA --durations=0 -vv testing/test_notebooks.py

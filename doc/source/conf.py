@@ -49,13 +49,12 @@ extensions = [
     'sphinx.ext.mathjax',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    #'recommonmark',
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
     'nbsphinx',
     'nbsphinx_link',  # for linking notebooks from outside sphinx source root
-    'm2r'
+    'myst_parser'
 ]
 
 # nbsphinx settings
@@ -281,3 +280,17 @@ r"""
         """ +
 git_rev + r"{{ docpath }}"
 )
+
+# -- myst-parser configuration -----------------------------------------------
+# See https://myst-parser.readthedocs.io/en/latest/syntax/optional.html for 
+# details of available extensions.
+myst_enable_extensions = [
+    "dollarmath",
+    "colon_fence",
+    "smartquotes",
+    "tasklist",
+    "html_image",
+]
+# Create heading anchors for h1 to h3 (useful for local toc's)
+myst_heading_anchors = 3
+

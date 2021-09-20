@@ -62,7 +62,7 @@ For detailed information on the methods:
 
 ## Basic Usage
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
-fit and explain steps. We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data)
+fit and explain steps. We will use the [Anchor method on tabular data](/methods/Anchors.ipynb#Tabular-Data)
 to illustrate the API.
 
 First, we import the explainer:

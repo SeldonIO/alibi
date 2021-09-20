@@ -13,7 +13,7 @@ The following table summarizes the capabilities of the current algorithms:
 
 |Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Dist.|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
-|[ALE](../methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
+|[ALE](../methods/ALE.ipynb)|BB|global|✔|✔|✔| | | |✔| |
 |[Anchors](../methods/Anchors.ipynb)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |

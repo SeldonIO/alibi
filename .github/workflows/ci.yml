@@ -43,8 +43,8 @@ jobs:
           mypy alibi
       - name: Test with pytest
         run: |
-          pytest -m tf1
-          pytest -m "not tf1"
+          pytest -m tf1 alibi
+          pytest -m "not tf1" alibi
       - name: Upload coverage to Codecov
         if: ${{ success() }}
         run: |

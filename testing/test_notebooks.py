@@ -1,3 +1,8 @@
+"""
+This script is an example of using `jupytext` to execute notebooks for testing instead of relying on `nbmake`
+plugin. This approach may be more flexible if our requirements change in the future.
+"""
+
 import argparse
 import glob
 import pytest

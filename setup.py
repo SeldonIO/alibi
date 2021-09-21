@@ -10,7 +10,7 @@ def readme():
 exec(open('alibi/version.py').read())
 
 extras_require = {
-    'examples': ['seaborn>=0.9.0', 'xgboost>=0.90'],
+    'examples': ['seaborn>=0.9.0', 'xgboost>=0.90', 'ipywidgets>=7.6'],
     'ray': ['ray>=0.8.7, <2.0.0'],  # from requirements/dev.txt
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [

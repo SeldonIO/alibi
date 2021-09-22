@@ -2,7 +2,7 @@ import abc
 import json
 import os
 from collections import ChainMap
-from typing import Any, ClassVar, Union
+from typing import Any, Union
 import logging
 from functools import partial
 import pprint
@@ -22,6 +22,7 @@ def default_meta() -> dict:
         "type": [],
         "explanations": [],
         "params": {},
+        "version": None,
     }
 
 
@@ -67,12 +68,12 @@ class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
-    _version: ClassVar[str] = __version__
     meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
 
     def __attrs_post_init__(self):
-        # add a name to the metadata dictionary
+        # add a name and version to the metadata dictionary
         self.meta["name"] = self.__class__.__name__
+        self.meta["version"] = __version__
 
         # expose keys stored in self.meta as attributes of the class.
         for key, value in self.meta.items():

@@ -51,6 +51,8 @@ jobs:
           pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
           pip freeze
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: Run notebooks
         # The following line builds the test case string to be passed to pytest by stripping the directory 'examples/',
         # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.

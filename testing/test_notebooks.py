@@ -21,9 +21,13 @@ ALL_NOTEBOOKS = {Path(x).name for x in glob.glob('examples/*.ipynb')}
 # These are typically those that would take too long to run in a CI environment or impractical
 # due to other dependencies (e.g. downloading large datasets
 EXCLUDE_NOTEBOOKS = {
-    'test-exclude.ipynb'
+    # the following are all long-running
+    'cem_mnist.ipynb',
+    'cfrl_mnist.ipynb',
+    'cfrl_adult.ipynb',
+    'cfproto_mnist.ipynb',
+    'xgboost_model_fitting_adult.ipynb',
 }
-
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 
 

@@ -54,8 +54,10 @@ jobs:
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
       - name: Run notebooks
+        env:
+          FILES: ${{ steps.changed-ipynb.outputs.all_modified_files }}
         # The following line builds the test case string to be passed to pytest by stripping the directory 'examples/',
         # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
         run: |
-          tests="test_notebook_execution[$(echo ${{ steps.changed-ipynb.outputs.all_modified_files }} | sed 's/examples\///g' | sed 's/ / or /g')]" &&
+          tests="test_notebook_execution[$(echo ${FILES} | sed 's/examples\///g' | sed 's/ / or /g')]" &&
           pytest --collect-only testing/test_notebooks.py -k $tests

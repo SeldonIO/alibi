@@ -51,8 +51,6 @@ jobs:
           pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
           pip freeze
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
       - name: Run notebooks
         env:
           FILES: ${{ steps.changed-ipynb.outputs.all_modified_files }}
@@ -60,4 +58,4 @@ jobs:
         # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
         run: |
           tests="test_notebook_execution[$(echo ${FILES} | sed 's/examples\///g' | sed 's/ / or /g')]" &&
-          pytest --collect-only testing/test_notebooks.py -k $tests
+          pytest --collect-only testing/test_notebooks.py -k "$tests"

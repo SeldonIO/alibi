@@ -13,7 +13,7 @@ on:
       - master
     paths:
       - 'examples/**/*.ipynb'
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [ opened, synchronize, reopened, ready_for_review ]
 
 jobs:
   test_changed_notebooks:
@@ -53,7 +53,7 @@ jobs:
           pip freeze
       - name: Run notebooks
         run: |
-          pytest --nbmake `echo ${{ steps.changed-ipynb.outputs.all_modified_files }}`
-#          for file in "${{ steps.changed-ipynb.outputs.all_modified_files }}"; do
-#            python testing/test_notebooks.py $file
-#          done
+        # The following line builds the test case string to be passed to pytest by stripping the directory 'examples/',
+        # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
+          tests="test_notebook_execution[${echo ${{ steps.changed-ipynb.outputs.all_modified_files }} | sed 's/examples\///g' | sed 's/ / or /g'}]" &&
+          pytest --collect-only testing/test_notebooks.py -k $tests

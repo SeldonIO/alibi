@@ -29,8 +29,8 @@ errors, the commit will fail and you will see the changes that need to be made.
 We use `pytest` to run tests.
 Because `alibi` uses some TensorFlow 1.x constructs, to run all tests you need to invoke `pytest` twice as follows:
 ```bash
-pytest -m tf1
-pytest -m "not tf1"
+pytest -m tf1 alibi
+pytest -m "not tf1 alibi"
 ```
 [see also here](https://github.com/SeldonIO/alibi/blob/4d4f49e07263b20a25f552a8485844dc12281074/.github/workflows/ci.yml#L46-L47).
 It is not necessary to run the whole test suite locally for every PR as this can take a long time, it is enough to run `pytest`

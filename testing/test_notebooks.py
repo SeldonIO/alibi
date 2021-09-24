@@ -22,11 +22,16 @@ ALL_NOTEBOOKS = {Path(x).name for x in glob.glob('examples/*.ipynb')}
 # due to other dependencies (e.g. downloading large datasets
 EXCLUDE_NOTEBOOKS = {
     # the following are all long-running
-    'cem_mnist.ipynb',
+    'anchor_text_movie.ipynb',  # `autoregressive` filling example
+    'cem_mnist.ipynb',  # black-box example
     'cfrl_mnist.ipynb',
     'cfrl_adult.ipynb',
-    'cfproto_mnist.ipynb',
-    'xgboost_model_fitting_adult.ipynb',
+    'cfproto_mnist.ipynb',  # black-box example
+    'distributed_kernel_shap_adult_lr.ipynb',  # sequential explainer cell
+    'interventional_tree_shap_adult_xgb.ipynb',  # comparison with KernelShap
+    'kernel_shap_adult_lr.ipynb',  # slow to explain 128 instances
+    'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning
+    'integrated_gradients_transformers.ipynb',  # forward pass through BERT to get embeddings is very slow
 }
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 

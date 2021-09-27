@@ -4,9 +4,9 @@ name: test_all_notebooks
 
 on:
   # Trigger the workflow on manual dispatch and once a week
-  workflow_dispatch
-  # schedule:
-  #  - cron: '0 0 * * 0'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
 
 jobs:
   test_notebooks:
@@ -38,5 +38,4 @@ jobs:
 
       - name: Run notebooks
         run: |
-          pytest --nbmake examples/*.ipynb
-#          pytest -rA --durations=0 -vv testing/test_notebooks.py
+          pytest --no-cov -rA --durations=0 -vv testing/test_notebooks.py

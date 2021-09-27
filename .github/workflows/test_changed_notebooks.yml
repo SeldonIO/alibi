@@ -13,7 +13,7 @@ on:
       - master
     paths:
       - 'examples/**/*.ipynb'
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [ opened, synchronize, reopened, ready_for_review ]
 
 jobs:
   test_changed_notebooks:
@@ -52,8 +52,10 @@ jobs:
           python -m spacy download en_core_web_md
           pip freeze
       - name: Run notebooks
+        env:
+          FILES: ${{ steps.changed-ipynb.outputs.all_modified_files }}
+        # The following line builds the test case string to be passed to pytest by stripping the directory 'examples/',
+        # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
         run: |
-          pytest --nbmake `echo ${{ steps.changed-ipynb.outputs.all_modified_files }}`
-#          for file in "${{ steps.changed-ipynb.outputs.all_modified_files }}"; do
-#            python testing/test_notebooks.py $file
-#          done
+          tests="test_notebook_execution[$(echo ${FILES} | sed 's/examples\///g' | sed 's/ / or /g')]" &&
+          pytest --no-cov -rA --durations=0 -vv testing/test_notebooks.py -k "$tests"

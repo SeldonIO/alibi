@@ -12,7 +12,7 @@ jupytext>=1.12.0, <2.0.0 # for notebook tests
 ipykernel>=5.1.0, <6.0.0 # for notebook tests
 nbconvert>=6.0.7, <7.0.0 # for notebook tests
 codecov>=2.0.15, <3.0.0
-catboost>=0.23.0, <0.27.0
+catboost>=0.23.0, <1.1.0
 alibi-testing @ git+git://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
 ray>=0.8.7, <2.0.0
 # other

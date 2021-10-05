@@ -1,5 +1,5 @@
 Jinja2
-3.0.1
+3.0.2
 BSD License
 Copyright 2007 Pallets
 
@@ -138,7 +138,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Pillow
-8.3.1
+8.3.2
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
@@ -841,7 +841,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 absl-py
-0.13.0
+0.14.1
 Apache Software License
 
                                  Apache License
@@ -1048,7 +1048,7 @@ Apache Software License
 
 
 alibi
-0.6.0.dev0
+0.6.2.dev0
 Apache 2.0
                                  Apache License
                            Version 2.0, January 2004
@@ -1398,7 +1398,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 cachetools
-4.2.2
+4.2.4
 MIT License
 The MIT License (MIT)
 
@@ -1475,7 +1475,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.0.4
+2.0.6
 MIT License
 MIT License
 
@@ -1505,7 +1505,7 @@ University of Illinois/NCSA Open Source License
 UNKNOWN
 
 click
-7.1.2
+8.0.1
 BSD License
 Copyright 2014 Pallets
 
@@ -1538,7 +1538,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 cloudpickle
-1.6.0
+2.0.0
 BSD License
 This module was extracted from the `cloud` package, developed by
 PiCloud, Inc.
@@ -1824,7 +1824,7 @@ BSD License
 UNKNOWN
 
 filelock
-3.0.12
+3.3.0
 Public Domain
 This is free and unencumbered software released into the public domain.
 
@@ -2098,7 +2098,7 @@ Apache Software License
 
 
 google-auth-oauthlib
-0.4.5
+0.4.6
 Apache Software License
 
                                  Apache License
@@ -2511,7 +2511,7 @@ Apache Software License
 
 
 grpcio
-1.39.0
+1.41.0
 Apache Software License
 
                                  Apache License
@@ -2753,7 +2753,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.0.12
+0.0.18
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3061,7 +3061,7 @@ different license (refer to the specific files for details):
 
 
 importlib-metadata
-4.6.4
+4.8.1
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -3308,7 +3308,7 @@ limitations under the License.
    END OF TERMS AND CONDITIONS
 
 kiwisolver
-1.3.1
+1.3.2
 BSD License
 =========================
  The Kiwi licensing terms
@@ -3384,7 +3384,7 @@ to indicate the copyright and license terms:
 
 
 llvmlite
-0.37.0
+0.36.0
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -3542,7 +3542,7 @@ THE SOFTWARE.
 
 
 networkx
-2.6.2
+2.6.3
 BSD License
 NetworkX is distributed with the 3-clause BSD license.
 
@@ -3584,7 +3584,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.54.0
+0.53.1
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -4595,7 +4595,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.3.2
+1.3.3
 BSD License
 BSD 3-Clause License
 
@@ -4863,7 +4863,7 @@ THE SOFTWARE.
 
 
 protobuf
-3.17.3
+3.18.0
 3-Clause BSD License
 UNKNOWN
 
@@ -5033,7 +5033,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The above BSD License Applies to all code, even that also covered by Apache 2.0.
 
 pytz
-2021.1
+2021.3
 MIT License
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
 
@@ -5057,7 +5057,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 regex
-2021.8.21
+2021.9.30
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -5487,8 +5487,60 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
+ruamel.yaml
+0.17.16
+MIT License
+ The MIT License (MIT)
+
+ Copyright (c) 2014-2021 Anthon van der Neut, Ruamel bvba
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+
+ruamel.yaml.clib
+0.2.6
+MIT License
+ The MIT License (MIT)
+
+ Copyright (c) 2019-2021 Anthon van der Neut, Ruamel bvba
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+
 sacremoses
-0.0.45
+0.0.46
 MIT License
 MIT License
 
@@ -5514,7 +5566,7 @@ SOFTWARE.
 
 
 scikit-image
-0.18.2
+0.18.3
 BSD License
 Copyright (C) 2019, the scikit-image team
 All rights reserved.
@@ -6603,7 +6655,7 @@ SOFTWARE.
 
 
 smart-open
-5.2.0
+5.2.1
 MIT License
 The MIT License (MIT)
 
@@ -6630,7 +6682,7 @@ SOFTWARE.
 
 
 spacy
-3.1.2
+3.1.3
 MIT License
 The MIT License (MIT)
 
@@ -6682,7 +6734,7 @@ SOFTWARE.
 
 
 spacy-lookups-data
-1.0.2
+1.0.3
 MIT License
 MIT License
 
@@ -7635,7 +7687,7 @@ THE SOFTWARE.
 
 
 thinc
-8.0.8
+8.0.10
 MIT License
 The MIT License (MIT)
 
@@ -7661,7 +7713,7 @@ THE SOFTWARE.
 
 
 threadpoolctl
-2.2.0
+3.0.0
 BSD License
 Copyright (c) 2019, threadpoolctl contributors
 
@@ -7689,7 +7741,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2021.8.8
+2021.8.30
 BSD License
 BSD 3-Clause License
 
@@ -7729,7 +7781,7 @@ Apache Software License
 UNKNOWN
 
 tqdm
-4.62.2
+4.62.3
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -7755,7 +7807,7 @@ Mozilla Public Licence (MPL) v. 2.0 - Exhibit A
 
 This Source Code Form is subject to the terms of the
 Mozilla Public License, v. 2.0.
-If a copy of the MPL was not distributed with this file,
+If a copy of the MPL was not distributed with this project,
 You can obtain one at https://mozilla.org/MPL/2.0/.
 
 
@@ -7783,7 +7835,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.9.2
+4.11.2
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -7991,7 +8043,7 @@ Copyright 2018- The Hugging Face team. All rights reserved.
 
 
 typer
-0.3.2
+0.4.0
 MIT License
 The MIT License (MIT)
 
@@ -8276,7 +8328,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 urllib3
-1.26.6
+1.26.7
 MIT License
 MIT License
 
@@ -8357,7 +8409,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 zipp
-3.5.0
+3.6.0
 MIT License
 Copyright Jason R. Coombs
 

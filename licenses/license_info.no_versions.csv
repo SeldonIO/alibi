@@ -64,6 +64,8 @@
 "requests","Apache Software License"
 "requests-oauthlib","BSD License"
 "rsa","Apache Software License"
+"ruamel.yaml","MIT License"
+"ruamel.yaml.clib","MIT License"
 "sacremoses","MIT License"
 "scikit-image","BSD License"
 "scikit-learn","new BSD"

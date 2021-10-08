@@ -11,6 +11,7 @@
 
   overview/getting_started
   overview/algorithms
+  overview/white_box_black_box
   overview/saving
   overview/roadmap
 

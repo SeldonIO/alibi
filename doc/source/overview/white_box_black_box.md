@@ -19,7 +19,7 @@ All `sklearn` models expose a `predict` method that already conforms to the blac
 
 ```python
 predictor = model.predict
-explainer = SomeExplainer(model.predict, **kwargs)
+explainer = SomeExplainer(predictor, **kwargs)
 ```
 
 In some cases for classifiers it may be more appropriate to expose the `predict_proba` or `decision_function` method instead of `predict`, see an example on [ALE for classifiers](../examples/ale_classification.nblink).
@@ -29,7 +29,7 @@ Tensorflow models (specifically instances of `tensorflow.keras.Model`) expose a 
 
 ```python
 predictor = model.predict
-explainer = SomeExplainer(model.predict, **kwargs)
+explainer = SomeExplainer(predictor), **kwargs)
 ```
 
 

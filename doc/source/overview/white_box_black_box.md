@@ -56,7 +56,7 @@ Given the above examples, the pattern for defining a black-box predictor from a 
 def predictor(X: np.ndarray) -> np.ndarray:
     inp = transform_input(X)
     output = model(inp)
-    output =transform_output(output)
+    output = transform_output(output)
     return output
 
 explainer = SomeExplainer(predictor, **kwargs)

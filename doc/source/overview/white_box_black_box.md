@@ -47,7 +47,7 @@ Note that there are a few differences with `tensorflow` models:
  - Explicit device selection for the tensor. This is an important step as `numpy` arrays are limited to cpu and if your model is on a gpu it will expect its input tensors to be on a gpu.
  - Explicit conversion of prediction tensor to `numpy`. Here we detach the output from the gradient graph (as gradient information is not needed) and convert to a `numpy` array.
 
-If you are using [Pytorch Lightning](https://www.pytorchlightning.ai) to create `torch` models, then the `dtype` and `device` can be retrieved as attributes of your `[LightningModule]`(https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html). 
+If you are using [Pytorch Lightning](https://www.pytorchlightning.ai) to create `torch` models, then the `dtype` and `device` can be retrieved as attributes of your `LightningModule`, see [here](https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html). 
 
 ### General models
 Given the above examples, the pattern for defining a black-box predictor from a white-box model is clear: define a `predictor` function that manipulates the inputs to and outputs from the underlying model in a way that conforms to the black-box model interface `alibi` expects:

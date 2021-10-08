@@ -277,7 +277,7 @@ class KernelExplainerWrapper(KernelExplainer):
 class KernelShap(Explainer, FitMixin):
 
     def __init__(self,
-                 predictor: Callable,
+                 predictor: Callable[[np.ndarray], np.ndarray],
                  link: str = 'identity',
                  feature_names: Union[List[str], Tuple[str], None] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,

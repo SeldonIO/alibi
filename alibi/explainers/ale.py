@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class ALE(Explainer):
 
     def __init__(self,
-                 predictor: Callable,
+                 predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: Optional[List[str]] = None,
                  target_names: Optional[List[str]] = None,
                  check_feature_resolution: bool = True,

@@ -1175,7 +1175,7 @@ class AnchorText(Explainer):
     }
 
     def __init__(self,
-                 predictor: Callable,
+                 predictor: Callable[[np.ndarray], np.ndarray],
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
                  language_model: Optional[LanguageModel] = None,

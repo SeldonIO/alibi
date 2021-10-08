@@ -7,7 +7,7 @@ in Alibi.
 These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
 predictions. Given a single instance and a model prediction they aim to answer the question "Why did
 my model make this prediction?" Most of the following algorithms work with **black-box** models meaning that the
-only requirement is to have access to a prediction function (which could be an API endpoint for a model in production).
+only requirement is to have access to a prediction function (which could be an API endpoint for a model in production). See here for an extended discussion on white-box vs black-box models: [White-box and black-box models](white_box_black_box.md).
 
 The following table summarizes the capabilities of the current algorithms:
 
@@ -26,9 +26,9 @@ The following table summarizes the capabilities of the current algorithms:
 
 
 Key:
- - **BB** - black-box (only require a prediction function)
- - **BB\*** - black-box but assume model is differentiable
- - **WB** - requires white-box model access. There may be limitations on models supported
+ - **BB** - [black-box](white_box_black_box.md) (only require a prediction function)
+ - **BB\*** - [black-box](white_box_black_box.md) but assume model is differentiable
+ - **WB** - requires [white-box](white_box_black_box.md) model access. There may be limitations on models supported
  - **TF/Keras** - TensorFlow models via the Keras API
  - **Local** - instance specific explanation, why was this prediction made?
  - **Global** - explains the model with respect to a set of instances

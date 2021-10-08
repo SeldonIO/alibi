@@ -7,7 +7,7 @@ in Alibi.
 These algorithms provide **instance-specific** (sometimes also called **local**) explanations of ML model
 predictions. Given a single instance and a model prediction they aim to answer the question "Why did
 my model make this prediction?" Most of the following algorithms work with **black-box** models meaning that the
-only requirement is to have access to a prediction function (which could be an API endpoint for a model in production). See here for an extended discussion on white-box vs black-box models: [White-box and black-box models](white_box_black_box.md).
+only requirement is to have access to a prediction function (which could be an API endpoint for a model in production). For an extended discussion see [White-box and black-box models](white_box_black_box.md).
 
 The following table summarizes the capabilities of the current algorithms:
 

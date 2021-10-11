@@ -82,7 +82,7 @@ For more details on the MyST syntax see the [MyST docs](https://myst-parser.read
 ## Gotchas when writing notebooks as examples
 We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin, which in turn invokes `pandoc` for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:
 * When using a bullet-point list, leave a blank line before the preceding paragraph, otherwise it will fail to render
-* Always use `$$ $$` to delimit display math. Although math might be rendered correctly in a `ipynb` notebook if the `$$ $$` are missing, it will not appear correctly in the docs.
+* Always use `$$ $$` or `\begin{equation}\end{equation}`to delimit display math.
 * Leave a blank line before and after any display math
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`

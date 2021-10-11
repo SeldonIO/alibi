@@ -136,11 +136,7 @@ html_theme_options = {
 html_static_path = ['_static']
 
 # override default theme width
-html_context = {
-    'css_files': [
-        '_static/theme_overrides.css',  # override wide tables in RTD theme
-    ],
-}
+html_css_files = ["theme_overrides.css"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -286,6 +282,7 @@ git_rev + r"{{ docpath }}"
 # details of available extensions.
 myst_enable_extensions = [
     "dollarmath",
+    "amsmath",
     "colon_fence",
     "smartquotes",
     "tasklist",

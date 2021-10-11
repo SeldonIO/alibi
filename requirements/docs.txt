@@ -1,8 +1,8 @@
 # dependencies for building docs, separate from dev.txt as this is also used for builds on readthedocs.org
 # core dependencies
-sphinx>=2.1.2, <3.0.0 # pin to <3.x due to issue documenting classes which inherit mocked classes
-sphinx-autodoc-typehints>=1.6.0, <1.11.0 # later versions depend on sphinx 3.0
-sphinx-rtd-theme>=0.5.2, <0.6.0
+sphinx>=4.0.0, <4.3.0 # Enforce 4.x sphinx version so that mathjax works correctly
+sphinx-autodoc-typehints>=1.6.0, <=1.12.0 
+sphinx-rtd-theme==1.0.0
 myst-parser>=0.14, <=0.15.2
 sphinxcontrib-apidoc>=0.3.0, <0.4.0
 nbsphinx>=0.8.5, <0.9.0

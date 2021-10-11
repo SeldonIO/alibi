@@ -75,7 +75,7 @@ def CounterFactual(*args, **kwargs):
 class Counterfactual(Explainer):
 
     def __init__(self,
-                 predict_fn: Union[Callable, tf.keras.Model],
+                 predict_fn: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: Tuple[int, ...],
                  distance_fn: str = 'l1',
                  target_proba: float = 1.0,

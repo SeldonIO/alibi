@@ -300,8 +300,12 @@ class AnchorImageSampler:
 
 
 class AnchorImage(Explainer):
-    def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None, images_background: np.ndarray = None,
+    def __init__(self,
+                 predictor: Callable[[np.ndarray], np.ndarray],
+                 image_shape: tuple,
+                 segmentation_fn: Any = 'slic',
+                 segmentation_kwargs: dict = None,
+                 images_background: np.ndarray = None,
                  seed: int = None) -> None:
         """
         Initialize anchor image explainer.

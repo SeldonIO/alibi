@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class CEM(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model],
+                 predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  mode: str,
                  shape: tuple,
                  kappa: float = 0.,

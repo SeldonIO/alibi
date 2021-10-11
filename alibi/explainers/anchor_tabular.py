@@ -658,8 +658,12 @@ class RemoteSampler:
 
 class AnchorTabular(Explainer, FitMixin):
 
-    def __init__(self, predictor: Callable, feature_names: List[str], categorical_names: Dict[int, List[str]] = None,
-                 ohe: bool = False, seed: int = None) -> None:
+    def __init__(self,
+                 predictor: Callable[[np.ndarray], np.ndarray],
+                 feature_names: List[str],
+                 categorical_names: Dict[int, List[str]] = None,
+                 ohe: bool = False,
+                 seed: int = None) -> None:
         """
         Parameters
         ----------

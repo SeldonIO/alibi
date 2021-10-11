@@ -1175,7 +1175,7 @@ class AnchorText(Explainer):
     }
 
     def __init__(self,
-                 predictor: Callable[[np.ndarray], np.ndarray],
+                 predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
                  language_model: Optional[LanguageModel] = None,
@@ -1187,7 +1187,7 @@ class AnchorText(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a list of text strings representing N data points as inputs and returns N outputs.
         sampling_strategy
             Perturbation distribution method.
             `unknown` - replaces words with UNKs.

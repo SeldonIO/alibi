@@ -4,7 +4,7 @@ import logging
 import numpy as np
 
 from functools import partial
-from typing import Any, Callable, List, Union, Tuple
+from typing import Any, Callable, List, Union, Tuple, Type
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.api.interfaces import Explainer, Explanation
@@ -303,6 +303,7 @@ class AnchorImage(Explainer):
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  image_shape: tuple,
+                 dtype: Type[np.generic] = np.float32,
                  segmentation_fn: Any = 'slic',
                  segmentation_kwargs: dict = None,
                  images_background: np.ndarray = None,
@@ -316,6 +317,11 @@ class AnchorImage(Explainer):
             A callable that takes a tensor of N data points as inputs and returns N outputs.
         image_shape
             Shape of the image to be explained.
+        dtype
+            A numpy scalar type that corresponds to the type of input array expected by `predictor`. This may be
+            used to construct arrays of the given type to be passed through the `predictor`. For most use cases
+            this argument should have no effect, but it is exposed for use with predictors that would break when
+            called with an array of unsupported type.
         segmentation_fn
             Any of the built in segmentation function strings: 'felzenszwalb', 'slic' or 'quickshift' or a custom
             segmentation function (callable) which returns an image mask with labels for each superpixel.
@@ -349,6 +355,7 @@ class AnchorImage(Explainer):
 
         # set the predictor
         self.image_shape = tuple(image_shape)  # coerce lists
+        self.dtype = dtype
         self.predictor = self._transform_predictor(predictor)
 
         # segmentation function is either a user-defined function or one of the values in
@@ -606,7 +613,7 @@ class AnchorImage(Explainer):
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros((1,) + self.image_shape)).shape) == 0:
+        if np.argmax(predictor(np.zeros((1,) + self.image_shape, dtype=self.dtype)).shape) == 0:
             return predictor
         else:
             transformer = ArgmaxTransformer(predictor)

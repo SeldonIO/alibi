@@ -10,7 +10,7 @@ Alternatively, the development version can be installed:
 pip install git+https://github.com/SeldonIO/alibi.git 
 ```
 
-````{admonition} Running examples
+````{note}
 Before running the examples, you may need to first run:
 ```bash
 pip install alibi[examples]

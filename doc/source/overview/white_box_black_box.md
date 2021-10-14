@@ -98,13 +98,15 @@ def predictor(X: np.ndarray) -> np.ndarray:
     return model.forward(X).detach().numpy()
 ```
 
-Note that there are a few differences with `tensorflow` models: -
-Explicit conversion to a tensor with a specific `dtype`. Whilst
+Note that there are a few differences with `tensorflow` models: 
+
+- Explicit conversion to a tensor with a specific `dtype`. Whilst
 `tensorflow` handles this internally when `predict` is called, for
-`torch` we need to do this manually. - Explicit device selection for
-the tensor. This is an important step as `numpy` arrays are limited to
+`torch` we need to do this manually. 
+- Explicit device selection for the tensor. This is an important step as `numpy` arrays are limited to
 cpu and if your model is on a gpu it will expect its input tensors to be
-on a gpu. - Explicit conversion of prediction tensor to `numpy`. Here
+on a gpu. 
+- Explicit conversion of prediction tensor to `numpy`. Here
 we detach the output from the gradient graph (as gradient information is
 not needed) and convert to a `numpy` array.
 

@@ -694,6 +694,7 @@ class AnchorTabular(Explainer, FitMixin):
             self.cat_vars_ord = {col: len(values) for col, values in categorical_names.items()}
             self.cat_vars_ohe = ord_to_ohe(np.zeros((1, len(feature_names))), self.cat_vars_ord)[1]
 
+        self.dtype = dtype
         # defines self._predictor which expect label categorical features, and if ohe == True,
         # it defines self._ohe_predictor which expects one-hot encoded categorical features
         self.predictor = predictor
@@ -710,7 +711,6 @@ class AnchorTabular(Explainer, FitMixin):
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
         self.samplers = []  # type: list
-        self.dtype = dtype
         self.ohe = ohe
         self.seed = seed
         self.instance_label = None

@@ -1203,6 +1203,7 @@ class AnchorText(Explainer):
         kwargs
             Sampling parameters can be passed as `kwargs` depending on the `sampling_strategy`.
             Check default parameters defined in:
+
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_UNKNOWN`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_SIMILARITY`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_LANGUAGE_MODEL`

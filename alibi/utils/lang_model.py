@@ -119,7 +119,7 @@ class LanguageModel(abc.ABC):
         """
         Given a tokenized text and the starting index of a word, the function selects the entire word.
         Note that a word is composed of multiple tokens (e.g., word = [head_token tail_token_1
-        tail_token_2 ... tail_token_ k]. The tail tokens can be identified based on the
+        tail_token_2 ... tail_token_k]. The tail tokens can be identified based on the
         presence/absence of SUBWORD_PREFIX. See `is_subword_prefix` for more details.
 
         Parameters

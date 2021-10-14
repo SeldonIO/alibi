@@ -10,6 +10,13 @@ Alternatively, the development version can be installed:
 pip install git+https://github.com/SeldonIO/alibi.git 
 ```
 
+````{note}
+Before running the examples, you may need to first run:
+```bash
+pip install alibi[examples]
+```
+````
+
 ## Features
 Alibi is a Python package designed to help explain the predictions of machine learning models and gauge
 the confidence of predictions. The focus of the library is to support the widest range of models using
@@ -62,7 +69,7 @@ For detailed information on the methods:
 
 ## Basic Usage
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
-fit and explain steps. We will use the [Anchor method on tabular data](../methods/Anchors.ipynb#Tabular-Data)
+fit and explain steps. We will use the [Anchor method on tabular data](/methods/Anchors.ipynb#Tabular-Data)
 to illustrate the API.
 
 First, we import the explainer:

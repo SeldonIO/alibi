@@ -35,7 +35,7 @@ setup(name='alibi',
       install_requires=[
           'numpy>=1.16.2, <2.0.0',
           'pandas>=0.23.3, <2.0.0',
-          'scikit-learn>=0.20.2, <0.25.0',
+          'scikit-learn>=0.20.2, <1.1.0',
           'spacy[lookups]>=2.0.0, <4.0.0',
           'scikit-image>=0.14.2, !=0.17.1, <0.19',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',

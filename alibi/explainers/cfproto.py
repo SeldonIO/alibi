@@ -32,7 +32,7 @@ def CounterFactualProto(*args, **kwargs):
 class CounterfactualProto(Explainer, FitMixin):
 
     def __init__(self,
-                 predict: Union[Callable, tf.keras.Model],
+                 predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,

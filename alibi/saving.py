@@ -90,7 +90,6 @@ def save_explainer(explainer: 'Explainer', path: Union[str, os.PathLike]) -> Non
 
     # save metadata
     meta = copy.deepcopy(explainer.meta)
-    meta['version'] = explainer._version
     with open(Path(path, 'meta.dill'), 'wb') as f:
         dill.dump(meta, f)
 

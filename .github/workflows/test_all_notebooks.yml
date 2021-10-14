@@ -1,0 +1,41 @@
+# This workflows executes all example notebooks to ensure they are up-to-date.
+
+name: test_all_notebooks
+
+on:
+  # Trigger the workflow on manual dispatch and once a week
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  test_notebooks:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.6', '3.7', '3.8', '3.9' ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip setuptools
+          pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
+          pip install --upgrade --upgrade-strategy eager -e .
+          pip install --upgrade --upgrade-strategy eager -e .[examples]
+          pip install --upgrade --upgrade-strategy eager -e .[ray]
+          pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m spacy download en_core_web_md
+          pip freeze
+
+      - name: Run notebooks
+        run: |
+          pytest --no-cov -rA --durations=0 -vv testing/test_notebooks.py

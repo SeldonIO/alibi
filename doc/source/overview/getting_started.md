@@ -76,7 +76,7 @@ First, we import the explainer:
 ```python
 from alibi.explainers import AnchorTabular
 ```
-Next, we initialize it by passing it a prediction function and any other necessary arguments:
+Next, we initialize it by passing it a [prediction function](white_box_black_box.md) and any other necessary arguments:
 ```python
 explainer = AnchorTabular(predict_fn, feature_names)
 ```

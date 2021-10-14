@@ -48,14 +48,14 @@ def scale_image(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:
 
 class AnchorImageSampler:
     def __init__(
-        self,
-        predictor: Callable,
-        segmentation_fn: Callable,
-        custom_segmentation: bool,
-        image: np.ndarray,
-        images_background: np.ndarray = None,
-        p_sample: float = 0.5,
-        n_covered_ex: int = 10,
+            self,
+            predictor: Callable,
+            segmentation_fn: Callable,
+            custom_segmentation: bool,
+            image: np.ndarray,
+            images_background: np.ndarray = None,
+            p_sample: float = 0.5,
+            n_covered_ex: int = 10,
     ):
         """
         Initialize anchor image sampler.
@@ -88,7 +88,7 @@ class AnchorImageSampler:
         self.instance_label = self.predictor(image[np.newaxis, ...])[0]
 
     def __call__(
-        self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True
+            self, anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True
     ) -> List[Union[np.ndarray, float, int]]:
         """
         Sample images from a perturbation distribution by masking randomly chosen superpixels
@@ -158,7 +158,7 @@ class AnchorImageSampler:
         return self.predictor(samples) == self.instance_label
 
     def _choose_superpixels(
-        self, num_samples: int, p_sample: float = 0.5
+            self, num_samples: int, p_sample: float = 0.5
     ) -> np.ndarray:
         """
         Generates a binary mask of dimension [num_samples, M] where M is the number of
@@ -187,7 +187,7 @@ class AnchorImageSampler:
         return data
 
     def perturbation(
-        self, anchor: tuple, num_samples: int
+            self, anchor: tuple, num_samples: int
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Perturbs an image by altering the values of selected superpixels. If a dataset of image
@@ -300,8 +300,12 @@ class AnchorImageSampler:
 
 
 class AnchorImage(Explainer):
-    def __init__(self, predictor: Callable, image_shape: tuple, segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None, images_background: np.ndarray = None,
+    def __init__(self,
+                 predictor: Callable[[np.ndarray], np.ndarray],
+                 image_shape: tuple,
+                 segmentation_fn: Any = 'slic',
+                 segmentation_kwargs: dict = None,
+                 images_background: np.ndarray = None,
                  seed: int = None) -> None:
         """
         Initialize anchor image explainer.
@@ -344,7 +348,7 @@ class AnchorImage(Explainer):
             )
 
         # set the predictor
-        self.image_shape = image_shape
+        self.image_shape = tuple(image_shape)  # coerce lists
         self.predictor = self._transform_predictor(predictor)
 
         # segmentation function is either a user-defined function or one of the values in
@@ -521,12 +525,12 @@ class AnchorImage(Explainer):
         )
 
     def build_explanation(
-        self,
-        image: np.ndarray,
-        result: dict,
-        predicted_label: int,
-        params: dict,
-        sampler: AnchorImageSampler,
+            self,
+            image: np.ndarray,
+            result: dict,
+            predicted_label: int,
+            params: dict,
+            sampler: AnchorImageSampler,
     ) -> Explanation:
         """
         Uses the metadata returned by the anchor search algorithm together with

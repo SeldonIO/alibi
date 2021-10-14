@@ -321,7 +321,7 @@ class CounterfactualRL(Explainer, FitMixin):
     """ Counterfactual Reinforcement Learning. """
 
     def __init__(self,
-                 predictor: Callable,
+                 predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  coeff_sparsity: float,

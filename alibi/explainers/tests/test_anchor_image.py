@@ -157,3 +157,10 @@ def test_anchor_image(predict_fn, models, mnist_data):
     assert len(np.unique(explanation.segments)) == len(np.unique(sampler.segments))
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
+
+
+@pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
+@pytest.mark.parametrize('models', [("mnist-cnn-pt1.9.1.pt",)], indirect=True)
+def test_anchor_image_fails_init_torch_float64(predict_fn, models):
+    with pytest.raises(RuntimeError):
+        explainer = AnchorImage(predict_fn, image_shape=(28, 28, 1), dtype=np.float64)  # noqa: F841

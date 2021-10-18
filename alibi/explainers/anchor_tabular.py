@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
-from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Union, Optional
+from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Type, Union, Optional
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
@@ -662,6 +662,7 @@ class AnchorTabular(Explainer, FitMixin):
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: List[str],
                  categorical_names: Dict[int, List[str]] = None,
+                 dtype: Type[np.generic] = np.float32,
                  ohe: bool = False,
                  seed: int = None) -> None:
         """
@@ -673,6 +674,11 @@ class AnchorTabular(Explainer, FitMixin):
             List with feature names.
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature.
+        dtype
+            A numpy scalar type that corresponds to the type of input array expected by `predictor`. This may be
+            used to construct arrays of the given type to be passed through the `predictor`. For most use cases
+            this argument should have no effect, but it is exposed for use with predictors that would break when
+            called with an array of unsupported type.
         ohe
             Whether the categorical variables are one-hot encoded (OHE) or not. If not OHE, they are
             assumed to have ordinal encodings.
@@ -688,6 +694,7 @@ class AnchorTabular(Explainer, FitMixin):
             self.cat_vars_ord = {col: len(values) for col, values in categorical_names.items()}
             self.cat_vars_ohe = ord_to_ohe(np.zeros((1, len(feature_names))), self.cat_vars_ord)[1]
 
+        self.dtype = dtype
         # defines self._predictor which expect label categorical features, and if ohe == True,
         # it defines self._ohe_predictor which expects one-hot encoded categorical features
         self.predictor = predictor
@@ -1004,7 +1011,7 @@ class AnchorTabular(Explainer, FitMixin):
 
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # define data instance full of zeros
-        zeros = np.zeros([1, len(self.feature_names)])
+        zeros = np.zeros([1, len(self.feature_names)], dtype=self.dtype)
 
         try:
             # check if predictor returns predicted class or prediction probabilities for each class
@@ -1038,9 +1045,9 @@ class DistributedAnchorTabular(AnchorTabular):
         ray = ray  # set module as class variable to used only in this context
 
     def __init__(self, predictor: Callable, feature_names: List[str], categorical_names: Dict[int, List[str]] = None,
-                 ohe: bool = False, seed: int = None) -> None:
+                 dtype: Type[np.generic] = np.float32, ohe: bool = False, seed: int = None) -> None:
 
-        super().__init__(predictor, feature_names, categorical_names, ohe, seed)
+        super().__init__(predictor, feature_names, categorical_names, dtype, ohe, seed)
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 

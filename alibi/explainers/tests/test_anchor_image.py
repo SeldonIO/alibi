@@ -1,6 +1,8 @@
 import pytest
-
+from pytest_lazyfixture import lazy_fixture
 import numpy as np
+import tensorflow as tf
+import torch
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.explainers.anchor_image import AnchorImage, AnchorImageSampler, scale_image
 
@@ -17,13 +19,34 @@ def test_scale_image():
     assert (scaled_img >= min_val).all()
 
 
-@pytest.mark.parametrize(
-    "models",
-    [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",)],
-    ids="model={}".format,
-    indirect=True,
-)
-def test_sampler(models, mnist_data):
+@pytest.fixture
+def predict_fn(request):
+    """
+    This fixture takes in a white-box model (Tensorflow or Pytorch) and returns an
+    AnchorImage compatible prediction function.
+    """
+    if isinstance(request.param[0], tf.keras.Model):
+        func = request.param[0].predict
+    elif isinstance(request.param[0], torch.nn.Module):
+        def func(image: np.ndarray) -> np.ndarray:
+            # moveaxis is needed as torch uses 'bchw' layout instead of 'bhwc'
+            # NB: torch models need dtype=torch.float32, we are not setting it here
+            # to test that `dtype` argument to AnchorImage does the right thing when
+            # a dummy call is made
+            image = torch.as_tensor(np.moveaxis(image, -1, 1))
+            return request.param[0].forward(image).detach().numpy()
+    else:
+        raise ValueError(f'Unknown model {request.param[0]} of type {type(request.param[0])}')
+    return func
+
+
+@pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
+@pytest.mark.parametrize('models',
+                         [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",), ("mnist-cnn-pt1.9.1.pt",)],
+                         indirect=True,
+                         ids='models={}'.format
+                         )
+def test_sampler(predict_fn, models, mnist_data):
     eps = 0.0001  # tolerance for tensor comparisons
     num_samples = 10
 
@@ -31,7 +54,6 @@ def test_sampler(models, mnist_data):
     segmentation_fn = "slic"
     segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
     image_shape = (28, 28, 1)
-    predict_fn = lambda x: models[0].predict(x)  # noqa: E731
     explainer = AnchorImage(
         predict_fn,
         image_shape,
@@ -73,24 +95,19 @@ def test_sampler(models, mnist_data):
     assert coverage == -1
 
 
-@pytest.mark.parametrize(
-    "models",
-    [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",)],
-    ids="model={}".format,
-    indirect=True,
-)
-def test_anchor_image(models, mnist_data):
+@pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
+@pytest.mark.parametrize('models',
+                         [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",), ("mnist-cnn-pt1.9.1.pt",)],
+                         indirect=True,
+                         ids='models={}'.format
+                         )
+def test_anchor_image(predict_fn, models, mnist_data):
     x_train = mnist_data["X_train"]
     image = x_train[0]
 
     segmentation_fn = "slic"
     segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
     image_shape = (28, 28, 1)
-    n_covered_ex = 3  # nb of examples where the anchor applies that are saved
-
-    # define and train model
-    # model = conv_net
-    predict_fn = lambda x: models[0].predict(x)  # noqa: E731
 
     explainer = AnchorImage(
         predict_fn,
@@ -112,7 +129,8 @@ def test_anchor_image(models, mnist_data):
     )
 
     # test explainer initialization
-    assert explainer.predictor(np.zeros((1,) + image_shape)).shape == (1,)
+    # dtype=np.float32 should be safe here (default behaviour when calling _transform_predictor
+    assert explainer.predictor(np.zeros((1,) + image_shape, dtype=np.float32)).shape == (1,)
     assert explainer.custom_segmentation is False
 
     # test explanation
@@ -126,11 +144,11 @@ def test_anchor_image(models, mnist_data):
     assert before_explain == after_explain
     if explanation.raw["feature"]:
         assert (
-            len(explanation.raw["examples"][-1]["covered_true"]) <= sampler.n_covered_ex
+                len(explanation.raw["examples"][-1]["covered_true"]) <= sampler.n_covered_ex
         )
         assert (
-            len(explanation.raw["examples"][-1]["covered_false"])
-            <= sampler.n_covered_ex
+                len(explanation.raw["examples"][-1]["covered_false"])
+                <= sampler.n_covered_ex
         )
     else:
         assert not explanation.raw["examples"]
@@ -139,3 +157,10 @@ def test_anchor_image(models, mnist_data):
     assert len(np.unique(explanation.segments)) == len(np.unique(sampler.segments))
     assert explanation.meta.keys() == DEFAULT_META_ANCHOR.keys()
     assert explanation.data.keys() == DEFAULT_DATA_ANCHOR_IMG.keys()
+
+
+@pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
+@pytest.mark.parametrize('models', [("mnist-cnn-pt1.9.1.pt",)], indirect=True)
+def test_anchor_image_fails_init_torch_float64(predict_fn, models):
+    with pytest.raises(RuntimeError):
+        explainer = AnchorImage(predict_fn, image_shape=(28, 28, 1), dtype=np.float64)  # noqa: F841

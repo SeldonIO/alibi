@@ -21,4 +21,12 @@ Explainability can be thought as an extra form of testing for a model. The insig
 
 ## Insights
 
+### Global and Local Insights
+
+Insights can be categorized into two types. Local and global. Intuitively a local insights says something about a single prediction that a model makes. As an example, given an image classified as a cat by a model what is the minimal set of features (pixels) that need to stay the same in order for that image to still be classified as a cat. Such an insight gives an idea of what the model is looking for when deciding to classify an instance into a specific class. Global insights on the other hand refer to the behaviour of the model over a set of inputs. Plots that show how a regression prediction varies with respect to a given feature while factoring out all the others are an example. These insights give a more general understanding of the relationship between inputs and model predictions.
+
+### Insight Categories
+
+#### Counter Factuals:
+
 ...

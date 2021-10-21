@@ -10,6 +10,7 @@
 :caption: Overview
 :maxdepth: 1
 
+overview/high_level
 overview/getting_started
 overview/algorithms
 overview/white_box_black_box

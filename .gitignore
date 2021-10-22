@@ -109,3 +109,6 @@ venv.bak/
 
 # Model binaries
 examples/*.h5
+
+# OS specific
+.DS_store

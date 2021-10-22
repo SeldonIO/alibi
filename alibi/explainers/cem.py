@@ -5,6 +5,7 @@ from typing import Any, Callable, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from beartype import beartype
 
 from alibi.api.defaults import DEFAULT_DATA_CEM, DEFAULT_META_CEM
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -14,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 class CEM(Explainer, FitMixin):
 
+    @beartype
     def __init__(self,
                  predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  mode: str,
@@ -296,6 +298,7 @@ class CEM(Explainer, FitMixin):
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
 
+    @beartype
     def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> "CEM":
         """
         Get 'no information' values from the training data.
@@ -654,6 +657,8 @@ class CEM(Explainer, FitMixin):
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
+
+    @beartype
     def explain(self, X: np.ndarray, Y: Optional[np.ndarray] = None, verbose: bool = False) -> Explanation:
         """
         Explain instance and return PP or PN with metadata.

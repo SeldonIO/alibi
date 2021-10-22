@@ -3,6 +3,7 @@ from itertools import count
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
+from beartype import beartype
 from tqdm import tqdm
 
 from alibi.api.interfaces import Explainer, Explanation
@@ -105,6 +106,7 @@ _PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 class CounterfactualRLTabular(CounterfactualRL):
     """ Counterfactual Reinforcement Learning Tabular. """
 
+    @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
@@ -254,6 +256,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         return X
 
+    @beartype
     def fit(self, X: np.ndarray) -> 'Explainer':
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
@@ -276,6 +279,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         # call base class fit
         return super().fit(X)
 
+    @beartype
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 Y_t: np.ndarray,

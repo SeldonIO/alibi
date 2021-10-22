@@ -10,6 +10,7 @@ from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
 import numpy as np
 import spacy
 import tensorflow as tf
+from beartype import beartype
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
@@ -1182,6 +1183,7 @@ class AnchorText(Explainer):
         SAMPLING_LANGUAGE_MODEL: LanguageModelSampler
     }
 
+    @beartype
     def __init__(self,
                  predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
@@ -1364,6 +1366,8 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
+
+    @beartype
     def explain(self,  # type: ignore[override]
                 text: str,
                 threshold: float = 0.95,

@@ -2,9 +2,11 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union, cast
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union,
+                    cast)
 
 import numpy as np
+from beartype import beartype
 from tqdm import tqdm
 
 from alibi.api.defaults import DEFAULT_DATA_CFRL, DEFAULT_META_CFRL
@@ -21,11 +23,13 @@ if TYPE_CHECKING:
 
 if has_pytorch:
     # import pytorch backend
-    from alibi.explainers.backends.pytorch import cfrl_base as pytorch_base_backend
+    from alibi.explainers.backends.pytorch import \
+        cfrl_base as pytorch_base_backend
 
 if has_tensorflow:
     # import tensorflow backend
-    from alibi.explainers.backends.tensorflow import cfrl_base as tensorflow_base_backend
+    from alibi.explainers.backends.tensorflow import \
+        cfrl_base as tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -324,6 +328,7 @@ Parameter types for serialization
 class CounterfactualRL(Explainer, FitMixin):
     """ Counterfactual Reinforcement Learning. """
 
+    @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
@@ -782,6 +787,8 @@ class CounterfactualRL(Explainer, FitMixin):
         """
         return len(pred.shape) == 2 and pred.shape[1] > 1
 
+
+    @beartype
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 Y_t: np.ndarray,

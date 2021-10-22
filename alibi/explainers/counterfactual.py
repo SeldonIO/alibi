@@ -4,6 +4,7 @@ from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from beartype import beartype
 
 from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
 from alibi.api.interfaces import Explainer, Explanation
@@ -75,6 +76,7 @@ def CounterFactual(*args, **kwargs):
 
 class Counterfactual(Explainer):
 
+    @beartype
     def __init__(self,
                  predict_fn: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: Tuple[int, ...],
@@ -299,6 +301,7 @@ class Counterfactual(Explainer):
 
         return X_init
 
+    @beartype
     def fit(self,
             X: np.ndarray,
             y: Optional[np.ndarray]) -> "Counterfactual":
@@ -311,6 +314,7 @@ class Counterfactual(Explainer):
         self.fitted = True
         return self
 
+    @beartype
     def explain(self, X: np.ndarray) -> Explanation:
         """
         Explain an instance and return the counterfactual with metadata.

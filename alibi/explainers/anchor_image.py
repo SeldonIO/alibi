@@ -4,6 +4,7 @@ from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
+from beartype import beartype
 from skimage.segmentation import felzenszwalb, quickshift, slic
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR_IMG, DEFAULT_META_ANCHOR
@@ -300,6 +301,8 @@ class AnchorImageSampler:
 
 
 class AnchorImage(Explainer):
+
+    @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  image_shape: tuple,
@@ -436,6 +439,8 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
+
+    @beartype
     def explain(self,  # type: ignore[override]
                 image: np.ndarray,
                 p_sample: float = 0.5,

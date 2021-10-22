@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+from beartype import beartype
 
 from alibi.api.defaults import DEFAULT_DATA_CFP, DEFAULT_META_CFP
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -33,6 +34,7 @@ def CounterFactualProto(*args, **kwargs):
 
 class CounterfactualProto(Explainer, FitMixin):
 
+    @beartype
     def __init__(self,
                  predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: tuple,
@@ -658,6 +660,8 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             self.writer = None
 
+
+    @beartype
     def fit(self,
             train_data: np.ndarray,
             trustscore_kwargs: Optional[dict] = None,
@@ -1271,6 +1275,8 @@ class CounterfactualProto(Explainer, FitMixin):
 
         return best_attack, overall_best_grad
 
+
+    @beartype
     def explain(self,
                 X: np.ndarray,
                 Y: Optional[np.ndarray] = None,

@@ -6,6 +6,7 @@ from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
                     Tuple, Type, Union)
 
 import numpy as np
+from beartype import beartype
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -668,6 +669,7 @@ class RemoteSampler:
 class AnchorTabular(Explainer, FitMixin):
     instance_label: int
 
+    @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: List[str],
@@ -734,6 +736,8 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
+
+    @beartype
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,
             disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),
@@ -789,6 +793,7 @@ class AnchorTabular(Explainer, FitMixin):
         lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
+    @beartype
     def explain(self,
                 X: np.ndarray,
                 threshold: float = 0.95,

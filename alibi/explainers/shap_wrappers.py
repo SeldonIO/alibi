@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import shap
 import shap.utils._legacy as shap_utils
+from beartype import beartype
 from scipy import sparse
 from scipy.special import expit
 from shap import KernelExplainer
@@ -280,6 +281,7 @@ class KernelShap(Explainer, FitMixin):
     # object that implements the explanation algorithm (set in fit)
     _explainer: Union[KernelExplainerWrapper, DistributedExplainer]
 
+    @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  link: str = 'identity',
@@ -668,6 +670,7 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
+    @beartype
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap_utils.Data],
             summarise_background: Union[bool, str] = False,
@@ -779,6 +782,7 @@ class KernelShap(Explainer, FitMixin):
 
         return self
 
+    @beartype
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
@@ -997,6 +1001,7 @@ TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss
 
 class TreeShap(Explainer, FitMixin):
 
+    @beartype
     def __init__(self,
                  predictor: Any,
                  model_output: str = 'raw',
@@ -1095,6 +1100,7 @@ class TreeShap(Explainer, FitMixin):
         self._update_metadata({"task": self.task})
         self._update_metadata({"model_output": self.model_output}, params=True)
 
+    @beartype
     def fit(self,  # type: ignore[override]
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
@@ -1219,6 +1225,7 @@ class TreeShap(Explainer, FitMixin):
         else:
             return shap.kmeans(background_data, n_background_samples)
 
+    @beartype
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, 'catboost.Pool'],
                 y: Optional[np.ndarray] = None,

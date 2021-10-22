@@ -7,6 +7,7 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import numpy as np
 import tensorflow as tf
 
+from beartype import beartype
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.approximation_methods import approximation_parameters
@@ -709,6 +710,7 @@ def _validate_output(model: tf.keras.Model,
 
 class IntegratedGradients(Explainer):
 
+    @beartype
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
@@ -771,9 +773,9 @@ class IntegratedGradients(Explainer):
         self._is_list: Optional[bool] = None
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
-
         self.target_fn = target_fn
 
+    @beartype
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,

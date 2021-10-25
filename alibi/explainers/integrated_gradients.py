@@ -656,7 +656,7 @@ def _validate_output(model: tf.keras.Model,
 
 class IntegratedGradients(Explainer):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
@@ -719,7 +719,7 @@ class IntegratedGradients(Explainer):
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,

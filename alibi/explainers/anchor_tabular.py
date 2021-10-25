@@ -659,7 +659,7 @@ class RemoteSampler:
 
 class AnchorTabular(Explainer, FitMixin):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: List[str],
@@ -720,7 +720,7 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
             **kwargs) -> "AnchorTabular":
         """
@@ -774,7 +774,7 @@ class AnchorTabular(Explainer, FitMixin):
         lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,
                 X: np.ndarray,
                 threshold: float = 0.95,

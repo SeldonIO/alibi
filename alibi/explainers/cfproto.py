@@ -32,7 +32,7 @@ def CounterFactualProto(*args, **kwargs):
 
 class CounterfactualProto(Explainer, FitMixin):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: tuple,
@@ -656,7 +656,7 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             self.writer = None
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
             w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
             smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> "CounterfactualProto":
@@ -1259,7 +1259,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
         return best_attack, overall_best_grad
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, k: int = None,
                 k_type: str = 'mean', threshold: float = 0., verbose: bool = False,
                 print_every: int = 100, log_every: int = 100) -> Explanation:

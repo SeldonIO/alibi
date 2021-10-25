@@ -302,7 +302,7 @@ class AnchorImageSampler:
 
 class AnchorImage(Explainer):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  image_shape: tuple,
@@ -428,7 +428,7 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,  # type: ignore
                 image: np.ndarray,
                 p_sample: float = 0.5,

@@ -1175,7 +1175,7 @@ class AnchorText(Explainer):
         SAMPLING_LANGUAGE_MODEL: LanguageModelSampler
     }
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
@@ -1351,7 +1351,7 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,  # type: ignore
                 text: str,
                 threshold: float = 0.95,

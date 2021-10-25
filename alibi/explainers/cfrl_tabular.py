@@ -103,7 +103,7 @@ _PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 class CounterfactualRLTabular(CounterfactualRL):
     """ Counterfactual Reinforcement Learning Tabular. """
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
@@ -253,7 +253,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         return X
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def fit(self, X: np.ndarray) -> 'Explainer':
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
@@ -276,7 +276,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         # call base class fit
         return super().fit(X)
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO remove default value (mypy error)

@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 
 class ALE(Explainer):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: Optional[List[str]] = None,
@@ -91,7 +91,7 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.

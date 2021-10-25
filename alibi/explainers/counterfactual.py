@@ -75,7 +75,7 @@ def CounterFactual(*args, **kwargs):
 
 class Counterfactual(Explainer):
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predict_fn: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: Tuple[int, ...],
@@ -300,7 +300,7 @@ class Counterfactual(Explainer):
 
         return X_init
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def fit(self,
             X: np.ndarray,
             y: Optional[np.ndarray]) -> "Counterfactual":
@@ -313,7 +313,7 @@ class Counterfactual(Explainer):
         self.fitted = True
         return self
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self, X: np.ndarray) -> Explanation:
         """
         Explain an instance and return the counterfactual with metadata.

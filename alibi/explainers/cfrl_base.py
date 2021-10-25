@@ -321,7 +321,7 @@ Parameter types for serialization
 class CounterfactualRL(Explainer, FitMixin):
     """ Counterfactual Reinforcement Learning. """
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
@@ -607,7 +607,7 @@ class CounterfactualRL(Explainer, FitMixin):
     def save(self, path: Union[str, os.PathLike]) -> None:
         super().save(path)
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def fit(self, X: np.ndarray) -> "Explainer":
         """
         Fit the model agnostic counterfactual generator.
@@ -781,7 +781,7 @@ class CounterfactualRL(Explainer, FitMixin):
         """
         return len(pred.shape) == 2 and pred.shape[1] > 1
 
-    @validate_arguments
+    @validate_arguments(config=dict(arbitrary_types_allowed=True))
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,   # TODO: remove default value (mypy error. explanation in the validation step)

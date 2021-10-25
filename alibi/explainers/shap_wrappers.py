@@ -14,6 +14,7 @@ from functools import partial
 from scipy import sparse
 from scipy.special import expit
 from shap import KernelExplainer
+from pydantic import validate_arguments
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
 
 import shap.utils._legacy as shap_utils
@@ -276,6 +277,7 @@ class KernelExplainerWrapper(KernelExplainer):
 
 class KernelShap(Explainer, FitMixin):
 
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  link: str = 'identity',
@@ -666,6 +668,7 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
+    @validate_arguments
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, sparse.spmatrix, pd.DataFrame, shap_utils.Data],
             summarise_background: Union[bool, str] = False,
@@ -777,6 +780,7 @@ class KernelShap(Explainer, FitMixin):
 
         return self
 
+    @validate_arguments
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
@@ -995,6 +999,7 @@ TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss
 
 class TreeShap(Explainer, FitMixin):
 
+    @validate_arguments
     def __init__(self,
                  predictor: Any,
                  model_output: str = 'raw',
@@ -1093,6 +1098,7 @@ class TreeShap(Explainer, FitMixin):
         self._update_metadata({"task": self.task})
         self._update_metadata({"model_output": self.model_output}, params=True)
 
+    @validate_arguments
     def fit(self,  # type: ignore
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
@@ -1217,6 +1223,7 @@ class TreeShap(Explainer, FitMixin):
         else:
             return shap.kmeans(background_data, n_background_samples)
 
+    @validate_arguments
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, 'catboost.Pool'],
                 y: Optional[np.ndarray] = None,

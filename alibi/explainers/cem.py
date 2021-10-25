@@ -5,6 +5,7 @@ import logging
 import numpy as np
 import sys
 import tensorflow.compat.v1 as tf
+from pydantic import validate_arguments
 from typing import Any, Callable, Tuple, Union
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 class CEM(Explainer, FitMixin):
 
+    @validate_arguments
     def __init__(self,
                  predict: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  mode: str,
@@ -294,6 +296,7 @@ class CEM(Explainer, FitMixin):
             writer = tf.summary.FileWriter(write_dir, tf.get_default_graph())
             writer.add_graph(tf.get_default_graph())
 
+    @validate_arguments
     def fit(self, train_data: np.ndarray, no_info_type: str = 'median') -> "CEM":
         """
         Get 'no information' values from the training data.
@@ -652,6 +655,7 @@ class CEM(Explainer, FitMixin):
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
+    @validate_arguments
     def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> Explanation:
         """
         Explain instance and return PP or PN with metadata.

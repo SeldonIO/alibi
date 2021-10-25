@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import string
 import tensorflow as tf
+from pydantic import validate_arguments
 
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
@@ -655,6 +656,7 @@ def _validate_output(model: tf.keras.Model,
 
 class IntegratedGradients(Explainer):
 
+    @validate_arguments
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
@@ -717,6 +719,7 @@ class IntegratedGradients(Explainer):
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
+    @validate_arguments
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,

@@ -4,6 +4,7 @@ from alibi.explainers.cfrl_base import CounterfactualRL, Postprocessing, _PARAM_
 from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
 
 import numpy as np
+from pydantic import validate_arguments
 from tqdm import tqdm
 from itertools import count
 from functools import partial
@@ -102,6 +103,7 @@ _PARAM_TYPES["complex"] += ["conditional_vector", "stats"]
 class CounterfactualRLTabular(CounterfactualRL):
     """ Counterfactual Reinforcement Learning Tabular. """
 
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
@@ -251,6 +253,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         return X
 
+    @validate_arguments
     def fit(self, X: np.ndarray) -> 'Explainer':
         # Compute vector of statistics to clamp numerical values between the minimum and maximum
         # value from the training set.
@@ -273,6 +276,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         # call base class fit
         return super().fit(X)
 
+    @validate_arguments
     def explain(self,
                 X: np.ndarray,
                 Y_t: np.ndarray = None,  # TODO remove default value (mypy error)

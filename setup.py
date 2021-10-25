@@ -47,7 +47,8 @@ setup(name='alibi',
           'typing-extensions>=3.7.2; python_version < "3.8"',  # https://github.com/SeldonIO/alibi/pull/248
           'dill>=0.3.0, <0.4.0',
           'transformers>=4.7.0, <5.0.0',
-          'tqdm>=4.28.1, <5.0.0'
+          'tqdm>=4.28.1, <5.0.0',
+          'pydantic>=1.8.2, <2.0.0'
       ],
       extras_require=extras_require,
       test_suite='tests',

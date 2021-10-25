@@ -2,6 +2,7 @@ import copy
 import math
 import numpy as np
 import pandas as pd
+from pydantic import validate_arguments
 from itertools import count
 from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
@@ -22,6 +23,7 @@ if TYPE_CHECKING:
 
 class ALE(Explainer):
 
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: Optional[List[str]] = None,
@@ -89,6 +91,7 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
+    @validate_arguments
     def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.

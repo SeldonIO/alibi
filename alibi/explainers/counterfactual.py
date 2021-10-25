@@ -1,5 +1,6 @@
 import copy
 import numpy as np
+from pydantic import validate_arguments
 from typing import Callable, Optional, Tuple, Union
 import tensorflow.compat.v1 as tf
 import logging
@@ -74,6 +75,7 @@ def CounterFactual(*args, **kwargs):
 
 class Counterfactual(Explainer):
 
+    @validate_arguments
     def __init__(self,
                  predict_fn: Union[Callable[[np.ndarray], np.ndarray], tf.keras.Model],
                  shape: Tuple[int, ...],
@@ -298,6 +300,7 @@ class Counterfactual(Explainer):
 
         return X_init
 
+    @validate_arguments
     def fit(self,
             X: np.ndarray,
             y: Optional[np.ndarray]) -> "Counterfactual":
@@ -310,6 +313,7 @@ class Counterfactual(Explainer):
         self.fitted = True
         return self
 
+    @validate_arguments
     def explain(self, X: np.ndarray) -> Explanation:
         """
         Explain an instance and return the counterfactual with metadata.

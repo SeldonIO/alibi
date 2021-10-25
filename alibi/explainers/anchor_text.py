@@ -9,6 +9,7 @@ from copy import deepcopy
 from functools import partial
 from abc import abstractmethod
 from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
+from pydantic import validate_arguments
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.utils.lang_model import LanguageModel
@@ -1174,6 +1175,7 @@ class AnchorText(Explainer):
         SAMPLING_LANGUAGE_MODEL: LanguageModelSampler
     }
 
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
@@ -1349,6 +1351,7 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
+    @validate_arguments
     def explain(self,  # type: ignore
                 text: str,
                 threshold: float = 0.95,

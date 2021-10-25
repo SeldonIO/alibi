@@ -5,6 +5,7 @@ import numpy as np
 
 from functools import partial
 from typing import Any, Callable, List, Union, Tuple, Type
+from pydantic import validate_arguments
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.api.interfaces import Explainer, Explanation
@@ -300,6 +301,8 @@ class AnchorImageSampler:
 
 
 class AnchorImage(Explainer):
+
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  image_shape: tuple,
@@ -425,6 +428,7 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
+    @validate_arguments
     def explain(self,  # type: ignore
                 image: np.ndarray,
                 p_sample: float = 0.5,

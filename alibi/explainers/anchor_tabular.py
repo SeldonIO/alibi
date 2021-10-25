@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
+from pydantic import validate_arguments
 from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Type, Union, Optional
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -658,6 +659,7 @@ class RemoteSampler:
 
 class AnchorTabular(Explainer, FitMixin):
 
+    @validate_arguments
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: List[str],
@@ -718,6 +720,7 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
+    @validate_arguments
     def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
             **kwargs) -> "AnchorTabular":
         """
@@ -771,6 +774,7 @@ class AnchorTabular(Explainer, FitMixin):
         lookups = [sampler.build_lookups(X) for sampler in self.samplers][0]
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = lookups
 
+    @validate_arguments
     def explain(self,
                 X: np.ndarray,
                 threshold: float = 0.95,

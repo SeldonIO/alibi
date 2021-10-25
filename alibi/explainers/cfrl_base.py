@@ -331,8 +331,8 @@ class CounterfactualRL(Explainer, FitMixin):
     @beartype
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
-                 encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                 decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 encoder: Union["tensorflow.keras.Model", "torch.nn.Module"],
+                 decoder: Union["tensorflow.keras.Model", "torch.nn.Module"],
                  coeff_sparsity: float,
                  coeff_consistency: float,
                  latent_dim: Optional[int] = None,

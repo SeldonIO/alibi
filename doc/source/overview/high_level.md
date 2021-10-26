@@ -163,21 +163,53 @@ probability $\tau$ (usually $\tau$ is chosen to be 0.95).
 
 Let $prec(A) = E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}]$ be the precision of an anchor. Note that the precision of an anchor 
 is considered with respect to the set of points in the data distribution to which the anchor applies,
-$\mathcal{D}(z|A)}$. We can consider the **coverage** of an anchor as the probability that $A(z)=1$ for any instance 
+$\mathcal{D}(z|A)$. We can consider the **coverage** of an anchor as the probability that $A(z)=1$ for any instance 
 $z$ in the data distribution. The coverage tells us the proportion of the distribution that the anchor applies to. 
 The aim here is to find the anchor that applies to the largest set of instances. So what is the most general rule we 
 can find that any instance must satisfy in order that it have the same classification as $x$.
 
+##### Explainers:
+
+The following discusses the set of explainer methods available from alibi for generating anchor insights.
+
+**Anchors**
+
+TODO
+
+**Contrastive Explanation Method:**
+
+TODO
+
+
 #### Global Feature Attribution
 
 Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
-is a global insight as it describes the behaviour of the model over the entire input space. An example is ALE-plots
-that are used to obtain graphs that visualize the relationship between feature and prediction directly.
+is a global insight as it describes the behaviour of the model over the entire input space. ALE-plots, M-plots and 
+PDP-plots all are used to obtain graphs that visualize the relationship between feature and prediction directly.
 
 Suppose a trained regression model that predicts the number of bikes rented on a given day dependent on the temperature,
-humidity and wind speed. An ALE-plot for the temperature feature is a line graph with temperature plotted against 
-number of bikes rented. This type of insight can be used to confirm what you expect to see. In the bikes rented case 
-one would anticipate an increase in rentals up until a certain temperature and then a decrease after.
+humidity and wind speed. Global Feature Attribution for the temperature feature might be a line graph with temperature 
+plotted against number of bikes rented. This type of insight can be used to confirm what you expect to see. In the 
+bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease after.
+
+**Accumulated Local Effects:**
+
+Alibi only provides Accumulated Local Effects plots because these give the most accurate insight of ALE-plots, M-plots 
+and PDP-plots. ALE-plots work by averaging the local changes in prediction at every instance (local effects) in the 
+data distribution. They then accumulate these differences to obtain a plot of prediction over the selected feature 
+dependencies.
+
+Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ then let 
+$X_C=X \\ X_S$. We want to obtain the ALE-plot for the features $X_S$ typical chosen to be at most 2 in order that 
+they can easily be visualized. The ALE-plot is defined as:
+
+$$
+\hat{f}_{S, ALE}(X_S) = 
+\int_{z_{0, S}}^{S} \mathbb{E}_{X_C|X_S=x_s} 
+\left[ \frac{\partial \hat{f}}{\partial x_S} (X_s, X_c)|X_S=z_S \right]  dz_{S} - constant
+$$
+
+TODO: further discussion on definition
 
 #### Local Feature Attribution
 
@@ -201,3 +233,22 @@ the feature attribution of a picture of a husky and discover that the model is o
 the husky then you know both that all the images of huskies in your dataset overwhelmingly have snowy backdrops and 
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
 backdrops and also fail to recognise huskies without snowy backdrops.
+
+TODO: discussion on definition
+
+##### Explainers:
+
+The following discusses the set of explainer methods available from alibi for generating Local Feature Attribution 
+insights.
+
+**Integrated Gradients**
+
+TODO
+
+**Kernel SHAP**
+
+TODO
+
+**Tree SHAP**
+
+TODO

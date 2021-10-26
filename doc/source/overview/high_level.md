@@ -23,7 +23,6 @@ required to obtain a new classification. Insights are constrained by:
 - The type of model used (linear regression, neural network, ...)
 - The task the model performs (regression, classification, ...)
 
-### Type of model used:
 In particular some explainer methods apply to any type of model. They can do so because the underlying method doesn't
 make use of the model internals. Instead, only depending on the model outputs given particular inputs. Methods that 
 apply in this general setting are known as **black box** methods. Methods that do require model internals, perhaps in
@@ -40,20 +39,24 @@ applied.
 
 ## Applications:
 
-#### Trust: 
+**Trust:**
+
 At a core level explainability builds trust in the machine learning systems we use. It allows us to justify there use 
 in many contexts where an understanding of the basis of decision is paramount.
 
-#### Testing: 
+**Testing:** 
+
 Explainability can be thought as an extra form of testing for a model. The insights derived should conform to the
 expected behaviour. Failure to do so may indicate issues with the model or problems with the dataset it's been trained 
 on.
 
-#### Functionality: 
+**Functionality:**
+
 Insights can also be used to augment model functionality. Providing useful information on top of model predictions. 
 How to change the model inputs to obtain a better output for instance.
 
-#### Research: 
+**Research:**
+
 Explainability allows researchers to look inside the black box and see what the models are doing. Helping them 
 understand more broadly the effects of the particular model or training schema they're using.
 
@@ -65,9 +68,9 @@ conform to some confirmation bias of the person training the model then they are
 instead use these methods to confirm erroneous results.
 :::
 
-# Insights
+## Insights
 
-## Global and Local Insights
+### Global and Local Insights
 
 Insights can be categorized into two types. Local and global. Intuitively a local insights says something about a 
 single prediction that a model makes. As an example, given an image classified as a cat by a model what is the minimal 
@@ -77,11 +80,11 @@ Global insights on the other hand refer to the behaviour of the model over a set
 regression prediction varies with respect to a given feature while factoring out all the others are an example. These 
 insights give a more general understanding of the relationship between inputs and model predictions.
 
-## Insight Categories
+### Insight Categories
 
 Alibi provides a number of insights with which to explore and understand models.
 
-### Counter Factuals:
+#### Counter Factuals:
 
 Given an instance of the dataset and a prediction given by a model a question that naturally arises is how would the
 instance minimally have to change in order for a different prediction to be given. Counterfactuals are local 
@@ -110,29 +113,29 @@ the overall data distribution and the counterfactual class specific data distrib
 counter factual makes sense as something that would both occur in the dataset and occur within the target counter
 factual class.
 
-### Explainers:
+##### Explainers:
 
 The following discusses the set of explainer methods available from alibi for generating counterfactual insights.
 
-#### Counterfactuals Instances:
+**Counterfactuals Instances:**
 
 TODO
 
-#### Contrastive Explanation Method:
+**Contrastive Explanation Method:**
 
 TODO
 
-#### Counterfactuals Guided by Prototypes:
+**Counterfactuals Guided by Prototypes:**
 
 TODO
 
-#### Counterfactuals with Reinforcement Learning:
+**Counterfactuals with Reinforcement Learning:**
 
 TODO
 
 ___
 
-### Local Scoped Rules (Anchors):
+#### Local Scoped Rules (Anchors):
 
 Given a single instance and model prediction anchors are local explanations that tell us what minimal set of features 
 needs to stay the same in order that the model still give the same prediction or close predictions. This tells the 
@@ -143,7 +146,29 @@ minimal subset of the image that the model uses to make its decision. A Machine 
 insight to see if the model is concentrating on the correct image features in making a decision. This is especially 
 useful applied to an erroneous decision.
 
-### Global Feature Attribution
+We introduce anchors in a more formal manner, taking the definition and discussion from *.
+
+Let A be a rule (set of predicates) acting on such an interpretable representation, such that $A(x)$ returns $1$ if all 
+its feature predicates are true for instance $x$. An example of such a rule, $A$, could be represented by the set 
+$\{not, bad\}$ in which case any sentence, $s$, with both $not$ and $bad$ in it would mean $A(s)=1$
+
+Given a classifier $f$, instance $x$ and data distribution $\mathcal{D}$, $A$ is an anchor for $x$ if $A(x) = 1$ and,
+
+$$ E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}] ≥ τ $$
+
+The distribution $\mathcal{D}(z|A)$ is those points from the dataset for which the anchor holds. This is like fixing 
+some set of features of an instance and allowing all the others to vary. Intuitively, the anchor condition says any
+point in the data distribution that satisfies the anchor $A$ is expected to match the model prediction $f(x)$ with 
+probability $\tau$ (usually $\tau$ is chosen to be 0.95). 
+
+Let $prec(A) = E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}]$ be the precision of an anchor. Note that the precision of an anchor 
+is considered with respect to the set of points in the data distribution to which the anchor applies,
+$\mathcal{D}(z|A)}$. We can consider the **coverage** of an anchor as the probability that $A(z)=1$ for any instance 
+$z$ in the data distribution. The coverage tells us the proportion of the distribution that the anchor applies to. 
+The aim here is to find the anchor that applies to the largest set of instances. So what is the most general rule we 
+can find that any instance must satisfy in order that it have the same classification as $x$.
+
+#### Global Feature Attribution
 
 Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
 is a global insight as it describes the behaviour of the model over the entire input space. An example is ALE-plots
@@ -154,7 +179,7 @@ humidity and wind speed. An ALE-plot for the temperature feature is a line graph
 number of bikes rented. This type of insight can be used to confirm what you expect to see. In the bikes rented case 
 one would anticipate an increase in rentals up until a certain temperature and then a decrease after.
 
-### Local Feature Attribution
+#### Local Feature Attribution
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
 image this would highlight those pixels that make the model give the output it does. Note this differs subtly from 

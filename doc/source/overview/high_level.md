@@ -23,6 +23,21 @@ required to obtain a new classification. Insights are constrained by:
 - The type of model used (linear regression, neural network, ...)
 - The task the model performs (regression, classification, ...)
 
+### Type of model used:
+In particular some explainer methods apply to any type of model. They can do so because the underlying method doesn't
+make use of the model internals. Instead, only depending on the model outputs given particular inputs. Methods that 
+apply in this general setting are known as **black box** methods. Methods that do require model internals, perhaps in
+order to compute prediction gradients dependent on inputs, are known as white box models. This is a much stronger 
+constrain that black box methods.
+
+:::{admonition} **Note 1: Black Box Definition**
+The use of Black Box here varies subtly from the conventional use within machine learning. Typically, we say a model is
+a black box if the mechanism by which it makes predictions is too complicated to be interpretable to a human. Here we
+use black box to mean that the explainer method doesn't need to have access to the model internals in order to be 
+applied.
+:::
+
+
 ## Applications:
 
 #### Trust: 
@@ -35,14 +50,14 @@ expected behaviour. Failure to do so may indicate issues with the model or probl
 on.
 
 #### Functionality: 
-Insights can also be used to augment model functionaluty. Providing useful information on top of model predictions. 
+Insights can also be used to augment model functionality. Providing useful information on top of model predictions. 
 How to change the model inputs to obtain a better output for instance.
 
 #### Research: 
 Explainability allows researchers to look inside the black box and see what the models are doing. Helping them 
 understand more broadly the effects of the particular model or training schema they're using.
 
-:::{admonition} **Note 1: Biases**
+:::{admonition} **Note 2: Biases**
 Practitioners must be wary of using explainability to excuse bad models rather than ensuring there correctness. As an 
 example its possible to have a model that is correctly trained on a dataset, however due to the dataset being either 
 wrong or incomplete the model doesn't actually reflect reality. If the insights that explainability generates 
@@ -50,9 +65,9 @@ conform to some confirmation bias of the person training the model then they are
 instead use these methods to confirm erroneous results.
 :::
 
-## Insights
+# Insights
 
-### Global and Local Insights
+## Global and Local Insights
 
 Insights can be categorized into two types. Local and global. Intuitively a local insights says something about a 
 single prediction that a model makes. As an example, given an image classified as a cat by a model what is the minimal 
@@ -62,11 +77,11 @@ Global insights on the other hand refer to the behaviour of the model over a set
 regression prediction varies with respect to a given feature while factoring out all the others are an example. These 
 insights give a more general understanding of the relationship between inputs and model predictions.
 
-### Insight Categories
+## Insight Categories
 
 Alibi provides a number of insights with which to explore and understand models.
 
-#### Counter Factuals:
+### Counter Factuals:
 
 Given an instance of the dataset and a prediction given by a model a question that naturally arises is how would the
 instance minimally have to change in order for a different prediction to be given. Counterfactuals are local 
@@ -82,7 +97,42 @@ the Machine Learning Engineer that the model is drawing incorrect assumptions if
 features that shouldn't be relevant to the given decision. This may be down either to the model training or the dataset
 being unbalanced.
 
-#### Local Scoped Rules (Anchors):
+A counterfactual, $x_{cf}$, needs to satisfy
+
+- The model prediction on $x_{cf}$ needs to be close to the predefined output.
+- The counterfactual $x_{cf}$ should be interpretable. 
+
+The first requirement is easy enough to satisfy. The second however requires some idea of what interpretable means. In
+our case we require that the perturbation $\delta$ changing the original instance $x_0$ into $x_{cf} = x_0 + \delta$ 
+should be sparse. This means we prefer solutions that change a small subset of the features to construct $x_{cf}$. This
+is limits the complexity of the solution making it more understandable. Secondly we want $x_{cf}$ to lie close to both 
+the overall data distribution and the counterfactual class specific data distribution. This condition ensures the
+counter factual makes sense as something that would both occur in the dataset and occur within the target counter
+factual class.
+
+### Explainers:
+
+The following discusses the set of explainer methods available from alibi for generating counterfactual insights.
+
+#### Counterfactuals Instances:
+
+TODO
+
+#### Contrastive Explanation Method:
+
+TODO
+
+#### Counterfactuals Guided by Prototypes:
+
+TODO
+
+#### Counterfactuals with Reinforcement Learning:
+
+TODO
+
+___
+
+### Local Scoped Rules (Anchors):
 
 Given a single instance and model prediction anchors are local explanations that tell us what minimal set of features 
 needs to stay the same in order that the model still give the same prediction or close predictions. This tells the 
@@ -93,7 +143,7 @@ minimal subset of the image that the model uses to make its decision. A Machine 
 insight to see if the model is concentrating on the correct image features in making a decision. This is especially 
 useful applied to an erroneous decision.
 
-#### Global Feature Attribution
+### Global Feature Attribution
 
 Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
 is a global insight as it describes the behaviour of the model over the entire input space. An example is ALE-plots
@@ -104,7 +154,7 @@ humidity and wind speed. An ALE-plot for the temperature feature is a line graph
 number of bikes rented. This type of insight can be used to confirm what you expect to see. In the bikes rented case 
 one would anticipate an increase in rentals up until a certain temperature and then a decrease after.
 
-#### Local Feature Attribution
+### Local Feature Attribution
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
 image this would highlight those pixels that make the model give the output it does. Note this differs subtly from 

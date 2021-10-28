@@ -214,7 +214,26 @@ the previous approaches mentioned.
 
 **Counterfactuals with Reinforcement Learning:**
 
-__TODO__
+This method splits from the approach taken by the above three significantly. Instead of minimizing a loss at explain 
+time it trains a new model when fitting the explainer called an actor that takes instances and produces counterfactuals.
+It does this using reinforcement learning. In RL an actor model takes some state as input and generates actions, in our 
+case the actor takes an instance with a specific classification and produces an action in the form of a counter factual.
+Outcomes of actions are assigned reward dependent on some reward function that's designed to encourage specific 
+behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the correct target class, 
+secondly are close to the data distribution as modelled by an autoencoder, and thirdly are sparse perturbations of the
+original instance. Finally, the reinforcement training step pushes the actor to take high reward actions instead of
+low reward actions. 
+
+As well as this CFRL actors can be trained to ensure that certain constraints are taken into account when generating 
+counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
+instance in order to obtain a different classification. In certain cases you want these changes to be constrained, for
+instance when dealing with immutable characteristics.
+
+To train the actor we randomly generate in distribution data instances, along with constraints and target 
+classifications. We then compute the reward and update the actor to maximize the reward. We end up with an actor that 
+is able to generate constrained interpretable counterfactual instances on demand. 
+
+__TODO__: Example images    
 
 ___
 
@@ -342,3 +361,8 @@ __TODO__
 **Tree SHAP**
 
 __TODO__
+
+
+##### Example:
+
+__TODO__: Give example that applies to all the explainer methods. 

@@ -67,11 +67,13 @@ wrong or incomplete the model doesn't actually reflect reality. If the insights 
 conform to some confirmation bias of the person training the model then they are going to be blind to this issue and
 instead use these methods to confirm erroneous results.
 
-__TODO__: further discussion on faithfulness of models. Make clear that these insights apply to the model and only to
+__TODO__: 
+- further discussion on faithfulness of models. Make clear that these insights apply to the model and only to 
 the data via the model.
 :::
 
-__TODO__: picture of explainability pipeline: training -> prediction -> insight
+__TODO__:
+- picture of explainability pipeline: training -> prediction -> insight
 
 ## Insights
 
@@ -84,6 +86,9 @@ insight gives an idea of what the model is looking for when deciding to classify
 Global insights on the other hand refer to the behaviour of the model over a set of inputs. Plots that show how a 
 regression prediction varies with respect to a given feature while factoring out all the others are an example. These 
 insights give a more general understanding of the relationship between inputs and model predictions.
+
+__TODO__:
+- Add image to illustart
 
 ### Insight Categories
 
@@ -138,6 +143,9 @@ training in this case takes place during the `fit` method call and so this has a
 method is quick. If you want performant explanations in production environments then the later method is preferable.
 :::
 
+__TODO__: 
+- schematic image explaining search for counterfactual as determined by loss
+- schematic image explaining difference between different approaches.
 
 **Counterfactuals Instances:**
 
@@ -162,7 +170,8 @@ A problem arises here in that encouraging sparse solutions doesn't necessarily g
 This happens because the loss doesn't prevent the counter factual solution moving off the data distribution. Thus, you
 will likely get a solution that doesn't look like something that you'd expect to see from the data.
 
-__TODO: Picture example.__
+__TODO:__
+- Picture example. Like from here: https://github.com/interpretml/DiCE
 
 **Contrastive Explanation Method:**
 
@@ -187,7 +196,8 @@ results. And in particular the constructed counterfactual often doesn't look lik
 Similarly to the previous method, this method can apply to both black and white box models. In the case of black box 
 there is still a performance cost from computing the numerical gradients.
 
-__TODO: Picture example of results including less interpretable ones.__
+__TODO:__
+- Picture example of results including less interpretable ones.
 
 **Counterfactuals Guided by Prototypes:**
 
@@ -203,7 +213,8 @@ With hyperparmaters $c$ and $\beta$, the loss is now given by:
 
 $$L(X'|X)= cL_{pred} + \beta L_{1} + L_{2} + L_{AE} + L_{proto}$$
 
-__TODO: Picture example of results.__
+__TODO:__ 
+- Picture example of results.
 
 It's clear that this method produces much more interpretable results. As well as this, because the proto term pushes
 the solution towards the target class we can actually remove the prediction loss term and still obtain a viable counter
@@ -224,34 +235,40 @@ secondly are close to the data distribution as modelled by an autoencoder, and t
 original instance. Finally, the reinforcement training step pushes the actor to take high reward actions instead of
 low reward actions. 
 
-As well as this CFRL actors can be trained to ensure that certain constraints are taken into account when generating 
+As well as this CFRL actors are trained to ensure that certain constraints can be taken into account when generating 
 counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
 instance in order to obtain a different classification. In certain cases you want these changes to be constrained, for
-instance when dealing with immutable characteristics.
+instance when dealing with immutable characteristics. In other words if you are using the counterfactual to advise 
+changes in behaviour you want to ensure the changes are enactable. Suggesting that someone needs to be 2 years younger
+to apply for a loan isn't very helpful.
 
 To train the actor we randomly generate in distribution data instances, along with constraints and target 
-classifications. We then compute the reward and update the actor to maximize the reward. We end up with an actor that 
-is able to generate constrained interpretable counterfactual instances on demand. 
+classifications. We then compute the reward and update the actor to maximize the reward. We do this without needing 
+access to the critic internals. We end up with an actor that is able to generate interpretable counterfactual instances 
+at runtime with arbitrary constraints. 
 
-__TODO__: Example images    
-
+__TODO__: 
+- Example images
+- Black box Discussion of method
+- At explain time ask for specific constraints...  key point can have arbitrary constraints in counterfactuals.
 ___
 
-#### Local Scoped Rules (Anchors):
+#### Local Necessary Features:
 
-Given a single instance and model prediction anchors are local explanations that tell us what minimal set of features 
-needs to stay the same in order that the model still give the same prediction or close predictions. This tells the 
-practitioner what it is in an instance that most influences the result.
+Given a single instance and model prediction Local Necessary Features are local explanations that tell us what minimal 
+set of features needs to stay the same in order that the model still give the same prediction or close predictions. 
+This tells the practitioner what it is in an instance that most influences the result.
 
-In the case of a trained image classification model an anchor for a given instance and classification would be a 
+In the case of a trained image classification model, Local Necessary Features for a given instance would be a 
 minimal subset of the image that the model uses to make its decision. A Machine learning engineer might use this 
 insight to see if the model is concentrating on the correct image features in making a decision. This is especially 
 useful applied to an erroneous decision.
 
 ##### Explainers:
 
-The following two explainer methods are available from alibi for generating anchor insights. Each approaches the idea
-in slightly different ways.
+The following two explainer methods are available from alibi for generating Local Necessary Features insights. Each 
+approaches the idea in slightly different ways but the main difference is one gives an idea of the size of the area 
+over the dataset for which the insight applies.
 
 **Anchors**
 
@@ -279,14 +296,73 @@ $z$ in the data distribution. The coverage tells us the proportion of the distri
 The aim here is to find the anchor that applies to the largest set of instances. So what is the most general rule we 
 can find that any instance must satisfy in order that it have the same classification as $x$.
 
-__TODO__: Include picture explanation of anchors
-__TODO__: Include rough idea of method
-__TODO__: Include discussion of runtime complexity, especially at classification boundaries. 
+__TODO__: 
+- Include picture explanation of anchors
 
-**Contrastive Explanation Method:**
+Alibi finds anchors by building them up from the bottom up. We start with an empty anchor $A=\{\}$ and then consider
+the set of possible feature values from the instance of interest we can add. $\mathcal{A} = 
+\{A \wedge a_0, A \wedge a_1, A \wedge a_2, ..., A \wedge a_n\}$. In the case of textual data for instance the $a_i$ 
+might be words from the instance sentence. In the case of image data we take a partition the image into superpixels 
+which we choose to be the $a_i$. At each stage we're going to look at the set of possible next anchors that can be made
+by adding in a feature $a_i$ from the instance. We then compute the precision of each of the resulting anchors and 
+choose the best. We iteratively build the anchor up like this until the required precision is met.
+ 
+As we build up the anchors from the empty case we need to compute their precision in order to know which one to choose. 
+Given any specific anchor $A=\{a_1, ..., a_n\}$ we want to know its precision. We can't compute this directly,
+instead we sample from $\mathcal{D}(z|A)$ to obtain an estimate. To do this we use a number of different methods for 
+different data types. For instance, in the case of textual data we want to generate sentences with the anchor words in 
+them and also ensure that they make sense within the data distribution. One option is to replace the missing words 
+(those not in the anchor) from the instance with ones with the same POS tag. This means the resulting samples makes 
+semantic sense rather than being a random set of words. Other methods are available. In the case of images we sample an
+image from the data set and then superimpose the superpixels on top of it. Hence we can estimate the precision of that
+anchor by sampling from $\mathcal{D}(z|A)$ and computing $1_{f(x)=f(z)}$.
 
-__TODO__: Give definition
-__TODO__: Explain differences to Anchors definition.
+Because at each step in building up the anchor we need to consider all the possible features we can add this algorithm
+is much slower for high dimensional feature spaces. Similarly, if choosing an anchor close to a decision boundary the
+method may require a very large number of samples from $\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ in order to
+distinguish two anchors $A$ and $A'$.
+
+Note that this is a blackbox method as we just need to be able to predict the value of an instance and don't need 
+to access model internals.
+
+**Pertinent Positives:**
+
+Informally a Pertinent Positive is the subset of an instance that still obtains the same classification. These differ
+from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to obtain them is 
+also substantially different.
+
+Given an 
+instance $x_0$ we let $\delta = 0$ and then set out to optimize $\delta$ to minimize the following loss:
+
+$$
+l = min_{
+\delta\in \mathcal{X}\cap x_0} \left \{ 
+c\cdot f_{\kappa}^{pos}(\delta) 
++ \beta \|\delta\|_{1} 
++ \|\delta\|^{2}_{2} 
++ \gamma \|\delta - AE(\delta)\|^{2}_{2} 
+\right \}
+$$
+
+where
+
+$$
+f^{pos}_{\kappa}(x_0, \delta) = max\left\{
+max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, 
+\kappa 
+\right\}
+$$
+
+__TODO__:
+- intuitive explanation
+
+Note this is both a black and white box method as while we need to compute the loss gradient through the model we can 
+do this using numerical differentiation. This comes at a significant computational cost due to the extra model calls 
+we need to make.
+
+__TODO__: 
+- Give definition, Note that the CEM paper describes anchors as global insights.
+- Explain differences to Anchors definition.
 
 #### Global Feature Attribution
 
@@ -316,7 +392,8 @@ $$
 \left[ \frac{\partial \hat{f}}{\partial x_S} (X_s, X_c)|X_S=z_S \right]  dz_{S} - constant
 $$
 
-__TODO__: further discussion on definition
+__TODO__: 
+- further discussion on definition
 
 #### Local Feature Attribution
 
@@ -341,7 +418,8 @@ the husky then you know both that all the images of huskies in your dataset over
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
 backdrops and also fail to recognise huskies without snowy backdrops.
 
-__TODO__: discussion on definition
+__TODO__: 
+- discussion on definition
 
 - Efficiency property...
 
@@ -365,4 +443,5 @@ __TODO__
 
 ##### Example:
 
-__TODO__: Give example that applies to all the explainer methods. 
+__TODO__: 
+- Give example that applies to all the explainer methods. 

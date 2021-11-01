@@ -348,7 +348,7 @@ $$
 L_{pred}(\delta) = max\left\{ max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, \kappa \right\}
 $$
 
-and $\delta$ is restrained to only take away features from the instance $x_0$. There is a slight subtle point here in 
+and $\delta$ is restrained to only take away features from the instance $x_0$. There is a slightly subtle point here in 
 that removing features from an instance requires correctly defining non-informative feature values. In the case of
 MNIST digits it's reasonable to assume that the black background behind each digit represents an absence of information.
 Similarly, in the case of color images you might assume that the median pixel value represents no information and moving
@@ -378,17 +378,39 @@ data distribution. They then accumulate these differences to obtain a plot of pr
 dependencies.
 
 Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ then let 
-$X_C=X \\ X_S$. We want to obtain the ALE-plot for the features $X_S$ typical chosen to be at most 2 in order that 
-they can easily be visualized. The ALE-plot is defined as:
+$X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a
+set of dimension 2 in order that they can easily be visualized. For simplicity assume we have $X=\{x_1, x_2\}$ and let 
+$X_S=\{x_2\}$ so $X_C=\{x_1\}$. The ALE of $x_1$ is defined by:
 
 $$
-\hat{f}_{S, ALE}(X_S) = 
-\int_{z_{0, S}}^{S} \mathbb{E}_{X_C|X_S=x_s} 
-\left[ \frac{\partial \hat{f}}{\partial x_S} (X_s, X_c)|X_S=z_S \right]  dz_{S} - constant
+\hat{f}_{S, ALE}(x_1) = 
+\int_{min(x_1)}^{x_1}\mathbb{E}\left[ 
+\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1 = z_1 
+\right]dz_1 - c_1
 $$
+
+The term $\mathbb{E}\left[\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1=z_1 \right]$ computes the expectation of 
+the derivative in $x_1$ over the random variable $X_2$ conditional on $X_1=z_1$. By taking the expectation with respect
+to $X_2$ we factor out its dependency. So now we know how the prediction $f$ changes local to a point $X_1=z_1$ 
+independent of $X_2$. If we have this then to get the true dependency we must integrate these changes over $x_1$ from a 
+min value to the value of interest. ALE-plots get there names as they accumulate (integrate) the local effects which 
+are the expected partial derivatives. 
 
 __TODO__: 
-- further discussion on definition
+- Add picture explaining the above idea.
+
+It is important to note that by considering effects local to $X_1=z_1$ in the above equations we capture any 
+dependencies in the features of the dataset. Similarly, by considering the differences in $f$ and accumulating them 
+over the variable of interest we remove any effects owing to correlation between $X_1$ and $X_2$. For better insight 
+into these points see...
+
+The above can be done where $X_S$ is any number of features however typically we are only ever interested in at most 2
+features as these can be easily visualized. 
+
+In practice, we compute the various quantities above numerically and so $f$ doesn't need to be differentiable.
+
+Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
+there is a sensible ordering on the categorical data. As an example consider months of the year.
 
 #### Local Feature Attribution
 

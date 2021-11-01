@@ -7,7 +7,7 @@ explaining the choices that a model makes could even become a potential
 [legal requirement](https://arxiv.org/pdf/1711.00399.pdf). The following is a non-rigorous and practical overview of 
 explainability and the methods alibi provide.
 
-Explainability research provides us with algorithms that give insights into the context of trained models predictions.
+Explainability research provides us with algorithms that give insights into trained models predictions.
 
 - How does a prediction change dependent on feature inputs?
 - What features are Important for a given prediction to hold?
@@ -16,12 +16,15 @@ Explainability research provides us with algorithms that give insights into the 
 - etc..
 
 The set of insights available are dependent on the trained model. If the model is a regression is makes sense to ask 
-how the prediction varies with respect to some feature whereas it doesn't make sense to ask what minimal change is 
+how the prediction varies with respect to some feature. Whereas, it doesn't make sense to ask what minimal change is 
 required to obtain a new classification. Insights are constrained by:
 
 - The type of data the model handles (images, text, ...)
-- The type of model used (linear regression, neural network, ...)
 - The task the model performs (regression, classification, ...)
+- The type of model used (linear regression, neural network, ...)
+
+__TODO:__
+- explain type of model...
 
 In particular some explainer methods apply to any type of model. They can do so because the underlying method doesn't
 make use of the model internals. Instead, only depending on the model outputs given particular inputs. Methods that 
@@ -331,38 +334,30 @@ Informally a Pertinent Positive is the subset of an instance that still obtains 
 from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to obtain them is 
 also substantially different.
 
-Given an 
-instance $x_0$ we let $\delta = 0$ and then set out to optimize $\delta$ to minimize the following loss:
+Given an instance $x_0$ we set out to find a $\delta$ that minimizes the following loss:
 
 $$
-l = min_{
-\delta\in \mathcal{X}\cap x_0} \left \{ 
-c\cdot f_{\kappa}^{pos}(\delta) 
-+ \beta \|\delta\|_{1} 
-+ \|\delta\|^{2}_{2} 
-+ \gamma \|\delta - AE(\delta)\|^{2}_{2} 
+l = \left \{ 
+c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} 
 \right \}
 $$
 
 where
 
 $$
-f^{pos}_{\kappa}(x_0, \delta) = max\left\{
-max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, 
-\kappa 
-\right\}
+L_{pred}(\delta) = max\left\{ max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, \kappa \right\}
 $$
 
-__TODO__:
-- intuitive explanation
+and $\delta$ is restrained to only take away features from the instance $x_0$. There is a slight subtle point here in 
+that removing features from an instance requires correctly defining non-informative feature values. In the case of
+MNIST digits it's reasonable to assume that the black background behind each digit represents an absence of information.
+Similarly, in the case of color images you might assume that the median pixel value represents no information and moving
+away from this value adds information. It is however often not trivial to find these non-informative feature values and 
+domain knowledge becomes very important.
 
 Note this is both a black and white box method as while we need to compute the loss gradient through the model we can 
 do this using numerical differentiation. This comes at a significant computational cost due to the extra model calls 
 we need to make.
-
-__TODO__: 
-- Give definition, Note that the CEM paper describes anchors as global insights.
-- Explain differences to Anchors definition.
 
 #### Global Feature Attribution
 

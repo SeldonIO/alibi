@@ -39,10 +39,10 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
             # spacy 2.3.0 moved lexeme_prob into a different package `spacy_lookups_data`
             # https://github.com/explosion/spaCy/issues/5638
             try:
-                table = nlp.vocab.lookups_extra.get_table('lexeme_prob')
+                table = nlp.vocab.lookups_extra.get_table('lexeme_prob')  # type: ignore[attr-defined]
                 # remove the default empty table
                 if table == dict():
-                    nlp.vocab.lookups_extra.remove_table('lexeme_prob')
+                    nlp.vocab.lookups_extra.remove_table('lexeme_prob')  # type: ignore[attr-defined]
             except KeyError:
                 pass
             finally:
@@ -79,8 +79,9 @@ class Neighbors(object):
         # list with spaCy lexemes in vocabulary
         # first if statement is a workaround due to some missing keys in models:
         # https://github.com/SeldonIO/alibi/issues/275#issuecomment-665017691
-        self.to_check = [self.nlp.vocab[w] for w in self.nlp.vocab.vectors if
-                         int(w) in self.nlp.vocab.strings and self.nlp.vocab[w].prob >= self.w_prob]
+        self.to_check = [self.nlp.vocab[w] for w in self.nlp.vocab.vectors
+                         if int(w) in self.nlp.vocab.strings and  # type: ignore[operator]
+                         self.nlp.vocab[w].prob >= self.w_prob]
         self.n_similar = n_similar
 
     def neighbors(self, word: str, tag: str, top_n: int) -> dict:

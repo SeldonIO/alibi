@@ -256,7 +256,7 @@ __TODO__:
 - At explain time ask for specific constraints...  key point can have arbitrary constraints in counterfactuals.
 ___
 
-#### Local Necessary Features:
+#### c:
 
 Given a single instance and model prediction Local Necessary Features are local explanations that tell us what minimal 
 set of features needs to stay the same in order that the model still give the same prediction or close predictions. 
@@ -389,12 +389,11 @@ $$
 \right]dz_1 - c_1
 $$
 
-The term $\mathbb{E}\left[\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1=z_1 \right]$ computes the expectation of 
-the derivative in $x_1$ over the random variable $X_2$ conditional on $X_1=z_1$. By taking the expectation with respect
-to $X_2$ we factor out its dependency. So now we know how the prediction $f$ changes local to a point $X_1=z_1$ 
-independent of $X_2$. If we have this then to get the true dependency we must integrate these changes over $x_1$ from a 
-min value to the value of interest. ALE-plots get there names as they accumulate (integrate) the local effects which 
-are the expected partial derivatives. 
+The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$ 
+conditional on $X_1=z_1$. By taking the expectation with respect to $X_2$ we factor out its dependency. So now we know 
+how the prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. If we have this then to get the true 
+dependency we must integrate these changes over $x_1$ from a min value to the value of interest. ALE-plots get there 
+names as they accumulate (integrate) the local effects (the expected partial derivatives). 
 
 __TODO__: 
 - Add picture explaining the above idea.
@@ -402,12 +401,10 @@ __TODO__:
 It is important to note that by considering effects local to $X_1=z_1$ in the above equations we capture any 
 dependencies in the features of the dataset. Similarly, by considering the differences in $f$ and accumulating them 
 over the variable of interest we remove any effects owing to correlation between $X_1$ and $X_2$. For better insight 
-into these points see...
+into these points see... 
 
-The above can be done where $X_S$ is any number of features however typically we are only ever interested in at most 2
-features as these can be easily visualized. 
-
-In practice, we compute the various quantities above numerically and so $f$ doesn't need to be differentiable.
+In the above example we've assumed $f$ is differentiable. In practice however, we compute the various quantities above 
+numerically and so this isn't a requirement.
 
 Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
 there is a sensible ordering on the categorical data. As an example consider months of the year.
@@ -416,16 +413,8 @@ there is a sensible ordering on the categorical data. As an example consider mon
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
 image this would highlight those pixels that make the model give the output it does. Note this differs subtly from 
-local scoped rules in that they find the minimum subset of features required to give a prediction whereas local feature 
-attribution creates a heat map that tells us each features contribution to the overall outcome.
-
-A common issue with some attribution methods is that you must measure the contribution with respect to some baseline 
-point. The choice of baseline should capture a blank state in which the model makes essentially no prediction or assigns 
-probability of classes equally. A common choice for image classification is an image set to black. This works well in 
-many cases but sometimes fails to be a good choice. For instance for a model that classifies images taken at night 
-using an image with every pixel set to black means the attribution method with undervalue the use of dark pixels in 
-attributing the contribution of each feature to the classification. This is due to the contribution being calculated
-relative to the baseline which in this case is already dark.
+Local Necessary Features in that they find the minimum subset of features required to give a prediction whereas local 
+feature attribution creates a heat map that tells us each features contribution to the overall outcome.
 
 A good use of local feature attribution is to detect that a classifier trained on images is focusing on the correct 
 features of an image in order to infer the class. As an example suppose you have a model trained to detect breeds of 
@@ -433,12 +422,14 @@ dog. You want to check that it focuses on the correct features of the dog in mak
 the feature attribution of a picture of a husky and discover that the model is only focusing on the snowy backdrop to
 the husky then you know both that all the images of huskies in your dataset overwhelmingly have snowy backdrops and 
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
-backdrops and also fail to recognise huskies without snowy backdrops.
+backdrops as huskies and also fail to recognise huskies without snowy backdrops.
 
-__TODO__: 
-- discussion on definition
+Suppose we have a function $f:\mathbb{R}^n → [0, 1]$ that represents a deep network, and an input 
+$x=(x_1,... ,x_n) \in \mathbb{R}^n$. An attribution of the prediction at input $x$ is a vector 
+$a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the contribution of $x_i$ to the prediction $f(x)$. 
 
-- Efficiency property...
+__TODO__:
+- picture showing above concept.
 
 ##### Explainers:
 
@@ -447,7 +438,26 @@ insights.
 
 **Integrated Gradients**
 
-__TODO__
+The integrated gradients' method computes the attribution of each feature by integrating the model partial derivatives 
+along a path from a baseline point to the instance. Let $f$ be the model and $x$ the instance of interest. 
+If $f:\mathbb{R}^{n} \rightarrow \mathbb{R}^{m}$ where $m$ is the number of classes the model predicts then let $F=f_k$
+where $k \in \{1,..., m\}$. If $f$ is single valued then $F=f$. We also need to choose a baseline value, $x'$.
+
+$$
+IG_i(x) = (x_i - x_i')\int_{\alpha}^{1}\frac{\partial F (x' + \alpha (x - x'))}{ \partial x_i } d \alpha
+$$
+
+So the above sums the partial derivatives with respect to each feature over the path between the baseline and the 
+instance of interest. In doing so you accumulate the changes in prediction that occur as a result of the changing 
+feature value from the baseline to the instance. The main difficulty with this method ends up being that as IG is 
+very dependent on the baseline it's important to make sure you choose the correct baseline.
+
+The choice of baseline should capture a blank state in which the model makes essentially no prediction or assigns 
+probability of classes equally. A common choice for image classification is an image set to black. This works well in 
+many cases but sometimes fails to be a good choice. For instance for a model that classifies images taken at night 
+using an image with every pixel set to black means the attribution method will undervalue the use of dark pixels in 
+attributing the contribution of each feature to the classification. This is due to the contribution being calculated
+relative to the baseline which in this case is already dark.
 
 **Kernel SHAP**
 

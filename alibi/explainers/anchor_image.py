@@ -336,9 +336,9 @@ class AnchorImage(Explainer):
 
         Raises
         ------
-        alibi.exceptions.AlibiPredictorCallException
+        :py:class:`alibi.exceptions.AlibiPredictorCallException`
             If calling `predictor` fails at runtime.
-        alibi.exceptions.AlibiPredictorReturnTypeError
+        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))

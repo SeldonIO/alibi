@@ -406,8 +406,11 @@ into these points see...
 In the above example we've assumed $f$ is differentiable. In practice however, we compute the various quantities above 
 numerically and so this isn't a requirement.
 
+:::{admonition} **Note 4: Categorical Variables and ALE**
 Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
-there is a sensible ordering on the categorical data. As an example consider months of the year.
+there is a sensible ordering on the categorical data. As an example consider months of the year. To be clear this is
+only an issue if the variable you are taking the ALE with respect to is categorical. 
+:::
 
 #### Local Feature Attribution
 
@@ -424,12 +427,33 @@ the husky then you know both that all the images of huskies in your dataset over
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
 backdrops as huskies and also fail to recognise huskies without snowy backdrops.
 
-Suppose we have a function $f:\mathbb{R}^n → [0, 1]$ that represents a deep network, and an input 
-$x=(x_1,... ,x_n) \in \mathbb{R}^n$. An attribution of the prediction at input $x$ is a vector 
-$a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the contribution of $x_i$ to the prediction $f(x)$. 
-
 __TODO__:
 - picture showing above concept.
+
+Each of the following methods defines local feature attribution slightly differently. In both however we assign 
+attribution values to each feature to indicate how significant those features where in making the model prediction what 
+it is. 
+
+Let $f:\mathbb{R}^n \rightarrow \mathbb{R}$. $f$ might be a regression, a single component of a multi regression or a 
+probability of a class in a classification model. If $x=(x_1,... ,x_n) \in \mathbb{R}^n$ then an attribution of the 
+prediction at input $x$ is a vector $a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the contribution of $x_i$ to the 
+prediction $f(x)$.
+
+Its desirable that these attribution values satisfy certain properties:
+
+1. Efficiency/Completeness: The sum of attributions equals the difference between the prediction and the
+baseline/average. It makes sense that this be the case as we're interested in understanding the difference each feature
+value makes in a prediction compared to some uninformative baseline.
+2. Symmetry: If the model behaves the same after swapping two variables $x$ and $y$ then $x$ and $y$ have equal 
+attribution. If this weren't the case we'd be biasing the attribution towards certain features over other ones.
+3. Dummy/Sensitivity: If a variable does not change the output of the model then it should have attribution 0. Similar 
+to above if this where not the case then we'd be assigning value to a feature that provides no information.
+4. Additivity/Linearity: The attribution for a feature $x_i$ of a linear composition of two models $f_1$ and $f_2$ 
+given by $c_1 f_1 + c_2 f_2$ is $c_1 a_{1, i} + c_2 a_{2, i}$ where $a_{1, i}$ and $a_{2, i}$ is the attribution for 
+$x_1$ and $f_1$ and $f_2$ respectively. This allows us to decompose certain types of model that are made up of lots of
+smaller models such as random forests.
+
+Each of the methods that alibi provides satisfies these properties.
 
 ##### Explainers:
 

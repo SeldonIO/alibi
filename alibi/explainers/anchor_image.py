@@ -338,6 +338,8 @@ class AnchorImage(Explainer):
         ------
         alibi.exceptions.AlibiPredictorCallException
             If calling `predictor` fails at runtime.
+        alibi.exceptions.AlibiPredictorReturnTypeError
+            If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)

@@ -7,6 +7,7 @@ from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Type, Uni
 
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from alibi.utils.wrappers import ArgmaxTransformer
@@ -684,6 +685,11 @@ class AnchorTabular(Explainer, FitMixin):
             assumed to have ordinal encodings.
         seed
             Used to set the random number generator for repeatability purposes.
+
+        Raises
+        ------
+        alibi.exceptions.AlibiPredictorCallException
+            If calling `predictor` fails at runtime.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
 
@@ -1011,17 +1017,20 @@ class AnchorTabular(Explainer, FitMixin):
 
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # define data instance full of zeros
-        zeros = np.zeros([1, len(self.feature_names)], dtype=self.dtype)
+        x = np.zeros([1, len(self.feature_names)], dtype=self.dtype)
 
         try:
             # check if predictor returns predicted class or prediction probabilities for each class
             # if needed adjust predictor so it returns the predicted class
-            prediction = predictor(zeros)
-        except Exception:
-            ncols = ord_to_ohe(zeros, self.cat_vars_ord)[0].shape[1] if self.ohe else zeros.shape[1]
-            raise ValueError("The classifier is expecting a different number of features. "
-                             f"Calling a classifier using {ncols} features failed, check the values "
-                             "of the `feature_names` and `categorical_names`.")
+            prediction = predictor(x)
+        except Exception as e:
+            msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
+                  f"Check that the parameter `feature_names` is correctly specified."
+            raise AlibiPredictorCallException(msg) from e
+
+        if not isinstance(prediction, np.ndarray):
+            msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
+            raise AlibiPredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor

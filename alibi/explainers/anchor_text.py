@@ -15,6 +15,7 @@ from alibi.utils.lang_model import LanguageModel
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 
@@ -192,10 +193,10 @@ class UnknownSampler(AnchorTextSampler):
             Text to be processed.
         """
         # process text
-        processed = self.nlp(text)                                  # spaCy tokens for text
-        self.words = [x.text for x in processed]                    # list with words in text
-        self.positions = [x.idx for x in processed]                 # positions of words in text
-        self.punctuation = [x for x in processed if x.is_punct]     # list with punctuation in text
+        processed = self.nlp(text)  # spaCy tokens for text
+        self.words = [x.text for x in processed]  # list with words in text
+        self.positions = [x.idx for x in processed]  # positions of words in text
+        self.punctuation = [x for x in processed if x.is_punct]  # list with punctuation in text
 
         # set dtype
         self.set_data_type()
@@ -292,10 +293,10 @@ class SimilaritySampler(AnchorTextSampler):
         text
           Text to be processed.
         """
-        processed = self.nlp(text)                                  # spaCy tokens for text
-        self.words = [x.text for x in processed]                    # list with words in text
-        self.positions = [x.idx for x in processed]                 # positions of words in text
-        self.punctuation = [x for x in processed if x.is_punct]     # punctuation in text
+        processed = self.nlp(text)  # spaCy tokens for text
+        self.words = [x.text for x in processed]  # list with words in text
+        self.positions = [x.idx for x in processed]  # positions of words in text
+        self.punctuation = [x for x in processed if x.is_punct]  # punctuation in text
         self.tokens = processed
 
         # find similar words
@@ -440,7 +441,7 @@ class LanguageModelSampler(AnchorTextSampler):
     FILLING_PARALLEL = 'parallel'
     FILLING_AUTOREGRESSIVE = 'autoregressive'
 
-    def __init__(self, model: LanguageModel, perturb_opts: dict,):
+    def __init__(self, model: LanguageModel, perturb_opts: dict, ):
         """
         Initialize language model sampler. This sampler replaces words with the ones
         sampled according to the output distribution of the language model. There are
@@ -804,7 +805,7 @@ class LanguageModelSampler(AnchorTextSampler):
             Array containing num_samples elements. Each element is a perturbed sentence.
         """
         # chose the perturbation function
-        perturb_func = self._perturb_instances_parallel if filling == self.FILLING_PARALLEL\
+        perturb_func = self._perturb_instances_parallel if filling == self.FILLING_PARALLEL \
             else self._perturb_instance_ar
 
         # perturb instances
@@ -1078,7 +1079,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
 
 DEFAULT_SAMPLING_UNKNOWN = {
-  "sample_proba": 0.5
+    "sample_proba": 0.5
 }
 """
 Default perturbation options for `unknown` sampling
@@ -1087,10 +1088,10 @@ Default perturbation options for `unknown` sampling
 """
 
 DEFAULT_SAMPLING_SIMILARITY = {
-  "sample_proba": 0.5,
-  "top_n": 100,
-  "temperature": 1.0,
-  "use_proba": False
+    "sample_proba": 0.5,
+    "top_n": 100,
+    "temperature": 1.0,
+    "use_proba": False
 }
 """
 Default perturbation options for `similarity` sampling
@@ -1105,16 +1106,16 @@ Default perturbation options for `similarity` sampling
 """
 
 DEFAULT_SAMPLING_LANGUAGE_MODEL = {
-  "filling": "parallel",
-  "sample_proba": 0.5,
-  "top_n": 100,
-  "temperature": 1.0,
-  "use_proba": False,
-  "frac_mask_templates": 0.1,
-  "batch_size_lm": 32,
-  "punctuation": string.punctuation,
-  "stopwords": [],
-  "sample_punctuation": False,
+    "filling": "parallel",
+    "sample_proba": 0.5,
+    "top_n": 100,
+    "temperature": 1.0,
+    "use_proba": False,
+    "frac_mask_templates": 0.1,
+    "batch_size_lm": 32,
+    "punctuation": string.punctuation,
+    "stopwords": [],
+    "sample_punctuation": False,
 }
 """
 Default perturbation options for `similarity` sampling
@@ -1207,6 +1208,13 @@ class AnchorText(Explainer):
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_UNKNOWN`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_SIMILARITY`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_LANGUAGE_MODEL`
+
+        Raises
+        ------
+        alibi.exceptions.AlibiPredictorCallException
+            If calling `predictor` fails at runtime.
+        alibi.exceptions.AlibiPredictorReturnTypeError
+            If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         self._seed(seed)
@@ -1268,8 +1276,8 @@ class AnchorText(Explainer):
 
         # get default args
         default_args: dict = self.DEFAULTS[self.sampling_strategy]
-        perturb_opts: dict = deepcopy(default_args)                 # contains only the perturbation params
-        all_opts = deepcopy(default_args)                           # contains params + some potential incorrect params
+        perturb_opts: dict = deepcopy(default_args)  # contains only the perturbation params
+        all_opts = deepcopy(default_args)  # contains params + some potential incorrect params
 
         # compute common keys
         allowed_keys = set(perturb_opts.keys())
@@ -1507,7 +1515,19 @@ class AnchorText(Explainer):
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(['Hello world']).shape) == 0:
+        x = ['Hello world']
+        try:
+            prediction = predictor(x)
+        except Exception as e:
+            msg = f"Predictor failed to be called on x={x}. " \
+                  f"Check that `predictor` works with inputs of type List[str]."
+            raise AlibiPredictorCallException(msg) from e
+
+        if not isinstance(prediction, np.ndarray):
+            msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
+            raise AlibiPredictorReturnTypeError(msg)
+
+        if np.argmax(prediction.shape) == 0:
             return predictor
         else:
             transformer = ArgmaxTransformer(predictor)

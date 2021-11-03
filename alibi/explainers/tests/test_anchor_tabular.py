@@ -8,7 +8,8 @@ from collections import defaultdict
 from copy import deepcopy
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.explainers import DistributedAnchorTabular
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.explainers import AnchorTabular, DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
 from alibi.utils.distributed import RAY_INSTALLED
 
@@ -301,3 +302,31 @@ def test_sampler(test_instance_idx, anchors, nb_samples, dataset, rf_classifier,
         # check features sampled are in a sensible range for numerical features
         assert (train_data_mean + train_data_3std - raw_data_mean > 0).all()
         assert (train_data_mean - train_data_3std - raw_data_mean < 0).all()
+
+
+def bad_predictor(x: np.ndarray) -> list:
+    """
+    A dummy predictor emulating the following:
+     - Expecting an array of certain dimension
+     - Returning an incorrect type
+     This is used below to test custom exception functionality.
+    """
+    if x.shape[1] != 3:
+        raise ValueError
+    return list(x)
+
+
+def test_anchor_tabular_fails_init_bad_feature_names_predictor_call():
+    """
+    In this test `feature_names` is misspecified leading to an exception calling the `predictor`.
+    """
+    with pytest.raises(AlibiPredictorCallException):
+        explainer = AnchorTabular(bad_predictor, feature_names=['f1', 'f2'])  # noqa: F841
+
+
+def test_anchor_tabular_fails_bad_predictor_return_type():
+    """
+    In this test `feature_names` is specified correctly, but the predictor returns the wrong type.
+    """
+    with pytest.raises(AlibiPredictorReturnTypeError):
+        explainer = AnchorTabular(bad_predictor, feature_names=['f1', 'f2', 'f3'])  # noqa: F841

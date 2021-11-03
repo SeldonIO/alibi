@@ -3,8 +3,10 @@ from pytest_lazyfixture import lazy_fixture
 
 import string
 import numpy as np
+from typing import List
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers import AnchorText
 from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
@@ -443,3 +445,31 @@ def test_lm_sample_punctuation(lang_model, punctuation, filling, movie_sentiment
 
             for p in punctuation:
                 assert p not in raw[j]
+
+
+def bad_predictor_return_type(x: List[str]) -> list:
+    """
+    A dummy predictor emulating the following:
+     - Returning an incorrect type
+     This is used below to test custom exception functionality.
+    """
+    return x
+
+
+def bad_predictor_input_type(x: np.ndarray) -> np.ndarray:
+    """
+    A dummy predictor emulating the following:
+    - Expecting an incorrect input type
+    This is used below to test custom exception functionality.
+    """
+    return np.array(x.shape)
+
+
+def test_anchor_text_fails_init_bad_predictor_input_type_call():
+    with pytest.raises(AlibiPredictorCallException):
+        explainer = AnchorText(bad_predictor_input_type)  # noqa: F841
+
+
+def test_anchor_text_fails_wrong_predictor_return_type():
+    with pytest.raises(AlibiPredictorReturnTypeError):
+        explainer = AnchorText(bad_predictor_return_type)  # noqa: F841

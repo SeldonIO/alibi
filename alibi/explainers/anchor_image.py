@@ -9,6 +9,7 @@ from typing import Any, Callable, List, Union, Tuple, Type
 from alibi.utils.wrappers import ArgmaxTransformer
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from skimage.segmentation import felzenszwalb, slic, quickshift
@@ -332,6 +333,11 @@ class AnchorImage(Explainer):
             Images to overlay superpixels on.
         seed
             If set, ensures different runs with the same input will yield same explanation.
+
+        Raises
+        ------
+        alibi.exceptions.AlibiPredictorCallException
+            If calling `predictor` fails at runtime.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)
@@ -613,7 +619,19 @@ class AnchorImage(Explainer):
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros((1,) + self.image_shape, dtype=self.dtype)).shape) == 0:
+        x = np.zeros((1,) + self.image_shape, dtype=self.dtype)
+        try:
+            prediction = predictor(x)
+        except Exception as e:
+            msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
+                  f"Check that the parameter `image_shape` is correctly specified."
+            raise AlibiPredictorCallException(msg) from e
+
+        if not isinstance(prediction, np.ndarray):
+            msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
+            raise AlibiPredictorReturnTypeError(msg)
+
+        if np.argmax(prediction.shape) == 0:
             return predictor
         else:
             transformer = ArgmaxTransformer(predictor)

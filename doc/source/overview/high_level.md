@@ -419,6 +419,9 @@ image this would highlight those pixels that make the model give the output it d
 Local Necessary Features in that they find the minimum subset of features required to give a prediction whereas local 
 feature attribution creates a heat map that tells us each features contribution to the overall outcome.
 
+__TODO__:
+- picture showing above concept.
+
 A good use of local feature attribution is to detect that a classifier trained on images is focusing on the correct 
 features of an image in order to infer the class. As an example suppose you have a model trained to detect breeds of 
 dog. You want to check that it focuses on the correct features of the dog in making its prediction. If you compute
@@ -426,9 +429,6 @@ the feature attribution of a picture of a husky and discover that the model is o
 the husky then you know both that all the images of huskies in your dataset overwhelmingly have snowy backdrops and 
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
 backdrops as huskies and also fail to recognise huskies without snowy backdrops.
-
-__TODO__:
-- picture showing above concept.
 
 Each of the following methods defines local feature attribution slightly differently. In both however we assign 
 attribution values to each feature to indicate how significant those features where in making the model prediction what 
@@ -457,9 +457,6 @@ Each of the methods that alibi provides satisfies these properties.
 
 ##### Explainers:
 
-The following discusses the set of explainer methods available from alibi for generating Local Feature Attribution 
-insights.
-
 **Integrated Gradients**
 
 The integrated gradients' method computes the attribution of each feature by integrating the model partial derivatives 
@@ -473,24 +470,74 @@ $$
 
 So the above sums the partial derivatives with respect to each feature over the path between the baseline and the 
 instance of interest. In doing so you accumulate the changes in prediction that occur as a result of the changing 
-feature value from the baseline to the instance. The main difficulty with this method ends up being that as IG is 
-very dependent on the baseline it's important to make sure you choose the correct baseline.
+feature value from the baseline to the instance. 
 
-The choice of baseline should capture a blank state in which the model makes essentially no prediction or assigns 
-probability of classes equally. A common choice for image classification is an image set to black. This works well in 
-many cases but sometimes fails to be a good choice. For instance for a model that classifies images taken at night 
-using an image with every pixel set to black means the attribution method will undervalue the use of dark pixels in 
-attributing the contribution of each feature to the classification. This is due to the contribution being calculated
-relative to the baseline which in this case is already dark.
+:::{admonition} **Note 5: Choice of Baseline**
+The main difficulty with this method ends up being that as IG is very dependent on the baseline it's important to make 
+sure you choose the correct baseline. The choice of baseline should capture a blank state in which the model makes 
+essentially no prediction or assigns probability of classes equally. A common choice for image classification is an 
+image set to black. This works well in many cases but sometimes fails to be a good choice. For instance for a model 
+that classifies images taken at night using an image with every pixel set to black means the attribution method will 
+undervalue the use of dark pixels in attributing the contribution of each feature to the classification. This is due to 
+the contribution being calculated relative to the baseline which in this case is already dark.
+:::
 
-**Kernel SHAP**
 
-__TODO__
+**KernelSHAP**
 
-**Tree SHAP**
+Kernel SHAP is an efficient method of computing the Shapley values for a model around an instance $x_i$. Shapley values
+are a game theoretic method of assigning payout to players depending on there contribution to an overall goal. In this
+case the players are the features and the payout is the prediction the model makes. To compute these values we have to
+consider the marginal contribution of each feature over all the possible coalitions of feature players. Exactly what 
+this means in terms of a specific coalition is a little nuanced. Suppose for example we have a regression model $f$ 
+that makes predictions based on four features $X = \{X_1, X_2, X_3, X_4\}$ as input. A coalition is a group of 
+features, say for example the first and third feature. For this coalition it's value is given by:
 
-__TODO__
+$$
+val({1,3}) = \int_{\mathbb{R}}\int_{\mathbb{R}} f(x_1, X_2, x_3, X_4)d\mathbb{P}_{X_{2}X_{4}} - \mathbb{E}_{X}(f(X))
+$$
 
+Given a coalition, $S$, that doesn't include $x_i$, then that features marginal contribution is given by 
+$val(S \cup x_i) - val(S)$. Intuitively this is the difference that feature $x_i$ would make for that coalition. We are 
+interested in the marginal contribution of $x_i$ over all possible coalitions with and without $x_i$. A shapley value 
+for the $x_i^{th}$ feature is given by the weighted sum
+
+$$
+\psi_j = \sum_{S\subset \{1,...,p\} \setminus \{j\}} \frac{|S|!(p - |S| - 1)!}{p!}(val(S \cup x_i) - val(S))
+$$
+
+The motivation for the weights convey how much you can learn from a specific coalition. Large and Small coalitions mean 
+more learnt because we've isolated more of the effect. Whereas medium size coalitions don't supply us with as much 
+information because there are many possible such coalitions. **Not 100 percent sure about this point! Want a nicer 
+intuitive explanation.**.
+
+Computing the above would be difficult owing to the large number of possible coalitions. So instead we use a sampling
+process. In fact, we can set up the sampling to preferentially select the higher information coalitions to make the 
+process slightly faster.
+
+Another issue that arises is unrealistic data instances being introduced when features are dependent. In order to 
+compute a coalitions value we marginalize those features not in the coalition. To do this we fix the feature values
+that are in coalition and sample the rest from some other data point in the distribution. This works if these features
+are independent but if they are not then you may end up with unrealistic data.
+
+**TreeSHAP**
+
+TreeSHAP is a variant of KernelSHAP that applies to tree based machine learning algorithms. The main difference to
+KernelSHAP is that it uses the conditional expectation to remove non coalition features instead of just marginalizing 
+them out. The reason we use this method instead is that it's fast to compute the conditional expectation for Trees. 
+Note that because of the additive property of the shapley value this algorithm applies to forests as well as just 
+single tree models.  
+
+An issue arises using the conditional probability for data sets in which a variable that doesn't contribute to a 
+prediction is highly correlated with one that does. In this case the shapley value for the non-contributing feature can
+end up being assigned a none zero shapley value. Hence, TreeSHAP doesn't always satisfy the Dummy/Sensitivity property.
+
+This being the case it is much faster. KernalSHAP has runtime complexity of $O(TL2^{M})$ and TreeSHAP only $O(TLD^{2})$
+where $T$ is the number of trees, $L$ the maximum number of leaves in any tree, $D$ the maximal depth of any tree and
+$M$ the number of features.
+
+__WARNING__: 
+- This whole section leans very heavily on the Christoph Molnar book!
 
 ##### Example:
 

@@ -21,16 +21,15 @@ required to obtain a new classification. Insights are constrained by:
 
 - The type of data the model handles (images, text, ...)
 - The task the model performs (regression, classification, ...)
-- The type of model used (linear regression, neural network, ...)
+- The type of model used (random forest, neural network, ...)
 
-__TODO:__
-- explain type of model...
-
-In particular some explainer methods apply to any type of model. They can do so because the underlying method doesn't
-make use of the model internals. Instead, only depending on the model outputs given particular inputs. Methods that 
-apply in this general setting are known as **black box** methods. Methods that do require model internals, perhaps in
-order to compute prediction gradients dependent on inputs, are known as white box models. This is a much stronger 
-constrain that black box methods.
+Here type of model refers could be a number of different things including neural networks or random forests. Some 
+explainer methods apply only to specific types of model such as TreeSHAP which can only be used with tree based models.
+Other explainer methods apply to any type of model. They can do so because the underlying method doesn't make use of 
+the model internals. Instead, only depending on the model outputs given particular inputs. Methods that apply in this 
+general setting are known as **black box** methods. Methods that do require model internals, perhaps in order to 
+compute prediction gradients dependent on inputs, are known as white box models. This is a much stronger 
+constraint that black box methods.
 
 :::{admonition} **Note 1: Black Box Definition**
 The use of Black Box here varies subtly from the conventional use within machine learning. Typically, we say a model is
@@ -42,26 +41,18 @@ applied.
 
 ## Applications:
 
-**Trust:**
+**Trust:** At a core level explainability builds trust in the machine learning systems we use. It allows us to justify 
+there use in many contexts where an understanding of the basis of decision is paramount.
 
-At a core level explainability builds trust in the machine learning systems we use. It allows us to justify there use 
-in many contexts where an understanding of the basis of decision is paramount.
+**Testing:** Explainability can be thought as an extra form of testing for a model. The insights derived should conform 
+to the expected behaviour. Failure to do so may indicate issues with the model or problems with the dataset it's been 
+trained on.
 
-**Testing:** 
+**Functionality:** Insights can also be used to augment model functionality. Providing useful information on top of 
+model predictions. How to change the model inputs to obtain a better output for instance.
 
-Explainability can be thought as an extra form of testing for a model. The insights derived should conform to the
-expected behaviour. Failure to do so may indicate issues with the model or problems with the dataset it's been trained 
-on.
-
-**Functionality:**
-
-Insights can also be used to augment model functionality. Providing useful information on top of model predictions. 
-How to change the model inputs to obtain a better output for instance.
-
-**Research:**
-
-Explainability allows researchers to look inside the black box and see what the models are doing. Helping them 
-understand more broadly the effects of the particular model or training schema they're using.
+**Research:** Explainability allows researchers to look inside the black box and see what the models are doing. Helping 
+them understand more broadly the effects of the particular model or training schema they're using.
 
 :::{admonition} **Note 2: Biases**
 Practitioners must be wary of using explainability to excuse bad models rather than ensuring there correctness. As an 
@@ -91,7 +82,7 @@ regression prediction varies with respect to a given feature while factoring out
 insights give a more general understanding of the relationship between inputs and model predictions.
 
 __TODO__:
-- Add image to illustart
+- Add image to give idea of Global and local insight 
 
 ### Insight Categories
 
@@ -178,7 +169,7 @@ __TODO:__
 
 **Contrastive Explanation Method:**
 
-- Black/white box method
+- c/white box method
 - Classification models
 - Tabular and image data types
 
@@ -228,15 +219,17 @@ the previous approaches mentioned.
 
 **Counterfactuals with Reinforcement Learning:**
 
-This method splits from the approach taken by the above three significantly. Instead of minimizing a loss at explain 
-time it trains a new model when fitting the explainer called an actor that takes instances and produces counterfactuals.
-It does this using reinforcement learning. In RL an actor model takes some state as input and generates actions, in our 
-case the actor takes an instance with a specific classification and produces an action in the form of a counter factual.
-Outcomes of actions are assigned reward dependent on some reward function that's designed to encourage specific 
-behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the correct target class, 
-secondly are close to the data distribution as modelled by an autoencoder, and thirdly are sparse perturbations of the
-original instance. Finally, the reinforcement training step pushes the actor to take high reward actions instead of
-low reward actions. 
+This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss at 
+explain time it trains a new model when fitting the explainer called an actor that takes instances and produces 
+counterfactuals. It does this using reinforcement learning. In RL an actor model takes some state as input and 
+generates actions, in our case the actor takes an instance with a specific classification and produces an action in the 
+form of a counter factual. Outcomes of actions are assigned reward dependent on some reward function that's designed to 
+encourage specific behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the 
+correct target class, secondly are close to the data distribution as modelled by an auto-encoder, and thirdly are sparse 
+perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions 
+instead of low reward actions. This method is black box as we compute the reward obtained by an actor by sampling an 
+action by directly predicting the loss. Because of this we only require the derivative with respect to the actor and 
+not the predictor itself.
 
 As well as this CFRL actors are trained to ensure that certain constraints can be taken into account when generating 
 counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
@@ -252,11 +245,9 @@ at runtime with arbitrary constraints.
 
 __TODO__: 
 - Example images
-- Black box Discussion of method
-- At explain time ask for specific constraints...  key point can have arbitrary constraints in counterfactuals.
 ___
 
-#### c:
+#### Local Necessary Features:
 
 Given a single instance and model prediction Local Necessary Features are local explanations that tell us what minimal 
 set of features needs to stay the same in order that the model still give the same prediction or close predictions. 
@@ -526,7 +517,7 @@ TreeSHAP is a variant of KernelSHAP that applies to tree based machine learning 
 KernelSHAP is that it uses the conditional expectation to remove non coalition features instead of just marginalizing 
 them out. The reason we use this method instead is that it's fast to compute the conditional expectation for Trees. 
 Note that because of the additive property of the shapley value this algorithm applies to forests as well as just 
-single tree models.  
+single  tree models.  
 
 An issue arises using the conditional probability for data sets in which a variable that doesn't contribute to a 
 prediction is highly correlated with one that does. In this case the shapley value for the non-contributing feature can

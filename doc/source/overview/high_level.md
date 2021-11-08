@@ -1,41 +1,44 @@
 # Practical Overview of Explainability
 
 While the applications of machine learning are impressive many models provide predictions that are hard to interpret or
-reason about. This limits there use in many cases as often we want to know why and not just what a models prediction 
-is. Alarming predictions are rarely taken at face value and typically warrant further analysis. Indeed, in some cases 
-explaining the choices that a model makes could even become a potential 
+reason about. This limits there use in many cases as often we want to know why and not just what a model made a 
+prediction. Alarming predictions are rarely taken at face value and typically warrant further analysis. Indeed, in some 
+cases explaining the choices that a model makes could even become a potential 
 [legal requirement](https://arxiv.org/pdf/1711.00399.pdf). The following is a non-rigorous and practical overview of 
 explainability and the methods alibi provide.
 
-Explainability research provides us with algorithms that give insights into trained models predictions.
-
+**Explainability provides us with algorithms that give insights into trained models predictions.** It allows
+us to answer questions such as:
 - How does a prediction change dependent on feature inputs?
 - What features are Important for a given prediction to hold?
 - What features are not important for a given prediction to hold?
 - What set of features would you have to minimally change to obtain a new prediction of your choosing?
-- etc..
+- How does each feature contribute to a models prediction?
 
-The set of insights available are dependent on the trained model. If the model is a regression is makes sense to ask 
-how the prediction varies with respect to some feature. Whereas, it doesn't make sense to ask what minimal change is 
-required to obtain a new classification. Insights are constrained by:
+The set of insights available are dependent on the trained model. For instance, If the model is a regression it makes 
+sense to ask how the prediction varies with respect to some feature. Whereas, it doesn't make sense to ask what minimal
+change is required to obtain a new classification. Insights are constrained by:
 
-- The type of data the model handles (images, text, ...)
-- The task the model performs (regression, classification, ...)
-- The type of model used (random forest, neural network, ...)
+- The type of data the model handles. Some insights only apply to image data others only to textual data.
+- The task the model performs. The two types of model tasks alibi handles are regression and classification. 
+- The type of model used. Examples of model types include neural networks and random forests.
 
-Here type of model refers could be a number of different things including neural networks or random forests. Some 
-explainer methods apply only to specific types of model such as TreeSHAP which can only be used with tree based models.
-Other explainer methods apply to any type of model. They can do so because the underlying method doesn't make use of 
-the model internals. Instead, only depending on the model outputs given particular inputs. Methods that apply in this 
-general setting are known as **black box** methods. Methods that do require model internals, perhaps in order to 
-compute prediction gradients dependent on inputs, are known as white box models. This is a much stronger 
-constraint that black box methods.
+Some explainer methods apply only to specific types of model such as TreeSHAP which can only be used with tree based 
+models. This is the case when an explainer method makes use of some specific aspect of that models structure. For 
+instance, if the model is a neural network then some methods require being able to compute the prediction derivative 
+with respect to model inputs. Methods that require access to the model internals like this are known as **white box** 
+methods. Other explainers apply to any type of model. They can do so because the underlying method doesn't make use of 
+the model internals. Instead, they only require to have access to the model outputs given particular inputs. Methods 
+that apply in this general setting are known as **black box** methods. Note that white box methods are a subset of 
+black box methods and in general an explainer being a white box method is a much stronger constraint than it being a
+black box methods. Typically, white box methods are faster than blackbox methods as access to the model internals means 
+the method can exploit some aspect of that models structure. 
 
 :::{admonition} **Note 1: Black Box Definition**
 The use of Black Box here varies subtly from the conventional use within machine learning. Typically, we say a model is
 a black box if the mechanism by which it makes predictions is too complicated to be interpretable to a human. Here we
 use black box to mean that the explainer method doesn't need to have access to the model internals in order to be 
-applied.
+applied. 
 :::
 
 
@@ -51,42 +54,41 @@ trained on.
 **Functionality:** Insights can also be used to augment model functionality. Providing useful information on top of 
 model predictions. How to change the model inputs to obtain a better output for instance.
 
-**Research:** Explainability allows researchers to look inside the black box and see what the models are doing. Helping 
-them understand more broadly the effects of the particular model or training schema they're using.
+**Research:** Explainability allows researchers to understand how and why opaque models make decisions. Helping them 
+understand more broadly the effects of the particular model or training schema they're using.
+
+__TODO__:
+- picture of explainability pipeline: training -> prediction -> insight
 
 :::{admonition} **Note 2: Biases**
 Practitioners must be wary of using explainability to excuse bad models rather than ensuring there correctness. As an 
 example its possible to have a model that is correctly trained on a dataset, however due to the dataset being either 
 wrong or incomplete the model doesn't actually reflect reality. If the insights that explainability generates 
 conform to some confirmation bias of the person training the model then they are going to be blind to this issue and
-instead use these methods to confirm erroneous results.
-
-__TODO__: 
-- further discussion on faithfulness of models. Make clear that these insights apply to the model and only to 
-the data via the model.
+instead use these methods to confirm erroneous results. A key distinction here is that explainability insights are 
+designed to be faithful to the model they are explaining and not the data. You use an explanation to obtain an insight 
+into the data only if the model is trained well.
 :::
-
-__TODO__:
-- picture of explainability pipeline: training -> prediction -> insight
 
 ## Insights
 
 ### Global and Local Insights
 
-Insights can be categorized into two types. Local and global. Intuitively a local insights says something about a 
-single prediction that a model makes. As an example, given an image classified as a cat by a model what is the minimal 
-set of features (pixels) that need to stay the same in order for that image to still be classified as a cat. Such an 
-insight gives an idea of what the model is looking for when deciding to classify an instance into a specific class. 
-Global insights on the other hand refer to the behaviour of the model over a set of inputs. Plots that show how a 
-regression prediction varies with respect to a given feature while factoring out all the others are an example. These 
-insights give a more general understanding of the relationship between inputs and model predictions.
+Insights can be categorized into two types. Local and global. Intuitively, a local insight says something about a 
+single prediction that a model makes. As an example, given an image classified as a cat by a model, a local insight 
+might give the set of features (pixels) that need to stay the same in order for that image to remain classified as a 
+cat. Such an insight gives an idea of what the model is looking for when deciding to classify a specific instance into 
+a specific class. Global insights on the other hand refer to the behaviour of the model over a set of inputs. Plots 
+that show how a regression prediction varies with respect to a given feature while factoring out all the others are an 
+example. These insights give a more general understanding of the relationship between inputs and model predictions. 
 
 __TODO__:
-- Add image to give idea of Global and local insight 
+- Add image to give idea of Global and local insight
 
 ### Insight Categories
 
-Alibi provides a number of insights with which to explore and understand models.
+Alibi provides a number of local and global insights with which to explore and understand models. The following gives
+the practitioner an understanding of which explainers are suitable to be used where.
 
 #### Counter Factuals:
 
@@ -502,30 +504,79 @@ more learnt because we've isolated more of the effect. Whereas medium size coali
 information because there are many possible such coalitions. **Not 100 percent sure about this point! Want a nicer 
 intuitive explanation.**.
 
-Computing the above would be difficult owing to the large number of possible coalitions. So instead we use a sampling
-process. In fact, we can set up the sampling to preferentially select the higher information coalitions to make the 
-process slightly faster.
+The main issue with the above is that there will be a large number of possible coalitions, $O(M2^M)$ to be precise. 
+Hence instead of computing all of these we use a sampling process on the space of coalitions and then estimate the
+Shapley values by training a linear model. Because a coalition is a set of players/features that are or aren't 
+playing/contributing we represent this as points in the space of binary codes $z' = \{z_0,...,z_m\}$ where $z_j = 0$ 
+means that feature is present or not. To obtain the dataset on which we train this model we first sample from this 
+space of coalitions then compute the values of $f$ for each sample. We obtain weights for each sample using the Shapley
+Kernel:
 
-Another issue that arises is unrealistic data instances being introduced when features are dependent. In order to 
-compute a coalitions value we marginalize those features not in the coalition. To do this we fix the feature values
-that are in coalition and sample the rest from some other data point in the distribution. This works if these features
-are independent but if they are not then you may end up with unrealistic data.
+$$
+\pi_{x}(z') = \frac{M - 1}{\frac{M}{|z'|}|z'|(M - |z'|)}
+$$
+
+Once we have all of this we can train a linear model, the coefficients of which are the Shapley values. There is some 
+nuance to how we compute the value of a model given a specific coalition as most models aren't built to accept input 
+with arbitrary missing values. Given a coalition $S$ we can either fix those features in $S$ and average out those not 
+in $S$ by replacing them by values sampled from the data set. This is the marginal expectation given by 
+$\mathbb{E}_{X_{X \setminus S}}[f(x_S, X_{X \setminus S})]$. A problem with this approach is that fixing the $x_S$ and
+replacing the other inputs with feature values sampled from $X_{X \setminus S}$ can introduce unrealistic data if the
+underlying data has dependencies. Another approach in this case is to use the conditional expectation given by 
+$\mathbb{E}[f(x_S, X_{X\setminus S}|X_S=x_S)]$. This is still problematic however, as a variables that don't contribute 
+to a prediction can be highly correlated with features that do. In this case the shapley value for the non-contributing 
+feature can end up being assigned a none zero shapley value which violates the Dummy/Sensitivity property.
 
 **TreeSHAP**
 
-TreeSHAP is a variant of KernelSHAP that applies to tree based machine learning algorithms. The main difference to
-KernelSHAP is that it uses the conditional expectation to remove non coalition features instead of just marginalizing 
-them out. The reason we use this method instead is that it's fast to compute the conditional expectation for Trees. 
-Note that because of the additive property of the shapley value this algorithm applies to forests as well as just 
-single  tree models.  
+In the case of tree based models we can obtain a speed-up by exploiting the structure of trees. Alibi exposes two 
+white-box methods Interventional and Path dependent feature perturbation. In each case the speed-up is in how we 
+compute the value of a coalition.
 
-An issue arises using the conditional probability for data sets in which a variable that doesn't contribute to a 
-prediction is highly correlated with one that does. In this case the shapley value for the non-contributing feature can
-end up being assigned a none zero shapley value. Hence, TreeSHAP doesn't always satisfy the Dummy/Sensitivity property.
+Path Dependent: 
 
-This being the case it is much faster. KernalSHAP has runtime complexity of $O(TL2^{M})$ and TreeSHAP only $O(TLD^{2})$
-where $T$ is the number of trees, $L$ the maximum number of leaves in any tree, $D$ the maximal depth of any tree and
-$M$ the number of features.
+Given a coalition $S=/{z_1, ..., z_n/}$ we want to find $\mathbb{E}_{X_{X \setminus S}}[f(x_S, X_{X \setminus S})]$. We 
+do so in the same way we should when applying a tree based model to any sample, with the only difference being what to
+do when a feature is missing from the coalition. In this case we take both routes down the tree and weight each by the
+proportion of dataset samples from the training dataset that go into each branch. For this algorithm to work we need 
+the tree to have a record of how it splits the training dataset. We don't need the dataset itself however, unlike the 
+interventional TreeSHAP algorithm.
+
+Doing this for each possible set $S$ involves $O(TL2^M)$ time complexity. It can be significantly improved to polynomial 
+time however if instead of doing the above one by one we do it for all subsets at once. The intuition here is to imagine
+standing at the first node and counting the number of subsets that will go one way, the number that will go the other
+and the number that will go both. Because we assign different sized subsets different weights we also need to further
+distinguish the above numbers passing into each branch of the tree by there size. Finally, we also need to keep track of
+the proportion of sets of each size in each branch that contain a feature $i$ and the proportion that don't. Once all 
+these sets have flowed down to the leaves of the tree then we can compute the shapley values. Doing this gives us 
+$O(TLD^2)$ time complexity.
+
+An issue is that as we're approximating $\mathbb{E}[f(x_S, X_{X\setminus S}|X_S=x_S)]$ this method will give shapley 
+values that don't satisfy the Dummy/Sensitivity property. This occurs because features that contribute nothing can be 
+highly correlated with features that do and the expectation doesn't distinguish on this effect. Hence, the 
+non-significant but correlated feature will have a positive shapley coefficient.
+
+Interventional:
+
+The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the 
+training dataset. For each feature $i$ we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset 
+is missing a feature we replace it with the corresponding one in the reference sample. We can then compute $f(S)$ 
+directly for each set $S$ and from that get the Shapley values. One major difference here is that we're combining each 
+$S$ and $r$ to generate a data point. The process of enforcing independence of the $S$ and $F\S$ in this way is known
+as intervening in the underlying data set and is where the algorithm name comes from. Note that doing this breaks 
+any independence between features in the dataset which means the data points we're sampling won't be realistic.
+
+For a single Tree and sample $r$ if we just iterate over all the subsets of $S \subset F \setminus \{i\}$ the 
+interventional TreeSHAP method runs with $O(M2^M)$. Note that there are two paths through the tree of unique interest. 
+The first is the instance path for $x$, and the second is the sampled/reference path for $r$. Computing the shapley 
+value estimate for the sampled $r$ is going to involve replacing $x$ with values of $r$ and generating a set of 
+perturbed paths. If, instead of summing over the sets if we sum over the paths we get a speed improvement as many of
+the sets $S$ end up taking the same path, and we compute them all at the same time instead of one by one. Doing so the
+Interventional TreeSHAP algorithm obtains $O(LD)$ time complexity.
+
+Applied to a random forrest with $T$ trees and using $R$ samples to compute the estimates we obtain $O(TRLD)$ time 
+complexity. The fact that we can sum over each tree in the random forest is a results of the linearity property of
+shapley values.
 
 __WARNING__: 
 - This whole section leans very heavily on the Christoph Molnar book!

@@ -104,8 +104,8 @@ area over the dataset for which the insight applies whereas pertinent positives 
 
 #### Anchors
 
-Anchors are a local blackbox method. This section takes the definition and discussion from [Anchors: High-Precision 
-Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf).
+Anchors are a local blackbox method introduced in [Anchors: High-Precision Model-Agnostic Explanations](
+https://homes.cs.washington.edu/~marcotcr/aaai18.pdf).
 
 Let A be a rule (set of predicates) acting on such an interpretable representation, such that $A(x)$ returns $1$ if all 
 its feature predicates are true for instance $x$. An example of such a rule, $A$, could be represented by the set 
@@ -175,7 +175,7 @@ to take away as much information as possible while still retaining the original 
 Given an instance $x_0$ we set out to find a $\delta$ that minimizes the following loss:
 
 $$
-l = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} 
+L = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} 
 $$
 
 where
@@ -194,11 +194,10 @@ of MNIST digits it's reasonable to assume that the black background behind each 
 information. Similarly, in the case of color images you might assume that the median pixel value represents no 
 information and moving away from this value adds information. 
 
-**Pros**:
+**Pros**
 - This is both a black and white box method. Note that we need to compute the loss gradient through the model. If we 
 have access to the internals we can do this directly. Otherwise, we need to use numerical differentiation. This comes 
-at a significant computational cost due to the extra model calls we need to make. Alibi provides support for TensorFlow 
-models.
+at a significant computational cost due to the extra model calls we need to make.
 - If using the autoencoder loss we obtain more interpretable results as $\delta$ will be in the data distribution.
 
 **Cons**
@@ -215,21 +214,21 @@ is a global insight as it describes the behaviour of the model over the entire i
 PDP-plots all are used to obtain graphs that visualize the relationship between feature and prediction directly.
 
 Suppose a trained regression model that predicts the number of bikes rented on a given day dependent on the temperature,
-humidity and wind speed. Global Feature Attribution for the temperature feature might be a line graph with temperature 
-plotted against number of bikes rented. This type of insight can be used to confirm what you expect to see. In the 
-bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease after.
+humidity and wind speed. A global feature attribution plot for the temperature feature might be a line graph with 
+temperature plotted against number of bikes rented. This type of insight can be used to confirm what you expect to see. 
+In the bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease 
+after when it gets too hot.
 
-**Accumulated Local Effects:**
+**Accumulated Local Effects**
 
 Alibi only provides Accumulated Local Effects plots because these give the most accurate insight of ALE-plots, M-plots 
-and PDP-plots. ALE-plots work by averaging the local changes in prediction at every instance (local effects) in the 
-data distribution. They then accumulate these differences to obtain a plot of prediction over the selected feature 
-dependencies.
+and PDP-plots. ALE-plots work by averaging the local changes in a prediction at every instance in the data distribution.
+They then accumulate these differences to obtain a plot of prediction over the selected feature dependencies.
 
-Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ then let 
+Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ we denote 
 $X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a
 set of dimension 2 in order that they can easily be visualized. For simplicity assume we have $X=\{x_1, x_2\}$ and let 
-$X_S=\{x_2\}$ so $X_C=\{x_1\}$. The ALE of $x_1$ is defined by:
+$X_S=\{x_1\}$ so $X_C=\{x_2\}$. The ALE of $x_1$ is defined by:
 
 $$
 \hat{f}_{S, ALE}(x_1) = 
@@ -240,20 +239,17 @@ $$
 
 The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$ 
 conditional on $X_1=z_1$. By taking the expectation with respect to $X_2$ we factor out its dependency. So now we know 
-how the prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. If we have this then to get the true 
-dependency we must integrate these changes over $x_1$ from a min value to the value of interest. ALE-plots get there 
-names as they accumulate (integrate) the local effects (the expected partial derivatives). 
+how the prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. By integrating these changes over $x_1$ 
+from a minimum value to the value of interest we obtain the global plot of how the model depends on $x_1$. ALE-plots 
+get there names as they accumulate (integrate) the local effects (the expected partial derivatives). Note that here we 
+have assumed $f$ is differentiable. In practice however, we compute the various quantities above numerically and so this
+isn't a requirement.
 
 __TODO__: 
 - Add picture explaining the above idea.
 
-It is important to note that by considering effects local to $X_1=z_1$ in the above equations we capture any 
-dependencies in the features of the dataset. Similarly, by considering the differences in $f$ and accumulating them 
-over the variable of interest we remove any effects owing to correlation between $X_1$ and $X_2$. For better insight 
-into these points see... 
-
-In the above example we've assumed $f$ is differentiable. In practice however, we compute the various quantities above 
-numerically and so this isn't a requirement.
+For more details on accumulated local effects including a discussion on PDP-plots and M-plots see 
+[Motivation-and-definition for ALE](methods/ALE.html#Motivation-and-definition)
 
 :::{admonition} **Note 4: Categorical Variables and ALE**
 Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
@@ -261,21 +257,33 @@ there is a sensible ordering on the categorical data. As an example consider mon
 only an issue if the variable you are taking the ALE with respect to is categorical. 
 :::
 
+**Pros**:
+- ALE-plots are easy to visualize and understand intuitively
+- Very general as it is a black box algorithm
+- Doesn't struggle with dependencies in the underlying features unlike PDP-plots
+- ALE-plots are fast compared to other accumulated local effects insights such as PDP-plots
+
+**Cons**:
+- Harder to explain the underlying motivation behind the method than PDP-plots or M-plots.
+- Requires access to the training dataset.
+- Unlike PDP-plots, ALE-plots do not work with Categorical data
+
+
 #### Local Feature Attribution
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
 image this would highlight those pixels that make the model give the output it does. Note this differs subtly from 
-Local Necessary Features in that they find the minimum subset of features required to give a prediction whereas local 
-feature attribution creates a heat map that tells us each features contribution to the overall outcome.
+Local Necessary Features which find the minimum subset of features required to give a prediction. Local feature 
+attribution instead assigned a score to each feature.
 
 __TODO__:
-- picture showing above concept.
+- picture showing above.
 
 A good use of local feature attribution is to detect that a classifier trained on images is focusing on the correct 
 features of an image in order to infer the class. As an example suppose you have a model trained to detect breeds of 
 dog. You want to check that it focuses on the correct features of the dog in making its prediction. If you compute
 the feature attribution of a picture of a husky and discover that the model is only focusing on the snowy backdrop to
-the husky then you know both that all the images of huskies in your dataset overwhelmingly have snowy backdrops and 
+the husky then you know two things. All the images of huskies in your dataset overwhelmingly have snowy backdrops and 
 also that the model will fail to generalize. It will potentially incorrectly classify other breeds of dog with snowy 
 backdrops as huskies and also fail to recognise huskies without snowy backdrops.
 
@@ -291,18 +299,15 @@ prediction $f(x)$.
 Its desirable that these attribution values satisfy certain properties:
 
 1. Efficiency/Completeness: The sum of attributions equals the difference between the prediction and the
-baseline/average. It makes sense that this be the case as we're interested in understanding the difference each feature
-value makes in a prediction compared to some uninformative baseline.
+baseline/average. We're interested in understanding the difference each feature value makes in a prediction compared to 
+some uninformative baseline.
 2. Symmetry: If the model behaves the same after swapping two variables $x$ and $y$ then $x$ and $y$ have equal 
 attribution. If this weren't the case we'd be biasing the attribution towards certain features over other ones.
-3. Dummy/Sensitivity: If a variable does not change the output of the model then it should have attribution 0. Similar 
-to above if this where not the case then we'd be assigning value to a feature that provides no information.
+3. Dummy/Sensitivity: If a variable does not change the output of the model then it should have attribution 0. If this 
+where not the case then we'd be assigning value to a feature that provides no information.
 4. Additivity/Linearity: The attribution for a feature $x_i$ of a linear composition of two models $f_1$ and $f_2$ 
 given by $c_1 f_1 + c_2 f_2$ is $c_1 a_{1, i} + c_2 a_{2, i}$ where $a_{1, i}$ and $a_{2, i}$ is the attribution for 
-$x_1$ and $f_1$ and $f_2$ respectively. This allows us to decompose certain types of model that are made up of lots of
-smaller models such as random forests.
-
-Each of the methods that alibi provides satisfies these properties.
+$x_1$ and $f_1$ and $f_2$ respectively.
 
 ##### Explainers:
 
@@ -321,16 +326,23 @@ So the above sums the partial derivatives with respect to each feature over the 
 instance of interest. In doing so you accumulate the changes in prediction that occur as a result of the changing 
 feature value from the baseline to the instance. 
 
+**Pros:**
+- Simple to understand and visualize, especially with image data.
+- Doesn't require access to the training data unless you use the training data to compute the baseline instance.
+
+**Cons:**
+- White box method. Requires the partial derivatives of the model outputs with respect to inputs.
+- Requires choosing the baseline which can have a large effect on the outcome. (See Note 5)
+
 :::{admonition} **Note 5: Choice of Baseline**
 The main difficulty with this method ends up being that as IG is very dependent on the baseline it's important to make 
-sure you choose the correct baseline. The choice of baseline should capture a blank state in which the model makes 
-essentially no prediction or assigns probability of classes equally. A common choice for image classification is an 
-image set to black. This works well in many cases but sometimes fails to be a good choice. For instance for a model 
-that classifies images taken at night using an image with every pixel set to black means the attribution method will 
-undervalue the use of dark pixels in attributing the contribution of each feature to the classification. This is due to 
-the contribution being calculated relative to the baseline which in this case is already dark.
+sure you choose it well. The choice of baseline should capture a blank state in which the model makes essentially no 
+prediction or assigns probability of classes equally. A common choice for image classification is an image set to black.
+This works well in many cases but sometimes fails to be a good choice. For instance for a model that classifies images 
+taken at night using an image with every pixel set to black means the attribution method will undervalue the use of 
+dark pixels in attributing the contribution of each feature to the classification. This is due to the contribution being
+calculated relative to the baseline which in this case is already dark.
 :::
-
 
 **KernelSHAP**
 

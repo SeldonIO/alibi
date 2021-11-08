@@ -207,68 +207,6 @@ knowledge becomes very important.
 - Doesn't tell us anything about the coverage of the pertinent positive.
 - If using the autoencoder loss then we need access to the original dataset.
 
-### Global Feature Attribution
-
-Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
-is a global insight as it describes the behaviour of the model over the entire input space. ALE-plots, M-plots and 
-PDP-plots all are used to obtain graphs that visualize the relationship between feature and prediction directly.
-
-Suppose a trained regression model that predicts the number of bikes rented on a given day dependent on the temperature,
-humidity and wind speed. A global feature attribution plot for the temperature feature might be a line graph with 
-temperature plotted against number of bikes rented. This type of insight can be used to confirm what you expect to see. 
-In the bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease 
-after when it gets too hot.
-
-#### Accumulated Local Effects
-
-Alibi only provides Accumulated Local Effects plots because these give the most accurate insight of ALE-plots, M-plots 
-and PDP-plots. ALE-plots work by averaging the local changes in a prediction at every instance in the data distribution.
-They then accumulate these differences to obtain a plot of prediction over the selected feature dependencies.
-
-Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ we denote 
-$X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a
-set of dimension 2 in order that they can easily be visualized. For simplicity assume we have $X=\{x_1, x_2\}$ and let 
-$X_S=\{x_1\}$ so $X_C=\{x_2\}$. The ALE of $x_1$ is defined by:
-
-$$
-\hat{f}_{S, ALE}(x_1) = 
-\int_{min(x_1)}^{x_1}\mathbb{E}\left[ 
-\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1 = z_1 
-\right]dz_1 - c_1
-$$
-
-The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$ 
-conditional on $X_1=z_1$. By taking the expectation with respect to $X_2$ we factor out its dependency. So now we know 
-how the prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. By integrating these changes over $x_1$ 
-from a minimum value to the value of interest we obtain the global plot of how the model depends on $x_1$. ALE-plots 
-get there names as they accumulate (integrate) the local effects (the expected partial derivatives). Note that here we 
-have assumed $f$ is differentiable. In practice however, we compute the various quantities above numerically and so this
-isn't a requirement.
-
-__TODO__: 
-- Add picture explaining the above idea.
-
-For more details on accumulated local effects including a discussion on PDP-plots and M-plots see 
-[Motivation-and-definition for ALE](methods/ALE.html#Motivation-and-definition)
-
-:::{admonition} **Note 4: Categorical Variables and ALE**
-Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
-there is a sensible ordering on the categorical data. As an example consider months of the year. To be clear this is
-only an issue if the variable you are taking the ALE with respect to is categorical. 
-:::
-
-**Pros**:
-- ALE-plots are easy to visualize and understand intuitively
-- Very general as it is a black box algorithm
-- Doesn't struggle with dependencies in the underlying features unlike PDP-plots
-- ALE-plots are fast compared to other accumulated local effects insights such as PDP-plots
-
-**Cons**:
-- Harder to explain the underlying motivation behind the method than PDP-plots or M-plots.
-- Requires access to the training dataset.
-- Unlike PDP-plots, ALE-plots do not work with Categorical data
-
-
 ### Local Feature Attribution
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
@@ -325,12 +263,12 @@ instance of interest. In doing so you accumulate the changes in prediction that 
 feature value from the baseline to the instance. 
 
 **Pros:**
-- Simple to understand and visualize, especially with image data.
-- Doesn't require access to the training data unless you use the training data to compute the baseline instance.
+- Simple to understand and visualize, especially with image data
+- Doesn't require access to the training data
 
 **Cons:**
-- White box method. Requires the partial derivatives of the model outputs with respect to inputs.
-- Requires choosing the baseline which can have a large effect on the outcome. (See Note 5)
+- White box method. Requires the partial derivatives of the model outputs with respect to inputs
+- Requires choosing the baseline which can have a large effect on the outcome (See Note 5)
 
 :::{admonition} **Note 5: Choice of Baseline**
 The main difficulty with this method ends up being that as IG is very dependent on the baseline it's important to make 
@@ -372,11 +310,11 @@ information because there are many possible such coalitions.
 
 The main issue with the above is that there will be a large number of possible coalitions, $2^M$ to be precise. 
 Hence instead of computing all of these we use a sampling process on the space of coalitions and then estimate the
-Shapley values by training a linear model. Because a coalition is a set of players/features that are or aren't 
-playing/contributing we represent this as points in the space of binary codes $z' = \{z_0,...,z_m\}$ where $z_j = 0$ 
-means that feature is present or not. To obtain the dataset on which we train this model we first sample from this 
-space of coalitions then compute the values of $f$ for each sample. We obtain weights for each sample using the Shapley
-Kernel:
+Shapley values by training a linear model. Because a coalition is a set of players/features that are contributing to a 
+prediction we represent this as points in the space of binary codes $z' = \{z_0,...,z_m\}$ where $z_j = 1$ 
+means that the $j^th$ feature is present in the coalition while $z_j = 0$ means it is not. To obtain the dataset on which 
+we train this model we first sample from this space of coalitions then compute the values of $f$ for each sample. We 
+obtain weights for each sample using the Shapley Kernel:
 
 $$
 \pi_{x}(z') = \frac{M - 1}{\frac{M}{|z'|}|z'|(M - |z'|)}
@@ -386,11 +324,22 @@ Once we have the data points, the values of $f$ for each data point and the samp
 to train a linear model. The paper shows that the coefficients of this linear model are the Shapley values. 
 
 There is some nuance to how we compute the value of a model given a specific coalition as most models aren't built to 
-accept input with arbitrary missing values. Given a coalition $S$ we fix those features in $S$ and average out those not
-in $S$ by replacing them by values sampled from the data set. This is the marginal expectation given by 
-$\mathbb{E}_{X_{\bar{S}}}[f(x_S, X_{\bar{S}})]$. A problem with this approach is that fixing the $x_S$ and
-replacing the other inputs with feature values sampled from $X_{\bar{S}}$ can introduce unrealistic data if the
-underlying data has dependencies. 
+accept input with arbitrary missing values. If $D$ is the underlying distribution the samples are drawn from then 
+ideally we'd use the conditional expectation:
+
+$$
+f(S) = \mathbb{E}_{D}[f(x)|x_S]
+$$
+
+Computing this value directly is very difficult. Instead, we can use the interventional conditional expectation which
+is defined as:
+
+$$
+f(S) = \mathbb{E}_{D}[f(x)|do(x_S)]
+$$
+
+The do operator here fixes the feature values in $S$ and samples the remaining $\bar{S}$ feature values from the data.
+This can mean introducing unrealistic samples if there are dependencies between the features.
 
 **Pros**:
 - The Shapley values are fairly distributed among the feature values which isn't always the case for other local feature 
@@ -408,20 +357,15 @@ will be introduced.
 #### TreeSHAP
 
 In the case of tree based models we can obtain a speed-up by exploiting the structure of trees. Alibi exposes two 
-white-box methods Interventional and Path dependent feature perturbation. The main difference is that Interventional 
-method uses the marginal expectation $\mathbb{E}[f(x_{S}, X_{\bar{S}}]$ to estimate 
-
-$$
-f(S) = \mathbb{E}[f(x_S, X_{\bar{S}})|X_{S}=x_S]
-$$
-
-whereas, the Path dependent method uses the dataset to compute the conditional expectation directly.  
+white-box methods, Interventional and Path dependent feature perturbation. The main difference between the two is that
+the path dependent method approximates the interventional conditional expectation whereas the interventional method 
+calculates it directly.
 
 #### Path Dependent TreeSHAP
 
-Given a coalition $S=/{z_1, ..., z_n/}$ we want to find $\mathbb{E}[f(x_S, X_{X \bar{S}}|X_S=x_S)]$. To do so apply the 
-tree to the present features in the same way we normally would, with the only difference being when a feature is 
-missing from the coalition. In this case we take both routes down the tree and weight each by the proportion of 
+Given a coalition we want to approximate the interventional conditional expectation. To do so we apply the tree to the 
+features present in the coalition in the same way we normally would, with the only difference being when a feature 
+is missing from the coalition. In this case we take both routes down the tree and weight each by the proportion of 
 dataset samples from the training dataset that go into each branch. For this algorithm to work we need the tree to have 
 a record of how it splits the training dataset. We don't need the dataset itself however, unlike the interventional 
 TreeSHAP algorithm.
@@ -442,12 +386,9 @@ shapley values. Doing this gives us $O(TLD^2)$ time complexity.
 attribution methods.
 - Shapley values can be easily interpreted and visualized
 
-
 **Cons**:
-- approximating $\mathbb{E}[f(x_S, X_{X \bar{S}}|X_S=x_S)]$ this method will give shapley values that don't satisfy 
-the Dummy/Sensitivity property. This occurs because features that contribute nothing can be highly correlated with 
-features that do and the expectation doesn't distinguish on this effect.
 - Only applies to Tree based models
+- Uses an approximation of the interventional conditional expectation instead of computing it directly
 
 #### Interventional Tree SHAP
 
@@ -476,14 +417,73 @@ shapley values.
 - The Shapley values are fairly distributed among the feature values which isn't always the case for other local feature 
 attribution methods.
 - Shapley values can be easily interpreted and visualized
+- Computes the interventional conditional expectation exactly unlike the path dependent method
 
 **Cons**:
 - Less general as a white box method
 - Requires access to the dataset
-- Intervention on the dataset introduces unrealistic data points
+- Typically, slower than the path dependent method  
 
-__WARNING__: 
-- Reference the Christoph Molnar book
+### Global Feature Attribution
+
+Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
+is a global insight as it describes the behaviour of the model over the entire input space. ALE-plots, M-plots and 
+PDP-plots all are used to obtain graphs that visualize the relationship between feature and prediction directly.
+
+Suppose a trained regression model that predicts the number of bikes rented on a given day dependent on the temperature,
+humidity and wind speed. A global feature attribution plot for the temperature feature might be a line graph with 
+temperature plotted against number of bikes rented. This type of insight can be used to confirm what you expect to see. 
+In the bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease 
+after when it gets too hot.
+
+#### Accumulated Local Effects
+
+Alibi only provides Accumulated Local Effects plots because these give the most accurate insight of ALE-plots, M-plots 
+and PDP-plots. ALE-plots work by averaging the local changes in a prediction at every instance in the data distribution.
+They then accumulate these differences to obtain a plot of prediction over the selected feature dependencies.
+
+Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$ we denote 
+$X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a
+set of dimension 2 in order that they can easily be visualized. For simplicity assume we have $X=\{x_1, x_2\}$ and let 
+$X_S=\{x_1\}$ so $X_C=\{x_2\}$. The ALE of $x_1$ is defined by:
+
+$$
+\hat{f}_{S, ALE}(x_1) = 
+\int_{min(x_1)}^{x_1}\mathbb{E}\left[ 
+\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1 = z_1 
+\right]dz_1 - c_1
+$$
+
+The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$ 
+conditional on $X_1=z_1$. By taking the expectation with respect to $X_2$ we factor out its dependency. So now we know 
+how the prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. By integrating these changes over $x_1$ 
+from a minimum value to the value of interest we obtain the global plot of how the model depends on $x_1$. ALE-plots 
+get there names as they accumulate (integrate) the local effects (the expected partial derivatives). Note that here we 
+have assumed $f$ is differentiable. In practice however, we compute the various quantities above numerically and so this
+isn't a requirement.
+
+__TODO__: 
+- Add picture explaining the above idea.
+
+For more details on accumulated local effects including a discussion on PDP-plots and M-plots see 
+[Motivation-and-definition for ALE](../methods/ALE.html#Motivation-and-definition)
+
+:::{admonition} **Note 4: Categorical Variables and ALE**
+Note that because ALE plots require differences between variable they don't natural extend to categorical data unless
+there is a sensible ordering on the categorical data. As an example consider months of the year. To be clear this is
+only an issue if the variable you are taking the ALE with respect to is categorical. 
+:::
+
+**Pros**:
+- ALE-plots are easy to visualize and understand intuitively
+- Very general as it is a black box algorithm
+- Doesn't struggle with dependencies in the underlying features unlike PDP-plots
+- ALE-plots are fast compared to other accumulated local effects insights such as PDP-plots
+
+**Cons**:
+- Harder to explain the underlying motivation behind the method than PDP-plots or M-plots.
+- Requires access to the training dataset.
+- Unlike PDP-plots, ALE-plots do not work with Categorical data
 
 ### Counter Factuals:
 
@@ -495,11 +495,13 @@ Given a classification model trained on MNIST and a sample from the dataset with
 would be a generated image that closely resembles the original but is changed enough that the model correctly 
 classifies it as a different number.
 
+__TODO__:
+- Give example image to illustrate
+
 Similarly, given tabular data that a model uses to make financial decisions about a customer a counter factual would
 explain to a user how to change they're behaviour in order to obtain a different decision. Alternatively it may tell
 the Machine Learning Engineer that the model is drawing incorrect assumptions if the recommended changes involve
-features that shouldn't be relevant to the given decision. This may be down either to the model training or the dataset
-being unbalanced.
+features that shouldn't be relevant to the given decision.
 
 A counterfactual, $x_{cf}$, needs to satisfy
 
@@ -508,28 +510,23 @@ A counterfactual, $x_{cf}$, needs to satisfy
 
 The first requirement is easy enough to satisfy. The second however requires some idea of what interpretable means. 
 Intuitively it would require that the counterfactual constructed makes sense as an instance of the dataset. Each of the
-methods available in alibi deal with interpretability slightly differently. All of them agree however that we require 
-that the perturbation $\delta$ changing the original instance $x_0$ into $x_{cf} = x_0 + \delta$ should be sparse. This 
-means we prefer solutions that change a small subset of the features to construct $x_{cf}$. This limits the complexity
-of the solution making them more understandable. 
-
-##### Explainers:
-
-The following discusses the set of explainer methods available from alibi for generating counterfactual insights. 
+methods available in alibi deal with interpretability slightly differently. All of them require that the perturbation 
+$\delta$ that changes the original instance $x_0$ into $x_{cf} = x_0 + \delta$ should be sparse. This means we prefer 
+solutions that change a small subset of the features to construct $x_{cf}$. Requiring this limits the complexity of the 
+solution making it more understandable. 
 
 :::{admonition} **Note 3: fit and explain method runtime differences**
 Alibi explainers expose two methods `fit` and `explain`. Typically, in machine learning the method that takes the most 
-time is the fit method as that's where the model optimization conventionally takes place. In explainability however the 
-model should already be fit and instead the explain step usually requires the bulk of computation. However this isn't
-always the case.
+time is the fit method as that's where the model optimization conventionally takes place. In explainability 
+the explain step often requires the bulk of computation. However, this isn't always the case.
 
-Among the following explainers there are two categories of approach taken. The first fits a counterfactual when the 
-user requests the insight. This happens during the `.explain()` method call on the explainer class. They do this by 
-running gradient descent on model inputs to find a counterfactual. The methods that take this approach are 
-Counterfactuals Instances, Contrastive Explanation Method and Counterfactuals Guided by Prototypes. Thus, the `fit`
-methods in these cases are quick but the `explain` method slow.
+Among the explainers in this section there are two approaches taken. The first fits a counterfactual when the user 
+requests the insight. This happens during the `.explain()` method call on the explainer class. They do this by running 
+gradient descent on model inputs to find a counterfactual. The methods that take this approach are Counterfactuals 
+Instances, Contrastive Explanation Method and Counterfactuals Guided by Prototypes. Thus, the `fit` methods in these 
+cases are quick but the `explain` method is slow.
 
-The other approach however uses reinforcement learning to pretrains a model that produces explanations on the fly. The 
+The other approach however uses reinforcement learning to pretrain a model that produces explanations on demand. The 
 training in this case takes place during the `fit` method call and so this has a long runtime while the `explain` 
 method is quick. If you want performant explanations in production environments then the later method is preferable.
 :::
@@ -538,7 +535,7 @@ __TODO__:
 - schematic image explaining search for counterfactual as determined by loss
 - schematic image explaining difference between different approaches.
 
-**Counterfactuals Instances:**
+#### Counterfactuals Instances
 
 - Black/white box method
 - Classification models
@@ -548,7 +545,7 @@ Let the model be given by $f$ and $f_{t}$ be the probability of class $t$, $p_t$
 $t$ and $0<\lambda<1$ a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running 
 gradient descent on a new instance $X'$ to minimize the following loss.
 
-$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X'|X)$$ 
+$$L(X', X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X', X)$$ 
 
 The first term pushes the constructed counterfactual towards the desired class and the use of the $L_{1}$ norm 
 encourages sparse solutions. 
@@ -562,23 +559,38 @@ This happens because the loss doesn't prevent the counter factual solution movin
 will likely get a solution that doesn't look like something that you'd expect to see from the data.
 
 __TODO:__
-- Picture example. Like from here: https://github.com/interpretml/DiCE
+- Picture example. Something similar to: https://github.com/interpretml/DiCE
 
-**Contrastive Explanation Method:**
+**Pros**
+- Both Black and White box
+- Don't need to access to the training dataset
 
-- c/white box method
+**Cons**
+- Not likely to give human interpretable instances
+- Requires configuration in the choice of $\lambda$
+
+
+#### Contrastive Explanation Method
+
+- White box method
 - Classification models
 - Tabular and image data types
 
-CEM follows a similar approach to the above but includes two new details. Firstly an elastic net 
-($\beta L_{1} + L_{2}$) regularizer term is added to the loss. This causes the solutions to be both close to the 
-original instance and sparse. Secondly an optional autoencoder is trained to penalize conterfactual instances that 
-deviate from the data distribution. This works by requiring minimize the gradient descent minimize the reconstruction 
-loss of instances passed through the autoencoder. If an instance is unlike anything in the dataset then the autoencoder 
-will struggle to recreate it well, and it's loss term will be high. We require two hyperparameters $\beta$ and $\gamma$
-to define the following Loss,
+CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$
+regularizer term is added to the loss. This causes the solutions to be both close to the original instance and sparse.
 
-$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X' - X) + L_{2}(X' - X)^2 + \gamma L_{2} (X' - AE(X'))^2$$ 
+Secondly we require that $\delta$ only adds new features rather than takes them away. In order to do this we require 
+defining what it means for a feature to be present so that the perturbation only works to add features and not take 
+them away. In the case of MNIST an obvious choice of "present" feature is if the pixel is equal to 1 and absent if it
+is equal to 0.
+
+Secondly an optional auto encoder is trained to penalize counter factual instances that deviate from the data 
+distribution. This works by requiring minimize the gradient descent minimize the reconstruction loss of instances passed
+through the auto encoder. If an instance is unlike anything in the dataset then the auto encoder will struggle to 
+recreate it well, and it's loss term will be high. We require two hyperparameters $\beta$ and $\gamma$ to define the 
+following Loss,
+
+$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2$$ 
 
 This approach extends the definition of interpretable to include a requirement that the computed counterfactual be 
 believably a member of the dataset. It turns out however that this condition isn't enough to always get interpretable 
@@ -590,7 +602,16 @@ there is still a performance cost from computing the numerical gradients.
 __TODO:__
 - Picture example of results including less interpretable ones.
 
-**Counterfactuals Guided by Prototypes:**
+**Pros**
+- Provides more interpretable instances than the counterfactual instances' method.
+
+**Cons**
+- Requires access to the dataset to train the auto encoder
+- Requires setup and configuration in choosing $\gamma$ and $\beta$ as well as training the auto encoder
+- Requires domain knowledge when choosing what it means for a feature to be present or not. This is easy in the case of
+MNIST but get more complicated when applying to color images.
+
+#### Counterfactuals Guided by Prototypes
 
 - Black/white box method
 - Classification models
@@ -600,33 +621,45 @@ For this method we add another term to the loss that optimizes for distance betw
 close members of the target class. Now the definition of interpretability has been extended even further to include the
 requirement that the counterfactual be believably a member of the target class and not just in the data distribution.
 
-With hyperparmaters $c$ and $\beta$, the loss is now given by:
+With hyperparameters $c$ and $\beta$, the loss is now given by:
 
-$$L(X'|X)= cL_{pred} + \beta L_{1} + L_{2} + L_{AE} + L_{proto}$$
+$$
+L(X'|X)= c(f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2 + 
+L_{2}(X', X_{proto})
+$$
 
 __TODO:__ 
 - Picture example of results.
 
-It's clear that this method produces much more interpretable results. As well as this, because the proto term pushes
-the solution towards the target class we can actually remove the prediction loss term and still obtain a viable counter
-factual. This doesn't make much difference if we can compute the gradients directly from the model but if not, and we 
-are using numerical gradients then the $L_{pred}$ term is a significant bottleneck owing to repeated calls on the model
-to approximate the gradients. Thus, this method also applies to blackbox models with a significant performance gain on
+This method produces much more interpretable results. As well as this, because the proto term pushes the solution 
+towards the target class we can actually remove the prediction loss term and still obtain a viable counter factual. 
+This doesn't make much difference if we can compute the gradients directly from the model but if not, and we are using 
+numerical gradients then the $L_{pred}$ term is a significant bottleneck owing to repeated calls on the model to 
+approximate the gradients. Thus, this method also applies to blackbox models with a significant performance gain on
 the previous approaches mentioned.
 
-**Counterfactuals with Reinforcement Learning:**
+**Pros**
+- Much more interpretable instances that the CEM method
+- Blackbox version of the method doesn't require computing the numerical gradients which is expensive
+- Applies to more data-types
+
+**Cons**
+- Requires access to the dataset to train the auto encoder or k-d tree
+- Requires setup and configuration in choosing $\gamma$, $\beta$ and $c$
+
+#### Counterfactuals with Reinforcement Learning
 
 This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss at 
 explain time it trains a new model when fitting the explainer called an actor that takes instances and produces 
 counterfactuals. It does this using reinforcement learning. In RL an actor model takes some state as input and 
 generates actions, in our case the actor takes an instance with a specific classification and produces an action in the 
-form of a counter factual. Outcomes of actions are assigned reward dependent on some reward function that's designed to 
-encourage specific behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the 
-correct target class, secondly are close to the data distribution as modelled by an auto-encoder, and thirdly are sparse 
-perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions 
-instead of low reward actions. This method is black box as we compute the reward obtained by an actor by sampling an 
-action by directly predicting the loss. Because of this we only require the derivative with respect to the actor and 
-not the predictor itself.
+form of a counter factual that the model predicts as the classification given. Outcomes of actions are assigned reward 
+dependent on a reward function that's designed to encourage specific behaviours of the actor. In our case we reward 
+counterfactuals that are firstly classified as the correct target class, secondly are close to the data distribution as 
+modelled by an auto-encoder, and thirdly are sparse perturbations of the original instance. The reinforcement training 
+step pushes the actor to take high reward actions instead of low reward actions. This method is black box as we compute 
+the reward obtained by an actor by sampling an action by directly predicting the loss. Because of this we only require 
+the derivative with respect to the actor and not the predictor itself.
 
 As well as this CFRL actors are trained to ensure that certain constraints can be taken into account when generating 
 counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
@@ -638,12 +671,21 @@ to apply for a loan isn't very helpful.
 To train the actor we randomly generate in distribution data instances, along with constraints and target 
 classifications. We then compute the reward and update the actor to maximize the reward. We do this without needing 
 access to the critic internals. We end up with an actor that is able to generate interpretable counterfactual instances 
-at runtime with arbitrary constraints. 
+at runtime with arbitrary constraints.
 
 __TODO__: 
 - Example images
-___
 
+**Pros**
+- Very interpretable counter factuals.
+- Very fast at runtime
+- Can be trained to account for arbitrary constraints
+- Very general as is a Black box algorithm
+
+**Cons**
+- Longer to fit the model
+- Requires to fit an auto encoder
+- Requires access to the training dataset
 
 
 ##### Example:

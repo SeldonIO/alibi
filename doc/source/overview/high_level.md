@@ -207,7 +207,7 @@ knowledge becomes very important.
 - Doesn't tell us anything about the coverage of the pertinent positive.
 - If using the autoencoder loss then we need access to the original dataset.
 
-#### Global Feature Attribution
+### Global Feature Attribution
 
 Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. This 
 is a global insight as it describes the behaviour of the model over the entire input space. ALE-plots, M-plots and 
@@ -219,7 +219,7 @@ temperature plotted against number of bikes rented. This type of insight can be 
 In the bikes rented case one would anticipate an increase in rentals up until a certain temperature and then a decrease 
 after when it gets too hot.
 
-**Accumulated Local Effects**
+#### Accumulated Local Effects
 
 Alibi only provides Accumulated Local Effects plots because these give the most accurate insight of ALE-plots, M-plots 
 and PDP-plots. ALE-plots work by averaging the local changes in a prediction at every instance in the data distribution.
@@ -269,7 +269,7 @@ only an issue if the variable you are taking the ALE with respect to is categori
 - Unlike PDP-plots, ALE-plots do not work with Categorical data
 
 
-#### Local Feature Attribution
+### Local Feature Attribution
 
 Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an 
 image this would highlight those pixels that make the model give the output it does. Note this differs subtly from 
@@ -309,9 +309,7 @@ where not the case then we'd be assigning value to a feature that provides no in
 given by $c_1 f_1 + c_2 f_2$ is $c_1 a_{1, i} + c_2 a_{2, i}$ where $a_{1, i}$ and $a_{2, i}$ is the attribution for 
 $x_1$ and $f_1$ and $f_2$ respectively.
 
-##### Explainers:
-
-**Integrated Gradients**
+#### Integrated Gradients
 
 The integrated gradients' method computes the attribution of each feature by integrating the model partial derivatives 
 along a path from a baseline point to the instance. Let $f$ be the model and $x$ the instance of interest. 
@@ -344,24 +342,25 @@ dark pixels in attributing the contribution of each feature to the classificatio
 calculated relative to the baseline which in this case is already dark.
 :::
 
-**KernelSHAP**
+#### KernelSHAP
 
 Kernel SHAP is an efficient method of computing the Shapley values for a model around an instance $x_i$. Shapley values
 are a game theoretic method of assigning payout to players depending on there contribution to an overall goal. In this
 case the players are the features and the payout is the prediction the model makes. To compute these values we have to
-consider the marginal contribution of each feature over all the possible coalitions of feature players. Exactly what 
-this means in terms of a specific coalition is a little nuanced. Suppose for example we have a regression model $f$ 
-that makes predictions based on four features $X = \{X_1, X_2, X_3, X_4\}$ as input. A coalition is a group of 
-features, say for example the first and third feature. For this coalition it's value is given by:
+consider the marginal contribution of each feature over all the possible coalitions of feature players. 
+
+Suppose for example we have a regression model $f$ that makes predictions based on four features 
+$X = \{X_1, X_2, X_3, X_4\}$ as input. A coalition is a group of features, say for example the first and third feature. 
+For this coalition it's value is given by:
 
 $$
 val({1,3}) = \int_{\mathbb{R}}\int_{\mathbb{R}} f(x_1, X_2, x_3, X_4)d\mathbb{P}_{X_{2}X_{4}} - \mathbb{E}_{X}(f(X))
 $$
 
-Given a coalition, $S$, that doesn't include $x_i$, then that features marginal contribution is given by 
-$val(S \cup x_i) - val(S)$. Intuitively this is the difference that feature $x_i$ would make for that coalition. We are 
-interested in the marginal contribution of $x_i$ over all possible coalitions with and without $x_i$. A shapley value 
-for the $x_i^{th}$ feature is given by the weighted sum
+Given a coalition, $S$, that doesn't include $x_i$, then $x_i$'s marginal contribution is given by 
+$val(S \cup x_i) - val(S)$. Intuitively this is the difference that feature $x_i$ would contribute if it was to join 
+that coalition. We are interested in the marginal contribution of $x_i$ over all possible coalitions with and without 
+$x_i$. A shapley value for the $x_i^{th}$ feature is given by the weighted sum
 
 $$
 \psi_j = \sum_{S\subset \{1,...,p\} \setminus \{j\}} \frac{|S|!(p - |S| - 1)!}{p!}(val(S \cup x_i) - val(S))
@@ -369,10 +368,9 @@ $$
 
 The motivation for the weights convey how much you can learn from a specific coalition. Large and Small coalitions mean 
 more learnt because we've isolated more of the effect. Whereas medium size coalitions don't supply us with as much 
-information because there are many possible such coalitions. **Not 100 percent sure about this point! Want a nicer 
-intuitive explanation.**.
+information because there are many possible such coalitions.
 
-The main issue with the above is that there will be a large number of possible coalitions, $O(M2^M)$ to be precise. 
+The main issue with the above is that there will be a large number of possible coalitions, $2^M$ to be precise. 
 Hence instead of computing all of these we use a sampling process on the space of coalitions and then estimate the
 Shapley values by training a linear model. Because a coalition is a set of players/features that are or aren't 
 playing/contributing we represent this as points in the space of binary codes $z' = \{z_0,...,z_m\}$ where $z_j = 0$ 
@@ -384,72 +382,110 @@ $$
 \pi_{x}(z') = \frac{M - 1}{\frac{M}{|z'|}|z'|(M - |z'|)}
 $$
 
-Once we have all of this we can train a linear model, the coefficients of which are the Shapley values. There is some 
-nuance to how we compute the value of a model given a specific coalition as most models aren't built to accept input 
-with arbitrary missing values. Given a coalition $S$ we can either fix those features in $S$ and average out those not 
-in $S$ by replacing them by values sampled from the data set. This is the marginal expectation given by 
-$\mathbb{E}_{X_{X \setminus S}}[f(x_S, X_{X \setminus S})]$. A problem with this approach is that fixing the $x_S$ and
-replacing the other inputs with feature values sampled from $X_{X \setminus S}$ can introduce unrealistic data if the
-underlying data has dependencies. Another approach in this case is to use the conditional expectation given by 
-$\mathbb{E}[f(x_S, X_{X\setminus S}|X_S=x_S)]$. This is still problematic however, as a variables that don't contribute 
-to a prediction can be highly correlated with features that do. In this case the shapley value for the non-contributing 
-feature can end up being assigned a none zero shapley value which violates the Dummy/Sensitivity property.
+Once we have the data points, the values of $f$ for each data point and the sample weights we have everything we need 
+to train a linear model. The paper shows that the coefficients of this linear model are the Shapley values. 
 
-**TreeSHAP**
+There is some nuance to how we compute the value of a model given a specific coalition as most models aren't built to 
+accept input with arbitrary missing values. Given a coalition $S$ we fix those features in $S$ and average out those not
+in $S$ by replacing them by values sampled from the data set. This is the marginal expectation given by 
+$\mathbb{E}_{X_{\bar{S}}}[f(x_S, X_{\bar{S}})]$. A problem with this approach is that fixing the $x_S$ and
+replacing the other inputs with feature values sampled from $X_{\bar{S}}$ can introduce unrealistic data if the
+underlying data has dependencies. 
+
+**Pros**:
+- The Shapley values are fairly distributed among the feature values which isn't always the case for other local feature 
+attribution methods.
+- Shapley values can be easily interpreted and visualized
+- Very general as is a blackbox method.
+
+**Cons**:
+- KernalSHAP is slow owing to the number of samples required to accurately estimate the Shapley values.
+- The process of sampling from the dataset while holding a set of features fixed means that unrealistic data points 
+will be introduced.
+- Requires access to the training dataset.
+
+
+#### TreeSHAP
 
 In the case of tree based models we can obtain a speed-up by exploiting the structure of trees. Alibi exposes two 
-white-box methods Interventional and Path dependent feature perturbation. In each case the speed-up is in how we 
-compute the value of a coalition.
+white-box methods Interventional and Path dependent feature perturbation. The main difference is that Interventional 
+method uses the marginal expectation $\mathbb{E}[f(x_{S}, X_{\bar{S}}]$ to estimate 
 
-Path Dependent: 
+$$
+f(S) = \mathbb{E}[f(x_S, X_{\bar{S}})|X_{S}=x_S]
+$$
 
-Given a coalition $S=/{z_1, ..., z_n/}$ we want to find $\mathbb{E}_{X_{X \setminus S}}[f(x_S, X_{X \setminus S})]$. We 
-do so in the same way we should when applying a tree based model to any sample, with the only difference being what to
-do when a feature is missing from the coalition. In this case we take both routes down the tree and weight each by the
-proportion of dataset samples from the training dataset that go into each branch. For this algorithm to work we need 
-the tree to have a record of how it splits the training dataset. We don't need the dataset itself however, unlike the 
-interventional TreeSHAP algorithm.
+whereas, the Path dependent method uses the dataset to compute the conditional expectation directly.  
+
+#### Path Dependent TreeSHAP
+
+Given a coalition $S=/{z_1, ..., z_n/}$ we want to find $\mathbb{E}[f(x_S, X_{X \bar{S}}|X_S=x_S)]$. To do so apply the 
+tree to the present features in the same way we normally would, with the only difference being when a feature is 
+missing from the coalition. In this case we take both routes down the tree and weight each by the proportion of 
+dataset samples from the training dataset that go into each branch. For this algorithm to work we need the tree to have 
+a record of how it splits the training dataset. We don't need the dataset itself however, unlike the interventional 
+TreeSHAP algorithm.
 
 Doing this for each possible set $S$ involves $O(TL2^M)$ time complexity. It can be significantly improved to polynomial 
 time however if instead of doing the above one by one we do it for all subsets at once. The intuition here is to imagine
 standing at the first node and counting the number of subsets that will go one way, the number that will go the other
-and the number that will go both. Because we assign different sized subsets different weights we also need to further
-distinguish the above numbers passing into each branch of the tree by there size. Finally, we also need to keep track of
-the proportion of sets of each size in each branch that contain a feature $i$ and the proportion that don't. Once all 
-these sets have flowed down to the leaves of the tree then we can compute the shapley values. Doing this gives us 
-$O(TLD^2)$ time complexity.
+and the number that will go both (in the case of missing features). Because we assign different sized subsets different 
+weights we also need to further distinguish the above numbers passing into each branch of the tree by there size. 
+Finally, we also need to keep track of the proportion of sets of each size in each branch that contain a feature $i$ 
+and the proportion that don't. Once all these sets have flowed down to the leaves of the tree then we can compute the 
+shapley values. Doing this gives us $O(TLD^2)$ time complexity.
 
-An issue is that as we're approximating $\mathbb{E}[f(x_S, X_{X\setminus S}|X_S=x_S)]$ this method will give shapley 
-values that don't satisfy the Dummy/Sensitivity property. This occurs because features that contribute nothing can be 
-highly correlated with features that do and the expectation doesn't distinguish on this effect. Hence, the 
-non-significant but correlated feature will have a positive shapley coefficient.
+**Pros**:
+- Very fast for a very useful category of models.
+- Doesn't require access to the training data.
+- The Shapley values are fairly distributed among the feature values which isn't always the case for other local feature 
+attribution methods.
+- Shapley values can be easily interpreted and visualized
 
-Interventional:
+
+**Cons**:
+- approximating $\mathbb{E}[f(x_S, X_{X \bar{S}}|X_S=x_S)]$ this method will give shapley values that don't satisfy 
+the Dummy/Sensitivity property. This occurs because features that contribute nothing can be highly correlated with 
+features that do and the expectation doesn't distinguish on this effect.
+- Only applies to Tree based models
+
+#### Interventional Tree SHAP
 
 The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the 
 training dataset. For each feature $i$ we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset 
 is missing a feature we replace it with the corresponding one in the reference sample. We can then compute $f(S)$ 
-directly for each set $S$ and from that get the Shapley values. One major difference here is that we're combining each 
-$S$ and $r$ to generate a data point. The process of enforcing independence of the $S$ and $F\S$ in this way is known
-as intervening in the underlying data set and is where the algorithm name comes from. Note that doing this breaks 
+directly for each coalition $S$ and from that get the Shapley values. One major difference here is that we're combining 
+each $S$ and $r$ to generate a data point. The process of enforcing independence of the $S$ and $F\S$ in this way is 
+known as intervening in the underlying data set and is where the algorithm name comes from. Note that doing this breaks 
 any independence between features in the dataset which means the data points we're sampling won't be realistic.
 
 For a single Tree and sample $r$ if we just iterate over all the subsets of $S \subset F \setminus \{i\}$ the 
-interventional TreeSHAP method runs with $O(M2^M)$. Note that there are two paths through the tree of unique interest. 
+interventional TreeSHAP method runs with $O(M2^M)$. Note that there are two paths through the tree of special interest. 
 The first is the instance path for $x$, and the second is the sampled/reference path for $r$. Computing the shapley 
 value estimate for the sampled $r$ is going to involve replacing $x$ with values of $r$ and generating a set of 
-perturbed paths. If, instead of summing over the sets if we sum over the paths we get a speed improvement as many of
-the sets $S$ end up taking the same path, and we compute them all at the same time instead of one by one. Doing so the
-Interventional TreeSHAP algorithm obtains $O(LD)$ time complexity.
+perturbed paths. If, instead of iterating over the sets if we sum over the paths we get a speed improvement as many of
+the paths within the tree have overlapping components. We can compute them all at the same time instead of one by one. 
+Doing so the Interventional TreeSHAP algorithm obtains $O(LD)$ time complexity.
 
 Applied to a random forrest with $T$ trees and using $R$ samples to compute the estimates we obtain $O(TRLD)$ time 
 complexity. The fact that we can sum over each tree in the random forest is a results of the linearity property of
 shapley values.
 
-__WARNING__: 
-- Reference the Christoph Molnar book!
+**Pros:**
+- Very fast for very useful category of models
+- The Shapley values are fairly distributed among the feature values which isn't always the case for other local feature 
+attribution methods.
+- Shapley values can be easily interpreted and visualized
 
-#### Counter Factuals:
+**Cons**:
+- Less general as a white box method
+- Requires access to the dataset
+- Intervention on the dataset introduces unrealistic data points
+
+__WARNING__: 
+- Reference the Christoph Molnar book
+
+### Counter Factuals:
 
 Given an instance of the dataset and a prediction given by a model a question that naturally arises is how would the
 instance minimally have to change in order for a different prediction to be given. Counterfactuals are local 

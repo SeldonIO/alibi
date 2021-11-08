@@ -41,7 +41,6 @@ use black box to mean that the explainer method doesn't need to have access to t
 applied. 
 :::
 
-
 ## Applications:
 
 **Trust:** At a core level explainability builds trust in the machine learning systems we use. It allows us to justify 
@@ -70,9 +69,7 @@ designed to be faithful to the model they are explaining and not the data. You u
 into the data only if the model is trained well.
 :::
 
-## Insights
-
-### Global and Local Insights
+## Global and Local Insights
 
 Insights can be categorized into two types. Local and global. Intuitively, a local insight says something about a 
 single prediction that a model makes. As an example, given an image classified as a cat by a model, a local insight 
@@ -85,212 +82,51 @@ example. These insights give a more general understanding of the relationship be
 __TODO__:
 - Add image to give idea of Global and local insight
 
-### Insight Categories
+## Insights
 
 Alibi provides a number of local and global insights with which to explore and understand models. The following gives
-the practitioner an understanding of which explainers are suitable to be used where.
+the practitioner an understanding of which explainers are suitable in which situations.
 
-#### Counter Factuals:
+### Local Necessary Features:
 
-Given an instance of the dataset and a prediction given by a model a question that naturally arises is how would the
-instance minimally have to change in order for a different prediction to be given. Counterfactuals are local 
-explanations as they relate to a single instance and model prediction.
+Given a single instance and model prediction, Local Necessary Features are local explanations that tell us what minimal 
+set of features needs to stay the same in order that the model still give the same or close prediction. This tells us 
+what it is in an instance that most influences the result.
 
-Given a classification model trained on MNIST and a sample from the dataset with a given prediction, a counter factual 
-would be a generated image that closely resembles the original but is changed enough that the model correctly 
-classifies it as a different number.
-
-Similarly, given tabular data that a model uses to make financial decisions about a customer a counter factual would
-explain to a user how to change they're behaviour in order to obtain a different decision. Alternatively it may tell
-the Machine Learning Engineer that the model is drawing incorrect assumptions if the recommended changes involve
-features that shouldn't be relevant to the given decision. This may be down either to the model training or the dataset
-being unbalanced.
-
-A counterfactual, $x_{cf}$, needs to satisfy
-
-- The model prediction on $x_{cf}$ needs to be close to the predefined output.
-- The counterfactual $x_{cf}$ should be interpretable. 
-
-The first requirement is easy enough to satisfy. The second however requires some idea of what interpretable means. 
-Intuitively it would require that the counterfactual constructed makes sense as an instance of the dataset. Each of the
-methods available in alibi deal with interpretability slightly differently. All of them agree however that we require 
-that the perturbation $\delta$ changing the original instance $x_0$ into $x_{cf} = x_0 + \delta$ should be sparse. This 
-means we prefer solutions that change a small subset of the features to construct $x_{cf}$. This limits the complexity
-of the solution making them more understandable. 
-
-##### Explainers:
-
-The following discusses the set of explainer methods available from alibi for generating counterfactual insights. 
-
-:::{admonition} **Note 3: fit and explain method runtime differences**
-Alibi explainers expose two methods `fit` and `explain`. Typically, in machine learning the method that takes the most 
-time is the fit method as that's where the model optimization conventionally takes place. In explainability however the 
-model should already be fit and instead the explain step usually requires the bulk of computation. However this isn't
-always the case.
-
-Among the following explainers there are two categories of approach taken. The first fits a counterfactual when the 
-user requests the insight. This happens during the `.explain()` method call on the explainer class. They do this by 
-running gradient descent on model inputs to find a counterfactual. The methods that take this approach are 
-Counterfactuals Instances, Contrastive Explanation Method and Counterfactuals Guided by Prototypes. Thus, the `fit`
-methods in these cases are quick but the `explain` method slow.
-
-The other approach however uses reinforcement learning to pretrains a model that produces explanations on the fly. The 
-training in this case takes place during the `fit` method call and so this has a long runtime while the `explain` 
-method is quick. If you want performant explanations in production environments then the later method is preferable.
-:::
-
-__TODO__: 
-- schematic image explaining search for counterfactual as determined by loss
-- schematic image explaining difference between different approaches.
-
-**Counterfactuals Instances:**
-
-- Black/white box method
-- Classification models
-- Tabular and image data types
-
-Let the model be given by $f$ and $f_{t}$ be the probability of class $t$, $p_t$ is the target probability of class 
-$t$ and $0<\lambda<1$ a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running 
-gradient descent on a new instance $X'$ to minimize the following loss.
-
-$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X'|X)$$ 
-
-The first term pushes the constructed counterfactual towards the desired class and the use of the $L_{1}$ norm 
-encourages sparse solutions. 
-
-This method requires computing gradients of the loss in the model inputs. If we have access to the model and the 
-gradients are available then this can be done directly. If not however, we can use numerical gradients although this
-comes at a considerable performance cost.
-
-A problem arises here in that encouraging sparse solutions doesn't necessarily generate interpretable counterfactuals. 
-This happens because the loss doesn't prevent the counter factual solution moving off the data distribution. Thus, you
-will likely get a solution that doesn't look like something that you'd expect to see from the data.
-
-__TODO:__
-- Picture example. Like from here: https://github.com/interpretml/DiCE
-
-**Contrastive Explanation Method:**
-
-- c/white box method
-- Classification models
-- Tabular and image data types
-
-CEM follows a similar approach to the above but includes two new details. Firstly an elastic net 
-($\beta L_{1} + L_{2}$) regularizer term is added to the loss. This causes the solutions to be both close to the 
-original instance and sparse. Secondly an optional autoencoder is trained to penalize conterfactual instances that 
-deviate from the data distribution. This works by requiring minimize the gradient descent minimize the reconstruction 
-loss of instances passed through the autoencoder. If an instance is unlike anything in the dataset then the autoencoder 
-will struggle to recreate it well, and it's loss term will be high. We require two hyperparameters $\beta$ and $\gamma$
-to define the following Loss,
-
-$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X' - X) + L_{2}(X' - X)^2 + \gamma L_{2} (X' - AE(X'))^2$$ 
-
-This approach extends the definition of interpretable to include a requirement that the computed counterfactual be 
-believably a member of the dataset. It turns out however that this condition isn't enough to always get interpretable 
-results. And in particular the constructed counterfactual often doesn't look like a member of the target class. 
-
-Similarly to the previous method, this method can apply to both black and white box models. In the case of black box 
-there is still a performance cost from computing the numerical gradients.
-
-__TODO:__
-- Picture example of results including less interpretable ones.
-
-**Counterfactuals Guided by Prototypes:**
-
-- Black/white box method
-- Classification models
-- Tabular, image and categorical data types
- 
-For this method we add another term to the loss that optimizes for distance between the counterfactual instance and
-close members of the target class. Now the definition of interpretability has been extended even further to include the
-requirement that the counterfactual be believably a member of the target class and not just in the data distribution.
-
-With hyperparmaters $c$ and $\beta$, the loss is now given by:
-
-$$L(X'|X)= cL_{pred} + \beta L_{1} + L_{2} + L_{AE} + L_{proto}$$
-
-__TODO:__ 
-- Picture example of results.
-
-It's clear that this method produces much more interpretable results. As well as this, because the proto term pushes
-the solution towards the target class we can actually remove the prediction loss term and still obtain a viable counter
-factual. This doesn't make much difference if we can compute the gradients directly from the model but if not, and we 
-are using numerical gradients then the $L_{pred}$ term is a significant bottleneck owing to repeated calls on the model
-to approximate the gradients. Thus, this method also applies to blackbox models with a significant performance gain on
-the previous approaches mentioned.
-
-**Counterfactuals with Reinforcement Learning:**
-
-This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss at 
-explain time it trains a new model when fitting the explainer called an actor that takes instances and produces 
-counterfactuals. It does this using reinforcement learning. In RL an actor model takes some state as input and 
-generates actions, in our case the actor takes an instance with a specific classification and produces an action in the 
-form of a counter factual. Outcomes of actions are assigned reward dependent on some reward function that's designed to 
-encourage specific behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the 
-correct target class, secondly are close to the data distribution as modelled by an auto-encoder, and thirdly are sparse 
-perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions 
-instead of low reward actions. This method is black box as we compute the reward obtained by an actor by sampling an 
-action by directly predicting the loss. Because of this we only require the derivative with respect to the actor and 
-not the predictor itself.
-
-As well as this CFRL actors are trained to ensure that certain constraints can be taken into account when generating 
-counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
-instance in order to obtain a different classification. In certain cases you want these changes to be constrained, for
-instance when dealing with immutable characteristics. In other words if you are using the counterfactual to advise 
-changes in behaviour you want to ensure the changes are enactable. Suggesting that someone needs to be 2 years younger
-to apply for a loan isn't very helpful.
-
-To train the actor we randomly generate in distribution data instances, along with constraints and target 
-classifications. We then compute the reward and update the actor to maximize the reward. We do this without needing 
-access to the critic internals. We end up with an actor that is able to generate interpretable counterfactual instances 
-at runtime with arbitrary constraints. 
-
-__TODO__: 
-- Example images
-___
-
-#### Local Necessary Features:
-
-Given a single instance and model prediction Local Necessary Features are local explanations that tell us what minimal 
-set of features needs to stay the same in order that the model still give the same prediction or close predictions. 
-This tells the practitioner what it is in an instance that most influences the result.
-
-In the case of a trained image classification model, Local Necessary Features for a given instance would be a 
-minimal subset of the image that the model uses to make its decision. A Machine learning engineer might use this 
-insight to see if the model is concentrating on the correct image features in making a decision. This is especially 
-useful applied to an erroneous decision.
-
-##### Explainers:
+In the case of a trained image classification model, Local Necessary Features for a given instance would be a minimal 
+subset of the image that the model uses to make its decision. A Machine learning engineer might use this insight to see 
+if the model is concentrating on the correct features of an image in making a decision. This is especially useful 
+applied to an erroneous decision.
 
 The following two explainer methods are available from alibi for generating Local Necessary Features insights. Each 
-approaches the idea in slightly different ways but the main difference is one gives an idea of the size of the area 
-over the dataset for which the insight applies.
+approaches the idea in slightly different ways but the main difference is that anchors gives an idea of the size of the
+area over the dataset for which the insight applies whereas pertinent positives do not.
 
-**Anchors**
+#### Anchors
 
-We introduce anchors in a more formal manner, taking the definition and discussion from [Anchors: High-Precision 
-Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)
+Anchors are a local blackbox method. This section takes the definition and discussion from [Anchors: High-Precision 
+Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf).
 
 Let A be a rule (set of predicates) acting on such an interpretable representation, such that $A(x)$ returns $1$ if all 
 its feature predicates are true for instance $x$. An example of such a rule, $A$, could be represented by the set 
-$\{not, bad\}$ in which case any sentence, $s$, with both $not$ and $bad$ in it would mean $A(s)=1$
+$\{not, bad\}$ in which case any sentence, $s$, with both $not$ and $bad$ in it would mean $A(s)=1$.
 
-Given a classifier $f$, $\tau>0$, instance $x$ and data distribution $\mathcal{D}$, $A$ is an anchor for $x$ if 
-$A(x) = 1$ and,
+Given a classifier $f$, a value $\tau>0$, an instance $x$ and a data distribution $\mathcal{D}$, $A$ is an anchor for 
+$x$ if $A(x) = 1$ and,
 
 $$ E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}] ≥ \tau $$
 
 The distribution $\mathcal{D}(z|A)$ is those points from the dataset for which the anchor holds. This is like fixing 
-some set of features of an instance and allowing all the others to vary. Intuitively, the anchor condition says any
-point in the data distribution that satisfies the anchor $A$ is expected to match the model prediction $f(x)$ with 
-probability $\tau$ (usually $\tau$ is chosen to be 0.95). 
+some set of features of an instance and allowing all the others to vary. This condition says any point in the data 
+distribution that satisfies the anchor $A$ is expected to match the model prediction $f(x)$ with probability $\tau$ 
+(usually $\tau$ is chosen to be 0.95). 
 
 Let $prec(A) = E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}]$ be the precision of an anchor. Note that the precision of an anchor 
 is considered with respect to the set of points in the data distribution to which the anchor applies,
 $\mathcal{D}(z|A)$. We can consider the **coverage** of an anchor as the probability that $A(z)=1$ for any instance 
 $z$ in the data distribution. The coverage tells us the proportion of the distribution that the anchor applies to. 
-The aim here is to find the anchor that applies to the largest set of instances. So what is the most general rule we 
-can find that any instance must satisfy in order that it have the same classification as $x$.
+The aim here is to find the anchor that applies to the largest set of instances while still satisfying 
+$prec(A) \geq \tau$.
 
 __TODO__: 
 - Include picture explanation of anchors
@@ -303,25 +139,33 @@ which we choose to be the $a_i$. At each stage we're going to look at the set of
 by adding in a feature $a_i$ from the instance. We then compute the precision of each of the resulting anchors and 
 choose the best. We iteratively build the anchor up like this until the required precision is met.
  
-As we build up the anchors from the empty case we need to compute their precision in order to know which one to choose. 
-Given any specific anchor $A=\{a_1, ..., a_n\}$ we want to know its precision. We can't compute this directly,
-instead we sample from $\mathcal{D}(z|A)$ to obtain an estimate. To do this we use a number of different methods for 
-different data types. For instance, in the case of textual data we want to generate sentences with the anchor words in 
-them and also ensure that they make sense within the data distribution. One option is to replace the missing words 
-(those not in the anchor) from the instance with ones with the same POS tag. This means the resulting samples makes 
-semantic sense rather than being a random set of words. Other methods are available. In the case of images we sample an
-image from the data set and then superimpose the superpixels on top of it. Hence we can estimate the precision of that
-anchor by sampling from $\mathcal{D}(z|A)$ and computing $1_{f(x)=f(z)}$.
+As we build up the anchors from the empty case we need to compute their precisions in order to know which one to choose. 
+We can't compute this directly, instead we sample from $\mathcal{D}(z|A)$ to obtain an estimate. To do this we use a 
+number of different methods for different data types. For instance, in the case of textual data we want to generate 
+sentences with the anchor words in them and also ensure that they make sense within the data distribution. One option 
+is to replace the missing words (those not in the anchor) from the instance with words with the same POS tag. This means
+the resulting samples makes semantic sense rather than being a random set of words. Other methods are available. In the 
+case of images we sample an image from the data set and then superimpose the superpixels on top of it.
 
-Because at each step in building up the anchor we need to consider all the possible features we can add this algorithm
-is much slower for high dimensional feature spaces. Similarly, if choosing an anchor close to a decision boundary the
-method may require a very large number of samples from $\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ in order to
-distinguish two anchors $A$ and $A'$.
+**Pros**
+- Easy to explain as rules are simple to interpret.
+- Is a blackbox method as we just need to be able to predict the value of an instance and don't need to access model 
+internals.
+- Can be parallelized and made to be much more efficient as a result.
+- Although they apply to a local instance, the notion of coverage also gives a level of global insight as well. 
 
-Note that this is a blackbox method as we just need to be able to predict the value of an instance and don't need 
-to access model internals.
+**Cons**
+- Because at each step in building up the anchor we need to consider all the possible features we can add this 
+algorithm is slower for high dimensional feature spaces.
+- If choosing an anchor close to a decision boundary the method may require a very large number of samples from 
+$\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ in order to distinguish two anchors $A$ and $A'$.
+- High dimensional feature spaces such as images need to be reduced. Typically, this is done by segmenting the image 
+into superpixels but the choice of algorithm used to obtain the superpixels has an effect on the anchor obtained.
+- Practitioners need to make a number of choices with respect to parameters and domain specific setup. For instance the 
+precision threshold or the method by which we sample $\mathcal{D}(z|A)$. Fortunately alibi provides default settings 
+for a lot of specific data-types.
 
-**Pertinent Positives:**
+#### Pertinent Positives
 
 Informally a Pertinent Positive is the subset of an instance that still obtains the same classification. These differ
 from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to obtain them is 
@@ -579,7 +423,168 @@ complexity. The fact that we can sum over each tree in the random forest is a re
 shapley values.
 
 __WARNING__: 
-- This whole section leans very heavily on the Christoph Molnar book!
+- Reference the Christoph Molnar book!
+
+#### Counter Factuals:
+
+Given an instance of the dataset and a prediction given by a model a question that naturally arises is how would the
+instance minimally have to change in order for a different prediction to be given. Counterfactuals are local 
+explanations as they relate to a single instance and model prediction.
+
+Given a classification model trained on MNIST and a sample from the dataset with a given prediction, a counter factual 
+would be a generated image that closely resembles the original but is changed enough that the model correctly 
+classifies it as a different number.
+
+Similarly, given tabular data that a model uses to make financial decisions about a customer a counter factual would
+explain to a user how to change they're behaviour in order to obtain a different decision. Alternatively it may tell
+the Machine Learning Engineer that the model is drawing incorrect assumptions if the recommended changes involve
+features that shouldn't be relevant to the given decision. This may be down either to the model training or the dataset
+being unbalanced.
+
+A counterfactual, $x_{cf}$, needs to satisfy
+
+- The model prediction on $x_{cf}$ needs to be close to the predefined output.
+- The counterfactual $x_{cf}$ should be interpretable. 
+
+The first requirement is easy enough to satisfy. The second however requires some idea of what interpretable means. 
+Intuitively it would require that the counterfactual constructed makes sense as an instance of the dataset. Each of the
+methods available in alibi deal with interpretability slightly differently. All of them agree however that we require 
+that the perturbation $\delta$ changing the original instance $x_0$ into $x_{cf} = x_0 + \delta$ should be sparse. This 
+means we prefer solutions that change a small subset of the features to construct $x_{cf}$. This limits the complexity
+of the solution making them more understandable. 
+
+##### Explainers:
+
+The following discusses the set of explainer methods available from alibi for generating counterfactual insights. 
+
+:::{admonition} **Note 3: fit and explain method runtime differences**
+Alibi explainers expose two methods `fit` and `explain`. Typically, in machine learning the method that takes the most 
+time is the fit method as that's where the model optimization conventionally takes place. In explainability however the 
+model should already be fit and instead the explain step usually requires the bulk of computation. However this isn't
+always the case.
+
+Among the following explainers there are two categories of approach taken. The first fits a counterfactual when the 
+user requests the insight. This happens during the `.explain()` method call on the explainer class. They do this by 
+running gradient descent on model inputs to find a counterfactual. The methods that take this approach are 
+Counterfactuals Instances, Contrastive Explanation Method and Counterfactuals Guided by Prototypes. Thus, the `fit`
+methods in these cases are quick but the `explain` method slow.
+
+The other approach however uses reinforcement learning to pretrains a model that produces explanations on the fly. The 
+training in this case takes place during the `fit` method call and so this has a long runtime while the `explain` 
+method is quick. If you want performant explanations in production environments then the later method is preferable.
+:::
+
+__TODO__: 
+- schematic image explaining search for counterfactual as determined by loss
+- schematic image explaining difference between different approaches.
+
+**Counterfactuals Instances:**
+
+- Black/white box method
+- Classification models
+- Tabular and image data types
+
+Let the model be given by $f$ and $f_{t}$ be the probability of class $t$, $p_t$ is the target probability of class 
+$t$ and $0<\lambda<1$ a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running 
+gradient descent on a new instance $X'$ to minimize the following loss.
+
+$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X'|X)$$ 
+
+The first term pushes the constructed counterfactual towards the desired class and the use of the $L_{1}$ norm 
+encourages sparse solutions. 
+
+This method requires computing gradients of the loss in the model inputs. If we have access to the model and the 
+gradients are available then this can be done directly. If not however, we can use numerical gradients although this
+comes at a considerable performance cost.
+
+A problem arises here in that encouraging sparse solutions doesn't necessarily generate interpretable counterfactuals. 
+This happens because the loss doesn't prevent the counter factual solution moving off the data distribution. Thus, you
+will likely get a solution that doesn't look like something that you'd expect to see from the data.
+
+__TODO:__
+- Picture example. Like from here: https://github.com/interpretml/DiCE
+
+**Contrastive Explanation Method:**
+
+- c/white box method
+- Classification models
+- Tabular and image data types
+
+CEM follows a similar approach to the above but includes two new details. Firstly an elastic net 
+($\beta L_{1} + L_{2}$) regularizer term is added to the loss. This causes the solutions to be both close to the 
+original instance and sparse. Secondly an optional autoencoder is trained to penalize conterfactual instances that 
+deviate from the data distribution. This works by requiring minimize the gradient descent minimize the reconstruction 
+loss of instances passed through the autoencoder. If an instance is unlike anything in the dataset then the autoencoder 
+will struggle to recreate it well, and it's loss term will be high. We require two hyperparameters $\beta$ and $\gamma$
+to define the following Loss,
+
+$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X' - X) + L_{2}(X' - X)^2 + \gamma L_{2} (X' - AE(X'))^2$$ 
+
+This approach extends the definition of interpretable to include a requirement that the computed counterfactual be 
+believably a member of the dataset. It turns out however that this condition isn't enough to always get interpretable 
+results. And in particular the constructed counterfactual often doesn't look like a member of the target class. 
+
+Similarly to the previous method, this method can apply to both black and white box models. In the case of black box 
+there is still a performance cost from computing the numerical gradients.
+
+__TODO:__
+- Picture example of results including less interpretable ones.
+
+**Counterfactuals Guided by Prototypes:**
+
+- Black/white box method
+- Classification models
+- Tabular, image and categorical data types
+ 
+For this method we add another term to the loss that optimizes for distance between the counterfactual instance and
+close members of the target class. Now the definition of interpretability has been extended even further to include the
+requirement that the counterfactual be believably a member of the target class and not just in the data distribution.
+
+With hyperparmaters $c$ and $\beta$, the loss is now given by:
+
+$$L(X'|X)= cL_{pred} + \beta L_{1} + L_{2} + L_{AE} + L_{proto}$$
+
+__TODO:__ 
+- Picture example of results.
+
+It's clear that this method produces much more interpretable results. As well as this, because the proto term pushes
+the solution towards the target class we can actually remove the prediction loss term and still obtain a viable counter
+factual. This doesn't make much difference if we can compute the gradients directly from the model but if not, and we 
+are using numerical gradients then the $L_{pred}$ term is a significant bottleneck owing to repeated calls on the model
+to approximate the gradients. Thus, this method also applies to blackbox models with a significant performance gain on
+the previous approaches mentioned.
+
+**Counterfactuals with Reinforcement Learning:**
+
+This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss at 
+explain time it trains a new model when fitting the explainer called an actor that takes instances and produces 
+counterfactuals. It does this using reinforcement learning. In RL an actor model takes some state as input and 
+generates actions, in our case the actor takes an instance with a specific classification and produces an action in the 
+form of a counter factual. Outcomes of actions are assigned reward dependent on some reward function that's designed to 
+encourage specific behaviours of the actor. In our case we reward counterfactuals that are firstly classified as the 
+correct target class, secondly are close to the data distribution as modelled by an auto-encoder, and thirdly are sparse 
+perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions 
+instead of low reward actions. This method is black box as we compute the reward obtained by an actor by sampling an 
+action by directly predicting the loss. Because of this we only require the derivative with respect to the actor and 
+not the predictor itself.
+
+As well as this CFRL actors are trained to ensure that certain constraints can be taken into account when generating 
+counterfactuals. This is highly desirable as a use case for counterfactuals is suggesting small changes to an 
+instance in order to obtain a different classification. In certain cases you want these changes to be constrained, for
+instance when dealing with immutable characteristics. In other words if you are using the counterfactual to advise 
+changes in behaviour you want to ensure the changes are enactable. Suggesting that someone needs to be 2 years younger
+to apply for a loan isn't very helpful.
+
+To train the actor we randomly generate in distribution data instances, along with constraints and target 
+classifications. We then compute the reward and update the actor to maximize the reward. We do this without needing 
+access to the critic internals. We end up with an actor that is able to generate interpretable counterfactual instances 
+at runtime with arbitrary constraints. 
+
+__TODO__: 
+- Example images
+___
+
+
 
 ##### Example:
 

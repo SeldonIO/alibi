@@ -160,7 +160,7 @@ algorithm is slower for high dimensional feature spaces.
 - If choosing an anchor close to a decision boundary the method may require a very large number of samples from 
 $\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ in order to distinguish two anchors $A$ and $A'$.
 - High dimensional feature spaces such as images need to be reduced. Typically, this is done by segmenting the image 
-into superpixels but the choice of algorithm used to obtain the superpixels has an effect on the anchor obtained.
+into superpixels. The choice of algorithm used to obtain the superpixels has an effect on the anchor obtained.
 - Practitioners need to make a number of choices with respect to parameters and domain specific setup. For instance the 
 precision threshold or the method by which we sample $\mathcal{D}(z|A)$. Fortunately alibi provides default settings 
 for a lot of specific data-types.
@@ -169,14 +169,13 @@ for a lot of specific data-types.
 
 Informally a Pertinent Positive is the subset of an instance that still obtains the same classification. These differ
 from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to obtain them is 
-also substantially different.
+also substantially different. The rough idea is that you define an absence of a feature and then perturb the instance 
+to take away as much information as possible while still retaining the original classification.
 
 Given an instance $x_0$ we set out to find a $\delta$ that minimizes the following loss:
 
 $$
-l = \left \{ 
-c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} 
-\right \}
+l = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} 
 $$
 
 where
@@ -185,16 +184,29 @@ $$
 L_{pred}(\delta) = max\left\{ max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, \kappa \right\}
 $$
 
-and $\delta$ is restrained to only take away features from the instance $x_0$. There is a slightly subtle point here in 
-that removing features from an instance requires correctly defining non-informative feature values. In the case of
-MNIST digits it's reasonable to assume that the black background behind each digit represents an absence of information.
-Similarly, in the case of color images you might assume that the median pixel value represents no information and moving
-away from this value adds information. It is however often not trivial to find these non-informative feature values and 
-domain knowledge becomes very important.
+And $AE$ here is an optional auto encoder generated from the training data. If delta strays from the original data
+distribution the auto encoder loss will increase as it will no longer be able to reconstruct $\delta$ well. Thus, by
+adding this loss we ensure that $\delta$ remains close to the original dataset distribution. 
 
-Note this is both a black and white box method as while we need to compute the loss gradient through the model we can 
-do this using numerical differentiation. This comes at a significant computational cost due to the extra model calls 
-we need to make.
+Note that $\delta$ is restrained to only take away features from the instance $x_0$. There is a slightly subtle point 
+here in that removing features from an instance requires correctly defining non-informative feature values. In the case 
+of MNIST digits it's reasonable to assume that the black background behind each digit represents an absence of 
+information. Similarly, in the case of color images you might assume that the median pixel value represents no 
+information and moving away from this value adds information. 
+
+**Pros**:
+- This is both a black and white box method. Note that we need to compute the loss gradient through the model. If we 
+have access to the internals we can do this directly. Otherwise, we need to use numerical differentiation. This comes 
+at a significant computational cost due to the extra model calls we need to make. Alibi provides support for TensorFlow 
+models.
+- If using the autoencoder loss we obtain more interpretable results as $\delta$ will be in the data distribution.
+
+**Cons**
+- It is often not trivial to find non-informative feature values to add or take away from an instance and domain 
+knowledge becomes very important.
+- Need to tune hyperparameters $\beta$ and $\gamma$.
+- Doesn't tell us anything about the coverage of the pertinent positive.
+- If using the autoencoder loss then we need access to the original dataset.
 
 #### Global Feature Attribution
 

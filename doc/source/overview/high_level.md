@@ -57,9 +57,9 @@ Alibi provides several local and global insights with which to explore and under
 
 ### Local Necessary Features:
 
-Given a single instance and model prediction, Local Necessary Features are local explanations that tell us what minimal set of features needs to stay the same so that the model still gives the same or close prediction.
+Given a single instance and model prediction, local necessary features are local explanations that tell us what minimal set of features needs to stay the same so that the model still gives the same or close prediction.
 
-In the case of a trained image classification model, Local Necessary Features for a given instance would be a minimal subset of the image that the model uses to make its decision. A Machine learning engineer might use this insight to see if the model concentrates on the correct features of an image in making a decision. Local necessary features are particularly advantageous for checking erroneous model decisions.
+In the case of a trained image classification model, local necessary features for a given instance would be a minimal subset of the image that the model uses to make its decision. A machine learning engineer might use this insight to see if the model concentrates on the correct features. Local necessary features are particularly advantageous for checking erroneous model decisions.
 
 The following two explainer methods are available from alibi for generating Local Necessary Features insights. Each approaches the idea in slightly different ways. The main difference is that anchors give a picture of the size of the area over the dataset for which the insight applies, whereas pertinent positives do not.
 
@@ -72,12 +72,11 @@ Let A be a rule (set of predicates) acting on such an interpretable representati
 
 Given a classifier $f$, a value $\tau>0$, an instance $x$, and a data distribution $\mathcal{D}$, $A$ is an anchor for $x$ if $A(x) = 1$ and,
 
-$$ E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}] ≥ \tau $$.
+$$
+E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}] \geq \tau
+$$
 
-The distribution $\mathcal{D}(z|A)$ is those points from the dataset for which the anchor holds. This is like fixing
-some set of features of an instance and allowing all the others to vary. This condition says any point in the data
-distribution that satisfies the anchor $A$ is expected to match the model prediction $f(x)$ with probability $\tau$
-(usually $\tau$ is chosen to be 0.95).
+The distribution $\mathcal{D}(z|A)$ is those points from the dataset for which the anchor holds. This is like fixing some set of features of an instance and allowing all the others to vary. This condition says any point in the data distribution that satisfies the anchor $A$ is expected to match the model prediction $f(x)$ with probability $\tau$ (usually $\tau$ is chosen to be 0.95).
 
 Let $prec(A) = E_{\mathcal{D}(z|A)}[1_{f(x)=f(z)}]$ be the precision of an anchor. Note that the precision of an anchor is considered with respect to the set of points in the data distribution to which the anchor applies, $\mathcal{D}(z|A)$. We can consider the **coverage** of an anchor as the probability that $A(z)=1$ for any instance $z$ in the data distribution. The coverage tells us the proportion of the distribution to which the anchor applies. The aim here is to find the anchor that applies to the most extensive set of instances while satisfying $prec(A) \geq \tau$.
 
@@ -95,7 +94,7 @@ As we construct the new set of anchors from the last, we need to compute the pre
 - Although they apply to a local instance, the notion of coverage also gives a level of global insight
 
 **Cons**
-- Because at each step in building up the anchor, we need to consider all the possible features we can add this algorithm is slower for high dimensional feature spaces.
+- This algorithm is much slower for high dimensional feature spaces
 - If choosing an anchor close to a decision boundary, the method may require a considerable number of samples from $\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ to distinguish two anchors $A$ and $A'$.
 - High dimensional feature spaces such as images need to be reduced. Typically, this is done by segmenting the image into superpixels. The choice of the algorithm used to obtain the superpixels has an effect on the anchor obtained.
 - Practitioners need to make several choices concerning parameters and domain-specific setup. For instance, the precision threshold or the method by which we sample $\mathcal{D}(z|A)$. Fortunately, alibi provides default settings for a lot of specific data types.
@@ -117,7 +116,7 @@ $$
 L_{pred}(\delta) = max\left\{ max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, \kappa \right\}
 $$
 
-And $AE$ here is an optional auto encoder generated from the training data. If delta strays from the original data distribution, the autoencoder loss will increase as it will no longer reconstruct $\delta$ well. Thus, we ensure that $\delta$ remains close to the original dataset distribution by adding this loss.
+$AE$ is an optional autoencoder generated from the training data. If delta strays from the original data distribution, the autoencoder loss will increase as it will no longer reconstruct $\delta$ well. Thus, we ensure that $\delta$ remains close to the original dataset distribution.
 
 Note that $\delta$ is restrained to only take away features from the instance $x_0$. There is a slightly subtle point here: removing features from an instance requires correctly defining non-informative feature values. In the case of MNIST digits, it's reasonable to assume that the black background behind each digit represents an absence of information. Similarly, in the case of color images, you might take the median pixel value to convey no information, and moving away from this value adds information.
 
@@ -135,12 +134,12 @@ Note that we need to compute the loss gradient through the model. If we have acc
 
 ### Local Feature Attribution
 
-Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an image, this would highlight those pixels that make the model provide the output it does. Note that this differs subtly from Local Necessary Features, which find the minimum subset of features required to give a prediction. Local feature attribution instead assigned a score to each feature. If using the autoencoder loss, then we need access to the original dataset.
+Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an image, this would highlight those pixels that make the model provide the output it does. Note that this differs subtly from Local Necessary Features, which find the minimum subset of features required to give a prediction. Local feature attribution instead assigns a score to each feature.
 
 __TODO__:
 - picture showing above.
 
-Good use of local feature attribution detects that a classifier trained on images is focusing on the correct features of an image to infer the class. As an example, suppose you have a model trained to detect breeds of dogs. You want to check that it focuses on the correct features of the dog in making its prediction. Suppose you compute the feature attribution of a picture of a husky and discover that the model is only focusing on the snowy backdrop to the husky, then you know two things. All the images of huskies in your dataset overwhelmingly have snowy backdrops, and also that the model will fail to generalize. It will potentially incorrectly classify other dog breeds with snowy backdrops as huskies and fail to recognize huskies without snowy locations.
+A good example use of local feature attribution is to detect that a classifier trained on images is focusing on the correct features of an image to infer the class. Suppose you have a model trained to classify breeds of dogs. You want to check that it focuses on the correct features of the dog in making its prediction. Suppose you compute the feature attribution of a picture of a husky and discover that the model is only focusing on the snowy backdrop to the husky, then you know two things. All the images of huskies in your dataset overwhelmingly have snowy backdrops, and also that the model will fail to generalize. It will potentially incorrectly classify other dog breeds with snowy backdrops as huskies and fail to recognize huskies that aren't in snowy locations.
 
 Each of the following methods defines local feature attribution slightly differently. In both, however, we assign attribution values to each feature to indicate how significant those features were in making the model prediction.
 
@@ -163,6 +162,10 @@ $$
 
 The above sums partial derivatives for each feature over the path between the baseline and instance of interest. In doing so, you accumulate the changes in the prediction that occur due to the changing feature value from the baseline to the instance.
 
+:::{admonition} **Note 5: Choice of Baseline**
+The main difficulty with this method is that as IG is very dependent on the baseline, it's essential to make sure you choose it well. The choice of baseline should capture a blank state in which the model makes essentially no prediction or assigns the probability of each class equally. A common choice for image classification is an image set to black, which works well in many cases but sometimes fails to be a good choice. For instance, a model that classifies images taken at night using an image with every pixel set to black means the attribution method will undervalue the use of dark pixels in attributing the contribution of each feature to the classification. This is due to the contribution being calculated relative to the baseline, which is already dark.
+:::
+
 **Pros**
 - Simple to understand and visualize, especially with image data
 - Doesn't require access to the training data
@@ -171,9 +174,6 @@ The above sums partial derivatives for each feature over the path between the ba
 - White box method. Requires the partial derivatives of the model outputs with respect to inputs
 - Requires choosing the baseline which can have a significant effect on the outcome (See Note 5)
 
-:::{admonition} **Note 5: Choice of Baseline**
-The main difficulty with this method is that as IG is very dependent on the baseline, it's essential to make sure you choose it well. The choice of baseline should capture a blank state in which the model makes essentially no prediction or assigns the probability of each class equally. A common choice for image classification is an image set to black, which works well in many cases but sometimes fails to be a good choice. For instance, a model that classifies images taken at night using an image with every pixel set to black means the attribution method will undervalue the use of dark pixels in attributing the contribution of each feature to the classification. This is due to the contribution being calculated relative to the baseline, which is already dark.
-:::
 
 #### KernelSHAP
 
@@ -207,16 +207,16 @@ $$
 f(S) = \mathbb{E}_{D}[f(x)|x_S]
 $$
 
-Computing this value is very difficult. Instead, we can use the interventional conditional expectation, which is defined as:
+Computing this value is very difficult. Instead, we can approximate the above using the interventional conditional expectation, which is defined as:
 
 $$
 f(S) = \mathbb{E}_{D}[f(x)|do(x_S)]
 $$
 
-The do operator here fixes the values of the features in $S$ and samples the remaining $\bar{S}$ feature values from the data. Interfering in the distribution like this can mean introducing unrealistic samples if there are dependencies between the features.
+The $do$ operator here fixes the values of the features in $S$ and samples the remaining $\bar{S}$ feature values from the data. A Downside of interfering in the distribution like this can mean introducing unrealistic samples if there are dependencies between the features.
 
 **Pros**
-- The Shapley values are fairly distributed among the feature values, which isn't always the case for other local feature attribution methods
+- The Shapley values are fairly distributed among the feature values
 - Shapley values can be easily interpreted and visualized
 - Very general as is a blackbox method
 
@@ -239,7 +239,7 @@ Doing this for each possible set $S$ involves $O(TL2^M)$ time complexity. We can
 **Pros**
 - Very fast for a valuable category of models
 - Doesn't require access to the training data
-- The Shapley values are fairly distributed among the feature values, which isn't always the case for other local feature attribution methods
+- The Shapley values are fairly distributed among the feature values
 - Shapley values can be easily interpreted and visualized
 
 **Cons**
@@ -248,15 +248,15 @@ Doing this for each possible set $S$ involves $O(TL2^M)$ time complexity. We can
 
 #### Interventional Tree SHAP
 
-The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the training dataset. For each feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we replace it with the corresponding one in the reference sample. We can then compute $f(S)$ directly for each coalition $S$ to get the Shapley values. One major difference here is combining each $S$ and $r$ to generate a data point. Enforcing independence of the $S$ and $F\S$ in this way is known as intervening in the underlying data set and is where the algorithm's name comes from. Note that this breaks any independence between features in the dataset, which means the data points we're sampling won't be realistic.
+The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we replace it with the corresponding one in the reference sample. We can then compute $f(S)$ directly for each coalition $S$ to get the Shapley values. One major difference here is combining each $S$ and $r$ to generate a data point. Enforcing independence of the $S$ and $F\setminus S$ in this way is known as intervening in the underlying data distribution and is where the algorithm's name comes from. Note that this breaks any independence between features in the dataset, which means the data points we're sampling won't be realistic.
 
 For a single Tree and sample $r$ if we iterate over all the subsets of $S \subset F \setminus \{i\}$, the interventional TreeSHAP method runs with $O(M2^M)$. Note that there are two paths through the tree of particular interest. The first is the instance path for $x$, and the second is the sampled/reference path for $r$. Computing the Shapley value estimate for the sampled $r$ will involve replacing $x$ with values of $r$ and generating a set of perturbed paths. Instead of iterating over the sets, we sum over the paths. Doing so is faster as many of the routes within the tree have overlapping components. We can compute them all at the same time instead of one by one. Doing this means the Interventional TreeSHAP algorithm obtains $O(LD)$ time complexity.
 
 Applied to a random forest with $T$ trees and using $R$ samples to compute the estimates, we obtain $O(TRLD)$ time complexity. The fact that we can sum over each tree in the random forest results from the linearity property of Shapley values.
 
 **Pros**
-- Very fast for very useful category of models
-- The Shapley values are fairly distributed among the feature values, which isn't always the case for other local feature attribution methods
+- Very fast for a valuable category of models
+- The Shapley values are fairly distributed among the feature values
 - Shapley values can be easily interpreted and visualized
 - Computes the interventional conditional expectation exactly unlike the path-dependent method
 
@@ -275,7 +275,7 @@ Suppose a trained regression model that predicts the number of bikes rented on a
 
 Alibi only provides accumulated local effects plots because of the available global feature attribution methods they give the most accurate insight. Alternatives include Partial Dependence Plots. ALE plots work by averaging the local changes in a prediction at every instance in the data distribution. They then accumulate these differences to obtain a plot of prediction over the selected feature dependencies.
 
-Suppose we have a model $f$ and features $X={x_1,... x_n}$. Given a subset of the features $X_S$, we denote $X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a set of dimension two to be visualized easily. For simplicity assume we have $X=\{x_1, x_2\}$ and let $X_S=\{x_1\}$ so $X_C=\{x_2\}$. The ALE of $x_1$ is defined by:
+Suppose we have a model $f$ and features $X=\{x_1,... x_n\}$. Given a subset of the features $X_S$, we denote $X_C=X \setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a set of dimension two to be visualized easily. For simplicity assume we have $X=\{x_1, x_2\}$ and let $X_S=\{x_1\}$ so $X_C=\{x_2\}$. The ALE of $x_1$ is defined by:
 
 $$
 \hat{f}_{S, ALE}(x_1) =
@@ -300,18 +300,18 @@ Note that because ALE plots require computing differences between variables, the
 - ALE-plots are easy to visualize and understand intuitively
 - Very general as it is a black box algorithm
 - Doesn't struggle with dependencies in the underlying features, unlike PDP plots
-- ALE-plots are fast compared to other accumulated local effects insights such as PDP plots
+- ALE plots are fast
 
 **Cons**:
-- Harder to explain the underlying motivation behind the method than PDP-plots or M-plots.
+- Harder to explain the underlying motivation behind the method than PDP plots or M plots.
 - Requires access to the training dataset.
-- Unlike PDP-plots, ALE-plots do not work with Categorical data
+- Unlike PDP plots, ALE plots do not work with Categorical data
 
 ### Counter Factuals:
 
 Given an instance of the dataset and a prediction given by a model, a question naturally arises how would the instance minimally have to change for a different prediction to be provided. Counterfactuals are local explanations as they relate to a single instance and model prediction.
 
-Given a classification model trained on MNIST and a sample from the dataset with a given prediction, a counterfactual would be a generated image that closely resembles the original but is changed enough that the model correctly classifies it as a different number.
+Given a classification model trained on the MNIST dataset and a sample from the dataset with a given prediction, a counterfactual would be a generated image that closely resembles the original but is changed enough that the model correctly classifies it as a different number.
 
 __TODO__:
 - Give example image to illustrate
@@ -343,7 +343,7 @@ __TODO__:
 - Classification models
 - Tabular and image data types
 
-Let the model be given by $f$ and $f_{t}$ be the probability of class $t$, $p_t$ is the target probability of class $t$ and $0<\lambda<1$ a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$ to minimize the following loss.
+Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $0<\lambda<1$ be a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$ to minimize the following loss.
 
 $$L(X', X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X', X)$$
 
@@ -375,7 +375,7 @@ CEM follows a similar approach to the above but includes three new details. Firs
 
 Secondly, we require that $\delta$ only adds new features rather than takes them away. We need to define what it means for a feature to be present so that the perturbation only works to add and not remove them. In the case of the MNIST dataset, an obvious choice of "present" feature is if the pixel is equal to 1 and absent if it is equal to 0. This is simple in the case of the MNIST data set but more difficult in complex domains such as color images.
 
-Secondly, by training an optional autoencoder to penalize counter factual instances that deviate from the data distribution. This works by minimizing the reconstruction loss the autoencoder applied to instances. If a generated instance is unlike anything in the dataset, the autoencoder will struggle to recreate it well, and its loss term will be high. We require two hyperparameters $\beta$ and $\gamma$ to define the following Loss,
+Thirdly, by training an optional autoencoder to penalize counter factual instances that deviate from the data distribution. This works by minimizing the reconstruction loss of the autoencoder applied to instances. If a generated instance is unlike anything in the dataset, the autoencoder will struggle to recreate it well, and its loss term will be high. We require two hyperparameters $\beta$ and $\gamma$ to define the following Loss,
 
 $$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2$$
 
@@ -402,7 +402,7 @@ __TODO:__
 
 For this method, we add another term to the loss that optimizes for the distance between the counterfactual instance and close members of the target class. In doing this, we require interpretability also to mean that the generated counterfactual is believably a member target class and not just in the data distribution.
 
-With hyperparameters $c$ and $\beta$, the loss is now given by:
+With hyperparameters $c$, $\gamma$ and $\beta$, the loss is now given by:
 
 $$
 L(X'|X)= c(f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2 +
@@ -425,11 +425,11 @@ This method produces much more interpretable results. As well as this, because t
 
 #### Counterfactuals with Reinforcement Learning
 
-This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss during the explain method call, it trains a new model when fitting the explainer called an actor that takes instances and produces counterfactuals. It does this using reinforcement learning. In reinforcement learning, an actor model takes some state as input and generates actions; in our case, the actor takes an instance with a target classification and attempts to produce an instance of the target class. Outcomes of actions are assigned rewards dependent on a reward function designed to encourage specific behaviors. In our case, we reward correctly classified counterfactuals generated by the actor. As well as this, we reward counterfactuals that are close to the data distribution as modeled by an autoencoder.  Finally, we require that they are sparse perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions instead of low reward actions. CFRL is a black-box method as the process by which we update the actor to maximize the reward only requires estimating the reward via sampling the counterfactuals.
+This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss during the explain method call, it trains a new model when fitting the explainer called an actor that takes instances and produces counterfactuals. It does this using reinforcement learning. In reinforcement learning, an actor model takes some state as input and generates actions; in our case, the actor takes an instance with a target classification and attempts to produce an member of the target class. Outcomes of actions are assigned rewards dependent on a reward function designed to encourage specific behaviors. In our case, we reward correctly classified counterfactuals generated by the actor. As well as this, we reward counterfactuals that are close to the data distribution as modeled by an autoencoder.  Finally, we require that they are sparse perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions. CFRL is a black-box method as the process by which we update the actor to maximize the reward only requires estimating the reward via sampling the counterfactuals.
 
 As well as this, CFRL actors can be trained to ensure that certain constraints can be taken into account when generating counterfactuals. This is highly desirable as a use case for counterfactuals is to suggest the necessary changes to an instance to obtain a different classification. In some cases, you want these changes to be constrained, for instance, when dealing with immutable characteristics. In other words, if you are using the counterfactual to advise changes in behavior, you want to ensure the changes are enactable. Suggesting that someone needs to be two years younger to apply for a loan isn't very helpful.
 
-The training process requires randomly sampling data instances, along with constraints and target classifications. We can then compute the reward and update the actor to maximize it. We do this without needing access to the critic internals. The end product is a model that can generate interpretable counterfactual instances at runtime with arbitrary constraints.
+The training process requires randomly sampling data instances, along with constraints and target classifications. We can then compute the reward and update the actor to maximize it. We do this without needing access to the model internals; we only need to obtain a prediction in each case. The end product is a model that can generate interpretable counterfactual instances at runtime with arbitrary constraints.
 
 __TODO__:
 - Example images
@@ -438,7 +438,7 @@ __TODO__:
 - Generates more interpretable instances that the CEM method
 - Very fast at runtime
 - Can be trained to account for arbitrary constraints
-- Very general as is a Black box algorithm
+- General as is a Black box algorithm
 
 **Cons**
 - Longer to fit the model

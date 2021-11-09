@@ -550,6 +550,20 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
+def _get_target_from_target_fn(target_fn: Callable,
+                               model: tf.keras.Model,
+                               X: Union[np.ndarray, List[np.ndarray]],
+                               forward_kwargs: Optional[dict] = None) -> List[int]:
+    if forward_kwargs is None:
+        preds = model(X)
+    else:
+        preds = model(X, **forward_kwargs)
+
+    target = target_fn(preds)
+    # TODO: validate target here before returning
+    return target
+
+
 def _sum_integral_terms(step_sizes: list,
                         grads: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
     """
@@ -666,6 +680,7 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
+                 target_fn: Optional[Callable] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -725,6 +740,8 @@ class IntegratedGradients(Explainer):
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
+        self.target_fn = target_fn
+
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,
@@ -764,6 +781,13 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
+        # target handling logic
+        if self.target_fn and target:
+            msg = f'Both `target_fn` and `target` were provided. Only one of these should be provided.'
+            raise ValueError(msg)
+        if self.target_fn:
+            target = _get_target_from_target_fn(self.target_fn, self.model, X, forward_kwargs)
+
         self._is_list = isinstance(X, list)
         self._is_np = isinstance(X, np.ndarray)
         if forward_kwargs is None:

@@ -1,10 +1,13 @@
 import numpy as np
 import pytest
 from alibi.explainers import IntegratedGradients
-from alibi.explainers.integrated_gradients import _run_forward_to_layer, _run_forward_from_layer
+from alibi.explainers.integrated_gradients import _get_target_from_target_fn, _run_forward_to_layer, \
+    _run_forward_from_layer
 from alibi.api.interfaces import Explanation
 import tensorflow as tf
 from tensorflow.keras import Model
+from functools import partial
+from numpy.testing import assert_allclose
 
 # generate some dummy data
 N = 100
@@ -166,7 +169,7 @@ def ffn_model_sequential(request):
         tf.keras.layers.InputLayer(input_shape=config['X_train'].shape[1:]),
         tf.keras.layers.Dense(20, activation='relu'),
         tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])
-        ]
+    ]
     if config.get('squash_output', False):
         layers.append(tf.keras.layers.Reshape(()))
     model = tf.keras.models.Sequential(layers)
@@ -540,11 +543,10 @@ def test_integrated_gradients_regression(ffn_model, method, baselines):
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
-@pytest.mark.parametrize('layer_nb', (1, ))
+@pytest.mark.parametrize('layer_nb', (1,))
 @pytest.mark.parametrize('run_from_layer_inputs', (False, True))
 def test_run_forward_from_layer(layer_nb,
                                 run_from_layer_inputs):
-
     # One layer ffn with all weights = 1.
     inputs = tf.keras.Input(shape=(16,))
     out = tf.keras.layers.Dense(8,
@@ -562,11 +564,11 @@ def test_run_forward_from_layer(layer_nb,
     dummy_input = np.zeros((1, 16))
 
     if run_from_layer_inputs:
-        x_layer = [tf.convert_to_tensor(np.ones((2, ) + (layer.input_shape[1:])))]
+        x_layer = [tf.convert_to_tensor(np.ones((2,) + (layer.input_shape[1:])))]
         expected_shape = (2, 1)
         expected_values = 128
     else:
-        x_layer = tf.convert_to_tensor(np.ones((3, ) + (layer.output_shape[1:])))
+        x_layer = tf.convert_to_tensor(np.ones((3,) + (layer.output_shape[1:])))
         expected_shape = (3, 1)
         expected_values = 8
 
@@ -582,6 +584,7 @@ def test_run_forward_from_layer(layer_nb,
 
     assert preds_from_layer.shape == expected_shape
     assert np.allclose(preds_from_layer, expected_values)
+
 
 #####################################################################################################################
 
@@ -630,3 +633,37 @@ def test_integrated_gradients_binary_classification_multi_layer_subclassed(ffn_m
                               target=test_labels)
 
     assert isinstance(explanations, Explanation)
+
+
+np_argmax_fn = partial(np.argmax, axis=1)
+
+
+def good_model(x: np.ndarray) -> np.ndarray:
+    """
+    A dummy model emulating the following:
+     - Returning a 2D output (supported by IntegratedGradients)
+    """
+    np.random.seed(seed=42)  # for reproducibility of repeated calls
+    return np.random.rand(x.shape[0], 3)
+
+
+def bad_model(x: np.ndarray) -> np.ndarray:
+    """
+    A dummy model emulating the following:
+     - Returning a 3D output (not supported by IntegratedGradients)
+    """
+    np.random.seed(seed=42)  # for reproducibility of repeated calls
+    return np.random.rand(x.shape[0], 3, 4)
+
+
+def test__get_target_from_target_fn__with_2d_output_argmax():
+    preds = good_model(X_train).argmax(axis=1)
+    target = _get_target_from_target_fn(np_argmax_fn, good_model,
+                                        X_train)  # TODO: fix up types, though mypy doesn't complain
+    assert_allclose(target, preds)
+
+
+def test__get_target_from_target_fn__with_3d_output_argmax():
+    with pytest.raises(ValueError):
+        target = _get_target_from_target_fn(np_argmax_fn, bad_model,
+                                            X_train)  # noqa: F841  # TODO: fix up types, though mypy doesn't complain

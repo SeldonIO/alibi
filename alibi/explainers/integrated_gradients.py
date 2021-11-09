@@ -553,14 +553,37 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 def _get_target_from_target_fn(target_fn: Callable,
                                model: tf.keras.Model,
                                X: Union[np.ndarray, List[np.ndarray]],
-                               forward_kwargs: Optional[dict] = None) -> List[int]:
+                               forward_kwargs: Optional[dict] = None) -> np.ndarray:
+    """
+    Generate a target vector by using the `target_fn` to pick out a
+    scalar dimension from the predictions.
+
+    Parameters
+    ----------
+    target_fn
+        Target function.
+    model
+        Model
+    X
+        Data to be explained.
+    forward_kwargs
+        Any additional kwargs needed for the model forward pass.
+
+    Returns
+    -------
+    Integer array of dimension (N, ).
+    """
     if forward_kwargs is None:
         preds = model(X)
     else:
         preds = model(X, **forward_kwargs)
 
     target = target_fn(preds)
-    # TODO: validate target here before returning
+    expected_shape = (target.shape[0],)
+    if target.shape != expected_shape:
+        # TODO: in the future we want to support outputs that are >2D at which point this check should change
+        msg = f"`target_fn` returned an array of shape {target.shape} but expected an array of shape {expected_shape}."
+        raise ValueError(msg)  # TODO: raise a more specific error type?
     return target
 
 

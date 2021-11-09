@@ -65,6 +65,13 @@ The following two explainer methods are available from alibi for generating Loca
 
 #### Anchors
 
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| Black-box   | Classification | Tabular     |
+|             |                | Text        |
+|             |                | Image       |
+|             |                | Categorical |
+
 Anchors are a local blackbox method introduced in [Anchors: High-Precision Model-Agnostic Explanations](
 https://homes.cs.washington.edu/~marcotcr/aaai18.pdf).
 
@@ -101,6 +108,12 @@ As we construct the new set of anchors from the last, we need to compute the pre
 
 
 #### Pertinent Positives
+
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| Black-box   | Classification | Tabular     |
+|             |                | Image       |
+
 
 Informally a Pertinent Positive is the subset of an instance that still obtains the same classification. These differ from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to create them is also substantially different. The rough idea is to define an absence of a feature and then perturb the instance to take away as much information as possible while still retaining the original classification.
 
@@ -154,6 +167,14 @@ The attribution values should satisfy specific properties:
 
 #### Integrated Gradients
 
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| TF/Kera     | Classification | Tabular     |
+|             | Regression     | Image       |
+|             |                | Text        |
+|             |                | Categorical |
+
+
 This method computes the attribution of each feature by integrating the model partial derivatives along a path from a baseline point to the instance. Let $f$ be the model and $x$ the instance of interest. If $f:\mathbb{R}^{n} \rightarrow \mathbb{R}^{m}$ where $m$ is the number of classes the model predicts then let $F=f_k$ where $k \in \{1,..., m\}$. If $f$ is single-valued then $F=f$. We also need to choose a baseline value, $x'$.
 
 $$
@@ -176,6 +197,12 @@ The main difficulty with this method is that as IG is very dependent on the base
 
 
 #### KernelSHAP
+
+| Model-types       | Task-types     | Data-types  |
+| ----------------- | -------------- | ----------- |
+| Black-box         | Classification | Tabular     |
+|                   | Regression     | Categorical |
+
 
 Kernel SHAP is a method of computing the Shapley values for a model around an instance $x_i$. Shapley values are a game-theoretic method of assigning payout to players depending on their contribution to an overall goal. In this case, the players are the features, and their payout is the model prediction. To compute these values, we have to consider the marginal contribution of each feature over all the possible coalitions of feature players.
 
@@ -228,6 +255,12 @@ The $do$ operator here fixes the values of the features in $S$ and samples the r
 
 #### TreeSHAP
 
+| Model-types  | Task-types     | Data-types  |
+| ------------ | -------------- | ----------- |
+| Tree-based   | Classification | Tabular     |
+|              | Regression     | Categorical |
+
+
 In the case of tree-based models, we can obtain a speed-up by exploiting the structure of trees. Alibi exposes two white-box methods, Interventional and Path dependent feature perturbation. The main difference is that the path-dependent method approximates the interventional conditional expectation, whereas the interventional method calculates it directly.
 
 #### Path Dependent TreeSHAP
@@ -272,6 +305,12 @@ Global Feature Attribution methods aim to show the dependency of model output on
 Suppose a trained regression model that predicts the number of bikes rented on a given day depending on the temperature, humidity, and wind speed. A global feature attribution plot for the temperature feature might be a line graph plotted against the number of bikes rented. In the bikes rented case, one would anticipate an increase in rentals up until a specific temperature and then a decrease after it gets too hot.
 
 #### Accumulated Local Effects
+
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| Black-box   | Classification | Tabular     |
+|             | Regression     |             |
+
 
 Alibi only provides accumulated local effects plots because of the available global feature attribution methods they give the most accurate insight. Alternatives include Partial Dependence Plots. ALE plots work by averaging the local changes in a prediction at every instance in the data distribution. They then accumulate these differences to obtain a plot of prediction over the selected feature dependencies.
 
@@ -339,9 +378,10 @@ __TODO__:
 
 #### Counterfactuals Instances
 
-- Black/white box method
-- Classification models
-- Tabular and image data types
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| TF/Kera     | Classification | Tabular     |
+| Black-box   |                | Image       |
 
 Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $0<\lambda<1$ be a hyperparameter. This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$ to minimize the following loss.
 
@@ -367,9 +407,11 @@ __TODO:__
 
 #### Contrastive Explanation Method
 
-- White box method
-- Classification models
-- Tabular and image data types
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| TF/Kera     | Classification | Tabular     |
+| Black-box   |                | Image       |
+
 
 CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$ regularizer term is added to the loss. This term causes the solutions to be both close to the original instance and sparse.
 
@@ -395,6 +437,13 @@ __TODO:__
 - Requires domain knowledge when choosing what it means for a feature to be present or not
 
 #### Counterfactuals Guided by Prototypes
+
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| TF/Kera     | Classification | Tabular     |
+| Black-box   |                | Image       |
+|             |                | Categorical |
+
 
 - Black/white box method
 - Classification models
@@ -424,6 +473,13 @@ This method produces much more interpretable results. As well as this, because t
 - Requires setup and configuration in choosing $\gamma$, $\beta$ and $c$
 
 #### Counterfactuals with Reinforcement Learning
+
+| Model-types | Task-types     | Data-types  |
+| ----------- | -------------- | ----------- |
+| Black Box   | Classification | Tabular     |
+|             |                | Image       |
+|             |                | Categorical |
+
 
 This black box method splits from the approach taken by the above three significantly. Instead of minimizing a loss during the explain method call, it trains a new model when fitting the explainer called an actor that takes instances and produces counterfactuals. It does this using reinforcement learning. In reinforcement learning, an actor model takes some state as input and generates actions; in our case, the actor takes an instance with a target classification and attempts to produce an member of the target class. Outcomes of actions are assigned rewards dependent on a reward function designed to encourage specific behaviors. In our case, we reward correctly classified counterfactuals generated by the actor. As well as this, we reward counterfactuals that are close to the data distribution as modeled by an autoencoder.  Finally, we require that they are sparse perturbations of the original instance. The reinforcement training step pushes the actor to take high reward actions. CFRL is a black-box method as the process by which we update the actor to maximize the reward only requires estimating the reward via sampling the counterfactuals.
 

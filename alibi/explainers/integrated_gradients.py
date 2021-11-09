@@ -805,7 +805,7 @@ class IntegratedGradients(Explainer):
                 # Inferring model's inputs from data points for models with no explicit inputs
                 # (typically subclassed models)
                 inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
-                self.model(inputs)
+                self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
 
@@ -853,7 +853,7 @@ class IntegratedGradients(Explainer):
             # Attributions calculation in case of single input
             if not self._has_inputs:
                 inputs = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
-                self.model(inputs)
+                self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
 
@@ -923,7 +923,7 @@ class IntegratedGradients(Explainer):
                           deltas: np.ndarray) -> Explanation:
 
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
-        predictions = self.model(X).numpy()
+        predictions = self.model(X, **forward_kwargs).numpy()
         if isinstance(attributions[0], tf.Tensor):
             attributions = [attr.numpy() for attr in attributions]
         data.update(X=X,

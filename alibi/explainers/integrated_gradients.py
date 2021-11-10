@@ -49,6 +49,8 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     -------
         Convergence deltas for each data point.
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     if _is_list:
         start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
         end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
@@ -140,6 +142,8 @@ def _run_forward(model: Union[tf.keras.models.Model],
         Model output or model output after target selection for classification models.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     preds = model(x, **forward_kwargs)
 
     if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
@@ -212,6 +216,8 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         layer.call = decorator(layer.call)
 
     feed_layer(layer)
+    if forward_kwargs is None:
+        forward_kwargs = {}
     preds = model(orig_dummy_input, **forward_kwargs)
 
     delattr(layer, 'inp')
@@ -318,6 +324,8 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
         Forwarded inputs and  baselines as a numpy arrays.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     if layer is not None:
         X_layer = _run_forward_to_layer(model,
                                         layer,
@@ -367,6 +375,8 @@ def _gradients_input(model: Union[tf.keras.models.Model],
         Gradients for each input feature.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     with tf.GradientTape() as tape:
         tape.watch(x)
         preds = _run_forward(model, x, target, forward_kwargs=forward_kwargs)
@@ -412,7 +422,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         Gradients for each element of layer.
 
     """
-
+    
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -459,6 +469,8 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         else:
             orig_dummy_input = np.repeat(orig_dummy_input, x.shape[0], axis=0)
 
+    if forward_kwargs is None:
+        forward_kwargs = {}
     #  Calculating the gradients with respect to the layer.
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
@@ -914,7 +926,8 @@ class IntegratedGradients(Explainer):
                           target: Optional[List[int]],
                           attributions: Union[List[np.ndarray], List[tf.Tensor]],
                           deltas: np.ndarray) -> Explanation:
-
+        if forward_kwargs is None:
+            forward_kwargs = {}
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         predictions = self.model(X, **forward_kwargs).numpy()
         if isinstance(attributions[0], tf.Tensor):
@@ -970,6 +983,8 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
+        if forward_kwargs is None:
+            forward_kwargs = {}
         attrs_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
@@ -1091,6 +1106,8 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
+        if forward_kwargs is None:
+            forward_kwargs = {}
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 

@@ -140,10 +140,7 @@ def _run_forward(model: Union[tf.keras.models.Model],
         Model output or model output after target selection for classification models.
 
     """
-    if forward_kwargs is None:
-        preds = model(x)
-    else:
-        preds = model(x, **forward_kwargs)
+    preds = model(x, **forward_kwargs)
 
     if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
@@ -215,10 +212,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         layer.call = decorator(layer.call)
 
     feed_layer(layer)
-    if forward_kwargs is None:
-        preds = model(orig_dummy_input)
-    else:
-        preds = model(orig_dummy_input, **forward_kwargs)
+    preds = model(orig_dummy_input, **forward_kwargs)
 
     delattr(layer, 'inp')
     delattr(layer, 'result')
@@ -278,10 +272,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
 
     # inp = tf.zeros((x.shape[0], ) + model.input_shape[1:])
     take_layer(layer)
-    if forward_kwargs is None:
-        _ = model(x)
-    else:
-        _ = model(x, **forward_kwargs)
+    _ = model(x, **forward_kwargs)
     layer_inp = layer.inp
     layer_out = layer.result
 
@@ -758,6 +749,8 @@ class IntegratedGradients(Explainer):
         """
         self._is_list = isinstance(X, list)
         self._is_np = isinstance(X, np.ndarray)
+        if forward_kwargs is None:
+            forward_kwargs = {}
 
         if self._is_list:
             self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
@@ -987,7 +980,7 @@ class IntegratedGradients(Explainer):
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
             paths.append(path)
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
                             for k in forward_kwargs.keys()}
         else:
@@ -999,7 +992,7 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             if target_paths is not None:
                 ds_args = tuple(p for p in paths) + (paths_kwargs, target_paths)
             else:
@@ -1018,7 +1011,7 @@ class IntegratedGradients(Explainer):
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if forward_kwargs is not None:
+            if forward_kwargs:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path[:-2], path[-2], path[-1]
                 else:
@@ -1101,7 +1094,7 @@ class IntegratedGradients(Explainer):
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
                             for k in forward_kwargs.keys()}
         else:
@@ -1113,7 +1106,7 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             if target_paths is not None:
                 ds_args = (paths, paths_kwargs, target_paths)
             else:
@@ -1131,7 +1124,7 @@ class IntegratedGradients(Explainer):
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if forward_kwargs is not None:
+            if forward_kwargs:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path
                 else:

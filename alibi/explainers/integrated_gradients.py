@@ -259,6 +259,8 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
         Output of the given layer.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     def take_layer(layer):
         """
         Stores the layer's outputs internally to the layer's object.

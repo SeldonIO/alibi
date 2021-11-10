@@ -422,7 +422,6 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         Gradients for each element of layer.
 
     """
-    
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.

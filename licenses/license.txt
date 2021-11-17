@@ -1,5 +1,5 @@
 Jinja2
-3.0.2
+3.0.3
 BSD License
 Copyright 2007 Pallets
 
@@ -71,7 +71,7 @@ SOFTWARE.
 
 
 Markdown
-3.3.4
+3.3.5
 BSD License
 Copyright 2007, 2008 The Python Markdown Project (v. 1.7 and later)
 Copyright 2004, 2005, 2006 Yuri Takhteyev (v. 0.2-1.6b)
@@ -138,7 +138,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Pillow
-8.3.2
+8.4.0
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
@@ -778,12 +778,32 @@ the file ChangeLog history information documenting your changes.  Please read
 the FAQ for more information on the distribution of modified source versions.
 
 PyWavelets
-1.1.1
+1.2.0
 MIT License
-UNKNOWN
+Copyright (c) 2006-2012 Filip Wasilewski <http://en.ig.ma/>
+Copyright (c) 2012-2020 The PyWavelets Developers <https://github.com/PyWavelets/pywt>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 PyYAML
-5.4.1
+6.0
 MIT License
 Copyright (c) 2017-2021 Ingy döt Net
 Copyright (c) 2006-2016 Kirill Simonov
@@ -841,7 +861,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 absl-py
-0.14.1
+0.15.0
 Apache Software License
 
                                  Apache License
@@ -1349,7 +1369,7 @@ SOFTWARE.
 
 
 blis
-0.7.4
+0.7.5
 MIT License
 NOTE: Portions of this project's code are copyrighted by
 
@@ -1449,7 +1469,7 @@ SOFTWARE.
 
 
 certifi
-2021.5.30
+2021.10.8
 Mozilla Public License 2.0 (MPL 2.0)
 This package contains a modified version of ca-bundle.crt:
 
@@ -1475,7 +1495,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.0.6
+2.0.7
 MIT License
 MIT License
 
@@ -1505,7 +1525,7 @@ University of Illinois/NCSA Open Source License
 UNKNOWN
 
 click
-8.0.1
+8.0.3
 BSD License
 Copyright 2014 Pallets
 
@@ -1783,12 +1803,38 @@ Apache Software License
 
 
 cycler
-0.10.0
-BSD
-UNKNOWN
+0.11.0
+BSD License
+Copyright (c) 2015, matplotlib project
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* Neither the name of the matplotlib project nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 cymem
-2.0.5
+2.0.6
 MIT License
 The MIT License (MIT)
 
@@ -1824,7 +1870,7 @@ BSD License
 UNKNOWN
 
 filelock
-3.3.0
+3.4.0
 Public Domain
 This is free and unencumbered software released into the public domain.
 
@@ -1856,6 +1902,32 @@ flatbuffers
 1.12
 Apache Software License
 UNKNOWN
+
+fonttools
+4.28.1
+MIT License
+MIT License
+
+Copyright (c) 2017 Just van Rossum
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 gast
 0.4.0
@@ -2511,7 +2583,7 @@ Apache Software License
 
 
 grpcio
-1.41.0
+1.41.1
 Apache Software License
 
                                  Apache License
@@ -2753,7 +2825,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.0.19
+0.1.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2959,7 +3031,7 @@ Apache Software License
 
 
 idna
-3.2
+3.3
 BSD License
 BSD 3-Clause License
 
@@ -3020,7 +3092,7 @@ THE SOFTWARE.
 
 
 imageio
-2.9.0
+2.10.5
 BSD License
 Copyright (c) 2014-2020, imageio developers
 All rights reserved.
@@ -3061,7 +3133,7 @@ different license (refer to the specific files for details):
 
 
 importlib-metadata
-4.8.1
+4.8.2
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -3079,11 +3151,11 @@ limitations under the License.
 
 
 joblib
-1.0.1
+1.1.0
 BSD License
 BSD 3-Clause License
 
-Copyright (c) 2008-2016, The joblib developers.
+Copyright (c) 2008-2021, The joblib developers.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -3383,8 +3455,33 @@ to indicate the copyright and license terms:
 #------------------------------------------------------------------------------
 
 
+langcodes
+3.3.0
+MIT License
+Copyright (C) 2021 Robyn Speer (rspeer@arborelia.net)
+MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
 llvmlite
-0.36.0
+0.37.0
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -3413,7 +3510,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.4.3
+3.5.0
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -3516,7 +3613,7 @@ Licensee agrees to be bound by the terms and conditions of this License
 Agreement.
 
 murmurhash
-1.0.5
+1.0.6
 MIT License
 The MIT License (MIT)
 
@@ -3584,7 +3681,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.53.1
+0.54.1
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -4587,7 +4684,7 @@ SOFTWARE.
 
 
 packaging
-21.0
+21.2
 Apache Software License; BSD License
 This software is made available under the terms of *either* of the licenses
 found in LICENSE.APACHE or LICENSE.BSD. Contributions to this software is made
@@ -4595,7 +4692,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.3.3
+1.3.4
 BSD License
 BSD 3-Clause License
 
@@ -4631,7 +4728,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 pathy
-0.6.0
+0.6.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -4837,7 +4934,7 @@ Apache Software License
 
 
 preshed
-3.0.5
+3.0.6
 MIT License
 The MIT License (MIT)
 
@@ -4863,7 +4960,7 @@ THE SOFTWARE.
 
 
 protobuf
-3.18.1
+3.19.1
 3-Clause BSD License
 UNKNOWN
 
@@ -5057,7 +5154,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 regex
-2021.9.30
+2021.11.10
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -5600,7 +5697,7 @@ skimage/_shared/version_requirements.py:is_installed:
 
 
 scikit-learn
-1.0
+1.0.1
 new BSD
 BSD 3-Clause License
 
@@ -5634,7 +5731,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.7.1
+1.7.2
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc.  2003-2019, SciPy Developers.
 All rights reserved.
@@ -6548,6 +6645,28 @@ Public License instead of this License.  But first, please read
 <http://www.gnu.org/philosophy/why-not-lgpl.html>.
 
 
+setuptools-scm
+6.3.2
+MIT License
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
 shap
 0.39.0
 MIT
@@ -6630,7 +6749,7 @@ SOFTWARE.
 
 
 spacy
-3.1.3
+3.2.0
 MIT License
 The MIT License (MIT)
 
@@ -6681,6 +6800,32 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 
+spacy-loggers
+1.0.1
+MIT
+MIT License
+
+Copyright (c) 2021 ExplosionAI GmbH
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
 spacy-lookups-data
 1.0.3
 MIT License
@@ -6708,7 +6853,7 @@ SOFTWARE.
 
 
 srsly
-2.4.1
+2.4.2
 MIT License
 The MIT License (MIT)
 
@@ -7316,7 +7461,7 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.6.0
+2.6.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -7635,7 +7780,7 @@ THE SOFTWARE.
 
 
 thinc
-8.0.10
+8.0.13
 MIT License
 The MIT License (MIT)
 
@@ -7689,7 +7834,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2021.8.30
+2021.11.2
 BSD License
 BSD 3-Clause License
 
@@ -7727,6 +7872,32 @@ tokenizers
 0.10.3
 Apache Software License
 UNKNOWN
+
+tomli
+1.2.2
+MIT License
+MIT License
+
+Copyright (c) 2021 Taneli Hukkinen
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 
 tqdm
 4.62.3
@@ -7783,7 +7954,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.11.3
+4.12.4
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 

@@ -1594,4 +1594,4 @@ class TreeShap(Explainer, FitMixin):
 
     def reset_predictor(self, predictor: Any) -> None:
         # TODO: check what else should be done (e.g. validate dtypes again?)
-        self.model = predictor
+        self.predictor = predictor

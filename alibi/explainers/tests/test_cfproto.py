@@ -15,7 +15,7 @@ def tf_keras_iris_explainer(request, models, iris_data):
         enc = None
 
     shape = (1, 4)
-    cf_explainer = CounterfactualProto(model, shape, gamma=100, theta=100,
+    cf_explainer = CounterfactualProto(model, shape, gamma=100., theta=100.,
                                        ae_model=ae, enc_model=enc, use_kdtree=request.param[0],
                                        max_iterations=1000, c_init=request.param[1], c_steps=request.param[2],
                                        feature_range=(X_train.min(axis=0).reshape(shape),

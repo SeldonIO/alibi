@@ -21,9 +21,9 @@
 
 ### Development
 - Now using `readthedocs` Docker image in our CI to replicate the doc building environment exactly. Also enabled `readthedocs` build on PR feature which allows browsing the built docs on every PR.
-- New notebook execution testing framework via Github Actions. There are two new GA workflows, [test_all_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_all_notebooks.yml) which is run once a week and can be triggered manually, and [test_changed_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_changed_notebooks.yml) which detects if any notebooks have been modified in a PR and executes only those. Not all notebooks are amenable to be tested automatically due to long running times or complex software/hardware dependencies. We maintain a list of notebooks to be excluded in the testing script under [testing/test_notebooks.py](../testing/test_notebooks.py).
+- New notebook execution testing framework via Github Actions. There are two new GA workflows, [test_all_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_all_notebooks.yml) which is run once a week and can be triggered manually, and [test_changed_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_changed_notebooks.yml) which detects if any notebooks have been modified in a PR and executes only those. Not all notebooks are amenable to be tested automatically due to long running times or complex software/hardware dependencies. We maintain a list of notebooks to be excluded in the testing script under [testing/test_notebooks.py](testing/test_notebooks.py).
 - Now using `myst` (a markdown superset) for more flexible documentation ([#482](https://github.com/SeldonIO/alibi/pull/482)).
-- Added a [CITATION.cff](../CITATION.cff) file.
+- Added a [CITATION.cff](CITATION.cff) file.
 
 ## [v0.6.1](https://github.com/SeldonIO/alibi/tree/v0.6.1) (2021-09-02)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.0...v0.6.1)

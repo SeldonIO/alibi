@@ -1,0 +1,44 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Klaise"
+  given-names: "Janis"
+  orcid: "https://orcid.org/0000-0002-7774-8047"
+- family-names: "Van Looveren"
+  given-names: "Arnaud"
+  orcid: "https://orcid.org/0000-0002-8347-5305"
+- family-names: "Vacanti"
+  given-names: "Giovanni"
+- family-names: "Coca"
+  given-names: "Alexandru"
+- family-names: "Samoilescu"
+  given-names: "Robert"
+- family-names: "Scillitoe"
+  given-names: "Ashley"
+  orcid: "https://orcid.org/0000-0001-8971-7224"
+title: "Alibi Explain: Algorithms for Explaining Machine Learning Models"
+version: 0.6.1
+date-released: 2021-09-02
+url: "https://github.com/SeldonIO/alibi"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Klaise"
+    given-names: "Janis"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+  - family-names: "Van Looveren"
+    given-names: "Arnaud"
+    orcid: "https://orcid.org/0000-0002-8347-5305"
+  - family-names: "Vacanti"
+    given-names: "Giovanni"
+  - family-names: "Coca"
+    given-names: "Alexandru"
+  journal: "Journal of Machine Learning Research"
+  month: 6
+  start: 1 # First page number
+  end: 7 # Last page number
+  title: "Alibi Explain: Algorithms for Explaining Machine Learning Models"
+  issue: 181
+  volume: 22
+  year: 2021
+  url: http://jmlr.org/papers/v22/21-0017.html

@@ -1,5 +1,30 @@
 # Change Log
 
+## [v0.6.2](https://github.com/SeldonIO/alibi/tree/v0.6.2) (2021-11-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.1...v0.6.2)
+
+### Added
+- Documentation on using black-box and white-box models in the context of alibi, [see here](https://docs.seldon.io/projects/alibi/en/latest/overview/white_box_black_box.html).
+- `AnchorTabular`, `AnchorImage` and `AnchorText` now expose an additional `dtype` keyword argument with a default value of `np.float32`. This is to ensure that whenever a user `predictor` is called internally with dummy data a correct data type can be ensured ([#506](https://github.com/SeldonIO/alibi/pull/506)).
+- Custom exceptions. A new public module `alibi.exceptions` defining the `alibi` exception hierarchy. This introduces two exceptions, `AlibiPredictorCallException` and `AlibiPredictorReturnTypeError`. See [#520](https://github.com/SeldonIO/alibi/pull/520) for more details.
+
+### Changed
+- For `AnchorImage`, coerce `image_shape` argument into a tuple to implicitly allow passing a list input which eases use of configuration files. In the future the typing will be improved to be more explicit about allowed types with runtime type checking.
+- Updated the minimum `shap` version to the latest `0.40.0` as this fixes an installation issue if `alibi` and `shap` are installed with the same command.
+
+### Fixed
+- Fix a bug with version saving being overwritten on subsequent saves ([#481](https://github.com/SeldonIO/alibi/pull/481)).
+- Fix a bug in the Integrated Gradients notebook with transformer models due to a regression in the upstream `transformers` library ([#528](https://github.com/SeldonIO/alibi/pull/528)).
+- Fix a bug in `IntegratedGradients` with `forward_kwargs` not always being correctly passed ([#525](https://github.com/SeldonIO/alibi/pull/525)).
+- Fix a bug resetting `TreeShap` predictor ([#534](https://github.com/SeldonIO/alibi/pull/534)).
+
+
+### Development
+- Now using `readthedocs` Docker image in our CI to replicate the doc building environment exactly. Also enabled `readthedocs` build on PR feature which allows browsing the built docs on every PR.
+- New notebook execution testing framework via Github Actions. There are two new GA workflows, [test_all_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_all_notebooks.yml) which is run once a week and can be triggered manually, and [test_changed_notebooks](https://github.com/SeldonIO/alibi/actions/workflows/test_changed_notebooks.yml) which detects if any notebooks have been modified in a PR and executes only those. Not all notebooks are amenable to be tested automatically due to long running times or complex software/hardware dependencies. We maintain a list of notebooks to be excluded in the testing script under [testing/test_notebooks.py](../testing/test_notebooks.py).
+- Now using `myst` (a markdown superset) for more flexible documentation ([#482](https://github.com/SeldonIO/alibi/pull/482)).
+- Added a [CITATION.cff](../CITATION.cff) file.
+
 ## [v0.6.1](https://github.com/SeldonIO/alibi/tree/v0.6.1) (2021-09-02)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.0...v0.6.1)
 

@@ -15,6 +15,7 @@ import shap.utils._legacy as shap_utils
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
+from alibi.api.interfaces import Explanation
 from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, KernelExplainerWrapper
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
@@ -1080,7 +1081,6 @@ n_instances, n_features = 10, 10
 @pytest.mark.parametrize('n_instances', (n_instances,), ids='n_instances={}'.format)
 @pytest.mark.parametrize('n_features', (n_features,), ids='n_features={}'.format)
 def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_params, n_instances, n_features):
-
     import ray
 
     explainer = mock_kernel_shap_explainer
@@ -1305,7 +1305,8 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
     # TODO: @janis: let's do path.multiple or something like that
     with unittest.mock.patch.object(explainer, '_check_interactions'):
         with unittest.mock.patch.object(explainer, '_check_explainer_setup'):
-            with unittest.mock.patch.object(explainer, 'build_explanation'):
+            with unittest.mock.patch.object(explainer, 'build_explanation',
+                                            return_value=Explanation(dict(), dict())):  # dummy return for beartype
 
                 # explain some instances
                 explainer.explain(

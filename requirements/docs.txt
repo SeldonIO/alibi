@@ -11,6 +11,6 @@ ipykernel>=5.1.0, <6.0.0 # required for executing notebooks via nbsphinx
 ipython>=7.2.0, <8.0.0 # required for executing notebooks nbsphinx
 # dependencies required for imports to work and docs to render properly (as mocking doesn't work well)
 # these should be identical to the ones in `setup.py` or `dev.txt`
-shap>=0.36.0, !=0.38.1, <0.40 # https://github.com/SeldonIO/alibi/issues/333
+shap>=0.40.0, <0.41.0 # https://github.com/SeldonIO/alibi/issues/333
 # pandoc
 # pandoc==1.19.2 # NB: as this is not a Python library, it should be installed manually on the system or via a package manager such as `conda`

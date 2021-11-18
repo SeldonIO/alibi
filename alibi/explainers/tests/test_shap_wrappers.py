@@ -1350,7 +1350,6 @@ def test__check_interactions(caplog, mock_tree_shap_explainer, data_type, approx
     """
     Test _check_interactions raises errors as expected.
     """
-
     caplog.set_level(logging.WARNING)
     seed = 0
     n_samples, n_feats = 3, 40
@@ -1464,7 +1463,8 @@ def uncollect_if_test_tree_api(**kwargs):
 @pytest.mark.parametrize('labels', labels, ids='labels={}'.format)
 @pytest.mark.parametrize('interactions', interactions, ids='interactions={}'.format)
 @pytest.mark.parametrize('task', task, ids='task={}'.format)
-def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task):
+@pytest.mark.parametrize('approximate', approximate, ids='approximate={}'.format)
+def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels, interactions, task, approximate):
     """
     Tests the response has the correct data.
     """

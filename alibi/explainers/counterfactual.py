@@ -1,11 +1,12 @@
 import copy
-import numpy as np
-from typing import Callable, Optional, Tuple, Union
-import tensorflow.compat.v1 as tf
 import logging
+from typing import Callable, Optional, Tuple, Union
 
+import numpy as np
+import tensorflow.compat.v1 as tf
+
+from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_CF, DEFAULT_DATA_CF
 from alibi.utils.gradients import num_grad_batch
 
 logger = logging.getLogger(__name__)
@@ -90,9 +91,9 @@ class Counterfactual(Explainer):
                  eps: Union[float, np.ndarray] = 0.01,  # feature-wise epsilons
                  init: str = 'identity',
                  decay: bool = True,
-                 write_dir: str = None,
+                 write_dir: Optional[str] = None,
                  debug: bool = False,
-                 sess: tf.Session = None) -> None:
+                 sess: Optional[tf.Session] = None) -> None:
         """
         Initialize counterfactual explanation method based on Wachter et al. (2017)
 

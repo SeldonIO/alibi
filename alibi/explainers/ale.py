@@ -89,7 +89,7 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
-    def explain(self, X: np.ndarray, features: List[int] = None, min_bin_points: int = 4) -> Explanation:
+    def explain(self, X: np.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -130,7 +130,7 @@ class ALE(Explainer):
             feature_names = self.feature_names[features]  # type: ignore
         else:
             feature_names = self.feature_names
-            features = range(n_features)  # type: ignore
+            features = list(range(n_features))
 
         feature_values = []
         ale_values = []

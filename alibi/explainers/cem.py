@@ -1,11 +1,13 @@
-from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
 import copy
 import logging
-import numpy as np
 import sys
+from typing import Any, Callable, Optional, Tuple, Union
+
+import numpy as np
 import tensorflow.compat.v1 as tf
-from typing import Any, Callable, Tuple, Union
+
+from alibi.api.defaults import DEFAULT_DATA_CEM, DEFAULT_META_CEM
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ class CEM(Explainer, FitMixin):
                  beta: float = .1,
                  feature_range: tuple = (-1e10, 1e10),
                  gamma: float = 0.,
-                 ae_model: Union[tf.keras.Model] = None,
+                 ae_model: Optional[tf.keras.Model] = None,
                  learning_rate_init: float = 1e-2,
                  max_iterations: int = 1000,
                  c_init: float = 10.,
@@ -28,9 +30,9 @@ class CEM(Explainer, FitMixin):
                  eps: tuple = (1e-3, 1e-3),
                  clip: tuple = (-100., 100.),
                  update_num_grad: int = 1,
-                 no_info_val: Union[float, np.ndarray] = None,
-                 write_dir: str = None,
-                 sess: tf.Session = None) -> None:
+                 no_info_val: Optional[Union[float, np.ndarray]] = None,
+                 write_dir: Optional[str] = None,
+                 sess: Optional[tf.Session] = None) -> None:
         """
         Initialize contrastive explanation method.
         Paper: https://arxiv.org/abs/1802.07623
@@ -652,7 +654,7 @@ class CEM(Explainer, FitMixin):
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
-    def explain(self, X: np.ndarray, Y: np.ndarray = None, verbose: bool = False) -> Explanation:
+    def explain(self, X: np.ndarray, Y: Optional[np.ndarray] = None, verbose: bool = False) -> Explanation:
         """
         Explain instance and return PP or PN with metadata.
 

@@ -1,10 +1,11 @@
 import logging
-from time import time
-from typing import Tuple, Callable, Union, List
-from numpy.linalg import norm
-import numpy as np
-from sklearn.neighbors import NearestNeighbors
 import string
+from time import time
+from typing import Callable, List, Optional, Tuple, Union
+
+import numpy as np
+from numpy.linalg import norm
+from sklearn.neighbors import NearestNeighbors
 
 logger = logging.getLogger(__name__)
 
@@ -218,7 +219,7 @@ def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.
     return np.asarray(X_sampled)  # shape=(nb_instances, nb_samples, nb_features)
 
 
-def _sample_grid(x: np.ndarray, feature_range: np.ndarray = None, epsilon: float = 0.04,
+def _sample_grid(x: np.ndarray, feature_range: np.ndarray, epsilon: float = 0.04,
                  nb_samples: int = 10, res: int = 100) -> np.ndarray:
     """Samples data points uniformly from an interval centered at x and with size epsilon * Delta,
     with delta = f_max - f_min the features ranges.
@@ -259,10 +260,17 @@ def _sample_grid(x: np.ndarray, feature_range: np.ndarray = None, epsilon: float
     return X_sampled
 
 
-def _linearity_measure(predict_fn: Callable, x: np.ndarray, X_train: np.ndarray = None,
-                       feature_range: Union[List, np.ndarray] = None, method: str = None,
-                       epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
-                       alphas: np.ndarray = None, model_type: str = 'classifier', agg: str = 'global') -> np.ndarray:
+def _linearity_measure(predict_fn: Callable,
+                       x: np.ndarray,
+                       X_train: Optional[np.ndarray] = None,
+                       feature_range: Optional[Union[List, np.ndarray]] = None,
+                       method: Optional[str] = None,
+                       epsilon: float = 0.04,
+                       nb_samples: int = 10,
+                       res: int = 100,
+                       alphas: Optional[np.ndarray] = None,
+                       model_type: str = 'classifier',
+                       agg: str = 'global') -> np.ndarray:
     """Calculate the linearity measure of the model around an instance of interest x.
 
     Parameters
@@ -341,10 +349,16 @@ def _infer_feature_range(X_train: np.ndarray) -> np.ndarray:
     return np.vstack((X_train.min(axis=0), X_train.max(axis=0))).T
 
 
-class LinearityMeasure(object):
+class LinearityMeasure:
 
-    def __init__(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: int = 10, res: int = 100,
-                 alphas: np.ndarray = None, model_type: str = 'classifier', agg: str = 'pairwise',
+    def __init__(self,
+                 method: str = 'grid',
+                 epsilon: float = 0.04,
+                 nb_samples: int = 10,
+                 res: int = 100,
+                 alphas: Optional[np.ndarray] = None,
+                 model_type: str = 'classifier',
+                 agg: str = 'pairwise',
                  verbose: bool = False) -> None:
         """
 
@@ -430,9 +444,16 @@ class LinearityMeasure(object):
         return lin
 
 
-def linearity_measure(predict_fn: Callable, x: np.ndarray, feature_range: Union[List, np.ndarray] = None,
-                      method: str = 'grid', X_train: np.ndarray = None, epsilon: float = 0.04,
-                      nb_samples: int = 10, res: int = 100, alphas: np.ndarray = None, agg: str = 'global',
+def linearity_measure(predict_fn: Callable,
+                      x: np.ndarray,
+                      feature_range: Optional[Union[List, np.ndarray]] = None,
+                      method: str = 'grid',
+                      X_train: Optional[np.ndarray] = None,
+                      epsilon: float = 0.04,
+                      nb_samples: int = 10,
+                      res: int = 100,
+                      alphas: Optional[np.ndarray] = None,
+                      agg: str = 'global',
                       model_type: str = 'classifier') -> np.ndarray:
     """Calculate the linearity measure of the model around an instance of interest x.
 

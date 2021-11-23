@@ -23,7 +23,7 @@ interpretable, we ensure that the head will not end with a subword, and will con
 import abc
 import numpy as np
 from pathlib import Path
-from typing import List, Optional, Tuple, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import tensorflow as tf
 import transformers
@@ -32,6 +32,14 @@ from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
 class LanguageModel(abc.ABC):
     SUBWORD_PREFIX = ''
+
+    # We don't type transformers objects here as it would likely require digging into
+    # some private base classes which may change in the future and cause breaking changes.
+    model: Any
+    tokenizer: Any
+    # TODO: from TF 2.6 this has type `tf.types.experimental.GenericFunction`,
+    #  unsure if we can be more specific right now
+    caller: Callable
 
     def __init__(self, model_path: str, preloading: bool = True):
         """
@@ -46,12 +54,13 @@ class LanguageModel(abc.ABC):
             If `False`, a call to `from_disk` method is expected.
         """
         self.model_path = model_path
-        self.model, self.caller, self.tokenizer = None, None, None
 
         if preloading:
             # set model (for performance reasons the `call` method is wrapped in tf.function)
             self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
-            self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
+
+            # To understand the type: ignore see https://github.com/python/mypy/issues/2427
+            self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore
 
             # set tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -67,7 +76,9 @@ class LanguageModel(abc.ABC):
         """
         # set model (for performance reasons the `call` method is wrapped in tf.function)
         self.model = TFAutoModelForMaskedLM.from_pretrained(path, local_files_only=True)
-        self.caller = tf.function(self.model.call, experimental_relax_shapes=True)
+
+        # To understand the type: ignore see https://github.com/python/mypy/issues/2427
+        self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore
 
         # set tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)
@@ -379,3 +390,7 @@ class RobertaBase(LanguageModel):
 
     def is_subword_prefix(self, token: str) -> bool:
         return not token.startswith(RobertaBase.SUBWORD_PREFIX)
+
+
+if __name__ == '__main__':
+    model = DistilbertBaseUncased()

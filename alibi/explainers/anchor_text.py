@@ -1,21 +1,23 @@
 import copy
-import spacy
-import string
 import logging
-import numpy as np
-import tensorflow as tf
-
+import string
+from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
-from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union)
 
-from alibi.utils.wrappers import ArgmaxTransformer
-from alibi.utils.lang_model import LanguageModel
+import numpy as np
+import spacy
+import tensorflow as tf
 
+from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import (AlibiPredictorCallException,
+                              AlibiPredictorReturnTypeError)
+from alibi.utils.lang_model import LanguageModel
+from alibi.utils.wrappers import ArgmaxTransformer
+
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 
@@ -24,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
+def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.Language':
     """
     This utility function loads the `lexeme_prob` table for a spacy model if it is not present.
     This is required to enable support for different spacy versions.
@@ -1367,7 +1369,7 @@ class AnchorText(Explainer):
                 coverage_samples: int = 10000,
                 beam_size: int = 1,
                 stop_on_first: bool = True,
-                max_anchor_size: int = None,
+                max_anchor_size: Optional[int] = None,
                 min_samples_start: int = 100,
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,

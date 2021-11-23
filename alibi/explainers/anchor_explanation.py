@@ -1,5 +1,6 @@
+from typing import Optional, Union
+
 import numpy as np
-from typing import Union
 
 
 class AnchorExplanation:
@@ -18,7 +19,7 @@ class AnchorExplanation:
         self.type = exp_type
         self.exp_map = exp_map
 
-    def names(self, partial_index: int = None) -> list:
+    def names(self, partial_index: Optional[int] = None) -> list:
         """
         Parameters
         ----------
@@ -36,7 +37,7 @@ class AnchorExplanation:
             names = names[:partial_index + 1]
         return names
 
-    def features(self, partial_index: int = None) -> list:
+    def features(self, partial_index: Optional[int] = None) -> list:
         """
         Parameters
         ----------
@@ -54,7 +55,7 @@ class AnchorExplanation:
             features = features[:partial_index + 1]
         return features
 
-    def precision(self, partial_index: int = None) -> float:
+    def precision(self, partial_index: Optional[int] = None) -> float:
         """
         Parameters
         ----------
@@ -75,7 +76,7 @@ class AnchorExplanation:
         else:
             return precision[-1]
 
-    def coverage(self, partial_index: int = None) -> float:
+    def coverage(self, partial_index: Optional[int] = None) -> float:
         """
         Parameters
         ----------
@@ -97,7 +98,7 @@ class AnchorExplanation:
             return coverage[-1]
 
     def examples(self, only_different_prediction: bool = False,
-                 only_same_prediction: bool = False, partial_index: int = None) -> Union[list, np.ndarray]:
+                 only_same_prediction: bool = False, partial_index: Optional[int] = None) -> Union[list, np.ndarray]:
         """
         Parameters
         ----------

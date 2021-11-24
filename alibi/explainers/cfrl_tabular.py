@@ -1,17 +1,20 @@
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRL, Postprocessing, _PARAM_TYPES
-from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
+from functools import partial
+from itertools import count
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from tqdm import tqdm
-from itertools import count
-from functools import partial
-from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
+
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.backends.cfrl_tabular import (get_conditional_vector,
+                                                    get_statistics, sample)
+from alibi.explainers.cfrl_base import (_PARAM_TYPES, CounterfactualRL,
+                                        Postprocessing)
+from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
-    import torch
     import tensorflow
+    import torch
 
 if has_pytorch:
     # import pytorch backend
@@ -29,7 +32,7 @@ class SampleTabularPostprocessing(Postprocessing):
     is required to perform the conditional sampling.
     """
 
-    def __init__(self,  category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
+    def __init__(self, category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
         """
         Constructor.
 
@@ -462,7 +465,7 @@ class CounterfactualRLTabular(CounterfactualRL):
             X_cf, Y_m_cf, Y_t = results["X_cf"], results["Y_m_cf"], results["Y_t"]
 
             # Select only counterfactuals where prediction matches the target.
-            X_cf = X_cf[Y_t == Y_m_cf]
+            X_cf = X_cf[Y_t == Y_m_cf]  # type: ignore # TODO: fix me
             if X_cf.shape[0] == 0:
                 continue
 

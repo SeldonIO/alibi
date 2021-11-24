@@ -1,6 +1,7 @@
-import numpy as np
-
 from contextlib import contextmanager
+from typing import Optional
+
+import numpy as np
 
 OUT_TYPES = ['proba', 'class', 'raw', 'probability', 'probability_doubled', 'log_loss', 'continuous']
 
@@ -15,8 +16,8 @@ class MockPredictor:
     def __init__(self,
                  out_dim: int,
                  out_type: str = 'proba',
-                 model_type: str = None,
-                 seed: int = None,
+                 model_type: Optional[str] = None,
+                 seed: Optional[int] = None,
                  ) -> None:
         """
         Parameters
@@ -55,7 +56,7 @@ class MockPredictor:
         elif self.out_type == 'raw' or self.out_type == 'log_loss' or self.out_type == 'continuous':
             return self._generate_logits(sz, *args, **kwargs)
 
-    def _generate_probas(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+    def _generate_probas(self, sz: Optional[tuple] = None, *args, **kwargs) -> np.ndarray:
         """
         Generates probability vectors by sampling from a Dirichlet distribution.
         User can specify the Dirichlet distribution parameters via the 'alpha'
@@ -88,7 +89,7 @@ class MockPredictor:
 
         return np.random.dirichlet(alpha, size=sz)
 
-    def _generate_labels(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+    def _generate_labels(self, sz: Optional[tuple] = None, *args, **kwargs) -> np.ndarray:
         """
         Generates labels by sampling random integers in range(0, n_classes+1).
         """
@@ -96,7 +97,7 @@ class MockPredictor:
             sz += (self.out_dim,)
         return np.random.randint(0, self.out_dim + 1, size=sz)
 
-    def _generate_logits(self, sz: tuple = None, *args, **kwargs) -> np.ndarray:
+    def _generate_logits(self, sz: Optional[tuple] = None, *args, **kwargs) -> np.ndarray:
         """
         Generates fake logit values by sampling from the standard normal
         """

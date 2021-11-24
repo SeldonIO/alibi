@@ -744,7 +744,7 @@ class CounterfactualProto(Explainer, FitMixin):
             # combined distance measure
             if d_type == 'abdm-mvdm':
                 if w is None:
-                    msg = f"Must specify a value for `w` if using d_type='abdm-mvdm'"
+                    msg = "Must specify a value for `w` if using d_type='abdm-mvdm'"
                     raise ValueError(msg)
 
                 # pairwise distances

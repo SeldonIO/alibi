@@ -836,7 +836,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable]) -> np.ndarray: # type: ignore
+    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable]) -> np.ndarray:  # type: ignore
         """
         Sends a request for a coverage set to process running sampling tasks.
 

@@ -165,7 +165,7 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: Union[str, os.PathLike]) -
         dill.dump(segmentation_fn, f, recurse=True)
 
     predictor = explainer.predictor
-    explainer.predictor = None
+    explainer.predictor = None  # type: ignore
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
     explainer.segmentation_fn = segmentation_fn
@@ -216,8 +216,8 @@ def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> 
     dir_name = 'nlp' if sampling_strategy in nlp_sampling else 'language_model'
     model.to_disk(Path(path, dir_name))
 
-    explainer.model = None
-    explainer.predictor = None
+    explainer.model = None  # type: ignore
+    explainer.predictor = None  # type: ignore
     explainer.perturbation = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
@@ -257,7 +257,7 @@ def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.Pa
 
     # save actor
     actor = explainer.params["actor"]
-    optimizer_actor = explainer.params["optimizer_actor"]    # TODO: save the actor optimizer?
+    optimizer_actor = explainer.params["optimizer_actor"]  # TODO: save the actor optimizer?
     backend.save_model(path=Path(path, "actor" + ext), model=explainer.params["actor"])
 
     # save critic

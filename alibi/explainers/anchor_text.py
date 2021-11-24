@@ -4,7 +4,7 @@ import string
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
-from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple,
                     Union)
 
 import numpy as np
@@ -56,7 +56,7 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.L
         # https://github.com/explosion/spaCy/discussions/6388#discussioncomment-331096
         if 'lexeme_prob' not in nlp.vocab.lookups.tables:
             from spacy.lookups import load_lookups
-            lookups = load_lookups(nlp.lang, ['lexeme_prob'])
+            lookups = load_lookups(nlp.lang, ['lexeme_prob'])  # type: ignore
             nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))  # type: ignore
 
     return nlp
@@ -262,6 +262,7 @@ class UnknownSampler(AnchorTextSampler):
 
 
 class SimilaritySampler(AnchorTextSampler):
+
     def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
         """
         Initialize similarity sampler. This sampler replaces words with similar words.
@@ -285,7 +286,10 @@ class SimilaritySampler(AnchorTextSampler):
 
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
         self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
-        self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
+        self.tokens: 'spacy.tokens.Doc'
+        self.words: List[str] = []
+        self.positions: List[int] = []
+        self.punctuation: List['spacy.tokens.Token'] = []
 
     def set_text(self, text: str) -> None:
         """

@@ -390,7 +390,3 @@ class RobertaBase(LanguageModel):
 
     def is_subword_prefix(self, token: str) -> bool:
         return not token.startswith(RobertaBase.SUBWORD_PREFIX)
-
-
-if __name__ == '__main__':
-    model = DistilbertBaseUncased()

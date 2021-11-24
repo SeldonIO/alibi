@@ -751,8 +751,8 @@ class IntegratedGradients(Explainer):
             self._has_inputs = True
 
         if layer is None:
-            self.orig_call = None
-            layer_num = 0
+            self.orig_call: Optional[Callable] = None
+            layer_num: Optional[int] = 0
         else:
             self.orig_call = layer.call
             try:
@@ -895,7 +895,7 @@ class IntegratedGradients(Explainer):
                                                                    baselines,  # type: ignore # TODO: validate/narrow
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,
+                                                                   self.orig_call,  # type: ignore # TODO: fix me
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -942,7 +942,7 @@ class IntegratedGradients(Explainer):
                                                                    baselines,  # type: ignore # TODO: validate/narrow
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,
+                                                                   self.orig_call,  # type: ignore # TODO: fix me
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -1061,7 +1061,7 @@ class IntegratedGradients(Explainer):
 
         if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}
+                            for k in forward_kwargs.keys()}  # type: Optional[dict]
         else:
             paths_kwargs = None
 
@@ -1110,7 +1110,7 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,
+                                           self.orig_call,  # type: ignore # TODO: fix me
                                            self.orig_dummy_input,
                                            paths_b,
                                            target_b,
@@ -1177,7 +1177,7 @@ class IntegratedGradients(Explainer):
 
         if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}
+                            for k in forward_kwargs.keys()}  # type: Optional[dict]
         else:
             paths_kwargs = None
 
@@ -1224,7 +1224,7 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,
+                                           self.orig_call,  # type: ignore # TODO: fix me
                                            self.orig_dummy_input,
                                            paths_b,
                                            target_b,

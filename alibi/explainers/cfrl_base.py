@@ -2,7 +2,7 @@ import logging
 import os
 from abc import ABC, abstractmethod
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union, cast
 
 import numpy as np
 from tqdm import tqdm  # type: ignore
@@ -79,7 +79,6 @@ class ReplayBuffer:
     Y_t: np.ndarray  # buffer for the counterfactual targets
     Z: np.ndarray  # buffer for the input embedding
     Z_cf_tilde: np.ndarray  # buffer for the noised counterfactual embedding
-    C: np.ndarray  # buffer for the conditional tensor
     R_tilde: np.ndarray  # buffer for the noised counterfactual reward tensor
 
     def __init__(self, size: int = 1000) -> None:
@@ -97,6 +96,7 @@ class ReplayBuffer:
         self.len = 0  # current length of the buffer
         self.size = size  # buffer's maximum capacity
         self.batch_size = 0  # batch size (inferred during `append`)
+        self.C: Optional[np.ndarray] = None  # buffer for the conditional tensor
 
     def append(self,
                X: np.ndarray,
@@ -160,6 +160,7 @@ class ReplayBuffer:
         self.R_tilde[start:start + self.batch_size] = R_tilde
 
         if C is not None:
+            self.C = cast(np.ndarray, self.C)  # helping mypy out as self.C cannot be None at this point
             self.C[start:start + self.batch_size] = C
 
         # Compute the next index. Not that if the buffer reached its maximum capacity, for the next iteration

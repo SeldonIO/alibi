@@ -113,7 +113,7 @@ conform to their expectations may prompt them to erroneously decide that the mod
 classifiers trained on image datasets to use the same structures humans naturally do when identifying the same classes.
 However, there is no reason to believe such models should behave the same way we do.
 
-Interpretability of insights can also mislead. Some insights such as [anchors](#anchors) give conditions for a
+Interpretability of insights can also mislead. Some insights such as [**anchors**](#anchors) give conditions for a
 classifiers prediction. Ideally, the set of these conditions would be small. However, when obtaining anchors close to
 decision boundaries, we may get a complex set of conditions to differentiate that instance from near members of a
 different class. Because this is harder to understand, one might write the model off as incorrect, while in reality, the
@@ -219,7 +219,7 @@ Anchors are introduced
 in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf). Further,
 more detailed documentation can be found [here](../methods/Anchors.ipynb).
 
-Let A be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
+Let $A$ be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
 predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) adjusted
 by partitioning the data into good and bad wine based on a quality threshold of 0.5.
 
@@ -505,7 +505,7 @@ dependencies between the features.
 
 - The Shapley values are fairly distributed among the feature values
 - Shapley values can be easily interpreted and visualized
-- Very general as is a blackbox method
+- Very general as is a black-box method
 
 **Cons**
 
@@ -760,7 +760,7 @@ mentioned approaches.
 **Pros**
 
 - Generates more interpretable instances that the CEM method
-- Blackbox version of the method doesn't require computing the numerical gradients
+- Black-box version of the method doesn't require computing the numerical gradients
 - Applies to more data-types
 
 **Cons**

@@ -221,13 +221,12 @@ class AnchorImageSampler:
         segments_mask[:, anchor] = 1
 
         # for each sample, need to sample one of the background images if provided
-        if self.images_background:
+        if self.images_background is not None:
             backgrounds = np.random.choice(
                 range(len(self.images_background)),
                 segments_mask.shape[0],
                 replace=True,
             )
-            segments_mask = np.hstack((segments_mask, backgrounds.reshape(-1, 1)))
         else:
             backgrounds = [None] * segments_mask.shape[0]
             # create fudged image where the pixel value in each superpixel is set to the
@@ -247,7 +246,7 @@ class AnchorImageSampler:
             mask = np.zeros(segments.shape).astype(bool)
             for superpixel in to_perturb:
                 mask[segments == superpixel] = True
-            if background_idx:
+            if background_idx is not None:
                 # replace values with those of background image
                 # TODO: Could images_background be None herre?
                 temp[mask] = self.images_background[background_idx][mask]

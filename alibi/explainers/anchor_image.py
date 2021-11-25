@@ -248,11 +248,9 @@ class AnchorImageSampler:
                 mask[segments == superpixel] = True
             if background_idx is not None:
                 # replace values with those of background image
-                # TODO: Could images_background be None herre?
                 temp[mask] = self.images_background[background_idx][mask]
             else:
                 # ... or with the averaged superpixel value
-                # TODO: Where is fudged_image defined?
                 temp[mask] = fudged_image[mask]
             pert_imgs.append(temp)
 

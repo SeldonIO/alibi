@@ -114,104 +114,198 @@ conform to their expectations may prompt them to erroneously decide that the mod
 classifiers trained on image datasets to use the same structures humans naturally do when identifying the same classes.
 However, there is no reason to believe such models should behave the same way we do.
 
-Interpretability of insights can also mislead. Some insights such as [anchors](/overview/high_level.html#anchors) give
-conditions for a classifiers prediction. Ideally, the set of these conditions would be small. However, when obtaining
-anchors close to decision boundaries, we may get a complex set of conditions to differentiate that instance from near
-members of a different class. Because this is harder to understand, one might write the model off as incorrect, while in
-reality, the model performs as desired.
+Interpretability of insights can also mislead. Some insights such as [anchors](#anchors) give conditions for a
+classifiers prediction. Ideally, the set of these conditions would be small. However, when obtaining anchors close to
+decision boundaries, we may get a complex set of conditions to differentiate that instance from near members of a
+different class. Because this is harder to understand, one might write the model off as incorrect, while in reality, the
+model performs as desired.
 
 # Types of Insights
 
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                    | Scope  | Model types           | Task types                 | Data types                               | Use                                                                               |
-| -------------------------------------------------------------------------------------------- | ------ | --------------------- | -------------------------- | ---------------------------------------- | --------------------------------------------------------------------------------- |
-| [Anchors](#anchors)                                                                          | Local  | Black-box             | Classification             | Tabular, Categorical, Text and Image     | What set of features cannot be changed in order to ensure the current prediction? |
-| [Pertinent Positives](#pertinent-positives)                                                  | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | ""                                                                                |
-| [Integrated Gradients](#integrated-gradients)                                                | Local  | White-box             | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                        |
-| [Kernel SHAP](#kernelshap)                                                                   | Local  | Black-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                |
-| [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                       | Local  | White-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                |
-| [Tree SHAP (interventional)](#interventional-tree-shap)                                      | Local  | White-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                |
-| [Accumulated Local Effects](#accumulated-local-effects)                                      | Global | Black-box             | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest               |
-| [Counterfactuals Instances](#counterfactuals-instances)                                      | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction? |
-| [Contrastive Explanation Method](#contrastive-explanation-method)                            | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | ""                                                                                |
-| [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)                | Local  | Black-box/White-box   | Classification             | Tabular, Categorical, Image              | ""                                                                                |
-| [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning)  | Local  | Black-box             | Classification             | Tabular, Categorical, Image              | ""                                                                                |
+| Explainer                                                                                    | Scope  | Model types           | Task types                 | Data types                               | Use                                                                                             |
+| -------------------------------------------------------------------------------------------- | ------ | --------------------- | -------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [Accumulated Local Effects](#accumulated-local-effects)                                      | Global | Black-box             | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest                             |
+| [Anchors](#anchors)                                                                          | Local  | Black-box             | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| [Pertinent Positives](#pertinent-positives)                                                  | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Integrated Gradients](#integrated-gradients)                                                | Local  | White-box             | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
+| [Kernel SHAP](#kernelshap)                                                                   | Local  | Black-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                       | Local  | White-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Tree SHAP (interventional)](#interventional-tree-shap)                                      | Local  | White-box             | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Counterfactuals Instances](#counterfactuals-instances)                                      | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
+| [Contrastive Explanation Method](#contrastive-explanation-method)                            | Local  | Black-box/White-box   | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)                | Local  | Black-box/White-box   | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
+| [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning)  | Local  | Black-box             | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
 
-## 1. Local Necessary Features
+### 1. Global Feature Attribution
 
-Given a single instance and model prediction, local necessary features are local explanations that tell us what minimal
-set of features needs to stay the same so that the model still gives the same or close prediction.
+Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. They
+are a global insight as it describes the behavior of the model over the entire input space. For instance, Accumulated
+Local Effects plots obtain graphs that directly visualize the relationship between feature and prediction.
 
-In the case of a trained image classification model, local necessary features for a given instance would be a minimal
-subset of the image that the model uses to make its decision. A machine learning engineer might use this insight to see
-if the model concentrates on the correct features. Local necessary features are particularly advantageous for checking
-erroneous model decisions.
+Suppose a trained regression model that predicts the number of bikes rented on a given day depending on the temperature,
+humidity, and wind speed. A global feature attribution plot for the temperature feature might be a line graph plotted
+against the number of bikes rented. In the bikes rented case, one would anticipate an increase in rentals up until a
+specific temperature and then a decrease after it gets too hot.
 
-The following two explainer methods are available from Alibi for generating Local Necessary Features insights. Each
-approaches the idea in slightly different ways. The main difference is that anchors give a picture of the size of the
-area over the dataset for which the insight applies, whereas pertinent positives do not.
+### Accumulated Local Effects
+
+| Explainer                    | Scope  | Model types  | Task types                 | Data types  | Use                                                                 |
+| ---------------------------- | ------ | ------------ | -------------------------- | ----------- | ------------------------------------------------------------------- |
+| Accumulated Local Effects    | Global | Black-box    | Classification, Regression | Tabular     | How does model prediction vary with respect to features of interest |
+
+Alibi only provides accumulated local effects plots because of the available global feature attribution methods they
+give the most accurate insight. Alternatives include Partial Dependence Plots. ALE plots work by averaging the local
+changes in a prediction at every instance in the data distribution. They then accumulate these differences to obtain a
+plot of prediction over the selected feature dependencies.
+
+Suppose we have a model $f$ and features $X=\{x_1,... x_n\}$. Given a subset of the features $X_S$, we denote $X_C=X
+\setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a set of dimension
+two to be visualized easily. For simplicity assume we have $X=\{x_1, x_2\}$ and let $X_S=\{x_1\}$ so $X_C=\{x_2\}$. The
+ALE of $x_1$ is defined by:
+
+$$ \hat{f}_{S, ALE}(x_1) = \int_{min(x_1)}^{x_1}\mathbb{E}\left[
+\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1 = z_1 \right]dz_1 - c_1 $$
+
+The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$
+conditional on $X_1=z_1$. By taking the expectation for $X_2$, we factor out its dependency. So now we know how the
+prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. Integrating these changes over $x_1$ from a
+minimum value to the value of interest, we obtain the global plot of how the model depends on $x_1$. ALE-plots get their
+names as they accumulate (integrate) the local effects (the expected partial derivatives). Note that here we have
+assumed $f$ is differentiable. In practice, however, we compute the various quantities above numerically, so this isn't
+a requirement.
+
+__TODO__:
+
+- Add picture explaining the above idea.
+
+For more details on accumulated local effects including a discussion on PDP-plots and M-plots
+see [Motivation-and-definition for ALE](../methods/ALE.ipynb)
+
+:::{admonition} **Note 4: Categorical Variables and ALE**
+Note that because ALE plots require computing differences between variables, they don't naturally extend to categorical
+data unless there is a sensible ordering on the data. As an example, consider the months of the year. To be clear, this
+is only an issue if the variable you are taking the ALE for is categorical.
+:::
+
+**Pros**:
+
+- ALE-plots are easy to visualize and understand intuitively
+- Very general as it is a black-box algorithm
+- Doesn't struggle with dependencies in the underlying features, unlike PDP plots
+- ALE plots are fast
+
+**Cons**:
+
+- Harder to explain the underlying motivation behind the method than PDP plots or M plots.
+- Requires access to the training dataset.
+- Unlike PDP plots, ALE plots do not work with Categorical data
+
+## 2. Local Necessary Features
+
+Local necessary features tell us what features need to stay the same for a specific instance in order for the model to
+give the same classification. In the case of a trained image classification model, local necessary features for a given
+instance would be a minimal subset of the image that the model uses to make its decision. Alibi provides two explainers
+for computing local necessary features: [anchors](#anchors) and [pertinent positives](#pertinent-positives).
 
 ### Anchors
 
-| Model-types | Task-types     | Data-types                               |
-| ----------- | -------------- | ---------------------------------------- |
-| Black-box   | Classification | Tabular, Text, Image and Categorical     |
+| Explainer  | Scope  | Model types  | Task types      | Data types                           | Use                                                                                             |
+| ---------- | ------ | ------------ | --------------- | ------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| Anchors    | Local  | Black-box    | Classification  | Tabular, Categorical, Text and Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 
-Anchors are a local blackbox method introduced in [Anchors: High-Precision Model-Agnostic Explanations](
-https://homes.cs.washington.edu/~marcotcr/aaai18.pdf).
+Anchors are introduced
+in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf). Further,
+more detailed documentation can be found [here](../methods/Anchors.ipynb).
 
-Let A be a rule (set of predicates) acting on such an interpretable representation, such that $A(x)$ returns $1$ if all
-its feature predicates are true. An example of such a rule, $A$, could be represented by the set $\{not, bad\}$ in which
-case any sentence, $s$, with both $not$ and $bad$ in it would mean $A(s)=1$. As a more specific example consider the
-[wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality):
+Let A be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
+predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality):
 
 ```{image} images/wine-quality-ds.png
 :align: center
 :alt: first five rows of wine quality dataset 
 ```
 
-In which case predicates would be of the form : `'alcohol > 11.00'`. Note that the more predicates we add to an anchor
-the smaller it becomes as by doing so we filter out more cases.
+An example of a predicate for this dataset would be a rule of the form: `'alcohol > 11.00'`. Note that the more
+predicates we add to an anchor, the smaller it becomes, as by doing so, we filter out more instances of the data.
+Anchors are sets of predicates associated to a specific instance $x$ such that $x$ is in the anchor ($A(x)=1$) and any
+other point in the anchor has the same classification as $x$ ($z$ such that $A(z) = 1 \implies f(z) = f(x)$ where $f$ is
+the model). We're interested in finding the largest possible Anchor that contains $x$.
 
-__TODO__:
+```{image} images/anchor.png
+:align: center
+:alt: Illustration of an anchor as a subset of two dimensional feature space. 
+```
 
-- Include picture explanation of anchors
+To construct an anchor using Alibi for tabular data such as the wine quality dataset, we use:
 
-Alibi finds anchors by building them up from the bottom up. We start with an empty anchor $A=\{\}$ and then consider the
-set of possible feature values from the instance of interest we can add. $\mathcal{A} = \{A \wedge a_0, A \wedge a_1, A
-\wedge a_2, ..., A \wedge a_n\}$. For instance, in the case of textual data, the $a_i$ might be words from the instance
-sentence. In the case of image data, we partition the image into super-pixels which we choose to be the $a_i$. At each
-stage, we will look at the set of possible next anchors that can be made by adding in a feature $a_i$ from the instance.
-We then compute the precision of each of the resulting anchors and choose the best. We iteratively build the anchor up
-like this until the required precision is met.
+```ipython3
+from alibi.explainers import AnchorTabular
 
-As we construct the new set of anchors from the last, we need to compute the precisions of the next group to know which
-one to choose. We can't calculate this directly; instead, we sample from $\mathcal{D}(z|A)$ to obtain an estimate. To do
-this, we use several different methods for different data types. For instance, in the case of textual data, we want to
-generate sentences with the anchor words and ensure that they make sense within the data distribution. One option is to
-replace the missing words (those not in the anchor) from the instance with words with the same POS tag. This means the
-resulting sample will make semantic sense rather than being a random set of words. Other methods are available. In the
-case of images, we sample an image from the data set and then superimpose the super-pixels on top of it.
+predict_fn = lambda x: model.predict(scaler.transform(x))
+explainer = AnchorTabular(predict_fn, features)
+explainer.fit(X_train, disc_perc=(25, 50, 75))
+result = explainer.explain(scaler.inverse_transform(x), threshold=0.95)
 
-**Pros**
+print('Anchor =', result.data['anchor'])
+print('Coverage = ', result.data['coverage'])
+```
 
-- Easy to explain as rules are simple to interpret
-- Is a black-box method as we just need to predict the value of an instance and don't need to access model internals
-- Can be parallelized and made to be much more efficient as a result
-- Although they apply to a local instance, the notion of coverage also gives a level of global insight
+```ipython3
+Anchor = ['alcohol > 11.00', 'sulphates > 0.73']
+Coverage =  0.0817347789824854
+```
 
-**Cons**
+Note Alibi also gives an idea of the size (coverage) of the Anchor.
 
-- This algorithm is much slower for high dimensional feature spaces
-- If choosing an anchor close to a decision boundary, the method may require a considerable number of samples from
-  $\mathcal{D}(z|A)$ and $\mathcal{D}(z|A')$ to distinguish two anchors $A$ and $A'$.
-- High dimensional feature spaces such as images need to be reduced. Typically, this is done by segmenting the image
-  into superpixels. The choice of the algorithm used to obtain the superpixels has an effect on the anchor obtained.
-- Practitioners need to make several choices concerning parameters and domain-specific setup. For instance, the
-  precision threshold or the method by which we sample $\mathcal{D}(z|A)$. Fortunately, Alibi provides default settings
-  for a lot of specific data types.
+To find anchors Alibi sequentially builds them by generating a set of candidates from an initial anchor candidate,
+picking the best candidate of that set and then using that to generate the next set of candidates and repeating.
+Candidates are favoured on the basis of the number of instances they contain that are in the same class as $x$ under
+$f$. This is repeated until we obtain a candidate that satisfies the condition and is largest (in the case where there
+are multiple).
+
+To compute which of two anchors is better, Alibi obtains an estimate by sampling from $\mathcal{D}(z|A)$ where
+$\mathcal{D}$ is the data distribution. The sampling process is dependent on the type of data. For tabular data, this
+process is easy; we can fix the values in the Anchor and replace the rest with values from a point sampled from the
+dataset.
+
+In the case of textual data, anchors are sets of words that the sentence must include to be **in the** anchor. To sample
+from $\mathcal{D}(z|A)$, we need to find realistic sentences that include those words. To help do this Alibi provides
+support for three [transformer](https://en.wikipedia.org/wiki/Transformer_(machine_learning_model)) based language
+models: `DistilbertBaseUncased`, `BertBaseUncased`, and `RobertaBase`.
+
+Image data being high dimensional means we first need to reduce it to a lower dimension. We can do this using image
+segmentation algorithms (Alibi supports
+[felzenszwalb](https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#felzenszwalb-s-efficient-graph-based-segmentation)
+,
+[slic](https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#slic-k-means-based-image-segmentation)
+and [quickshift](https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#quickshift-image-segmentation))
+to find super-pixels. As a result, the anchors are made up of sets of these super-pixels, and so to sample from
+$\mathcal{D}(z|A)$ we replace those super-pixels that aren't in $A$ with something else. Alibi supports superimposing
+over the absent super-pixels with an image sampled from the dataset or taking the average value of the super-pixel.
+
+The fact that the method requires perturbing and comparing anchors at each stage leads to some issues. For instance, the
+more features, the more candidate anchors you can obtain at each process stage. The algorithm uses
+a [Beam search](https://en.wikipedia.org/wiki/Beam_search) among the candidate anchors and solves for the best $B$
+anchors at each stage in the process by framing the problem as
+a [multi-armed bandit](https://en.wikipedia.org/wiki/Multi-armed_bandit). The runtime complexity is $\mathcal{O}(B \cdot
+p^2 + p^2 \cdot \mathcal{O}_{MAB[B \cdot p, B]})$ where $p$ is the number of features and $\mathcal{O}_
+{MAB[B \cdot p, B]}$ is the runtime for the multi-armed bandit. (
+See [Molnar](https://christophm.github.io/interpretable-ml-book/anchors.html#complexity-and-runtime) for more details.)
+
+Similarly, comparing anchors that are close to decision boundaries can require many samples to obtain a clear winner
+between the two. Also, note that anchors close to decision boundaries are likely to have many predicates to ensure the
+required predictive property. This makes them less interpretable.
+
+| Pros                                                                                                           | Cons                                                                                                   |
+| -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| Easy to explain as rules are simple to interpret                                                               | Time complexity scales as a function of features                                                       |   
+| Is a black-box method as we need to predict the value of an instance and don't need to access model internals  | Requires a large number of samples to distinguish anchors close to decision boundaries                 |
+| The coverage of an anchor gives a level of global insight as well                                              | Anchors close to decision boundaries are less likely to be interpretable                               |
+|                                                                                                                | High dimensional feature spaces such as images need to be reduced to improve the runtime complexity    |
+|                                                                                                                | Practitioners may need domain-specific knowledge to correctly sample from the conditional probability  |
 
 ### Pertinent Positives
 
@@ -489,71 +583,6 @@ values.
 - Less general as a white-box method
 - Requires access to the dataset
 - Typically, slower than the path-dependent method
-
-### Global Feature Attribution
-
-Global Feature Attribution methods aim to show the dependency of model output on a subset of the input features. They
-are a global insight as it describes the behavior of the model over the entire input space. For instance, Accumulated
-Local Effects plots obtain graphs that directly visualize the relationship between feature and prediction.
-
-Suppose a trained regression model that predicts the number of bikes rented on a given day depending on the temperature,
-humidity, and wind speed. A global feature attribution plot for the temperature feature might be a line graph plotted
-against the number of bikes rented. In the bikes rented case, one would anticipate an increase in rentals up until a
-specific temperature and then a decrease after it gets too hot.
-
-### Accumulated Local Effects
-
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| Black-box   | Classification | Tabular     |
-|             | Regression     |             |
-
-Alibi only provides accumulated local effects plots because of the available global feature attribution methods they
-give the most accurate insight. Alternatives include Partial Dependence Plots. ALE plots work by averaging the local
-changes in a prediction at every instance in the data distribution. They then accumulate these differences to obtain a
-plot of prediction over the selected feature dependencies.
-
-Suppose we have a model $f$ and features $X=\{x_1,... x_n\}$. Given a subset of the features $X_S$, we denote $X_C=X
-\setminus X_S$. We want to obtain the ALE-plot for the features $X_S$, typically chosen to be at most a set of dimension
-two to be visualized easily. For simplicity assume we have $X=\{x_1, x_2\}$ and let $X_S=\{x_1\}$ so $X_C=\{x_2\}$. The
-ALE of $x_1$ is defined by:
-
-$$ \hat{f}_{S, ALE}(x_1) = \int_{min(x_1)}^{x_1}\mathbb{E}\left[
-\frac{\partial f(X_1, X_2)}{\partial X_1} | X_1 = z_1 \right]dz_1 - c_1 $$
-
-The term within the integral computes the expectation of the model derivative in $x_1$ over the random variable $X_2$
-conditional on $X_1=z_1$. By taking the expectation for $X_2$, we factor out its dependency. So now we know how the
-prediction $f$ changes local to a point $X_1=z_1$ independent of $X_2$. Integrating these changes over $x_1$ from a
-minimum value to the value of interest, we obtain the global plot of how the model depends on $x_1$. ALE-plots get their
-names as they accumulate (integrate) the local effects (the expected partial derivatives). Note that here we have
-assumed $f$ is differentiable. In practice, however, we compute the various quantities above numerically, so this isn't
-a requirement.
-
-__TODO__:
-
-- Add picture explaining the above idea.
-
-For more details on accumulated local effects including a discussion on PDP-plots and M-plots see
-[Motivation-and-definition for ALE](../methods/ALE.ipynb#Motivation-and-definition)
-
-:::{admonition} **Note 4: Categorical Variables and ALE**
-Note that because ALE plots require computing differences between variables, they don't naturally extend to categorical
-data unless there is a sensible ordering on the data. As an example, consider the months of the year. To be clear, this
-is only an issue if the variable you are taking the ALE for is categorical.
-:::
-
-**Pros**:
-
-- ALE-plots are easy to visualize and understand intuitively
-- Very general as it is a black-box algorithm
-- Doesn't struggle with dependencies in the underlying features, unlike PDP plots
-- ALE plots are fast
-
-**Cons**:
-
-- Harder to explain the underlying motivation behind the method than PDP plots or M plots.
-- Requires access to the training dataset.
-- Unlike PDP plots, ALE plots do not work with Categorical data
 
 ### Counter Factuals
 

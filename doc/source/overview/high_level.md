@@ -45,13 +45,12 @@ several applications of importance.
   the machine learning systems we use. It allows us to justify their use in many contexts where an understanding of the
   basis of the decision is paramount. This is a common issue within machine learning in medicine, where acting on a
   model prediction may require expensive or risky procedures to be carried out.
-- **Testing:**. Explainability might be used
-  to [audit financial models](https://dl.acm.org/doi/pdf/10.1145/3351095.3375624) that aid decisions about whether to
-  grant customer loans. By computing the attribution of each feature towards the prediction the model makes,
-  organisations can check that they are consistent with human decision-making. Similarly, explainability applied to a
-  model trained on image data can explicitly show the model's focus when making decisions,
-  aiding [debugging](http://proceedings.mlr.press/v70/sundararajan17a.html). Practitioners must be wary
-  of [misuse](#biases), however.
+    - **Testing:**. Explainability might be used to [audit financial models](https://arxiv.org/abs/1909.06342) that aid
+      decisions about whether to grant customer loans. By computing the attribution of each feature towards the
+      prediction the model makes, organisations can check that they are consistent with human decision-making.
+      Similarly, explainability applied to a model trained on image data can explicitly show the model's focus when
+      making decisions, aiding [debugging](http://proceedings.mlr.press/v70/sundararajan17a.html). Practitioners must be
+      wary of [misuse](#biases), however.
 - **Functionality:**. Insights can be used to augment model functionality. For instance, providing information on top of
   model predictions such as how to change model inputs to obtain desired outputs.
 - **Research:**. Explainability allows researchers to understand how and why opaque models make decisions. This can help
@@ -221,7 +220,8 @@ in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washin
 more detailed documentation can be found [here](../methods/Anchors.ipynb).
 
 Let A be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
-predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality):
+predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) adjusted
+by partitioning the data into good and bad wine based on a quality threshold of 0.5.
 
 ```{image} images/wine-quality-ds.png
 :align: center
@@ -247,15 +247,17 @@ from alibi.explainers import AnchorTabular
 predict_fn = lambda x: model.predict(scaler.transform(x))
 explainer = AnchorTabular(predict_fn, features)
 explainer.fit(X_train, disc_perc=(25, 50, 75))
-result = explainer.explain(scaler.inverse_transform(x), threshold=0.95)
+result = explainer.explain(x, threshold=0.95)
 
 print('Anchor =', result.data['anchor'])
 print('Coverage = ', result.data['coverage'])
 ```
 
+where `x` is an instance of the dataset classified as good.
+
 ```ipython3
-Anchor = ['alcohol > 11.00', 'sulphates > 0.73']
-Coverage =  0.0817347789824854
+Anchor = ['sulphates <= 0.55', 'volatile acidity > 0.52', 'alcohol <= 11.00', 'pH > 3.40']
+Coverage =  0.0316930775646372
 ```
 
 Note Alibi also gives an idea of the size (coverage) of the Anchor.
@@ -309,50 +311,54 @@ required predictive property. This makes them less interpretable.
 
 ### Pertinent Positives
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| Black-box   | Classification | Tabular     |
-|             |                | Image       |
+| Explainer           | Scope  | Model types          | Task types      | Data types      | Use                                                                                             |
+| ------------------- | ------ | -------------------- | --------------- | --------------- | ----------------------------------------------------------------------------------------------- |
+| Pertinent Positives | Local  | Black-box/White-box  | Classification  | Tabular, Image  | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 
-Informally a Pertinent Positive is the subset of an instance that still obtains the same classification. These differ
-from anchors primarily in the fact that they aren't constructed to maximize coverage. The method to create them is also
-substantially different. The rough idea is to define an absence of a feature and then perturb the instance to take away
-as much information as possible while still retaining the original classification.
+Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features
+of an instance that still obtains the same classification as that instance. These differ from [anchors](#anchors)
+primarily in the fact that they aren't constructed to maximize coverage. The method to create them is also substantially
+different. The rough idea is to define an **absence of a feature** and then perturb the instance to take away as much
+information as possible while still retaining the original classification. Note that these are a subset of
+the [CEM](../methods/CEM.ipynb) method which is also used to
+construct [pertinent negatives/counterfactuals](#counterfactuals).
 
-Given an instance $x_0$ we set out to find a $\delta$ that minimizes the following loss:
+```{image} images/pp_mnist.png
+:align: center
+:alt: Pertinent postive of an MNIST digit 
+```
 
-$$ L = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta) + L_{2}^{2}(\delta) + \gamma \|\delta - AE(\delta)\|^{2}_{2} $$
+Given an instance $x$ we use gradient descent to find a $\delta$ that minimizes the following loss:
 
-where
+$$ L = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta, x) + L_{2}^{2}(\delta, x) + \gamma \|\delta - AE(\delta)\|^{2}_{2}
+$$
 
-$$ L_{pred}(\delta) = max\left\{ max_{i\neq t_{0}}[Pred(\delta)]_{i} - [Pred(\delta)]_{t_0}, \kappa \right\} $$
+$AE$ is an [autoencoder](https://en.wikipedia.org/wiki/Autoencoder) generated from the training data. If $\delta$ strays
+from the original data distribution, the autoencoder loss will increase as it will no longer reconstruct $\delta$ well.
+Thus, we ensure that $\delta$ remains close to the original dataset distribution.
 
-$AE$ is an optional autoencoder generated from the training data. If delta strays from the original data distribution,
-the autoencoder loss will increase as it will no longer reconstruct $\delta$ well. Thus, we ensure that $\delta$ remains
-close to the original dataset distribution.
-
-Note that $\delta$ is restrained to only take away features from the instance $x_0$. There is a slightly subtle point
-here: removing features from an instance requires correctly defining non-informative feature values. In the case of
-MNIST digits, it's reasonable to assume that the black background behind each digit represents an absence of
-information. Similarly, in the case of color images, you might take the median pixel value to convey no information, and
-moving away from this value adds information.
+Note that $\delta$ is constrained to only "take away" features from the instance $x$. There is a slightly subtle point
+here: removing features from an instance requires correctly defining non-informative feature values. For
+the [MNIST digits](http://yann.lecun.com/exdb/mnist/), it's reasonable to assume that the black background behind each
+digit represents an absence of information. Similarly, in the case of color images, you might take the median pixel
+value to convey no information, and moving away from this value adds information. For numeric tabular data we can use
+the feature mean. In general, having to choose a non-informative value for each feature is non-trivial and domain
+knowledge is required.
 
 Note that we need to compute the loss gradient through the model. If we have access to the internals, we can do this
 directly. Otherwise, we need to use numerical differentiation at a high computational cost due to the extra model calls
-we need to make.
+we need to make. This does however mean we can use this method for a wide range of black-box models but not all. We
+require the model to be differentiable which isn't always true. For instance tree-based models have piece-wise constant
+output.
 
-**Pros**
-
-- Both a black and white-box method
-- We obtain more interpretable results using the autoencoder loss as $\delta$ will be in the data distribution
-
-**Cons**
-
-- Finding non-informative feature values to add or take away from an instance is often not trivial, and domain knowledge
-  is essential
-- Need to tune hyperparameters $\beta$ and $\gamma$
-- The insight doesn't tell us anything about the coverage of the pertinent positive
-- If using the autoencoder loss, then we need access to the original dataset
+| Pros                                                                                                           | Cons                                                                                                                         |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Can be used with both white-box (TensorFlow) and some black-box models                                         | Finding non-informative feature values to take away from an instance is often not trivial, and domain knowledge is essential |   
+|                                                                                                                | The autoencoder loss requires access to the original dataset                                                                 |
+|                                                                                                                | Need to tune hyperparameters $\beta$ and $\gamma$                                                                            |
+|                                                                                                                | The insight doesn't tell us anything about the coverage of the pertinent positive                                            |
+|                                                                                                                | Slow for black-box models due to having to numerically evaluate gradients                                                    |
+|                                                                                                                | Only works for differentiable black-box models                                                                               |
 
 ### Local Feature Attribution
 
@@ -584,7 +590,7 @@ values.
 - Requires access to the dataset
 - Typically, slower than the path-dependent method
 
-### Counter Factuals
+### Counterfactuals
 
 Given an instance of the dataset and a prediction given by a model, a question naturally arises how would the instance
 minimally have to change for a different prediction to be provided. Counterfactuals are local explanations as they

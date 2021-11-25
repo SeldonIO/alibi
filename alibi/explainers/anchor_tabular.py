@@ -1010,19 +1010,19 @@ class AnchorTabular(Explainer, FitMixin):
         return self._ohe_predictor if self.ohe else self._predictor
 
     @predictor.setter
-    def predictor(self, predictor: Callable) -> None:
+    def predictor(self, predictor: Optional[Callable]) -> None:  # Optional here because in saving.py we set it to None
         # if input is one-hot encoded
         if self.ohe:
             # this predictor expects ordinal/labels encoded categorical variables
             ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
-            self._predictor = self._transform_predictor(ord_predictor)
+            self._predictor = self._transform_predictor(ord_predictor) if predictor else None
 
             # this predictor expects one-hot encoded categorical variable
-            self._ohe_predictor = self._transform_ohe_predictor(predictor)
+            self._ohe_predictor = self._transform_ohe_predictor(predictor) if predictor else None
 
         else:
             # set the predictor
-            self._predictor = self._transform_predictor(predictor)
+            self._predictor = self._transform_predictor(predictor) if predictor else None
 
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # define data instance full of zeros

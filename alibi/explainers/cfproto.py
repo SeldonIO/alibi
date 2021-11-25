@@ -1065,9 +1065,8 @@ class CounterfactualProto(Explainer, FitMixin):
         else:  # no prototype loss term used
             proto_val = np.zeros(self.shape_enc)
 
-        if self.is_cat:
-            # set shape for perturbed instance and gradients
-            pert_shape = ohe_to_ord_shape(self.shape, cat_vars=self.cat_vars, is_ohe=self.ohe)
+        # set shape for perturbed instance and gradients
+        pert_shape = ohe_to_ord_shape(self.shape, cat_vars=self.cat_vars, is_ohe=self.ohe)
 
         # set the lower and upper bounds for the constant 'c' to scale the attack loss term
         # these bounds are updated for each c_step iteration

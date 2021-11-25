@@ -102,19 +102,22 @@ def test_sampler(predict_fn, models, mnist_data):
                          indirect=True,
                          ids='models={}'.format
                          )
-def test_anchor_image(predict_fn, models, mnist_data):
+@pytest.mark.parametrize('images_background', [True, False], ids='images_background={}'.format)
+def test_anchor_image(predict_fn, models, mnist_data, images_background):
     x_train = mnist_data["X_train"]
     image = x_train[0]
 
     segmentation_fn = "slic"
     segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
     image_shape = (28, 28, 1)
+    images_background = x_train[:10] if images_background else None
 
     explainer = AnchorImage(
         predict_fn,
         image_shape,
         segmentation_fn=segmentation_fn,
         segmentation_kwargs=segmentation_kwargs,
+        images_background=images_background
     )
 
     p_sample = 0.5  # probability of perturbing a superpixel

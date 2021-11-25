@@ -4,7 +4,7 @@ import string
 from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
-from typing import (TYPE_CHECKING, Any, Callable, Dict, Iterable, List, Optional, Tuple,
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
                     Union)
 
 import numpy as np

@@ -757,7 +757,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.feature_values.update(disc.feature_intervals)
 
         sampler = TabularSampler(
-            self._predictor,
+            self._predictor,  # type: ignore # TODO: fix me, ignored as can be None due to saving.py
             disc_perc,
             self.numerical_features,
             self.categorical_features,
@@ -1006,23 +1006,30 @@ class AnchorTabular(Explainer, FitMixin):
             explanation['names'].append(fname)
 
     @property
-    def predictor(self) -> Callable:
+    def predictor(self) -> Optional[Callable]:  # because of saving.py setting it to None
         return self._ohe_predictor if self.ohe else self._predictor
 
     @predictor.setter
     def predictor(self, predictor: Optional[Callable]) -> None:  # Optional here because in saving.py we set it to None
-        # if input is one-hot encoded
-        if self.ohe:
-            # this predictor expects ordinal/labels encoded categorical variables
-            ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
-            self._predictor = self._transform_predictor(ord_predictor) if predictor else None
-
-            # this predictor expects one-hot encoded categorical variable
-            self._ohe_predictor = self._transform_ohe_predictor(predictor) if predictor else None
-
+        # deal with the case from saving.py first
+        # TODO: how do we prevent users from passing predictor=None? Probably beartype.
+        if predictor is None:
+            self._predictor = None
+            if self.ohe:
+                self._ohe_predictor = None
         else:
-            # set the predictor
-            self._predictor = self._transform_predictor(predictor) if predictor else None
+            # if input is one-hot encoded
+            if self.ohe:
+                # this predictor expects ordinal/labels encoded categorical variables
+                ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
+                self._predictor = self._transform_predictor(ord_predictor)
+
+                # this predictor expects one-hot encoded categorical variable
+                self._ohe_predictor = self._transform_ohe_predictor(predictor)
+
+            else:
+                # set the predictor
+                self._predictor = self._transform_predictor(predictor)
 
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # define data instance full of zeros

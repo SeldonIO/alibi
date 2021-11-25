@@ -1272,7 +1272,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
     def explain(self,
                 X: np.ndarray,
-                Y: np.ndarray = Optional[np.ndarray] = None,
+                Y: Optional[np.ndarray] = None,
                 target_class: Optional[list] = None,
                 k: Optional[int] = None,
                 k_type: str = 'mean',

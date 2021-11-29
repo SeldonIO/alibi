@@ -729,5 +729,5 @@ def test__get_target_from_target_fn__with_2d_output_argmax():
 
 def test__get_target_from_target_fn__with_3d_output_argmax():
     with pytest.raises(ValueError):
-        target = _get_target_from_target_fn(np_argmax_fn, bad_model,
-                                            X_train)  # noqa: F841  # TODO: fix up types, though mypy doesn't complain
+        target = _get_target_from_target_fn(np_argmax_fn, bad_model,  # noqa: F841
+                                            X_train)  # TODO: fix up types, though mypy doesn't complain

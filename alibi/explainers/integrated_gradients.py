@@ -1,13 +1,15 @@
 import copy
 import logging
-import numpy as np
 import string
+import warnings
+from typing import Callable, List, Optional, Tuple, Union, cast
+
+import numpy as np
 import tensorflow as tf
 
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
-from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-from typing import Callable, Union, List, Tuple, Optional, cast
+from alibi.utils.approximation_methods import approximation_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -577,6 +579,13 @@ def _get_target_from_target_fn(target_fn: Callable,
         preds = model(X)
     else:
         preds = model(X, **forward_kwargs)
+
+    # raise a warning if the predictions are scalar valued already
+    # TODO: in the future we want to support outputs that are >2D at which point this check should change
+    if preds.shape[-1] == 1:
+        msg = f"Predictions from the model are scalar valued but `target_fn` was passed. `target_fn` is not necessary" \
+              f"when predictions are scalar valued already. Using `target_fn` here may result in unexpected behaviour."
+        warnings.warn(msg)
 
     target = target_fn(preds)
     expected_shape = (target.shape[0],)

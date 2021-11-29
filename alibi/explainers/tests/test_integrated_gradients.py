@@ -1,13 +1,16 @@
+from functools import partial
+
 import numpy as np
 import pytest
-from alibi.explainers import IntegratedGradients
-from alibi.explainers.integrated_gradients import _get_target_from_target_fn, _run_forward_to_layer, \
-    _run_forward_from_layer
-from alibi.api.interfaces import Explanation
 import tensorflow as tf
-from tensorflow.keras import Model
-from functools import partial
 from numpy.testing import assert_allclose
+from tensorflow.keras import Model
+
+from alibi.api.interfaces import Explanation
+from alibi.explainers import IntegratedGradients
+from alibi.explainers.integrated_gradients import (_get_target_from_target_fn,
+                                                   _run_forward_from_layer,
+                                                   _run_forward_to_layer)
 
 # generate some dummy data
 N = 100
@@ -43,6 +46,9 @@ test_labels = y_classification_ordinal[N_TRAIN:]
 
 # integral method used shouldn't affect wrapper functionality
 INTEGRAL_METHODS = ['gausslegendre', 'riemann_middle']
+
+# target_fn for classifiers
+target_fn = partial(np.argmax, axis=1)
 
 
 @pytest.fixture()
@@ -181,6 +187,17 @@ def ffn_model_sequential(request):
     return model
 
 
+def uncollect_if_both_or_neither_target_fn_target(**kwargs):
+    """
+    Do not consider tests that don't specify exactly one of these
+    to avoid increasing test function complexity.
+    """
+    target_fn, target = kwargs['target_fn'], kwargs['target']
+    is_target = target is not None  # target can be an array so can't use `bool(target)`
+    return not (bool(target_fn) ^ is_target)  # xnor
+
+
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_sequential', [({'output_dim': 2,
                                                     'activation': 'softmax',
                                                     'loss': 'categorical_crossentropy',
@@ -188,13 +205,15 @@ def ffn_model_sequential(request):
                                                     'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_model_sequential(ffn_model_sequential, method, baselines):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_model_sequential(ffn_model_sequential, method, baselines, target_fn, target):
     model = ffn_model_sequential
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -206,6 +225,7 @@ def test_integrated_gradients_model_sequential(ffn_model_sequential, method, bas
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
                                                   'activation': 'softmax',
                                                   'loss': 'categorical_crossentropy',
@@ -214,13 +234,15 @@ def test_integrated_gradients_model_sequential(ffn_model_sequential, method, bas
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES)
 @pytest.mark.parametrize('kwargs', KWARGS)
-def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines, kwargs):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselines, kwargs, target_fn, target):
     model = ffn_model_subclass
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels,
+                              target=target,
                               forward_kwargs=kwargs)
 
     assert isinstance(explanations, Explanation)
@@ -233,6 +255,7 @@ def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselin
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_subclass_list_input', [({'output_dim': 2,
                                                              'activation': 'softmax',
                                                              'loss': 'categorical_crossentropy',
@@ -241,13 +264,16 @@ def test_integrated_gradients_model_subclass(ffn_model_subclass, method, baselin
                          indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
-def test_integrated_gradients_model_subclass_list_input(ffn_model_subclass_list_input, method, baselines):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_model_subclass_list_input(ffn_model_subclass_list_input, method, baselines, target_fn,
+                                                        target):
     model = ffn_model_subclass_list_input
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_multi_inputs,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
 
     assert isinstance(explanations, Explanation)
     assert max([len(x) for x in X_test_multi_inputs]) == min([len(x) for x in X_test_multi_inputs])
@@ -267,6 +293,7 @@ def test_integrated_gradients_model_subclass_list_input(ffn_model_subclass_list_
     assert explanations['data']['predictions'].shape[0] == N_TEST
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_multi_inputs', [({'output_dim': 2,
                                                       'activation': 'softmax',
                                                       'loss': 'categorical_crossentropy',
@@ -274,13 +301,16 @@ def test_integrated_gradients_model_subclass_list_input(ffn_model_subclass_list_
                                                       'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
-def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi_inputs, method, baselines):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi_inputs, method, baselines, target_fn,
+                                                                 target):
     model = ffn_model_multi_inputs
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_multi_inputs,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
 
     assert isinstance(explanations, Explanation)
     assert max([len(x) for x in X_test_multi_inputs]) == min([len(x) for x in X_test_multi_inputs])
@@ -300,6 +330,7 @@ def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi
     assert explanations['data']['predictions'].shape[0] == N_TEST
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_multi_inputs', [({'output_dim': 1,
                                                       'activation': 'sigmoid',
                                                       'loss': 'binary_crossentropy',
@@ -307,15 +338,24 @@ def test_integrated_gradients_binary_classification_multi_inputs(ffn_model_multi
                                                       'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('baselines', BASELINES_MULTI_INPUTS)
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
 def test_integrated_gradients_binary_classification_single_output_multi_inputs(ffn_model_multi_inputs,
                                                                                method,
-                                                                               baselines):
+                                                                               baselines,
+                                                                               target_fn,
+                                                                               target,
+                                                                               recwarn):
     model = ffn_model_multi_inputs
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test_multi_inputs,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
+
+    # check for warning if target_fn != None
+    if target_fn:
+        assert len(recwarn) == 1
 
     assert isinstance(explanations, Explanation)
     assert max([len(x) for x in X_test_multi_inputs]) == min([len(x) for x in X_test_multi_inputs])
@@ -335,6 +375,7 @@ def test_integrated_gradients_binary_classification_single_output_multi_inputs(f
     assert explanations['data']['predictions'].shape[0] == N_TEST
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 2,
                                          'activation': 'softmax',
                                          'loss': 'categorical_crossentropy',
@@ -342,13 +383,15 @@ def test_integrated_gradients_binary_classification_single_output_multi_inputs(f
                                          'y_train': y_train_classification_categorical})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS, ids='method={}'.format)
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_binary_classification(ffn_model, method, baselines):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_binary_classification(ffn_model, method, baselines, target_fn, target):
     model = ffn_model
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -360,6 +403,7 @@ def test_integrated_gradients_binary_classification(ffn_model, method, baselines
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 1,
                                          'activation': 'sigmoid',
                                          'loss': 'binary_crossentropy',
@@ -367,13 +411,20 @@ def test_integrated_gradients_binary_classification(ffn_model, method, baselines
                                          'y_train': y_train_classification_ordinal})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_binary_classification_single_output(ffn_model, method, baselines):
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
+def test_integrated_gradients_binary_classification_single_output(ffn_model, method, baselines, target_fn, target,
+                                                                  recwarn):
     model = ffn_model
-    ig = IntegratedGradients(model, n_steps=50, method=method)
+    ig = IntegratedGradients(model, target_fn=target_fn, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
+
+    # check for warning if target_fn != None
+    if target_fn:
+        assert len(recwarn) == 1
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -385,6 +436,8 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+# The following test doesn't use `target_fn` as the output of the model is squashed to shape (n,)
+# so the `target_fn` as defined would cause a `numpy.AxisError`.
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 1,
                                          'activation': 'sigmoid',
                                          'loss': 'binary_crossentropy',
@@ -393,13 +446,14 @@ def test_integrated_gradients_binary_classification_single_output(ffn_model, met
                                          'squash_output': True})], indirect=True)
 @pytest.mark.parametrize('method', INTEGRAL_METHODS)
 @pytest.mark.parametrize('baselines', BASELINES)
-def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method, baselines):
+@pytest.mark.parametrize('target', [test_labels], ids='target={}'.format)
+def test_integrated_gradients_binary_classification_single_output_squash_output(ffn_model, method, baselines, target):
     model = ffn_model
     ig = IntegratedGradients(model, n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels)
+                              target=target)
 
     assert isinstance(explanations, Explanation)
     assert explanations['data']['attributions'][0].shape == X_test.shape
@@ -411,6 +465,7 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model', [({'output_dim': 2,
                                          'activation': 'softmax',
                                          'loss': 'categorical_crossentropy',
@@ -420,23 +475,27 @@ def test_integrated_gradients_binary_classification_single_output_squash_output(
 @pytest.mark.parametrize('layer_nb', (None, 1))
 @pytest.mark.parametrize('baselines', BASELINES)
 @pytest.mark.parametrize('layer_inputs_attributions', (False, True))
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
 def test_integrated_gradients_binary_classification_layer(ffn_model,
                                                           method,
                                                           layer_nb,
                                                           baselines,
-                                                          layer_inputs_attributions):
+                                                          layer_inputs_attributions,
+                                                          target_fn,
+                                                          target):
     model = ffn_model
     if layer_nb is not None:
         layer = model.layers[layer_nb]
     else:
         layer = None
 
-    ig = IntegratedGradients(model, layer=layer,
+    ig = IntegratedGradients(model, target_fn=target_fn, layer=layer,
                              n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels,
+                              target=target,
                               attribute_to_layer_inputs=layer_inputs_attributions)
 
     assert isinstance(explanations, Explanation)
@@ -463,6 +522,7 @@ def test_integrated_gradients_binary_classification_layer(ffn_model,
     assert explanations['data']['predictions'].shape[0] == X_test.shape[0]
 
 
+@pytest.mark.uncollect_if(func=uncollect_if_both_or_neither_target_fn_target)
 @pytest.mark.parametrize('ffn_model_subclass', [({'output_dim': 2,
                                                   'activation': 'softmax',
                                                   'loss': 'categorical_crossentropy',
@@ -473,24 +533,28 @@ def test_integrated_gradients_binary_classification_layer(ffn_model,
 @pytest.mark.parametrize('baselines', BASELINES)
 @pytest.mark.parametrize('kwargs', KWARGS)
 @pytest.mark.parametrize('layer_inputs_attributions', (False, True))
+@pytest.mark.parametrize('target_fn', [target_fn, None], ids='target_fn={}'.format)
+@pytest.mark.parametrize('target', [test_labels, None], ids='target={}'.format)
 def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_subclass,
                                                                    method,
                                                                    layer_nb,
                                                                    baselines,
                                                                    kwargs,
-                                                                   layer_inputs_attributions):
+                                                                   layer_inputs_attributions,
+                                                                   target_fn,
+                                                                   target):
     model = ffn_model_subclass
     if layer_nb is not None:
         layer = model.layers[layer_nb]
     else:
         layer = None
 
-    ig = IntegratedGradients(model, layer=layer,
+    ig = IntegratedGradients(model, target_fn=target_fn, layer=layer,
                              n_steps=50, method=method)
 
     explanations = ig.explain(X_test,
                               baselines=baselines,
-                              target=test_labels,
+                              target=target,
                               forward_kwargs=kwargs,
                               attribute_to_layer_inputs=layer_inputs_attributions)
 

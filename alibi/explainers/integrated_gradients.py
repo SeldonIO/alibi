@@ -805,7 +805,7 @@ class IntegratedGradients(Explainer):
 
         """
         # target handling logic
-        if self.target_fn and target:
+        if self.target_fn and target is not None:
             msg = f'Both `target_fn` and `target` were provided. Only one of these should be provided.'
             raise ValueError(msg)
         if self.target_fn:

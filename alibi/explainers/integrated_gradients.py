@@ -583,8 +583,8 @@ def _get_target_from_target_fn(target_fn: Callable,
     # raise a warning if the predictions are scalar valued already
     # TODO: in the future we want to support outputs that are >2D at which point this check should change
     if preds.shape[-1] == 1:
-        msg = f"Predictions from the model are scalar valued but `target_fn` was passed. `target_fn` is not necessary" \
-              f"when predictions are scalar valued already. Using `target_fn` here may result in unexpected behaviour."
+        msg = "Predictions from the model are scalar valued but `target_fn` was passed. `target_fn` is not necessary" \
+              "when predictions are scalar valued already. Using `target_fn` here may result in unexpected behaviour."
         warnings.warn(msg)
 
     target = target_fn(preds)
@@ -815,7 +815,7 @@ class IntegratedGradients(Explainer):
         """
         # target handling logic
         if self.target_fn and target is not None:
-            msg = f'Both `target_fn` and `target` were provided. Only one of these should be provided.'
+            msg = 'Both `target_fn` and `target` were provided. Only one of these should be provided.'
             raise ValueError(msg)
         if self.target_fn:
             target = _get_target_from_target_fn(self.target_fn, self.model, X, forward_kwargs)

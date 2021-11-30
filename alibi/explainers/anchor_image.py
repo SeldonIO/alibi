@@ -215,6 +215,7 @@ class AnchorImageSampler:
 
         image = self.image
         segments = self.segments
+        backgrounds: Union[np.ndarray, List[None]]
 
         # choose superpixels to be perturbed
         segments_mask = self._choose_superpixels(num_samples, p_sample=self.p_sample)

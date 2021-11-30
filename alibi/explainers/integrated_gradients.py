@@ -7,7 +7,7 @@ import tensorflow as tf
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-from typing import Callable, Union, List, Tuple, Optional
+from typing import Callable, Union, List, Tuple, Optional, cast
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     if _is_list:
         start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
         end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
-
     else:
         start_point = tf.convert_to_tensor(start_point)
         end_point = tf.convert_to_tensor(end_point)
@@ -121,7 +120,7 @@ def _select_target(preds: tf.Tensor,
 
 
 def _run_forward(model: Union[tf.keras.models.Model],
-                 x: Union[List[tf.Tensor], List[np.ndarray]],
+                 x: Union[List[tf.Tensor], List[np.ndarray], tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list],
                  forward_kwargs: Optional[dict] = None) -> tf.Tensor:
     """
@@ -194,11 +193,13 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         Model's predictions for the given target.
 
     """
+
     def feed_layer(layer):
         """
         Overwrites the intermediate layer status with the precomputed values `x`.
 
         """
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Store the result and inputs of `layer.call` internally.
@@ -267,6 +268,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
         Stores the layer's outputs internally to the layer's object.
 
         """
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Store the result of `layer.call` internally.
@@ -425,6 +427,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         Gradients for each element of layer.
 
     """
+
     def watch_layer(layer, tape):
         """
         Make an intermediate hidden `layer` watchable by the `tape`.
@@ -767,12 +770,13 @@ class IntegratedGradients(Explainer):
             forward_kwargs = {}
 
         if self._is_list:
+            X = cast(List[np.ndarray], X)  # help mypy out
             self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
             nb_samples = len(X[0])
             input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
             if baselines is None:
-                baselines = [None for _ in range(len(X))]
+                baselines = [None for _ in range(len(X))]  # type: ignore
             else:
                 if not isinstance(baselines, list):
                     raise ValueError(f"If the input X is a list, baseline can only be `None` or "
@@ -792,11 +796,12 @@ class IntegratedGradients(Explainer):
                 baselines[i] = baseline  # type: ignore
 
         elif self._is_np:
+            X = cast(np.ndarray, X)  # help mypy out
             self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
             input_dtypes = [X.dtype]  # type: ignore
             # Formatting baselines for models with a single input
-            baselines = _format_baseline(X, baselines)
+            baselines = _format_baseline(X, baselines)  # type: ignore # TODO: validate/narrow baselines type
 
         else:
             raise ValueError("Input must be a np.ndarray or a list of np.ndarray")
@@ -807,6 +812,7 @@ class IntegratedGradients(Explainer):
         target = _format_target(target, nb_samples)
 
         if self._is_list:
+            X = cast(List[np.ndarray], X)  # help mypy out
             # Attributions calculation in case of multiple inputs
             if not self._has_inputs:
                 # Inferring model's inputs from data points for models with no explicit inputs
@@ -819,7 +825,7 @@ class IntegratedGradients(Explainer):
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions = self._compute_attributions_list_input(X,
-                                                                     baselines,
+                                                                     baselines,  # type: ignore # TODO: validate/narrow
                                                                      target,
                                                                      step_sizes,
                                                                      alphas,
@@ -830,7 +836,7 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,
+                                                                   baselines,  # type: ignore # TODO: validate/narrow
                                                                    self.model,
                                                                    self.layer,
                                                                    self.orig_call,
@@ -877,7 +883,7 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,
+                                                                   baselines,  # type: ignore # TODO: validate/narrow
                                                                    self.model,
                                                                    self.layer,
                                                                    self.orig_call,
@@ -906,7 +912,7 @@ class IntegratedGradients(Explainer):
         deltas = _compute_convergence_delta(self.model,
                                             input_dtypes,
                                             attributions,
-                                            baselines,
+                                            baselines,  # type: ignore # TODO: validate/narrow
                                             X,
                                             forward_kwargs,
                                             target,
@@ -915,14 +921,14 @@ class IntegratedGradients(Explainer):
         return self.build_explanation(
             X=X,
             forward_kwargs=forward_kwargs,
-            baselines=baselines,
+            baselines=baselines,  # type: ignore # TODO: validate/narrow
             target=target,
             attributions=attributions,
             deltas=deltas
         )
 
     def build_explanation(self,
-                          X: List[np.ndarray],
+                          X: Union[List[np.ndarray], np.ndarray],
                           forward_kwargs: Optional[dict],
                           baselines: List[np.ndarray],
                           target: Optional[List[int]],
@@ -933,7 +939,7 @@ class IntegratedGradients(Explainer):
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         predictions = self.model(X, **forward_kwargs).numpy()
         if isinstance(attributions[0], tf.Tensor):
-            attributions = [attr.numpy() for attr in attributions]
+            attributions = [attr.numpy() for attr in attributions]  # type: ignore # TODO: cast didn't work here
         data.update(X=X,
                     forward_kwargs=forward_kwargs,
                     baselines=baselines,

@@ -34,7 +34,7 @@ def predict_fn(request):
             # NB: torch models need dtype=torch.float32, we are not setting it here
             # to test that `dtype` argument to AnchorImage does the right thing when
             # a dummy call is made
-            image = torch.as_tensor(np.moveaxis(image, -1, 1))
+            image = torch.as_tensor(np.moveaxis(image, -1, 1))  # type: ignore
             return request.param[0].forward(image).detach().numpy()
     else:
         raise ValueError(f'Unknown model {request.param[0]} of type {type(request.param[0])}')

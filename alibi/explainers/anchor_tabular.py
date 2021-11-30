@@ -286,8 +286,8 @@ class TabularSampler:
         num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)
         if num_samples_pos == 0:
             samples_idxs = np.random.choice(partial_anchor_rows[-1], num_samples)
-            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]
-            d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]
+            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
+            d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
 
             return samples, d_samples, coverage
 
@@ -389,7 +389,8 @@ class TabularSampler:
                         replace=True,
                     )
                 n_samp = num_samples
-            samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[np.ix_(samp_idxs, uniq_feat_ids[idx:])]
+            samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[
+                np.ix_(samp_idxs, uniq_feat_ids[idx:])]  # type: ignore
 
             # deal with partial anchors; idx = 0 means that we actually sample the entire anchor
             if idx > 0:

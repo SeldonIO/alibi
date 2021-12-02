@@ -175,7 +175,7 @@ class ALE(Explainer):
         # I've replaced this with feature deciles which is coarser but has constant space complexity
         # as opposed to a rugplot. Alternatively, could consider subsampling to produce a rug with some
         # maximum number of points.
-        return self.__build_explanation(
+        return self._build_explanation(
             ale_values=ale_values,
             ale0=ale0,
             constant_value=constant_value,
@@ -184,13 +184,13 @@ class ALE(Explainer):
             feature_names=feature_names
         )
 
-    def __build_explanation(self,
-                            ale_values: List[np.ndarray],
-                            ale0: List[np.ndarray],
-                            constant_value: float,
-                            feature_values: List[np.ndarray],
-                            feature_deciles: List[np.ndarray],
-                            feature_names: np.ndarray) -> Explanation:
+    def _build_explanation(self,
+                           ale_values: List[np.ndarray],
+                           ale0: List[np.ndarray],
+                           constant_value: float,
+                           feature_values: List[np.ndarray],
+                           feature_deciles: List[np.ndarray],
+                           feature_names: np.ndarray) -> Explanation:
         """
         Helper method to build the Explanation object.
         """

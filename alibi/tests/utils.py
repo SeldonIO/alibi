@@ -16,17 +16,18 @@ class MockPredictor:
     def __init__(self,
                  out_dim: int,
                  out_type: str = 'proba',
-                 model_type: Optional[str] = None,
                  seed: Optional[int] = None,
                  ) -> None:
         """
         Parameters
         ----------
-            out_dim
-                The number of output classes.
-            out_type
-                Indicates if probabilities, class predictions or continuous outputs
-                are generated.
+        out_dim
+            The number of output classes.
+        out_type
+            Indicates if probabilities, class predictions or continuous outputs
+            are generated.
+        seed
+            Random seed.
 
         """
 
@@ -35,7 +36,6 @@ class MockPredictor:
         self.out_dim = out_dim
         self.num_outputs = out_dim
         self.out_type = out_type
-        self.model_type = model_type
         if out_type not in OUT_TYPES:
             raise ValueError("Unknown output type. Accepted values are {}".format(OUT_TYPES))
 

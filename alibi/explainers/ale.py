@@ -106,19 +106,20 @@ class ALE(Explainer):
 
         Returns
         -------
+        Explanation
             An `Explanation` object containing the data and the metadata of the calculated ALE curves.
             Data-related attributes:
-             - ``ale_values`` - a list of arrays of ALE values (one for each feature). Each array can have multiple \
-            columns (if the number of targets is >1 as in classification).
-             - ``constant_value`` - the mean prediction over  (zeroth order effects).
-             - ``ale0`` - a list of “centering” values (one for each feature) used by the algorithm to center the \
-            ``ale_values`` around the expected effect for the feature (i.e. the sum of ``ale_values`` and \
-            ``ale0`` will be the uncentered ALE).
-             - ``feature_values`` - a list of arrays (one for each feature) of feature values at which the ALE values \
-            were computed.
-             - ``feature_names`` - a list of feature names.
-             - ``target_names`` - a list of target names.
-             - ``feature_deciles`` - a list of arrays (one for each feature) of the feature deciles.
+             - `ale_values` : List[np.ndarray] - a list of arrays of ALE values (one for each feature). Each array \
+             can have multiple columns (if the number of targets is >1 as in classification).
+             - `constant_value` : float - the mean prediction over  (zeroth order effects).
+             - `ale0` : List[np.ndarray] - a list of “centering” values (one for each feature) used by the algorithm \
+             to center the `ale_values` around the expected effect for the feature (i.e. the sum of `ale_values` \
+             and `ale0` will be the uncentered ALE).
+             - `feature_values` : List[np.ndarray] - a list of arrays (one for each feature) of feature values at \
+             which the ALE values were computed.
+             - `feature_names` : np.ndarray - a list of feature names.
+             - `target_names` : np.ndarray - a list of target names.
+             - `feature_deciles` : List[np.ndarray] - a list of arrays (one for each feature) of the feature deciles.
 
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
@@ -389,7 +390,7 @@ def ale_num(
     q : np.ndarray
         Array of quantiles of the input values.
     ale : np.ndarray
-        ALE values for each feature at each of the points in q.
+        ALE values for each feature at each of the points in `q`.
     ale0 : np.ndarray
         The constant offset used to center the ALE curves.
 

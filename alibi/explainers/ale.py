@@ -38,39 +38,39 @@ class ALE(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes in an NxF array as input and outputs an NxT array (N - number of
-            data points, F - number of features, T - number of outputs/targets (e.g. 1 for single output
-            regression, >=2 for classification).
+            A callable that takes in an `N x F` array as input and outputs an `N x T` array (`N` - number of
+            data points, `F` - number of features, `T` - number of outputs/targets (e.g. 1 for single output
+            regression, >=2 for classification)).
         feature_names
             A list of feature names used for displaying results.
         target_names
             A list of target/output names used for displaying results.
         check_feature_resolution
-            If true, the number of unique values is calculated for each feature and if it is less than
+            If ``True``, the number of unique values is calculated for each feature and if it is less than
             `low_resolution_threshold` then the feature values are used for gridpoints instead of quantiles.
             This may increase the runtime of the algorithm for large datasets.
         low_resolution_threshold
             If a feature has at most this many unique values, these are used as the grid points instead of
             quantiles. This is to avoid situations when the quantile algorithm returns quantiles between discrete
             values which can result in jumps in the ALE plot obscuring the true effect. Only used if
-            `check_feature_resolution` is True.
+            `check_feature_resolution` is ``True``.
         extrapolate_constant
             If a feature is constant, only one quantile exists where all the data points lie. In this case the
-            ALE value at that poiny is zero, however this may be misleading if the feature does have an effect on
-            the model. If this parameter is set to `True`, the ALE values are calculated on an interval surrounding
+            ALE value at that point is zero, however this may be misleading if the feature does have an effect on
+            the model. If this parameter is set to ``True``, the ALE values are calculated on an interval surrounding
             the constant value. The interval length is controlled by the `extrapolate_constant_perc` and
             `extrapolate_constant_min` arguments.
         extrapolate_constant_perc
             Percentage by which to extrapolate a constant feature value to create an interval for ALE calculation.
             If `q` is the constant feature value, creates an interval
             `[q - q/extrapolate_constant_perc, q + q/extrapolate_constant_perc]` for which ALE is calculated.
-            Only relevant if `extrapolate_constant` is set to `True`.
+            Only relevant if `extrapolate_constant` is set to ``True``.
         extrapolate_constant_min
             Controls the minimum extrapolation length for constant features. An interval constructed for constant
-            features is guaranteed to be 2*extrapolate_constant_min wide centered on the feature value. This allows
+            features is guaranteed to be `2 x extrapolate_constant_min` wide centered on the feature value. This allows
             for capturing model behaviour around constant features which have small value so that
             `extrapolate_constant_perc` is not so helpful.
-            Only relevant if `extrapolate_constant` is set to `True`.
+            Only relevant if `extrapolate_constant` is set to ``True``.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ALE))
 
@@ -96,7 +96,7 @@ class ALE(Explainer):
         Parameters
         ----------
         X
-            An NxF tabular dataset used to calculate the ALE curves. This is typically the training dataset
+            An `N x F` tabular dataset used to calculate the ALE curves. This is typically the training dataset
             or a representative sample.
         features:
             Features for which to calculate ALE.
@@ -107,6 +107,18 @@ class ALE(Explainer):
         Returns
         -------
             An `Explanation` object containing the data and the metadata of the calculated ALE curves.
+            Data-related attributes:
+             - ``ale_values`` - a list of arrays of ALE values (one for each feature). Each array can have multiple \
+            columns (if the number of targets is >1 as in classification).
+             - ``constant_value`` - the mean prediction over  (zeroth order effects).
+             - ``ale0`` - a list of “centering” values (one for each feature) used by the algorithm to center the \
+            ``ale_values`` around the expected effect for the feature (i.e. the sum of ``ale_values`` and \
+            ``ale0`` will be the uncentered ALE).
+             - ``feature_values`` - a list of arrays (one for each feature) of feature values at which the ALE values \
+            were computed.
+             - ``feature_names`` - a list of feature names.
+             - ``target_names`` - a list of target names.
+             - ``feature_deciles`` - a list of arrays (one for each feature) of the feature deciles.
 
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
@@ -162,7 +174,7 @@ class ALE(Explainer):
         # I've replaced this with feature deciles which is coarser but has constant space complexity
         # as opposed to a rugplot. Alternatively, could consider subsampling to produce a rug with some
         # maximum number of points.
-        return self.build_explanation(
+        return self.__build_explanation(
             ale_values=ale_values,
             ale0=ale0,
             constant_value=constant_value,
@@ -171,13 +183,13 @@ class ALE(Explainer):
             feature_names=feature_names
         )
 
-    def build_explanation(self,
-                          ale_values: List[np.ndarray],
-                          ale0: List[np.ndarray],
-                          constant_value: float,
-                          feature_values: List[np.ndarray],
-                          feature_deciles: List[np.ndarray],
-                          feature_names: np.ndarray) -> Explanation:
+    def __build_explanation(self,
+                            ale_values: List[np.ndarray],
+                            ale0: List[np.ndarray],
+                            constant_value: float,
+                            feature_values: List[np.ndarray],
+                            feature_deciles: List[np.ndarray],
+                            feature_names: np.ndarray) -> Explanation:
         """
         Helper method to build the Explanation object.
         """
@@ -199,6 +211,14 @@ class ALE(Explainer):
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New model prediction function.
+        """
         self.predictor = predictor
 
 
@@ -215,7 +235,8 @@ def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='li
 
     Returns
     -------
-    Array of quantiles of the input values.
+    quantiles : np.ndarray
+        Array of quantiles of the input values.
 
     """
     percentiles = np.linspace(0, 100, num=num_quantiles)
@@ -227,14 +248,14 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
     """
     Bisection algorithm for function evaluation with integer support.
 
-    Assumes the function is non-decreasing on the interval [lo, hi].
-    Return an integer value v such that for all x<v, fun(x)<target and for all x>=v fun(x)>=target.
+    Assumes the function is non-decreasing on the interval `[lo, hi]`.
+    Return an integer value v such that for all `x<v, fun(x)<target` and for all `x>=v, fun(x)>=target`.
     This is equivalent to the library function `bisect.bisect_left` but for functions defined on integers.
 
     Parameters
     ----------
     fun
-        A function defined on integers in the range [lo, hi] and returning floats.
+        A function defined on integers in the range `[lo, hi]` and returning floats.
     target
         Target value to be searched for.
     lo
@@ -244,7 +265,8 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
 
     Returns
     -------
-    Integer index.
+    lo : int
+        Integer index.
 
     """
     while lo < hi:
@@ -258,7 +280,7 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
 
 def minimum_satisfied(values: np.ndarray, min_bin_points: int, n: int) -> int:
     """
-    Calculates whether the partition into bins induced by n quantiles
+    Calculates whether the partition into bins induced by `n` quantiles
     has the minimum number of points in each resulting bin.
 
     Parameters
@@ -272,7 +294,9 @@ def minimum_satisfied(values: np.ndarray, min_bin_points: int, n: int) -> int:
 
     Returns
     -------
+    int
         Integer encoded boolean with 1 - each bin has at least `min_bin_points` and 0 otherwise.
+
     """
     q = np.unique(get_quantiles(values, num_quantiles=n))
     indices = np.searchsorted(q, values, side='left')
@@ -296,9 +320,9 @@ def adaptive_grid(values: np.ndarray, min_bin_points: int = 1) -> Tuple[np.ndarr
 
     Returns
     -------
-    q
+    q : np.ndarray
         Unique quantiles.
-    num_quantiles
+    num_quantiles : int
         Number of non-unique quantiles the feature array was subdivided into.
 
     Notes
@@ -362,11 +386,11 @@ def ale_num(
 
     Returns
     -------
-    q
+    q : np.ndarray
         Array of quantiles of the input values.
-    ale
+    ale : np.ndarray
         ALE values for each feature at each of the points in q.
-    ale0
+    ale0 : np.ndarray
         The constant offset used to center the ALE curves.
 
     """
@@ -480,7 +504,8 @@ def plot_ale(exp: Explanation,
 
     Returns
     -------
-    An array of matplotlib axes with the resulting ALE plots.
+    np.ndarray
+        An array of matplotlib axes with the resulting ALE plots.
 
     """
     import matplotlib.pyplot as plt

@@ -1366,7 +1366,6 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
-
     @beartype
     def explain(self,  # type: ignore[override]
                 text: str,

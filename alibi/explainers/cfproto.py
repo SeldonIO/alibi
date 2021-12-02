@@ -660,7 +660,6 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             self.writer = None
 
-
     @beartype
     def fit(self,
             train_data: np.ndarray,
@@ -1274,7 +1273,6 @@ class CounterfactualProto(Explainer, FitMixin):
             best_attack = np.expand_dims(best_attack, axis=0)
 
         return best_attack, overall_best_grad
-
 
     @beartype
     def explain(self,

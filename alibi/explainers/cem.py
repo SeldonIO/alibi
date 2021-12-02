@@ -657,7 +657,6 @@ class CEM(Explainer, FitMixin):
             best_attack = X - best_attack
         return best_attack, overall_best_grad
 
-
     @beartype
     def explain(self, X: np.ndarray, Y: Optional[np.ndarray] = None, verbose: bool = False) -> Explanation:
         """

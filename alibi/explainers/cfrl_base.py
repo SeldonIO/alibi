@@ -787,7 +787,6 @@ class CounterfactualRL(Explainer, FitMixin):
         """
         return len(pred.shape) == 2 and pred.shape[1] > 1
 
-
     @beartype
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,

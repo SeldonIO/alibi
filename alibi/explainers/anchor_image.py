@@ -439,7 +439,6 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
-
     @beartype
     def explain(self,  # type: ignore[override]
                 image: np.ndarray,

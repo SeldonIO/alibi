@@ -736,7 +736,6 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
-
     @beartype
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,

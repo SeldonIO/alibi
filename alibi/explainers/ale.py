@@ -91,7 +91,6 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
-
     @beartype
     def explain(self, X: np.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4) -> Explanation:
         """

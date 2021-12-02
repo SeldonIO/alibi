@@ -250,7 +250,7 @@ class AnchorImageSampler:
                 mask[segments == superpixel] = True
             if background_idx is not None:
                 # replace values with those of background image
-                temp[mask] = self.images_background[background_idx][mask]
+                temp[mask] = self.images_background[background_idx][mask]  # type: ignore[index]
             else:
                 # ... or with the averaged superpixel value
                 temp[mask] = fudged_image[mask]
@@ -436,7 +436,7 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
-    def explain(self,  # type: ignore
+    def explain(self,  # type: ignore[override]
                 image: np.ndarray,
                 p_sample: float = 0.5,
                 threshold: float = 0.95,

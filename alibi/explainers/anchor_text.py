@@ -5,7 +5,7 @@ from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
 from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
-                    Union)
+                    Type, Union)
 
 import numpy as np
 import spacy
@@ -56,8 +56,8 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.L
         # https://github.com/explosion/spaCy/discussions/6388#discussioncomment-331096
         if 'lexeme_prob' not in nlp.vocab.lookups.tables:
             from spacy.lookups import load_lookups
-            lookups = load_lookups(nlp.lang, ['lexeme_prob'])  # type: ignore
-            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))  # type: ignore
+            lookups = load_lookups(nlp.lang, ['lexeme_prob'])  # type: ignore[arg-type]
+            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))
 
     return nlp
 
@@ -142,7 +142,7 @@ class AnchorTextSampler:
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
         Function to concatenate an np.array of strings along a specified axis.
 
@@ -756,7 +756,7 @@ class LanguageModelSampler(AnchorTextSampler):
         # convert to array and return
         return np.array(full_raw, dtype=self.dtype_sent)
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
         Function to concatenate an np.array of strings along a specified axis.
 
@@ -1364,7 +1364,7 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
-    def explain(self,  # type: ignore
+    def explain(self,  # type: ignore[override]
                 text: str,
                 threshold: float = 0.95,
                 delta: float = 0.1,

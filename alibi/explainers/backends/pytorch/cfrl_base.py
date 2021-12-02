@@ -63,9 +63,9 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
                                         batch_size=self.batch_size)
 
         # Define number of classes for classification & minimum and maximum labels for regression
-        self.num_classes: Optional[int] = None
-        self.min_m: Optional[float] = None
-        self.max_m: Optional[float] = None
+        self.num_classes: int
+        self.min_m: float
+        self.max_m: float
 
         if self.Y_m.shape[1] > 1:
             self.num_classes = self.Y_m.shape[1]
@@ -80,7 +80,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        if self.num_classes is not None:
+        if hasattr(self, 'num_classes'):
             # Generate random target for classification task
             tgt = np.random.randint(low=0, high=self.num_classes, size=1)
             Y_t = np.zeros(self.num_classes)

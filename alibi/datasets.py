@@ -51,15 +51,16 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
     (data, target)
         Tuple if ``return_X_y`` is true
     """
-    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "data/cats.tar.gz")), mode='r:gz')  # type: ignore
+    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "data/cats.tar.gz")),  # type: ignore[arg-type]
+                       mode='r:gz')
     images = []
     target = []
     target_names = []
     for member in tar.getmembers():
         # data
-        img = tar.extractfile(member).read()  # type: ignore
+        img = tar.extractfile(member).read()  # type: ignore[union-attr]
         img = PIL.Image.open(BytesIO(img))
-        img = np.expand_dims(img.resize(target_size), axis=0)  # type: ignore
+        img = np.expand_dims(img.resize(target_size), axis=0)
         images.append(img)
 
         # labels
@@ -71,7 +72,7 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
     images = np.concatenate(images, axis=0)
     targets = np.asarray(target)
     if return_X_y:
-        return images, targets  # type: ignore
+        return images, targets  # type: ignore[return-value] # TODO: allow redefiniton
     else:
         return Bunch(data=images, target=targets, target_names=target_names)
 
@@ -115,7 +116,7 @@ def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bu
     labels = []
     for i, member in enumerate(tar.getnames()[1:]):
         f = tar.extractfile(member)
-        for line in f.readlines():  # type: ignore
+        for line in f.readlines():  # type: ignore[union-attr]
             try:
                 line.decode('utf8')
             except UnicodeDecodeError:

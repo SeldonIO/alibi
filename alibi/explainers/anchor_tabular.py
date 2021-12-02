@@ -291,8 +291,8 @@ class TabularSampler:
         num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)
         if num_samples_pos == 0:
             samples_idxs = np.random.choice(partial_anchor_rows[-1], num_samples)
-            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
-            d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
+            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
+            d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
 
             return samples, d_samples, coverage
 
@@ -380,7 +380,7 @@ class TabularSampler:
 
         # replace partial anchors with partial anchors drawn from the training dataset
         # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
-        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore[misc]
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp
@@ -394,8 +394,7 @@ class TabularSampler:
                         replace=True,
                     )
                 n_samp = num_samples
-            samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[
-                np.ix_(samp_idxs, uniq_feat_ids[idx:])]  # type: ignore
+            samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[np.ix_(samp_idxs, uniq_feat_ids[idx:])]  # type: ignore[arg-type]
 
             # deal with partial anchors; idx = 0 means that we actually sample the entire anchor
             if idx > 0:
@@ -518,7 +517,7 @@ class TabularSampler:
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore[arg-type]
             return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
@@ -733,7 +732,9 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
-    def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
+    def fit(self,  # type: ignore[override]
+            train_data: np.ndarray,
+            disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),
             **kwargs) -> "AnchorTabular":
         """
         Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for
@@ -757,7 +758,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.feature_values.update(disc.feature_intervals)
 
         sampler = TabularSampler(
-            self._predictor,  # type: ignore # TODO: fix me, ignored as can be None due to saving.py
+            self._predictor,  # type: ignore[arg-type] # TODO: fix me, ignored as can be None due to saving.py
             disc_perc,
             self.numerical_features,
             self.categorical_features,
@@ -1081,7 +1082,10 @@ class DistributedAnchorTabular(AnchorTabular):
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> "AnchorTabular":  # type: ignore
+    def fit(self,  # type: ignore[override]
+            train_data: np.ndarray,
+            disc_perc: tuple = (25, 50, 75),
+            **kwargs) -> "AnchorTabular":
         """
         Creates a list of handles to parallel processes handles that are used for submitting sampling
         tasks.
@@ -1116,7 +1120,7 @@ class DistributedAnchorTabular(AnchorTabular):
         )
         train_data_id = DistributedAnchorTabular.ray.put(train_data)
         d_train_data_id = DistributedAnchorTabular.ray.put(d_train_data)
-        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore
+        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore[arg-type]
         d_samplers = []
         for sampler in samplers:
             d_samplers.append(

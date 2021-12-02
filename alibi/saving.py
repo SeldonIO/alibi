@@ -103,11 +103,11 @@ def save_explainer(explainer: 'Explainer', path: Union[str, os.PathLike]) -> Non
 
 
 def _simple_save(explainer: 'Explainer', path: Union[str, os.PathLike]) -> None:
-    predictor = explainer.predictor  # type: ignore
-    explainer.predictor = None  # type: ignore
+    predictor = explainer.predictor  # type: ignore[attr-defined] # TODO: declare this in the Explainer interface
+    explainer.predictor = None  # type: ignore[attr-defined]
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
-    explainer.predictor = predictor  # type: ignore
+    explainer.predictor = predictor  # type: ignore[attr-defined]
 
 
 def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
@@ -165,7 +165,7 @@ def _save_AnchorImage(explainer: 'AnchorImage', path: Union[str, os.PathLike]) -
         dill.dump(segmentation_fn, f, recurse=True)
 
     predictor = explainer.predictor
-    explainer.predictor = None  # type: ignore
+    explainer.predictor = None  # type: ignore[assignment]
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
     explainer.segmentation_fn = segmentation_fn
@@ -216,8 +216,8 @@ def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> 
     dir_name = 'nlp' if sampling_strategy in nlp_sampling else 'language_model'
     model.to_disk(Path(path, dir_name))
 
-    explainer.model = None  # type: ignore
-    explainer.predictor = None  # type: ignore
+    explainer.model = None  # type: ignore[assignment]
+    explainer.predictor = None  # type: ignore[assignment]
     explainer.perturbation = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:

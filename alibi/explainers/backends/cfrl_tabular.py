@@ -6,10 +6,10 @@ This module contains utility functions for the Counterfactual with Reinforcement
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
-import pandas as pd  # type: ignore
-from scipy.special import softmax  # type: ignore
-from sklearn.compose import ColumnTransformer  # type: ignore
-from sklearn.preprocessing import OneHotEncoder, StandardScaler  # type: ignore
+import pandas as pd
+from scipy.special import softmax
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 if TYPE_CHECKING:
     import tensorflow as tf
@@ -506,7 +506,7 @@ def get_he_preprocessor(X: np.ndarray,
 
         np_X_inv = np_X_inv[:, inv_perm].astype(object)
         for i, fn in enumerate(feature_names):
-            type = feature_types[fn] if fn in feature_types else float  # type: ignore # TODO: closure resets type info?
+            type = feature_types[fn] if fn in feature_types else float  # type: ignore[index,operator]
             np_X_inv[:, i] = np_X_inv[:, i].astype(type)
 
         return np_X_inv

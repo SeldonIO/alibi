@@ -740,7 +740,7 @@ class KernelShap(Explainer, FitMixin):
         if not self.use_groups:
             group_names, groups = None, None
         else:
-            self.feature_names = group_names  # type:ignore # TODO: fix me
+            self.feature_names = group_names  # type: ignore[assignment]
 
         # perform grouping if requested by the user
         self.background_data = self._get_data(background_data, group_names, groups, weights, **kwargs)
@@ -1095,7 +1095,7 @@ class TreeShap(Explainer, FitMixin):
         self._update_metadata({"task": self.task})
         self._update_metadata({"model_output": self.model_output}, params=True)
 
-    def fit(self,  # type: ignore
+    def fit(self,  # type: ignore[override]
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,

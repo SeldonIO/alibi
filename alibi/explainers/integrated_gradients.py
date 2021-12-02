@@ -777,8 +777,8 @@ class IntegratedGradients(Explainer):
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,
-                baselines: Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]] = None,
-                target: Union[int, list, np.ndarray] = None,
+                baselines: Optional[Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]]] = None,
+                target: Optional[Union[int, list, np.ndarray]] = None,
                 attribute_to_layer_inputs: bool = False) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
@@ -865,7 +865,7 @@ class IntegratedGradients(Explainer):
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        target = _format_target(target, nb_samples)
+        target = _format_target(target, nb_samples)  # type: ignore[assignment]
 
         if self._is_list:
             X = cast(List[np.ndarray], X)  # help mypy out
@@ -876,12 +876,12 @@ class IntegratedGradients(Explainer):
                 inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inputs, **forward_kwargs)
 
-            _validate_output(self.model, target)
+            _validate_output(self.model, target)  # type: ignore[arg-type]
 
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions = self._compute_attributions_list_input(X,
-                                                                     baselines,  # type: ignore # TODO: validate/narrow
+                                                                     baselines,  # type: ignore[arg-type]
                                                                      target,
                                                                      step_sizes,
                                                                      alphas,
@@ -892,10 +892,10 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,  # type: ignore # TODO: validate/narrow
+                                                                   baselines,  # type: ignore[arg-type]
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,  # type: ignore # TODO: fix me
+                                                                   self.orig_call,  # type: ignore[arg-type]
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -939,10 +939,10 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,  # type: ignore # TODO: validate/narrow
+                                                                   baselines,  # type: ignore[arg-type]
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,  # type: ignore # TODO: fix me
+                                                                   self.orig_call,  # type: ignore[arg-type]
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -968,7 +968,7 @@ class IntegratedGradients(Explainer):
         deltas = _compute_convergence_delta(self.model,
                                             input_dtypes,
                                             attributions,
-                                            baselines,  # type: ignore # TODO: validate/narrow
+                                            baselines,  # type: ignore[arg-type]
                                             X,
                                             forward_kwargs,
                                             target,
@@ -977,7 +977,7 @@ class IntegratedGradients(Explainer):
         return self.build_explanation(
             X=X,
             forward_kwargs=forward_kwargs,
-            baselines=baselines,  # type: ignore # TODO: validate/narrow
+            baselines=baselines,  # type: ignore[arg-type]
             target=target,
             attributions=attributions,
             deltas=deltas
@@ -995,7 +995,7 @@ class IntegratedGradients(Explainer):
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
         predictions = self.model(X, **forward_kwargs).numpy()
         if isinstance(attributions[0], tf.Tensor):
-            attributions = [attr.numpy() for attr in attributions]  # type: ignore # TODO: cast didn't work here
+            attributions = [attr.numpy() for attr in attributions]  # type: ignore[union-attr]
         data.update(X=X,
                     forward_kwargs=forward_kwargs,
                     baselines=baselines,
@@ -1110,8 +1110,8 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,  # type: ignore # TODO: fix me
-                                           self.orig_dummy_input,
+                                           self.orig_call,  # type: ignore[arg-type]
+                                           self.orig_dummy_input,  # type: ignore[arg-type]
                                            paths_b,
                                            target_b,
                                            forward_kwargs=kwargs_b,
@@ -1224,8 +1224,8 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,  # type: ignore # TODO: fix me
-                                           self.orig_dummy_input,
+                                           self.orig_call,  # type: ignore[arg-type]
+                                           self.orig_dummy_input,  # type: ignore[arg-type]
                                            paths_b,
                                            target_b,
                                            forward_kwargs=kwargs_b,

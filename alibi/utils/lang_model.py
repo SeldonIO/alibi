@@ -60,7 +60,7 @@ class LanguageModel(abc.ABC):
             self.model = TFAutoModelForMaskedLM.from_pretrained(model_path)
 
             # To understand the type: ignore see https://github.com/python/mypy/issues/2427
-            self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore
+            self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore[assignment]
 
             # set tokenizer
             self.tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -78,7 +78,7 @@ class LanguageModel(abc.ABC):
         self.model = TFAutoModelForMaskedLM.from_pretrained(path, local_files_only=True)
 
         # To understand the type: ignore see https://github.com/python/mypy/issues/2427
-        self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore
+        self.caller = tf.function(self.model.call, experimental_relax_shapes=True)  # type: ignore[assignment]
 
         # set tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(path, local_files_only=True)

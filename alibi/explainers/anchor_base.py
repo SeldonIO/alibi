@@ -199,7 +199,7 @@ class AnchorBaseBeam:
         return coverage_data
 
     def select_critical_arms(self, means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray,
-                             delta: float, top_n: int, t: int):  # type: ignore
+                             delta: float, top_n: int, t: int):
         """
         Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
         the lower bound for anchors with high empirical precision.
@@ -475,7 +475,7 @@ class AnchorBaseBeam:
                 (self.state['labels'], np.zeros(prealloc_size, labels.dtype))
             )
 
-        return labels.sum(), data.shape[0]  # type: ignore
+        return labels.sum(), data.shape[0]
 
     def get_init_stats(self, anchors: list, coverages=False) -> dict:
         """
@@ -836,7 +836,8 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable]) -> np.ndarray:  # type: ignore
+    def _get_coverage_samples(self, coverage_samples: int,  # type: ignore[override]
+                              samplers: List[Callable]) -> np.ndarray:
         """
         Sends a request for a coverage set to process running sampling tasks.
 
@@ -855,7 +856,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         return coverage_data
 
-    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore
+    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore[override]
         """
         Distributes sampling requests among processes running sampling tasks.
 

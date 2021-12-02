@@ -63,10 +63,6 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
                                         batch_size=self.batch_size)
 
         # Define number of classes for classification & minimum and maximum labels for regression
-        self.num_classes: Optional[int] = None
-        self.min_m: Optional[float] = None
-        self.max_m: Optional[float] = None
-
         if self.Y_m.shape[1] > 1:
             self.num_classes = self.Y_m.shape[1]
         else:
@@ -80,7 +76,7 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
         return self.X.shape[0]
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        if self.num_classes is not None:
+        if hasattr(self, 'num_classes'):
             # Generate random target for classification task
             tgt = np.random.randint(low=0, high=self.num_classes, size=1)
             Y_t = np.zeros(self.num_classes)
@@ -462,24 +458,24 @@ def update_actor_critic(encoder: nn.Module,
     losses: Dict[str, float] = dict()
 
     # Transform data to tensors and it device
-    X = torch.tensor(X).float().to(device)                                  # type: ignore
-    X_cf = torch.tensor(X_cf).float().to(device)                            # type: ignore
-    Z = torch.tensor(Z).float().to(device)                                  # type: ignore
-    Z_cf_tilde = torch.tensor(Z_cf_tilde).float().to(device)                # type: ignore
-    Y_m = torch.tensor(Y_m).float().to(device)                              # type: ignore
-    Y_t = torch.tensor(Y_t).float().to(device)                              # type: ignore
-    C = torch.tensor(C).float().to(device) if (C is not None) else None     # type: ignore
-    R_tilde = torch.tensor(R_tilde).float().to(device)                      # type: ignore
+    X = torch.tensor(X).float().to(device)  # type: ignore
+    X_cf = torch.tensor(X_cf).float().to(device)  # type: ignore
+    Z = torch.tensor(Z).float().to(device)  # type: ignore
+    Z_cf_tilde = torch.tensor(Z_cf_tilde).float().to(device)  # type: ignore
+    Y_m = torch.tensor(Y_m).float().to(device)  # type: ignore
+    Y_t = torch.tensor(Y_t).float().to(device)  # type: ignore
+    C = torch.tensor(C).float().to(device) if (C is not None) else None  # type: ignore
+    R_tilde = torch.tensor(R_tilde).float().to(device)  # type: ignore
 
     # Define state by concatenating the input embedding, the classification label, the target label, and optionally
     # the conditional vector if exists.
     state = [Z, Y_m, Y_t] + ([C] if (C is not None) else [])  # type: ignore
-    state = torch.cat(state, dim=1).to(device)                # type: ignore
+    state = torch.cat(state, dim=1).to(device)  # type: ignore
 
     # Define input for critic, compute q-values and append critic's loss.
     input_critic = torch.cat([state, Z_cf_tilde], dim=1).float()  # type: ignore
-    output_critic = critic(input_critic).squeeze(1)               # type: ignore
-    loss_critic = F.mse_loss(output_critic, R_tilde)              # type: ignore
+    output_critic = critic(input_critic).squeeze(1)  # type: ignore
+    loss_critic = F.mse_loss(output_critic, R_tilde)  # type: ignore
     losses.update({"critic_loss": loss_critic.item()})
 
     # Update critic by gradient step.

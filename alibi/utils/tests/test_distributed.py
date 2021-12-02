@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 class MockExplainer:
     """ Mock explainer that allows testing most of the functionality in alibi.utils.distributed. """
+
     def __init__(self, sleep_time: int, multiplier: int = 3):
         self.sleep_time = sleep_time
         self.multiplier = multiplier
@@ -26,9 +27,9 @@ class MockExplainer:
         time.sleep(self.sleep_time)
         if isinstance(X, tuple):
             batch_idx, X = X
-            return batch_idx, self.multiplier*X
+            return batch_idx, self.multiplier * X
         else:
-            return self.multiplier*X
+            return self.multiplier * X
 
     def return_attribute(self, name: str):
         """
@@ -126,7 +127,6 @@ explainer_init_kwargs = [{'multiplier': 2}, ]
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 def test_distributed_explainer_init(expln_args, expln_kwargs, distributed_opts):
-
     import ray
 
     atol = 1e-5  # abs tolerance for floating point comparisons
@@ -146,13 +146,12 @@ def test_distributed_explainer_init(expln_args, expln_kwargs, distributed_opts):
     ray.shutdown()
 
 
-batch_size = [None, 1, 2]
+batch_size = [None, 1, 2]  # type: ignore
 ncpus = [2]
 actor_cpu_fraction = [0.5]
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
-
 
 # MockExplainer args and kwargs
 explainer_init_args = [(0.01,), ]
@@ -176,7 +175,6 @@ def test_distributed_explainer_get_explanation(
         distributed_opts,
         return_generator,
         concatenate_results):
-
     import ray
     atol = 1e-5  # tolerance for numerical comparisons
 
@@ -252,12 +250,13 @@ def test_invert_permutation(permutation_generator):
 
 
 # MockExplainer args and kwargs
-explainer_init_args = [[(0.01,), (0.05, )], ]   # type: ignore
+explainer_init_args = [[(0.01,), (0.05,)], ]  # type: ignore
 explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], [{'multiplier': 2}, ]]  # type: ignore
 
 batch_size = [2]
 ncpus = [1, len(explainer_init_kwargs[0])]  # set so that both the error raising inputs and correct inputs are tested
-actor_cpu_fraction = [1.0, 0.5, None]
+# TODO: check that redefining these (type: ignore) actually makes the tests run with the right parameters
+actor_cpu_fraction = [1.0, 0.5, None]  # type: ignore
 keys = ['batch_size', 'n_cpus', 'actor_cpu_fraction']
 values = [batch_size, ncpus, actor_cpu_fraction]
 distributed_opts = kwargs_factory(keys, values)  # type: ignore
@@ -269,7 +268,6 @@ concatenate_results = [False, True]
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 @pytest.mark.parametrize('concatenate_results', concatenate_results, ids='concat_results={}'.format)
 def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts, concatenate_results):
-
     import ray
 
     ncpus = distributed_opts['n_cpus']
@@ -317,7 +315,7 @@ def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts, concat
 
 
 # MockExplainer positional args and kwargs
-explainer_init_args = [[(0.01,), (0.05, )], ]  # type: ignore
+explainer_init_args = [[(0.01,), (0.05,)], ]  # type: ignore
 explainer_init_kwargs = [[{'multiplier': 2}, {'multiplier': 3}], ]  # type: ignore
 
 batch_size = [2]
@@ -334,7 +332,6 @@ n_instances, n_features = 5, 6
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwargs, distributed_opts):
-
     import ray
     atol = 1e-5  # absolute tolerance for floating point comparisons
 
@@ -368,7 +365,7 @@ def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwarg
 
 # repetitions: how many lists with n_minibatches of size minibatch_size are fed to the function in one go
 n_minibatches, minibatch_size, repetitions, n_features = 3, 3, 3, 6
-n_instances = n_minibatches*minibatch_size*repetitions
+n_instances = n_minibatches * minibatch_size * repetitions
 
 
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
@@ -389,7 +386,7 @@ def test_concatenate_minibatches(data_generator, n_minibatches, repetitions, n_f
     np.testing.assert_allclose(X, concat_result)
 
     # List[List[np.ndarray]] input
-    split_arr = np.split(X, n_minibatches*repetitions)
+    split_arr = np.split(X, n_minibatches * repetitions)
     minibatch_seq = [split_arr[i:i + n_minibatches] for i in range(0, len(split_arr), n_minibatches)]
     concat_result = concatenate_minibatches(minibatch_seq)
 

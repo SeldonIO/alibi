@@ -1,17 +1,19 @@
 import copy
 import logging
-import numpy as np
 import sys
-import tensorflow.compat.v1 as tf
-from typing import Any, Callable, Dict, Tuple, Union, Sequence
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
+import numpy as np
+import tensorflow.compat.v1 as tf
+
+from alibi.api.defaults import DEFAULT_DATA_CFP, DEFAULT_META_CFP
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.api.defaults import DEFAULT_META_CFP, DEFAULT_DATA_CFP
 from alibi.confidence import TrustScore
 from alibi.utils.discretizer import Discretizer
-from alibi.utils.distance import abdm, mvdm, multidim_scaling
+from alibi.utils.distance import abdm, multidim_scaling, mvdm
 from alibi.utils.gradients import perturb
-from alibi.utils.mapping import ohe_to_ord_shape, ord_to_num, num_to_ord, ohe_to_ord, ord_to_ohe
+from alibi.utils.mapping import (num_to_ord, ohe_to_ord, ohe_to_ord_shape,
+                                 ord_to_num, ord_to_ohe)
 from alibi.utils.tf import argmax_grad, argmin_grad, one_hot_grad, round_grad
 
 logger = logging.getLogger(__name__)
@@ -41,7 +43,7 @@ class CounterfactualProto(Explainer, FitMixin):
                  ae_model: Union[tf.keras.Model] = None,
                  enc_model: Union[tf.keras.Model] = None,
                  theta: float = 0.,
-                 cat_vars: dict = None,
+                 cat_vars: Optional[Dict[int, int]] = None,
                  ohe: bool = False,
                  use_kdtree: bool = False,
                  learning_rate_init: float = 1e-2,
@@ -51,8 +53,8 @@ class CounterfactualProto(Explainer, FitMixin):
                  eps: tuple = (1e-3, 1e-3),
                  clip: tuple = (-1000., 1000.),
                  update_num_grad: int = 1,
-                 write_dir: str = None,
-                 sess: tf.Session = None) -> None:
+                 write_dir: Optional[str] = None,
+                 sess: Optional[tf.Session] = None) -> None:
         """
         Initialize prototypical counterfactual method.
 
@@ -160,6 +162,7 @@ class CounterfactualProto(Explainer, FitMixin):
             self.is_cat = True
         else:
             self.is_cat = False
+            cat_vars = dict()  # to avoid further None checks
         self.meta['params'].update(is_cat=self.is_cat)
 
         self.shape = shape
@@ -182,16 +185,15 @@ class CounterfactualProto(Explainer, FitMixin):
         self.clip = clip
         self.write_dir = write_dir
 
-        # compute dimensionality after conversion from OHE to ordinal encoding
-        shape = ohe_to_ord_shape(shape, cat_vars=cat_vars, is_ohe=self.ohe)
-
         if self.is_cat:
+            # compute dimensionality after conversion from OHE to ordinal encoding
+            shape = ohe_to_ord_shape(shape, cat_vars=cat_vars, is_ohe=self.ohe)
 
             # define ragged tensor for mapping from categorical to numerical values
-            self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in self.cat_vars.items()])
+            self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in cat_vars.items()])
 
             # define placeholder for mapping which can be fed after the fit step
-            max_key = max(cat_vars, key=cat_vars.get)
+            max_key = max(cat_vars)
             self.max_cat = cat_vars[max_key]
             cat_keys = list(cat_vars.keys())
             n_cat = len(cat_keys)
@@ -654,9 +656,16 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             self.writer = None
 
-    def fit(self, train_data: np.ndarray, trustscore_kwargs: dict = None, d_type: str = 'abdm',
-            w: float = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False,
-            smooth: float = 1., center: bool = True, update_feature_range: bool = True) -> "CounterfactualProto":
+    def fit(self,
+            train_data: np.ndarray,
+            trustscore_kwargs: Optional[dict] = None,
+            d_type: str = 'abdm',
+            w: Optional[float] = None,
+            disc_perc: Sequence[Union[int, float]] = (25, 50, 75),
+            standardize_cat_vars: bool = False,
+            smooth: float = 1.,
+            center: bool = True,
+            update_feature_range: bool = True) -> "CounterfactualProto":
         """
         Get prototypes for each class using the encoder or k-d trees.
         The prototypes are used for the encoder loss term or to calculate the optional trust scores.
@@ -701,7 +710,7 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             preds = np.argmax(self.predict(train_data), axis=1)
 
-        self.cat_vars_ord = None
+        self.cat_vars_ord = dict()  # type: dict
         if self.is_cat:  # compute distance metrics for categorical variables
 
             if self.ohe:  # convert OHE to ordinal encoding
@@ -734,6 +743,10 @@ class CounterfactualProto(Explainer, FitMixin):
 
             # combined distance measure
             if d_type == 'abdm-mvdm':
+                if w is None:
+                    msg = "Must specify a value for `w` if using d_type='abdm-mvdm'"
+                    raise ValueError(msg)
+
                 # pairwise distances
                 d_abdm = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
                 d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)  # type: ignore
@@ -826,7 +839,7 @@ class CounterfactualProto(Explainer, FitMixin):
         return loss_attack
 
     def get_gradients(self, X: np.ndarray, Y: np.ndarray, grads_shape: tuple,
-                      cat_vars_ord: dict = None) -> np.ndarray:
+                      cat_vars_ord: dict) -> np.ndarray:
         """
         Compute numerical gradients of the attack loss term:
         dL/dx = (dL/dP)*(dP/dx) with L = loss_attack_s; P = predict; x = adv_s
@@ -854,7 +867,6 @@ class CounterfactualProto(Explainer, FitMixin):
                 X_pred = ord_to_ohe(X_pred, cat_vars_ord)[0]
         else:
             X_pred = X
-
         # N = gradient batch size; F = nb of features; P = nb of prediction classes; B = instance batch size
         # dL/dP -> BxP
         preds = self.predict(X_pred)  # NxP
@@ -933,9 +945,9 @@ class CounterfactualProto(Explainer, FitMixin):
             logger.warning('Need either an encoder or the k-d trees enabled to compute distance scores.')
         return dist_orig / (dist_adv + eps)
 
-    def attack(self, X: np.ndarray, Y: np.ndarray, target_class: list = None, k: int = None, k_type: str = 'mean',
-               threshold: float = 0., verbose: bool = False, print_every: int = 100, log_every: int = 100) \
-            -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
+    def attack(self, X: np.ndarray, Y: np.ndarray, target_class: Optional[list] = None, k: Optional[int] = None,
+               k_type: str = 'mean', threshold: float = 0., verbose: bool = False, print_every: int = 100,
+               log_every: int = 100) -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
         Find a counterfactual (CF) for instance X using a fast iterative shrinkage-thresholding algorithm (FISTA).
 
@@ -1005,6 +1017,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 print('Target classes: {}'.format(target_class))
 
         if self.is_cat and self.ohe:  # map categorical to numerical data
+
             X_ord = ohe_to_ord(X, self.cat_vars)[0]
             X_num = ord_to_num(X_ord, self.d_abs)
         elif self.is_cat:
@@ -1045,7 +1058,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
-            self.id_proto = min(dist_proto, key=dist_proto.get)
+            self.id_proto = min(dist_proto)
             proto_val = self.class_proto[self.id_proto]
             if verbose:
                 print('Prototype class: {}'.format(self.id_proto))
@@ -1256,9 +1269,16 @@ class CounterfactualProto(Explainer, FitMixin):
 
         return best_attack, overall_best_grad
 
-    def explain(self, X: np.ndarray, Y: np.ndarray = None, target_class: list = None, k: int = None,
-                k_type: str = 'mean', threshold: float = 0., verbose: bool = False,
-                print_every: int = 100, log_every: int = 100) -> Explanation:
+    def explain(self,
+                X: np.ndarray,
+                Y: Optional[np.ndarray] = None,
+                target_class: Optional[list] = None,
+                k: Optional[int] = None,
+                k_type: str = 'mean',
+                threshold: float = 0.,
+                verbose: bool = False,
+                print_every: int = 100,
+                log_every: int = 100) -> Explanation:
         """
         Explain instance and return counterfactual with metadata.
 

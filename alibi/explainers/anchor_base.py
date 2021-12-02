@@ -1,11 +1,12 @@
 import copy
 import logging
-import numpy as np
 from collections import defaultdict, namedtuple
 from functools import partial
-from typing import Callable, Tuple, Set, Dict, List
+from typing import Callable, Dict, List, Optional, Set, Tuple
 
-from alibi.utils.distributed import ActorPool, RAY_INSTALLED
+import numpy as np
+
+from alibi.utils.distributed import RAY_INSTALLED, ActorPool
 from alibi.utils.distributions import kl_bernoulli
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class AnchorBaseBeam:
         """
 
         self.sample_fcn = samplers[0]
-        self.samplers = None  # type: List[Callable]
+        self.samplers = None  # type: Optional[List[Callable]]
         # Initial size (in batches) of data/raw data samples cache.
         self.sample_cache_size = kwargs.get('sample_cache_size', 10000)
         # when only the max of self.margin or batch size remain emptpy, the cache is
@@ -175,7 +176,7 @@ class AnchorBaseBeam:
 
         return temp + np.log(temp)
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) -> np.ndarray:
+    def _get_coverage_samples(self, coverage_samples: int, samplers: Optional[List[Callable]] = None) -> np.ndarray:
         """
         Draws samples uniformly at random from the training set.
 
@@ -198,7 +199,7 @@ class AnchorBaseBeam:
         return coverage_data
 
     def select_critical_arms(self, means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray,
-                             delta: float, top_n: int, t: int):  # type: ignore
+                             delta: float, top_n: int, t: int):
         """
         Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
         the lower bound for anchors with high empirical precision.
@@ -474,7 +475,7 @@ class AnchorBaseBeam:
                 (self.state['labels'], np.zeros(prealloc_size, labels.dtype))
             )
 
-        return labels.sum(), data.shape[0]  # type: ignore
+        return labels.sum(), data.shape[0]
 
     def get_init_stats(self, anchors: list, coverages=False) -> dict:
         """
@@ -610,7 +611,7 @@ class AnchorBaseBeam:
 
     def anchor_beam(self, delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.,
                     beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100,
-                    max_anchor_size: int = None, stop_on_first: bool = False, batch_size: int = 100,
+                    max_anchor_size: Optional[int] = None, stop_on_first: bool = False, batch_size: int = 100,
                     coverage_samples: int = 10000, verbose: bool = False, verbose_every: int = 1,
                     **kwargs) -> dict:
 
@@ -835,7 +836,8 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         self.pool = ActorPool(samplers)
         self.samplers = samplers
 
-    def _get_coverage_samples(self, coverage_samples: int, samplers: List[Callable] = None) -> np.ndarray:
+    def _get_coverage_samples(self, coverage_samples: int,  # type: ignore[override]
+                              samplers: List[Callable]) -> np.ndarray:
         """
         Sends a request for a coverage set to process running sampling tasks.
 
@@ -854,7 +856,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         return coverage_data
 
-    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore
+    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore[override]
         """
         Distributes sampling requests among processes running sampling tasks.
 

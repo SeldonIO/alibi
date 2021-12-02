@@ -1,28 +1,34 @@
 import copy
 import logging
-import numpy as np
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
-from typing import Any, Callable, DefaultDict, Dict, List, Set, Tuple, Type, Union, Optional
+from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
+                    Tuple, Type, Union)
 
+import numpy as np
+
+from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
-from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
-from .anchor_explanation import AnchorExplanation
-from alibi.utils.wrappers import ArgmaxTransformer
+from alibi.exceptions import (AlibiPredictorCallException,
+                              AlibiPredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.distributed import RAY_INSTALLED
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
+from alibi.utils.wrappers import ArgmaxTransformer
+
+from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
+from .anchor_explanation import AnchorExplanation
 
 
 class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
-    values specified in an instance to be expalined, X."""
+    values specified in an instance to be explained, X."""
+
+    instance_label: int
 
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
-                 seed: int = None) -> None:
+                 seed: Optional[int] = None) -> None:
         """
         Parameters
         ----------
@@ -47,7 +53,6 @@ class TabularSampler:
 
         np.random.seed(seed)
 
-        self.instance_label = None  # type: int
         self.predictor = predictor
         self.n_covered_ex = n_covered_ex
 
@@ -128,7 +133,7 @@ class TabularSampler:
              Instance to be explained.
         """
 
-        label = self.predictor(X.reshape(1, -1))[0]
+        label = self.predictor(X.reshape(1, -1))[0]  # type: int
         self.instance_label = label
 
     def set_n_covered(self, n_covered: int) -> None:
@@ -286,8 +291,9 @@ class TabularSampler:
         num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)
         if num_samples_pos == 0:
             samples_idxs = np.random.choice(partial_anchor_rows[-1], num_samples)
-            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
-            d_samples[:, uniq_feat_ids] = self.d_train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore
+            samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
+            d_samples[:, uniq_feat_ids] = self.d_train_data[
+                np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
 
             return samples, d_samples, coverage
 
@@ -375,7 +381,7 @@ class TabularSampler:
 
         # replace partial anchors with partial anchors drawn from the training dataset
         # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
-        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore[misc]
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp
@@ -390,7 +396,7 @@ class TabularSampler:
                     )
                 n_samp = num_samples
             samples[start:start + n_samp, uniq_feat_ids[idx:]] = self.train_data[
-                np.ix_(samp_idxs, uniq_feat_ids[idx:])]  # type: ignore
+                np.ix_(samp_idxs, uniq_feat_ids[idx:])]  # type: ignore[arg-type]
 
             # deal with partial anchors; idx = 0 means that we actually sample the entire anchor
             if idx > 0:
@@ -453,7 +459,8 @@ class TabularSampler:
         allowed_bins = {}  # type: Dict[int, Set[int]]
         # index of database rows (values) for each feature in result (key: feat id)
         allowed_rows = {}  # type: Dict[int, Any[int]]
-        unk_feat_values = []  # feats for which there are not training records in the desired bin/with that value
+        # feats for which there are not training records in the desired bin/with that value
+        unk_feat_values = []  # type: List[Tuple[int, str, Optional[int]]]
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
         if cat_enc_ids:
@@ -512,7 +519,7 @@ class TabularSampler:
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore[arg-type]
             return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()
@@ -659,14 +666,15 @@ class RemoteSampler:
 
 
 class AnchorTabular(Explainer, FitMixin):
+    instance_label: int
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: List[str],
-                 categorical_names: Dict[int, List[str]] = None,
+                 categorical_names: Optional[Dict[int, List[str]]] = None,
                  dtype: Type[np.generic] = np.float32,
                  ohe: bool = False,
-                 seed: int = None) -> None:
+                 seed: Optional[int] = None) -> None:
         """
         Parameters
         ----------
@@ -699,7 +707,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.ohe = ohe
         self.feature_names = feature_names
 
-        if ohe:
+        if ohe and categorical_names:
             self.cat_vars_ord = {col: len(values) for col, values in categorical_names.items()}
             self.cat_vars_ohe = ord_to_ohe(np.zeros((1, len(feature_names))), self.cat_vars_ord)[1]
 
@@ -722,12 +730,13 @@ class AnchorTabular(Explainer, FitMixin):
         self.samplers = []  # type: list
         self.ohe = ohe
         self.seed = seed
-        self.instance_label = None
 
         # update metadata
         self.meta['params'].update(seed=seed)
 
-    def fit(self, train_data: np.ndarray, disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),  # type:ignore
+    def fit(self,  # type: ignore[override]
+            train_data: np.ndarray,
+            disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),
             **kwargs) -> "AnchorTabular":
         """
         Fit discretizer to train data to bin numerical features into ordered bins and compute statistics for
@@ -751,7 +760,7 @@ class AnchorTabular(Explainer, FitMixin):
         self.feature_values.update(disc.feature_intervals)
 
         sampler = TabularSampler(
-            self._predictor,
+            self._predictor,  # type: ignore[arg-type] # TODO: fix me, ignored as can be None due to saving.py
             disc_perc,
             self.numerical_features,
             self.categorical_features,
@@ -789,7 +798,7 @@ class AnchorTabular(Explainer, FitMixin):
                 coverage_samples: int = 10000,
                 beam_size: int = 1,
                 stop_on_first: bool = False,
-                max_anchor_size: int = None,
+                max_anchor_size: Optional[int] = None,
                 min_samples_start: int = 100,
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,
@@ -1000,23 +1009,30 @@ class AnchorTabular(Explainer, FitMixin):
             explanation['names'].append(fname)
 
     @property
-    def predictor(self) -> Callable:
+    def predictor(self) -> Optional[Callable]:  # because of saving.py setting it to None
         return self._ohe_predictor if self.ohe else self._predictor
 
     @predictor.setter
-    def predictor(self, predictor: Optional[Callable]) -> None:
-        # if input is one-hot encoded
-        if self.ohe:
-            # this predictor expects ordinal/labels encoded categorical variables
-            ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
-            self._predictor = self._transform_predictor(ord_predictor) if predictor else None
-
-            # this predictor expects one-hot encoded categorical variable
-            self._ohe_predictor = self._transform_ohe_predictor(predictor) if predictor else None
-
+    def predictor(self, predictor: Optional[Callable]) -> None:  # Optional here because in saving.py we set it to None
+        # deal with the case from saving.py first
+        # TODO: how do we prevent users from passing predictor=None? Probably beartype.
+        if predictor is None:
+            self._predictor = None
+            if self.ohe:
+                self._ohe_predictor = None
         else:
-            # set the predictor
-            self._predictor = self._transform_predictor(predictor) if predictor else None
+            # if input is one-hot encoded
+            if self.ohe:
+                # this predictor expects ordinal/labels encoded categorical variables
+                ord_predictor = lambda x: predictor(ord_to_ohe(x, self.cat_vars_ord)[0])  # noqa: E731
+                self._predictor = self._transform_predictor(ord_predictor)
+
+                # this predictor expects one-hot encoded categorical variable
+                self._ohe_predictor = self._transform_ohe_predictor(predictor)
+
+            else:
+                # set the predictor
+                self._predictor = self._transform_predictor(predictor)
 
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # define data instance full of zeros
@@ -1056,14 +1072,22 @@ class DistributedAnchorTabular(AnchorTabular):
         import ray
         ray = ray  # set module as class variable to used only in this context
 
-    def __init__(self, predictor: Callable, feature_names: List[str], categorical_names: Dict[int, List[str]] = None,
-                 dtype: Type[np.generic] = np.float32, ohe: bool = False, seed: int = None) -> None:
+    def __init__(self,
+                 predictor: Callable,
+                 feature_names: List[str],
+                 categorical_names: Optional[Dict[int, List[str]]] = None,
+                 dtype: Type[np.generic] = np.float32,
+                 ohe: bool = False,
+                 seed: Optional[int] = None) -> None:
 
         super().__init__(predictor, feature_names, categorical_names, dtype, ohe, seed)
         if not DistributedAnchorTabular.ray.is_initialized():
             DistributedAnchorTabular.ray.init()
 
-    def fit(self, train_data: np.ndarray, disc_perc: tuple = (25, 50, 75), **kwargs) -> "AnchorTabular":  # type: ignore
+    def fit(self,  # type: ignore[override]
+            train_data: np.ndarray,
+            disc_perc: tuple = (25, 50, 75),
+            **kwargs) -> "AnchorTabular":
         """
         Creates a list of handles to parallel processes handles that are used for submitting sampling
         tasks.
@@ -1098,7 +1122,7 @@ class DistributedAnchorTabular(AnchorTabular):
         )
         train_data_id = DistributedAnchorTabular.ray.put(train_data)
         d_train_data_id = DistributedAnchorTabular.ray.put(d_train_data)
-        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore
+        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore[arg-type]
         d_samplers = []
         for sampler in samplers:
             d_samplers.append(
@@ -1135,7 +1159,7 @@ class DistributedAnchorTabular(AnchorTabular):
                 coverage_samples: int = 10000,
                 beam_size: int = 1,
                 stop_on_first: bool = False,
-                max_anchor_size: int = None,
+                max_anchor_size: Optional[int] = None,
                 min_samples_start: int = 1,
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,

@@ -1,21 +1,23 @@
 import copy
-import spacy
-import string
 import logging
-import numpy as np
-import tensorflow as tf
-
+import string
+from abc import abstractmethod
 from copy import deepcopy
 from functools import partial
-from abc import abstractmethod
-from typing import Any, Callable, Dict, List, Tuple, TYPE_CHECKING, Union, Optional
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Type, Union)
 
-from alibi.utils.wrappers import ArgmaxTransformer
-from alibi.utils.lang_model import LanguageModel
+import numpy as np
+import spacy
+import tensorflow as tf
 
+from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import (AlibiPredictorCallException,
+                              AlibiPredictorReturnTypeError)
+from alibi.utils.lang_model import LanguageModel
+from alibi.utils.wrappers import ArgmaxTransformer
+
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 
@@ -24,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
+def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.Language':
     """
     This utility function loads the `lexeme_prob` table for a spacy model if it is not present.
     This is required to enable support for different spacy versions.
@@ -54,8 +56,8 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language'):
         # https://github.com/explosion/spaCy/discussions/6388#discussioncomment-331096
         if 'lexeme_prob' not in nlp.vocab.lookups.tables:
             from spacy.lookups import load_lookups
-            lookups = load_lookups(nlp.lang, ['lexeme_prob'])
-            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))  # type: ignore
+            lookups = load_lookups(nlp.lang, ['lexeme_prob'])  # type: ignore[arg-type]
+            nlp.vocab.lookups.add_table('lexeme_prob', lookups.get_table('lexeme_prob'))
 
     return nlp
 
@@ -140,7 +142,7 @@ class AnchorTextSampler:
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
         Function to concatenate an np.array of strings along a specified axis.
 
@@ -260,6 +262,7 @@ class UnknownSampler(AnchorTextSampler):
 
 
 class SimilaritySampler(AnchorTextSampler):
+
     def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
         """
         Initialize similarity sampler. This sampler replaces words with similar words.
@@ -283,7 +286,10 @@ class SimilaritySampler(AnchorTextSampler):
 
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
         self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
-        self.tokens, self.words, self.positions, self.punctuation = [], [], [], []  # type: List, List, List, List
+        self.tokens: 'spacy.tokens.Doc'
+        self.words: List[str] = []
+        self.positions: List[int] = []
+        self.punctuation: List['spacy.tokens.Token'] = []
 
     def set_text(self, text: str) -> None:
         """
@@ -750,7 +756,7 @@ class LanguageModelSampler(AnchorTextSampler):
         # convert to array and return
         return np.array(full_raw, dtype=self.dtype_sent)
 
-    def _joiner(self, arr: np.ndarray, dtype: np.dtype = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
         Function to concatenate an np.array of strings along a specified axis.
 
@@ -1358,7 +1364,7 @@ class AnchorText(Explainer):
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
-    def explain(self,  # type: ignore
+    def explain(self,  # type: ignore[override]
                 text: str,
                 threshold: float = 0.95,
                 delta: float = 0.1,
@@ -1367,7 +1373,7 @@ class AnchorText(Explainer):
                 coverage_samples: int = 10000,
                 beam_size: int = 1,
                 stop_on_first: bool = True,
-                max_anchor_size: int = None,
+                max_anchor_size: Optional[int] = None,
                 min_samples_start: int = 100,
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,

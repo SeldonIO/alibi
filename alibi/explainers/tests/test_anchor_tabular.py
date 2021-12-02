@@ -218,6 +218,13 @@ def test_sampler(test_instance_idx, anchors, nb_samples, dataset, rf_classifier,
     test_dataset = dataset
     test_dataset_name = test_dataset['metadata']['name']
 
+    # the `explain` call does some more sampler setup before using it so we need to repeat it here
+    sampler = explainer.samplers[0]
+    sampler.set_instance_label(X_test[test_instance_idx])
+    # TODO: the test passes now, but we're not setting other things passed to `explain` like `n_covered_ex`
+    #  or calling explainer._build_sampling_lookups. This suggests either the coupling between `sampler` and
+    #  `explainer` is too strong or this test should be re-written in a different way.
+
     # test sampler setup is correct
     assert len(explainer.samplers) == 1
     sampler = explainer.samplers[0]

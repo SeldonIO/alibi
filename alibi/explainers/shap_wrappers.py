@@ -1,22 +1,24 @@
 import copy
 import logging
-import shap
+from functools import partial
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional,
+                    Sequence, Tuple, Union)
 
 import numpy as np
 import pandas as pd
-
-from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, DEFAULT_META_TREE_SHAP, \
-    DEFAULT_DATA_TREE_SHAP
-from alibi.api.interfaces import Explanation, Explainer, FitMixin
-from alibi.utils.wrappers import methdispatch
-from alibi.utils.distributed import DistributedExplainer
-from functools import partial
+import shap
+import shap.utils._legacy as shap_utils
 from scipy import sparse
 from scipy.special import expit
 from shap import KernelExplainer
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union, Tuple, TYPE_CHECKING
 
-import shap.utils._legacy as shap_utils
+from alibi.api.defaults import (DEFAULT_DATA_KERNEL_SHAP,
+                                DEFAULT_DATA_TREE_SHAP,
+                                DEFAULT_META_KERNEL_SHAP,
+                                DEFAULT_META_TREE_SHAP)
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.utils.distributed import DistributedExplainer
+from alibi.utils.wrappers import methdispatch
 
 if TYPE_CHECKING:
     import catboost  # noqa F401
@@ -275,14 +277,16 @@ class KernelExplainerWrapper(KernelExplainer):
 
 
 class KernelShap(Explainer, FitMixin):
+    # object that implements the explanation algorithm (set in fit)
+    _explainer: Union[KernelExplainerWrapper, DistributedExplainer]
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
                  link: str = 'identity',
-                 feature_names: Union[List[str], Tuple[str], None] = None,
+                 feature_names: Optional[Union[List[str], Tuple[str]]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  task: str = 'classification',
-                 seed: int = None,
+                 seed: Optional[int] = None,
                  distributed_opts: Optional[Dict] = None
                  ):
         """
@@ -359,8 +363,6 @@ class KernelShap(Explainer, FitMixin):
             self.distributed_opts.update(distributed_opts)
         self.distributed_opts['algorithm'] = 'kernel_shap'
         self.distribute = True if self.distributed_opts['n_cpus'] else False
-        # object that implements the explanation algorithm (set in fit)
-        self._explainer = None  # type: Union[KernelExplainerWrapper, DistributedExplainer]
 
     def _check_inputs(self,
                       background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
@@ -730,7 +732,7 @@ class KernelShap(Explainer, FitMixin):
 
         # check user inputs to provide warnings if input is incorrect
         self._check_inputs(background_data, group_names, groups, weights)
-        if self.create_group_names:
+        if self.create_group_names and groups:
             group_names = ['group_{}'.format(i) for i in range(len(groups))]
         # disable grouping or data weights if inputs are not correct
         if self.ignore_weights:
@@ -738,12 +740,12 @@ class KernelShap(Explainer, FitMixin):
         if not self.use_groups:
             group_names, groups = None, None
         else:
-            self.feature_names = group_names
+            self.feature_names = group_names  # type: ignore[assignment]
 
         # perform grouping if requested by the user
         self.background_data = self._get_data(background_data, group_names, groups, weights, **kwargs)
         explainer_args = (self.predictor, self.background_data)
-        explainer_kwargs = {'link': self.link}  # type: Dict[str, Union[str, int]]
+        explainer_kwargs = {'link': self.link}  # type: Dict[str, Union[str, int, None]]
         # distribute computation
         if self.distribute:
             # set seed for each process
@@ -780,8 +782,8 @@ class KernelShap(Explainer, FitMixin):
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
                 summarise_result: bool = False,
-                cat_vars_start_idx: Sequence[int] = None,
-                cat_vars_enc_dim: Sequence[int] = None,
+                cat_vars_start_idx: Optional[Sequence[int]] = None,
+                cat_vars_enc_dim: Optional[Sequence[int]] = None,
                 **kwargs) -> Explanation:
         """
         Explains the instances in the array `X`.
@@ -998,10 +1000,10 @@ class TreeShap(Explainer, FitMixin):
     def __init__(self,
                  predictor: Any,
                  model_output: str = 'raw',
-                 feature_names: Union[List[str], Tuple[str], None] = None,
+                 feature_names: Optional[Union[List[str], Tuple[str]]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  task: str = 'classification',
-                 seed: int = None):
+                 seed: Optional[int] = None):
         """
         A wrapper around the `shap.TreeExplainer` class. It adds the following functionality:
 
@@ -1093,7 +1095,7 @@ class TreeShap(Explainer, FitMixin):
         self._update_metadata({"task": self.task})
         self._update_metadata({"model_output": self.model_output}, params=True)
 
-    def fit(self,  # type: ignore
+    def fit(self,  # type: ignore[override]
             background_data: Union[np.ndarray, pd.DataFrame, None] = None,
             summarise_background: Union[bool, str] = False,
             n_background_samples: int = TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,

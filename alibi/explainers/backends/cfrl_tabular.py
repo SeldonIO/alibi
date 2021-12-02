@@ -3,17 +3,17 @@ This module contains utility functions for the Counterfactual with Reinforcement
 :py:class:`alibi.explainers.cfrl_tabular`, that are common for both Tensorflow and Pytorch backends.
 """
 
-import numpy as np
-import pandas as pd  # type: ignore
-from typing import List, Dict, Union, Tuple, Callable, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
-from sklearn.preprocessing import StandardScaler, OneHotEncoder  # type: ignore
-from sklearn.compose import ColumnTransformer  # type: ignore
-from scipy.special import softmax  # type: ignore
+import numpy as np
+import pandas as pd
+from scipy.special import softmax
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 if TYPE_CHECKING:
-    import torch
     import tensorflow as tf
+    import torch
 
 
 def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[str]]) -> int:
@@ -193,7 +193,7 @@ def generate_categorical_condition(X_ohe: np.ndarray,
         Conditional vector for categorical feature.
     """
 
-    C_cat = []   # define list of conditional vector for each feature
+    C_cat = []  # define list of conditional vector for each feature
     cat_idx = 0  # categorical feature index
 
     # Split the one-hot representation into a list where each element corresponds to an feature.
@@ -285,7 +285,7 @@ def generate_condition(X_ohe: np.ndarray,
 
 def sample_numerical(X_hat_num_split: List[np.ndarray],
                      X_ohe_num_split: List[np.ndarray],
-                     C_num_split: List[np.ndarray],
+                     C_num_split: Optional[List[np.ndarray]],
                      stats: Dict[int, Dict[str, float]]) -> List[np.ndarray]:
     """
     Samples numerical features according to the conditional vector. This method clips the values between the
@@ -335,7 +335,7 @@ def sample_numerical(X_hat_num_split: List[np.ndarray],
 
 
 def sample_categorical(X_hat_cat_split: List[np.ndarray],
-                       C_cat_split: List[np.ndarray]) -> List[np.ndarray]:
+                       C_cat_split: Optional[List[np.ndarray]]) -> List[np.ndarray]:
     """
     Samples categorical features according to the conditional vector. This method sample conditional according to
     the masking vector the most probable outcome.
@@ -425,7 +425,7 @@ def sample(X_hat_split: List[np.ndarray],
 def get_he_preprocessor(X: np.ndarray,
                         feature_names: List[str],
                         category_map: Dict[int, List[str]],
-                        feature_types: Dict[str, type] = None
+                        feature_types: Optional[Dict[str, type]] = None
                         ) -> Tuple[Callable[[np.ndarray], np.ndarray], Callable[[np.ndarray], np.ndarray]]:
     """
     Heterogeneous dataset preprocessor. The numerical features are standardized and the categorical features
@@ -506,7 +506,7 @@ def get_he_preprocessor(X: np.ndarray,
 
         np_X_inv = np_X_inv[:, inv_perm].astype(object)
         for i, fn in enumerate(feature_names):
-            type = feature_types[fn] if fn in feature_types else float
+            type = feature_types[fn] if fn in feature_types else float  # type: ignore[index,operator]
             np_X_inv[:, i] = np_X_inv[:, i].astype(type)
 
         return np_X_inv
@@ -557,8 +557,8 @@ def get_numerical_conditional_vector(X: np.ndarray,
                                      feature_names: List[str],
                                      category_map: Dict[int, List[str]],
                                      stats: Dict[int, Dict[str, float]],
-                                     ranges: Dict[str, List[float]] = None,
-                                     immutable_features: List[str] = None,
+                                     ranges: Optional[Dict[str, List[float]]] = None,
+                                     immutable_features: Optional[List[str]] = None,
                                      diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
@@ -674,7 +674,7 @@ def get_categorical_conditional_vector(X: np.ndarray,
                                        preprocessor: Callable[[np.ndarray], np.ndarray],
                                        feature_names: List[str],
                                        category_map: Dict[int, List[str]],
-                                       immutable_features: List[str] = None,
+                                       immutable_features: Optional[List[str]] = None,
                                        diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
@@ -753,8 +753,8 @@ def get_conditional_vector(X: np.ndarray,
                            feature_names: List[str],
                            category_map: Dict[int, List[str]],
                            stats: Dict[int, Dict[str, float]],
-                           ranges: Dict[str, List[float]] = None,
-                           immutable_features: List[str] = None,
+                           ranges: Optional[Dict[str, List[float]]] = None,
+                           immutable_features: Optional[List[str]] = None,
                            diverse=False) -> np.ndarray:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.

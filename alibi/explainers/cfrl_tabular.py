@@ -1,17 +1,20 @@
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.utils.frameworks import has_pytorch, has_tensorflow
-from alibi.explainers.cfrl_base import CounterfactualRL, Postprocessing, _PARAM_TYPES
-from alibi.explainers.backends.cfrl_tabular import sample, get_conditional_vector, get_statistics
+from functools import partial
+from itertools import count
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import numpy as np
 from tqdm import tqdm
-from itertools import count
-from functools import partial
-from typing import Tuple, List, Dict, Callable, Union, Optional, TYPE_CHECKING
+
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.backends.cfrl_tabular import (get_conditional_vector,
+                                                    get_statistics, sample)
+from alibi.explainers.cfrl_base import (_PARAM_TYPES, CounterfactualRL,
+                                        Postprocessing)
+from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
-    import torch
     import tensorflow
+    import torch
 
 if has_pytorch:
     # import pytorch backend
@@ -29,7 +32,7 @@ class SampleTabularPostprocessing(Postprocessing):
     is required to perform the conditional sampling.
     """
 
-    def __init__(self,  category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
+    def __init__(self, category_map: Dict[int, List[str]], stats: Dict[int, Dict[str, float]]):
         """
         Constructor.
 
@@ -273,9 +276,9 @@ class CounterfactualRLTabular(CounterfactualRL):
         # call base class fit
         return super().fit(X)
 
-    def explain(self,
+    def explain(self,  # type: ignore[override]
                 X: np.ndarray,
-                Y_t: np.ndarray = None,  # TODO remove default value (mypy error)
+                Y_t: np.ndarray,
                 C: Optional[List[Dict[str, List[Union[str, float]]]]] = None,
                 batch_size: int = 100,
                 diversity: bool = False,
@@ -459,10 +462,13 @@ class CounterfactualRLTabular(CounterfactualRL):
 
             # Generate counterfactuals.
             results = self._compute_counterfactual(X=X_repeated, Y_t=Y_t, C=C_vec)
-            X_cf, Y_m_cf, Y_t = results["X_cf"], results["Y_m_cf"], results["Y_t"]
+            X_cf, Y_m_cf, Y_t = results["X_cf"], results["Y_m_cf"], results["Y_t"]  # type: ignore[assignment]
+            X_cf = cast(np.ndarray, X_cf)  # help mypy out
 
             # Select only counterfactuals where prediction matches the target.
             X_cf = X_cf[Y_t == Y_m_cf]
+            X_cf = cast(np.ndarray, X_cf)  # help mypy out
+
             if X_cf.shape[0] == 0:
                 continue
 
@@ -494,4 +500,4 @@ class CounterfactualRLTabular(CounterfactualRL):
         if self._is_classification(Y_t):
             Y_t = np.argmax(Y_t, axis=1)
 
-        return self._build_explanation(X=X, Y_m=Y_m, X_cf=X_cf, Y_m_cf=Y_m_cf, Y_t=Y_t, C=C)
+        return self._build_explanation(X=X, Y_m=Y_m, X_cf=X_cf, Y_m_cf=Y_m_cf, Y_t=Y_t, C=C)  # type: ignore[arg-type]

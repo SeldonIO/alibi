@@ -65,10 +65,6 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
                                         batch_size=self.batch_size)
 
         # Define number of classes for classification & minimum and maximum labels for regression
-        self.num_classes: Optional[int] = None
-        self.max_m: Optional[float] = None
-        self.min_m: Optional[float] = None
-
         if self.Y_m.shape[1] > 1:
             self.num_classes = self.Y_m.shape[1]
         else:
@@ -92,7 +88,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         return self.X.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
-        if self.num_classes is not None:
+        if hasattr(self, 'num_classes'):
             # Generate random targets for classification task.
             tgts = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)
             Y_t = np.zeros((self.batch_size, self.num_classes))

@@ -1,6 +1,7 @@
+from typing import Dict, Tuple
+
 import numpy as np
 from sklearn.manifold import MDS
-from typing import Dict, Tuple
 
 
 def cityblock_batch(X: np.ndarray,
@@ -161,10 +162,10 @@ def abdm(X: np.ndarray,
 
 
 def multidim_scaling(d_pair: dict,
+                     feature_range: tuple,
                      n_components: int = 2,
                      use_metric: bool = True,
                      standardize_cat_vars: bool = True,
-                     feature_range: tuple = None,
                      smooth: float = 1.,
                      center: bool = True,
                      update_feature_range: bool = True) -> Tuple[dict, tuple]:
@@ -176,15 +177,16 @@ def multidim_scaling(d_pair: dict,
     d_pair
         Dict with as keys the column index of the categorical variables and as values
         a pairwise distance matrix for the categories of the variable.
+    feature_range
+        Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
+        numpy arrays with dimension (1 x nb of features) for feature-wise ranges.
     n_components
         Number of dimensions in which to immerse the dissimilarities.
     use_metric
         If True, perform metric MDS; otherwise, perform nonmetric MDS.
     standardize_cat_vars
         Standardize numerical values of categorical variables if True.
-    feature_range
-        Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
-        numpy arrays with dimension (1 x nb of features) for feature-wise ranges.
+
     smooth
         Smoothing exponent between 0 and 1 for the distances. Lower values of l will smooth the difference in
         distance metric between different features.

@@ -1,20 +1,23 @@
-import os
 import logging
-import numpy as np
-from tqdm import tqdm  # type: ignore
-from copy import deepcopy
-from typing import Union, Any, Callable, Optional, Tuple, Dict, TYPE_CHECKING
+import os
 from abc import ABC, abstractmethod
+from copy import deepcopy
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union, cast
 
-from alibi.api.defaults import DEFAULT_META_CFRL, DEFAULT_DATA_CFRL
+import numpy as np
+from tqdm import tqdm
+
+from alibi.api.defaults import DEFAULT_DATA_CFRL, DEFAULT_META_CFRL
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.utils.frameworks import has_pytorch, has_tensorflow, Framework
-from alibi.explainers.backends.cfrl_base import identity_function, generate_empty_condition,\
-    get_classification_reward, get_hard_distribution
+from alibi.explainers.backends.cfrl_base import (generate_empty_condition,
+                                                 get_classification_reward,
+                                                 get_hard_distribution,
+                                                 identity_function)
+from alibi.utils.frameworks import Framework, has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
-    import torch
     import tensorflow
+    import torch
 
 if has_pytorch:
     # import pytorch backend
@@ -71,6 +74,12 @@ class ReplayBuffer:
     the first batch of data is stored. Allowing flexible batch size can generate Tensorflow warning due to
     the `tf.function` retracing, which can lead to a drop in performance.
     """
+    X: np.ndarray           # buffer for the inputs
+    Y_m: np.ndarray         # buffer for the model's prediction
+    Y_t: np.ndarray         # buffer for the counterfactual targets
+    Z: np.ndarray           # buffer for the input embedding
+    Z_cf_tilde: np.ndarray  # buffer for the noised counterfactual embedding
+    R_tilde: np.ndarray     # buffer for the noised counterfactual reward tensor
 
     def __init__(self, size: int = 1000) -> None:
         """
@@ -82,18 +91,12 @@ class ReplayBuffer:
             Dimension of the buffer in batch size. This that the total memory allocated is proportional with the
             `size` * `batch_size`, where `batch_size` is inferred from the first tensors to be stored.
         """
-        self.X: Optional[np.ndarray] = None            # buffer for the inputs
-        self.Y_m: Optional[np.ndarray] = None          # buffer for the model's prediction
-        self.Y_t: Optional[np.ndarray] = None          # buffer for the counterfactual targets
-        self.Z: Optional[np.ndarray] = None            # buffer for the input embedding
-        self.Z_cf_tilde: Optional[np.ndarray] = None   # buffer for the noised counterfactual embedding
-        self.C: Optional[np.ndarray] = None            # buffer for the conditional tensor
-        self.R_tilde: Optional[np.ndarray] = None      # buffer for the noised counterfactual reward tensor
 
-        self.idx = 0                    # cursor for the buffer
-        self.len = 0                    # current length of the buffer
-        self.size = size                # buffer's maximum capacity
-        self.batch_size = 0             # batch size (inferred during `append`)
+        self.idx = 0  # cursor for the buffer
+        self.len = 0  # current length of the buffer
+        self.size = size  # buffer's maximum capacity
+        self.batch_size = 0  # batch size (inferred during `append`)
+        self.C: Optional[np.ndarray] = None  # buffer for the conditional tensor
 
     def append(self,
                X: np.ndarray,
@@ -126,7 +129,7 @@ class ReplayBuffer:
             Noised counterfactual reward array.
         """
         # Initialize the buffers.
-        if self.X is None:
+        if not hasattr(self, 'X'):
             self.batch_size = X.shape[0]
 
             # Allocate memory.
@@ -157,6 +160,7 @@ class ReplayBuffer:
         self.R_tilde[start:start + self.batch_size] = R_tilde
 
         if C is not None:
+            self.C = cast(np.ndarray, self.C)  # helping mypy out as self.C cannot be None at this point
             self.C[start:start + self.batch_size] = C
 
         # Compute the next index. Not that if the buffer reached its maximum capacity, for the next iteration
@@ -177,13 +181,13 @@ class ReplayBuffer:
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
 
         # Extract data form buffers.
-        X = self.X[rand_idx]                                        # input array
-        Y_m = self.Y_m[rand_idx]                                    # model's prediction
-        Y_t = self.Y_t[rand_idx]                                    # counterfactual target
-        Z = self.Z[rand_idx]                                        # input embedding
-        Z_cf_tilde = self.Z_cf_tilde[rand_idx]                      # noised counterfactual embedding
-        C = self.C[rand_idx] if (self.C is not None) else None      # conditional array if exists
-        R_tilde = self.R_tilde[rand_idx]                            # noised counterfactual reward
+        X = self.X[rand_idx]                                    # input array
+        Y_m = self.Y_m[rand_idx]                                # model's prediction
+        Y_t = self.Y_t[rand_idx]                                # counterfactual target
+        Z = self.Z[rand_idx]                                    # input embedding
+        Z_cf_tilde = self.Z_cf_tilde[rand_idx]                  # noised counterfactual embedding
+        C = self.C[rand_idx] if (self.C is not None) else None  # conditional array if exists
+        R_tilde = self.R_tilde[rand_idx]                        # noised counterfactual reward
 
         return {
             "X": X,
@@ -491,7 +495,7 @@ class CounterfactualRL(Explainer, FitMixin):
                          predictor: Callable,
                          encoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                          decoder: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                         latent_dim: float,
+                         latent_dim: Optional[int],
                          coeff_sparsity: float,
                          coeff_consistency: float,
                          backend: str,
@@ -750,7 +754,7 @@ class CounterfactualRL(Explainer, FitMixin):
             raise ValueError(f"Target shape should be at least 1 and at most 2. Found {len(Y_t.shape)} instead.")
 
     @staticmethod
-    def _validate_condition(C: np.ndarray):
+    def _validate_condition(C: Optional[np.ndarray]):
         """
         Validate condition vector.
 
@@ -778,10 +782,10 @@ class CounterfactualRL(Explainer, FitMixin):
         """
         return len(pred.shape) == 2 and pred.shape[1] > 1
 
-    def explain(self,
+    def explain(self,  # type: ignore[override]
                 X: np.ndarray,
-                Y_t: np.ndarray = None,   # TODO: remove default value (mypy error. explanation in the validation step)
-                C: Optional[Any] = None,  # TODO: narrow down the type from `Any` (explanation in the validation step)
+                Y_t: np.ndarray,
+                C: Optional[np.ndarray] = None,
                 batch_size: int = 100) -> Explanation:
         """
         Explains an input instance
@@ -804,13 +808,6 @@ class CounterfactualRL(Explainer, FitMixin):
         corresponding labels, targets and additional metadata.
         """
         # General validation.
-        #
-        # If `Y_t` doesn't have the default value `None` I will get a warning saying that "Signature of method does not
-        # match the signature of class" (Liskov substitution principle). That's why `Y_t` can be None but None is not a
-        # valid value since the target must be specified.
-        #
-        # `C` can be in fact only `np.ndarray`, but for the tabular case a `Dict[str, List]` is expected.
-        # Similar behavior as in the previous comment.
         self._validate_target(Y_t)
         self._validate_condition(C)
 
@@ -835,7 +832,7 @@ class CounterfactualRL(Explainer, FitMixin):
 
         # Perform prediction in mini-batches.
         n_minibatch = int(np.ceil(X.shape[0] / batch_size))
-        all_results: Dict[str, np.ndarray] = {}
+        all_results: Dict[str, Optional[np.ndarray]] = {}
 
         for i in tqdm(range(n_minibatch)):
             istart, istop = i * batch_size, min((i + 1) * batch_size, X.shape[0])
@@ -853,12 +850,13 @@ class CounterfactualRL(Explainer, FitMixin):
                 if all_results[key] is not None:
                     all_results[key] = np.concatenate([all_results[key], results[key]], axis=0)
 
-        return self._build_explanation(**all_results)
+        # see https://github.com/python/mypy/issues/5382 for the type ignore
+        return self._build_explanation(**all_results)  # type: ignore[arg-type]
 
     def _compute_counterfactual(self,
                                 X: np.ndarray,
                                 Y_t: np.ndarray,
-                                C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:
+                                C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:  # TODO: TypedDict
         """
         Compute counterfactual instance for a given input, target and condition vector
 
@@ -937,12 +935,12 @@ class CounterfactualRL(Explainer, FitMixin):
             Y_m_cf = np.argmax(Y_m_cf, axis=1)
 
         return {
-            "X": X_orig,         # input instances
-            "Y_m": Y_m,          # input classification labels
-            "X_cf": X_cf,        # counterfactual instances
-            "Y_m_cf": Y_m_cf,    # counterfactual classification labels
-            "Y_t": Y_t,          # target labels
-            "C": C               # conditional vectors
+            "X": X_orig,        # input instances
+            "Y_m": Y_m,         # input classification labels
+            "X_cf": X_cf,       # counterfactual instances
+            "Y_m_cf": Y_m_cf,   # counterfactual classification labels
+            "Y_t": Y_t,         # target labels
+            "C": C              # conditional vectors
         }
 
     def _build_explanation(self,
@@ -951,7 +949,7 @@ class CounterfactualRL(Explainer, FitMixin):
                            X_cf: np.ndarray,
                            Y_m_cf: np.ndarray,
                            Y_t: np.ndarray,
-                           C: Any) -> Explanation:
+                           C: Optional[np.ndarray]) -> Explanation:
         """
         Builds the explanation of the current object.
 

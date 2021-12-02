@@ -483,7 +483,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
         # variable for target class proto
         if self.enc_model:
-            self.shape_enc = self.enc.predict(np.zeros(self.shape)).shape
+            self.shape_enc = self.enc.predict(np.zeros(self.shape)).shape  # type: ignore[union-attr]
         else:
             self.shape_enc = shape
 
@@ -556,8 +556,8 @@ class CounterfactualProto(Explainer, FitMixin):
             # gamma * AE loss
             if self.ae_model:
                 # run autoencoder
-                self.adv_ae = self.ae(self.adv_cat)
-                self.adv_ae_s = self.ae(self.adv_cat_s)
+                self.adv_ae = self.ae(self.adv_cat)  # type: ignore[misc]
+                self.adv_ae_s = self.ae(self.adv_cat_s)  # type: ignore[misc]
                 if self.is_cat:  # map output autoencoder back to numerical values
                     self.adv_ae = apply_map(self.adv_ae, to_num=True)
                     self.adv_ae_s = apply_map(self.adv_ae_s, to_num=True)
@@ -601,8 +601,10 @@ class CounterfactualProto(Explainer, FitMixin):
 
         with tf.name_scope('loss_prototype') as scope:
             if self.enc_model:
-                self.loss_proto = self.theta * tf.square(tf.norm(self.enc(self.adv_cat) - self.target_proto))
-                self.loss_proto_s = self.theta * tf.square(tf.norm(self.enc(self.adv_cat_s) - self.target_proto))
+                self.loss_proto = self.theta * tf.square(
+                    tf.norm(self.enc(self.adv_cat) - self.target_proto))  # type: ignore[misc]
+                self.loss_proto_s = self.theta * tf.square(
+                    tf.norm(self.enc(self.adv_cat_s) - self.target_proto))  # type: ignore[misc]
             elif self.use_kdtree:
                 self.loss_proto = self.theta * tf.square(tf.norm(self.adv - self.target_proto))
                 self.loss_proto_s = self.theta * tf.square(tf.norm(self.adv_s - self.target_proto))
@@ -792,7 +794,7 @@ class CounterfactualProto(Explainer, FitMixin):
             self.d_abs_ragged = np.array(self.d_abs_ragged)
 
         if self.enc_model:
-            enc_data = self.enc.predict(train_data)
+            enc_data = self.enc.predict(train_data)  # type: ignore[union-attr]
             self.class_proto = {}  # type: dict
             self.class_enc = {}  # type: dict
             for i in range(self.classes):
@@ -933,7 +935,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 X = num_to_ord(X, self.d_abs)
             if self.ohe:
                 X, _ = ord_to_ohe(X, self.cat_vars_ord)  # TODO: (Arnaud) is this a genuine bug?
-            X_enc = self.enc.predict(X)
+            X_enc = self.enc.predict(X)  # type: ignore[union-attr]
             adv_proto = self.class_proto[adv_class]
             orig_proto = self.class_proto[orig_class]
             dist_adv = np.linalg.norm(X_enc - adv_proto)
@@ -1029,7 +1031,7 @@ class CounterfactualProto(Explainer, FitMixin):
         dist_proto = {}
         if self.enc_model:
 
-            X_enc = self.enc.predict(X)
+            X_enc = self.enc.predict(X)  # type: ignore[union-attr]
             class_dict = self.class_proto if k is None else self.class_enc
 
             for c, v in class_dict.items():

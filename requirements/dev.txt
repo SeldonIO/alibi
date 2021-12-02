@@ -1,7 +1,7 @@
 # development dependencies (see docs.txt for documentation building dependencies)
 # linting and static type-checking
 flake8>=3.7.7, <5.0.0
-mypy>=0.670, <0.900
+mypy>=0.670, <0.911
 # testing
 pytest>=5.3.5, <7.0.0
 pytest-cov>=2.6.1, <4.0.0

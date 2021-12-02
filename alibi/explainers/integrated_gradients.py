@@ -1,13 +1,15 @@
 import copy
 import logging
-import numpy as np
 import string
+import warnings
+from typing import Callable, List, Optional, Tuple, Union, cast
+
+import numpy as np
 import tensorflow as tf
 
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
-from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-from typing import Callable, Union, List, Tuple, Optional, cast
+from alibi.utils.approximation_methods import approximation_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -550,6 +552,50 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     return target
 
 
+def _get_target_from_target_fn(target_fn: Callable,
+                               model: tf.keras.Model,
+                               X: Union[np.ndarray, List[np.ndarray]],
+                               forward_kwargs: Optional[dict] = None) -> np.ndarray:
+    """
+    Generate a target vector by using the `target_fn` to pick out a
+    scalar dimension from the predictions.
+
+    Parameters
+    ----------
+    target_fn
+        Target function.
+    model
+        Model
+    X
+        Data to be explained.
+    forward_kwargs
+        Any additional kwargs needed for the model forward pass.
+
+    Returns
+    -------
+    Integer array of dimension (N, ).
+    """
+    if forward_kwargs is None:
+        preds = model(X)
+    else:
+        preds = model(X, **forward_kwargs)
+
+    # raise a warning if the predictions are scalar valued already
+    # TODO: in the future we want to support outputs that are >2D at which point this check should change
+    if preds.shape[-1] == 1:
+        msg = "Predictions from the model are scalar valued but `target_fn` was passed. `target_fn` is not necessary" \
+              "when predictions are scalar valued already. Using `target_fn` here may result in unexpected behaviour."
+        warnings.warn(msg)
+
+    target = target_fn(preds)
+    expected_shape = (target.shape[0],)
+    if target.shape != expected_shape:
+        # TODO: in the future we want to support outputs that are >2D at which point this check should change
+        msg = f"`target_fn` returned an array of shape {target.shape} but expected an array of shape {expected_shape}."
+        raise ValueError(msg)  # TODO: raise a more specific error type?
+    return target
+
+
 def _sum_integral_terms(step_sizes: list,
                         grads: Union[tf.Tensor, np.ndarray]) -> Union[tf.Tensor, np.ndarray]:
     """
@@ -666,6 +712,7 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
+                 target_fn: Optional[Callable] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -725,6 +772,8 @@ class IntegratedGradients(Explainer):
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
+        self.target_fn = target_fn
+
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,
@@ -764,6 +813,13 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
+        # target handling logic
+        if self.target_fn and target is not None:
+            msg = 'Both `target_fn` and `target` were provided. Only one of these should be provided.'
+            raise ValueError(msg)
+        if self.target_fn:
+            target = _get_target_from_target_fn(self.target_fn, self.model, X, forward_kwargs)
+
         self._is_list = isinstance(X, list)
         self._is_np = isinstance(X, np.ndarray)
         if forward_kwargs is None:

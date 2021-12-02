@@ -106,20 +106,27 @@ class ALE(Explainer):
 
         Returns
         -------
-        :
-            An `Explanation` object containing the data and the metadata of the calculated ALE curves.
-            Data-related attributes:
-             - `ale_values` : List[np.ndarray] - a list of arrays of ALE values (one for each feature). Each array \
-             can have multiple columns (if the number of targets is >1 as in classification).
-             - `constant_value` : float - the mean prediction over `X` (zeroth order effects).
-             - `ale0` : List[np.ndarray] - a list of arrays of “centering” values (one for each feature) used by the \
-             algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum of `ale_values` \
-             and `ale0` will be the uncentered ALE).
-             - `feature_values` : List[np.ndarray] - a list of arrays (one for each feature) of feature values at \
-             which the ALE values were computed.
-             - `feature_names` : np.ndarray - an array of feature names.
-             - `target_names` : np.ndarray - an array of target names.
-             - `feature_deciles` : List[np.ndarray] - a list of arrays (one for each feature) of the feature deciles.
+        An `Explanation` object containing the data and the metadata of the calculated ALE curves. Contains the \
+        following data-related attributes:
+
+         - `ale_values` : List[np.ndarray] - a list of arrays of ALE values (one for each feature). Each array \
+         can have multiple columns (if the number of targets is >1 as in classification).
+
+         - `constant_value` : float - the mean prediction over `X` (zeroth order effects).
+
+         - `ale0` : List[np.ndarray] - a list of arrays of “centering” values (one for each feature) used by the \
+         algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum of `ale_values` \
+         and `ale0` will be the uncentered ALE).
+
+         - `feature_values` : List[np.ndarray] - a list of arrays (one for each feature) of feature values at \
+         which the ALE values were computed.
+
+         - `feature_names` : np.ndarray - an array of feature names.
+
+         - `target_names` : np.ndarray - an array of target names.
+
+         - `feature_deciles` : List[np.ndarray] - a list of arrays (one for each feature) of the feature deciles.
+
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
 
@@ -235,8 +242,8 @@ def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='li
 
     Returns
     -------
-    :
-        Array of quantiles of the input values.
+    Array of quantiles of the input values.
+
     """
     percentiles = np.linspace(0, 100, num=num_quantiles)
     quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)  # type: ignore[call-overload]
@@ -264,8 +271,8 @@ def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
 
     Returns
     -------
-    :
-        Integer index.
+    Integer index.
+
     """
     while lo < hi:
         mid = (lo + hi) // 2
@@ -292,8 +299,8 @@ def minimum_satisfied(values: np.ndarray, min_bin_points: int, n: int) -> int:
 
     Returns
     -------
-    :
-        Integer encoded boolean with 1 - each bin has at least `min_bin_points` and 0 otherwise.
+    Integer encoded boolean with 1 - each bin has at least `min_bin_points` and 0 otherwise.
+
     """
     q = np.unique(get_quantiles(values, num_quantiles=n))
     indices = np.searchsorted(q, values, side='left')
@@ -501,8 +508,8 @@ def plot_ale(exp: Explanation,
 
     Returns
     -------
-    :
-        An array of `matplotlib axes` with the resulting ALE plots.
+    An array of `matplotlib axes` with the resulting ALE plots.
+
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec

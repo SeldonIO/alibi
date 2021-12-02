@@ -80,8 +80,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            A sorted tuple.
+        A sorted tuple.
         """
 
         if allow_duplicates:
@@ -105,8 +104,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Updated upper precision bounds array.
+        Updated upper precision bounds array.
         """
         # TODO: where does 17x sampling come from?
         lm = p.copy()
@@ -138,8 +136,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Updated lower precision bounds array.
+        Updated lower precision bounds array.
         """
 
         um = p.copy()
@@ -169,8 +166,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Level used to update upper and lower precision bounds.
+        Level used to update upper and lower precision bounds.
         """
         # TODO: where do magic numbers come from?
         alpha = 1.1
@@ -226,8 +222,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Upper and lower precision bound indices.
+        Upper and lower precision bound indices.
         """
 
         crit_arms = namedtuple('crit_arms', ['ut', 'lt'])
@@ -280,8 +275,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Indices of best result options. Number of indices equals min of beam width or nb of candidate anchors.
+        Indices of best result options. Number of indices equals min of beam width or nb of candidate anchors.
         """
 
         # n_features equals to the nb of candidate anchors
@@ -349,9 +343,8 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            A tuple of positive samples (for which prediction matches desired label)
-            and a tuple of total number of samples drawn.
+        A tuple of positive samples (for which prediction matches desired label) and a tuple of \
+        total number of samples drawn.
         """
 
         for anchor in anchors:
@@ -377,8 +370,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            List with tuples of candidate anchors with additional metadata.
+        List with tuples of candidate anchors with additional metadata.
         """
 
         # compute some variables used later on
@@ -451,9 +443,8 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            A tuple containing the number of instances equals desired label of observation
-            to be explained the total number of instances sampled, and the result that was sampled.
+        A tuple containing the number of instances equals desired label of observation \
+        to be explained the total number of instances sampled, and the result that was sampled.
         """
 
         # data = binary matrix where 1 means a feature has the same value as the feature in the result
@@ -498,9 +489,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Dictionary with lists containing nb of samples used and where sample predictions equal
-            the desired label.
+        Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
         """
 
         def array_factory(size: tuple):
@@ -535,8 +524,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Anchor dictionary with result features and additional metadata.
+        Anchor dictionary with result features and additional metadata.
         """
 
         state = self.state
@@ -611,8 +599,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Boolean array indicating whether more samples are to be drawn for that particular result.
+        Boolean array indicating whether more samples are to be drawn for that particular result.
         """
 
         return ((means >= desired_confidence) & (lbs < desired_confidence - epsilon_stop)) | \
@@ -662,9 +649,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-        :
-            Explanation dictionary containing anchors with metadata like coverage and precision
-            and examples.
+        Explanation dictionary containing anchors with metadata like coverage and precision and examples.
         """
 
         # Select coverage set and initialise object state
@@ -858,8 +843,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Returns
         -------
-        :
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
+        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
         """
 
         [coverage_data] = DistributedAnchorBaseBeam.ray.get(
@@ -879,8 +863,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Returns
         -------
-        :
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
+        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
         """
 
         # partial anchors not generated by propose_anchors are not in the order dictionary

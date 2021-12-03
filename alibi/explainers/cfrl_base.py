@@ -585,12 +585,12 @@ class CounterfactualRL(Explainer, FitMixin):
 
     def reset_predictor(self, predictor: Any) -> None:
         """
-        Resets the predictor to be explained.
+        Resets the predictor.
 
         Parameters
         ----------
         predictor
-            New predictor to be set.
+            New predictor.
         """
         self.params["predictor"] = predictor
         self.meta["params"].update(CounterfactualRL._serialize_params(self.params))

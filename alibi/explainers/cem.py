@@ -716,4 +716,12 @@ class CEM(Explainer, FitMixin):
         return explanation
 
     def reset_predictor(self, predictor: Union[Callable, tf.keras.Model]) -> None:
+        """
+        Resets the predictor function/model.
+
+        Parameters
+        ----------
+        predictor
+            New prediction function/model.
+        """
         raise NotImplementedError('Resetting a predictor is currently not supported')

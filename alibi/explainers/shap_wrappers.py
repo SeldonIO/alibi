@@ -38,7 +38,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
     Parameters
     ----------
     shap_values
-        Each element corresponds to a samples x features array of shap values corresponding
+        Each element corresponds to a `samples x features` array of shap values corresponding
         to each model output.
     feature_names
         Each element is the name of the column with the corresponding index in each of the
@@ -108,9 +108,9 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     """
     This function is used to reduce specified slices in a two- or three- dimensional tensor.
 
-    For two-dimensional `values` arrays, for each entry in start_idx, the function sums the
-    following k columns where k is the corresponding entry in the enc_feat_dim sequence.
-    The columns whose indices are not in start_idx are left unchanged. This arises when the slices
+    For two-dimensional `values` arrays, for each entry in `start_idx`, the function sums the
+    following `k` columns where `k` is the corresponding entry in the `enc_feat_dim` sequence.
+    The columns whose indices are not in `start_idx` are left unchanged. This arises when the slices
     contain the shap values for each dimension of an encoded categorical variable and a single shap
     value for each variable is desired.
 
@@ -118,9 +118,9 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     the column dimension and then across the row dimension. This arises when summarising shap interaction values.
     Each rank 2 tensor is a E x E matrix of shap interaction values, where E is the dimension of the data after
     one-hot encoding. The result of applying the reduction yields a rank 2 tensor of dimension F x F, where F is the
-    number of features (ie, the feature dimension of the data matrix before encoding). By applying this transformation,
-    a single value describing the interaction of categorical features i and j and a single value describing the
-    intearction of j and i is returned.
+    number of features (i.e., the feature dimension of the data matrix before encoding). By applying this
+    transformation, a single value describing the interaction of categorical features i and j and a single value
+    describing the intearction of `j` and `i` is returned.
 
     Parameters
     ----------
@@ -130,6 +130,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         The start indices of the columns to be summed.
     enc_feat_dim
         The number of columns to be summed, one for each start index.
+
     Returns
     -------
     new_values
@@ -208,16 +209,13 @@ DISTRIBUTED_OPTS = {
 }  # type: dict
 """
 Default distributed options for KernelShap:
-
-    - ``'ncpus'``: ``int``, number of available CPUs available to parallelize explanations. Performance is significantly \
-    boosted when the number specified represents physical CPUs, but small (nonlinear) gains are observed when virtual \
-    CPUs are specified. If set to `None`, the code will run sequentially.
-    
+    - ``'ncpus'`` : ``int`` - number of available CPUs available to parallelize explanations. Performance \
+    is significantly boosted when the number specified represents physical CPUs, but small (nonlinear) gains are \
+    observed when virtual CPUs are specified. If set to ``None``, the code will run sequentially.
     - ``'batch_size'``: ``int``, how many instances are explained in the same remote process at once. The `shap` library \
      of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post`_ for batch \
      size experiments results. If set to `None`, an input array is split in (roughly) equal parts and distributed across \
      the available CPUs.
-    
     .. _post:
         https://www.seldon.io/how-seldons-alibi-and-ray-make-model-explainability-easy-and-scalable/ 
 """  # noqa
@@ -298,11 +296,11 @@ class KernelShap(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes as an input a samples x features array and outputs a samples x n_outputs
+            A callable that takes as an input a `samples x features` array and outputs a `samples x n_outputs`
             model outputs. The n_outputs should represent model output in margin space. If the model outputs
-            probabilities, then the link should be set to 'logit' to ensure correct force plots.
+            probabilities, then the link should be set to ``'logit'`` to ensure correct force plots.
         link
-            Valid values are `'identity'` or `'logit'`. A generalized linear model link to connect the feature
+            Valid values are ``'identity'`` or ``'logit'``. A generalized linear model link to connect the feature
             importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the
             model output, it often makes sense to connect them to the ouput with a link function where
             :math:`link(output - expected\_value) = sum(\phi)`. Therefore, for a model which outputs probabilities,
@@ -329,8 +327,8 @@ class KernelShap(Explainer, FitMixin):
         seed
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
         distributed_opts
-            A dictionary that controls the algorithm distributed execution. See `DISTRIBUTED_OPTS` documentation for 
-            details.
+            A dictionary that controls the algorithm distributed execution. 
+            See :py:data:`alibi.explainers.shap_wrappers.DISTRIBUTED_OPTS` documentation for details.
         """  # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_KERNEL_SHAP))
@@ -503,15 +501,15 @@ class KernelShap(Explainer, FitMixin):
                               n_background_samples: int) -> \
             Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix]:
         """
-        Summarises the background data to n_background_samples in order to reduce the computational cost. If the
+        Summarises the background data to `n_background_samples` in order to reduce the computational cost. If the
         background data is a `shap_utils.Data object`, no summarisation is performed.
 
         Returns
         -------
-            If the user has specified grouping, then the input object is subsampled and an object of the same
-            type is returned. Otherwise, a `shap_utils.Data` object containing the result of a k-means algorithm
-            is wrapped in a `shap_utils.DenseData` object and returned. The samples are weighted according to the
-            frequency of the occurrence of the clusters in the original data.
+        If the user has specified grouping, then the input object is subsampled and an object of the same \
+        type is returned. Otherwise, a `shap_utils.Data` object containing the result of a k-means algorithm \
+        is wrapped in a `shap_utils.DenseData` object and returned. The samples are weighted according to the \
+        frequency of the occurrence of the clusters in the original data.
         """
 
         if isinstance(background_data, shap_utils.Data):
@@ -560,8 +558,7 @@ class KernelShap(Explainer, FitMixin):
 
         Notes
         _____
-
-        If `self.summarise_background = True`, then a `shap_utils.Data` object is
+        If `self.summarise_background=True`, then a `shap_utils.Data` object is
         returned if the user passed a `shap_utils.Data` object to `fit` or didn't specify groups.
         """
 
@@ -694,10 +691,10 @@ class KernelShap(Explainer, FitMixin):
             background data should represent samples and the columns features.
         summarise_background
             A large background dataset impacts the runtime and memory footprint of the algorithm. By setting
-            this argument to `True`, only `n_background_samples` from the provided data are selected. If group_names or
-            groups arguments are specified, the algorithm assumes that the data contains categorical variables so
-            the records are selected uniformly at random. Otherwise, `shap.kmeans` (a wrapper around `sklearn` k-means
-            implementation) is used for selection. If set to `'auto'`, a default of
+            this argument to ``True``, only `n_background_samples` from the provided data are selected. If
+            group_names or groups arguments are specified, the algorithm assumes that the data contains categorical
+            variables so the records are selected uniformly at random. Otherwise, `shap.kmeans` (a wrapper
+            around `sklearn` k-means implementation) is used for selection. If set to ``'auto'``, a default of
             `KERNEL_SHAP_BACKGROUND_THRESHOLD` samples is selected.
         n_background_samples
             The number of samples to keep in the background dataset if `summarise_background=True`.
@@ -806,7 +803,6 @@ class KernelShap(Explainer, FitMixin):
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
                 - `nsamples`: controls the number of predictor calls and therefore runtime.
-
                 - `l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will \
                 first run a feature selection algorithm to select the top features, provided the fraction of sampled \
                 sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information \
@@ -814,7 +810,7 @@ class KernelShap(Explainer, FitMixin):
                 parameter. Note that by first running a feature selection step, the shapley values of the remainder of \
                 the features will be different to those estimated from the entire set.
 
-                For more details, please see the shap library `documentation`_ .
+            For more details, please see the shap library `documentation`_ .
 
                 .. _documentation:
                    https://shap.readthedocs.io/en/latest/.
@@ -883,12 +879,12 @@ class KernelShap(Explainer, FitMixin):
         X
             Instances to be explained.
         shap_values
-            Each entry is a n_instances x n_features array, and the length of the list equals the dimensionality
+            Each entry is a `n_instances x n_features array`, and the length of the list equals the dimensionality
             of the predictor output. The rows of each array correspond to the shap values for the instances with
             the corresponding row index in `X`. The length of the list equals the number of model outputs.
         expected_value
-            A list containing the expected value of the prediction for each class. Its length should be equal to that of
-            `shap_values`.
+            A list containing the expected value of the prediction for each class. Its length should be equal to
+            that of `shap_values`.
 
         Returns
         -------
@@ -956,12 +952,8 @@ class KernelShap(Explainer, FitMixin):
 
         Parameters
         ----------
-        summarise_result:
-            See `explain` documentation.
-        cat_vars_start_idx:
-            See `explain` documentation.
-        cat_vars_enc_dim:
-            See `explain` documentation.
+        summarise_result, cat_vars_start_idx, cat_vars_enc_dim
+            See :py:meth:`alibi.exapliners.KernelShap.shap_wrapper.explain` documentation.
         """
 
         self.summarise_result = summarise_result
@@ -982,6 +974,14 @@ class KernelShap(Explainer, FitMixin):
                 self.summarise_result = False
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the prediction function.
+
+        Parameters
+        ----------
+        predictor
+            New prediction function.
+        """
         self.predictor = predictor
         # TODO: check if we need to reinitialize self._explainer (potentially not, as it should hold a reference
         #  to self.predictor) however, the shap.KernelExplainer may utilize the Callable to set some attributes
@@ -1016,41 +1016,41 @@ class TreeShap(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A fitted model to be explained. XGBoost, LightGBM, CatBoost and most tree-based
-            scikit-learn models are supported. In the future, Pyspark could also be supported.
+            A fitted model to be explained. `XGBoost`, `LightGBM`, `CatBoost` and most tree-based
+            `scikit-learn` models are supported. In the future, `Pyspark` could also be supported.
             Please open an issue if this is a use case for you.
         model_output
-            Supported values are: `'raw'`, `'probability'`, `'probability_doubled'`, `'log_loss'`: 
+            Supported values are: ``'raw'``, ``'probability'``, ``'probability_doubled'``, ``'log_loss'``: 
 
-                - `'raw'`: the raw model of the output, which varies by task, is explained. This option \
+                - ``'raw'`` - the raw model of the output, which varies by task, is explained. This option \
                 should always be used if the `fit` is called without arguments. It should also be set to compute \
                 shap interaction values. For regression models it is the standard output, for binary classification \
                 in XGBoost it is the log odds ratio. \
 
-                - `'probability'`: the probability output is explained. This option should only be used if `fit` was \
+                - ``'probability'`` - the probability output is explained. This option should only be used if `fit` \
                 was called with the `background_data` argument set. The effect of specifying this parameter is that \
-                the `shap` library will use this information to transform the shap values computed in margin space (aka \
-                using the raw output) to shap values that sum to the probability output by the model plus the model expected \
-                output probability. This requires knowledge of the type of output for `predictor` which is inferred by the \
-                `shap` library from the model type (e.g., most sklearn models with exception of \
-                `sklearn.tree.DecisionTreeClassifier`, `sklearn.ensemble.RandomForestClassifier`, \
+                the `shap` library will use this information to transform the shap values computed in margin space \
+                (aka using the raw output) to shap values that sum to the probability output by the model plus the \
+                model expected output probability. This requires knowledge of the type of output for `predictor` \
+                which is inferred by the `shap` library from the model type (e.g., most sklearn models with exception \
+                of `sklearn.tree.DecisionTreeClassifier`, `sklearn.ensemble.RandomForestClassifier`, \
                 `sklearn.ensemble.ExtraTreesClassifier` output logits) or on the basis of the mapping implemented in \
                 the `shap.TreeEnsemble` constructor. Only trees that output log odds and probabilities are supported \
                 currently.  
 
-                - `'probability_doubled'`: used for binary classification problem in situations where the model outputs \
-                the logits/probabilities for the positive class but shap values for both outcomes are desired. This \
-                option should be used only if `fit` was called with the `background_data` argument set. In \
+                - ``'probability_doubled'`` - used for binary classification problem in situations where the model \
+                outputs the logits/probabilities for the positive class but shap values for both outcomes are desired. \
+                This option should be used only if `fit` was called with the `background_data` argument set. In \
                 this case the expected value for the negative class is 1 - expected_value for positive class and \
                 the shap values for the negative class are the negative values of the positive class shap values. \
                 As before, the explanation happens in the margin space, and the shap values are subsequently adjusted. \
                 convert the model output to probabilities. The same considerations as for `probability` apply for this \
                 output type too. 
 
-                - `'log_loss'`: logarithmic loss is explained. This option shoud be used only if `fit` was called with the \
-                `background_data` argument set and requires specifying labels, `y`, when calling `explain`.  If the \
-                objective is squared error, then the transformation :math:`(output - y)^2` is applied. For binary \
-                cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with  \
+                - ``'log_loss'`` - logarithmic loss is explained. This option shoud be used only if `fit` was called \
+                with the `background_data` argument set and requires specifying labels, `y`, when calling `explain`. \
+                If the objective is squared error, then the transformation :math:`(output - y)^2` is applied. For \
+                binary cross-entropy objective, the transformation :math:`log(1 + exp(output)) - y * output` with  \
                 :math:`y \in \{0, 1\}`. Currently only binary cross-entropy and squared error losses can be explained. \
 
         feature_names
@@ -1117,7 +1117,7 @@ class TreeShap(Explainer, FitMixin):
             background data should represent samples and the columns features.
         summarise_background
             A large background dataset may impact the runtime and memory footprint of the algorithm. By setting
-            this argument to `True`, only `n_background_samples` from the provided data are selected. If the
+            this argument to ``True``, only `n_background_samples` from the provided data are selected. If the
             `categorical_names` argument has been passed to the constructor, subsampling of the data is used.
             Otherwise, `shap.kmeans` (a wrapper around `sklearn.kmeans` implementation) is used for selection.
             If set to `'auto'`, a default of `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD` samples is selected.
@@ -1244,11 +1244,11 @@ class TreeShap(Explainer, FitMixin):
             Labels corresponding to rows of `X`. Should be passed only if a background dataset was passed to the
             `fit` method.
         interactions
-            If `True`, the shap value for every feature of every instance in `X` is decomposed into
+            If ``True``, the shap value for every feature of every instance in `X` is decomposed into
             `X.shape[1] - 1` shap value interactions and one main effect. This is only supported if `fit` is called
             with `background_dataset=None`.
         approximate
-            If `True`, an approximation to the shap values that does not account for feature order is computed. This
+            If ``True``, an approximation to the shap values that does not account for feature order is computed. This
             was proposed by `Ando Sabaas`_ here . Check `this`_ resource for more details. This option is currently
             only supported for `xgboost` and `sklearn` models.
 
@@ -1259,11 +1259,11 @@ class TreeShap(Explainer, FitMixin):
                https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_MOESM1_ESM.pdf
 
         check_additivity
-            If `True`, output correctness is ensured if `model_output='raw'` has been passed to the constructor.
+            If ``True``, output correctness is ensured if `model_output='raw'` has been passed to the constructor.
         tree_limit
             Explain the output of a subset of the first `tree_limit` trees in an ensemble model.
         summarise_result
-            This should be set to True only when some of the columns in `X` represent encoded dimensions of a
+            This should be set to ``True`` only when some of the columns in `X` represent encoded dimensions of a
             categorical variable and one single shap value per categorical variable is desired. Both
             `cat_vars_start_idx` and `cat_vars_enc_dim` should be specified as detailed below to allow this.
         cat_vars_start_idx
@@ -1338,8 +1338,8 @@ class TreeShap(Explainer, FitMixin):
     def _xgboost_interactions(self, X: Union[np.ndarray, pd.DataFrame]) -> Union[np.ndarray, List[np.ndarray]]:
         """
         `shap` library handling of `xgboost` causes a `ValueError` due to `xgboost` (features name mismatch)
-        if you call `shap_interaction_values` with a numpy array (likely only if the user declares their
-        `xgboost.DMatrix` object with the feature_names keyword argument). This method converts the
+        if you call `shap_interaction_values` with a `numpy` array (likely only if the user declares their
+        `xgboost.DMatrix` object with the `feature_names` keyword argument). This method converts the
         incoming numpy array to an `xgboost.DMatrix` object with feature names that match the predictor.
         """
 
@@ -1374,7 +1374,7 @@ class TreeShap(Explainer, FitMixin):
 
         Warns
         -----
-            If approximate values are requested. These values are not defined for interactions.
+        If approximate values are requested. These values are not defined for interactions.
         """
 
         self.approximate = approximate
@@ -1411,7 +1411,6 @@ class TreeShap(Explainer, FitMixin):
             See `TreeShap` constructor documentation.
         y
             See `explain` method documentation.
-
 
         Raises
         ------
@@ -1577,12 +1576,8 @@ class TreeShap(Explainer, FitMixin):
 
         Parameters
         ----------
-        summarise_result:
-            See `explain` documentation.
-        cat_vars_start_idx:
-            See `explain` documentation.
-        cat_vars_enc_dim:
-            See `explain` documentation.
+        summarise_result, cat_vars_start_idx, cat_vars_enc_dim
+            See :py:meth:`alibi.exapliners.shap_wrappers.TreeShap.explain` documentation.
         """
 
         self.summarise_result = summarise_result
@@ -1595,5 +1590,13 @@ class TreeShap(Explainer, FitMixin):
             self.summarise_result = False
 
     def reset_predictor(self, predictor: Any) -> None:
+        """
+        Resets the predictor.
+
+        Parameters
+        ----------
+        predictor
+            New prediction.
+        """
         # TODO: check what else should be done (e.g. validate dtypes again?)
         self.predictor = predictor

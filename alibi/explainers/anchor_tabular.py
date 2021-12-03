@@ -1076,7 +1076,7 @@ class AnchorTabular(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            New model prediction function.
+            New prediction function.
         """
         self.predictor = predictor
         self.samplers[0].predictor = self._predictor

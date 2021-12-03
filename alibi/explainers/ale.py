@@ -216,7 +216,7 @@ class ALE(Explainer):
         Parameters
         ----------
         predictor
-            New model prediction function.
+            New prediction function.
         """
         self.predictor = predictor
 

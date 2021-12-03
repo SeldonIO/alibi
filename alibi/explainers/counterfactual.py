@@ -22,15 +22,15 @@ def _define_func(predict_fn: Callable,
     Parameters
     ----------
     predict_fn
-        Classifier prediction function
+        Classifier prediction function.
     pred_class
-        Predicted class of the instance to be explained
+        Predicted class of the instance to be explained.
     target_class
-        Target class of the explanation, one of 'same', 'other' or an integer class
+        Target class of the explanation, one of ``'same'``, ``'other'`` or an integer class.
 
     Returns
     -------
-        Class-specific prediction function and the target class used.
+    Class-specific prediction function and the target class used.
 
     """
     if target_class == 'other':
@@ -100,44 +100,44 @@ class Counterfactual(Explainer):
         Parameters
         ----------
         predict_fn
-            Keras or TensorFlow model or any other model's prediction function returning class probabilities
+            `Keras` or `TensorFlow` model or any other model's prediction function returning class probabilities.
         shape
-            Shape of input data starting with batch size
+            Shape of input data starting with batch size.
         distance_fn
-            Distance function to use in the loss term
+            Distance function to use in the loss term.
         target_proba
-            Target probability for the counterfactual to reach
+            Target probability for the counterfactual to reach.
         target_class
-            Target class for the counterfactual to reach, one of 'other', 'same' or an integer denoting
-            desired class membership for the counterfactual instance
+            Target class for the counterfactual to reach, one of ``'other'``, ``'same'`` or an integer denoting
+            desired class membership for the counterfactual instance.
         max_iter
-            Maximum number of interations to run the gradient descent for (inner loop)
+            Maximum number of iterations to run the gradient descent for (inner loop).
         early_stop
-            Number of steps after which to terminate gradient descent if all or none of found instances are solutions
+            Number of steps after which to terminate gradient descent if all or none of found instances are solutions.
         lam_init
-            Initial regularization constant for the prediction part of the Wachter loss
+            Initial regularization constant for the prediction part of the Wachter loss.
         max_lam_steps
-            Maximum number of times to adjust the regularization constant (outer loop) before terminating the search
+            Maximum number of times to adjust the regularization constant (outer loop) before terminating the search.
         tol
-            Tolerance for the counterfactual target probability
+            Tolerance for the counterfactual target probability.
         learning_rate_init
-            Initial learning rate for each outer loop of lambda
+            Initial learning rate for each outer loop of `lambda`.
         feature_range
-            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
-            numpy arrays with dimension (1 x nb of features) for feature-wise ranges
+            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `float` or
+            `numpy` arrays with dimension (1 x nb of features) for feature-wise ranges.
         eps
             Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
-            features, but can be passed an array for feature-wise step sizes
+            features, but can be passed an array for feature-wise step sizes.
         init
-            Initialization method for the search of counterfactuals, currently must be 'identity'
+            Initialization method for the search of counterfactuals, currently must be ``'identity'``.
         decay
             Flag to decay learning rate to zero for each outer loop over lambda
         write_dir
-            Directory to write Tensorboard files to
+            Directory to write `Tensorboard` files to.
         debug
-            Flag to write Tensorboard summaries for debugging
+            Flag to write `Tensorboard` summaries for debugging.
         sess
-            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
+            Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
         # get params for storage in meta
@@ -305,6 +305,17 @@ class Counterfactual(Explainer):
         """
         Fit method - currently unused as the counterfactual search is fully unsupervised.
 
+        Parameters
+        ----------
+        X
+            Not used. Included for consistency.
+        y
+            Not used. Included for consistency.
+
+        Returns
+        -------
+        self
+            Explainer itself.
         """
         # TODO feature ranges, epsilons and MADs
 
@@ -318,7 +329,7 @@ class Counterfactual(Explainer):
         Parameters
         ----------
         X
-            Instance to be explained
+            Instance to be explained.
 
         Returns
         -------
@@ -614,4 +625,12 @@ class Counterfactual(Explainer):
         self.return_dict['success'] = True
 
     def reset_predictor(self, predictor: Union[Callable, tf.keras.Model]) -> None:
+        """
+        Resets the predictor function/model.
+
+        Parameters
+        ----------
+        predictor
+            New prediction function/model.
+        """
         raise NotImplementedError('Resetting a predictor is currently not supported')

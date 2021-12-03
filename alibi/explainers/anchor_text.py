@@ -1532,6 +1532,14 @@ class AnchorText(Explainer):
             return transformer
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New prediction function.
+        """
         self.predictor = self._transform_predictor(predictor)
 
     def _seed(self, seed: int) -> None:

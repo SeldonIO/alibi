@@ -71,15 +71,26 @@ class ReplayBuffer:
     """
     Circular experience replay buffer for `CounterfactualRL` (DDPG). When the buffer is filled, then the oldest
     experience is replaced by the new one (FIFO). The experience batch size is kept constant and inferred when
-    the first batch of data is stored. Allowing flexible batch size can generate Tensorflow warning due to
+    the first batch of data is stored. Allowing flexible batch size can generate `Tensorflow` warning due to
     the `tf.function` retracing, which can lead to a drop in performance.
     """
-    X: np.ndarray           # buffer for the inputs
-    Y_m: np.ndarray         # buffer for the model's prediction
-    Y_t: np.ndarray         # buffer for the counterfactual targets
-    Z: np.ndarray           # buffer for the input embedding
-    Z_cf_tilde: np.ndarray  # buffer for the noised counterfactual embedding
-    R_tilde: np.ndarray     # buffer for the noised counterfactual reward tensor
+    X: np.ndarray
+    """Inputs buffer."""
+
+    Y_m: np.ndarray
+    """Model's prediction buffer."""
+
+    Y_t: np.ndarray
+    """Counterfactual targets buffer."""
+
+    Z: np.ndarray
+    """Input embedding buffer."""
+
+    Z_cf_tilde: np.ndarray
+    """Noised counterfactual embedding buffer."""
+
+    R_tilde: np.ndarray
+    """Noise counterfactual rewards buffer."""
 
     def __init__(self, size: int = 1000) -> None:
         """
@@ -89,7 +100,7 @@ class ReplayBuffer:
         ----------
         size
             Dimension of the buffer in batch size. This that the total memory allocated is proportional with the
-            `size` * `batch_size`, where `batch_size` is inferred from the first tensors to be stored.
+            `size * batch_size`, where `batch_size` is inferred from the first tensors to be stored.
         """
 
         self.idx = 0  # cursor for the buffer
@@ -116,7 +127,7 @@ class ReplayBuffer:
         X
             Input array.
         Y_m
-            Model's prediction class of x.
+            Model's prediction class of `X`.
         Y_t
             Counterfactual target class.
         Z
@@ -173,9 +184,9 @@ class ReplayBuffer:
 
         Returns
         -------
-            A batch experience. For a description of the keys and values returned, see parameter descriptions \
-            in :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same \
-            as the one passed in the :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append`.
+        A batch experience. For a description of the keys and values returned, see parameter descriptions \
+        in :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append` method. The batch size returned is the same \
+        as the one passed in the :py:meth:`alibi.explainers.cfrl_base.ReplayBuffer.append`.
         """
         # Generate random indices to be sampled.
         rand_idx = np.random.randint(low=0, high=self.len * self.batch_size, size=(self.batch_size,))
@@ -231,73 +242,48 @@ DEFAULT_BASE_PARAMS = {
 """
 Default Counterfactual with Reinforcement Learning parameters.
 
-    - ``'act_noise'``: float, standard deviation for the normal noise added to the actor for exploration.
-
-    - ``'act_low'``: float, minimum action value. Each action component takes values between `[act_low, act_high]`.
-
-    - ``'act_high'``: float, maximum action value. Each action component takes values between `[act_low, act_high]`.
-
-    - ``'replay_buffer_size'``: int, dimension of the replay buffer in `batch_size` units. The total memory \
+    - ``'act_noise'`` : float - standard deviation for the normal noise added to the actor for exploration.
+    - ``'act_low'`` : float - minimum action value. Each action component takes values between `[act_low, act_high]`.
+    - ``'act_high'`` : float - maximum action value. Each action component takes values between `[act_low, act_high]`.
+    - ``'replay_buffer_size'`` : int - dimension of the replay buffer in `batch_size` units. The total memory \
     allocated is proportional with the `size` * `batch_size`.
-
-    - ``'batch_size'``: int, training batch size.
-
-    - ``'num_workers'``: int, number of workers used by the data loader if `pytorch` backend is selected.
-
-    - ``'shuffle'``: bool, whether to shuffle the datasets every epoch.
-
-    - ``'exploration_steps'``: int, number of exploration steps. For the firts `exploration_steps`, the \
+    - ``'batch_size'`` : int -  training batch size.
+    - ``'num_workers'`` : int - number of workers used by the data loader if `pytorch` backend is selected.
+    - ``'shuffle'`` : bool - whether to shuffle the datasets every epoch.
+    - ``'exploration_steps'`` : int - number of exploration steps. For the firts `exploration_steps`, the \
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
-
-    - ``'update_every'``: int, number of steps that should elapse between gradient updates. Regardless of the \
+    - ``'update_every'`` : int - number of steps that should elapse between gradient updates. Regardless of the \
     waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
-
-    - ``'update_after'``: int, number of steps to wait before start updating the actor and critic. This ensures that \
+    - ``'update_after'`` : int - number of steps to wait before start updating the actor and critic. This ensures that \
     the replay buffers is full enough for useful updates.
-
-    - ``'backend'``: str, backend to be used: `tensorflow` | `pytorch`. Default `tensorflow`.
-
-    - ``'train_steps'``: int, number of train steps.
-
-    - ``'encoder_preprocessor'``: Callable, encoder/autoencoder data preprocessors. Transforms the input data into the \
+    - ``'backend'`` : str -  backend to be used: `tensorflow` | `pytorch`. Default `tensorflow`.
+    - ``'train_steps'`` : int -  number of train steps.
+    - ``'encoder_preprocessor'`` : Callable - encoder/autoencoder data preprocessors. Transforms the input data into the \
     format expected by the autoencoder. By default, the identity function.
-
-    - ``'decoder_inv_preprocessor'``: Callable, decoder/autoencoder data inverse preprocessor. Transforms data from \
+    - ``'decoder_inv_preprocessor'`` : Callable - decoder/autoencoder data inverse preprocessor. Transforms data from \
     the autoencoder output format to the original input format. Before calling the prediction function, the data is \
     inverse preprocessed to match the original input format. By default, the identity function.
-
-    - ``'reward_func'``: Callable, element-wise reward function. By default, considers classification task and \
+    - ``'reward_func'`` : Callable - element-wise reward function. By default, considers classification task and \
     checks if the counterfactual prediction label matches the target label. Note that this is element-wise, so a \
     tensor is expected to be returned.
-
-    - ``'postprocessing_funcs'``: List[Postprocessing], list of post-processing functions. The function are applied in \
-    the order, from low to high index. Non-differentiable post-processing can be applied. The function expects as \
+    - ``'postprocessing_funcs'`` : List[Postprocessing] - list of post-processing functions. The function are applied \
+    in the order, from low to high index. Non-differentiable post-processing can be applied. The function expects as \
     arguments `X_cf` - the counterfactual instance, `X` - the original input instance and `C` - the conditional \
     vector, and returns the post-processed counterfactual instance `X_cf_pp` which is passed as `X_cf` for the \
     following functions. By default, no post-processing is applied (empty list).
-
-    - ``'conditional_func'``: Callable, generates a conditional vector given a pre-processed input instance. By \
+    - ``'conditional_func'`` : Callable - generates a conditional vector given a pre-processed input instance. By \
     default, the function returns `None` which is equivalent to no conditioning.
-
-    - ``'callbacks'``: List[Callback], list of callback functions applied at the end of each training step.
-
-    - ``'actor'``: Optional[Union[tensorflow.keras.Model, torch.nn.Module]], actor network.
-
-    - ``'critic;``: Optional[Union[tensorflow.keras.Model, torch.nn.Module]], critic network.
-
-    - ``'optimizer_actor'``: Optional[Union[tensorflow.keras.optimizers.Optimizer, torch.optim.Optimizer]], actor \
+    - ``'callbacks'`` : List[Callback] - list of callback functions applied at the end of each training step.
+    - ``'actor'`` : Optional[Union[tensorflow.keras.Model, torch.nn.Module]] - actor network.
+    - ``'critic;`` : Optional[Union[tensorflow.keras.Model, torch.nn.Module]] - critic network.
+    - ``'optimizer_actor'`` : Optional[Union[tensorflow.keras.optimizers.Optimizer, torch.optim.Optimizer]] - actor \
     optimizer.
-
-    - ``'optimizer_critic'``: Optional[Union[tensorflow.keras.optimizer.Optimizer, torch.optim.Optimizer]], critic \
+    - ``'optimizer_critic'`` : Optional[Union[tensorflow.keras.optimizer.Optimizer, torch.optim.Optimizer]] - critic \
     optimizer.
-
-    - ``'lr_actor'``: float, actor learning rate.
-
-    - ``'lr_critic'``: float, critic learning rate.
-
-    - ``'actor_hidden_dim'``: int, actor hidden layer dimension.
-
-    - ``'critic_hidden_dim'``: int, critic hidden layer dimension.
+    - ``'lr_actor'`` : float - actor learning rate.
+    - ``'lr_critic'`` : float - critic learning rate.
+    - ``'actor_hidden_dim'`` : int - actor hidden layer dimension.
+    - ``'critic_hidden_dim'`` : int - critic hidden layer dimension.
 """
 
 _PARAM_TYPES = {
@@ -314,10 +300,9 @@ _PARAM_TYPES = {
 }
 """
 Parameter types for serialization
-
-    - ``'primitives'``: List[str], list of parameters having primitive data types.
-
-    - ``'complex'``: List[str], list of parameters having complex data types (e.g., functions, models, optimizers etc.)
+    - ``'primitives'`` : List[str] - list of parameters having primitive data types.
+    - ``'complex'`` : List[str] - list of parameters having complex data types (e.g., functions, models, 
+    optimizers etc.).
 """
 
 
@@ -340,8 +325,8 @@ class CounterfactualRL(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs. For classification task,
-            the second dimension of the output should match the number of classes. Thus, the output can be either
+            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs. For classification
+            task, the second dimension of the output should match the number of classes. Thus, the output can be either
             a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
             performance since `argmax` is applied to the predictor's output.
         encoder
@@ -355,9 +340,9 @@ class CounterfactualRL(Explainer, FitMixin):
         latent_dim
             Autoencoder latent dimension. Can be omitted if the actor network is user specified.
         backend
-            Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
+            Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         seed
-            Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
+            Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend.
         kwargs
             Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
@@ -440,7 +425,7 @@ class CounterfactualRL(Explainer, FitMixin):
     def _get_name(a: Any) -> str:
         """
         Constructs a name for the given object. If the object has as built-in name, the name is return.
-        If the object has a built-in class name, the name of the class is returned. Otherwise `unknown` is returned.
+        If the object has a built-in class name, the name of the class is returned. Otherwise ``'unknown'`` is returned.
 
         Parameters
         ----------
@@ -488,6 +473,8 @@ class CounterfactualRL(Explainer, FitMixin):
         ---------
         backend
             Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
+        **kwargs
+            Other arguments. Not used.
         """
         return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend
 
@@ -520,6 +507,8 @@ class CounterfactualRL(Explainer, FitMixin):
             Consistency loss coefficient.
         backend
             Deep learning backend: `tensorflow` | `pytorch`.
+        **kwargs
+            Other arguments.
         """
         # Copy default parameters.
         params = deepcopy(DEFAULT_BASE_PARAMS)
@@ -778,7 +767,7 @@ class CounterfactualRL(Explainer, FitMixin):
 
         Returns
         -------
-        `True` if the prediction has shape of 2 and the second dimension bigger grater than 1. `False` otherwise.
+        ``True`` if the prediction has shape of 2 and the second dimension bigger grater than 1. ``False`` otherwise.
         """
         return len(pred.shape) == 2 and pred.shape[1] > 1
 
@@ -797,8 +786,8 @@ class CounterfactualRL(Explainer, FitMixin):
         Y_t
             Counterfactual targets.
         C
-            Conditional vectors. If `None`, it means that no conditioning was used during training (i.e. the
-            `conditional_func` returns `None`).
+            Conditional vectors. If ``None``, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns ``None``).
         batch_size
             Batch size to be used when generating counterfactuals.
 
@@ -858,7 +847,7 @@ class CounterfactualRL(Explainer, FitMixin):
                                 Y_t: np.ndarray,
                                 C: Optional[np.ndarray] = None) -> Dict[str, Optional[np.ndarray]]:  # TODO: TypedDict
         """
-        Compute counterfactual instance for a given input, target and condition vector
+        Compute counterfactual instance for a given input, target and condition vector.
 
         Parameters
         ----------
@@ -867,14 +856,14 @@ class CounterfactualRL(Explainer, FitMixin):
         Y_t
             Counterfactual targets.
         C
-            Conditional vector. If `None`, it means that no conditioning was used during training (i.e. the
-            `conditional_func` returns `None`).
+            Conditional vector. If ``None``, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns ``None``).
 
         Returns
         -------
-            Dictionary containing the input instances in the original format, input classification labels,
-            counterfactual instances in the original format, counterfactual classification labels, target labels,
-            conditional vectors.
+        Dictionary containing the input instances in the original format, input classification labels,
+        counterfactual instances in the original format, counterfactual classification labels, target labels,
+        conditional vectors.
         """
         # Save original input for later usage.
         X_orig = X
@@ -966,13 +955,13 @@ class CounterfactualRL(Explainer, FitMixin):
         Y_t
             Target labels.
         C
-            Condition vector. If `None`, it means that no conditioning was used during training (i.e. the
-            `conditional_func` returns `None`).
+            Condition vector. If ``None``, it means that no conditioning was used during training (i.e. the
+            `conditional_func` returns ``None``).
 
         Returns
         -------
-            `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
-            corresponding labels, targets and additional metadata.
+        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+        corresponding labels, targets and additional metadata.
         """
         data = deepcopy(DEFAULT_DATA_CFRL)
 
@@ -1007,8 +996,8 @@ class Postprocessing(ABC):
         X
            Input instance.
         C
-           Conditional vector. If `None`, it means that no conditioning was used during training (i.e. the
-           `conditional_func` returns `None`).
+           Conditional vector. If ``None``, it means that no conditioning was used during training (i.e. the
+           `conditional_func` returns ``None``).
 
         Returns
         -------
@@ -1045,42 +1034,28 @@ class Callback(ABC):
             Dictionary of samples used for an update which contains
 
                 - ``'X'``: input instances.
-
                 - ``'Y_m'``: predictor outputs for the input instances.
-
                 - ``'Y_t'``: target outputs.
-
                 - ``'Z'``: input embeddings.
-
                 - ``'Z_cf_tilde'``: noised counterfactual embeddings.
-
                 - ``'X_cf_tilde'``: noised counterfactual instances obtained ofter decoding the noised counterfactual \
                 embeddings `Z_cf_tilde` and apply post-processing functions.
-
                 - ``'C'``: conditional vector.
-
                 - ``'R_tilde'``: reward obtained for the noised counterfactual instances.
-
                 - ``'Z_cf'``: counterfactual embeddings.
-
                 - ``'X_cf'``: counterfactual instances obtained after decoding the countefactual embeddings `Z_cf` and \
                 apply post-processing functions.
         losses
             Dictionary of losses which contains
 
                 - ``'loss_actor'``: actor network loss.
-
                 - ``'loss_critic'``: critic network loss.
-
                 - ``'sparsity_loss'``: sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_base.CounterfactualRL` class.
-
                 - ``'sparsity_num_loss'``: numerical features sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
-
                 - ``'sparsity_cat_loss'``: categorical features sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
-
                 - ``'consistency_loss'``: consistency loss if used.
         """
         pass

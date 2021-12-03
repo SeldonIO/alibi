@@ -40,46 +40,46 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         predict
-            Keras or TensorFlow model or any other model's prediction function returning class probabilities
+            `Keras` or `TensorFlow` model or any other model's prediction function returning class probabilities.
         mode
-            Find pertinant negatives ('PN') or pertinant positives ('PP')
+            Find pertinant negatives (PN) or pertinant positives (PP).
         shape
-            Shape of input data starting with batch size
+            Shape of input data starting with batch size.
         kappa
-            Confidence parameter for the attack loss term
+            Confidence parameter for the attack loss term.
         beta
-            Regularization constant for L1 loss term
+            Regularization constant for L1 loss term.
         feature_range
-            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
-            numpy arrays with dimension (1x nb of features) for feature-wise ranges
+            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `floats` or
+            `numpy` arrays with dimension (1x nb of features) for feature-wise ranges.
         gamma
-            Regularization constant for optional auto-encoder loss term
+            Regularization constant for optional auto-encoder loss term.
         ae_model
-            Optional auto-encoder model used for loss regularization
+            Optional auto-encoder model used for loss regularization.
         learning_rate_init
-            Initial learning rate of optimizer
+            Initial learning rate of optimizer.
         max_iterations
-            Maximum number of iterations for finding a PN or PP
+            Maximum number of iterations for finding a PN or PP.
         c_init
-            Initial value to scale the attack loss term
+            Initial value to scale the attack loss term.
         c_steps
-            Number of iterations to adjust the constant scaling the attack loss term
+            Number of iterations to adjust the constant scaling the attack loss term.
         eps
-            If numerical gradients are used to compute dL/dx = (dL/dp) * (dp/dx), then eps[0] is used to
-            calculate dL/dp and eps[1] is used for dp/dx. eps[0] and eps[1] can be a combination of float values and
-            numpy arrays. For eps[0], the array dimension should be (1x nb of prediction categories) and for
-            eps[1] it should be (1x nb of features)
+            If numerical gradients are used to compute `dL/dx = (dL/dp) * (dp/dx)`, then `eps[0]` is used to
+            calculate `dL/dp` and `eps[1]` is used for `dp/dx`. `eps[0]` and `eps[1]` can be a combination of `float`
+            values and `numpy` arrays. For `eps[0]`, the array dimension should be (1x nb of prediction categories)
+            and for `eps[1]` it should be (1x nb of features).
         clip
             Tuple with min and max clip ranges for both the numerical gradients and the gradients
-            obtained from the TensorFlow graph
+            obtained from the `TensorFlow` graph.
         update_num_grad
-            If numerical gradients are used, they will be updated every update_num_grad iterations
+            If numerical gradients are used, they will be updated every `update_num_grad` iterations.
         no_info_val
-            Global or feature-wise value considered as containing no information
+            Global or feature-wise value considered as containing no information.
         write_dir
-            Directory to write tensorboard files to
+            Directory to write `tensorboard` files to.
         sess
-            Optional Tensorflow session that will be used if passed instead of creating or inferring one internally
+            Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CEM))
         # get params for storage in meta
@@ -303,9 +303,9 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         train_data
-            Representative sample from the training data
+            Representative sample from the training data.
         no_info_type
-            Median or mean value by feature supported
+            Median or mean value by feature supported.
         """
         # TODO: find equal distance area in distribution to different classes as "no info" area
         if self.no_info_val is not None:
@@ -332,9 +332,9 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         pred_proba
-            Prediction probabilities of an instance
+            Prediction probabilities of an instance.
         Y
-            One-hot representation of instance labels
+            One-hot representation of instance labels.
 
         Returns
         -------
@@ -363,11 +363,12 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         X
-            Array to be perturbed
+            Array to be perturbed.
         eps
-            Size of perturbation
+            Size of perturbation.
         proba
-            If True, the net effect of the perturbation needs to be 0 to keep the sum of the probabilities equal to 1
+            If ``True``, the net effect of the perturbation needs to be 0 to keep the sum of the
+            probabilities equal to 1.
 
         Returns
         -------
@@ -391,14 +392,14 @@ class CEM(Explainer, FitMixin):
     def get_gradients(self, X: np.ndarray, Y: np.ndarray) -> np.ndarray:
         """
         Compute numerical gradients of the attack loss term:
-        dL/dx = (dL/dP)*(dP/dx) with L = loss_attack_s; P = predict; x = adv_s
+        `dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`
 
         Parameters
         ----------
         X
-            Instance around which gradient is evaluated
+            Instance around which gradient is evaluated.
         Y
-            One-hot representation of instance labels
+            One-hot representation of instance labels.
 
         Returns
         -------
@@ -446,7 +447,7 @@ class CEM(Explainer, FitMixin):
     def attack(self, X: np.ndarray, Y: np.ndarray, verbose: bool = False) \
             -> Tuple[np.ndarray, Tuple[np.ndarray, np.ndarray]]:
         """
-        Find pertinent negative or pertinent positive for instance X using a fast iterative
+        Find pertinent negative or pertinent positive for instance `X` using a fast iterative
         shrinkage-thresholding algorithm (FISTA).
 
         Parameters
@@ -663,9 +664,9 @@ class CEM(Explainer, FitMixin):
         X
             Instances to attack
         Y
-            Labels for X
+            Labels for `X`.
         verbose
-            Print intermediate results of optimization if True
+            Print intermediate results of optimization if ``True``.
 
         Returns
         -------

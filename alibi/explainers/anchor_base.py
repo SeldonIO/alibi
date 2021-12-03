@@ -586,16 +586,16 @@ class AnchorBaseBeam:
 
         Parameters
         ----------
-            means:
-                Mean precisions (each element represents a different result).
-            ubs:
-                Precisions' upper bounds (each element represents a different result).
-            lbs:
-                Precisions' lower bounds (each element represents a different result).
-            desired_confidence:
-                Desired level of confidence for precision estimation.
-            epsilon_stop:
-                Tolerance around desired precision.
+        means:
+            Mean precisions (each element represents a different result).
+        ubs:
+            Precisions' upper bounds (each element represents a different result).
+        lbs:
+            Precisions' lower bounds (each element represents a different result).
+        desired_confidence:
+            Desired level of confidence for precision estimation.
+        epsilon_stop:
+            Tolerance around desired precision.
 
         Returns
         -------

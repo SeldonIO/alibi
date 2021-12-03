@@ -111,18 +111,19 @@ class AnchorImageSampler:
 
         Returns
         -------
-            If compute_labels=True, a list containing the following is returned:
-                - covered_true: perturbed examples where the anchor applies and the model prediction
-                    on perturbed is the same as the instance prediction
-                - covered_false: perturbed examples where the anchor applies and the model prediction
-                    on pertrurbed sample is NOT the same as the instance prediction
-                - labels: num_samples ints indicating whether the prediction on the perturbed sample
-                    matches (1) the label of the instance to be explained or not (0)
-                - data: Matrix with 1s and 0s indicating whether the values in a superpixel will
-                    remain unchanged (1) or will be perturbed (0), for each sample
-                - 1.0: indicates exact coverage is not computed for this algorithm
-                - anchor[0]: position of anchor in the batch request
-            Otherwise, a list containing the data matrix only is returned.
+        If compute_labels=True, a list containing the following is returned
+         - covered_true: perturbed examples where the anchor applies and the model prediction  on perturbed is the \
+         same as the instance prediction.
+         - covered_false: perturbed examples where the anchor applies and the model prediction on pertrurbed sample \
+         is NOT the same as the instance prediction.
+         - labels: num_samples ints indicating whether the prediction on the perturbed sample matches (1) the label \
+         of the instance to be explained or not (0).
+         - data: Matrix with 1s and 0s indicating whether the values in a superpixel will remain unchanged (1) or \
+         will be perturbed (0), for each sample.
+         - 1.0: indicates exact coverage is not computed for this algorithm.
+         - anchor[0]: position of anchor in the batch request
+
+        Otherwise, a list containing the data matrix only is returned.
         """
 
         if compute_labels:

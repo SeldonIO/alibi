@@ -62,8 +62,7 @@ def _load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.L
     return nlp
 
 
-class Neighbors(object):
-
+class Neighbors:
     def __init__(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob: float = -15.) -> None:
         """
         Initialize class identifying neighbouring words from the embedding for a given word.
@@ -71,7 +70,7 @@ class Neighbors(object):
         Parameters
         ----------
         nlp_obj
-            spaCy model.
+            `spaCy` model.
         n_similar
             Number of similar words to return.
         w_prob
@@ -102,9 +101,8 @@ class Neighbors(object):
 
         Returns
         -------
-        A dict with two fields. The 'words' field contains a numpy array
-        of the top_n most similar words, whereas the fields similarity is
-        a numpy array with corresponding word similarities.
+        A dict with two fields. The ``'words'`` field contains a `numpy` array of the `top_n` most similar words, \
+        whereas the fields ``'similarities'`` is a `numpy` array with corresponding word similarities.
         """
 
         # the word itself is excluded so we add one to return the expected number of words
@@ -144,18 +142,18 @@ class AnchorTextSampler:
 
     def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
-        Function to concatenate an np.array of strings along a specified axis.
+        Function to concatenate an `np.array` of strings along a specified axis.
 
         Parameters
         ----------
         arr
-            1D numpy array of strings.
+            1D `numpy` array of strings.
         dtype
            Array type, used to avoid truncation of strings when concatenating along axis.
 
         Returns
         -------
-            Array with one element, the concatenation of the strings in the input array.
+        Array with one element, the concatenation of the strings in the input array.
         """
         if not dtype:
             return np.array(' '.join(arr))
@@ -164,7 +162,8 @@ class AnchorTextSampler:
 
 
 class UnknownSampler(AnchorTextSampler):
-    UNK = "UNK"
+    UNK: str = "UNK"
+    """Unknown token to be used."""
 
     def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
         """
@@ -173,7 +172,7 @@ class UnknownSampler(AnchorTextSampler):
         Parameters
         ----------
         nlp
-            spaCy object.
+            `spaCy` object.
         perturb_opts
             Perturbation options.
         """
@@ -206,8 +205,8 @@ class UnknownSampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an np.array of num_samples where randomly chosen features,
-        except those in anchor, are replaced by self.UNK token.
+        The function returns  an `np.array` of num_samples where randomly chosen features,
+        except those in anchor, are replaced by `UNK` token.
 
         Parameters
         ----------
@@ -221,7 +220,7 @@ class UnknownSampler(AnchorTextSampler):
         raw
             Array containing num_samples elements. Each element is a perturbed sentence.
         data
-            A (num_samples, m)-dimensional boolean array, where m is the number of tokens
+            A `(num_samples, m)`-dimensional boolean array, where `m` is the number of tokens
             in the instance to be explained.
         """
         assert self.perturb_opts, "Perturbation options are not set."
@@ -250,7 +249,7 @@ class UnknownSampler(AnchorTextSampler):
 
     def set_data_type(self) -> None:
         """
-        Working with numpy arrays of strings requires setting the data type to avoid
+        Working with `numpy` arrays of strings requires setting the data type to avoid
         truncating examples. This function estimates the longest sentence expected
         during the sampling process, which is used to set the number of characters
         for the samples and examples arrays. This depends on the perturbation method
@@ -270,7 +269,7 @@ class SimilaritySampler(AnchorTextSampler):
         Parameters
         ----------
         nlp
-            spaCy object.
+            `spaCy` object.
         perturb_opts
             Perturbation options.
 
@@ -314,10 +313,10 @@ class SimilaritySampler(AnchorTextSampler):
 
     def find_similar_words(self) -> None:
         """
-        This function queries a spaCy nlp model to find n similar words with the same
+        This function queries a `spaCy` nlp model to find n similar words with the same
         part of speech for each word in the instance to be explained. For each word
-        the search procedure returns a dictionary containing an np.array of words ('words')
-        and an np.array of word similarities ('similarities').
+        the search procedure returns a dictionary containing an `np.array` of words (``'words'``)
+        and an `np.array` of word similarities (``'similarities'``).
         """
         for word, token in zip(self.words, self.tokens):
             if word not in self.synonyms:
@@ -325,9 +324,10 @@ class SimilaritySampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns an np.array of num_samples where randomly chosen features,
-        except those in anchor, are replaced by similar words with the same part of
-        speech of tag. See self.perturb_sentence for details of how the replacement works.
+        The function returns an `np.array` of `num_samples` where randomly chosen features,
+        except those in anchor, are replaced by similar words with the same part of speech of tag.
+        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence` for details of how
+        the replacement works.
 
         Parameters
         ----------
@@ -338,7 +338,7 @@ class SimilaritySampler(AnchorTextSampler):
 
         Returns
         -------
-        See perturb_sentence_similarity
+        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence`.
         """
         assert self.perturb_opts, "Perturbation options are not set."
         return self.perturb_sentence_similarity(anchor, num_samples, **self.perturb_opts)
@@ -364,7 +364,7 @@ class SimilaritySampler(AnchorTextSampler):
         n
             Number of samples used when sampling from the corpus.
         sample_proba
-            Sample probability for a word if use_proba is False.
+            Sample probability for a word if `use_proba=False`.
         forbidden
             Forbidden lemmas.
         forbidden_tags
@@ -376,15 +376,14 @@ class SimilaritySampler(AnchorTextSampler):
         use_proba
             Bool whether to sample according to a similarity score with the corpus embeddings.
         temperature
-            Sample weight hyperparameter if use_proba equals True.
+            Sample weight hyper-parameter if `use_proba=True`.
 
         Returns
         -------
         raw
             Array of perturbed text instances.
         data
-            Matrix with 1s and 0s indicating whether a word in the text
-            has not been perturbed for each sample.
+            Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample.
         """
         # allocate memory for the binary mask and the perturbed instances
         raw = np.zeros((n, len(self.tokens)), self.dtype)
@@ -426,7 +425,7 @@ class SimilaritySampler(AnchorTextSampler):
 
     def set_data_type(self) -> None:
         """
-        Working with numpy arrays of strings requires setting the data type to avoid
+        Working with `numpy` arrays of strings requires setting the data type to avoid
         truncating examples. This function estimates the longest sentence expected
         during the sampling process, which is used to set the number of characters
         for the samples and examples arrays. This depends on the perturbation method
@@ -445,15 +444,18 @@ class SimilaritySampler(AnchorTextSampler):
 
 class LanguageModelSampler(AnchorTextSampler):
     # filling procedures
-    FILLING_PARALLEL = 'parallel'
+    FILLING_PARALLEL: str = 'parallel'
+    """Parallel filling procedure."""
+
     FILLING_AUTOREGRESSIVE = 'autoregressive'
+    """Autoregressive filling procedure. Considerably slow."""
 
     def __init__(self, model: LanguageModel, perturb_opts: dict, ):
         """
         Initialize language model sampler. This sampler replaces words with the ones
         sampled according to the output distribution of the language model. There are
-        two modes to use the sampler: `parallel` and `autoregressive`. In the parallel
-        mode, all words are replaced simultaneously. In the `autoregressive` model, the words
+        two modes to use the sampler: ``'parallel'`` and ``'autoregressive'``. In the ``'parallel'``
+        mode, all words are replaced simultaneously. In the ``'autoregressive'`` model, the words
         are replaced one by one, starting from left to right. Thus the following words
         are conditioned on the previous predicted words.
 
@@ -508,6 +510,8 @@ class LanguageModelSampler(AnchorTextSampler):
             String of punctuation characters.
         stopwords
             List of stopwords.
+        **kwargs
+            Other arguments. Not used.
         """
         # transform stopwords to lowercase
         if stopwords:
@@ -568,7 +572,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns an np.array of num_samples where randomly chosen features,
+        The function returns an `np.array` of num_samples where randomly chosen features,
         except those in anchor, are replaced by words sampled according to the language
         model's predictions.
 
@@ -581,7 +585,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         Returns
         -------
-        See perturb_sentence
+        See :py:meth:`alibi.explainers.anchor_text.LanguageModelSampler.perturb_sentence`.
         """
         assert self.perturb_opts, "Perturbation options are not set."
         return self.perturb_sentence(anchor, num_samples, **self.perturb_opts)
@@ -595,7 +599,7 @@ class LanguageModelSampler(AnchorTextSampler):
                          filling: str = "parallel",
                          **kwargs) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns an np.array of num_samples where randomly chosen features,
+        The function returns an `np.array` of `num_samples` where randomly chosen features,
         except those in anchor, are replaced by words sampled according to the language
         model's predictions.
 
@@ -612,14 +616,14 @@ class LanguageModelSampler(AnchorTextSampler):
         batch_size_lm:
             Batch size used for language model.
         filling:
-            Method to fill masked words. Either `parallel` or `autoregressive`.
+            Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
 
         Returns
         -------
         raw
-            Array containing num_samples elements. Each element is a perturbed sentence.
+            Array containing `num_samples` elements. Each element is a perturbed sentence.
         data
-            A (num_samples, m)-dimensional boolean array, where m is the number of tokens
+            A `(num_samples, m)`-dimensional boolean array, where `m` is the number of tokens
             in the instance to be explained.
         """
         # Create the mask
@@ -666,7 +670,7 @@ class LanguageModelSampler(AnchorTextSampler):
         sample_proba
             Probability of a word being replaced.
         filling:
-            Method to fill masked words. Either `parallel` or `autoregressive`.
+            Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
         frac_mask_templates
             Fraction of mask templates from the number of requested samples.
 
@@ -675,7 +679,7 @@ class LanguageModelSampler(AnchorTextSampler):
         raw
             Array with masked instances.
         data
-            A (num_samples, m)-dimensional boolean array, where m is the number of tokens
+            A `(num_samples, m)`-dimensional boolean array, where `m` is the number of tokens
             in the instance to be explained.
         """
         # make sure that frac_mask_templates is in [0, 1]
@@ -758,12 +762,12 @@ class LanguageModelSampler(AnchorTextSampler):
 
     def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
         """
-        Function to concatenate an np.array of strings along a specified axis.
+        Function to concatenate an `np.array` of strings along a specified axis.
 
         Parameters
         ----------
         arr
-            1D numpy array of strings.
+            1D `numpy` array of strings.
         dtype
            Array type, used to avoid truncation of strings when concatenating along axis.
 
@@ -795,8 +799,7 @@ class LanguageModelSampler(AnchorTextSampler):
         raw
             Array of mask templates.
         data
-            Binary mask having 0 where the word was masked. Note that
-            the width of the data array is equal to the length of id_samples.
+            Binary mask having 0 where the word was masked.
         num_samples
             Number of samples to be drawn.
         top_n:
@@ -804,7 +807,7 @@ class LanguageModelSampler(AnchorTextSampler):
         batch_size_lm:
             Batch size used for language model.
         filling
-            Method to fill masked words. Either `parallel` or `autoregressive`.
+            Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``.
 
         Returns
         -------
@@ -827,10 +830,10 @@ class LanguageModelSampler(AnchorTextSampler):
 
     def _remove_subwords(self, raw: np.ndarray, row: int, col: int, punctuation: str = '', **kwargs) -> np.ndarray:
         """
-        Deletes the subwords that follow a given token identified by the (row, col) pair in the `raw` matrix.
+        Deletes the subwords that follow a given token identified by the `(row, col)` pair in the `raw` matrix.
         A token is considered to be part of a word if is not a punctuation and if has the subword prefix
         specific to the used language model. The subwords are not actually deleted in, but they are replace
-        by the empty string ``
+        by the empty string ``''``.
 
         Parameters
         ----------
@@ -893,11 +896,9 @@ class LanguageModelSampler(AnchorTextSampler):
         Returns
         -------
         sampled_tokens
-            Tensor containing the ids of the sampled tokens.
-            Has `num_samples` rows.
+            Tensor containing the ids of the sampled tokens. Has `num_samples` rows.
         sampled_data
-            Binary array having 0 where the tokens were masked.
-            Has `num_samples` rows.
+            Binary array having 0 where the tokens were masked. Has `num_samples` rows.
         """
         # tokenize instances
         tokens_plus = self.model.tokenizer.batch_encode_plus(list(raw), padding=True, return_tensors='tf')
@@ -992,11 +993,9 @@ class LanguageModelSampler(AnchorTextSampler):
         Returns
         -------
         sampled_tokens
-            Tensor containing the ids of the sampled tokens.
-            Has `num_samples` rows.
+            Tensor containing the ids of the sampled tokens. Has `num_samples` rows.
         sampled_data
-            Binary array havin 0 where the tokens were masked.
-            Has `num_samples` rows.
+            Binary array having 0 where the tokens were masked. Has `num_samples` rows.
         """
         # number of samples to generate per mask template
         assert num_samples == raw.shape[0]
@@ -1058,7 +1057,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
     def set_data_type(self) -> None:
         """
-        Working with numpy arrays of strings requires setting the data type to avoid
+        Working with `numpy` arrays of strings requires setting the data type to avoid
         truncating examples. This function estimates the longest sentence expected
         during the sampling process, which is used to set the number of characters
         for the samples and examples arrays. This depends on the perturbation method
@@ -1089,9 +1088,9 @@ DEFAULT_SAMPLING_UNKNOWN = {
     "sample_proba": 0.5
 }
 """
-Default perturbation options for `unknown` sampling
+Default perturbation options for ``'unknown'`` sampling
 
-    - ``'sample_proba'``: float, probability of a word to be masked.
+    - ``'sample_proba'``: float - probability of a word to be masked.
 """
 
 DEFAULT_SAMPLING_SIMILARITY = {
@@ -1101,15 +1100,12 @@ DEFAULT_SAMPLING_SIMILARITY = {
     "use_proba": False
 }
 """
-Default perturbation options for `similarity` sampling
+Default perturbation options for ``'similarity'`` sampling
 
-    - ``'sample_proba'``: float, probability of a word to be masked.
-
-    - ``'top_n'``: int, number of similar words to sample for perturbations
-
-    - ``'temperature'``: float, sample weight hyper-parameter if `use_proba` equals `True`.
-
-    - ``'use_proba'``: bool, whether to sample according to the words similarity.
+    - ``'sample_proba'``: float - probability of a word to be masked.
+    - ``'top_n'``: int - number of similar words to sample for perturbations.
+    - ``'temperature'``: float - sample weight hyper-parameter if `use_proba=True`.
+    - ``'use_proba'``: bool - whether to sample according to the words similarity.
 """
 
 DEFAULT_SAMPLING_LANGUAGE_MODEL = {
@@ -1127,37 +1123,28 @@ DEFAULT_SAMPLING_LANGUAGE_MODEL = {
 """
 Default perturbation options for `similarity` sampling
 
-    - ``'filling'``: str, filling method for language models. Allowed values: `parallel`, `autoregressive`. \
-    `parallel` method corresponds to a single forward pass through the language model. The masked words are sampled \
-    independently, according to the selected probability distribution (see `top_n`, `temperature`, `use_proba`).  \
-    `autoregressive` method fills the words one at the time. This corresponds to multiple forward passes through  \
-    the language model which is computationally expensive.
-
-    - ``'sample_proba'``: float, probability of a word to be masked.
-
-    - ``'top_n'``: int, number of similar words to sample for perturbations.
-
-    - ``'temperature'``: float, sample weight hyper-parameter if use_proba equals True.
-
-    - ``'use_proba'``: bool, whether to sample according to the predicted words distribution. If set to `False`, \
+    - ``'filling'``: str - filling method for language models. Allowed values: ``'parallel'``, ``'autoregressive'``. \
+    ``'parallel'`` method corresponds to a single forward pass through the language model. The masked words are \
+    sampled independently, according to the selected probability distribution (see `top_n`, `temperature`, \
+    `use_proba`). `autoregressive` method fills the words one at the time. This corresponds to multiple forward \
+    passes through  the language model which is computationally expensive.
+    - ``'sample_proba'``: float - probability of a word to be masked.
+    - ``'top_n'``: int - number of similar words to sample for perturbations.
+    - ``'temperature'``: float - sample weight hyper-parameter if use_proba equals ``True``.
+    - ``'use_proba'``: bool - whether to sample according to the predicted words distribution. If set to ``False``, \
     the `top_n` words are sampled uniformly at random.
-
-    - ``frac_mask_template'``: float, fraction from the number of samples of mask templates to be generated. \
-    In each sampling call, will generate int(`frac_mask_templates` * `num_samples`) masking templates. \
+    - ``'frac_mask_template'``: float - fraction from the number of samples of mask templates to be generated. \
+    In each sampling call, will generate `int(frac_mask_templates * num_samples)` masking templates. \
     Lower fraction corresponds to lower computation time since the batch fed to the language model is smaller. \
     After the words' distributions is predicted for each mask, a total of `num_samples` will be generated by sampling \
-    evenly from each template. Note that lower fraction might correspond to less diverse sample. A `sample_proba` \
-    is `1` corresponds to masking each word. For this case only one masking template will be constructed. \
-    A `filling` set to `autoregressive` will generate `num_samples` masking templates regardless of the value \
+    evenly from each template. Note that lower fraction might correspond to less diverse sample. A `sample_proba=1` \
+    corresponds to masking each word. For this case only one masking template will be constructed. \
+    A `filling='autoregressive'` will generate `num_samples` masking templates regardless of the value \
     of `frac_mask_templates`.
-
-    - ``batch_size_lm``: int, batch size used for the language model forward pass.
-
-    - ``punctuation``: str, string of punctuation not to be masked.
-
-    - ``stopwords``: List[str], list of words not to be masked.
-
-    - ``sample_punctuation``: bool, whether to sample punctuation to fill the masked words. If `False`, the \
+    - ``batch_size_lm``: int - batch size used for the language model forward pass.
+    - ``punctuation``: str - string of punctuation not to be masked.
+    - ``stopwords``: List[str] - list of words not to be masked.
+    - ``sample_punctuation``: bool - whether to sample punctuation to fill the masked words. If ``False``, the \
     punctuation defined in `punctuation` will not be sampled.
 """
 
@@ -1165,8 +1152,13 @@ Default perturbation options for `similarity` sampling
 class AnchorText(Explainer):
     # sampling methods
     SAMPLING_UNKNOWN = 'unknown'
+    """Unkown sampling strategy."""
+
     SAMPLING_SIMILARITY = 'similarity'
+    """Similarity sampling strategy."""
+
     SAMPLING_LANGUAGE_MODEL = 'language_model'
+    """Language model sampling strategy."""
 
     # default params
     DEFAULTS: Dict[str, Dict] = {
@@ -1195,14 +1187,14 @@ class AnchorText(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes a list of text strings representing N data points as inputs and returns N outputs.
+            A callable that takes a list of text strings representing `N` data points as inputs and returns `N` outputs.
         sampling_strategy
             Perturbation distribution method.
-            `unknown` - replaces words with UNKs.
-            `similarity` - samples according to a similarity score with the corpus embeddings.
-            `language_model` - samples according the language model's output distributions.
+             - ``'unknown'`` - replaces words with UNKs.
+             - ``'similarity'`` - samples according to a similarity score with the corpus embeddings.
+             - ``'language_model'`` - samples according the language model's output distributions.
         nlp
-            spaCy object when sampling method is `unknown` or `similarity`.
+            `spaCy` object when sampling method is ``'unknown'`` or ``'similarity'``.
         language_model
             Transformers masked language model. This is a model that it adheres to the
             `LanguageModel` interface we define in :py:class:`alibi.utils.lang_model.LanguageModel`.
@@ -1211,7 +1203,6 @@ class AnchorText(Explainer):
         kwargs
             Sampling parameters can be passed as `kwargs` depending on the `sampling_strategy`.
             Check default parameters defined in:
-
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_UNKNOWN`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_SIMILARITY`
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_LANGUAGE_MODEL`
@@ -1310,28 +1301,28 @@ class AnchorText(Explainer):
         Parameters
         ----------
         anchor
-            int: the position of the anchor in the input batch
-            tuple: the anchor itself, a list of words to be kept unchanged
+            `int`: the position of the anchor in the input batch
+            `tuple`: the anchor itself, a list of words to be kept unchanged
         num_samples
             Number of generated perturbed samples.
         compute_labels
-            If True, an array of comparisons between predictions on perturbed samples and
+            If ``True``, an array of comparisons between predictions on perturbed samples and
             instance to be explained is returned.
 
         Returns
         -------
-            If compute_labels=True, a list containing the following is returned:
-             - covered_true: perturbed examples where the anchor applies and the model prediction
-                    on perturbation is the same as the instance prediction
-             - covered_false: perturbed examples where the anchor applies and the model prediction
-                    is NOT the same as the instance prediction
-             - labels: num_samples ints indicating whether the prediction on the perturbed sample
-                    matches (1) the label of the instance to be explained or not (0)
-             - data: Matrix with 1s and 0s indicating whether a word in the text has been
-                     perturbed for each sample
-             - 1.0: indicates exact coverage is not computed for this algorithm
-             - anchor[0]: position of anchor in the batch request
-            Otherwise, a list containing the data matrix only is returned.
+        If `compute_labels=True`, a list containing the following is returned
+         - covered_true - perturbed examples where the anchor applies and the model prediction \
+         on perturbation is the same as the instance prediction
+         - covered_false - perturbed examples where the anchor applies and the model prediction \
+         is NOT the same as the instance prediction
+         - labels - num_samples ints indicating whether the prediction on the perturbed sample \
+         matches (1) the label of the instance to be explained or not (0)
+         - data - Matrix with 1s and 0s indicating whether a word in the text has been perturbed for each sample
+         - -1.0 - indicates exact coverage is not computed for this algorithm
+         - anchor[0] - position of anchor in the batch request
+
+        Otherwise, a list containing the data matrix only is returned.
         """
 
         raw_data, data = self.perturbation(anchor[1], num_samples)
@@ -1360,7 +1351,7 @@ class AnchorText(Explainer):
 
         Returns
         -------
-            A boolean array indicating whether the prediction was the same as the instance label.
+        A boolean array indicating whether the prediction was the same as the instance label.
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
@@ -1401,7 +1392,7 @@ class AnchorText(Explainer):
         beam_size
             Number of options kept after each stage of anchor building.
         stop_on_first
-            If True, the beam search algorithm will return the first anchor that has satisfies the
+            If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.
         max_anchor_size
             Maximum number of features to include in an anchor.
@@ -1414,14 +1405,14 @@ class AnchorText(Explainer):
             The anchor search pre-allocates binary_cache_size batches for storing the boolean arrays
             returned during sampling.
         cache_margin
-            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            When only `max(cache_margin, batch_size)` positions in the binary cache remain empty, a new cache
             of the same size is pre-allocated to continue buffering samples.
-        kwargs
-            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
         verbose
             Display updates during the anchor search iterations.
         verbose_every
             Frequency of displayed iterations during anchor search process.
+        kwargs
+            Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
 
         Returns
         -------
@@ -1482,9 +1473,9 @@ class AnchorText(Explainer):
 
         # set mab
         self.mab = mab
-        return self.build_explanation(text, result, self.instance_label, params)
+        return self._build_explanation(text, result, self.instance_label, params)
 
-    def build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
+    def _build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
         """ Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
 

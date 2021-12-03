@@ -193,13 +193,18 @@ class TabularSampler:
         -------
         If `compute_labels=True`, a list containing the following is returned
          - `covered_true` - perturbed examples where the anchor applies and the model prediction \
-                on perturbation is the same as the instance prediction.
+         on perturbation is the same as the instance prediction.
+
          - `covered_false` - perturbed examples where the anchor applies and the model prediction \
-                is NOT the same as the instance prediction.
+         is NOT the same as the instance prediction.
+
          - `labels` - `num_samples` ints indicating whether the prediction on the perturbed sample \
-                matches (1) the label of the instance to be explained or not (0).
+         matches (1) the label of the instance to be explained or not (0).
+
          - `data` -  Sampled data where ordinal features are binned (1 if in bin, 0 otherwise).
+
          - `coverage` - the coverage of the anchor.
+
          - `anchor[0]` - position of anchor in the batch request.
 
         Otherwise, a list containing the data matrix only is returned.
@@ -511,9 +516,9 @@ class TabularSampler:
         Returns
         -------
         A list containing three dictionaries, whose keys are encoded feature IDs.
-         - cat_lookup - maps categorical variables to their value in `X`
-         - ord_lookup - maps discretized numerical variables to the bins they can be sampled from given `X`
-         - enc2feat_idx - maps the encoded IDs to the original (training set) feature column IDs
+         - cat_lookup - maps categorical variables to their value in `X`.
+         - ord_lookup - maps discretized numerical variables to the bins they can be sampled from given `X`.
+         - enc2feat_idx - maps the encoded IDs to the original (training set) feature column IDs.
 
         Notes
         -----
@@ -577,6 +582,7 @@ class RemoteSampler:
     if RAY_INSTALLED:
         import ray
         ray = ray  # set module as class variable to used only in this context
+        '''`ray` module.'''
 
     def __init__(self, *args):
         self.train_id, self.d_train_id, self.sampler = args
@@ -1080,6 +1086,7 @@ class DistributedAnchorTabular(AnchorTabular):
     if RAY_INSTALLED:
         import ray
         ray = ray  # set module as class variable to used only in this context
+        '''`ray` module.'''
 
     def __init__(self,
                  predictor: Callable,
@@ -1185,7 +1192,7 @@ class DistributedAnchorTabular(AnchorTabular):
         ----------
         X, threshold, delta, tau, batch_size, coverage_samples, beam_size, stop_on_first, max_anchor_size, \
         min_samples_start, n_covered_ex, binary_cache_size, cache_margin, verbose, verbose_every, **kwargs
-            See superclass implementation.
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` implementation.
 
         Returns
         -------

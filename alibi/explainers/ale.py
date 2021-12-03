@@ -110,21 +110,15 @@ class ALE(Explainer):
         following data-related attributes:
 
          - `ale_values` : List[np.ndarray] - a list of arrays of ALE values (one for each feature). Each array \
-         can have multiple columns (if the number of targets is >1 as in classification).
-
+                can have multiple columns (if the number of targets is >1 as in classification).
          - `constant_value` : float - the mean prediction over `X` (zeroth order effects).
-
          - `ale0` : List[np.ndarray] - a list of arrays of “centering” values (one for each feature) used by the \
-         algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum of `ale_values` \
-         and `ale0` will be the uncentered ALE).
-
+                algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum \
+                of `ale_values` and `ale0` will be the uncentered ALE).
          - `feature_values` : List[np.ndarray] - a list of arrays (one for each feature) of feature values at \
-         which the ALE values were computed.
-
+                which the ALE values were computed.
          - `feature_names` : np.ndarray - an array of feature names.
-
          - `target_names` : np.ndarray - an array of target names.
-
          - `feature_deciles` : List[np.ndarray] - a list of arrays (one for each feature) of the feature deciles.
 
         """
@@ -390,11 +384,11 @@ def ale_num(
 
     Returns
     -------
-    q : np.ndarray
+    q
         Array of quantiles of the input values.
-    ale : np.ndarray
+    ale
         ALE values for each feature at each of the points in `q`.
-    ale0 : np.ndarray
+    ale0
         The constant offset used to center the ALE curves.
 
     """

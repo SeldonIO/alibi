@@ -44,6 +44,18 @@ class MNISTClassifier(Model):
         self.to(self.device)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Classification logits.
+        """
         x = self.dropout1(self.maxpool1(F.relu(self.conv1(x))))
         x = self.dropout2(self.maxpool2(F.relu(self.conv2(x))))
         x = self.flatten(x)
@@ -83,6 +95,18 @@ class MNISTEncoder(nn.Module):
         self.fc1 = nn.Linear(8 * 4 * 4, latent_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Encoding representation having each component in the interval [-1, 1]
+        """
         x = self.maxpool1(F.relu(self.conv1(x)))
         x = self.maxpool2(F.relu(self.conv2(x)))
         x = self.maxpool3(F.relu(self.conv3(x)))
@@ -121,6 +145,18 @@ class MNISTDecoder(nn.Module):
         self.conv4 = nn.Conv2d(16, 1, kernel_size=(3, 3), padding=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Decoded input having each component in the interval [0, 1].
+        """
         x = F.relu(self.fc1(x))
         x = x.view(x.shape[0], 8, 4, 4)
         x = self.up1(F.relu(self.conv1(x)))
@@ -154,6 +190,18 @@ class ADULTEncoder(nn.Module):
         self.fc2 = nn.LazyLinear(latent_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+       Forward pass.
+
+       Parameters
+       ----------
+       x
+           Input tensor.
+
+       Returns
+       -------
+       Encoding representation having each component in the interval [-1, 1]
+       """
         x = F.relu(self.fc1(x))
         x = torch.tanh(self.fc2(x))
         return x
@@ -182,6 +230,19 @@ class ADULTDecoder(nn.Module):
         self.fcs = nn.ModuleList([nn.LazyLinear(dim) for dim in output_dims])
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the \
+        numerical features if they exist, and the rest of the elements correspond to each categorical feature.
+        """
         x = F.relu(self.fc1(x))
         xs = [fc(x) for fc in self.fcs]
         return xs

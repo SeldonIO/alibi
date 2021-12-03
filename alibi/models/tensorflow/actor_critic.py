@@ -34,6 +34,20 @@ class Actor(keras.Model):
         self.fc3 = keras.layers.Dense(output_dim)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        Continuous action.
+        """
         x = tf.nn.relu(self.ln1(self.fc1(x)))
         x = tf.nn.relu(self.ln2(self.fc2(x)))
         x = tf.nn.tanh(self.fc3(x))
@@ -51,6 +65,8 @@ class Critic(keras.Model):
         """
         Constructor.
 
+        Parameters
+        ----------
         hidden_dim
             Hidden dimension.
         """
@@ -62,6 +78,18 @@ class Critic(keras.Model):
         self.fc3 = keras.layers.Dense(1)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Critic value.
+        """
         x = tf.nn.relu(self.ln1(self.fc1(x)))
         x = tf.nn.relu(self.ln2(self.fc2(x)))
         x = self.fc3(x)

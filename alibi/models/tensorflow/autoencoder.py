@@ -35,6 +35,22 @@ class AE(keras.Model):
         self.decoder = decoder
 
     def call(self, x: tf.Tensor, **kwargs):
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments passed to encoder/decoder `call` method.
+
+        Returns
+        -------
+        x_hat
+            Reconstruction of the input tensor.
+        """
+
         z = self.encoder(x, **kwargs)
         x_hat = self.decoder(z, **kwargs)
         return x_hat
@@ -63,7 +79,15 @@ class HeAE(AE):
         """
         super().__init__(encoder=encoder, decoder=decoder, **kwargs)
 
-    def build(self, input_shape: Tuple[int, ...]):
+    def build(self, input_shape: Tuple[int, ...]) -> None:
+        """
+        Build method.
+
+        Parameters
+        ----------
+        input_shape
+            Tensor's input shape.
+        """
         super().build(input_shape)
 
         # Check if the output is a list
@@ -74,4 +98,19 @@ class HeAE(AE):
             raise ValueError("The output of HeAE should be a list.")
 
     def call(self, x: tf.Tensor, **kwargs) -> List[tf.Tensor]:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments passed to the encoder/decoder.
+
+        Returns
+        --------
+        List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the \
+        numerical features if they exist, and the rest of the elements correspond to each categorical feature.
+        """
         return super().call(x, **kwargs)

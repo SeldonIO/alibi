@@ -209,6 +209,7 @@ DISTRIBUTED_OPTS = {
 }  # type: dict
 """
 Default distributed options for KernelShap:
+
     - ``'ncpus'`` : ``int`` - number of available CPUs available to parallelize explanations. Performance \
     is significantly boosted when the number specified represents physical CPUs, but small (nonlinear) gains are \
     observed when virtual CPUs are specified. If set to ``None``, the code will run sequentially.

@@ -25,8 +25,8 @@ class AnchorExplanation:
         ----------
         partial_index
             Get the result until a certain index.
-            For example, if the result is (A=1,B=2,C=2) and `partial_index=1`, this will
-            return ["A=1", "B=2"].
+            For example, if the result is `(A=1,B=2,C=2)` and `partial_index=1`, this will
+            return ``["A=1", "B=2"]``.
 
         Returns
         -------

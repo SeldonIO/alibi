@@ -50,8 +50,8 @@ class CEM(Explainer, FitMixin):
         beta
             Regularization constant for L1 loss term.
         feature_range
-            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `floats` or
-            `numpy` arrays with dimension (1x nb of features) for feature-wise ranges.
+            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `float` or
+            `numpy` arrays with dimension (`1x nb of features`) for feature-wise ranges.
         gamma
             Regularization constant for optional auto-encoder loss term.
         ae_model
@@ -67,8 +67,8 @@ class CEM(Explainer, FitMixin):
         eps
             If numerical gradients are used to compute `dL/dx = (dL/dp) * (dp/dx)`, then `eps[0]` is used to
             calculate `dL/dp` and `eps[1]` is used for `dp/dx`. `eps[0]` and `eps[1]` can be a combination of `float`
-            values and `numpy` arrays. For `eps[0]`, the array dimension should be (1x nb of prediction categories)
-            and for `eps[1]` it should be (1x nb of features).
+            values and `numpy` arrays. For `eps[0]`, the array dimension should be (`1x nb of prediction categories`)
+            and for `eps[1]` it should be (`1x nb of features`).
         clip
             Tuple with min and max clip ranges for both the numerical gradients and the gradients
             obtained from the `TensorFlow` graph.

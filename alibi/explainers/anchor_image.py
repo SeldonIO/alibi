@@ -106,7 +106,7 @@ class AnchorImageSampler:
         num_samples
             Number of samples used
         compute_labels
-            If True, an array of comparisons between predictions on perturbed samples and
+            If ``True``, an array of comparisons between predictions on perturbed samples and
             instance to be explained is returned.
 
         Returns
@@ -208,9 +208,9 @@ class AnchorImageSampler:
         Returns
         -------
         imgs
-            A [num_samples, H, W, C] array of perturbed images.
+            A `[num_samples, H, W, C]` array of perturbed images.
         segments_mask
-            A [num_samples, M] binary mask, where M is the number of image superpixels
+            A `[num_samples, M]` binary mask, where M is the number of image superpixels
             segments. 1 indicates the values in that particular superpixels are not
             perturbed.
         """

@@ -22,7 +22,7 @@ from .anchor_explanation import AnchorExplanation
 
 class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
-    values specified in an instance to be explained, X."""
+    values specified in an instance to be explained, `X`."""
 
     # if documented in the Attributes, it will be documented twice.
     # Probably realted to: https://github.com/sphinx-doc/sphinx/issues/7427

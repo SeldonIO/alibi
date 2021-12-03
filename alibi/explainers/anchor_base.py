@@ -485,7 +485,7 @@ class AnchorBaseBeam:
         anchors
             Candidate anchors.
         coverages
-            If True, the statistics returned contain the coverage of the specified anchors.
+            If ``True``, the statistics returned contain the coverage of the specified anchors.
 
         Returns
         -------

@@ -500,7 +500,7 @@ def plot_ale(exp: Explanation,
 
     Returns
     -------
-    An array of `matplotlib axes` with the resulting ALE plots.
+    An array of `matplotlib` axes with the resulting ALE plots.
 
     """
     import matplotlib.pyplot as plt

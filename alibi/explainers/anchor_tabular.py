@@ -22,12 +22,17 @@ from .anchor_explanation import AnchorExplanation
 
 class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
-    values specified in an instance to be explained, `X`."""
+    values specified in an instance to be explained, `X`.
+
+    Attributes
+    ----------
+    instance_label
+        The label of the instance to be explained.
+    """
 
     # if documented in the Attributes, it will be documented twice.
     # Probably realted to: https://github.com/sphinx-doc/sphinx/issues/7427
     instance_label: int
-    """The label of the instance to be explained."""
 
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,

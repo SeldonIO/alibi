@@ -162,8 +162,7 @@ class AnchorTextSampler:
 
 
 class UnknownSampler(AnchorTextSampler):
-    UNK: str = "UNK"
-    """Unknown token to be used."""
+    UNK: str = "UNK"  #: Unknown token to be used.
 
     def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
         """
@@ -444,11 +443,8 @@ class SimilaritySampler(AnchorTextSampler):
 
 class LanguageModelSampler(AnchorTextSampler):
     # filling procedures
-    FILLING_PARALLEL: str = 'parallel'
-    """Parallel filling procedure."""
-
-    FILLING_AUTOREGRESSIVE = 'autoregressive'
-    """Autoregressive filling procedure. Considerably slow."""
+    FILLING_PARALLEL: str = 'parallel'  #: Parallel filling procedure.
+    FILLING_AUTOREGRESSIVE = 'autoregressive'  #: Autoregressive filling procedure. Considerably slow.
 
     def __init__(self, model: LanguageModel, perturb_opts: dict, ):
         """
@@ -1151,14 +1147,9 @@ Default perturbation options for `similarity` sampling
 
 class AnchorText(Explainer):
     # sampling methods
-    SAMPLING_UNKNOWN = 'unknown'
-    """Unkown sampling strategy."""
-
-    SAMPLING_SIMILARITY = 'similarity'
-    """Similarity sampling strategy."""
-
-    SAMPLING_LANGUAGE_MODEL = 'language_model'
-    """Language model sampling strategy."""
+    SAMPLING_UNKNOWN = 'unknown'  #: Unknown sampling strategy.
+    SAMPLING_SIMILARITY = 'similarity'  #: Similarity sampling strategy.
+    SAMPLING_LANGUAGE_MODEL = 'language_model'  #: Language model sampling strategy.
 
     # default params
     DEFAULTS: Dict[str, Dict] = {

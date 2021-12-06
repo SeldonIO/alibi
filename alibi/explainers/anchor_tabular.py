@@ -22,17 +22,11 @@ from .anchor_explanation import AnchorExplanation
 
 class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
-    values specified in an instance to be explained, `X`.
-
-    Attributes
-    ----------
-    instance_label
-        The label of the instance to be explained.
-    """
+    values specified in an instance to be explained, `X`. """
 
     # if documented in the Attributes, it will be documented twice.
-    # Probably realted to: https://github.com/sphinx-doc/sphinx/issues/7427
-    instance_label: int
+    # Probably related to: https://github.com/sphinx-doc/sphinx/issues/7427
+    instance_label: int  #: The label of the instance to be explained.
 
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
@@ -586,8 +580,8 @@ class RemoteSampler:
     """ A wrapper that facilitates the use of TabularSampler for distributed sampling."""
     if RAY_INSTALLED:
         import ray
-        ray = ray  # set module as class variable to used only in this context
-        '''`ray` module.'''
+        # set module as class variable to used only in this context
+        ray = ray  #: `ray` module.
 
     def __init__(self, *args):
         self.train_id, self.d_train_id, self.sampler = args
@@ -678,8 +672,7 @@ class RemoteSampler:
 
 
 class AnchorTabular(Explainer, FitMixin):
-    instance_label: int
-    """The label of the instance to be explained."""
+    instance_label: int  #: The label of the instance to be explained.
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
@@ -1090,8 +1083,8 @@ class AnchorTabular(Explainer, FitMixin):
 class DistributedAnchorTabular(AnchorTabular):
     if RAY_INSTALLED:
         import ray
-        ray = ray  # set module as class variable to used only in this context
-        '''`ray` module.'''
+        # set module as class variable to used only in this context
+        ray = ray  #: `ray` module.
 
     def __init__(self,
                  predictor: Callable,

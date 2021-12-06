@@ -74,23 +74,12 @@ class ReplayBuffer:
     the first batch of data is stored. Allowing flexible batch size can generate `Tensorflow` warning due to
     the `tf.function` retracing, which can lead to a drop in performance.
     """
-    X: np.ndarray
-    """Inputs buffer."""
-
-    Y_m: np.ndarray
-    """Model's prediction buffer."""
-
-    Y_t: np.ndarray
-    """Counterfactual targets buffer."""
-
-    Z: np.ndarray
-    """Input embedding buffer."""
-
-    Z_cf_tilde: np.ndarray
-    """Noised counterfactual embedding buffer."""
-
-    R_tilde: np.ndarray
-    """Noise counterfactual rewards buffer."""
+    X: np.ndarray  #: Inputs buffer.
+    Y_m: np.ndarray  #: Model's prediction buffer.
+    Y_t: np.ndarray  #: Counterfactual targets buffer.
+    Z: np.ndarray  #: Input embedding buffer.
+    Z_cf_tilde: np.ndarray  #: Noised counterfactual embedding buffer.
+    R_tilde: np.ndarray  #: Noise counterfactual rewards buffer."""
 
     def __init__(self, size: int = 1000) -> None:
         """
@@ -300,6 +289,7 @@ _PARAM_TYPES = {
 }
 """
 Parameter types for serialization
+
     - ``'primitives'`` : List[str] - list of parameters having primitive data types.
     - ``'complex'`` : List[str] - list of parameters having complex data types (e.g., functions, models, 
     optimizers etc.).

@@ -493,7 +493,7 @@ def get_he_preprocessor(X: np.ndarray,
                 X_ohe[:, -cat_feat_ohe:]
             X_inv.append(cat_transf.inverse_transform(X_ohe_cat))
 
-        # Concatenate all columns. at this point the columns are not ordered correctly
+        # Concatenate all columns. At this point the columns are not ordered correctly
         np_X_inv = np.concatenate(X_inv, axis=1)
 
         # Construct permutation to order the columns correctly
@@ -504,10 +504,25 @@ def get_he_preprocessor(X: np.ndarray,
         for i in range(len(perm)):
             inv_perm[perm[i]] = i
 
+        # Permute columns and cast to object
         np_X_inv = np_X_inv[:, inv_perm].astype(object)
+
+        # Cast numerical features to desired data types
         for i, fn in enumerate(feature_names):
-            type = feature_types[fn] if fn in feature_types else float  # type: ignore[index,operator]
-            np_X_inv[:, i] = np_X_inv[:, i].astype(type)
+            if i in numerical_ids:
+                ft_type = feature_types[fn] if fn in feature_types else float  # type: ignore[index,operator]
+
+                # Round `int` type features to the closest integer number to avoid rounding error when casting to `int`.
+                # The casting to `np.float32` is due to previous casting to `object` which raises an error when
+                # applying `np.rint` (i.e., 'TypeError: loop of ufunc does not support argument 0 of type float which
+                # has no callable rint method')
+                if ft_type == int:
+                    np_X_inv[:, i] = np.rint(np_X_inv[:, i].astype(np.float32))
+
+            else:
+                ft_type = int  # for categorical features
+
+            np_X_inv[:, i] = np_X_inv[:, i].astype(ft_type)
 
         return np_X_inv
 

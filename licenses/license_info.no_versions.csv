@@ -11,6 +11,7 @@
 "alibi","Apache 2.0"
 "astunparse","BSD License"
 "attrs","MIT License"
+"beartype","MIT License"
 "blis","MIT License"
 "cachetools","MIT License"
 "catalogue","MIT License"

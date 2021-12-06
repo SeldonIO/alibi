@@ -36,7 +36,7 @@ setup(name='alibi',
           'pandas>=0.23.3, <2.0.0',
           'scikit-learn>=0.20.2, <1.1.0',
           'spacy[lookups]>=2.0.0, <4.0.0',
-          'scikit-image>=0.14.2, !=0.17.1, <0.19',  # https://github.com/SeldonIO/alibi/issues/215
+          'scikit-image>=0.14.2, !=0.17.1, <0.20',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',
           'Pillow>=5.4.1, <9.0',
           'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.7.0', # https://github.com/SeldonIO/alibi-detect/issues/375

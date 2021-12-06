@@ -14,8 +14,8 @@ from jupytext.cli import jupytext
 # changed notebooks. `pytest` does not allow `/` as part of the test name for the -k argument.
 # This also means that the approach is limited to all notebooks being in the `NOTEBOOK_DIR`
 # top-level path.
-NOTEBOOK_DIR = 'examples'
-ALL_NOTEBOOKS = {Path(x).name for x in glob.glob('examples/*.ipynb')}
+NOTEBOOK_DIR = 'doc/source/examples'
+ALL_NOTEBOOKS = {Path(x).name for x in glob.glob(str(Path(NOTEBOOK_DIR).joinpath('*.ipynb')))}
 
 # The following set includes notebooks which are not to be executed during notebook tests.
 # These are typically those that would take too long to run in a CI environment or impractical

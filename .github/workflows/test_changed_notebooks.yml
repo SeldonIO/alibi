@@ -7,12 +7,12 @@ on:
     branches:
       - master
     paths:
-      - 'examples/**/*.ipynb'
+      - 'doc/source/examples/**/*.ipynb'
   pull_request:
     branches:
       - master
     paths:
-      - 'examples/**/*.ipynb'
+      - 'doc/source/examples/**/*.ipynb'
     types: [ opened, synchronize, reopened, ready_for_review ]
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
         uses: tj-actions/changed-files@v1.1.2
         with:
           files: |
-            examples/*.ipynb
+            doc/source/examples/*.ipynb
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -54,8 +54,8 @@ jobs:
       - name: Run notebooks
         env:
           FILES: ${{ steps.changed-ipynb.outputs.all_modified_files }}
-        # The following line builds the test case string to be passed to pytest by stripping the directory 'examples/',
+        # The following line builds the test case string to be passed to pytest by stripping the directory 'doc/source/examples/',
         # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
         run: |
-          tests="test_notebook_execution[$(echo ${FILES} | sed 's/examples\///g' | sed 's/ / or /g')]" &&
+          tests="test_notebook_execution[$(echo ${FILES} | sed 's|doc/source/examples/||g' | sed 's| | or |g')]" &&
           pytest --no-cov -rA --durations=0 -vv testing/test_notebooks.py -k "$tests"

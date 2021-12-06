@@ -1285,7 +1285,12 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
     # create fake data and records to explain
     seed = 0
     n_feats, n_samples, n_instances = 15, 20, 2
-    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    # deal with incompatibility of catboost.Pool for fit
+    # TODO: fix this so fit and explain take the same types
+    if data_type == 'catboost.Pool':
+        background_data = get_data('array', n_rows=n_samples, n_cols=n_feats, seed=seed)
+    else:
+        background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
     if data_type != 'none':
         instances = get_data(data_type, n_rows=n_instances, n_cols=n_feats, seed=seed + 1)
     else:
@@ -1479,7 +1484,12 @@ def test_tree_api(mock_tree_shap_explainer, data_type, summarise_result, labels,
     # generate data
     seed = 0
     n_samples, n_feats, n_instances = 3, 40, 2
-    background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
+    # deal with incompatibility of catboost.Pool for fit
+    # TODO: fix this so fit and explain take the same types
+    if data_type == 'catboost.Pool':
+        background_data = get_data('array', n_rows=n_samples, n_cols=n_feats, seed=seed)
+    else:
+        background_data = get_data(data_type, n_rows=n_samples, n_cols=n_feats, seed=seed)
     y = None
     if labels:
         y = get_labels(n_samples, seed=seed)

@@ -21,7 +21,7 @@ class AnchorBaseBeam:
         Parameters
         ---------
         samplers
-            Objects that can be called with args (result, n_samples) tuple to draw samples.
+            Objects that can be called with args (`result`, `n_samples`) tuple to draw samples.
         """
 
         self.sample_fcn = samplers[0]
@@ -98,7 +98,7 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            beta / nb of samples for each result.
+            `beta` / nb of samples for each result.
         n_iter
             Number of iterations during lower bound update.
 
@@ -130,7 +130,7 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            beta / nb of samples for each result.
+            `beta` / nb of samples for each result.
         n_iter
             Number of iterations during lower bound update.
 
@@ -581,7 +581,7 @@ class AnchorBaseBeam:
     def to_sample(means: np.ndarray, ubs: np.ndarray, lbs: np.ndarray, desired_confidence: float, epsilon_stop: float):
         """
         Given an array of mean result precisions and their upper and lower bounds, determines for which anchors
-        more samples need to be drawn in order to estimate the anchors precision with desired_confidence and error
+        more samples need to be drawn in order to estimate the anchors precision with `desired_confidence` and error
         tolerance.
 
         Parameters
@@ -818,7 +818,7 @@ class AnchorBaseBeam:
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
     if RAY_INSTALLED:
         import ray
-        ray = ray
+        ray = ray  #: `ray` module.
 
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 

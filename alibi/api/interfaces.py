@@ -68,8 +68,7 @@ class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
-    meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
-    """Explainer meta-data."""
+    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Explainer meta-data.
 
     def __attrs_post_init__(self):
         # add a name and version to the metadata dictionary

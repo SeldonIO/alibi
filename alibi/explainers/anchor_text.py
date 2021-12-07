@@ -97,7 +97,7 @@ class Neighbors:
         tag
             Part of speech tag for the words.
         top_n
-            Return only top_n neighbors.
+            Return only `top_n` neighbors.
 
         Returns
         -------
@@ -204,8 +204,8 @@ class UnknownSampler(AnchorTextSampler):
 
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         """
-        The function returns  an `np.array` of num_samples where randomly chosen features,
-        except those in anchor, are replaced by `UNK` token.
+        The function returns  an `np.array` of `num_samples` where randomly chosen features,
+        except those in anchor, are replaced by ``'UNK'`` token.
 
         Parameters
         ----------
@@ -312,7 +312,7 @@ class SimilaritySampler(AnchorTextSampler):
 
     def find_similar_words(self) -> None:
         """
-        This function queries a `spaCy` nlp model to find n similar words with the same
+        This function queries a `spaCy` nlp model to find `n` similar words with the same
         part of speech for each word in the instance to be explained. For each word
         the search procedure returns a dictionary containing an `np.array` of words (``'words'``)
         and an `np.array` of word similarities (``'similarities'``).
@@ -769,7 +769,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         Returns
         -------
-            Array with one element, the concatenation of the strings in the input array.
+        Array with one element, the concatenation of the strings in the input array.
         """
         filtered_arr = list(filter(lambda x: len(x) > 0, arr))
         str_arr = self.model.tokenizer.convert_tokens_to_string(filtered_arr)
@@ -808,7 +808,7 @@ class LanguageModelSampler(AnchorTextSampler):
         Returns
         -------
         raw
-            Array containing num_samples elements. Each element is a perturbed sentence.
+            Array containing `num_samples` elements. Each element is a perturbed sentence.
         """
         # chose the perturbation function
         perturb_func = self._perturb_instances_parallel if filling == self.FILLING_PARALLEL \
@@ -888,6 +888,8 @@ class LanguageModelSampler(AnchorTextSampler):
             Sample weight hyper-parameter.
         use_proba
             Bool whether to sample according to the predicted words distribution
+        **kwargs
+            Other arguments. Not used.
 
         Returns
         -------
@@ -985,6 +987,8 @@ class LanguageModelSampler(AnchorTextSampler):
             Sample weight hyper-parameter.
         use_proba
             Bool whether to sample according to the predicted words distribution.
+        **kwargs
+            Other arguments. Not used.
 
         Returns
         -------
@@ -1099,8 +1103,11 @@ DEFAULT_SAMPLING_SIMILARITY = {
 Default perturbation options for ``'similarity'`` sampling
 
     - ``'sample_proba'`` : float - probability of a word to be masked.
+    
     - ``'top_n'`` : int - number of similar words to sample for perturbations.
+    
     - ``'temperature'`` : float - sample weight hyper-parameter if `use_proba=True`.
+    
     - ``'use_proba'`` : bool - whether to sample according to the words similarity.
 """
 
@@ -1124,11 +1131,16 @@ Default perturbation options for `similarity` sampling
     sampled independently, according to the selected probability distribution (see `top_n`, `temperature`, \
     `use_proba`). `autoregressive` method fills the words one at the time. This corresponds to multiple forward \
     passes through  the language model which is computationally expensive.
+    
     - ``'sample_proba'`` : float - probability of a word to be masked.
+    
     - ``'top_n'`` : int - number of similar words to sample for perturbations.
+    
     - ``'temperature'`` : float - sample weight hyper-parameter if use_proba equals ``True``.
+    
     - ``'use_proba'`` : bool - whether to sample according to the predicted words distribution. If set to ``False``, \
     the `top_n` words are sampled uniformly at random.
+    
     - ``'frac_mask_template'`` : float - fraction from the number of samples of mask templates to be generated. \
     In each sampling call, will generate `int(frac_mask_templates * num_samples)` masking templates. \
     Lower fraction corresponds to lower computation time since the batch fed to the language model is smaller. \
@@ -1137,9 +1149,13 @@ Default perturbation options for `similarity` sampling
     corresponds to masking each word. For this case only one masking template will be constructed. \
     A `filling='autoregressive'` will generate `num_samples` masking templates regardless of the value \
     of `frac_mask_templates`.
+    
     - ``batch_size_lm`` : int - batch size used for the language model forward pass.
+    
     - ``punctuation`` : str - string of punctuation not to be masked.
+    
     - ``stopwords`` : List[str] - list of words not to be masked.
+    
     - ``sample_punctuation`` : bool - whether to sample punctuation to fill the masked words. If ``False``, the \
     punctuation defined in `punctuation` will not be sampled.
 """
@@ -1292,8 +1308,8 @@ class AnchorText(Explainer):
         Parameters
         ----------
         anchor
-            `int`: the position of the anchor in the input batch
-            `tuple`: the anchor itself, a list of words to be kept unchanged
+            `int`: the position of the anchor in the input batch.
+            `tuple`: the anchor itself, a list of words to be kept unchanged.
         num_samples
             Number of generated perturbed samples.
         compute_labels
@@ -1302,16 +1318,22 @@ class AnchorText(Explainer):
 
         Returns
         -------
-        If `compute_labels=True`, a list containing the following is returned
-         - covered_true - perturbed examples where the anchor applies and the model prediction \
+        If ``compute_labels=True``, a list containing the following is returned
+
+         - `covered_true` - perturbed examples where the anchor applies and the model prediction \
          on perturbation is the same as the instance prediction
-         - covered_false - perturbed examples where the anchor applies and the model prediction \
+
+         - `covered_false` - perturbed examples where the anchor applies and the model prediction \
          is NOT the same as the instance prediction
-         - labels - num_samples ints indicating whether the prediction on the perturbed sample \
+
+         - `labels` - num_samples ints indicating whether the prediction on the perturbed sample \
          matches (1) the label of the instance to be explained or not (0)
-         - data - Matrix with 1s and 0s indicating whether a word in the text has been perturbed for each sample
-         - -1.0 - indicates exact coverage is not computed for this algorithm
-         - anchor[0] - position of anchor in the batch request
+
+         - `data` - Matrix with 1s and 0s indicating whether a word in the text has been perturbed for each sample
+
+         - `-1.0` - indicates exact coverage is not computed for this algorithm
+
+         - `anchor[0]` - position of anchor in the batch request
 
         Otherwise, a list containing the data matrix only is returned.
         """
@@ -1342,7 +1364,7 @@ class AnchorText(Explainer):
 
         Returns
         -------
-        A boolean array indicating whether the prediction was the same as the instance label.
+        A `numpy` boolean array indicating whether the prediction was the same as the instance label.
         """
         return self.predictor(samples.tolist()) == self.instance_label
 
@@ -1373,7 +1395,7 @@ class AnchorText(Explainer):
         threshold
             Minimum precision threshold.
         delta
-            Used to compute beta.
+            Used to compute `beta`.
         tau
             Margin between lower confidence bound and minimum precision or upper bound.
         batch_size
@@ -1396,13 +1418,13 @@ class AnchorText(Explainer):
             The anchor search pre-allocates binary_cache_size batches for storing the boolean arrays
             returned during sampling.
         cache_margin
-            When only `max(cache_margin, batch_size)` positions in the binary cache remain empty, a new cache
+            When only ``max(cache_margin, batch_size)`` positions in the binary cache remain empty, a new cache
             of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
         verbose_every
             Frequency of displayed iterations during anchor search process.
-        kwargs
+        **kwargs
             Other keyword arguments passed to the anchor beam search and the text sampling and perturbation functions.
 
         Returns
@@ -1467,7 +1489,8 @@ class AnchorText(Explainer):
         return self._build_explanation(text, result, self.instance_label, params)
 
     def _build_explanation(self, text: str, result: dict, predicted_label: int, params: dict) -> Explanation:
-        """ Uses the metadata returned by the anchor search algorithm together with
+        """
+        Uses the metadata returned by the anchor search algorithm together with
         the instance to be explained to build an explanation object.
 
         Parameters
@@ -1529,7 +1552,7 @@ class AnchorText(Explainer):
         Parameters
         ----------
         predictor
-            New prediction function.
+            New predictor function.
         """
         self.predictor = self._transform_predictor(predictor)
 

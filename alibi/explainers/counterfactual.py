@@ -123,15 +123,15 @@ class Counterfactual(Explainer):
         learning_rate_init
             Initial learning rate for each outer loop of `lambda`.
         feature_range
-            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `float` or
-            `numpy` arrays with dimension (1 x nb of features) for feature-wise ranges.
+            Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges can be `float`
+            or `numpy` arrays with dimension (1 x nb of features) for feature-wise ranges.
         eps
             Gradient step sizes used in calculating numerical gradients, defaults to a single value for all
             features, but can be passed an array for feature-wise step sizes.
         init
             Initialization method for the search of counterfactuals, currently must be ``'identity'``.
         decay
-            Flag to decay learning rate to zero for each outer loop over lambda
+            Flag to decay learning rate to zero for each outer loop over lambda.
         write_dir
             Directory to write `Tensorboard` files to.
         debug
@@ -631,6 +631,6 @@ class Counterfactual(Explainer):
         Parameters
         ----------
         predictor
-            New prediction function/model.
+            New predictor function/model.
         """
         raise NotImplementedError('Resetting a predictor is currently not supported')

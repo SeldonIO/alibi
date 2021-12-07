@@ -69,8 +69,8 @@ class CounterfactualProto(Explainer, FitMixin):
         beta
             Regularization constant for L1 loss term.
         feature_range
-            Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `float` or
-            `numpy` arrays with dimension (1x nb of features) for feature-wise ranges.
+            Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges can be `float`
+            or `numpy` arrays with dimension (1x nb of features) for feature-wise ranges.
         gamma
             Regularization constant for optional auto-encoder loss term.
         ae_model
@@ -105,7 +105,7 @@ class CounterfactualProto(Explainer, FitMixin):
         update_num_grad
             If numerical gradients are used, they will be updated every `update_num_grad` iterations.
         write_dir
-            Directory to write `tensorboard` files to.
+            Directory to write `Tensorboard` files to.
         sess
             Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
@@ -978,7 +978,7 @@ class CounterfactualProto(Explainer, FitMixin):
         print_every
             Print frequency if verbose is ``True``.
         log_every
-            Tensorboard log frequency if write directory is specified.
+            `Tensorboard` log frequency if write directory is specified.
 
         Returns
         -------
@@ -1297,8 +1297,8 @@ class CounterfactualProto(Explainer, FitMixin):
             Number of nearest instances used to define the prototype for a class. Defaults to using all
             instances belonging to the class if an encoder is used and to 1 for k-d trees.
         k_type
-            Use either the average encoding of the k nearest instances in a class (`k_type='mean'`) or
-            the k-nearest encoding in the class (`k_type='point'`) to define the prototype of that class.
+            Use either the average encoding of the `k` nearest instances in a class (``k_type='mean'``) or
+            the `k`-nearest encoding in the class (`k_type='point'`) to define the prototype of that class.
             Only relevant if an encoder is used to define the prototypes.
         threshold
             Threshold level for the ratio between the distance of the counterfactual to the prototype of the
@@ -1384,6 +1384,6 @@ class CounterfactualProto(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            New prediction function/model.
+            New predictor function/model.
         """
         raise NotImplementedError('Resetting a predictor is currently not supported')

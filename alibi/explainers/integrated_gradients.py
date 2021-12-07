@@ -31,7 +31,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     Parameters
     ----------
     model
-        Tensorflow or keras model.
+        `Tensorflow` or `keras` model.
     input_dtypes
         List with data types of the inputs.
     attributions
@@ -45,11 +45,11 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     target
         Target for which the gradients are calculated for classification models.
     _is_list
-        Whether the model's input is a list (multiple inputs) or a np array (single input).
+        Whether the model's input is a `list` (multiple inputs) or a `np.narray` (single input).
 
     Returns
     -------
-        Convergence deltas for each data point.
+    Convergence deltas for each data point.
     """
     if forward_kwargs is None:
         forward_kwargs = {}
@@ -108,7 +108,7 @@ def _select_target(preds: tf.Tensor,
         Targets to select.
     Returns
     -------
-    Selected predictions
+    Selected predictions.
 
     """
     if targets is not None:
@@ -194,7 +194,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
 
     Returns
     -------
-        Model's predictions for the given target.
+    Model's predictions for the given target.
 
     """
 
@@ -383,7 +383,7 @@ def _gradients_input(model: Union[tf.keras.models.Model],
 
     Returns
     -------
-        Gradients for each input feature.
+    Gradients for each input feature.
 
     """
     if forward_kwargs is None:
@@ -430,7 +430,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 
     Returns
     -------
-        Gradients for each element of layer.
+    Gradients for each element of layer.
 
     """
 
@@ -502,7 +502,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
 def _format_baseline(X: np.ndarray,
                      baselines: Union[None, int, float, np.ndarray]) -> np.ndarray:
     """
-    Formats baselines to return a numpy array.
+    Formats baselines to return a `numpy` array.
 
     Parameters
     ----------
@@ -513,7 +513,7 @@ def _format_baseline(X: np.ndarray,
 
     Returns
     -------
-        Formatted inputs and  baselines as a `numpy` arrays.
+    Formatted inputs and  baselines as a `numpy` arrays.
 
     """
     if baselines is None:
@@ -809,8 +809,8 @@ class IntegratedGradients(Explainer):
 
         Returns
         -------
-            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
-            for each feature.
+        `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
+        for each feature.
 
         """
         # target handling logic

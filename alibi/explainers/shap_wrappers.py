@@ -213,10 +213,12 @@ Default distributed options for KernelShap:
     - ``'ncpus'`` : ``int`` - number of available CPUs available to parallelize explanations. Performance \
     is significantly boosted when the number specified represents physical CPUs, but small (nonlinear) gains are \
     observed when virtual CPUs are specified. If set to ``None``, the code will run sequentially.
+    
     - ``'batch_size'``: ``int``, how many instances are explained in the same remote process at once. The `shap` library \
      of KernelShap is not vectorised, so no significant gains are made by specifying batches. See blog `post`_ for batch \
      size experiments results. If set to `None`, an input array is split in (roughly) equal parts and distributed across \
      the available CPUs.
+    
     .. _post:
         https://www.seldon.io/how-seldons-alibi-and-ray-make-model-explainability-easy-and-scalable/ 
 """  # noqa
@@ -804,6 +806,7 @@ class KernelShap(Explainer, FitMixin):
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
                 - `nsamples`: controls the number of predictor calls and therefore runtime.
+                
                 - `l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will \
                 first run a feature selection algorithm to select the top features, provided the fraction of sampled \
                 sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information \
@@ -1207,9 +1210,9 @@ class TreeShap(Explainer, FitMixin):
 
         Returns
         -------
-            If the `categorical_names` argument to the constructor is specified, then an object of the same type as
-            input containing only `n_background_samples` is returned. Otherwise, a `shap_utils.Data` containing an
-            `np.ndarray` object of `n_background_samples` in the `data` field is returned.
+        If the `categorical_names` argument to the constructor is specified, then an object of the same type as
+        input containing only `n_background_samples` is returned. Otherwise, a `shap_utils.Data` containing an
+        `np.ndarray` object of `n_background_samples` in the `data` field is returned.
 
         """
 
@@ -1465,7 +1468,7 @@ class TreeShap(Explainer, FitMixin):
         X
             Instances to be explained.
         shap_output
-            If `explain` is callled with `interactions=True` then the list contains tensors of dimensionality
+            If `explain` is callled with ``interactions=True`` then the list contains tensors of dimensionality
             `n_instances x n_features x n_features` of shap interaction values. Otherwise, it contains tensors of
             dimension `n_instances x n_features` representing shap values. The length of the list equals the number of
             model outputs.

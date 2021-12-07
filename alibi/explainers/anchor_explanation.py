@@ -25,7 +25,7 @@ class AnchorExplanation:
         ----------
         partial_index
             Get the result until a certain index.
-            For example, if the result is `(A=1,B=2,C=2)` and `partial_index=1`, this will
+            For example, if the result is ``(A=1, B=2, C=2)`` and ``partial_index=1``, this will
             return ``["A=1", "B=2"]``.
 
         Returns
@@ -44,8 +44,8 @@ class AnchorExplanation:
         ----------
         partial_index
             Get the result until a certain index.
-            For example, if the result uses `segment_labels=(1, 2, 3)` and `partial_index=1`, this will
-            return [1, 2].
+            For example, if the result uses ``segment_labels=(1, 2, 3)`` and ``partial_index=1``, this will
+            return ``[1, 2]``.
 
         Returns
         -------
@@ -63,7 +63,7 @@ class AnchorExplanation:
         ----------
         partial_index
             Get the result precision until a certain index.
-            For example, if the result has precisions [0.1, 0.5, 0.95] and `partial_index=1`, this will
+            For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
             return 0.5.
 
         Returns
@@ -85,7 +85,8 @@ class AnchorExplanation:
         ----------
         partial_index
             Get the result coverage until a certain index.
-            For example, if the result has precisions [0.1, 0.5, 0.95] and `partial_index=1`, this will return 0.5.
+            For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
+            return 0.5.
 
         Returns
         -------

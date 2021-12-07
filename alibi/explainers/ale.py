@@ -47,7 +47,7 @@ class ALE(Explainer):
             A list of target/output names used for displaying results.
         check_feature_resolution
             If ``True``, the number of unique values is calculated for each feature and if it is less than
-            `low_resolution_threshold` then the feature values are used for gridpoints instead of quantiles.
+            `low_resolution_threshold` then the feature values are used for grid-points instead of quantiles.
             This may increase the runtime of the algorithm for large datasets.
         low_resolution_threshold
             If a feature has at most this many unique values, these are used as the grid points instead of
@@ -110,14 +110,20 @@ class ALE(Explainer):
         following data-related attributes
          - `ale_values` : List[np.ndarray] - a list of arrays of ALE values (one for each feature). Each array \
          can have multiple columns (if the number of targets is >1 as in classification).
+
          - `constant_value` : float - the mean prediction over `X` (zeroth order effects).
+
          - `ale0` : List[np.ndarray] - a list of arrays of “centering” values (one for each feature) used by the \
          algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum \
          of `ale_values` and `ale0` will be the uncentered ALE).
+
          - `feature_values` : List[np.ndarray] - a list of arrays (one for each feature) of feature values at \
          which the ALE values were computed.
+
          - `feature_names` : np.ndarray - an array of feature names.
+
          - `target_names` : np.ndarray - an array of target names.
+
          - `feature_deciles` : List[np.ndarray] - a list of arrays (one for each feature) of the feature deciles.
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
@@ -216,7 +222,7 @@ class ALE(Explainer):
         Parameters
         ----------
         predictor
-            New prediction function.
+            New predictor function.
         """
         self.predictor = predictor
 
@@ -474,7 +480,7 @@ def plot_ale(exp: Explanation,
     Parameters
     ----------
     exp
-        An `Explanation` object produced by a call to the `ALE.explain` method.
+        An `Explanation` object produced by a call to the `:py:meth:`alibi.explainers.ale.ALE.explain` method.
     features
         A list of features for which to plot the ALE curves or `all` for all features.
         Can be a mix of integers denoting feature index or strings denoting entries in
@@ -492,7 +498,7 @@ def plot_ale(exp: Explanation,
         A parameter specifying whether the constant zeroth order effects should be added to the
         ALE first order effects.
     ax
-        A `matplotlib` axes object or a numpy array of `matplotlib` axes to plot on.
+        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
     line_kw
         Keyword arguments passed to the `plt.plot` function.
     fig_kw

@@ -190,7 +190,7 @@ class TabularSampler:
 
         Returns
         -------
-        If `compute_labels=True`, a list containing the following is returned
+        If ``compute_labels=True``, a list containing the following is returned
          - `covered_true` - perturbed examples where the anchor applies and the model prediction \
          on perturbation is the same as the instance prediction.
 
@@ -577,7 +577,7 @@ class TabularSampler:
 
 
 class RemoteSampler:
-    """ A wrapper that facilitates the use of TabularSampler for distributed sampling."""
+    """ A wrapper that facilitates the use of `TabularSampler` for distributed sampling."""
     if RAY_INSTALLED:
         import ray
         # set module as class variable to used only in this context
@@ -590,8 +590,8 @@ class RemoteSampler:
     def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
                  compute_labels: bool = True) -> List:
         """
-        Wrapper around TabularSampler.__call__. It allows sampling a batch of anchors in the same process,
-        which can improve performance.
+        Wrapper around :py:meth:`alibi.explainers.anchor_tabularTabularSampler.__call__`. It allows sampling a batch
+        of anchors in the same process, which can improve performance.
 
         Parameters
         ----------
@@ -691,7 +691,7 @@ class AnchorTabular(Explainer, FitMixin):
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature.
         dtype
-            A numpy scalar type that corresponds to the type of input array expected by `predictor`. This may be
+            A `numpy` scalar type that corresponds to the type of input array expected by `predictor`. This may be
             used to construct arrays of the given type to be passed through the `predictor`. For most use cases
             this argument should have no effect, but it is exposed for use with predictors that would break when
             called with an array of unsupported type.
@@ -754,7 +754,7 @@ class AnchorTabular(Explainer, FitMixin):
         train_data
             Representative sample from the training data.
         disc_perc
-            List with percentiles (int) used for discretization.
+            List with percentiles (`int`) used for discretization.
         """
 
         # transform one-hot encodings to labels if ohe == True
@@ -813,7 +813,7 @@ class AnchorTabular(Explainer, FitMixin):
                 verbose_every: int = 1,
                 **kwargs: Any) -> Explanation:
         """
-        Explain prediction made by classifier on instance X.
+        Explain prediction made by classifier on instance `X`.
 
         Parameters
         ----------
@@ -845,7 +845,7 @@ class AnchorTabular(Explainer, FitMixin):
             The result search pre-allocates `binary_cache_size` batches for storing the binary arrays
             returned during sampling.
         cache_margin
-            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            When only ``max(cache_margin, batch_size)`` positions in the binary cache remain empty, a new cache
             of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
@@ -1074,7 +1074,7 @@ class AnchorTabular(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            New prediction function.
+            New predictor function.
         """
         self.predictor = predictor
         self.samplers[0].predictor = self._predictor
@@ -1183,7 +1183,7 @@ class DistributedAnchorTabular(AnchorTabular):
                 verbose_every: int = 1,
                 **kwargs: Any) -> Explanation:
         """
-        Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
+        Explains the prediction made by a classifier on instance `X`. Sampling is done in parallel over a number of
         cores specified in kwargs['ncpu'].
 
         Parameters

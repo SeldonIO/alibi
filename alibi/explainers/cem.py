@@ -51,7 +51,7 @@ class CEM(Explainer, FitMixin):
             Regularization constant for L1 loss term.
         feature_range
             Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be `float` or
-            `numpy` arrays with dimension (`1x nb of features`) for feature-wise ranges.
+            `numpy` arrays with dimension (1x nb of features) for feature-wise ranges.
         gamma
             Regularization constant for optional auto-encoder loss term.
         ae_model
@@ -67,17 +67,17 @@ class CEM(Explainer, FitMixin):
         eps
             If numerical gradients are used to compute `dL/dx = (dL/dp) * (dp/dx)`, then `eps[0]` is used to
             calculate `dL/dp` and `eps[1]` is used for `dp/dx`. `eps[0]` and `eps[1]` can be a combination of `float`
-            values and `numpy` arrays. For `eps[0]`, the array dimension should be (`1x nb of prediction categories`)
-            and for `eps[1]` it should be (`1x nb of features`).
+            values and `numpy` arrays. For `eps[0]`, the array dimension should be (1x nb of prediction categories)
+            and for `eps[1]` it should be (1x nb of features).
         clip
-            Tuple with min and max clip ranges for both the numerical gradients and the gradients
+            Tuple with `min` and `max` clip ranges for both the numerical gradients and the gradients
             obtained from the `TensorFlow` graph.
         update_num_grad
             If numerical gradients are used, they will be updated every `update_num_grad` iterations.
         no_info_val
             Global or feature-wise value considered as containing no information.
         write_dir
-            Directory to write `tensorboard` files to.
+            Directory to write `Tensorboard` files to.
         sess
             Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
@@ -453,12 +453,11 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         X
-            Instance to attack
+            Instance to attack.
         Y
-            Labels for X
+            Labels for `X`.
         verbose
-            Print intermediate results of optimization if True
-
+            Print intermediate results of optimization if ``True``.
 
         Returns
         -------
@@ -480,9 +479,9 @@ class CEM(Explainer, FitMixin):
             Parameters
             ----------
             x
-                Predicted class probabilities or labels
+                Predicted class probabilities or labels.
             y
-                Target or predicted labels
+                Target or predicted labels.
 
             Returns
             -------
@@ -662,7 +661,7 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         X
-            Instances to attack
+            Instances to attack.
         Y
             Labels for `X`.
         verbose
@@ -722,6 +721,6 @@ class CEM(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            New prediction function/model.
+            New predictor function/model.
         """
         raise NotImplementedError('Resetting a predictor is currently not supported')

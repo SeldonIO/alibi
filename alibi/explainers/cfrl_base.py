@@ -127,6 +127,8 @@ class ReplayBuffer:
             Conditional array.
         R_tilde
             Noised counterfactual reward array.
+        **kwargs
+            Other arguments. Not used.
         """
         # Initialize the buffers.
         if not hasattr(self, 'X'):
@@ -239,7 +241,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     - ``'batch_size'`` : int -  training batch size.
     - ``'num_workers'`` : int - number of workers used by the data loader if `pytorch` backend is selected.
     - ``'shuffle'`` : bool - whether to shuffle the datasets every epoch.
-    - ``'exploration_steps'`` : int - number of exploration steps. For the firts `exploration_steps`, the \
+    - ``'exploration_steps'`` : int - number of exploration steps. For the first `exploration_steps`, the \
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
     - ``'update_every'`` : int - number of steps that should elapse between gradient updates. Regardless of the \
     waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
@@ -247,10 +249,10 @@ Default Counterfactual with Reinforcement Learning parameters.
     the replay buffers is full enough for useful updates.
     - ``'backend'`` : str -  backend to be used: `tensorflow` | `pytorch`. Default `tensorflow`.
     - ``'train_steps'`` : int -  number of train steps.
-    - ``'encoder_preprocessor'`` : Callable - encoder/autoencoder data preprocessors. Transforms the input data into the \
-    format expected by the autoencoder. By default, the identity function.
-    - ``'decoder_inv_preprocessor'`` : Callable - decoder/autoencoder data inverse preprocessor. Transforms data from \
-    the autoencoder output format to the original input format. Before calling the prediction function, the data is \
+    - ``'encoder_preprocessor'`` : Callable - encoder/autoencoder data preprocessors. Transforms the input data into \
+    the format expected by the auto-encoder. By default, the identity function.
+    - ``'decoder_inv_preprocessor'`` : Callable - decoder/auto-encoder data inverse preprocessor. Transforms data from \
+    the auto-encoder output format to the original input format. Before calling the prediction function, the data is \
     inverse preprocessed to match the original input format. By default, the identity function.
     - ``'reward_func'`` : Callable - element-wise reward function. By default, considers classification task and \
     checks if the counterfactual prediction label matches the target label. Note that this is element-wise, so a \
@@ -261,7 +263,7 @@ Default Counterfactual with Reinforcement Learning parameters.
     vector, and returns the post-processed counterfactual instance `X_cf_pp` which is passed as `X_cf` for the \
     following functions. By default, no post-processing is applied (empty list).
     - ``'conditional_func'`` : Callable - generates a conditional vector given a pre-processed input instance. By \
-    default, the function returns `None` which is equivalent to no conditioning.
+    default, the function returns ``None`` which is equivalent to no conditioning.
     - ``'callbacks'`` : List[Callback] - list of callback functions applied at the end of each training step.
     - ``'actor'`` : Optional[Union[tensorflow.keras.Model, torch.nn.Module]] - actor network.
     - ``'critic;`` : Optional[Union[tensorflow.keras.Model, torch.nn.Module]] - critic network.
@@ -328,12 +330,12 @@ class CounterfactualRL(Explainer, FitMixin):
         coeff_consistency
             Consistency loss coefficient.
         latent_dim
-            Autoencoder latent dimension. Can be omitted if the actor network is user specified.
+            Auto-encoder latent dimension. Can be omitted if the actor network is user specified.
         backend
             Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         seed
             Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend.
-        kwargs
+        **kwargs
             Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
         super().__init__(meta=deepcopy(DEFAULT_META_CFRL))
@@ -380,7 +382,7 @@ class CounterfactualRL(Explainer, FitMixin):
     @staticmethod
     def _serialize_params(params: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Parameter serialization. The function replaces object by human-readable representation
+        Parameter serialization. The function replaces object by human-readable representation.
 
         Parameters
         ----------
@@ -484,13 +486,13 @@ class CounterfactualRL(Explainer, FitMixin):
         Parameters
         ----------
         predictor.
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
         encoder
             Pretrained encoder network.
         decoder
             Pretrained decoder network.
         latent_dim
-            Autoencoder latent dimension.
+            Auto-encoder latent dimension.
         coeff_sparsity
             Sparsity loss coefficient.
         coeff_consistency
@@ -1024,28 +1026,42 @@ class Callback(ABC):
             Dictionary of samples used for an update which contains
 
                 - ``'X'``: input instances.
+
                 - ``'Y_m'``: predictor outputs for the input instances.
+
                 - ``'Y_t'``: target outputs.
+
                 - ``'Z'``: input embeddings.
+
                 - ``'Z_cf_tilde'``: noised counterfactual embeddings.
+
                 - ``'X_cf_tilde'``: noised counterfactual instances obtained ofter decoding the noised counterfactual \
                 embeddings `Z_cf_tilde` and apply post-processing functions.
+
                 - ``'C'``: conditional vector.
+
                 - ``'R_tilde'``: reward obtained for the noised counterfactual instances.
+
                 - ``'Z_cf'``: counterfactual embeddings.
+
                 - ``'X_cf'``: counterfactual instances obtained after decoding the countefactual embeddings `Z_cf` and \
                 apply post-processing functions.
         losses
             Dictionary of losses which contains
 
                 - ``'loss_actor'``: actor network loss.
+
                 - ``'loss_critic'``: critic network loss.
+
                 - ``'sparsity_loss'``: sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_base.CounterfactualRL` class.
+
                 - ``'sparsity_num_loss'``: numerical features sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
+
                 - ``'sparsity_cat_loss'``: categorical features sparsity loss for the \
                 :py:class:`alibi.explainers.cfrl_tabular.CounterfactualRLTabular` class.
+
                 - ``'consistency_loss'``: consistency loss if used.
         """
         pass

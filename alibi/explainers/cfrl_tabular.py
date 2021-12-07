@@ -27,7 +27,7 @@ if has_tensorflow:
 
 class SampleTabularPostprocessing(Postprocessing):
     """
-    Tabular sampling post-processing. Given the output of the heterogeneous autoencoder the post-processing
+    Tabular sampling post-processing. Given the output of the heterogeneous auto-encoder the post-processing
     functions samples the output according to the conditional vector. Note that the original input instance
     is required to perform the conditional sampling.
     """
@@ -138,10 +138,10 @@ class CounterfactualRLTabular(CounterfactualRL):
         decoder
             Pretrained heterogeneous decoder network. The output of the decoder must be a list of tensors.
         encoder_preprocessor
-            Autoencoder data pre-processor. Depending on the input format, the pre-processor can normalize
+            Auto-encoder data pre-processor. Depending on the input format, the pre-processor can normalize
             numerical attributes, transform label encoding to one-hot encoding etc.
         decoder_inv_preprocessor
-            Autoencoder data inverse pre-processor. This is the inverse function of the pre-processor. It can
+            Auto-encoder data inverse pre-processor. This is the inverse function of the pre-processor. It can
             denormalize numerical attributes, transform one-hot encoding to label encoding, feature type casting etc.
         coeff_sparsity
            Sparsity loss coefficient.
@@ -169,7 +169,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         weight_cat
             Categorical loss weight.
         latent_dim
-            Autoencoder latent dimension. Can be omitted if the actor network is user specified.
+            Auto-encoder latent dimension. Can be omitted if the actor network is user specified.
         backend
            Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         seed
@@ -302,7 +302,7 @@ class CounterfactualRLTabular(CounterfactualRL):
             Whether to generate diverse counterfactual set for the given instance. Only supported for a single
             input instance.
         num_samples
-            Number of diversity samples to be generated. Considered only if `diversity=True`.
+            Number of diversity samples to be generated. Considered only if ``diversity=True``.
         batch_size
             Batch size to use when generating counterfactuals.
         patience
@@ -401,7 +401,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         batch_size
             Batch size used at inference.
         num_samples
-            Number of diversity samples to be generated. Considered only if `diversity=True`.
+            Number of diversity samples to be generated. Considered only if ``diversity=True``.
         batch_size
             Batch size to use when generating counterfactuals.
         patience

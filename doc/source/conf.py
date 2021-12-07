@@ -258,7 +258,7 @@ if git_rev:
 
 nbsphinx_prolog = (
 r"""
-{% set docpath = env.doc2path(env.docname, base='doc/source/') %}
+{% set docname = env.doc2path(env.docname, base=False) %}
 
 .. only:: html
 
@@ -266,11 +266,11 @@ r"""
         :format: html
     
     .. nbinfo::
-        This page was generated from `{{ docpath }}`__.
+        This page was generated from `{{ docname }}`__.
     
     __ https://github.com/SeldonIO/alibi/blob/
         """ +
-git_rev + r"{{ docpath }}"
+git_rev + "doc/source/" + r"{{ docname }}"
 )
 
 # -- myst-parser configuration -----------------------------------------------

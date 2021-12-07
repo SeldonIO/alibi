@@ -261,7 +261,7 @@ r"""
 {% if env.metadata[env.docname]['nbsphinx-link-target'] %}
 {% set docpath = env.metadata[env.docname]['nbsphinx-link-target'] %}
 {% else %}
-{% set docpath = env.doc2path(env.docname, base=None) %}
+{% set docpath = env.doc2path(env.docname, base=True) %}
 {% endif %}
 
 .. only:: html

@@ -45,12 +45,12 @@ several applications of importance.
   the machine learning systems we use. It allows us to justify their use in many contexts where an understanding of the
   basis of the decision is paramount. This is a common issue within machine learning in medicine, where acting on a
   model prediction may require expensive or risky procedures to be carried out.
-    - **Testing:**. Explainability might be used to [audit financial models](https://arxiv.org/abs/1909.06342) that aid
-      decisions about whether to grant customer loans. By computing the attribution of each feature towards the
-      prediction the model makes, organisations can check that they are consistent with human decision-making.
-      Similarly, explainability applied to a model trained on image data can explicitly show the model's focus when
-      making decisions, aiding [debugging](http://proceedings.mlr.press/v70/sundararajan17a.html). Practitioners must be
-      wary of [misuse](#biases), however.
+- **Testing:**. Explainability might be used to [audit financial models](https://arxiv.org/abs/1909.06342) that aid
+  decisions about whether to grant customer loans. By computing the attribution of each feature towards the prediction
+  the model makes, organisations can check that they are consistent with human decision-making. Similarly,
+  explainability applied to a model trained on image data can explicitly show the model's focus when making decisions,
+  aiding [debugging](http://proceedings.mlr.press/v70/sundararajan17a.html). Practitioners must be wary
+  of [misuse](#biases), however.
 - **Functionality:**. Insights can be used to augment model functionality. For instance, providing information on top of
   model predictions such as how to change model inputs to obtain desired outputs.
 - **Research:**. Explainability allows researchers to understand how and why opaque models make decisions. This can help
@@ -124,19 +124,20 @@ model performs as desired.
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                   | Scope  | Model types            | Task types                 | Data types                               | Use                                                                                             |
-|---------------------------------------------------------------------------------------------|--------|------------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [Accumulated Local Effects](#accumulated-local-effects)                                     | Global | Black-box              | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest                             |
-| [Anchors](#anchors)                                                                         | Local  | Black-box              | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
-| [Pertinent Positives](#pertinent-positives)                                                 | Local  | Black-box/White-box    | Classification             | Tabular, Image                           | ""                                                                                              |
-| [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box              | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
-| [Kernel SHAP](#kernelshap)                                                                  | Local  | Black-box              | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                      | Local  | White-box              | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box              | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Counterfactuals Instances](#counterfactuals-instances)                                     | Local  | Black-box/White-box    | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
-| [Contrastive Explanation Method](#contrastive-explanation-method)                           | Local  | Black-box/White-box    | Classification             | Tabular, Image                           | ""                                                                                              |
-| [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box    | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
-| [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning) | Local  | Black-box              | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
+| Explainer                                                                                   | Scope  | Model types         | Task types                 | Data types                               | Use                                                                                             |
+|---------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
+| [Accumulated Local Effects](#accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest                             |
+| [Anchors](#anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| [Pertinent Positives](#pertinent-positives)                                                 | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
+| [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
+| [Kernel SHAP](#kernelshap)                                                                  | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                      | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Counterfactuals Instances](#counterfactuals-instances)                                     | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
+| [Contrastive Explanation Method](#contrastive-explanation-method)                           | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
+| [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
 
 ### 1. Global Feature Attribution
 
@@ -306,9 +307,9 @@ required predictive property. This makes them less interpretable.
 
 ### Pertinent Positives
 
-| Explainer           | Scope  | Model types          | Task types      | Data types      | Use                                                                                             |
-| ------------------- | ------ | -------------------- | --------------- | --------------- | ----------------------------------------------------------------------------------------------- |
-| Pertinent Positives | Local  | Black-box/White-box  | Classification  | Tabular, Image  | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| Explainer           | Scope | Model types         | Task types     | Data types     | Use                                                                                             |
+|---------------------|-------|---------------------|----------------|----------------|-------------------------------------------------------------------------------------------------|
+| Pertinent Positives | Local | Black-box/White-box | Classification | Tabular, Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 
 Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features
 of an instance that still obtains the same classification as that instance. These differ from [anchors](#anchors)
@@ -346,101 +347,128 @@ we need to make. This does however mean we can use this method for a wide range 
 require the model to be differentiable which isn't always true. For instance tree-based models have piece-wise constant
 output.
 
-| Pros                                                                                                           | Cons                                                                                                                         |
-| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Can be used with both white-box (TensorFlow) and some black-box models                                         | Finding non-informative feature values to take away from an instance is often not trivial, and domain knowledge is essential |   
-|                                                                                                                | The autoencoder loss requires access to the original dataset                                                                 |
-|                                                                                                                | Need to tune hyperparameters $\beta$ and $\gamma$                                                                            |
-|                                                                                                                | The insight doesn't tell us anything about the coverage of the pertinent positive                                            |
-|                                                                                                                | Slow for black-box models due to having to numerically evaluate gradients                                                    |
-|                                                                                                                | Only works for differentiable black-box models                                                                               |
+| Pros                                                                   | Cons                                                                                                                         |
+|------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
+| Can be used with both white-box (TensorFlow) and some black-box models | Finding non-informative feature values to take away from an instance is often not trivial, and domain knowledge is essential |   
+|                                                                        | The autoencoder loss requires access to the original dataset                                                                 |
+|                                                                        | Need to tune hyperparameters $\beta$ and $\gamma$                                                                            |
+|                                                                        | The insight doesn't tell us anything about the coverage of the pertinent positive                                            |
+|                                                                        | Slow for black-box models due to having to numerically evaluate gradients                                                    |
+|                                                                        | Only works for differentiable black-box models                                                                               |
 
-### Local Feature Attribution
+### 3. Local Feature Attribution
 
-Local feature attribution asks how each feature in a given instance contributes to its prediction. In the case of an
-image, this would highlight those pixels that make the model provide the output it does. Note that this differs subtly
-from Local Necessary Features, which find the minimum subset of features required to give a prediction. Local feature
-attribution instead assigns a score to each feature.
+Local feature attribution (LFA) asks how each feature in a given instance contributes to its prediction. In the case of
+an image, this would highlight those pixels that are most responsible for the model prediction. Note that this differs
+subtly from [Local Necessary Features](#2-local-necessary-features) which find the *minimal subset* of features required
+to keep the same prediction. Local feature attribution instead assigns a score to each feature.
 
-__TODO__:
+A good example use of local feature attribution is to detect that an image classifier is focusing on the correct
+features of an image to infer the class. In their
+paper ["Why Should I Trust You?": Explaining the Predictions of Any Classifier](https://arxiv.org/abs/1602.04938), Marco
+Tulio Ribeiro et al. train a logistic regression classifier on a small dataset of images of wolves and huskies. The data
+set has been handpicked so that only the pictures of wolves have snowy backdrops while the huskies don't. LFA methods
+reveal that the resulting misclassification of huskies in snow as wolves results from the network incorrectly focusing
+on those images snowy backdrops.
 
-- picture showing above.
+```{figure} images/husky-vs-wolves.png
+:align: center
+:alt: Husky with snowy backdrop misclassified as wolf.
 
-A good example use of local feature attribution is to detect that a classifier trained on images is focusing on the
-correct features of an image to infer the class. Suppose you have a model trained to classify breeds of dogs. You want
-to check that it focuses on the correct features of the dog in making its prediction. Suppose you compute the feature
-attribution of a picture of a husky and discover that the model is only focusing on the snowy backdrop to the husky,
-then you know two things. All the images of huskies in your dataset overwhelmingly have snowy backdrops, and also that
-the model will fail to generalize. It will potentially incorrectly classify other dog breeds with snowy backdrops as
-huskies and fail to recognize huskies that aren't in snowy locations.
+*Figure 11 from "Why Should I Trust You?": Explaining the Predictions of Any Classifier.* 
+```
 
-Each of the following methods defines local feature attribution slightly differently. In both, however, we assign
-attribution values to each feature to indicate how significant those features were in making the model prediction.
+Let $f:\mathbb{R}^n \rightarrow \mathbb{R}$. $f$ might be a regression model, a single component of a multi-output
+regression or a probability of a class in a classification model. If $x=(x_1,... ,x_n) \in \mathbb{R}^n$ then an
+attribution of the prediction at input $x$ is a vector $a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the
+contribution of $x_i$ to the prediction $f(x)$.
 
-Let $f:\mathbb{R}^n \rightarrow \mathbb{R}$. $f$ might be a regression, a single component of a multi regression or a
-probability of a class in a classification model. If $x=(x_1,... ,x_n) \in \mathbb{R}^n$ then an attribution of the
-prediction at input $x$ is a vector $a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the contribution of $x_i$ to the
-prediction $f(x)$.
+For attribution methods to be relevant, we expect the attributes to behave consistently in certain situations. Hence,
+they should satisfy the following properties.
 
-The attribution values should satisfy specific properties:
+(lfa-properties)=
 
-1. Efficiency/Completeness: The sum of attributions equals the difference between the prediction and the
-   baseline/average. We're interested in understanding the difference each feature value makes in a prediction compared
-   to some uninformative baseline.
-2. Symmetry: If the model behaves the same after swapping two variables $x$ and $y$, then $x$ and $y$ have equal
-   attribution. If this weren't the case, we would be biasing the attribution towards certain features over other ones.
-3. Dummy/Sensitivity: If a variable does not change the output of the model, then it should have attribution 0. If this
-   were not the case, we'd be assigning value to a feature that provides no information.
-4. Additivity/Linearity: The attribution for a feature $x_i$ of a linear composition of two models $f_1$ and $f_2$ given
-   by $c_1 f_1 + c_2 f_2$ is $c_1 a_{1, i} + c_2 a_{2, i}$ where $a_{1, i}$ and $a_{2, i}$ is the attribution for $x_1$
-   and $f_1$ and $f_2$ respectively.
+- **Efficiency/Completeness**: The sum of attributions should equal the difference between the prediction and the
+  baseline
+- **Symmetry**: Variables that have identical effects on the model should have equal attribution
+- **Dummy/Sensitivity**: Variables that don't change the model output should have attribution zero
+- **Additivity/Linearity**: The attribution of a feature for a linear combination of two models should equal the linear
+  combination of attributions of that feature for each of those models
+
+Not all LFA methods satisfy these
+methods ([LIME](https://papers.nips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf) for example) but the
+ones provided by Alibi ([Integrated Gradients](#integrated-gradients), [Kernel SHAP](#kernelshap)
+, [Path dependent](#path-dependent-treeshap) and [interventional](#interventional-tree-shap) tree SHAP) do.
 
 ### Integrated Gradients
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| TF/Kera     | Classification | Tabular     |
-|             | Regression     | Image       |
-|             |                | Text        |
-|             |                | Categorical |
+| Explainer            | Scope | Model types           | Task types                 | Data types                           | Use                                                        |
+|----------------------|-------|-----------------------|----------------------------|--------------------------------------|------------------------------------------------------------|
+| Integrated Gradients | Local | White-box(TensorFlow) | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? |
 
-This method computes the attribution of each feature by integrating the model partial derivatives along a path from a
-baseline point to the instance. Let $f$ be the model and $x$ the instance of interest. If $f:\mathbb{R}^{n} \rightarrow
-\mathbb{R}^{m}$ where $m$ is the number of classes the model predicts then let $F=f_k$ where $k \in \{1,..., m\}$. If
-$f$ is single-valued then $F=f$. We also need to choose a baseline value, $x'$.
+The integrated gradients (IG) method computes the attribution of each feature by integrating the model partial
+derivatives along a path from a baseline point to the instance. This accumulates the changes in the prediction that
+occur due to the changing feature values. These accumulated values represent how each feature contributes to the
+prediction for the instance of interest.
 
-$$ IG_i(x) = (x_i - x_i')\int_{\alpha}^{1}\frac{\partial F (x' + \alpha (x - x'))}{ \partial x_i } d \alpha $$
-
-The above sums partial derivatives for each feature over the path between the baseline and instance of interest. In
-doing so, you accumulate the changes in the prediction that occur due to the changing feature value from the baseline to
-the instance.
+We need to choose a baseline which should capture a blank state in which the model makes essentially no prediction or
+assigns the probability of each class equally. This is dependent on domain knowledge of the dataset. In the case of
+MNIST for instance a common choice is an image set to black. For numerical tabular data we can set the baseline as the
+average of each feature.
 
 :::{admonition} **Note 5: Choice of Baseline**
-The main difficulty with this method is that as IG is very dependent on the baseline, it's essential to make sure you
-choose it well. The choice of baseline should capture a blank state in which the model makes essentially no prediction
-or assigns the probability of each class equally. A common choice for image classification is an image set to black,
-which works well in many cases but sometimes fails to be a good choice. For instance, a model that classifies images
-taken at night using an image with every pixel set to black means the attribution method will undervalue the use of dark
-pixels in attributing the contribution of each feature to the classification. This is due to the contribution being
-calculated relative to the baseline, which is already dark.
+
+(choice-of-baseline)=
+
+The main difficulty with this method is that as IG is
+very [dependent on the baseline](https://distill.pub/2020/attribution-baselines/), it's essential to make sure you
+choose it well. Choosing a black image baseline for a classifier trained to distinguish between photos taken at day or
+night may not be the best choice.
 :::
 
-**Pros**
+Note that IG is a white box method that requires access to the model internals in order to compute the partial
+derivatives. Alibi provides support for TensorFlow models. For example given a Tensorflow classifier trained on the wine
+quality dataset we can compute the IG attributions by doing:
 
-- Simple to understand and visualize, especially with image data
-- Doesn't require access to the training data
+```ipython3
+from alibi.explainers import IntegratedGradients
 
-**Cons**
+ig = IntegratedGradients(model,                                 # TensorFlow model
+                         layer=None,
+                         method="gausslegendre",
+                         n_steps=50,
+                         internal_batch_size=100)
 
-- white-box method. Requires the partial derivatives of the model outputs with respect to inputs
-- Requires choosing the baseline which can have a significant effect on the outcome (See Note 5)
+result = ig.explain(scaler.transform(x), target=0)
+
+plot_importance(result.data['attributions'][0], features, 0)
+```
+
+This gives:
+
+```{image} images/ig-lfa.png
+:align: center
+:alt: IG applied to Wine quality dataset for class "Good" 
+```
+
+_Note_: The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict
+the [ALE](#accumulated-local-effects) result. The instance $x$ we choose has an alcohol content of 9.4%, which is
+reasonably low for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and
+bad wines 9.7%)
+
+| Pros                                                           | Cons                                                                                                                 |
+|----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Simple to understand and visualize, especially with image data | White-box method. Requires the partial derivatives of the model outputs with respect to inputs                       |
+| Doesn't require access to the training data                    | Requires [choosing the baseline](choice-of-baseline) which can have a significant effect on the outcome (See Note 5) |
+| [Satisfies several desirable properties](lfa-properties)       |                                                                                                                      | 
+
 
 ### KernelSHAP
 
-| Model-types       | Task-types     | Data-types  |
-| ----------------- | -------------- | ----------- |
-| Black-box         | Classification | Tabular     |
-|                   | Regression     | Categorical |
+| Model-types        | Task-types      | Data-types   |
+|--------------------|-----------------|--------------|
+| Black-box          | Classification  | Tabular      |
+|                    | Regression      | Categorical  |
 
 Kernel SHAP is a method of computing the Shapley values for a model around an instance $x_i$. Shapley values are a
 game-theoretic method of assigning payout to players depending on their contribution to an overall goal. In this case,

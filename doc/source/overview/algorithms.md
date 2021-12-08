@@ -38,14 +38,14 @@ Key:
 
 **Accumulated Local Effects (ALE)**: calculates first-order feature effects on the model with
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
-[Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.nblink),
-[classification example](../examples/ale_classification.nblink).
+[Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.ipynb),
+[classification example](../examples/ale_classification.ipynb).
  
 **Anchor Explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
-[tabular example](../examples/anchor_tabular_adult.nblink),
-[text classification](../examples/anchor_text_movie.nblink),
-[image classification](../examples/anchor_image_imagenet.nblink).
+[tabular example](../examples/anchor_tabular_adult.ipynb),
+[text classification](../examples/anchor_text_movie.ipynb),
+[image classification](../examples/anchor_image_imagenet.ipynb).
 
 **Contrastive Explanation Method (CEM)**: produce a pertinent positive (PP) and a pertinent negative
 (PN) instance. The PP instance finds the features that should be minimally and sufficiently present
@@ -62,7 +62,7 @@ instance that would result in a different prediction). [Documentation](../method
 prototypes other than the class predicted on the original instance. It can use both an encoder or k-d trees
 to define the prototypes. This method can speed up the search, especially for black box models, and create
 interpretable counterfactuals. [Documentation](../methods/CFProto.ipynb),
-[tabular example](../examples/cfproto_housing.nblink),
+[tabular example](../examples/cfproto_housing.ipynb),
 [tabular example with categorical features](../examples/cfproto_cat_adult_ohe.ipynb),
 [image classification](../examples/cfproto_mnist.ipynb).
 
@@ -72,17 +72,17 @@ is model-agnostic (does not assume differentiability) and relies only on feedbac
 generating target-conditional counterfactual instances, flexible feature range constraints for numerical and categorical
 attributes, including the immutability of protected features (e.g. gender, race) and can be easily extended to other 
 data modalities such as images. [Documentation](../methods/CFRL.ipynb), 
-[tabular_example](../examples/cfrl_adult.nblink),
-[image_classification](../examples/cfrl_mnist.nblink).
+[tabular_example](../examples/cfrl_adult.ipynb),
+[image_classification](../examples/cfrl_mnist.ipynb).
 
 **Integrated gradients**: attribute an importance score to each element of the input or an internal layer of the the model  
 with respect to a given baseline. The attributions are calculated as the path integral of the model gradients along a 
 straight line from the baseline to the input.
 [Documentation](../methods/IntegratedGradients.ipynb),
-[MNIST example](../examples/integrated_gradients_mnist.nblink),
-[Imagenet example](../examples/integrated_gradients_imagenet.nblink),
-[IMDB example](../examples/integrated_gradients_imdb.nblink).
-[Transformers example](../examples/integrated_gradients_transformers.nblink).
+[MNIST example](../examples/integrated_gradients_mnist.ipynb),
+[Imagenet example](../examples/integrated_gradients_imagenet.ipynb),
+[IMDB example](../examples/integrated_gradients_imdb.ipynb).
+[Transformers example](../examples/integrated_gradients_transformers.ipynb).
 
 **Kernel Shapley Additive Explanations (Kernel SHAP)**: attribute the change of a model output with respect
 to a given baseline (e.g., average over a reference set) to each of the input features. This is achieved for
@@ -122,13 +122,13 @@ particular prediction.
 between the distance to the nearest class different from the predicted class and the distance to the
 predicted class, higher scores correspond to more trustworthy predictions.
 [Documentation](../methods/TrustScores.ipynb),
-[tabular example](../examples/trustscore_iris.nblink),
-[image classification](../examples/trustscore_mnist.nblink)
+[tabular example](../examples/trustscore_iris.ipynb),
+[image classification](../examples/trustscore_mnist.ipynb)
 
 **Linearity measure**: produces a score quantifying how linear the model is around a test instance.
 The linearity score measures the model linearity around a test instance by feeding the model linear
 superpositions of inputs and comparing the outputs with the linear combination of outputs from
 predictions on single inputs.
 [Documentation](../methods/LinearityMeasure.ipynb)
-[Tabular example](../examples/linearity_measure_iris.nblink),
-[image classification](../examples/linearity_measure_fashion_mnist.nblink)
+[Tabular example](../examples/linearity_measure_iris.ipynb),
+[image classification](../examples/linearity_measure_fashion_mnist.ipynb)

@@ -43,7 +43,7 @@ There is currently one exception to the black-box interface: the
 type `Callable[[List[str], np.ndarray]`, i.e. the model is expected
 to work on batches of raw text (here `List[str]` indicates a batch
 of text strings). See [this
-example](../examples/anchor_text_movie.nblink) for more
+example](../examples/anchor_text_movie.ipynb) for more
 information.
 ```
 
@@ -72,7 +72,7 @@ explainer = SomeExplainer(predictor, **kwargs)
 In some cases for classifiers it may be more appropriate to expose the
 `predict_proba` or `decision_function` method instead of
 `predict`, see an example on [ALE for
-classifiers](../examples/ale_classification.nblink).
+classifiers](../examples/ale_classification.ipynb).
 
 ### Tensorflow models
 

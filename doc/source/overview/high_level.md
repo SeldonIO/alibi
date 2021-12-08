@@ -58,7 +58,7 @@ several applications of importance.
 
 ## Black-box vs White-box methods
 
-Some explainers apply only to specific types of models such as the [Tree SHAP](#path-dependent-treeshap) methods which
+Some explainers apply only to specific types of models such as the [Tree SHAP](#path-dependent-tree-shap) methods which
 can only be used with [tree-based models](https://en.wikipedia.org/wiki/Decision_tree_learning). This is the case when
 an explainer uses some aspect of that model's internal structure. If the model is a neural network then some methods
 require taking gradients of the model predictions with respect to the inputs. Methods that require access to the model
@@ -130,9 +130,8 @@ practitioner an understanding of which explainers are suitable in which situatio
 | [Anchors](#anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 | [Pertinent Positives](#pertinent-positives)                                                 | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
 | [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
-| [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
 | [Kernel SHAP](#kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                      | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Tree SHAP (path-dependent)](#path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Counterfactuals Instances](#counterfactuals-instances)                                     | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
 | [Contrastive Explanation Method](#contrastive-explanation-method)                           | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
@@ -319,7 +318,7 @@ primarily in the fact that they aren't constructed to maximize coverage. The met
 different. The rough idea is to define an **absence of a feature** and then perturb the instance to take away as much
 information as possible while still retaining the original classification. Note that these are a subset of
 the [CEM](../methods/CEM.ipynb) method which is also used to
-construct [pertinent negatives/counterfactuals](#counterfactuals).
+construct [pertinent negatives/counterfactuals](#4-counterfactuals).
 
 ```{image} images/pp_mnist.png
 :align: center
@@ -358,7 +357,7 @@ output.
 |                                                                        | Slow for black-box models due to having to numerically evaluate gradients                                                    |
 |                                                                        | Only works for differentiable black-box models                                                                               |
 
-### 3. Local Feature Attribution
+## 3. Local Feature Attribution
 
 Local feature attribution (LFA) asks how each feature in a given instance contributes to its prediction. In the case of
 an image, this would highlight those pixels that are most responsible for the model prediction. Note that this differs
@@ -385,10 +384,16 @@ regression or a probability of a class in a classification model. If $x=(x_1,...
 attribution of the prediction at input $x$ is a vector $a=(a_1,... ,a_n) \in \mathbb{R}^n$ where $a_i$ is the
 contribution of $x_i$ to the prediction $f(x)$.
 
-For attribution methods to be relevant, we expect the attributes to behave consistently in certain situations. Hence,
-they should satisfy the following properties.
+Alibi exposes four explainers to compute LFAs. [Integrated gradients](#integrated-gradients)
+, [kernel SHAP](#kernel-shap)
+, [path-dependent tree SHAP](#path-dependent-tree-shap) and [interventional tree SHAP](#interventional-tree-shap). The
+last three of these are implemented in The [SHAP library](https://github.com/slundberg/shap) and Alibi acts as a
+wrapper. Interventional and path-dependent tree SHAP are white-box methods that apply to tree based models.
 
 (lfa-properties)=
+
+For attribution methods to be relevant, we expect the attributes to behave consistently in certain situations. Hence,
+they should satisfy the following properties.
 
 - **Efficiency/Completeness**: The sum of attributions should equal the difference between the prediction and the
   baseline
@@ -399,8 +404,8 @@ they should satisfy the following properties.
 
 Not all LFA methods satisfy these
 methods ([LIME](https://papers.nips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf) for example) but the
-ones provided by Alibi ([Integrated Gradients](#integrated-gradients), [Kernel SHAP](#kernel-shap)
-, [Path dependent](#path-dependent-treeshap) and [interventional](#interventional-tree-shap) tree SHAP) do.
+ones provided by Alibi ([integrated gradients](#integrated-gradients), [Kernel SHAP](#kernel-shap)
+, [path-dependent](#path-dependent-tree-shap) and [interventional](#interventional-tree-shap) tree SHAP) do.
 
 ### Integrated Gradients
 
@@ -458,9 +463,9 @@ This gives:
 (comparison-to-ale)=
 
 The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict
-the [ALE result](ale-plot). However, The instance $x$ we choose has an alcohol content of 9.4%, which is
-reasonably low for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and
-bad wines 9.7%)
+the [ALE result](ale-plot). However, The instance $x$ we choose has an alcohol content of 9.4%, which is reasonably low
+for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and bad wines
+9.7%)
 :::
 
 | Pros                                                           | Cons                                                                                                                 |
@@ -475,8 +480,8 @@ bad wines 9.7%)
 |--------------|-------|-------------|----------------------------|-----------------------|------------------------------------------------------------|
 | Kernel SHAP  | Local |  Black-box  | Classification, Regression | Tabular, Categorical  | What does each feature contribute to the model prediction? |
 
-[Kernel SHAP](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) is a method of
-computing the Shapley values for a model around an
+[Kernel SHAP](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) is a method for
+computing the Shapley values of a model around an
 instance. [Shapley values](https://christophm.github.io/interpretable-ml-book/shapley.html) are a game-theoretic method
 of assigning payout to players depending on their contribution to an overall goal. In our case, the features are the
 players, and the payouts are the attributions.
@@ -513,6 +518,8 @@ plot_importance(result.shap_values[1], features, 1)
 
 This gives the following output:
 
+(kern-shap-plot)=
+
 ```{image} images/kern-shap-lfa.png
 :align: center
 :alt: Kernel SHAP applied to Wine quality dataset for class "Good" 
@@ -523,52 +530,62 @@ using different methods and models in each case.
 
 | Pros                                                     | Cons                                                                                                  |
 |----------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
-| [Satisfies several desirable properties](lfa-properties) | Kernal SHAP is slow owing to the number of samples required to estimate the Shapley values accurately |
+| [Satisfies several desirable properties](lfa-properties) | Kernel SHAP is slow owing to the number of samples required to estimate the Shapley values accurately |
 | Shapley values can be easily interpreted and visualized  | The interventional conditional probability introduces unrealistic data points                         |
 | Very general as is a black-box method                    | Requires access to the training dataset                                                               | 
 
-### TreeSHAP
+### Path-dependent tree SHAP
 
-| Model-types  | Task-types     | Data-types  |
-| ------------ | -------------- | ----------- |
-| Tree-based   | Classification | Tabular     |
-|              | Regression     | Categorical |
+| Explainer                  | Scope  | Model types | Task types                 | Data types           | Use                                                        |
+|----------------------------|--------|-------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (path-dependent) | Local  | White-box   | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
-In the case of tree-based models, we can obtain a speed-up by exploiting the structure of trees. Alibi exposes two
-white-box methods, Interventional and Path dependent feature perturbation. The main difference is that the
-path-dependent method approximates the interventional conditional expectation, whereas the interventional method
-calculates it directly.
+Computing the Shapley values for a model requires computing the interventional conditional expectation for each member
+of the [power set](https://en.wikipedia.org/wiki/Power_set) of instance features. For tree-based models we can
+approximate this distribution by applying the tree as usual. However, for missing features, we take both routes down the
+tree, weighting each path taken by the proportion of samples from the training dataset that go each way. The tree SHAP
+method does this simultaneously for all members of the feature powerset, obtaining
+a [significant speedup](https://www.researchgate.net/publication/333077391_Explainable_AI_for_Trees_From_Local_Explanations_to_Global_Understanding)
+. Assume the random forest has $T$ trees, with a depth of $D$, let $L$ be the number of leaves and let $M$ be the size
+of the feature set. If we compute the approximation for each member of the power set we obtain a time complexity of $O(
+TL2^M)$. In contrast, computing for all sets simultaneously we achieve $O(TLD^2)$.
 
-### Path Dependent TreeSHAP
+To compute the path-dependent tree SHAP explainer for a random forest using Alibi we use:
 
-Given a coalition, we want to approximate the interventional conditional expectation. We apply the tree to the features
-present in the coalition like we usually would, with the only difference being when a feature is missing from the
-coalition. In this case, we take both routes down the tree, weighting each by the proportion of samples from the
-training dataset that go each way. For this algorithm to work, we need the tree to record how it splits the training
-dataset. We don't need the dataset itself, however, unlike the interventional TreeSHAP algorithm.
+```ipython3
+from alibi.explainers import TreeShap
+path_dependent_explainer = TreeShap(rfc, model_output='raw', task='classification')
+path_dependent_explainer.fit()
+result = path_dependent_explainer.explain(scaler.transform(x))
 
-Doing this for each possible set $S$ involves $O(TL2^M)$ time complexity. We can significantly improve the algorithm to
-polynomial-time by computing the path of all sets simultaneously. The intuition here is to imagine standing at the first
-node and counting the number of subsets that will go one way, the number that will go the other, and the number that
-will go both (in the case of missing features). Because we assign different sized subsets different weights, we also
-need to distinguish the above numbers passing into each tree branch by their size. Finally, we also need to keep track
-of the proportion of sets of each size in each branch that contains a feature $i$ and the proportion that don't. Once
-all these sets have flowed down to the leaves of the tree, then we can compute the Shapley values. Doing this gives us
-$O(TLD^2)$ time complexity.
+plot_importance(result.shap_values[1], features, '"Good"')
+```
 
-**Pros**
+From this we obtain:
 
-- Very fast for a valuable category of models
-- Doesn't require access to the training data
-- The Shapley values are fairly distributed among the feature values
-- Shapley values can be easily interpreted and visualized
+```{image} images/pd-tree-shap-lfa.png
+:align: center
+:alt: Path-dependent tree SHAP applied to Wine quality dataset for class "Good" 
+```
 
-**Cons**
+This result is similar to the one for [integrated gradients](comparison-to-ale) and [kernel SHAP](kern-shap-plot)
+although there are differences due to using different methods and models in each case.
 
-- Only applies to Tree-based models
-- Uses an approximation of the interventional conditional expectation instead of computing it directly
+| Pros                                                     | Cons                                                                                                 |
+|----------------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| [Satisfies several desirable properties](lfa-properties) | Only applies to tree-based models                                                                    |
+| Very fast for a valuable category of models              | Uses an approximation of the interventional conditional expectation instead of computing it directly |
+| Doesn't require access to the training data              |                                                                                                      | 
+| Shapley values can be easily interpreted and visualized  |                                                                                                      |
 
 ### Interventional Tree SHAP
+
+| Explainer                  | Scope | Model types | Task types                 | Data types           | Use                                                        |
+|----------------------------|-------|-------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (interventional) | Local | White-box   | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+
+The main difference between this and the last method is that the path-dependent method approximates the interventional
+conditional expectation, whereas the interventional method calculates it directly.
 
 The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the
 training dataset. Let $F$ be the set of all features. For each feature, $i$, we then enumerate over all subsets of
@@ -591,20 +608,14 @@ Applied to a random forest with $T$ trees and using $R$ samples to compute the e
 complexity. The fact that we can sum over each tree in the random forest results from the linearity property of Shapley
 values.
 
-**Pros**
+| Pros                                                                                          | Cons                                              |
+|-----------------------------------------------------------------------------------------------|---------------------------------------------------|
+| [Satisfies several desirable properties](lfa-properties)                                      | Less general as a white-box method                |
+| Very fast for a valuable category of models                                                   | Requires access to the dataset                    |
+| Shapley values can be easily interpreted and visualized                                       | Typically, slower than the path-dependent method  | 
+| Computes the interventional conditional expectation exactly unlike the path-dependent method  |                                                   |
 
-- Very fast for a valuable category of models
-- The Shapley values are fairly distributed among the feature values
-- Shapley values can be easily interpreted and visualized
-- Computes the interventional conditional expectation exactly unlike the path-dependent method
-
-**Cons**
-
-- Less general as a white-box method
-- Requires access to the dataset
-- Typically, slower than the path-dependent method
-
-### Counterfactuals
+## 4. Counterfactuals
 
 Given an instance of the dataset and a prediction given by a model, a question naturally arises how would the instance
 minimally have to change for a different prediction to be provided. Counterfactuals are local explanations as they

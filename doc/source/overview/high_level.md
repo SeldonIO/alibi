@@ -563,6 +563,8 @@ plot_importance(result.shap_values[1], features, '"Good"')
 
 From this we obtain:
 
+(pd-tree-shap-plot)=
+
 ```{image} images/pd-tree-shap-lfa.png
 :align: center
 :alt: Path-dependent tree SHAP applied to Wine quality dataset for class "Good" 
@@ -584,36 +586,54 @@ although there are differences due to using different methods and models in each
 |----------------------------|-------|-------------|----------------------------|----------------------|------------------------------------------------------------|
 | Tree SHAP (interventional) | Local | White-box   | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
-The main difference between this and the last method is that the path-dependent method approximates the interventional
-conditional expectation, whereas the interventional method calculates it directly.
+Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each
+feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we
+replace it with the corresponding one in the reference sample. We can then compute $f(S)$ directly for each member of
+the power set of instance features to get the Shapley values.
 
-The interventional TreeSHAP method takes a different approach. Suppose we sample a reference data point, $r$, from the
-training dataset. Let $F$ be the set of all features. For each feature, $i$, we then enumerate over all subsets of
-$S\subset F \setminus \{i\}$. If a subset is missing a feature, we replace it with the corresponding one in the
-reference sample. We can then compute $f(S)$ directly for each coalition $S$ to get the Shapley values. One major
-difference here is combining each $S$ and $r$ to generate a data point. Enforcing independence of the $S$ and
-$F\setminus S$ in this way is known as intervening in the underlying data distribution and is where the algorithm's name
-comes from. Note that this breaks any independence between features in the dataset, which means the data points we're
-sampling won't be realistic.
+Enforcing independence of the $S$ and $F\setminus S$ in this way is known as intervening in the underlying data
+distribution and is the source of the algorithm's name. Note that this breaks any independence between features in the
+dataset, which means the data points we're sampling won't always be realistic.
 
-For a single Tree and sample $r$ if we iterate over all the subsets of $S \subset F \setminus \{i\}$, the interventional
-TreeSHAP method runs with $O(M2^M)$. Note that there are two paths through the tree of particular interest. The first is
-the instance path for $x$, and the second is the sampled/reference path for $r$. Computing the Shapley value estimate
-for the sampled $r$ will involve replacing $x$ with values of $r$ and generating a set of perturbed paths. Instead of
-iterating over the sets, we sum over the paths. Doing so is faster as many of the routes within the tree have
-overlapping components. We can compute them all at the same time instead of one by one. Doing this means the
-Interventional TreeSHAP algorithm obtains $O(LD)$ time complexity.
+For a single tree and sample $r$ if we iterate over all the subsets of $S \subset F \setminus \{i\}$, it would give $O(
+M2^M)$ time complexity. The interventional tree SHAP algorithm runs
+with [$O(TLD)$](https://hughchen.github.io/its_blog/index.html) time complexity.
 
-Applied to a random forest with $T$ trees and using $R$ samples to compute the estimates, we obtain $O(TRLD)$ time
-complexity. The fact that we can sum over each tree in the random forest results from the linearity property of Shapley
-values.
+The main difference between the interventional and the path-dependent tree SHAP methods is that the latter approximates
+the interventional conditional expectation, whereas the former method calculates it directly.
 
-| Pros                                                                                          | Cons                                              |
-|-----------------------------------------------------------------------------------------------|---------------------------------------------------|
-| [Satisfies several desirable properties](lfa-properties)                                      | Less general as a white-box method                |
-| Very fast for a valuable category of models                                                   | Requires access to the dataset                    |
-| Shapley values can be easily interpreted and visualized                                       | Typically, slower than the path-dependent method  | 
-| Computes the interventional conditional expectation exactly unlike the path-dependent method  |                                                   |
+To compute the interventional tree SHAP explainer for a random forest using Alibi, we use:
+
+```ipython3
+from alibi.explainers import TreeShap
+
+tree_explainer_interventional = TreeShap(rfc, model_output='raw', task='classification')
+tree_explainer_interventional.fit(scaler.transform(X_train[0:100]))
+result = tree_explainer_interventional.explain(scaler.transform(x))
+
+plot_importance(result.shap_values[1], features, '"Good"')
+```
+
+From this we obtain:
+
+```{image} images/int-tree-shap-lfa.png
+:align: center
+:alt: Interventional tree SHAP applied to Wine quality dataset for class "Good" 
+```
+
+This result is similar to the one for [integrated gradients](comparison-to-ale), [kernel SHAP](kern-shap-plot)
+, [path dependent tree SHAP](pd-tree-shap-plot) although there are differences due to using different methods and models
+in each case.
+
+For a great interactive explanation of the interventional tree SHAP
+method [see](https://hughchen.github.io/its_blog/index.html).
+
+| Pros                                                                                          | Cons                                            |
+|-----------------------------------------------------------------------------------------------|-------------------------------------------------|
+| [Satisfies several desirable properties](lfa-properties)                                      | Only applies to tree-based models               |
+| Very fast for a valuable category of models                                                   | Requires access to the dataset                  |
+| Shapley values can be easily interpreted and visualized                                       | Typically slower than the path-dependent method | 
+| Computes the interventional conditional expectation exactly unlike the path-dependent method  |                                                 |
 
 ## 4. Counterfactuals
 

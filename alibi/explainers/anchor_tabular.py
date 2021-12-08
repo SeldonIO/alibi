@@ -855,7 +855,15 @@ class AnchorTabular(Explainer, FitMixin):
         Returns
         -------
         explanation
-            `Explanation` object containing the result explaining the instance with additional metadata as attributes.
+            `Explanation` object containing the result explaining the instance with additional metadata as attributes. \
+            Contains the following data-related attributes
+
+             - `anchor` : ``List[str]`` - list of human readable conditions of the proposed anchor.
+
+             - `precision` : ``float`` - the fraction of times the sampled instances where the anchor holds yields \
+             the same prediction as the original instance. The precision will always be  threshold for a valid anchor.
+
+             - `coverage` : ``float`` - the fraction of sampled instances the anchor applies to.
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
@@ -913,8 +921,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         Return
         ------
-         `Explanation` object containing human readable explanation, metadata, and precision/coverage \
-         info as attributes.
+        `Explanation` object containing the anchor explaining the instance with additional metadata as attributes. \
+
         """
 
         self.add_names_to_exp(result)

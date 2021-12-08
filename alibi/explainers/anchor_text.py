@@ -1429,8 +1429,15 @@ class AnchorText(Explainer):
 
         Returns
         -------
-        explanation
-            `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
+        `Explanation` object containing the anchor explaining the instance with additional metadata as attributes. \
+        Contains the following data-related attributes
+
+         - `anchor` : ``List[str]`` - a list of words in the proposed anchor.
+
+         - `precision` : ``float`` - the fraction of times the sampled instances where the anchor holds yields \
+         the same prediction as the original instance. The precision will always be  threshold for a valid anchor.
+
+         - `coverage` : ``float`` - the fraction of sampled instances the anchor applies to.
         """
         # get params for storage in meta
         params = locals()

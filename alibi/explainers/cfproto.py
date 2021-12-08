@@ -1316,6 +1316,33 @@ class CounterfactualProto(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the counterfactual with additional metadata as attributes.
+            Contains the following data-related attributes
+
+             - `cf` : ``Dict[str, Union[int, np.ndarray]]`` - a dictionary with the overall best counterfactual \
+             found. explanation[‘cf’] has the following key: value pairs:
+
+                 - ``'X'`` : ``np.ndarray`` - the counterfactual instance.
+
+                 - ``'class'`` : ``int`` - predicted class for the counterfactual.
+
+                 - ``'proba'`` : ``np.ndarray`` - predicted class probabilities for the counterfactual.
+
+                 - ``'grads_graph'`` : ``np.ndarray`` - gradient values computed from the TF graph with respect to the input \
+                 features at the counterfactual.
+
+                 - ``'grads_num'`` : ``np.ndarray`` - numerical gradient values with respect to the input features at the \
+                 counterfactual.
+
+             - `orig_class` : ``int`` -  predicted class for original instance.
+
+             - `orig_proba` : ``np.ndarray`` - predicted class probabilities for original instance.
+
+             - `all` : ``Dict[int, List[np.ndarray]]`` - a dictionary with the iterations as keys and for each \
+             iteration a list with counterfactuals found in that iteration as values. So for instance, during the \
+             first iteration, explanation[‘all’][0], initially we typically find fairly noisy counterfactuals that \
+             improve over the course of the iteration. The counterfactuals for the subsequent iterations then need \
+             to be better (sparser) than the previous best counterfactual. So over the next few iterations, we \
+             probably find less but better solutions.
         """
         # get params for storage in meta
         params = locals()

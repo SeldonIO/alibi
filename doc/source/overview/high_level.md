@@ -131,7 +131,7 @@ practitioner an understanding of which explainers are suitable in which situatio
 | [Pertinent Positives](#pertinent-positives)                                                 | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
 | [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
 | [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
-| [Kernel SHAP](#kernelshap)                                                                  | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
+| [Kernel SHAP](#kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (path-dependent)](#path-dependent-treeshap)                                      | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Counterfactuals Instances](#counterfactuals-instances)                                     | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
@@ -179,6 +179,8 @@ plot_ale(exp, features=['alcohol'], line_kw={'label': 'Probability of "good" cla
 ```
 
 Hence, we see the model predicts higher alcohol content wines as being better:
+
+(ale-plot)=
 
 ```{image} images/ale-wine-quality.png
 :align: center
@@ -397,7 +399,7 @@ they should satisfy the following properties.
 
 Not all LFA methods satisfy these
 methods ([LIME](https://papers.nips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf) for example) but the
-ones provided by Alibi ([Integrated Gradients](#integrated-gradients), [Kernel SHAP](#kernelshap)
+ones provided by Alibi ([Integrated Gradients](#integrated-gradients), [Kernel SHAP](#kernel-shap)
 , [Path dependent](#path-dependent-treeshap) and [interventional](#interventional-tree-shap) tree SHAP) do.
 
 ### Integrated Gradients
@@ -406,10 +408,10 @@ ones provided by Alibi ([Integrated Gradients](#integrated-gradients), [Kernel S
 |----------------------|-------|-----------------------|----------------------------|--------------------------------------|------------------------------------------------------------|
 | Integrated Gradients | Local | White-box(TensorFlow) | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? |
 
-The integrated gradients (IG) method computes the attribution of each feature by integrating the model partial
-derivatives along a path from a baseline point to the instance. This accumulates the changes in the prediction that
-occur due to the changing feature values. These accumulated values represent how each feature contributes to the
-prediction for the instance of interest.
+The [integrated gradients](https://arxiv.org/abs/1703.01365) (IG) method computes the attribution of each feature by
+integrating the model partial derivatives along a path from a baseline point to the instance. This accumulates the
+changes in the prediction that occur due to the changing feature values. These accumulated values represent how each
+feature contributes to the prediction for the instance of interest.
 
 We need to choose a baseline which should capture a blank state in which the model makes essentially no prediction or
 assigns the probability of each class equally. This is dependent on domain knowledge of the dataset. In the case of
@@ -451,10 +453,15 @@ This gives:
 :alt: IG applied to Wine quality dataset for class "Good" 
 ```
 
-_Note_: The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict
-the [ALE](#accumulated-local-effects) result. The instance $x$ we choose has an alcohol content of 9.4%, which is
+:::{admonition} **Note 6: Comparison to ALE**
+
+(comparison-to-ale)=
+
+The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict
+the [ALE result](ale-plot). However, The instance $x$ we choose has an alcohol content of 9.4%, which is
 reasonably low for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and
 bad wines 9.7%)
+:::
 
 | Pros                                                           | Cons                                                                                                                 |
 |----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -462,79 +469,63 @@ bad wines 9.7%)
 | Doesn't require access to the training data                    | Requires [choosing the baseline](choice-of-baseline) which can have a significant effect on the outcome (See Note 5) |
 | [Satisfies several desirable properties](lfa-properties)       |                                                                                                                      | 
 
+### Kernel SHAP
 
-### KernelSHAP
+| Explainer    | Scope | Model types | Task types                 | Data types            | Use                                                        |
+|--------------|-------|-------------|----------------------------|-----------------------|------------------------------------------------------------|
+| Kernel SHAP  | Local |  Black-box  | Classification, Regression | Tabular, Categorical  | What does each feature contribute to the model prediction? |
 
-| Model-types        | Task-types      | Data-types   |
-|--------------------|-----------------|--------------|
-| Black-box          | Classification  | Tabular      |
-|                    | Regression      | Categorical  |
+[Kernel SHAP](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) is a method of
+computing the Shapley values for a model around an
+instance. [Shapley values](https://christophm.github.io/interpretable-ml-book/shapley.html) are a game-theoretic method
+of assigning payout to players depending on their contribution to an overall goal. In our case, the features are the
+players, and the payouts are the attributions.
 
-Kernel SHAP is a method of computing the Shapley values for a model around an instance $x_i$. Shapley values are a
-game-theoretic method of assigning payout to players depending on their contribution to an overall goal. In this case,
-the players are the features, and their payout is the model prediction. To compute these values, we have to consider the
-marginal contribution of each feature over all the possible coalitions of feature players.
+Given any subset of features, we can ask how a feature's presence in that set contributes to the model output. We do
+this by computing the model output for the set with and without the specific feature. We obtain the Shapley value for
+that feature by considering these contributions with and without it present for all possible subsets of features.
 
-Suppose we have a regression model $f$ that makes predictions based on four features $X = \{X_1, X_2, X_3, X_4\}$ as
-input. A coalition is a group of features, say, the first and third features. For this coalition, its value is given by:
+Two problems arise. Most models are not trained to take a variable number of input features. And secondly,
+the [power set](https://en.wikipedia.org/wiki/Power_set) is prohibitively large when there are many features.
 
-$$ val({1,3}) = \int_{\mathbb{R}}\int_{\mathbb{R}} f(x_1, X_2, x_3, X_4)d\mathbb{P}_{X_{2}X_{4}} - \mathbb{E}_{X}(f(X))
-$$
+To solve the former, we sample from the **interventional conditional expectation**. This replaces missing features with
+values sampled from the training distribution. And to solve the latter, the kernel SHAP method samples on the space of
+subsets to obtain an estimate.
 
-Given a coalition, $S$, that doesn't include $x_i$, then the marginal contribution of $x_i$ is given by $val(S \cup x_i)
-
-- val(S)$. Intuitively this is the difference that the feature $x_i$ would contribute if it was to join that coalition.
-  We are interested in the marginal contribution of $x_i$ over all possible coalitions with and without $x_i$. A Shapley
-  value for the $x_i^{th}$ feature is given by the weighted sum
-
-$$ \psi_j = \sum_{S\subset \{1,...,p\} \setminus \{j\}} \frac{|S|!(p - |S| - 1)!}{p!}(val(S \cup x_i) - val(S))
-$$
-
-The weights convey how much you can learn from a specific coalition. Large and Small coalitions mean more learned
-because we've isolated more of the effect. At the same time, medium size coalitions don't supply us with as much
-information because there are many possible such coalitions.
-
-The main issue with the above is that there will be many possible coalitions, $2^M$ to be precise. Hence instead of
-computing all of these, we use a sampling process on the space of coalitions and then estimate the Shapley values by
-training a linear model. Because a coalition is a set of players/features that are contributing to a prediction, we
-represent this as points in the space of binary codes $z' = \{z_0,...,z_m\}$ where $z_j = 1$ means that the $j^th$
-feature is present in the coalition while $z_j = 0$ means it is not. To obtain the dataset on which we train this model,
-we first sample from this space of coalitions then compute the values of $f$ for each sample. We obtain weights for each
-sample using the Shapley Kernel:
-
-$$ \pi_{x}(z') = \frac{M - 1}{\frac{M}{|z'|}|z'|(M - |z'|)} $$
-
-Once we have the data points, the values of $f$ for each data point, and the sample weights, we have everything we need
-to train a linear model. The paper shows that the coefficients of this linear model are the Shapley values.
-
-There is some nuance to how we compute the value of a model given a specific coalition, as most models aren't built to
-accept input with arbitrary missing values. If $D$ is the underlying distribution the samples are drawn from, then
-ideally, we would use the conditional expectation:
-
-$$ f(S) = \mathbb{E}_{D}[f(x)|x_S]
-$$
-
-Computing this value is very difficult. Instead, we can approximate the above using the interventional conditional
-expectation, which is defined as:
-
-$$ f(S) = \mathbb{E}_{D}[f(x)|do(x_S)]
-$$
-
-The $do$ operator here fixes the values of the features in $S$ and samples the remaining $\bar{S}$ feature values from
-the data. A Downside of interfering in the distribution like this can mean introducing unrealistic samples if there are
+A downside of interfering in the distribution like this is that doing so introduces unrealistic samples if there are
 dependencies between the features.
 
-**Pros**
+Alibi provides a wrapper to the [Shap library](https://github.com/slundberg/shap). We can use this explainer to compute
+the Shapley values for
+a [sklearn](https://scikit-learn.org/stable/) [random forest](https://en.wikipedia.org/wiki/Random_forest) model using
+the following.
 
-- The Shapley values are fairly distributed among the feature values
-- Shapley values can be easily interpreted and visualized
-- Very general as is a black-box method
+```ipython3
+from alibi.explainers import KernelShap
 
-**Cons**
+predict_fn = lambda x: rfc.predict_proba(scaler.transform(x))
+explainer = KernelShap(predict_fn, task='classification')
+explainer.fit(X_train[0:100])
+result = explainer.explain(x)
 
-- KernalSHAP is slow owing to the number of samples required to estimate the Shapley values accurately
-- The interventional conditional probability introduces unrealistic data points
-- Requires access to the training dataset
+plot_importance(result.shap_values[1], features, 1)
+```
+
+This gives the following output:
+
+```{image} images/kern-shap-lfa.png
+:align: center
+:alt: Kernel SHAP applied to Wine quality dataset for class "Good" 
+```
+
+This result is similar to the one for [integrated gradients](comparison-to-ale) although there are differences due to
+using different methods and models in each case.
+
+| Pros                                                     | Cons                                                                                                  |
+|----------------------------------------------------------|-------------------------------------------------------------------------------------------------------|
+| [Satisfies several desirable properties](lfa-properties) | Kernal SHAP is slow owing to the number of samples required to estimate the Shapley values accurately |
+| Shapley values can be easily interpreted and visualized  | The interventional conditional probability introduces unrealistic data points                         |
+| Very general as is a black-box method                    | Requires access to the training dataset                                                               | 
 
 ### TreeSHAP
 

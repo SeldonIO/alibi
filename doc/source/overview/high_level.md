@@ -133,7 +133,7 @@ practitioner an understanding of which explainers are suitable in which situatio
 | [Kernel SHAP](#kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (path-dependent)](#path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Counterfactuals Instances](#counterfactuals-instances)                                     | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
+| [Counterfactuals Instances](#counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
 | [Contrastive Explanation Method](#contrastive-explanation-method)                           | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
 | [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
 | [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
@@ -318,7 +318,7 @@ primarily in the fact that they aren't constructed to maximize coverage. The met
 different. The rough idea is to define an **absence of a feature** and then perturb the instance to take away as much
 information as possible while still retaining the original classification. Note that these are a subset of
 the [CEM](../methods/CEM.ipynb) method which is also used to
-construct [pertinent negatives/counterfactuals](#4-counterfactuals).
+construct [pertinent negatives/counterfactuals](#4-counterfactual-instances).
 
 ```{image} images/pp_mnist.png
 :align: center
@@ -622,7 +622,7 @@ From this we obtain:
 ```
 
 This result is similar to the one for [integrated gradients](comparison-to-ale), [kernel SHAP](kern-shap-plot)
-, [path dependent tree SHAP](pd-tree-shap-plot) although there are differences due to using different methods and models
+, [path-dependent tree SHAP](pd-tree-shap-plot) although there are differences due to using different methods and models
 in each case.
 
 For a great interactive explanation of the interventional tree SHAP
@@ -635,59 +635,95 @@ method [see](https://hughchen.github.io/its_blog/index.html).
 | Shapley values can be easily interpreted and visualized                                       | Typically slower than the path-dependent method | 
 | Computes the interventional conditional expectation exactly unlike the path-dependent method  |                                                 |
 
-## 4. Counterfactuals
+## 4. Counterfactual instances
 
 Given an instance of the dataset and a prediction given by a model, a question naturally arises how would the instance
-minimally have to change for a different prediction to be provided. Counterfactuals are local explanations as they
+minimally have to change for a different prediction to be provided. Such a generated instance is known as a
+[counterfactual](https://en.wikipedia.org/wiki/Counterfactual_thinking). Counterfactuals are local explanations as they
 relate to a single instance and model prediction.
 
-Given a classification model trained on the MNIST dataset and a sample from the dataset with a given prediction, a
-counterfactual would be a generated image that closely resembles the original but is changed enough that the model
-correctly classifies it as a different number.
+Given a classification model trained on the MNIST dataset and a sample from the dataset, a counterfactual would be a
+generated image that closely resembles the original but is changed enough that the model classifies it as a different
+number from the original instance.
 
-__TODO__:
+```{figure} images/rlcf-digits.png
+:align: center
+:alt: Samples from MNIST and counterfactuals for each.
 
-- Give example image to illustrate
+*From Samoilescu RF et al., Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning, 2021* 
+```
 
-Similarly, given tabular data that a model uses to make financial decisions about a customer, a counterfactual would
-explain how to change their behavior to obtain a different conclusion. Alternatively, it may tell the Machine Learning
-Engineer that the model is drawing incorrect assumptions if the recommended changes involve features that are irrelevant
-to the given decision.
+Counterfactuals can be used to
+both [debug and augment](https://research-information.bris.ac.uk/en/publications/counterfactual-explanations-of-machine-learning-predictions-oppor)
+model functionality. Given tabular data that a model uses to make financial decisions about a customer, a counterfactual
+would explain how to change their behavior to obtain a different conclusion. Alternatively, it may tell the Machine
+Learning Engineer that the model is drawing incorrect assumptions if the recommended changes involve features that are
+irrelevant to the given decision. However, practitioners must still be wary of [bias](#biases).
 
-A counterfactual, $x_{cf}$, needs to satisfy
+A counterfactual, $x_{\text{cf}}$, needs to satisfy
 
-- The model prediction on $x_{cf}$ needs to be close to the predefined output.
-- The counterfactual $x_{cf}$ should be interpretable.
+- The model prediction on $x_{\text{cf}}$ needs to be close to the pre-defined output (e.g. desired class label).
+- The counterfactual $x_{\text{cf}}$ should be interpretable.
 
-The first requirement is easy enough to satisfy. The second, however, requires some idea of what interpretable means.
-Intuitively it would require that the counterfactual construction makes sense as an instance of the dataset. Each of the
-methods available in Alibi deals with interpretability slightly differently. All of them require that the perturbation
-$\delta$ that changes the original instance $x_0$ into $x_{cf} = x_0 + \delta$ should be sparse. Meaning, we prefer
-solutions that change a small subset of the features to construct $x_{cf}$. Requiring this limits the complexity of the
-solution making it more understandable.
+The first requirement is clear. The second, however, requires some idea of what interpretable means. Alibi exposes four
+methods for finding counterfactuals: [**counterfactual instances** (CFI)](#counterfactual-instances), [**contrastive
+explanations** (CEM)](#contrastive-explanation-method), [**counterfactuals guided by
+prototypes** (CFP)](#counterfactuals-guided-by-prototypes), and [**counterfactuals with reinforcement
+learning** (CFRL)](#counterfactuals-with-reinforcement-learning). Each of these methods deals with interpretability
+slightly differently. However, all of them require sparsity of the solution. This means we prefer to only change a small
+subset of the features which limits the complexity of the solution making it more understandable.
+
+Note that sparse changes to the instance of interest doesn't guarantee that the generated counterfactual is believably a
+member of the data distribution. **[CEM](#contrastive-explanation-method)**
+, **[CFP](#counterfactuals-guided-by-prototypes)**, and **[CFRL](#counterfactuals-with-reinforcement-learning)** also
+require that the counterfactual be in distribution in order to be interpretable.
+
+```{figure} images/interp-and-non-interp-cfs.png
+:align: center
+:alt: Examples of counterfactuals constructed using CFI and CFP methods
+
+*Original MNIST 7 instance, Counterfactual instances constructed using 1) **counterfactual instances** method, 
+2) **counterfactual instances with prototypes** method* 
+```
+
+The first three methods **[CFI](#counterfactual-instances)**, **[CEM](#contrastive-explanation-method)**
+, **[CFP](#counterfactuals-guided-by-prototypes)** all construct counterfactuals using a very similar method. They build
+them by defining a loss that prefer interpretable instances close to the target class. They then use gradient descent to
+move within the feature space until they obtain a counterfactual of sufficient quality. The main difference is the
+**CEM** and **CFP** methods also train an autoencoder to ensure that the constructed counterfactuals are within the
+data-distribution.
+
+```{figure} images/interp-cfs.png
+:align: center
+:alt: Construction of different types of interpretable counterfactuals
+
+*Obtaining counterfactuals using gradient descent with and without autoencoder trained on data distribution* 
+```
+
+These three methods only realistically work for grayscale images and anything multi-channel will not be interpretable.
+In order to get quality results for multi-channel images practitioners should
+use [CFRL](#counterfactuals-with-reinforcement-learning).
+
+[CFRL](#counterfactuals-with-reinforcement-learning) uses a similar loss to CEM and CFP but applies reinforcement
+learning to train a model which will generate counterfactuals on demand.
 
 :::{admonition} **Note 3: fit and explain method runtime differences**
-Alibi explainers expose two methods, `fit` and `explain`. Typically, in machine learning, the method that takes the most
+Alibi explainers expose two methods, `fit` and `explain`. Typically in machine learning the method that takes the most
 time is the fit method, as that's where the model optimization conventionally takes place. In explainability, the
 explain step often requires the bulk of computation. However, this isn't always the case.
 
-Among the explainers in this section, there are two approaches taken. The first fits a counterfactual when the user
+Among the explainers in this section, there are two approaches taken. The first finds a counterfactual when the user
 requests the insight. This happens during the `.explain()` method call on the explainer class. This is done by running
-gradient descent on model inputs to find a counterfactual. The methods that take this approach are counterfactual
-instances, contrastive explanation, and counterfactuals guided by prototypes methods. Thus, the `fit` method in these
+gradient descent on model inputs to find a counterfactual. The methods that take this approach are **counterfactual
+instances**, **contrastive explanation**, and **counterfactuals guided by prototypes**. Thus, the `fit` method in these
 cases are quick, but the `explain` method is slow.
 
-The other approach, however, uses reinforcement learning to train a model that produces explanations on demand. The
-training takes place during the `fit` method call, so this has a long runtime while the `explain` method is quick. If
-you want performant explanations in production environments, then the latter approach is preferable.
+The other approach, **counterfactuals with reinforcement learning**, trains a model that produces explanations on
+demand. The training takes place during the `fit` method call, so this has a long runtime while the `explain` method is
+quick. If you want performant explanations in production environments, then the latter approach is preferable.
 :::
 
-__TODO__:
-
-- schematic image explaining search for counterfactual as determined by loss
-- schematic image explaining difference between different approaches.
-
-### Counterfactuals Instances
+### Counterfactual Instances
 
 | Model-types | Task-types     | Data-types  |
 | ----------- | -------------- | ----------- |
@@ -741,7 +777,7 @@ for a feature to be present so that the perturbation only works to add and not r
 dataset, an obvious choice of "present" feature is if the pixel is equal to 1 and absent if it is equal to 0. This is
 simple in the case of the MNIST data set but more difficult in complex domains such as color images.
 
-Thirdly, by training an optional autoencoder to penalize counter factual instances that deviate from the data
+Thirdly, by training an optional autoencoder to penalize counterfactual instances that deviate from the data
 distribution. This works by minimizing the reconstruction loss of the autoencoder applied to instances. If a generated
 instance is unlike anything in the dataset, the autoencoder will struggle to recreate it well, and its loss term will be
 high. We require two hyperparameters $\beta$ and $\gamma$ to define the following Loss,

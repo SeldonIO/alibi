@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
+  <img src="https://raw.githubusercontent.com/SeldonIO/alibi/master/doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
 </p>
 
 [![Build Status](https://github.com/SeldonIO/alibi/workflows/CI/badge.svg?branch=master)](https://github.com/SeldonIO/alibi/actions?query=workflow%3A%22CI%22)

@@ -128,7 +128,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         Parameters
         ----------
-        predictor.
+        predictor
             A callable that takes a tensor of `N` data points as inputs and returns `N` outputs. For classification
             task, the second dimension of the output should match the number of classes. Thus, the output can be either
             a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
@@ -158,12 +158,13 @@ class CounterfactualRLTabular(CounterfactualRL):
             Numerical feature ranges. Note that exist numerical features such as ``'Age'``, which are  allowed to
             increase only. We denote those by ``'inc_feat'``. Similarly, there exist features  allowed to decrease only.
             We denote them by ``'dec_feat'``. Finally, there are some free feature, which we denote by ``'free_feat'``.
-            With the previous notation, we can define `range = {'inc_feat': [0, 1], 'dec_feat': [-1, 0],
-            'free_feat': [-1, 1]}`. ``'free_feat'`` can be omitted, as any unspecified feature is considered free.
+            With the previous notation, we can define ``range = {'inc_feat': [0, 1], 'dec_feat': [-1, 0],
+            'free_feat': [-1, 1]}``. ``'free_feat'`` can be omitted, as any unspecified feature is considered free.
             Having the ranges of a feature `{'feat': [a_low, a_high}`, when sampling is performed the numerical value
             will be clipped between `[a_low * (max_val - min_val), a_high * [max_val - min_val]]`, where `a_low` and
             `a_high` are the minimum and maximum values the feature ``'feat'``. This implies that `a_low` and `a_high`
-            are not restricted to {-1, 0} and {0, 1}, but can be any float number in-between `[-1, 0]` and `[0, 1]`.
+            are not restricted to ``{-1, 0}`` and ``{0, 1}``, but can be any float number in-between `[-1, 0]` and
+            `[0, 1]`.
         weight_num
             Numerical loss weight.
         weight_cat
@@ -313,20 +314,12 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         Returns
         -------
-        `Explanation` object containing the counterfactual with additional metadata as attributes.
-        Contains the following data-related attributes in the `data` field
+        explanation
+            `Explanation` object containing the counterfactual with additional metadata as attributes. \
+            See usage `examples`_ for details.
 
-         - ``'orig'`` : ``Dict[str, np.ndarray] - dictionary containing:
-             - ``'X'`` : ``np.ndarray`` - original input instances.
-             - ``'class'`` : ``np.ndarray``  - classification labels of the original input instances.
-
-         - ``'cf'`` : ``Dict[str, np.ndarray]`` - dictionary containing:
-             - ``'X'`` : ``np.ndarray`` - counterfactual instances.
-             - ``'class'`` : ``np.ndarray`` - classification labels of the counterfactual instances.
-
-         - ``'target'`` : ``np.ndarray`` - counterfactual targets.
-
-         - ``'condition'`` : ``Optional[np.ndarray]`` - conditional array.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
         """
         # General validation.
         self._validate_input(X)

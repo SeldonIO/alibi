@@ -64,7 +64,7 @@ class AnchorExplanation:
         partial_index
             Get the result precision until a certain index.
             For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
-            return 0.5.
+            return ``0.5``.
 
         Returns
         -------
@@ -86,7 +86,7 @@ class AnchorExplanation:
         partial_index
             Get the result coverage until a certain index.
             For example, if the result has precisions ``[0.1, 0.5, 0.95]`` and ``partial_index=1``, this will
-            return 0.5.
+            return ``0.5``.
 
         Returns
         -------

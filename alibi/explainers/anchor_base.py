@@ -98,7 +98,7 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            `beta` / nb of samples for each result.
+            `beta / nb of samples` for each result.
         n_iter
             Number of iterations during lower bound update.
 
@@ -130,7 +130,7 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            `beta` / nb of samples for each result.
+            `beta / nb of samples` for each result.
         n_iter
             Number of iterations during lower bound update.
 
@@ -162,7 +162,7 @@ class AnchorBaseBeam:
         t
             Iteration number.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - `delta`.
+            Confidence budget, candidate anchors have close to optimal precisions with prob. ``1 - delta``.
 
         Returns
         -------
@@ -214,7 +214,7 @@ class AnchorBaseBeam:
         n_samples
             The number of samples drawn for each candidate result.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - `delta`.
+            Confidence budget, candidate anchors have close to optimal precisions with prob. ``1 - delta``.
         top_n
             Number of arms to be selected.
         t
@@ -271,7 +271,7 @@ class AnchorBaseBeam:
         verbose
             Whether to print intermediate output.
         verbose_every
-            Whether to print intermediate output every verbose_every steps.
+            Whether to print intermediate output every `verbose_every` steps.
 
         Returns
         -------
@@ -509,8 +509,8 @@ class AnchorBaseBeam:
         """
         Given the features contained in a result, it retrieves metadata such as the precision and
         coverage of the result and partial anchors and examples where the result/partial anchors
-        apply and yield the same prediction as on the instance to be explained (covered_true)
-        or a different prediction (covered_false).
+        apply and yield the same prediction as on the instance to be explained (`covered_true`)
+        or a different prediction (`covered_false`).
 
         Parameters
         ----------
@@ -614,7 +614,7 @@ class AnchorBaseBeam:
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
         feature sets (anchors) that guarantee the prediction made by a classifier model. The search is greedy if
-        `beam_size=1`. Otherwise, at each of the `max_anchor_size` steps, `beam_size` solutions are explored.
+        ``beam_size=1``. Otherwise, at each of the `max_anchor_size` steps, `beam_size` solutions are explored.
         By construction, solutions found have high precision (defined as the expected of number of times the classifier
         makes the same prediction when queried with the feature subset combined with arbitrary samples drawn from a
         noise distribution). The algorithm maximises the coverage of the solution found - the frequency of occurrence
@@ -627,7 +627,7 @@ class AnchorBaseBeam:
         epsilon
             Precision bound tolerance for convergence.
         desired_confidence
-            Desired level of precision (`tau` in paper).
+            Desired level of precision (`tau` in `paper <https://homes.cs.washington.edu/~marcotcr/aaai18.pdf>`_).
         beam_size
             Beam width.
         epsilon_stop

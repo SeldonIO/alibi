@@ -79,7 +79,7 @@ class ReplayBuffer:
     Y_t: np.ndarray  #: Counterfactual targets buffer.
     Z: np.ndarray  #: Input embedding buffer.
     Z_cf_tilde: np.ndarray  #: Noised counterfactual embedding buffer.
-    R_tilde: np.ndarray  #: Noise counterfactual rewards buffer."""
+    R_tilde: np.ndarray  #: Noise counterfactual rewards buffer.
 
     def __init__(self, size: int = 1000) -> None:
         """
@@ -89,7 +89,7 @@ class ReplayBuffer:
         ----------
         size
             Dimension of the buffer in batch size. This that the total memory allocated is proportional with the
-            `size * batch_size`, where `batch_size` is inferred from the first tensors to be stored.
+            `size x batch_size`, where `batch_size` is inferred from the first tensors to be stored.
         """
 
         self.idx = 0  # cursor for the buffer
@@ -234,74 +234,74 @@ DEFAULT_BASE_PARAMS = {
 Default Counterfactual with Reinforcement Learning parameters.
 
     - ``'act_noise'`` : ``float`` - standard deviation for the normal noise added to the actor for exploration.
-    
+
     - ``'act_low'`` : ``float`` - minimum action value. Each action component takes values between \
      `[act_low, act_high]`.
-    
+
     - ``'act_high'`` : ``float`` - maximum action value. Each action component takes values between \
     `[act_low, act_high]`.
-    
+
     - ``'replay_buffer_size'`` : ``int`` - dimension of the replay buffer in `batch_size` units. The total memory \
-    allocated is proportional with the `size` * `batch_size`.
-    
+    allocated is proportional with the `size x batch_size`.
+
     - ``'batch_size'`` : ``int`` -  training batch size.
-    
-    - ``'num_workers'`` : ``int`` - number of workers used by the data loader if `pytorch` backend is selected.
-    
+
+    - ``'num_workers'`` : ``int`` - number of workers used by the data loader if ``'pytorch'`` backend is selected.
+
     - ``'shuffle'`` : ``bool`` - whether to shuffle the datasets every epoch.
-    
+
     - ``'exploration_steps'`` : ``int`` - number of exploration steps. For the first `exploration_steps`, the \
     counterfactual embedding coordinates are sampled uniformly at random from the interval `[act_low, act_high]`.
-    
+
     - ``'update_every'`` : ``int`` - number of steps that should elapse between gradient updates. Regardless of the \
     waiting steps, the ratio of waiting steps to gradient steps is locked to 1.
-    
+
     - ``'update_after'`` : ``int`` - number of steps to wait before start updating the actor and critic. This ensures \
     that the replay buffers is full enough for useful updates.
-    
-    - ``'backend'`` : ``str`` -  backend to be used: `tensorflow` | `pytorch`. Default `tensorflow`.
-    
+
+    - ``'backend'`` : ``str`` -  backend to be used: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
+
     - ``'train_steps'`` : ``int`` -  number of train steps.
-    
-    - ``'encoder_preprocessor'`` : ``Callable`` - encoder/autoencoder data preprocessors. Transforms the input data \
+
+    - ``'encoder_preprocessor'`` : ``Callable`` - encoder/auto-encoder data preprocessors. Transforms the input data \
     into the format expected by the auto-encoder. By default, the identity function.
-    
+
     - ``'decoder_inv_preprocessor'`` : ``Callable`` - decoder/auto-encoder data inverse preprocessor. Transforms data \
     from the auto-encoder output format to the original input format. Before calling the prediction function, the \
     data is inverse preprocessed to match the original input format. By default, the identity function.
-    
+
     - ``'reward_func'`` : ``Callable`` - element-wise reward function. By default, considers classification task and \
     checks if the counterfactual prediction label matches the target label. Note that this is element-wise, so a \
     tensor is expected to be returned.
-    
+
     - ``'postprocessing_funcs'`` : ``List[Postprocessing]`` - list of post-processing functions. The function are \
     applied in the order, from low to high index. Non-differentiable post-processing can be applied. The function \
     expects as arguments `X_cf` - the counterfactual instance, `X` - the original input instance and `C` - the \
     conditional vector, and returns the post-processed counterfactual instance `X_cf_pp` which is passed as `X_cf` \
     for the following functions. By default, no post-processing is applied (empty list).
-    
+
     - ``'conditional_func'`` : ``Callable`` - generates a conditional vector given a pre-processed input instance. By \
     default, the function returns ``None`` which is equivalent to no conditioning.
-    
+
     - ``'callbacks'`` : ``List[Callback]`` - list of callback functions applied at the end of each training step.
-    
+
     - ``'actor'`` : ``Optional[Union[tensorflow.keras.Model, torch.nn.Module]]`` - actor network.
-    
+
     - ``'critic;`` : ``Optional[Union[tensorflow.keras.Model, torch.nn.Module]]`` - critic network.
-    
+
     - ``'optimizer_actor'`` : ``Optional[Union[tensorflow.keras.optimizers.Optimizer, torch.optim.Optimizer]]`` - \
     actor optimizer.
-    
+
     - ``'optimizer_critic'`` : ``Optional[Union[tensorflow.keras.optimizer.Optimizer, torch.optim.Optimizer]]`` - \
     critic optimizer.
-    
+
     - ``'lr_actor'`` : ``float`` - actor learning rate.
-    
+
     - ``'lr_critic'`` : ``float`` - critic learning rate.
-    
+
     - ``'actor_hidden_dim'`` : ``int`` - actor hidden layer dimension.
-    
-    - ``'critic_hidden_dim'`` : ``int` - critic hidden layer dimension.
+
+    - ``'critic_hidden_dim'`` : ``int`` - critic hidden layer dimension.
 """
 
 _PARAM_TYPES = {
@@ -320,8 +320,8 @@ _PARAM_TYPES = {
 Parameter types for serialization
 
     - ``'primitives'`` : List[str] - list of parameters having primitive data types.
-    
-    - ``'complex'`` : List[str] - list of parameters having complex data types (e.g., functions, models, 
+
+    - ``'complex'`` : List[str] - list of parameters having complex data types (e.g., functions, models,\
     optimizers etc.).
 """
 
@@ -813,20 +813,12 @@ class CounterfactualRL(Explainer, FitMixin):
 
         Returns
         -------
-        `Explanation` object containing the counterfactual with additional metadata as attributes.
-        Contains the following data-related attributes in the `data` field
+        explanation
+            `Explanation` object containing the counterfactual with additional metadata as attributes. \
+            See usage `examples`_ for details.
 
-         - ``'orig'`` : ``Dict[str, np.ndarray] - dictionary containing:
-             - ``'X'`` : ``np.ndarray`` - original input instances.
-             - ``'class'`` : ``np.ndarray``  - classification labels of the original input instances.
-
-         - ``'cf'`` : ``Dict[str, np.ndarray]`` - dictionary containing:
-             - ``'X'`` : ``np.ndarray`` - counterfactual instances.
-             - ``'class'`` : ``np.ndarray`` - classification labels of the counterfactual instances.
-
-         - ``'target'`` : ``np.ndarray`` - counterfactual targets.
-
-         - ``'condition'`` : ``Optional[np.ndarray]`` - conditional array.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
         """
         # General validation.
         self._validate_target(Y_t)
@@ -1021,7 +1013,7 @@ class Postprocessing(ABC):
         ----------
         X_cf
            Counterfactual instance. The datatype depends on the output of the decoder. For example, for an image
-           dataset, the output is `np.ndarray`. For a tabular dataset, the output is `List[np.ndarray]` where each
+           dataset, the output is ``np.ndarray``. For a tabular dataset, the output is ``List[np.ndarray]`` where each
            element of the list corresponds to a feature. This corresponds to the decoder's output from the
            heterogeneous autoencoder (see :py:class:`alibi.models.tensorflow.autoencoder.HeAE` and
            :py:class:`alibi.models.pytorch.autoencoder.HeAE`).
@@ -1034,7 +1026,7 @@ class Postprocessing(ABC):
         Returns
         -------
         X_cf
-            Post-processed X_cf.
+            Post-processed `X_cf`.
         """
         pass
 
@@ -1061,7 +1053,7 @@ class Callback(ABC):
             bound to 1.
         model
             CounterfactualRL explainer. All the parameters defined in
-            :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS` can be accessed through 'model.params'.
+            :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS` can be accessed through `model.params`.
         sample
             Dictionary of samples used for an update which contains
 

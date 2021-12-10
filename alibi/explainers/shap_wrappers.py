@@ -116,11 +116,11 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
 
     For three-dimensional `values` arrays, the reduction is applied for each rank 2 subtensor, first along
     the column dimension and then across the row dimension. This arises when summarising shap interaction values.
-    Each rank 2 tensor is a E x E matrix of shap interaction values, where E is the dimension of the data after
-    one-hot encoding. The result of applying the reduction yields a rank 2 tensor of dimension F x F, where F is the
+    Each rank 2 tensor is a `E x E` matrix of shap interaction values, where `E` is the dimension of the data after
+    one-hot encoding. The result of applying the reduction yields a rank 2 tensor of dimension `F x F`, where `F` is the
     number of features (i.e., the feature dimension of the data matrix before encoding). By applying this
     transformation, a single value describing the interaction of categorical features i and j and a single value
-    describing the intearction of `j` and `i` is returned.
+    describing the interaction of `j` and `i` is returned.
 
     Parameters
     ----------
@@ -300,16 +300,16 @@ class KernelShap(Explainer, FitMixin):
         ----------
         predictor
             A callable that takes as an input a `samples x features` array and outputs a `samples x n_outputs`
-            model outputs. The n_outputs should represent model output in margin space. If the model outputs
+            model outputs. The `n_outputs` should represent model output in margin space. If the model outputs
             probabilities, then the link should be set to ``'logit'`` to ensure correct force plots.
         link
             Valid values are ``'identity'`` or ``'logit'``. A generalized linear model link to connect the feature
             importance values to the model output. Since the feature importance values, :math:`\phi`, sum up to the
             model output, it often makes sense to connect them to the ouput with a link function where
             :math:`link(output - expected\_value) = sum(\phi)`. Therefore, for a model which outputs probabilities,
-            `link='logit'` makes the feature effects have log-odds (evidence) units and `link='identity'` means that the
-            feature effects have probability units. Please see this `example`_ for an in-depth discussion about the
-            semantics of explaining the model in the probability or margin space.
+            ``link='logit'`` makes the feature effects have log-odds (evidence) units and ``link='identity'`` means
+            that the feature effects have probability units. Please see this `example`_ for an in-depth discussion 
+            about the semantics of explaining the model in the probability or margin space.
 
             .. _example:
                https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
@@ -325,7 +325,7 @@ class KernelShap(Explainer, FitMixin):
             summarisation (if specified, subsampling is performed as opposed to k-means clustering). In the future it
             may be used for visualisation.
         task
-            Can have values `'classification'` and `'regression'`. It is only used to set the contents of
+            Can have values ``'classification'`` and ``'regression'``. It is only used to set the contents of
             `explanation.data['raw']['prediction']`
         seed
             Fixes the random number stream, which influences which subsets are sampled during shap value estimation.
@@ -561,7 +561,7 @@ class KernelShap(Explainer, FitMixin):
 
         Notes
         _____
-        If `self.summarise_background=True`, then a `shap_utils.Data` object is
+        If ``self.summarise_background=True``, then a `shap_utils.Data` object is
         returned if the user passed a `shap_utils.Data` object to `fit` or didn't specify groups.
         """
 
@@ -700,7 +700,7 @@ class KernelShap(Explainer, FitMixin):
             around `sklearn` k-means implementation) is used for selection. If set to ``'auto'``, a default of
             `KERNEL_SHAP_BACKGROUND_THRESHOLD` samples is selected.
         n_background_samples
-            The number of samples to keep in the background dataset if `summarise_background=True`.
+            The number of samples to keep in the background dataset if ``summarise_background=True``.
         groups:
             A list containing sub-lists specifying the indices of features belonging to the same group.
         group_names:
@@ -805,9 +805,9 @@ class KernelShap(Explainer, FitMixin):
         kwargs
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
-                - `nsamples`: controls the number of predictor calls and therefore runtime.
+                - `nsamples` - controls the number of predictor calls and therefore runtime.
                 
-                - `l1_reg`: the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will \
+                - `l1_reg` - the algorithm is exponential in the feature dimension. If set to `auto` the algorithm will \
                 first run a feature selection algorithm to select the top features, provided the fraction of sampled \
                 sets of missing features is less than 0.2 from the number of total subsets. The Akaike Information \
                 Criterion is used in this case. See our examples for more details about available settings for this \
@@ -1029,7 +1029,7 @@ class TreeShap(Explainer, FitMixin):
                 - ``'raw'`` - the raw model of the output, which varies by task, is explained. This option \
                 should always be used if the `fit` is called without arguments. It should also be set to compute \
                 shap interaction values. For regression models it is the standard output, for binary classification \
-                in XGBoost it is the log odds ratio. \
+                in `XGBoost` it is the log odds ratio. \
 
                 - ``'probability'`` - the probability output is explained. This option should only be used if `fit` \
                 was called with the `background_data` argument set. The effect of specifying this parameter is that \
@@ -1065,7 +1065,7 @@ class TreeShap(Explainer, FitMixin):
             for the feature. Used to select the method for background data summarisation (if specified,
             subsampling is performed as opposed to kmeans clustering). In the future it may be used for visualisation.
         task
-            Can have values `'classification'` and `'regression'`. It is only used to set the contents of the 
+            Can have values ``'classification'`` and ``'regression'``. It is only used to set the contents of the 
             `prediction` field in the `data['raw']` response field.
 
         Notes
@@ -1108,9 +1108,9 @@ class TreeShap(Explainer, FitMixin):
         This function instantiates an explainer which can then be use to explain instances using the `explain` method.
         If no background dataset is passed, the explainer uses the path-dependent feature perturbation algorithm
         to explain the values. As such, only the model raw output can be explained and this should be reflected by
-        passing `model_output='raw'` when instantiating the explainer. If a background dataset is passed, the
+        passing ``model_output='raw'`` when instantiating the explainer. If a background dataset is passed, the
         interventional feature perturbation algorithm is used. Using this algorithm, probability outputs can also be
-        explained. Additionally, if the `model_output='log_loss'` option is passed to the explainer constructor, then
+        explained. Additionally, if the ``model_output='log_loss'`` option is passed to the explainer constructor, then
         the model loss function can be explained by passing the labels as the `y` argument to the explain method.
         A limited number of loss functions are supported, as detailed in the constructor documentation.
 
@@ -1124,9 +1124,9 @@ class TreeShap(Explainer, FitMixin):
             this argument to ``True``, only `n_background_samples` from the provided data are selected. If the
             `categorical_names` argument has been passed to the constructor, subsampling of the data is used.
             Otherwise, `shap.kmeans` (a wrapper around `sklearn.kmeans` implementation) is used for selection.
-            If set to `'auto'`, a default of `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD` samples is selected.
+            If set to ``'auto'``, a default of `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD` samples is selected.
         n_background_samples
-            The number of samples to keep in the background dataset if `summarise_background=True`.
+            The number of samples to keep in the background dataset if ``summarise_background=True``.
         """
 
         np.random.seed(self.seed)
@@ -1263,7 +1263,7 @@ class TreeShap(Explainer, FitMixin):
                https://static-content.springer.com/esm/art%3A10.1038%2Fs42256-019-0138-9/MediaObjects/42256_2019_138_MOESM1_ESM.pdf
 
         check_additivity
-            If ``True``, output correctness is ensured if `model_output='raw'` has been passed to the constructor.
+            If ``True``, output correctness is ensured if ``model_output='raw'`` has been passed to the constructor.
         tree_limit
             Explain the output of a subset of the first `tree_limit` trees in an ensemble model.
         summarise_result

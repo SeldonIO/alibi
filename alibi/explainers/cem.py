@@ -671,25 +671,10 @@ class CEM(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the PP or PN with additional metadata as attributes.
-            Contains the following data-related attributes
+            See usage `examples`_ for details.
 
-             - `X` : ``np.ndarray`` - original instance.
-
-             - `X_pred` : ``int`` - predicted class of original instance.
-
-             - `PN` : ``Optional[np.ndarray]`` - Pertinent Negative.
-
-             - `PP` : ``Optional[np.ndarray]`` - Pertinent Positive
-
-             - `PN_pred`,  : ``Optional[int]`` - predicted class of PN.
-
-             - `PP_pred` : ``Optional[int]`` -- predicted class of PP.
-
-             - `grads_graph` : ``np.ndarray`` - gradient values computed from the TF graph with respect to the input \
-              features at the PN or PP.
-
-             - `grads_num` : ``np.ndarray`` - numerical gradient values with respect to the input features at the \
-              PN or PP.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html
         """
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '

@@ -106,26 +106,12 @@ class ALE(Explainer):
 
         Returns
         -------
-        An `Explanation` object containing the data and the metadata of the calculated ALE curves. Contains the \
-        following data-related attributes
+        explanation
+            An `Explanation` object containing the data and the metadata of the calculated ALE curves.
+            See usage `examples`_ for details.
 
-         - `ale_values` : ``List[np.ndarray]`` - a list of arrays of ALE values (one for each feature). Each array \
-         can have multiple columns (if the number of targets is >1 as in classification).
-
-         - `constant_value` : ``float`` - the mean prediction over `X` (zeroth order effects).
-
-         - `ale0` : ``List[np.ndarray]`` - a list of arrays of “centering” values (one for each feature) used by the \
-         algorithm to center the `ale_values` around the expected effect for the feature (i.e. the sum \
-         of `ale_values` and `ale0` will be the uncentered ALE).
-
-         - `feature_values` : ``List[np.ndarray]`` - a list of arrays (one for each feature) of feature values at \
-         which the ALE values were computed.
-
-         - `feature_names` : ``np.ndarray`` - an array of feature names.
-
-         - `target_names` : ``np.ndarray`` - an array of target names.
-
-         - `feature_deciles` : ``List[np.ndarray]`` - a list of arrays (one for each feature) of the feature deciles.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
 
@@ -481,20 +467,20 @@ def plot_ale(exp: Explanation,
     Parameters
     ----------
     exp
-        An `Explanation` object produced by a call to the `:py:meth:`alibi.explainers.ale.ALE.explain` method.
+        An `Explanation` object produced by a call to the :py:meth:`alibi.explainers.ale.ALE.explain` method.
     features
-        A list of features for which to plot the ALE curves or `all` for all features.
+        A list of features for which to plot the ALE curves or ``'all'`` for all features.
         Can be a mix of integers denoting feature index or strings denoting entries in
-        `exp.feature_names`. Defaults to 'all'.
+        `exp.feature_names`. Defaults to ``'all'``.
     targets
-        A list of targets for which to plot the ALE curves or `all` for all targets.
+        A list of targets for which to plot the ALE curves or ``'all'`` for all targets.
         Can be a mix of integers denoting target index or strings denoting entries in
-        `exp.target_names`. Defaults to 'all'.
+        `exp.target_names`. Defaults to ``'all'``.
     n_cols
         Number of columns to organize the resulting plot into.
     sharey
         A parameter specifying whether the y-axis of the ALE curves should be on the same scale
-        for several features. Possible values are `all`, `row`, `None`.
+        for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     constant
         A parameter specifying whether the constant zeroth order effects should be added to the
         ALE first order effects.

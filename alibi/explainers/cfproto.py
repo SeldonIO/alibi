@@ -926,7 +926,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
         Returns
         -------
-        Ratio between the distance to the prototype of the predicted class for the original instance and
+        Ratio between the distance to the prototype of the predicted class for the original instance and \
         the prototype of the predicted class for the perturbed instance.
         """
         if self.enc_model:
@@ -965,8 +965,8 @@ class CounterfactualProto(Explainer, FitMixin):
             Number of nearest instances used to define the prototype for a class. Defaults to using all
             instances belonging to the class if an encoder is used and to 1 for k-d trees.
         k_type
-            Use either the average encoding of the k nearest instances in a class (`k_type='mean'`) or
-            the k-nearest encoding in the class (`k_type='point'`) to define the prototype of that class.
+            Use either the average encoding of the k nearest instances in a class (``k_type='mean'``) or
+            the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
             Only relevant if an encoder is used to define the prototypes.
         threshold
             Threshold level for the ratio between the distance of the counterfactual to the prototype of the
@@ -1298,7 +1298,7 @@ class CounterfactualProto(Explainer, FitMixin):
             instances belonging to the class if an encoder is used and to 1 for k-d trees.
         k_type
             Use either the average encoding of the `k` nearest instances in a class (``k_type='mean'``) or
-            the `k`-nearest encoding in the class (`k_type='point'`) to define the prototype of that class.
+            the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
             Only relevant if an encoder is used to define the prototypes.
         threshold
             Threshold level for the ratio between the distance of the counterfactual to the prototype of the
@@ -1316,33 +1316,10 @@ class CounterfactualProto(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the counterfactual with additional metadata as attributes.
-            Contains the following data-related attributes
+            See usage `examples`_ for details.
 
-             - `cf` : ``Dict[str, Union[int, np.ndarray]]`` - a dictionary with the overall best counterfactual \
-             found. explanation[‘cf’] has the following key: value pairs:
-
-                 - ``'X'`` : ``np.ndarray`` - the counterfactual instance.
-
-                 - ``'class'`` : ``int`` - predicted class for the counterfactual.
-
-                 - ``'proba'`` : ``np.ndarray`` - predicted class probabilities for the counterfactual.
-
-                 - ``'grads_graph'`` : ``np.ndarray`` - gradient values computed from the TF graph with respect to the input \
-                 features at the counterfactual.
-
-                 - ``'grads_num'`` : ``np.ndarray`` - numerical gradient values with respect to the input features at the \
-                 counterfactual.
-
-             - `orig_class` : ``int`` -  predicted class for original instance.
-
-             - `orig_proba` : ``np.ndarray`` - predicted class probabilities for original instance.
-
-             - `all` : ``Dict[int, List[np.ndarray]]`` - a dictionary with the iterations as keys and for each \
-             iteration a list with counterfactuals found in that iteration as values. So for instance, during the \
-             first iteration, explanation[‘all’][0], initially we typically find fairly noisy counterfactuals that \
-             improve over the course of the iteration. The counterfactuals for the subsequent iterations then need \
-             to be better (sparser) than the previous best counterfactual. So over the next few iterations, we \
-             probably find less but better solutions.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html
         """
         # get params for storage in meta
         params = locals()

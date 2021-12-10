@@ -65,7 +65,7 @@ class AnchorImageSampler:
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
             Function used to segment the images.
         image
@@ -76,7 +76,7 @@ class AnchorImageSampler:
             Probability for a pixel to be represented by the average value of its superpixel.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         """
         self.predictor = predictor
         self.segmentation_fn = segmentation_fn
@@ -101,10 +101,10 @@ class AnchorImageSampler:
         Parameters
         ----------
         anchor
-            int: order of anchor in the batch
-            tuple: features (= superpixels) present in the proposed anchor
+            - ``int`` - order of anchor in the batch.
+            - ``tuple`` - features (= superpixels) present in the proposed anchor.
         num_samples
-            Number of samples used
+            Number of samples used.
         compute_labels
             If ``True``, an array of comparisons between predictions on perturbed samples and
             instance to be explained is returned.
@@ -119,8 +119,8 @@ class AnchorImageSampler:
          - `covered_false` - perturbed examples where the anchor applies and the model prediction on pertrurbed sample \
          is NOT the same as the instance prediction.
 
-         - `labels` - num_samples ints indicating whether the prediction on the perturbed sample matches (1) the label \
-         of the instance to be explained or not (0).
+         - `labels` - `num_samples` ints indicating whether the prediction on the perturbed sample matches (1) \
+         the label of the instance to be explained or not (0).
 
          - `data` - Matrix with 1s and 0s indicating whether the values in a superpixel will remain unchanged (1) or \
          will be perturbed (0), for each sample.
@@ -491,7 +491,7 @@ class AnchorImage(Explainer):
             Min number of initial samples.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         binary_cache_size
             The result search pre-allocates `binary_cache_size` batches for storing the binary arrays
             returned during sampling.
@@ -507,14 +507,10 @@ class AnchorImage(Explainer):
         -------
         explanation
             `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
-            Contains the following data-related attributes
+            See usage `examples`_ for details.
 
-             - `anchor` : ``np.ndarray`` - image containing the superpixels of the proposed anchor.
-
-             - `precision` : ``float`` - the fraction of times the sampled instances where the anchor holds yields \
-             the same prediction as the original instance. The precision will always be threshold for a valid anchor.
-
-             - `coverage` : ``float`` - the fraction of sampled instances the anchor applies to.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # get params for storage in meta
         params = locals()

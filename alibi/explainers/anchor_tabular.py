@@ -77,9 +77,9 @@ class TabularSampler:
         Parameters
         ----------
         train_data:
-            Data from which samples are drawn. Can be a `numpy array` or a `ray future`.
+            Data from which samples are drawn. Can be a `numpy` array or a `ray` future.
         d_train_data:
-            Discretized version for training data. Can be a `numpy array` or a `ray future`.
+            Discretized version for training data. Can be a `numpy` array or a `ray` future.
 
         Returns
         -------
@@ -442,7 +442,7 @@ class TabularSampler:
         the same value as the feature in the instance to be explained (for ordinal variables, the row
         indices are those of rows which contain records with feature values in the same bin). The algorithm
         uses both the feature *encoded* ids in anchor and the feature ids in the input data set. The two
-        are mapped by self.enc2feat_idx.
+        are mapped by `self.enc2feat_idx`.
 
         Parameters
         ----------
@@ -459,7 +459,7 @@ class TabularSampler:
         unk_feat_values
             When a categorical variable with the specified value/discretized variable in the specified bin is not found
             in the training set, a tuple is added to `unk_feat_values` to indicate the original feature id, its type
-            ('c'=categorical, o='discretized continuous') and the value/bin it should be sampled from.
+            (``'c'`` = categorical, ``'o'`` = discretized continuous) and the value/bin it should be sampled from.
         """
 
         # bins one can sample from for each numerical feature (key: feat id)
@@ -514,10 +514,13 @@ class TabularSampler:
 
         Returns
         -------
-        A list containing three dictionaries, whose keys are encoded feature IDs.
-         - cat_lookup - maps categorical variables to their value in `X`.
-         - ord_lookup - maps discretized numerical variables to the bins they can be sampled from given `X`.
-         - enc2feat_idx - maps the encoded IDs to the original (training set) feature column IDs.
+        A list containing three dictionaries, whose keys are encoded feature IDs
+
+         - `cat_lookup` - maps categorical variables to their value in `X`.
+
+         - `ord_lookup` - maps discretized numerical variables to the bins they can be sampled from given `X`.
+
+         - `enc2feat_idx` - maps the encoded IDs to the original (training set) feature column IDs.
 
         Notes
         -----
@@ -840,7 +843,7 @@ class AnchorTabular(Explainer, FitMixin):
             Min number of initial samples.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         binary_cache_size
             The result search pre-allocates `binary_cache_size` batches for storing the binary arrays
             returned during sampling.
@@ -855,15 +858,11 @@ class AnchorTabular(Explainer, FitMixin):
         Returns
         -------
         explanation
-            `Explanation` object containing the result explaining the instance with additional metadata as attributes. \
-            Contains the following data-related attributes
+            `Explanation` object containing the result explaining the instance with additional metadata as attributes.
+            See usage `examples`_ for details.
 
-             - `anchor` : ``List[str]`` - list of human readable conditions of the proposed anchor.
-
-             - `precision` : ``float`` - the fraction of times the sampled instances where the anchor holds yields \
-             the same prediction as the original instance. The precision will always be  threshold for a valid anchor.
-
-             - `coverage` : ``float`` - the fraction of sampled instances the anchor applies to.
+            .. _examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
@@ -1117,7 +1116,7 @@ class DistributedAnchorTabular(AnchorTabular):
         Parameters
         ----------
         train_data, disc_perc, **kwargs
-            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.fit` superclass implementation.
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.fit` superclass.
         """
 
         try:
@@ -1192,17 +1191,17 @@ class DistributedAnchorTabular(AnchorTabular):
                 **kwargs: Any) -> Explanation:
         """
         Explains the prediction made by a classifier on instance `X`. Sampling is done in parallel over a number of
-        cores specified in kwargs['ncpu'].
+        cores specified in `kwargs['ncpu']`.
 
         Parameters
         ----------
         X, threshold, delta, tau, batch_size, coverage_samples, beam_size, stop_on_first, max_anchor_size, \
         min_samples_start, n_covered_ex, binary_cache_size, cache_margin, verbose, verbose_every, **kwargs
-            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` implementation.
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
 
         Returns
         -------
-        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` superclass implementation.
+        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` superclass.
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X

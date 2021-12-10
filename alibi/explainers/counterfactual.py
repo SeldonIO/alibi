@@ -334,7 +334,33 @@ class Counterfactual(Explainer):
         Returns
         -------
         `Explanation` object containing the counterfactual with additional metadata as attributes.
+        Contains the following data-related attributes in the `data` field
 
+         - `cf` : ``dict`` - dictionary containing the counterfactual instance found with the smallest distance to \
+         the test instance, it has the following keys:
+
+             - ``'X'`` : ``np.ndarray`` - the counterfactual instance.
+
+             - ``'distance'`` : ``float`` - distance to the original instance.
+
+             - ``'lambda'`` : ``float`` - value of  corresponding to the counterfactual.
+
+             - ``'index'`` : ``int`` - the step in the search procedure when the counterfactual was found.
+
+             - ``'class'`` : ``int`` - predicted class of the counterfactual.
+
+             - ``'proba'`` : ``np.ndarray`` - predicted class probabilities of the counterfactual.
+
+             - ``'loss'`` : ``float`` - counterfactual loss.
+
+         - `orig_class` : ``int`` - predicted class of original instance.
+
+         - `orig_proba` : ``float`` - predicted class probabilities of the original instance.
+
+         - `all` : ``dict`` - dictionary of all instances encountered during the search that satisfy the \
+         counterfactual constraint but have higher distance to the original instance than the returned counterfactual. \
+         This is organized by levels of , i.e. explanation['all'][0] will be a list of dictionaries corresponding to \
+         instances satisfying the counterfactual condition found in the first iteration over  during bisection.
         """
         # TODO change init parameters on the fly
 

@@ -310,6 +310,23 @@ class CounterfactualRLTabular(CounterfactualRL):
             the desired number of samples has been found.
         tolerance
             Tolerance to distinguish two counterfactual instances.
+
+        Returns
+        -------
+        `Explanation` object containing the counterfactual with additional metadata as attributes.
+        Contains the following data-related attributes in the `data` field
+
+         - ``'orig'`` : ``Dict[str, np.ndarray] - dictionary containing:
+             - ``'X'`` : ``np.ndarray`` - original input instances.
+             - ``'class'`` : ``np.ndarray``  - classification labels of the original input instances.
+
+         - ``'cf'`` : ``Dict[str, np.ndarray]`` - dictionary containing:
+             - ``'X'`` : ``np.ndarray`` - counterfactual instances.
+             - ``'class'`` : ``np.ndarray`` - classification labels of the counterfactual instances.
+
+         - ``'target'`` : ``np.ndarray`` - counterfactual targets.
+
+         - ``'condition'`` : ``Optional[np.ndarray]`` - conditional array.
         """
         # General validation.
         self._validate_input(X)

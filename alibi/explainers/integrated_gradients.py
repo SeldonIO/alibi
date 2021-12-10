@@ -810,7 +810,23 @@ class IntegratedGradients(Explainer):
         Returns
         -------
         `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
-        for each feature.
+        for each feature. Contains the following data-related attributes in the `data` field
+
+         - `attributions` : ``Union[np.ndarray, List[np.ndarray]]`` - list of attribution for each input instance.
+
+         - `X` : ``Union[np.ndarray, List[np.ndarray]]`` - see parameter description.
+         are computed.
+
+         - `forward_kwargs` : ``Optional[dict]`` - see parameter description.
+
+         - `baselines` : ``Optional[Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]]]`` - \
+         see parameter description.
+
+         - `predictions` : np.ndarray - model's predictions on the input instances.
+
+         - `deltas` : ``np.ndarray`` - convergence deltas for each data point
+
+         - `target` : ``Optional[Union[int, list, np.ndarray]]`` - see parameter description.
 
         """
         # target handling logic

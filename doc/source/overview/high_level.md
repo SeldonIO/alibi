@@ -1,4 +1,4 @@
-## Introduction
+# Introduction
 
 ```{contents}
 :depth: 3
@@ -128,13 +128,13 @@ practitioner an understanding of which explainers are suitable in which situatio
 |---------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
 | [Accumulated Local Effects](#accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest                             |
 | [Anchors](#anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
-| [Pertinent Positives](#pertinent-positives)                                                 | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Pertinent Positives](#contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
 | [Integrated Gradients](#integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
 | [Kernel SHAP](#kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (path-dependent)](#path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Tree SHAP (interventional)](#interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
 | [Counterfactuals Instances](#counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
-| [Contrastive Explanation Method](#contrastive-explanation-method)                           | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
+| [Contrastive Explanation Method](#contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
 | [Counterfactuals Guided by Prototypes](#counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
 | [counterfactuals-with-reinforcement-learning](#counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
 
@@ -186,7 +186,7 @@ Hence, we see the model predicts higher alcohol content wines as being better:
 :alt: ALE Plot of wine quality "good" class probability dependency on alcohol
 ```
 
-:::{admonition} **Note 4: Categorical Variables and ALE**
+:::{admonition} **Note 2: Categorical Variables and ALE**
 Note that while ALE is well-defined on numeric tabular data, it isn't on categorical data. This is because it's unclear
 what the difference between two categorical values should be. Note that if the dataset has a mix of categorical and
 numerical features, we can always take the ALE of the numerical ones.
@@ -204,7 +204,8 @@ numerical features, we can always take the ALE of the numerical ones.
 Local necessary features tell us what features need to stay the same for a specific instance in order for the model to
 give the same classification. In the case of a trained image classification model, local necessary features for a given
 instance would be a minimal subset of the image that the model uses to make its decision. Alibi provides two explainers
-for computing local necessary features: [anchors](#anchors) and [pertinent positives](#pertinent-positives).
+for computing local necessary features: [anchors](#anchors)
+and [pertinent positives](#contrastive-explanation-method-pertinent-positives).
 
 ### Anchors
 
@@ -306,7 +307,7 @@ required predictive property. This makes them less interpretable.
 |                                                                                                                 | High dimensional feature spaces such as images need to be reduced to improve the runtime complexity     |
 |                                                                                                                 | Practitioners may need domain-specific knowledge to correctly sample from the conditional probability   |
 
-### Pertinent Positives
+### Contrastive Explanation Method (Pertinent Positives)
 
 | Explainer           | Scope | Model types         | Task types     | Data types     | Use                                                                                             |
 |---------------------|-------|---------------------|----------------|----------------|-------------------------------------------------------------------------------------------------|
@@ -340,7 +341,9 @@ the [MNIST digits](http://yann.lecun.com/exdb/mnist/), it's reasonable to assume
 digit represents an absence of information. Similarly, in the case of color images, you might take the median pixel
 value to convey no information, and moving away from this value adds information. For numeric tabular data we can use
 the feature mean. In general, having to choose a non-informative value for each feature is non-trivial and domain
-knowledge is required.
+knowledge is required. This is the reverse to
+the [contrastive explanation method (pertinent-negatives)](#contrastive-explanation-method-pertinent-negatives) method
+introduced in the section on [counterfactual instances](#4-counterfactual-instances).
 
 Note that we need to compute the loss gradient through the model. If we have access to the internals, we can do this
 directly. Otherwise, we need to use numerical differentiation at a high computational cost due to the extra model calls
@@ -423,7 +426,7 @@ assigns the probability of each class equally. This is dependent on domain knowl
 MNIST for instance a common choice is an image set to black. For numerical tabular data we can set the baseline as the
 average of each feature.
 
-:::{admonition} **Note 5: Choice of Baseline**
+:::{admonition} **Note 3: Choice of Baseline**
 
 (choice-of-baseline)=
 
@@ -458,7 +461,7 @@ This gives:
 :alt: IG applied to Wine quality dataset for class "Good" 
 ```
 
-:::{admonition} **Note 6: Comparison to ALE**
+:::{admonition} **Note 4: Comparison to ALE**
 
 (comparison-to-ale)=
 
@@ -666,15 +669,16 @@ A counterfactual, $x_{\text{cf}}$, needs to satisfy
 - The counterfactual $x_{\text{cf}}$ should be interpretable.
 
 The first requirement is clear. The second, however, requires some idea of what interpretable means. Alibi exposes four
-methods for finding counterfactuals: [**counterfactual instances** (CFI)](#counterfactual-instances), [**contrastive
-explanations** (CEM)](#contrastive-explanation-method), [**counterfactuals guided by
-prototypes** (CFP)](#counterfactuals-guided-by-prototypes), and [**counterfactuals with reinforcement
-learning** (CFRL)](#counterfactuals-with-reinforcement-learning). Each of these methods deals with interpretability
-slightly differently. However, all of them require sparsity of the solution. This means we prefer to only change a small
-subset of the features which limits the complexity of the solution making it more understandable.
+methods for finding counterfactuals: **[counterfactual instances (CFI)](#counterfactual-instances)**
+, **[contrastive explanations (CEM)](#contrastive-explanation-method-pertinent-negatives)**
+, **[counterfactuals guided by prototypes (CFP)](#counterfactuals-guided-by-prototypes)**,
+and **[counterfactuals with reinforcement learning (CFRL)](#counterfactuals-with-reinforcement-learning)**. Each of
+these methods deals with interpretability slightly differently. However, all of them require sparsity of the solution.
+This means we prefer to only change a small subset of the features which limits the complexity of the solution making it
+more understandable.
 
 Note that sparse changes to the instance of interest doesn't guarantee that the generated counterfactual is believably a
-member of the data distribution. **[CEM](#contrastive-explanation-method)**
+member of the data distribution. **[CEM](#contrastive-explanation-method-pertinent-negatives)**
 , **[CFP](#counterfactuals-guided-by-prototypes)**, and **[CFRL](#counterfactuals-with-reinforcement-learning)** also
 require that the counterfactual be in distribution in order to be interpretable.
 
@@ -686,7 +690,8 @@ require that the counterfactual be in distribution in order to be interpretable.
 2) **counterfactual instances with prototypes** method* 
 ```
 
-The first three methods **[CFI](#counterfactual-instances)**, **[CEM](#contrastive-explanation-method)**
+The first three methods **[CFI](#counterfactual-instances)**
+, **[CEM](#contrastive-explanation-method-pertinent-negatives)**
 , **[CFP](#counterfactuals-guided-by-prototypes)** all construct counterfactuals using a very similar method. They build
 them by defining a loss that prefer interpretable instances close to the target class. They then use gradient descent to
 move within the feature space until they obtain a counterfactual of sufficient quality. The main difference is the
@@ -707,7 +712,7 @@ use [CFRL](#counterfactuals-with-reinforcement-learning).
 [CFRL](#counterfactuals-with-reinforcement-learning) uses a similar loss to CEM and CFP but applies reinforcement
 learning to train a model which will generate counterfactuals on demand.
 
-:::{admonition} **Note 3: fit and explain method runtime differences**
+:::{admonition} **Note 5: fit and explain method runtime differences**
 Alibi explainers expose two methods, `fit` and `explain`. Typically in machine learning the method that takes the most
 time is the fit method, as that's where the model optimization conventionally takes place. In explainability, the
 explain step often requires the bulk of computation. However, this isn't always the case.
@@ -725,14 +730,13 @@ quick. If you want performant explanations in production environments, then the 
 
 ### Counterfactual Instances
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| TF/Kera     | Classification | Tabular     |
-| Black-box   |                | Image       |
+| Explainer                                    | Scope  | Model types         | Task types                 | Data types                               | Use                                                                                             |
+|----------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Counterfactuals Instances                    | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
 
-Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $0<\lambda<1$ be a
-hyperparameter. This method constructs counterfactual instances from an instance $X$ by running gradient descent on a
-new instance $X'$ to minimize the following loss.
+Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $\lambda$ be a hyperparameter.
+This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$
+to minimize the following loss:
 
 $$L(X', X)= (f_{t}(X') - p_{t})^2 + \lambda L_{1}(X', X)$$
 
@@ -745,28 +749,51 @@ considerable performance cost.
 
 A problem arises here in that encouraging sparse solutions doesn't necessarily generate interpretable counterfactuals.
 This happens because the loss doesn't prevent the counterfactual solution from moving off the data distribution. Thus,
-you will likely get an answer that doesn't look like something that you'd expect to see from the data.
+you will likely get an answer that doesn't look like something that you would expect to see from the data.
 
-__TODO:__
+To use the counterfactual instances method from Alibi applied to the wine quality dataset use:
 
-- Picture example. Something similar to: https://github.com/interpretml/DiCE
+```ipython3
+from alibi.explainers import Counterfactual
 
-**Pros**
+explainer = Counterfactual(
+    model, shape=(1,) + X_train.shape[1:], target_proba=0.51, tol=0.01, target_class='other', 
+    max_iter=1000, lam_init=1e-1, max_lam_steps=10, learning_rate_init=0.1,
+    feature_range=(scaler.transform(X_train).min(), scaler.transform(X_train).max())
+    
+result_cf = explainer.explain(scaler.transform(x))
+)
+```
 
-- Both a black and white-box method
-- Doesn't require access to the training dataset
+(cfi-results)=
 
-**Cons**
+This yields the following result:
 
-- Not likely to give human interpretable instances
-- Requires configuration in the choice of $\lambda$
+| feature                     | instance | counterfactual |
+|-----------------------------|----------|----------------|
+| fixed acidity               | 9.2      | 9.23           |
+| volatile acidity            | 0.36     | 0.36           |
+| citric acid                 | 0.34     | 0.334          |
+| residual sugar              | 1.6      | 1.582          |
+| chlorides                   | 0.062    | 0.061          |
+| free sulfur dioxide         | 5.0      | 4.955          |
+| total sulfur dioxide        | 12.0     | 11.324         |
+| density                     | 0.997    | 0.997          |
+| pH                          | 3.2      | 3.199          |
+| sulphates                   | 0.67     | 0.64           |
+| alcohol                     | 10.5     | 9.88           |
 
-### Contrastive Explanation Method
+| pros                                           | cons                                                                      |
+|------------------------------------------------|---------------------------------------------------------------------------|
+| Both a black-box and white-box method          | Not likely to give human interpretable instances                          |
+| Doesn't require access to the training dataset | Requires tuning of $\lambda$ hyperparameter                               |
+|                                                | Slow for black-box models due to having to numerically evaluate gradients |
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| TF/Kera     | Classification | Tabular     |
-| Black-box   |                | Image       |
+### Contrastive Explanation Method (Pertinent Negatives)
+
+| Explainer                                    | Scope  | Model types         | Task types                 | Data types              | Use                                                                               |
+|----------------------------------------------|--------|---------------------|----------------------------|-------------------------|-----------------------------------------------------------------------------------|
+| Contrastive Explanation Method               | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
 
 CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$
 regularizer term is added to the loss. This term causes the solutions to be both close to the original instance and
@@ -775,124 +802,210 @@ sparse.
 Secondly, we require that $\delta$ only adds new features rather than takes them away. We need to define what it means
 for a feature to be present so that the perturbation only works to add and not remove them. In the case of the MNIST
 dataset, an obvious choice of "present" feature is if the pixel is equal to 1 and absent if it is equal to 0. This is
-simple in the case of the MNIST data set but more difficult in complex domains such as color images.
+simple in the case of the MNIST data set but more difficult in complex domains such as colour images.
 
-Thirdly, by training an optional autoencoder to penalize counterfactual instances that deviate from the data
-distribution. This works by minimizing the reconstruction loss of the autoencoder applied to instances. If a generated
-instance is unlike anything in the dataset, the autoencoder will struggle to recreate it well, and its loss term will be
-high. We require two hyperparameters $\beta$ and $\gamma$ to define the following Loss,
+Thirdly, by training an autoencoder to penalize counterfactual instances that deviate from the data distribution. This
+works by minimizing the reconstruction loss of the autoencoder applied to instances. If a generated instance is unlike
+anything in the dataset, the autoencoder will struggle to recreate it well, and its loss term will be high. We require
+three hyperparameters $c$, $\beta$ and $\gamma$ to define the following loss:
 
-$$L(X'|X)= (f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2$$
+$$ L = c\cdot L_{pred}(\delta) + \beta L_{1}(\delta, x) + L_{2}^{2}(\delta, x) + \gamma \|\delta - AE(\delta)\|^{2}_{2}
+$$
+
+A subtle aspect of this method is that it requires defining the absence or presence of features as delta is restrained
+only to allow you to add information. For the MNIST digits, it's reasonable to assume that the black background behind
+each written number represents an absence of information. Similarly, in the case of colour images, you might take the
+median pixel value to convey no information, and moving away from this value adds information. For numeric tabular data,
+we can use the feature mean. In general, choosing a non-informative value for each feature is non-trivial, and domain
+knowledge is required. This is the reverse process to
+the [contrastive explanation method (pertinent-positives)](#contrastive-explanation-method-pertinent-positives) method
+introduced in the section on [local necessary features](#2-local-necessary-features) in which they take away features
+rather than add them.
 
 This approach extends the definition of interpretable to include a requirement that the computed counterfactual be
-believably a member of the dataset. It turns out that minimizing this loss isn't enough to always get interpretable
-results. And in particular, the constructed counterfactual often doesn't look like a member of the target class.
+believably a member of the dataset. This isn't always satisfied (see image below). In particular, the constructed
+counterfactual often doesn't look like a member of the target class.
 
-Similar to the previous method, this method can apply to both black and white-box models. In the black-box case, there
-is still a performance cost from computing the numerical gradients.
+```{image} images/cem-non-interp.png
+:align: center
+:alt: Example of less interpretable result obtained by CEM 
+```
 
-__TODO:__
+To compute a pertinent-negative using Alibi we use:
 
-- Picture example of results including less interpretable ones.
+```ipython3
+from alibi.explainers import CEM
 
-**Pros**
+feature_range = (scaler.transform(X_train).min(axis=0).reshape(shape)-.1, 
+                 scaler.transform(X_train).max(axis=0).reshape(shape)+.1)
 
-- Provides more interpretable instances than the counterfactual instances' method.
+cem = CEM(model, mode='PN', shape=(1,) + X_train.shape[1:], kappa=0.2, beta=0.1, 
+          feature_range=feature_range, max_iterations=1000, c_init=10, c_steps=10,
+          learning_rate_init=1e-2, clip=(-1000, 1000), ae_model=ae)
+          
+cem.fit(scaler.transform(X_train), no_info_type='median')
+result_cem = cem.explain(scaler.transform(x), verbose=False)
+```
 
-**Cons**
+This gives the following:
 
-- Requires access to the dataset to train the autoencoder
-- Requires setup and configuration in choosing $\gamma$ and $\beta$ and training the autoencoder
-- Requires domain knowledge when choosing what it means for a feature to be present or not
+| feature                     | instance | counterfactual |
+|-----------------------------|----------|----------------|
+| fixed acidity               | 9.2      | 9.2            |
+| volatile acidity            | 0.36     | 0.36           |
+| citric acid                 | 0.34     | 0.34           |
+| residual sugar              | 1.6      | 1.6            |
+| chlorides                   | 0.062    | 0.062          |
+| free sulfur dioxide         | 5.0      | 5.0            |
+| total sulfur dioxide        | 12.0     | 12.0           |
+| density                     | 0.997    | 0.997          |
+| pH                          | 3.2      | 3.2            |
+| sulphates                   | 0.67     | 0.57           |
+| alcohol                     | 10.5     | 9.688          |
+
+This method can apply to both black-box and white-box models. There is a performance cost from computing the numerical
+gradients in the black-box case due to having to numerically evaluate gradients.
+
+| pros                                                                             | cons                                                                                     |
+|----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| Provides more interpretable instances than the counterfactual instances' method. | Requires access to the dataset to train the autoencoder                                  |
+| Applies to both white and black-box models                                       | Requires setup and configuration in choosing $c$, $\gamma$ and $\beta$                   |
+|                                                                                  | Requires training an autoencoder                                                         |
+|                                                                                  | Requires domain knowledge when choosing what it means for a feature to be present or not |
+|                                                                                  | Slow for black-box models                                                                |
 
 ### Counterfactuals Guided by Prototypes
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| TF/Kera     | Classification | Tabular     |
-| Black-box   |                | Image       |
-|             |                | Categorical |
-
-- Black/white-box method
-- Classification models
-- Tabular, image and categorical data types
+| Explainer                            | Scope | Model types         | Task types     | Data types                  | Use                                                                               |
+|--------------------------------------|-------|---------------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
+| Counterfactuals Guided by Prototypes | Local | Black-box/White-box | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
 
 For this method, we add another term to the loss that optimizes for the distance between the counterfactual instance and
-close members of the target class. In doing this, we require interpretability also to mean that the generated
-counterfactual is believably a member target class and not just in the data distribution.
+representative members of the target class. In doing this, we require interpretability also to mean that the generated
+counterfactual is believably a member of the target class and not just in the data distribution.
 
-With hyperparameters $c$, $\gamma$ and $\beta$, the loss is now given by:
+With hyperparameters $c$, $\gamma$ and $\beta$, the loss is given by:
 
-$$ L(X'|X)= c(f_{t}(X') - p_{t})^2 + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2 + L_{2}(X', X_
+$$ L(X'|X)= c\cdot L_{pred}(X') + \beta L_{1}(X', X) + L_{2}(X', X)^2 + \gamma L_{2} (X', AE(X'))^2 + L_{2}(X', X_
 {proto})
 $$
 
-__TODO:__
+This method produces much more interpretable results than [CFI](#counterfactual-instances)
+and [CEM](#contrastive-explanation-method-pertinent-negatives).
 
-- Picture example of results.
+Because the prototype term steers the solution, we can remove the prediction loss term. This makes this method much
+faster if we are using a black-box model as we don't need to compute the gradients numerically. However, occasionally
+the prototype isn't a member of the target class. In this case you'll end up with an incorrect counterfactual.
 
-This method produces much more interpretable results. As well as this, because the proto term pushes the solution
-towards the target class, we can remove the prediction loss term and still obtain a viable counterfactual. This doesn't
-make much difference if we can compute the gradients directly from the model. If not, and we are using numerical
-gradients, then the $L_{pred}$ term is a significant bottleneck owing to repeated calls on the model to approximate the
-gradients. Thus, this method also applies to black-box models with a substantial performance gain on the previously
-mentioned approaches.
+To use the counterfactual with prototypes method in Alibi we do:
 
-**Pros**
+```ipython3
+from alibi.explainers import CounterfactualProto
 
-- Generates more interpretable instances that the CEM method
-- Black-box version of the method doesn't require computing the numerical gradients
-- Applies to more data-types
+feature_range = (scaler.transform(X_train).min(axis=0).reshape(shape)-.1, 
+                 scaler.transform(X_train).max(axis=0).reshape(shape)+.1)
 
-**Cons**
+explainer = CounterfactualProto(
+    model, shape=(1,) + X_train.shape[1:],
+    ae_model=ae, enc_model=encoder, max_iterations=500, feature_range=feature_range, 
+    c_init=1., c_steps=4, eps=(1e-2, 1e-2), update_num_grad=100
+)
 
-- Requires access to the dataset to train the auto encoder or k-d tree
-- Requires setup and configuration in choosing $\gamma$, $\beta$ and $c$
+explainer.fit(scaler.transform(X_train))
+result_proto = explainer.explain(scaler.transform(x), Y=None, target_class=None, k=20, k_type='mean',
+                                 threshold=0., verbose=False, print_every=100, log_every=100)
+```
+
+We get the following results:
+
+| feature                     | instance | counterfactual |
+|-----------------------------|----------|----------------|
+| fixed acidity               | 9.2      | 9.2            |
+| volatile acidity            | 0.36     | 0.36           |
+| citric acid                 | 0.34     | 0.34           |
+| residual sugar              | 1.6      | 1.6            |
+| chlorides                   | 0.062    | 0.062          |
+| free sulfur dioxide         | 5.0      | 5.0            |
+| total sulfur dioxide        | 12.0     | 12.0           |
+| density                     | 0.997    | 0.997          |
+| pH                          | 3.2      | 3.2            |
+| sulphates                   | 0.67     | 0.607          |
+| alcohol                     | 10.5     | 9.998          |
+
+
+| pros                                                       | cons                                                                   |
+|------------------------------------------------------------|------------------------------------------------------------------------|
+| Generates more interpretable instances than the CEM method | Requires access to the dataset                                         |
+| Black-box version of the method is fast                    | Requires setup and configuration in choosing $\gamma$, $\beta$ and $c$ |
+| Applies to more data-types                                 | Requires training an autoencoder                                       |
 
 ### Counterfactuals with Reinforcement Learning
 
-| Model-types | Task-types     | Data-types  |
-| ----------- | -------------- | ----------- |
-| Black-box   | Classification | Tabular     |
-|             |                | Image       |
-|             |                | Categorical |
+| Explainer                                    | Scope  | Model types         | Task types                 | Data types                               | Use                                                                               |
+|----------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-----------------------------------------------------------------------------------|
+| counterfactuals-with-reinforcement-learning  | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | What minimal change to features is required to reclassify the current prediction? |
 
 This black-box method splits from the approach taken by the above three significantly. Instead of minimizing a loss
-during the explain method call, it trains a new model when fitting the explainer called an actor that takes instances
-and produces counterfactuals. It does this using reinforcement learning. In reinforcement learning, an actor model takes
-some state as input and generates actions; in our case, the actor takes an instance with a target classification and
-attempts to produce an member of the target class. Outcomes of actions are assigned rewards dependent on a reward
-function designed to encourage specific behaviors. In our case, we reward correctly classified counterfactuals generated
-by the actor. As well as this, we reward counterfactuals that are close to the data distribution as modeled by an
-autoencoder. Finally, we require that they are sparse perturbations of the original instance. The reinforcement training
-step pushes the actor to take high reward actions. CFRL is a black-box method as the process by which we update the
-actor to maximize the reward only requires estimating the reward via sampling the counterfactuals.
+during the explain method call, it trains a **new model** when **fitting** the explainer called an **actor** that takes
+instances and produces counterfactuals. It does this using **reinforcement learning**. In reinforcement learning, an
+actor model takes some state as input and generates actions; in our case, the actor takes an instance with a target
+classification and attempts to produce a member of the target class. Outcomes of actions are assigned rewards dependent
+on a reward function designed to encourage specific behaviors. In our case, we reward correctly classified
+counterfactuals generated by the actor. As well as this, we reward counterfactuals that are close to the data
+distribution as modeled by an autoencoder. Finally, we require that they are sparse perturbations of the original
+instance. The reinforcement training step pushes the actor to take high reward actions. CFRL is a black-box method as
+the process by which we update the actor to maximize the reward only requires estimating the reward via sampling the
+counterfactuals.
 
-As well as this, CFRL actors can be trained to ensure that certain constraints can be taken into account when generating
-counterfactuals. This is highly desirable as a use case for counterfactuals is to suggest the necessary changes to an
-instance to obtain a different classification. In some cases, you want these changes to be constrained, for instance,
-when dealing with immutable characteristics. In other words, if you are using the counterfactual to advise changes in
-behavior, you want to ensure the changes are enactable. Suggesting that someone needs to be two years younger to apply
-for a loan isn't very helpful.
+As well as this, CFRL actors can be trained to ensure that certain **constraints** can be taken into account when
+generating counterfactuals. This is highly desirable as a use case for counterfactuals is to suggest the necessary
+changes to an instance to obtain a different classification. In some cases, you want these changes to be constrained,
+for instance, when dealing with immutable characteristics. In other words, if you are using the counterfactual to advise
+changes in behavior, you want to ensure the changes are enactable. Suggesting that someone needs to be two years younger
+to apply for a loan isn't very helpful.
 
 The training process requires randomly sampling data instances, along with constraints and target classifications. We
 can then compute the reward and update the actor to maximize it. We do this without needing access to the model
 internals; we only need to obtain a prediction in each case. The end product is a model that can generate interpretable
 counterfactual instances at runtime with arbitrary constraints.
 
-__TODO__:
+```ipython3
+from alibi.explainers import CounterfactualRL 
 
-- Example images
+predict_fn = lambda x: model(x)
 
-**Pros**
+explainer = CounterfactualRL(predictor=predict_fn,
+                             encoder=ae.encoder,
+                             decoder=ae.decoder,
+                             latent_dim=ENCODING_DIM,
+                             coeff_sparsity=7.5,
+                             coeff_consistency=0,
+                             train_steps=5000,
+                             batch_size=100,
+                             backend="tensorflow")
+                             
+explainer.fit(X=scaler.transform(X_train))
+```
 
-- Generates more interpretable instances that the CEM method
-- Very fast at runtime
-- Can be trained to account for arbitrary constraints
-- General as is a black-box algorithm
+This gives the following results:
 
-**Cons**
+| feature                     | instance | counterfactual |
+|-----------------------------|----------|----------------|
+| fixed acidity               | 8.965    | 9.2            |
+| volatile acidity            | 0.349    | 0.36           |
+| citric acid                 | 0.242    | 0.34           |
+| residual sugar              | 2.194    | 1.6            |
+| chlorides                   | 0.059    | 0.062          |
+| free sulfur dioxide         | 6.331    | 5.0            |
+| total sulfur dioxide        | 14.989   | 12.0           |
+| density                     | 0.997    | 0.997          |
+| pH                          | 3.188    | 3.2            |
+| sulphates                   | 0.598    | 0.67           |
+| alcohol                     | 9.829    | 10.5           |
 
-- Longer to fit the model
-- Requires to fit an autoencoder
-- Requires access to the training dataset
+| pros                                                       | cons                                     |
+|------------------------------------------------------------|------------------------------------------|
+| Generates more interpretable instances than the CEM method | Longer to fit the model                  |
+| Very fast at runtime                                       | Requires to fit an autoencoder           |
+| Can be trained to account for arbitrary constraints        | Requires access to the training dataset  |
+| General as is a black-box algorithm                        |                                          |

@@ -559,9 +559,9 @@ using different methods and models in each case.
 
 #### Path-dependent tree SHAP
 
-| Explainer                  | Scope  | Model types                                                             | Task types                 | Data types           | Use                                                        |
-|----------------------------|--------|-------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (path-dependent) | Local  | White-box _(XGBoost, LightGBM, CatBoost, most tree-based scikit-learn)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                  | Scope  | Model types                                                                     | Task types                 | Data types           | Use                                                        |
+|----------------------------|--------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (path-dependent) | Local  | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
 Computing the Shapley values for a model requires computing the interventional conditional expectation for each member
 of the [power set](https://en.wikipedia.org/wiki/Power_set) of instance features. For tree-based models we can
@@ -610,9 +610,9 @@ although there are differences due to using different methods and models in each
 
 #### Interventional Tree SHAP
 
-| Explainer                  | Scope | Model types                                                             | Task types                 | Data types           | Use                                                        |
-|----------------------------|-------|-------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (interventional) | Local | White-box _(XGBoost, LightGBM, CatBoost, most tree-based scikit-learn)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                  | Scope | Model types                                                                     | Task types                 | Data types           | Use                                                        |
+|----------------------------|-------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (interventional) | Local | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
 Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each
 feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we

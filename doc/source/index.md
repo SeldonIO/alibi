@@ -70,6 +70,7 @@ examples/integrated_gradients_imagenet.ipynb
 examples/integrated_gradients_mnist.ipynb
 examples/integrated_gradients_imdb.ipynb
 examples/integrated_gradients_transformers.ipynb
+examples/overview.ipynb
 ```
 
 ```{toctree}

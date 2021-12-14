@@ -124,19 +124,19 @@ model performs as desired.
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                  | Scope  | Model types         | Task types                 | Data types                               | Use                                                                                             |
-|--------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular                                  | How does model prediction vary with respect to features of interest                             |
-| [Anchors](anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image     | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
-| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
-| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image     | What does each feature contribute to the model prediction?                                      |
-| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                     | ""                                                                                              |
-| [Counterfactuals Instances](counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
-| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box/White-box | Classification             | Tabular, Image                           | ""                                                                                              |
-| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
-| [counterfactuals-with-reinforcement-learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | ""                                                                                              |
+| Explainer                                                                                  | Scope  | Model types         | Task types                 | Data types                           | Use                                                                                             |
+|--------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|--------------------------------------|-------------------------------------------------------------------------------------------------|
+| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular(numeric)                     | How does model prediction vary with respect to features of interest                             |
+| [Anchors](anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              |
+| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction?                                      |
+| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
+| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
+| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
+| [Counterfactuals Instances](counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | What minimal change to features is required to reclassify the current prediction?               |
+| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              |
+| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image          | ""                                                                                              |
+| [counterfactuals-with-reinforcement-learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image          | ""                                                                                              |
 
 ### 1. Global Feature Attribution
 
@@ -324,9 +324,9 @@ required predictive property. This makes them less interpretable.
 
 #### Contrastive Explanation Method (Pertinent Positives)
 
-| Explainer           | Scope | Model types                               | Task types     | Data types     | Use                                                                                             |
-|---------------------|-------|-------------------------------------------|----------------|----------------|-------------------------------------------------------------------------------------------------|
-| Pertinent Positives | Local | Black-box/White-box _(Keras, TensorFlow)_ | Classification | Tabular, Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| Explainer           | Scope | Model types                               | Task types     | Data types              | Use                                                                                             |
+|---------------------|-------|-------------------------------------------|----------------|-------------------------|-------------------------------------------------------------------------------------------------|
+| Pertinent Positives | Local | Black-box/White-box _(Keras, TensorFlow)_ | Classification | Tabular(numeric), Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 
 Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features
 of an instance that still obtains the same classification as that instance. These differ from [anchors](anchors)
@@ -761,9 +761,9 @@ quick. If you want performant explanations in production environments, then the 
 
 #### Counterfactual Instances
 
-| Explainer                                    | Scope  | Model types                               | Task types                 | Data types                               | Use                                                                                             |
-|----------------------------------------------|--------|-------------------------------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
-| Counterfactuals Instances                    | Local  | Black-box/White-box _(keras, TensorFlow)_ | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
+| Explainer                 | Scope | Model types                               | Task types     | Data types              | Use                                                                               |
+|---------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|
+| Counterfactuals Instances | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
 
 Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $\lambda$ be a hyperparameter.
 This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$
@@ -818,9 +818,9 @@ Counterfactual prediction: 1
 
 #### Contrastive Explanation Method (Pertinent Negatives)
 
-| Explainer                                    | Scope  | Model types                               | Task types                 | Data types              | Use                                                                               |
-|----------------------------------------------|--------|-------------------------------------------|----------------------------|-------------------------|-----------------------------------------------------------------------------------|
-| Contrastive Explanation Method               | Local  | Black-box/White-box _(keras, TensorFlow)_ | Classification             | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                      | Scope | Model types                               | Task types     | Data types              | Use                                                                               |
+|--------------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|
+| Contrastive Explanation Method | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
 
 CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$
 regularizer term is added to the loss. This term causes the solutions to be both close to the original instance and
@@ -964,9 +964,9 @@ Counterfactual prediction: 1
 
 #### Counterfactuals with Reinforcement Learning
 
-| Explainer                                    | Scope  | Model types         | Task types                 | Data types                               | Use                                                                               |
-|----------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-----------------------------------------------------------------------------------|
-| counterfactuals-with-reinforcement-learning  | Local  | Black-box           | Classification             | Tabular, Categorical, Image              | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                   | Scope  | Model types | Task types     | Data types                  | Use                                                                               |
+|---------------------------------------------|--------|-------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
+| counterfactuals-with-reinforcement-learning | Local  | Black-box   | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
 
 This black-box method splits from the approach taken by the above three significantly. Instead of minimizing a loss
 during the explain method call, it trains a **new model** when **fitting** the explainer called an **actor** that takes
@@ -1025,12 +1025,12 @@ Instance prediction: 0
 Counterfactual prediction: 1
 ```
 
-| pros                                                       | cons                                     |
-|------------------------------------------------------------|------------------------------------------|
-| Generates more interpretable instances than the CEM method | Longer to fit the model                  |
-| Very fast at runtime                                       | Requires to fit an autoencoder           |
-| Can be trained to account for arbitrary constraints        | Requires access to the training dataset  |
-| General as is a black-box algorithm                        |                                          |
+| pros                                                       | cons                                    |
+|------------------------------------------------------------|-----------------------------------------|
+| Generates more interpretable instances than the CEM method | Longer to fit the model                 |
+| Very fast at runtime                                       | Requires to fit an autoencoder          |
+| Can be trained to account for arbitrary constraints        | Requires access to the training dataset |
+| General as is a black-box algorithm                        |                                         |
 
 (counterfactual-example-results)=
 

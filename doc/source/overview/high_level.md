@@ -190,6 +190,7 @@ Hence, we see the model predicts higher alcohol content wines as being better:
 ```{image} images/ale-wine-quality.png
 :align: center
 :alt: ALE Plot of wine quality "good" class probability dependency on alcohol
+:width: 700px
 ```
 
 :::{admonition} **Note 2: Categorical Variables and ALE**
@@ -234,19 +235,22 @@ by partitioning the data into good and bad wine based on a quality threshold of 
 :alt: first five rows of wine quality dataset 
 ```
 
+```{image} images/anchor.png
+:align: right
+:alt: Illustration of an anchor as a subset of two dimensional feature space.
+:width: 450px
+```
+
 An example of a predicate for this dataset would be a rule of the form: `'alcohol > 11.00'`. Note that the more
 predicates we add to an anchor, the smaller it becomes, as by doing so, we filter out more instances of the data.
 Anchors are sets of predicates associated to a specific instance $x$ such that $x$ is in the anchor ($A(x)=1$) and any
 other point in the anchor has the same classification as $x$ ($z$ such that $A(z) = 1 \implies f(z) = f(x)$ where $f$ is
 the model). We're interested in finding the largest possible Anchor that contains $x$.
 
-```{image} images/anchor.png
-:align: center
-:alt: Illustration of an anchor as a subset of two dimensional feature space. 
-```
-
 To construct an anchor using Alibi for tabular data such as the wine quality dataset (
 see [notebook](../examples/overview.ipynb)), we use:
+
+<br>
 
 ```ipython3
 from alibi.explainers import AnchorTabular
@@ -338,7 +342,8 @@ construct [pertinent negatives/counterfactuals](#4-counterfactual-instances).
 
 ```{image} images/pp_mnist.png
 :align: center
-:alt: Pertinent postive of an MNIST digit 
+:alt: Pertinent postive of an MNIST digit
+:width: 450px
 ```
 
 Given an instance $x$ we use gradient descent to find a $\delta$ that minimizes the following loss:
@@ -393,6 +398,7 @@ on those images snowy backdrops.
 ```{figure} images/husky-vs-wolves.png
 :align: center
 :alt: Husky with snowy backdrop misclassified as wolf.
+:width: 700px
 
 *Figure 11 from "Why Should I Trust You?": Explaining the Predictions of Any Classifier.* 
 ```
@@ -681,6 +687,7 @@ number from the original instance.
 ```{figure} images/rlcf-digits.png
 :align: center
 :alt: Samples from MNIST and counterfactuals for each.
+:width: 700px
 
 *From Samoilescu RF et al., Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning, 2021* 
 ```
@@ -714,6 +721,7 @@ require that the counterfactual be in distribution in order to be interpretable.
 ```{figure} images/interp-and-non-interp-cfs.png
 :align: center
 :alt: Examples of counterfactuals constructed using CFI and CFP methods
+:width: 700px
 
 *Original MNIST 7 instance, Counterfactual instances constructed using 1) **counterfactual instances** method, 
 2) **counterfactual instances with prototypes** method* 
@@ -730,6 +738,7 @@ data-distribution.
 ```{figure} images/interp-cfs.png
 :align: center
 :alt: Construction of different types of interpretable counterfactuals
+:width: 500px
 
 *Obtaining counterfactuals using gradient descent with and without autoencoder trained on data distribution* 
 ```

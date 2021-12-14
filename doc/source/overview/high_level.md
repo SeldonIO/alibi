@@ -324,9 +324,9 @@ required predictive property. This makes them less interpretable.
 
 #### Contrastive Explanation Method (Pertinent Positives)
 
-| Explainer           | Scope | Model types         | Task types     | Data types     | Use                                                                                             |
-|---------------------|-------|---------------------|----------------|----------------|-------------------------------------------------------------------------------------------------|
-| Pertinent Positives | Local | Black-box/White-box | Classification | Tabular, Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| Explainer           | Scope | Model types                               | Task types     | Data types     | Use                                                                                             |
+|---------------------|-------|-------------------------------------------|----------------|----------------|-------------------------------------------------------------------------------------------------|
+| Pertinent Positives | Local | Black-box/White-box _(Keras, TensorFlow)_ | Classification | Tabular, Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
 
 Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features
 of an instance that still obtains the same classification as that instance. These differ from [anchors](anchors)
@@ -429,9 +429,9 @@ ones provided by Alibi ([integrated gradients](integrated-gradients), [Kernel SH
 
 #### Integrated Gradients
 
-| Explainer            | Scope | Model types           | Task types                 | Data types                           | Use                                                        |
-|----------------------|-------|-----------------------|----------------------------|--------------------------------------|------------------------------------------------------------|
-| Integrated Gradients | Local | White-box(TensorFlow) | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? |
+| Explainer            | Scope | Model types                     | Task types                 | Data types                           | Use                                                        |
+|----------------------|-------|---------------------------------|----------------------------|--------------------------------------|------------------------------------------------------------|
+| Integrated Gradients | Local | White-box _(keras, TensorFlow)_ | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? |
 
 The [integrated gradients](https://arxiv.org/abs/1703.01365) (IG) method computes the attribution of each feature by
 integrating the model partial derivatives along a path from a baseline point to the instance. This accumulates the
@@ -559,9 +559,9 @@ using different methods and models in each case.
 
 #### Path-dependent tree SHAP
 
-| Explainer                  | Scope  | Model types | Task types                 | Data types           | Use                                                        |
-|----------------------------|--------|-------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (path-dependent) | Local  | White-box   | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                  | Scope  | Model types                                                             | Task types                 | Data types           | Use                                                        |
+|----------------------------|--------|-------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (path-dependent) | Local  | White-box _(XGBoost, LightGBM, CatBoost, most tree-based scikit-learn)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
 Computing the Shapley values for a model requires computing the interventional conditional expectation for each member
 of the [power set](https://en.wikipedia.org/wiki/Power_set) of instance features. For tree-based models we can
@@ -610,9 +610,9 @@ although there are differences due to using different methods and models in each
 
 #### Interventional Tree SHAP
 
-| Explainer                  | Scope | Model types | Task types                 | Data types           | Use                                                        |
-|----------------------------|-------|-------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (interventional) | Local | White-box   | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                  | Scope | Model types                                                             | Task types                 | Data types           | Use                                                        |
+|----------------------------|-------|-------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
+| Tree SHAP (interventional) | Local | White-box _(XGBoost, LightGBM, CatBoost, most tree-based scikit-learn)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
 
 Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each
 feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we
@@ -761,9 +761,9 @@ quick. If you want performant explanations in production environments, then the 
 
 #### Counterfactual Instances
 
-| Explainer                                    | Scope  | Model types         | Task types                 | Data types                               | Use                                                                                             |
-|----------------------------------------------|--------|---------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
-| Counterfactuals Instances                    | Local  | Black-box/White-box | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
+| Explainer                                    | Scope  | Model types                               | Task types                 | Data types                               | Use                                                                                             |
+|----------------------------------------------|--------|-------------------------------------------|----------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|
+| Counterfactuals Instances                    | Local  | Black-box/White-box _(keras, TensorFlow)_ | Classification             | Tabular, Image                           | What minimal change to features is required to reclassify the current prediction?               |
 
 Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $\lambda$ be a hyperparameter.
 This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$
@@ -818,9 +818,9 @@ Counterfactual prediction: 1
 
 #### Contrastive Explanation Method (Pertinent Negatives)
 
-| Explainer                                    | Scope  | Model types         | Task types                 | Data types              | Use                                                                               |
-|----------------------------------------------|--------|---------------------|----------------------------|-------------------------|-----------------------------------------------------------------------------------|
-| Contrastive Explanation Method               | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                    | Scope  | Model types                               | Task types                 | Data types              | Use                                                                               |
+|----------------------------------------------|--------|-------------------------------------------|----------------------------|-------------------------|-----------------------------------------------------------------------------------|
+| Contrastive Explanation Method               | Local  | Black-box/White-box _(keras, TensorFlow)_ | Classification             | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
 
 CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$
 regularizer term is added to the loss. This term causes the solutions to be both close to the original instance and
@@ -905,9 +905,9 @@ gradients in the black-box case due to having to numerically evaluate gradients.
 
 #### Counterfactuals Guided by Prototypes
 
-| Explainer                            | Scope | Model types         | Task types     | Data types                  | Use                                                                               |
-|--------------------------------------|-------|---------------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
-| Counterfactuals Guided by Prototypes | Local | Black-box/White-box | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                            | Scope | Model types                               | Task types     | Data types                  | Use                                                                               |
+|--------------------------------------|-------|-------------------------------------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
+| Counterfactuals Guided by Prototypes | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
 
 For this method, we add another term to the loss that optimizes for the distance between the counterfactual instance and
 representative members of the target class. In doing this, we require interpretability also to mean that the generated

@@ -39,6 +39,7 @@ methods/TreeSHAP.ipynb
 :caption: Examples
 :maxdepth: 1
 
+examples/overview.ipynb
 examples/ale_regression_boston
 examples/ale_classification
 examples/anchor_tabular_adult
@@ -70,7 +71,6 @@ examples/integrated_gradients_imagenet.ipynb
 examples/integrated_gradients_mnist.ipynb
 examples/integrated_gradients_imdb.ipynb
 examples/integrated_gradients_transformers.ipynb
-examples/overview.ipynb
 ```
 
 ```{toctree}

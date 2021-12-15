@@ -124,19 +124,19 @@ model performs as desired.
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                  | Scope  | Model types         | Task types                 | Data types                           | Use                                                                                             |
-|--------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|--------------------------------------|-------------------------------------------------------------------------------------------------|
-| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular(numeric)                     | How does model prediction vary with respect to features of interest                             |
-| [Anchors](anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
-| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              |
-| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction?                                      |
-| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
-| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
-| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              |
-| [Counterfactuals Instances](counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | What minimal change to features is required to reclassify the current prediction?               |
-| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              |
-| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image          | ""                                                                                              |
-| [counterfactuals-with-reinforcement-learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image          | ""                                                                                              |
+| Explainer                                                                                  | Scope  | Model types         | Task types                 | Data types                           | Use                                                                                             | Resources                                                                                                                           |
+|--------------------------------------------------------------------------------------------|--------|---------------------|----------------------------|--------------------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box           | Classification, Regression | Tabular(numeric)                     | How does model prediction vary with respect to features of interest                             | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
+| [Anchors](anchors)                                                                         | Local  | Black-box           | Classification             | Tabular, Categorical, Text and Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)                                     |
+| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box           | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction?                                      | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
+| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) | 
+| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box           | Classification, Regression | Tabular, Categorical                 | ""                                                                                              | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Counterfactuals Instances](counterfactual-instances)                                      | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | What minimal change to features is required to reclassify the current prediction?               | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399)                                                              |                                                                                                                                    
+| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box/White-box | Classification             | Tabular(numeric), Image              | ""                                                                                              | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box/White-box | Classification             | Tabular, Categorical, Image          | ""                                                                                              | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584)                                                         |
+| [counterfactuals-with-reinforcement-learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box           | Classification             | Tabular, Categorical, Image          | ""                                                                                              | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597)                                                            |
 
 ### 1. Global Feature Attribution
 
@@ -154,9 +154,9 @@ decrease after it gets too hot.
 
 #### Accumulated Local Effects
 
-| Explainer                 | Scope  | Model types   | Task types                 | Data types        | Use                                                                 |
-|---------------------------|--------|---------------|----------------------------|-------------------|---------------------------------------------------------------------|
-| Accumulated Local Effects | Global | Black-box     | Classification, Regression | Tabular (numeric) | How does model prediction vary with respect to features of interest |
+| Explainer                                         | Scope  | Model types   | Task types                 | Data types        | Use                                                                 | Resources                                                               |
+|---------------------------------------------------|--------|---------------|----------------------------|-------------------|---------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [Accumulated Local Effects](../methods/ALE.ipynb) | Global | Black-box     | Classification, Regression | Tabular (numeric) | How does model prediction vary with respect to features of interest | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468) |
 
 Alibi only provides [accumulated local effects (ALE)](../methods/ALE.ipynb) plots because they give the most accurate
 insight. Alternatives include Partial Dependence Plots (PDP), of which ALE is a natural extension. Suppose we have a
@@ -218,9 +218,9 @@ and [pertinent positives](contrastive-explanation-method-pertinent-positives).
 
 #### Anchors
 
-| Explainer  | Scope   | Model types   | Task types       | Data types                            | Use                                                                                              |
-|------------|---------|---------------|------------------|---------------------------------------|--------------------------------------------------------------------------------------------------|
-| Anchors    | Local   | Black-box     | Classification   | Tabular, Categorical, Text and Image  | Which set of features of a given instance is sufficient to ensure the prediction stays the same  |
+| Explainer                           | Scope   | Model types   | Task types       | Data types                            | Use                                                                                              | Resources                                                                                       |
+|-------------------------------------|---------|---------------|------------------|---------------------------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
+| [Anchors](../methods/Anchors.ipynb) | Local   | Black-box     | Classification   | Tabular, Categorical, Text and Image  | Which set of features of a given instance is sufficient to ensure the prediction stays the same  | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf) |
 
 Anchors are introduced
 in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf). Further,
@@ -328,9 +328,9 @@ required predictive property. This makes them less interpretable.
 
 #### Contrastive Explanation Method (Pertinent Positives)
 
-| Explainer           | Scope | Model types                               | Task types     | Data types              | Use                                                                                             |
-|---------------------|-------|-------------------------------------------|----------------|-------------------------|-------------------------------------------------------------------------------------------------|
-| Pertinent Positives | Local | Black-box/White-box _(Keras, TensorFlow)_ | Classification | Tabular(numeric), Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same |
+| Explainer                                   | Scope | Model types                               | Task types     | Data types              | Use                                                                                             | Resources                                                               |
+|---------------------------------------------|-------|-------------------------------------------|----------------|-------------------------|-------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [Pertinent Positives](../methods/CEM.ipynb) | Local | Black-box/White-box _(Keras, TensorFlow)_ | Classification | Tabular(numeric), Image | Which set of features of a given instance is sufficient to ensure the prediction stays the same | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623) |
 
 Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features
 of an instance that still obtains the same classification as that instance. These differ from [anchors](anchors)
@@ -435,14 +435,15 @@ ones provided by Alibi ([integrated gradients](integrated-gradients), [Kernel SH
 
 #### Integrated Gradients
 
-| Explainer            | Scope | Model types                     | Task types                 | Data types                           | Use                                                        |
-|----------------------|-------|---------------------------------|----------------------------|--------------------------------------|------------------------------------------------------------|
-| Integrated Gradients | Local | White-box _(keras, TensorFlow)_ | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? |
+| Explainer                                                    | Scope | Model types                     | Task types                 | Data types                           | Use                                                        | Resources                                                                               |
+|--------------------------------------------------------------|-------|---------------------------------|----------------------------|--------------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------|
+| [Integrated Gradients](../methods/IntegratedGradients.ipynb) | Local | White-box _(keras, TensorFlow)_ | Classification, Regression | Tabular, Categorical, Text and Image | What does each feature contribute to the model prediction? | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365) |
 
 The [integrated gradients](https://arxiv.org/abs/1703.01365) (IG) method computes the attribution of each feature by
 integrating the model partial derivatives along a path from a baseline point to the instance. This accumulates the
 changes in the prediction that occur due to the changing feature values. These accumulated values represent how each
-feature contributes to the prediction for the instance of interest.
+feature contributes to the prediction for the instance of interest. A more detailed explanation of the method can be 
+found in the method specific [docs](../methods/IntegratedGradients.ipynb).
 
 We need to choose a baseline which should capture a blank state in which the model makes essentially no prediction or
 assigns the probability of each class equally. This is dependent on domain knowledge of the dataset. In the case of
@@ -502,15 +503,15 @@ for a wine classed as "Good" and is consistent with the ALE plot. (The median fo
 
 #### Kernel SHAP
 
-| Explainer    | Scope | Model types | Task types                 | Data types            | Use                                                        |
-|--------------|-------|-------------|----------------------------|-----------------------|------------------------------------------------------------|
-| Kernel SHAP  | Local |  Black-box  | Classification, Regression | Tabular, Categorical  | What does each feature contribute to the model prediction? |
+| Explainer                                  | Scope | Model types | Task types                 | Data types            | Use                                                        | Resources                                                                                                                           |
+|--------------------------------------------|-------|-------------|----------------------------|-----------------------|------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| [Kernel SHAP](../methods/KernelSHAP.ipynb) | Local |  Black-box  | Classification, Regression | Tabular, Categorical  | What does each feature contribute to the model prediction? | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) |
 
-[Kernel SHAP](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) is a method for
-computing the Shapley values of a model around an
+[Kernel SHAP](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) 
+([Alibi method docs](../methods/KernelSHAP.ipynb)) is a method for computing the Shapley values of a model around an
 instance. [Shapley values](https://christophm.github.io/interpretable-ml-book/shapley.html) are a game-theoretic method
 of assigning payout to players depending on their contribution to an overall goal. In our case, the features are the
-players, and the payouts are the attributions.
+players, and the payouts are the attributions. 
 
 Given any subset of features, we can ask how a feature's presence in that set contributes to the model output. We do
 this by computing the model output for the set with and without the specific feature. We obtain the Shapley value for
@@ -565,9 +566,9 @@ using different methods and models in each case.
 
 #### Path-dependent tree SHAP
 
-| Explainer                  | Scope  | Model types                                                                     | Task types                 | Data types           | Use                                                        |
-|----------------------------|--------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (path-dependent) | Local  | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                                               | Scope  | Model types                                                                     | Task types                 | Data types           | Use                                                        | Resources                                                                                     |
+|---------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [Tree SHAP (path-dependent)](../methods/TreeSHAP.ipynb) | Local  | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
 
 Computing the Shapley values for a model requires computing the interventional conditional expectation for each member
 of the [power set](https://en.wikipedia.org/wiki/Power_set) of instance features. For tree-based models we can
@@ -616,9 +617,9 @@ although there are differences due to using different methods and models in each
 
 #### Interventional Tree SHAP
 
-| Explainer                  | Scope | Model types                                                                     | Task types                 | Data types           | Use                                                        |
-|----------------------------|-------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|
-| Tree SHAP (interventional) | Local | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? |
+| Explainer                                               | Scope | Model types                                                                     | Task types                 | Data types           | Use                                                        | Resources                                                                                     |
+|---------------------------------------------------------|-------|---------------------------------------------------------------------------------|----------------------------|----------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [Tree SHAP (interventional)](../methods/TreeSHAP.ipynb) | Local | White-box _(XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models)_ | Classification, Regression | Tabular, Categorical | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
 
 Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each
 feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we
@@ -770,9 +771,9 @@ quick. If you want performant explanations in production environments, then the 
 
 #### Counterfactual Instances
 
-| Explainer                 | Scope | Model types                               | Task types     | Data types              | Use                                                                               |
-|---------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|
-| Counterfactuals Instances | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                        | Scope | Model types                               | Task types     | Data types              | Use                                                                               | Resources                                                              |
+|--------------------------------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|------------------------------------------------------------------------|
+| [Counterfactuals Instances](../methods/CF.ipynb) | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399) |
 
 Let the model be given by $f$, and let $p_t$ be the target probability of class $t$. Let $\lambda$ be a hyperparameter.
 This method constructs counterfactual instances from an instance $X$ by running gradient descent on a new instance $X'$
@@ -827,9 +828,9 @@ Counterfactual prediction: 1
 
 #### Contrastive Explanation Method (Pertinent Negatives)
 
-| Explainer                      | Scope | Model types                               | Task types     | Data types              | Use                                                                               |
-|--------------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|
-| Contrastive Explanation Method | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                              | Scope | Model types                               | Task types     | Data types              | Use                                                                               | Resources                                                               |
+|--------------------------------------------------------|-------|-------------------------------------------|----------------|-------------------------|-----------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| [Contrastive Explanation Method](../methods/CEM.ipynb) | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular(numeric), Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623) |
 
 CEM follows a similar approach to the above but includes three new details. Firstly an elastic net $\beta L_{1} + L_{2}$
 regularizer term is added to the loss. This term causes the solutions to be both close to the original instance and
@@ -914,9 +915,9 @@ gradients in the black-box case due to having to numerically evaluate gradients.
 
 #### Counterfactuals Guided by Prototypes
 
-| Explainer                            | Scope | Model types                               | Task types     | Data types                  | Use                                                                               |
-|--------------------------------------|-------|-------------------------------------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
-| Counterfactuals Guided by Prototypes | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                                        | Scope | Model types                               | Task types     | Data types                  | Use                                                                               | Resources                                                                   |
+|------------------------------------------------------------------|-------|-------------------------------------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb) | Local | Black-box/White-box _(keras, TensorFlow)_ | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584) |
 
 For this method, we add another term to the loss that optimizes for the distance between the counterfactual instance and
 representative members of the target class. In doing this, we require interpretability also to mean that the generated
@@ -973,9 +974,9 @@ Counterfactual prediction: 1
 
 #### Counterfactuals with Reinforcement Learning
 
-| Explainer                                   | Scope  | Model types | Task types     | Data types                  | Use                                                                               |
-|---------------------------------------------|--------|-------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|
-| counterfactuals-with-reinforcement-learning | Local  | Black-box   | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? |
+| Explainer                                                            | Scope  | Model types | Task types     | Data types                  | Use                                                                               | Resources                                                                |
+|----------------------------------------------------------------------|--------|-------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [counterfactuals-with-reinforcement-learning](../methods/CFRL.ipynb) | Local  | Black-box   | Classification | Tabular, Categorical, Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597) |
 
 This black-box method splits from the approach taken by the above three significantly. Instead of minimizing a loss
 during the explain method call, it trains a **new model** when **fitting** the explainer called an **actor** that takes

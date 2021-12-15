@@ -78,7 +78,7 @@ def test_tf_keras_iris_explainer(disable_tf2, iris_data, tf_keras_iris_explainer
     y = np.zeros((1, cf.classes))
     np.put(y, pred_class, 1)
     cf.predict = cf.predict.predict  # make model black box
-    grads = cf.get_gradients(x, y, x.shape[1:])
+    grads = cf.get_gradients(x, y, x.shape[1:], cf.cat_vars_ord)
     assert grads.shape == x.shape
 
 

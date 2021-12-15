@@ -1,11 +1,10 @@
 import copy
 import logging
+from functools import partial
+from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy as np
-
-from functools import partial
 from scipy import sparse
-from typing import Any, Dict, Generator, List, Optional, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
@@ -422,6 +421,8 @@ class DistributedExplainer:
         import ray
         ray = ray
 
+    concatenate: Callable
+
     def __init__(self,
                  distributed_opts: Dict[str, Any],
                  explainer_type: Any,
@@ -489,10 +490,9 @@ class DistributedExplainer:
                 "No algorithm specified in distributed option, default target function will be selected."
             )
         self.target_fcn = default_target_fcn
-        self.concatenate = None
         # check global scope for any specific target function
         if concatenate_results:
-            self.concatenate = concatenate_minibatches
+            self.concatenate = concatenate_minibatches  # type: ignore[assignment]
         if f"{algorithm}_target_fcn" in globals():
             self.target_fcn = globals()[f"{algorithm}_target_fcn"]
 

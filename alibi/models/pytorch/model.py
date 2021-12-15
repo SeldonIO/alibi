@@ -49,7 +49,7 @@ class Model(nn.Module):
 
         if isinstance(loss, list):
             # check if the number of weights is the same as the number of partial losses
-            if len(loss_weights) != len(loss):
+            if len(self.loss_weights) != len(loss):
                 raise ValueError("The number of loss weights differs from the number of losses")
 
             self.loss = []

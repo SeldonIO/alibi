@@ -1,17 +1,19 @@
 import copy
 import logging
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
 
 import numpy as np
+from skimage.segmentation import felzenszwalb, quickshift, slic
 
-from functools import partial
-from typing import Any, Callable, List, Union, Tuple, Type
-
-from alibi.utils.wrappers import ArgmaxTransformer
+from alibi.api.defaults import DEFAULT_DATA_ANCHOR_IMG, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
+from alibi.exceptions import (AlibiPredictorCallException,
+                              AlibiPredictorReturnTypeError)
+from alibi.utils.wrappers import ArgmaxTransformer
+
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
-from skimage.segmentation import felzenszwalb, slic, quickshift
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ DEFAULT_SEGMENTATION_KWARGS = {
     'felzenszwalb': {},
     'quickshift': {},
     'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
-}
+}  # type: Dict[str, Dict]
 
 
 def scale_image(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:
@@ -53,7 +55,7 @@ class AnchorImageSampler:
             segmentation_fn: Callable,
             custom_segmentation: bool,
             image: np.ndarray,
-            images_background: np.ndarray = None,
+            images_background: Optional[np.ndarray] = None,
             p_sample: float = 0.5,
             n_covered_ex: int = 10,
     ):
@@ -214,19 +216,19 @@ class AnchorImageSampler:
 
         image = self.image
         segments = self.segments
+        backgrounds: Union[np.ndarray, List[None]]
 
         # choose superpixels to be perturbed
         segments_mask = self._choose_superpixels(num_samples, p_sample=self.p_sample)
         segments_mask[:, anchor] = 1
 
         # for each sample, need to sample one of the background images if provided
-        if self.images_background:
+        if self.images_background is not None:
             backgrounds = np.random.choice(
                 range(len(self.images_background)),
                 segments_mask.shape[0],
                 replace=True,
             )
-            segments_mask = np.hstack((segments_mask, backgrounds.reshape(-1, 1)))
         else:
             backgrounds = [None] * segments_mask.shape[0]
             # create fudged image where the pixel value in each superpixel is set to the
@@ -246,13 +248,11 @@ class AnchorImageSampler:
             mask = np.zeros(segments.shape).astype(bool)
             for superpixel in to_perturb:
                 mask[segments == superpixel] = True
-            if background_idx:
+            if background_idx is not None:
                 # replace values with those of background image
-                # TODO: Could images_background be None herre?
-                temp[mask] = self.images_background[background_idx][mask]
+                temp[mask] = self.images_background[background_idx][mask]  # type: ignore[index]
             else:
                 # ... or with the averaged superpixel value
-                # TODO: Where is fudged_image defined?
                 temp[mask] = fudged_image[mask]
             pert_imgs.append(temp)
 
@@ -305,9 +305,9 @@ class AnchorImage(Explainer):
                  image_shape: tuple,
                  dtype: Type[np.generic] = np.float32,
                  segmentation_fn: Any = 'slic',
-                 segmentation_kwargs: dict = None,
-                 images_background: np.ndarray = None,
-                 seed: int = None) -> None:
+                 segmentation_kwargs: Optional[dict] = None,
+                 images_background: Optional[np.ndarray] = None,
+                 seed: Optional[int] = None) -> None:
         """
         Initialize anchor image explainer.
 
@@ -332,13 +332,22 @@ class AnchorImage(Explainer):
             Images to overlay superpixels on.
         seed
             If set, ensures different runs with the same input will yield same explanation.
+
+        Raises
+        ------
+        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+            If calling `predictor` fails at runtime.
+        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+            If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
         np.random.seed(seed)
 
-        if isinstance(segmentation_fn, str) and not segmentation_kwargs:
+        # TODO: this logic needs improvement. We should check against a fixed set of strings
+        # for built-ins instead of any `str`.
+        if isinstance(segmentation_fn, str) and segmentation_kwargs is None:
             try:
-                segmentation_kwargs = DEFAULT_SEGMENTATION_KWARGS[segmentation_fn]  # type: ignore
+                segmentation_kwargs = DEFAULT_SEGMENTATION_KWARGS[segmentation_fn]
             except KeyError:
                 logger.warning(
                     'DEFAULT_SEGMENTATION_KWARGS did not contain any entry'
@@ -349,9 +358,11 @@ class AnchorImage(Explainer):
         elif callable(segmentation_fn) and segmentation_kwargs:
             logger.warning(
                 'Specified both a segmentation function to create superpixels and '
-                'keyword arguments for built segmentation functions. By default '
+                'keyword arguments for built-in segmentation functions. By default '
                 'the specified segmentation function will be used.'
             )
+        else:
+            segmentation_kwargs = {}
 
         # set the predictor
         self.image_shape = tuple(image_shape)  # coerce lists
@@ -425,7 +436,7 @@ class AnchorImage(Explainer):
 
         return image_preproc
 
-    def explain(self,  # type: ignore
+    def explain(self,  # type: ignore[override]
                 image: np.ndarray,
                 p_sample: float = 0.5,
                 threshold: float = 0.95,
@@ -435,7 +446,7 @@ class AnchorImage(Explainer):
                 coverage_samples: int = 10000,
                 beam_size: int = 1,
                 stop_on_first: bool = False,
-                max_anchor_size: int = None,
+                max_anchor_size: Optional[int] = None,
                 min_samples_start: int = 100,
                 n_covered_ex: int = 10,
                 binary_cache_size: int = 10000,
@@ -613,7 +624,19 @@ class AnchorImage(Explainer):
     def _transform_predictor(self, predictor: Callable) -> Callable:
         # check if predictor returns predicted class or prediction probabilities for each class
         # if needed adjust predictor so it returns the predicted class
-        if np.argmax(predictor(np.zeros((1,) + self.image_shape, dtype=self.dtype)).shape) == 0:
+        x = np.zeros((1,) + self.image_shape, dtype=self.dtype)
+        try:
+            prediction = predictor(x)
+        except Exception as e:
+            msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
+                  f"Check that the parameter `image_shape` is correctly specified."
+            raise AlibiPredictorCallException(msg) from e
+
+        if not isinstance(prediction, np.ndarray):
+            msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
+            raise AlibiPredictorReturnTypeError(msg)
+
+        if np.argmax(prediction.shape) == 0:
             return predictor
         else:
             transformer = ArgmaxTransformer(predictor)

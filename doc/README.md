@@ -40,18 +40,13 @@ We use various Sphinx extensions and plugins to build the documentation, includi
  * [sphinx_autodoc_typehints](https://github.com/agronholm/sphinx-autodoc-typehints) - support parsing of typehints for API doc generation
  * [sphinxcontrib.apidoc](https://github.com/sphinx-contrib/apidoc) - automatic running of [sphinx-apidoc](https://www.sphinx-doc.org/en/master/man/sphinx-apidoc.html) during the build to document API
  * [nbsphinx](https://nbsphinx.readthedocs.io) - parsing Jupyter notebooks to generate static documentation
- * [nbsphinx_link](https://nbsphinx-link.readthedocs.io) - support linking to notebooks outside of Sphinx source directory via `.nblink` files
 
 The full list of plugins and their options can be found in `source/conf.py`.
 
 ## Adding new examples
-All examples are Jupyter notebooks and live in the top level `examples` directory. To make them available as documentation, create an `.nblink` file under `doc/source/examples` which is a piece of json pointing to the `.ipynb` example notebook. E.g. if there is a notebook called `examples/notebook.ipynb`, then create a file `doc/source/examples/notebook.nblink` with the following contents:
-```json
-{
-  "path": "../../../examples/notebook.ipynb"
-}
-```
-From here on you can link and refer to the `notebook.ipynb` elsewhere in the documentation as if it lived under `doc/source/examples`.
+All examples are Jupyter notebooks and live in the `doc/source/examples` directory. When you run `make build_docs` locally, symbolic links pointing to these notebooks
+are added in the top-level `examples/` directory. For example, for the notebook `doc/source/examples/cem_iris.ipynb`, a symbolic link named `cem_iris.ipynb` will be added
+in `examples/`. When adding a new notebook, you should run `make build_docs` to generate a new symbolic link, and make sure this is also added to the new commit.
 
 ## MyST format
 
@@ -91,4 +86,4 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * Avoid using underscores in alternative text for images, e.g. instead of `![my_pic](my_pic.png)` use `![my-pic](my_pic.png)`, this is due to the old version of `pandoc==1.19.2` used on `reathedocs.org`.
 * Avoid nesting markdown markups, e.g. italicising a hyperlink, this might not render
 * ~~When embedding images in notebooks which are linked to via a `.nblink` file, an `extra-media` key needs to be added in the `.nblink` file. See the [nbsphinx-link](https://github.com/vidartf/nbsphinx-link) docs, or [alibi_detect_deploy.nblink](https://github.com/SeldonIO/alibi-detect/blob/master/doc/source/examples/alibi_detect_deploy.nblink) for an example in alibi-detect.~~ Prefer using the following to produce self-contained notebooks:
-* To add a static image to an example, use the syntax `![my-image.png](attachment:my_image.png)`. Ensure the image is located in the `examples/` folder. This will embed the actual binary image into the example notebook so that the notebook is self-contained and renders properly on the static docs.
+* To add a static image to an example, use the syntax `![my-image.png](attachment:my_image.png)` and execute the cell. This will embed the actual binary image into the example notebook so that the notebook is self-contained (note that some notebooks won't be self-contained due to dependencies on data or models under `doc/source/examples/assets`). Afterwards, ensure the image is located in the `doc/source/examples/assets` directory and committed to the repository.

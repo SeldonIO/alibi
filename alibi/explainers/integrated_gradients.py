@@ -1,13 +1,15 @@
 import copy
 import logging
-import numpy as np
 import string
+import warnings
+from typing import Callable, List, Optional, Tuple, Union, cast
+
+import numpy as np
 import tensorflow as tf
 
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
-from alibi.utils.approximation_methods import approximation_parameters
 from alibi.api.interfaces import Explainer, Explanation
-from typing import Callable, Union, List, Tuple, Optional
+from alibi.utils.approximation_methods import approximation_parameters
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +51,11 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     -------
         Convergence deltas for each data point.
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     if _is_list:
         start_point = [tf.convert_to_tensor(start_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
         end_point = [tf.convert_to_tensor(end_point[k], dtype=input_dtypes[k]) for k in range(len(input_dtypes))]
-
     else:
         start_point = tf.convert_to_tensor(start_point)
         end_point = tf.convert_to_tensor(end_point)
@@ -119,7 +122,7 @@ def _select_target(preds: tf.Tensor,
 
 
 def _run_forward(model: Union[tf.keras.models.Model],
-                 x: Union[List[tf.Tensor], List[np.ndarray]],
+                 x: Union[List[tf.Tensor], List[np.ndarray], tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list],
                  forward_kwargs: Optional[dict] = None) -> tf.Tensor:
     """
@@ -141,9 +144,8 @@ def _run_forward(model: Union[tf.keras.models.Model],
 
     """
     if forward_kwargs is None:
-        preds = model(x)
-    else:
-        preds = model(x, **forward_kwargs)
+        forward_kwargs = {}
+    preds = model(x, **forward_kwargs)
 
     if len(model.output_shape) > 1 and model.output_shape[-1] > 1:
         preds = _select_target(preds, target)
@@ -193,11 +195,13 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
         Model's predictions for the given target.
 
     """
+
     def feed_layer(layer):
         """
         Overwrites the intermediate layer status with the precomputed values `x`.
 
         """
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Store the result and inputs of `layer.call` internally.
@@ -216,9 +220,8 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
 
     feed_layer(layer)
     if forward_kwargs is None:
-        preds = model(orig_dummy_input)
-    else:
-        preds = model(orig_dummy_input, **forward_kwargs)
+        forward_kwargs = {}
+    preds = model(orig_dummy_input, **forward_kwargs)
 
     delattr(layer, 'inp')
     delattr(layer, 'result')
@@ -259,11 +262,15 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
         Output of the given layer.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
+
     def take_layer(layer):
         """
         Stores the layer's outputs internally to the layer's object.
 
         """
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Store the result of `layer.call` internally.
@@ -278,10 +285,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
 
     # inp = tf.zeros((x.shape[0], ) + model.input_shape[1:])
     take_layer(layer)
-    if forward_kwargs is None:
-        _ = model(x)
-    else:
-        _ = model(x, **forward_kwargs)
+    _ = model(x, **forward_kwargs)
     layer_inp = layer.inp
     layer_out = layer.result
 
@@ -327,6 +331,8 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
         Forwarded inputs and  baselines as a numpy arrays.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     if layer is not None:
         X_layer = _run_forward_to_layer(model,
                                         layer,
@@ -376,6 +382,8 @@ def _gradients_input(model: Union[tf.keras.models.Model],
         Gradients for each input feature.
 
     """
+    if forward_kwargs is None:
+        forward_kwargs = {}
     with tf.GradientTape() as tape:
         tape.watch(x)
         preds = _run_forward(model, x, target, forward_kwargs=forward_kwargs)
@@ -468,6 +476,8 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         else:
             orig_dummy_input = np.repeat(orig_dummy_input, x.shape[0], axis=0)
 
+    if forward_kwargs is None:
+        forward_kwargs = {}
     #  Calculating the gradients with respect to the layer.
     with tf.GradientTape() as tape:
         watch_layer(layer, tape)
@@ -539,6 +549,50 @@ def _format_target(target: Union[None, int, list, np.ndarray],
         else:
             raise NotImplementedError
 
+    return target
+
+
+def _get_target_from_target_fn(target_fn: Callable,
+                               model: tf.keras.Model,
+                               X: Union[np.ndarray, List[np.ndarray]],
+                               forward_kwargs: Optional[dict] = None) -> np.ndarray:
+    """
+    Generate a target vector by using the `target_fn` to pick out a
+    scalar dimension from the predictions.
+
+    Parameters
+    ----------
+    target_fn
+        Target function.
+    model
+        Model
+    X
+        Data to be explained.
+    forward_kwargs
+        Any additional kwargs needed for the model forward pass.
+
+    Returns
+    -------
+    Integer array of dimension (N, ).
+    """
+    if forward_kwargs is None:
+        preds = model(X)
+    else:
+        preds = model(X, **forward_kwargs)
+
+    # raise a warning if the predictions are scalar valued already
+    # TODO: in the future we want to support outputs that are >2D at which point this check should change
+    if preds.shape[-1] == 1:
+        msg = "Predictions from the model are scalar valued but `target_fn` was passed. `target_fn` is not necessary" \
+              "when predictions are scalar valued already. Using `target_fn` here may result in unexpected behaviour."
+        warnings.warn(msg)
+
+    target = target_fn(preds)
+    expected_shape = (target.shape[0],)
+    if target.shape != expected_shape:
+        # TODO: in the future we want to support outputs that are >2D at which point this check should change
+        msg = f"`target_fn` returned an array of shape {target.shape} but expected an array of shape {expected_shape}."
+        raise ValueError(msg)  # TODO: raise a more specific error type?
     return target
 
 
@@ -658,6 +712,7 @@ class IntegratedGradients(Explainer):
     def __init__(self,
                  model: tf.keras.Model,
                  layer: Optional[tf.keras.layers.Layer] = None,
+                 target_fn: Optional[Callable] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
                  internal_batch_size: int = 100
@@ -696,8 +751,8 @@ class IntegratedGradients(Explainer):
             self._has_inputs = True
 
         if layer is None:
-            self.orig_call = None
-            layer_num = 0
+            self.orig_call: Optional[Callable] = None
+            layer_num: Optional[int] = 0
         else:
             self.orig_call = layer.call
             try:
@@ -717,11 +772,13 @@ class IntegratedGradients(Explainer):
         self._is_np: Optional[bool] = None
         self.orig_dummy_input: Optional[Union[list, np.ndarray]] = None
 
+        self.target_fn = target_fn
+
     def explain(self,
                 X: Union[np.ndarray, List[np.ndarray]],
                 forward_kwargs: Optional[dict] = None,
-                baselines: Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]] = None,
-                target: Union[int, list, np.ndarray] = None,
+                baselines: Optional[Union[int, float, np.ndarray, List[int], List[float], List[np.ndarray]]] = None,
+                target: Optional[Union[int, list, np.ndarray]] = None,
                 attribute_to_layer_inputs: bool = False) -> Explanation:
         """Calculates the attributions for each input feature or element of layer and
         returns an Explanation object.
@@ -756,16 +813,26 @@ class IntegratedGradients(Explainer):
             for each feature.
 
         """
+        # target handling logic
+        if self.target_fn and target is not None:
+            msg = 'Both `target_fn` and `target` were provided. Only one of these should be provided.'
+            raise ValueError(msg)
+        if self.target_fn:
+            target = _get_target_from_target_fn(self.target_fn, self.model, X, forward_kwargs)
+
         self._is_list = isinstance(X, list)
         self._is_np = isinstance(X, np.ndarray)
+        if forward_kwargs is None:
+            forward_kwargs = {}
 
         if self._is_list:
+            X = cast(List[np.ndarray], X)  # help mypy out
             self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
             nb_samples = len(X[0])
             input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
             if baselines is None:
-                baselines = [None for _ in range(len(X))]
+                baselines = [None for _ in range(len(X))]  # type: ignore
             else:
                 if not isinstance(baselines, list):
                     raise ValueError(f"If the input X is a list, baseline can only be `None` or "
@@ -785,11 +852,12 @@ class IntegratedGradients(Explainer):
                 baselines[i] = baseline  # type: ignore
 
         elif self._is_np:
+            X = cast(np.ndarray, X)  # help mypy out
             self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
             nb_samples = len(X)
             input_dtypes = [X.dtype]  # type: ignore
             # Formatting baselines for models with a single input
-            baselines = _format_baseline(X, baselines)
+            baselines = _format_baseline(X, baselines)  # type: ignore # TODO: validate/narrow baselines type
 
         else:
             raise ValueError("Input must be a np.ndarray or a list of np.ndarray")
@@ -797,22 +865,23 @@ class IntegratedGradients(Explainer):
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        target = _format_target(target, nb_samples)
+        target = _format_target(target, nb_samples)  # type: ignore[assignment]
 
         if self._is_list:
+            X = cast(List[np.ndarray], X)  # help mypy out
             # Attributions calculation in case of multiple inputs
             if not self._has_inputs:
                 # Inferring model's inputs from data points for models with no explicit inputs
                 # (typically subclassed models)
                 inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
-                self.model(inputs)
+                self.model(inputs, **forward_kwargs)
 
-            _validate_output(self.model, target)
+            _validate_output(self.model, target)  # type: ignore[arg-type]
 
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions = self._compute_attributions_list_input(X,
-                                                                     baselines,
+                                                                     baselines,  # type: ignore[arg-type]
                                                                      target,
                                                                      step_sizes,
                                                                      alphas,
@@ -823,10 +892,10 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,
+                                                                   baselines,  # type: ignore[arg-type]
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,
+                                                                   self.orig_call,  # type: ignore[arg-type]
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -853,7 +922,7 @@ class IntegratedGradients(Explainer):
             # Attributions calculation in case of single input
             if not self._has_inputs:
                 inputs = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
-                self.model(inputs)
+                self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
 
@@ -870,10 +939,10 @@ class IntegratedGradients(Explainer):
             else:
                 # forwad inputs and  baselines
                 X_layer, baselines_layer = _forward_input_baseline(X,
-                                                                   baselines,
+                                                                   baselines,  # type: ignore[arg-type]
                                                                    self.model,
                                                                    self.layer,
-                                                                   self.orig_call,
+                                                                   self.orig_call,  # type: ignore[arg-type]
                                                                    forward_kwargs=forward_kwargs,
                                                                    forward_to_inputs=attribute_to_layer_inputs)
 
@@ -899,7 +968,7 @@ class IntegratedGradients(Explainer):
         deltas = _compute_convergence_delta(self.model,
                                             input_dtypes,
                                             attributions,
-                                            baselines,
+                                            baselines,  # type: ignore[arg-type]
                                             X,
                                             forward_kwargs,
                                             target,
@@ -908,24 +977,25 @@ class IntegratedGradients(Explainer):
         return self.build_explanation(
             X=X,
             forward_kwargs=forward_kwargs,
-            baselines=baselines,
+            baselines=baselines,  # type: ignore[arg-type]
             target=target,
             attributions=attributions,
             deltas=deltas
         )
 
     def build_explanation(self,
-                          X: List[np.ndarray],
+                          X: Union[List[np.ndarray], np.ndarray],
                           forward_kwargs: Optional[dict],
                           baselines: List[np.ndarray],
                           target: Optional[List[int]],
                           attributions: Union[List[np.ndarray], List[tf.Tensor]],
                           deltas: np.ndarray) -> Explanation:
-
+        if forward_kwargs is None:
+            forward_kwargs = {}
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
-        predictions = self.model(X).numpy()
+        predictions = self.model(X, **forward_kwargs).numpy()
         if isinstance(attributions[0], tf.Tensor):
-            attributions = [attr.numpy() for attr in attributions]
+            attributions = [attr.numpy() for attr in attributions]  # type: ignore[union-attr]
         data.update(X=X,
                     forward_kwargs=forward_kwargs,
                     baselines=baselines,
@@ -977,6 +1047,8 @@ class IntegratedGradients(Explainer):
             Tuple with integrated gradients attributions, deltas and predictions
 
         """
+        if forward_kwargs is None:
+            forward_kwargs = {}
         attrs_dtypes = [xx.dtype for xx in X]
 
         # define paths in features' space
@@ -987,9 +1059,9 @@ class IntegratedGradients(Explainer):
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
             paths.append(path)
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}
+                            for k in forward_kwargs.keys()}  # type: Optional[dict]
         else:
             paths_kwargs = None
 
@@ -999,7 +1071,7 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             if target_paths is not None:
                 ds_args = tuple(p for p in paths) + (paths_kwargs, target_paths)
             else:
@@ -1018,7 +1090,7 @@ class IntegratedGradients(Explainer):
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if forward_kwargs is not None:
+            if forward_kwargs:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path[:-2], path[-2], path[-1]
                 else:
@@ -1038,8 +1110,8 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,
-                                           self.orig_dummy_input,
+                                           self.orig_call,  # type: ignore[arg-type]
+                                           self.orig_dummy_input,  # type: ignore[arg-type]
                                            paths_b,
                                            target_b,
                                            forward_kwargs=kwargs_b,
@@ -1098,12 +1170,14 @@ class IntegratedGradients(Explainer):
         -------
             Tuple with integrated gradients attributions, deltas and predictions
         """
+        if forward_kwargs is None:
+            forward_kwargs = {}
         # define paths in features's or layers' space
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}
+                            for k in forward_kwargs.keys()}  # type: Optional[dict]
         else:
             paths_kwargs = None
 
@@ -1113,7 +1187,7 @@ class IntegratedGradients(Explainer):
         else:
             target_paths = None
 
-        if forward_kwargs is not None:
+        if forward_kwargs:
             if target_paths is not None:
                 ds_args = (paths, paths_kwargs, target_paths)
             else:
@@ -1131,7 +1205,7 @@ class IntegratedGradients(Explainer):
         # calculate gradients for batches
         batches = []
         for path in paths_ds:
-            if forward_kwargs is not None:
+            if forward_kwargs:
                 if target is not None:
                     paths_b, kwargs_b, target_b = path
                 else:
@@ -1150,8 +1224,8 @@ class IntegratedGradients(Explainer):
             else:
                 grads_b = _gradients_layer(self.model,
                                            self.layer,
-                                           self.orig_call,
-                                           self.orig_dummy_input,
+                                           self.orig_call,  # type: ignore[arg-type]
+                                           self.orig_dummy_input,  # type: ignore[arg-type]
                                            paths_b,
                                            target_b,
                                            forward_kwargs=kwargs_b,

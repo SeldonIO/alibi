@@ -8,7 +8,7 @@ DEFAULT_META_ANCHOR = {"name": None,
                        "type": ["blackbox"],
                        "explanations": ["local"],
                        "params": {},
-                       "version": None}
+                       "version": None}  # type: dict
 """
 Default anchor metadata.
 """
@@ -35,7 +35,7 @@ DEFAULT_META_CEM = {"name": None,
                     "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
                     "params": {},
-                    "version": None}
+                    "version": None}  # type: dict
 """
 Default CEM metadata.
 """
@@ -57,7 +57,7 @@ DEFAULT_META_CF = {"name": None,
                    "type": ["blackbox", "tensorflow", "keras"],
                    "explanations": ["local"],
                    "params": {},
-                   "version": None}
+                   "version": None}  # type: dict
 """
 Default counterfactual metadata.
 """
@@ -76,7 +76,7 @@ DEFAULT_META_CFP = {"name": None,
                     "type": ["blackbox", "tensorflow", "keras"],
                     "explanations": ["local"],
                     "params": {},
-                    "version": None}
+                    "version": None}  # type: dict
 """
 Default counterfactual prototype metadata.
 """

@@ -4,6 +4,7 @@ import numpy as np
 import tensorflow as tf
 import torch
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
+from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers.anchor_image import AnchorImage, AnchorImageSampler, scale_image
 
 
@@ -33,7 +34,7 @@ def predict_fn(request):
             # NB: torch models need dtype=torch.float32, we are not setting it here
             # to test that `dtype` argument to AnchorImage does the right thing when
             # a dummy call is made
-            image = torch.as_tensor(np.moveaxis(image, -1, 1))
+            image = torch.as_tensor(np.moveaxis(image, -1, 1))  # type: ignore
             return request.param[0].forward(image).detach().numpy()
     else:
         raise ValueError(f'Unknown model {request.param[0]} of type {type(request.param[0])}')
@@ -101,19 +102,22 @@ def test_sampler(predict_fn, models, mnist_data):
                          indirect=True,
                          ids='models={}'.format
                          )
-def test_anchor_image(predict_fn, models, mnist_data):
+@pytest.mark.parametrize('images_background', [True, False], ids='images_background={}'.format)
+def test_anchor_image(predict_fn, models, mnist_data, images_background):
     x_train = mnist_data["X_train"]
     image = x_train[0]
 
     segmentation_fn = "slic"
     segmentation_kwargs = {"n_segments": 10, "compactness": 10, "sigma": 0.5}
     image_shape = (28, 28, 1)
+    images_background = x_train[:10] if images_background else None
 
     explainer = AnchorImage(
         predict_fn,
         image_shape,
         segmentation_fn=segmentation_fn,
         segmentation_kwargs=segmentation_kwargs,
+        images_background=images_background
     )
 
     p_sample = 0.5  # probability of perturbing a superpixel
@@ -162,5 +166,33 @@ def test_anchor_image(predict_fn, models, mnist_data):
 @pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
 @pytest.mark.parametrize('models', [("mnist-cnn-pt1.9.1.pt",)], indirect=True)
 def test_anchor_image_fails_init_torch_float64(predict_fn, models):
-    with pytest.raises(RuntimeError):
+    with pytest.raises(AlibiPredictorCallException):
         explainer = AnchorImage(predict_fn, image_shape=(28, 28, 1), dtype=np.float64)  # noqa: F841
+
+
+def bad_predictor(x: np.ndarray) -> list:
+    """
+    A dummy predictor emulating the following:
+     - Expecting an array of certain dimension (4 dimensions - 1 batch, 2 spatial, 1 channel)
+     - Returning an incorrect type
+     This is used below to test custom exception functionality.
+    """
+    if x.ndim != 4:
+        raise ValueError
+    return list(x)
+
+
+def test_anchor_image_fails_init_bad_image_shape_predictor_call():
+    """
+    In this test `image_shape` is misspecified leading to an exception calling the `predictor`.
+    """
+    with pytest.raises(AlibiPredictorCallException):
+        explainer = AnchorImage(bad_predictor, image_shape=(28, 28))  # noqa: F841
+
+
+def test_anchor_image_fails_bad_predictor_return_type():
+    """
+    In this test `image_shape` is specified correctly, but the predictor returns the wrong type.
+    """
+    with pytest.raises(AlibiPredictorReturnTypeError):
+        explainer = AnchorImage(bad_predictor, image_shape=(28, 28, 1))  # noqa: F841

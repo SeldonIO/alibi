@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
+  <img src="https://raw.githubusercontent.com/SeldonIO/alibi/master/doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
 </p>
 
 [![Build Status](https://github.com/SeldonIO/alibi/workflows/CI/badge.svg?branch=master)](https://github.com/SeldonIO/alibi/actions?query=workflow%3A%22CI%22)
@@ -25,7 +25,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Anchor explanations for images</b>
             <br>
             <br>
-            <img src="examples/anchor_image.png">
+            <img src="doc/source/_static/anchor_image.png">
         </a>
     </td>
     <td width="50%">
@@ -34,7 +34,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Integrated Gradients for text</b>
             <br>
             <br>
-            <img src="examples/ig_text.png">
+            <img src="doc/source/_static/ig_text.png">
         </a>
     </td>
   </tr>
@@ -45,7 +45,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Counterfactual examples</b>
             <br>
             <br>
-            <img src="examples/cf.png">
+            <img src="doc/source/_static/cf.png">
         </a>
     </td>
     <td width="50%">
@@ -54,7 +54,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Accumulated Local Effects</b>
             <br>
             <br>
-            <img src="examples/ale.png">
+            <img src="doc/source/_static/ale.png">
         </a>
     </td>
   </tr>
@@ -86,7 +86,7 @@ pip install alibi[ray]
 
 For SHAP support, install `alibi` as follows:
 ```bash
-pip install alibi && pip install alibi[shap]
+pip install alibi[shap]
 ```
 
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,

@@ -1,16 +1,21 @@
 import logging
+from typing import Any, Optional, Tuple
+
 import numpy as np
-from sklearn.neighbors import KDTree
-from sklearn.neighbors import KNeighborsClassifier
-from typing import Tuple, Any
+from sklearn.neighbors import KDTree, KNeighborsClassifier
 
 logger = logging.getLogger(__name__)
 
 
-class TrustScore(object):
+class TrustScore:
 
-    def __init__(self, k_filter: int = 10, alpha: float = 0., filter_type: str = None,
-                 leaf_size: int = 40, metric: str = 'euclidean', dist_filter_type: str = 'point') -> None:
+    def __init__(self,
+                 k_filter: int = 10,
+                 alpha: float = 0.,
+                 filter_type: Optional[str] = None,
+                 leaf_size: int = 40,
+                 metric: str = 'euclidean',
+                 dist_filter_type: str = 'point') -> None:
         """
         Initialize trust scores.
 
@@ -93,7 +98,7 @@ class TrustScore(object):
         X_keep, Y_keep = X[keep_id, :], Y[keep_id]
         return X_keep, Y_keep
 
-    def fit(self, X: np.ndarray, Y: np.ndarray, classes: int = None) -> None:
+    def fit(self, X: np.ndarray, Y: np.ndarray, classes: Optional[int] = None) -> None:
         """
         Build KDTrees for each prediction class.
 

@@ -125,19 +125,19 @@ model performs as desired.
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                  | Scope  | Model types                                                                    | Task types                 | Data types                                       | Use                                                                                              | Resources                                                                                                                           |
-|--------------------------------------------------------------------------------------------|--------|--------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|--------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box                                                                      | Classification, Regression | Tabular (numerical)                              | How does model prediction vary with respect to features of interest?                             | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
-| [Anchors](anchors)                                                                         | Local  | Black-box                                                                      | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same?| [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)                                     |
-| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box, White-box (_TensorFlow_)                                            | Classification             | Tabular (numerical), Image                       | ""                                                                                               | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
-| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box (_TensorFlow_)                                                       | Classification, Regression | Tabular (numerical, categorical), Text and Image | What does each feature contribute to the model prediction?                                       | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
-| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box                                                                      | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                               | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) | 
-| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_)| Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                               | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
-| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_)| Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                               | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
-| [Counterfactual Instances](counterfactual-instances)                                       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                         | Classification             | Tabular (numerical), Image                       | What minimal change to features is required to reclassify the current prediction?                | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399)                                                              |                                                                                                                                    
-| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                         | Classification             | Tabular (numerical), Image                       | ""                                                                                               | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
-| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                         | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                               | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584)                                                         |
-| [Counterfactuals with Reinforcement Learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box                                                                      | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                               | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597)                                                            |
+| Explainer                                                                                  | Scope  | Model types                                                                     | Task types                 | Data types                                       | Use                                                                                               | Resources                                                                                                                           |
+|--------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box                                                                       | Classification, Regression | Tabular (numerical)                              | How does model prediction vary with respect to features of interest?                              | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
+| [Anchors](anchors)                                                                         | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)                                     |
+| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box, White-box (_TensorFlow_)                                             | Classification             | Tabular (numerical), Image                       | ""                                                                                                | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box (_TensorFlow_)                                                        | Classification, Regression | Tabular (numerical, categorical), Text and Image | What does each feature contribute to the model prediction?                                        | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
+| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box                                                                       | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) |
+| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Counterfactual Instances](counterfactual-instances)                                       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | What minimal change to features is required to reclassify the current prediction?                 | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399)                                                              |
+| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | ""                                                                                                | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584)                                                         |
+| [Counterfactuals with Reinforcement Learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597)                                                            |
 
 ### 1. Global Feature Attribution
 
@@ -244,12 +244,13 @@ by partitioning the data into good and bad wine based on a quality threshold of 
 ```
 
 An example of a predicate for this dataset would be a rule of the form: `'alcohol > 11.00'`. Note that the more
-predicates we add to an anchor, the fewer instances it applies to, as by doing so, we filter out more instances of the data.
-Anchors are sets of predicates associated to a specific instance $x$ such that $x$ is in the anchor ($A(x)=1$) and any
-other point in the anchor has the same classification as $x$ ($z$ such that $A(z) = 1 \implies f(z) = f(x)$ where $f$ is
-the model). We're interested in finding the largest possible Anchor that contains $x$.
+predicates we add to an anchor, the fewer instances it applies to, as by doing so, we filter out more instances of the 
+data. Anchors are sets of predicates associated to a specific instance $x$ such that $x$ is in the anchor ($A(x)=1$) and 
+any other point in the anchor has the same classification as $x$ ($z$ such that $A(z) = 1 \implies f(z) = f(x)$ where 
+$f$ is the model). We're interested in finding the Anchor that contains both the most instances and also $x$.
 
-To construct an anchor using Alibi for tabular data such as the wine quality dataset (see [notebook](../examples/overview.ipynb)), we use:
+To construct an anchor using Alibi for tabular data such as the wine quality 
+dataset (see [notebook](../examples/overview.ipynb)), we use:
 
 <br>
 
@@ -275,18 +276,19 @@ Anchor = ['sulphates <= 0.55', 'volatile acidity > 0.52', 'alcohol <= 11.00', 'p
 Coverage =  0.0316930775646372
 ```
 
-Note: Alibi also gives an idea of the size (coverage) of the Anchor.
+Note: Alibi also gives an idea of the size (coverage) of the Anchor which is the proportion of the input space the 
+anchor applies to.
 
 To find anchors Alibi sequentially builds them by generating a set of candidates from an initial anchor candidate,
 picking the best candidate of that set and then using that to generate the next set of candidates and repeating.
 Candidates are favoured on the basis of the number of instances they contain that are in the same class as $x$ under
 $f$. The proportion of instances the anchor contains that are classified the same as $x$ is known as the *precision* of
 the anchor. We repeat the above process until we obtain a candidate anchor with satisfactory precision. If there are
-multiple such anchors we choose the largest (as measured by *coverage*).
+multiple such anchors we choose the one that contains the most instances (as measured by *coverage*).
 
 To compute which of two anchors is better, Alibi obtains an estimate by sampling from $\mathcal{D}(z|A)$ where
 $\mathcal{D}$ is the data distribution. The sampling process is dependent on the type of data. For tabular data, this
-process is easy; we can fix the values in the Anchor and replace the rest with values from pointsS sampled from the
+process is easy; we can fix the values in the Anchor and replace the rest with values from points sampled from the
 dataset.
 
 In the case of textual data, anchors are sets of words that the sentence must include to be **in the** anchor. To sample
@@ -566,9 +568,9 @@ using different methods and models in each case.
 
 #### Path-dependent Tree SHAP
 
-| Explainer                                               | Scope  | Model types                                                                    | Task types                 | Data types                       | Use                                                        | Resources                                                                                     |
-|---------------------------------------------------------|--------|--------------------------------------------------------------------------------|----------------------------|----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
-| [Tree SHAP (path-dependent)](../methods/TreeSHAP.ipynb) | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_)| Classification, Regression | Tabular (numerical, categorical) | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
+| Explainer                                               | Scope | Model types                                                                     | Task types                 | Data types                       | Use                                                        | Resources                                                                                     |
+|---------------------------------------------------------|-------|---------------------------------------------------------------------------------|----------------------------|----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [Tree SHAP (path-dependent)](../methods/TreeSHAP.ipynb) | Local | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical) | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
 
 Computing the Shapley values for a model requires computing the interventional conditional expectation for each member
 of the [power set](https://en.wikipedia.org/wiki/Power_set) of instance features. For tree-based models we can
@@ -617,9 +619,9 @@ although there are differences due to using different methods and models in each
 
 #### Interventional Tree SHAP
 
-| Explainer                                               | Scope | Model types                                                                    | Task types                 | Data types                       | Use                                                        | Resources                                                                                     |
-|---------------------------------------------------------|-------|--------------------------------------------------------------------------------|----------------------------|----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
-| [Tree SHAP (interventional)](../methods/TreeSHAP.ipynb) | Local | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_)| Classification, Regression | Tabular (numerical, categorical) | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
+| Explainer                                               | Scope | Model types                                                                     | Task types                 | Data types                       | Use                                                        | Resources                                                                                     |
+|---------------------------------------------------------|-------|---------------------------------------------------------------------------------|----------------------------|----------------------------------|------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| [Tree SHAP (interventional)](../methods/TreeSHAP.ipynb) | Local | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical) | What does each feature contribute to the model prediction? | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9) |
 
 Suppose we sample a reference data point, $r$, from the training dataset. Let $F$ be the set of all features. For each
 feature, $i$, we then enumerate over all subsets of $S\subset F \setminus \{i\}$. If a subset is missing a feature, we
@@ -813,8 +815,8 @@ print("Counterfactual prediction:", model.predict(result_cf.data['cf']['X'])[0].
 Gives the expected result:
 
 ```
-Instance prediction: 0
-Counterfactual prediction: 1
+Instance prediction: 0        # "good"
+Counterfactual prediction: 1  # "bad"
 ```
 
 | Pros                                           | Cons                                                                      |
@@ -898,8 +900,8 @@ print("Counterfactual prediction:", model.predict(cem_cf)[0].argmax())
 Gives the expected result:
 
 ```
-Instance prediction: 0
-Counterfactual prediction: 1
+Instance prediction: 0        # "good"
+Counterfactual prediction: 1  # "bad"
 ```
 
 This method can apply to both black-box and white-box models. There is a performance cost from computing the numerical
@@ -962,9 +964,10 @@ print("Counterfactual prediction:", model.predict(proto_cf)[0].argmax())
 We get the following results:
 
 ```
-Instance prediction: 0
-Counterfactual prediction: 1
+Instance prediction: 0        # "good"
+Counterfactual prediction: 1  # "bad"
 ```
+
 
 | Pros                                                       | Cons                                                                   |
 |------------------------------------------------------------|------------------------------------------------------------------------|
@@ -976,9 +979,9 @@ Counterfactual prediction: 1
 
 #### Counterfactuals with Reinforcement Learning
 
-| Explainer                                                            | Scope  | Model types | Task types     | Data types                  | Use                                                                               | Resources                                                                |
-|----------------------------------------------------------------------|--------|-------------|----------------|-----------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------|
-| [Counterfactuals with Reinforcement Learning](../methods/CFRL.ipynb) | Local  | Black-box   | Classification | Tabular (numerical, categorical), Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597) |
+| Explainer                                                            | Scope | Model types | Task types     | Data types                              | Use                                                                               | Resources                                                                |
+|----------------------------------------------------------------------|-------|-------------|----------------|-----------------------------------------|-----------------------------------------------------------------------------------|--------------------------------------------------------------------------|
+| [Counterfactuals with Reinforcement Learning](../methods/CFRL.ipynb) | Local | Black-box   | Classification | Tabular (numerical, categorical), Image | What minimal change to features is required to reclassify the current prediction? | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597) |
 
 This black-box method splits from the approach taken by the above three significantly. Instead of minimizing a loss
 during the explain method call, it trains a **new model** when **fitting** the explainer called an **actor** that takes
@@ -1033,9 +1036,17 @@ print("Counterfactual prediction:", model.predict(result_cfrl.data['cf']['X'])[0
 Which gives the following output:
 
 ```
-Instance prediction: 0
-Counterfactual prediction: 1
+Instance prediction: 0        # "good"
+Counterfactual prediction: 1  # "bad"
 ```
+
+
+:::{admonition} **Note 6: CFRL explainers**
+Alibi exposes two explainer methods for counterfactuals with reinforcement learning. The first is the CounterfactualRL 
+and the second is CounterfactualRlTabular. The difference is that CounterfactualRlTabular is designed to support 
+categorical features. See the [CFRL documentation page](../methods/CFRL.ipynb) for more details.
+:::
+
 
 | Pros                                                       | Cons                                    |
 |------------------------------------------------------------|-----------------------------------------|
@@ -1050,21 +1061,23 @@ Counterfactual prediction: 1
 
 For each of the four explainers, we have generated a counterfactual instance. We compare the original instance to each:
 
-| Feature              | Instance | CFI        | CEM        | CFP       | CFRL     |
-|----------------------|----------|------------|------------|-----------|----------|
-| sulphates            | 0.67     | **0.64**   | **0.549**  | **0.623** | **0.67** |           
-| alcohol              | 10.5     | **9.88**   | **9.652**  | **9.942** | **10.5** |   
-| residual sugar       | 1.6      | **1.582**  | **1.479**  | 1.6       | 1.6      |
-| chlorides            | 0.062    | 0.061      | **0.057**  | 0.062     | 0.062    |
-| free sulfur dioxide  | 5.0      | **4.955**  | **2.707**  | 5.0       | 5.0      |
-| total sulfur dioxide | 12.0     | **11.324** | 12.0       | 12.0      | 12.0     |
-| fixed acidity        | 9.2      | **9.23**   | 9.2        | 9.2       | 9.2      |
-| volatile acidity     | 0.36     | 0.36       | 0.36       | 0.36      | 0.36     |
-| citric acid          | 0.34     | 0.334      | 0.34       | 0.34      | 0.34     |
-| density              | 0.997    | 0.997      | 0.997      | 0.997     | 0.997    |
-| pH                   | 3.2      | 3.199      | 3.2        | 3.2       | 3.2      |
+| Feature              | Instance | CFI        | CEM        | CFP       | CFRL       |
+|----------------------|----------|------------|------------|-----------|------------|
+| sulphates            | 0.67     | **0.64**   | **0.549**  | **0.623** | **0.598**  |           
+| alcohol              | 10.5     | **9.88**   | **9.652**  | **9.942** | **9.829**  |   
+| residual sugar       | 1.6      | **1.582**  | **1.479**  | 1.6       | **2.194**  |
+| chlorides            | 0.062    | 0.061      | **0.057**  | 0.062     | **0.059**  |
+| free sulfur dioxide  | 5.0      | **4.955**  | **2.707**  | 5.0       | **6.331**  |
+| total sulfur dioxide | 12.0     | **11.324** | 12.0       | 12.0      | **14.989** |
+| fixed acidity        | 9.2      | **9.23**   | 9.2        | 9.2       | **8.965**  |
+| volatile acidity     | 0.36     | 0.36       | 0.36       | 0.36      | **0.349**  |
+| citric acid          | 0.34     | 0.334      | 0.34       | 0.34      | 0.242      |
+| density              | 0.997    | 0.997      | 0.997      | 0.997     | 0.997      |
+| pH                   | 3.2      | 3.199      | 3.2        | 3.2       | 3.188      |
 
-Looking at the ALE plots, we can see how the counterfactual methods change the features to flip the prediction. Note
+The CFI, CEM, and CFRL methods all perturb more features than CFP, making them less interpretable. Looking at the ALE 
+plots, we can see how the counterfactual methods change the features to flip the prediction. In general, each method 
+seems to decrease the sulphates and alcohol content to obtain a "bad" classification consistent with the ALE plots. Note
 that the ALE plots potentially miss details local to individual instances as they are global insights.
 
 ```{image} images/ale-plots.png

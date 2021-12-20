@@ -236,7 +236,7 @@ class KernelExplainerWrapper(KernelExplainer):
         """
         Parameters
         -----------
-        args, kwargs
+        *args, **kwargs
             Arguments and keyword arguments for `shap.KernelExplainer` constructor.
         """
 
@@ -256,7 +256,7 @@ class KernelExplainerWrapper(KernelExplainer):
         X
             When called from a distributed context, it is a tuple containing a batch index and a batch to be explained.
             Otherwise, it is an array of instances to be explained.
-        kwargs
+        **kwargs
             `shap.KernelExplainer.shap_values` kwarg values.
         """
 
@@ -312,7 +312,7 @@ class KernelShap(Explainer, FitMixin):
             about the semantics of explaining the model in the probability or margin space.
 
             .. _example:
-               https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
+               https://github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb
 
         feature_names
             Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit`
@@ -710,7 +710,7 @@ class KernelShap(Explainer, FitMixin):
         weights:
             A sequence or array of weights. This is used only if grouping is specified and assigns a weight
             to each point in the dataset.
-        kwargs:
+        **kwargs:
             Expected keyword arguments include `keep_index` (bool) and should be used if a data frame containing an
             index column is passed to the algorithm.
         """
@@ -802,7 +802,7 @@ class KernelShap(Explainer, FitMixin):
         cat_vars_enc_dim
             The length of the encoding dimension for each categorical variable. If specified `cat_vars_start_idx` should
             also be specified.
-        kwargs
+        **kwargs
             Keyword arguments specifying explain behaviour. Valid arguments are:
 
                 - `nsamples` - controls the number of predictor calls and therefore runtime.
@@ -1074,7 +1074,7 @@ class TreeShap(Explainer, FitMixin):
         (the entire real line). For discussion related to explaining models in output vs probability space, please
         consult this  resource_.
 
-        .. _resource: https://github.com/slundberg/shap/blob/master/notebooks/kernel_explainer/Squashing%20Effect.ipynb
+        .. _resource: https://github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb
     """  # noqa W605
 
         super().__init__(meta=copy.deepcopy(DEFAULT_META_TREE_SHAP))

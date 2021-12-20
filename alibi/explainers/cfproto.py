@@ -1316,7 +1316,7 @@ class CounterfactualProto(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the counterfactual with additional metadata as attributes.
-            See usage at` CFProto examples`_ for details.
+            See usage at `CFProto examples`_ for details.
 
             .. _CFProto examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html

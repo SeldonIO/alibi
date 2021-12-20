@@ -599,7 +599,8 @@ class RemoteSampler:
         Parameters
         ----------
         anchors_batch, num_samples, compute_labels
-            A list of result tuples. See :py:meth:`alibi.exapliners.anchor_tabular/TabularSampler.__call__` for details.
+            A list of result tuples. See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`
+            for details.
         """
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
@@ -657,7 +658,7 @@ class RemoteSampler:
 
     def build_lookups(self, X: np.ndarray):
         """
-        Wrapper around :py:meth:`alibi.explaines.anchor_tabular.TabularSampler.build_lookups`.
+        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
 
         Parameters
         --------
@@ -688,7 +689,7 @@ class AnchorTabular(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         feature_names
             List with feature names.
         categorical_names

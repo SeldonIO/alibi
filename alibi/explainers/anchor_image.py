@@ -65,7 +65,7 @@ class AnchorImageSampler:
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
             Function used to segment the images.
         image
@@ -321,9 +321,9 @@ class AnchorImage(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         image_shape
-            Shape of the image to be explained.
+            Shape of the image to be explained. The channel axis is expected to be last.
         dtype
             A `numpy` scalar type that corresponds to the type of input array expected by `predictor`. This may be
             used to construct arrays of the given type to be passed through the `predictor`. For most use cases

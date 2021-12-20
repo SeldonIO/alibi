@@ -375,7 +375,7 @@ class SimilaritySampler(AnchorTextSampler):
         use_proba
             Bool whether to sample according to a similarity score with the corpus embeddings.
         temperature
-            Sample weight hyper-parameter if `use_proba=True`.
+            Sample weight hyper-parameter if ``use_proba=True``.
         **kwargs
             Other arguments. Not used.
 
@@ -902,7 +902,7 @@ class LanguageModelSampler(AnchorTextSampler):
         Returns
         -------
         sampled_tokens
-            Tensor containing the ids of the sampled tokens. Has `num_samples` rows.
+            Array containing the ids of the sampled tokens. Has `num_samples` rows.
         sampled_data
             Binary array having 0 where the tokens were masked. Has `num_samples` rows.
         """
@@ -1001,7 +1001,7 @@ class LanguageModelSampler(AnchorTextSampler):
         Returns
         -------
         sampled_tokens
-            Tensor containing the ids of the sampled tokens. Has `num_samples` rows.
+            Array containing the ids of the sampled tokens. Has `num_samples` rows.
         sampled_data
             Binary array having 0 where the tokens were masked. Has `num_samples` rows.
         """

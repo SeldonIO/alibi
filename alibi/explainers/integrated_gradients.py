@@ -31,7 +31,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     input_dtypes
         List with data types of the inputs.
     attributions
@@ -106,6 +106,7 @@ def _select_target(preds: tf.Tensor,
         Predictions before selection.
     targets
         Targets to select.
+
     Returns
     -------
     Selected predictions.
@@ -132,7 +133,7 @@ def _run_forward(model: Union[tf.keras.models.Model],
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     x
         Input data point.
     target
@@ -171,7 +172,7 @@ def _run_forward_from_layer(model: tf.keras.models.Model,
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     layer
         Starting layer for the forward call.
     orig_call
@@ -247,7 +248,7 @@ def _run_forward_to_layer(model: tf.keras.models.Model,
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     layer
         Starting layer for the forward call.
     orig_call
@@ -318,7 +319,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
     bls
         Baselines.
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     layer
         Desired layer output.
     orig_call
@@ -373,7 +374,7 @@ def _gradients_input(model: Union[tf.keras.models.Model],
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     x
         Input data point.
     target
@@ -412,7 +413,7 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
     Parameters
     ----------
     model
-        `Tensorflow` or `keras` model.
+        `tensorflow` model.
     layer
         Layer of the model with respect to which the gradients are calculated.
     orig_call
@@ -718,15 +719,14 @@ class IntegratedGradients(Explainer):
                  internal_batch_size: int = 100
                  ) -> None:
         """
-        An implementation of the integrated gradients method for `Tensorflow` and `Keras` models.
+        An implementation of the integrated gradients method for `tensorflow` models.
 
-        For details of the method see the original paper:
-        https://arxiv.org/abs/1703.01365 .
+        For details of the method see the original paper: https://arxiv.org/abs/1703.01365 .
 
         Parameters
         ----------
         model
-            `Tensorflow` or `Keras` model.
+            `tensorflow` model.
         layer
             Layer with respect to which the gradients are calculated.
             If not provided, the gradients are calculated with respect to the input.

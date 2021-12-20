@@ -55,7 +55,7 @@ class NormalActionNoise:
         Parameters
         ----------
         shape
-            Shape of the tensor to be generated
+            Shape of the array to be generated
 
         Returns
         -------
@@ -71,7 +71,7 @@ class ReplayBuffer:
     """
     Circular experience replay buffer for `CounterfactualRL` (DDPG). When the buffer is filled, then the oldest
     experience is replaced by the new one (FIFO). The experience batch size is kept constant and inferred when
-    the first batch of data is stored. Allowing flexible batch size can generate `Tensorflow` warning due to
+    the first batch of data is stored. Allowing flexible batch size can generate `tensorflow` warning due to
     the `tf.function` retracing, which can lead to a drop in performance.
     """
     X: np.ndarray  #: Inputs buffer.
@@ -89,7 +89,7 @@ class ReplayBuffer:
         ----------
         size
             Dimension of the buffer in batch size. This that the total memory allocated is proportional with the
-            `size x batch_size`, where `batch_size` is inferred from the first tensors to be stored.
+            `size x batch_size`, where `batch_size` is inferred from the first array to be stored.
         """
 
         self.idx = 0  # cursor for the buffer
@@ -345,10 +345,10 @@ class CounterfactualRL(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs. For classification
-            task, the second dimension of the output should match the number of classes. Thus, the output can be either
-            a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
-            performance since `argmax` is applied to the predictor's output.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs. For
+            classification task, the second dimension of the output should match the number of classes. Thus, the
+            output can be either a soft label distribution or a hard label distribution (i.e. one-hot encoding)
+            without affecting the performance since `argmax` is applied to the predictor's output.
         encoder
             Pretrained encoder network.
         decoder
@@ -514,7 +514,7 @@ class CounterfactualRL(Explainer, FitMixin):
         Parameters
         ----------
         predictor.
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         encoder
             Pretrained encoder network.
         decoder

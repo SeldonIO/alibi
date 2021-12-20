@@ -129,10 +129,10 @@ class CounterfactualRLTabular(CounterfactualRL):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs. For classification
-            task, the second dimension of the output should match the number of classes. Thus, the output can be either
-            a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
-            performance since `argmax` is applied to the predictor's output.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs. For
+            classification task, the second dimension of the output should match the number of classes. Thus, the
+            output can be either a soft label distribution or a hard label distribution (i.e. one-hot encoding)
+            without affecting the performance since `argmax` is applied to the predictor's output.
         encoder
             Pretrained heterogeneous encoder network.
         decoder

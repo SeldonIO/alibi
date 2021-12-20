@@ -100,7 +100,7 @@ class Counterfactual(Explainer):
         Parameters
         ----------
         predict_fn
-            `Keras` or `TensorFlow` model or any other model's prediction function returning class probabilities.
+            `tensorflow` model or any other model's prediction function returning class probabilities.
         shape
             Shape of input data starting with batch size.
         distance_fn
@@ -133,11 +133,11 @@ class Counterfactual(Explainer):
         decay
             Flag to decay learning rate to zero for each outer loop over lambda.
         write_dir
-            Directory to write `Tensorboard` files to.
+            Directory to write `tensorboard` files to.
         debug
-            Flag to write `Tensorboard` summaries for debugging.
+            Flag to write `tensorboard` summaries for debugging.
         sess
-            Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
+            Optional `tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CF))
         # get params for storage in meta

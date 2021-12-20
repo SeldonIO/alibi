@@ -106,7 +106,7 @@ def rank_by_importance(shap_values: List[np.ndarray],
 
 def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int]):
     """
-    This function is used to reduce specified slices in a two- or three- dimensional tensor.
+    This function is used to reduce specified slices in a two- or three- dimensional array.
 
     For two-dimensional `values` arrays, for each entry in `start_idx`, the function sums the
     following `k` columns where `k` is the corresponding entry in the `enc_feat_dim` sequence.
@@ -114,10 +114,10 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     contain the shap values for each dimension of an encoded categorical variable and a single shap
     value for each variable is desired.
 
-    For three-dimensional `values` arrays, the reduction is applied for each rank 2 subtensor, first along
+    For three-dimensional `values` arrays, the reduction is applied for each rank 2 subarray, first along
     the column dimension and then across the row dimension. This arises when summarising shap interaction values.
-    Each rank 2 tensor is a `E x E` matrix of shap interaction values, where `E` is the dimension of the data after
-    one-hot encoding. The result of applying the reduction yields a rank 2 tensor of dimension `F x F`, where `F` is the
+    Each rank 2 array is a `E x E` matrix of shap interaction values, where `E` is the dimension of the data after
+    one-hot encoding. The result of applying the reduction yields a rank 2 array of dimension `F x F`, where `F` is the
     number of features (i.e., the feature dimension of the data matrix before encoding). By applying this
     transformation, a single value describing the interaction of categorical features i and j and a single value
     describing the interaction of `j` and `i` is returned.
@@ -149,15 +149,15 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
 
     if len(values.shape) not in (2, 3):
         raise ValueError(
-            f"Shap value summarisation can only be applied to tensors of shap values (dim=2) or shap "
-            f"interaction values (dim=3). The tensor to be summarised had dimension {values.shape}!"
+            f"Shap value summarisation can only be applied to arrays of shap values (dim=2) or shap "
+            f"interaction values (dim=3). The array to be summarised had dimension {values.shape}!"
         )
 
     def _get_slices(start: Sequence[int], dim: Sequence[int], arr_trailing_dim: int) -> List[int]:
         """
         Given start indices, encoding dimensions and the array trailing shape, this function returns
         an array where contiguous numbers are slices. This array is used to reduce along an axis
-        only the slices `slice(start[i], start[i] + dim[i], 1)` from a tensor and leave all other slices
+        only the slices `slice(start[i], start[i] + dim[i], 1)` from an array and leave all other slices
         unchanged.
         """
 
@@ -857,7 +857,7 @@ class KernelShap(Explainer, FitMixin):
         #  else than a list of objects (because it's a generic class). An API update is necessary in order to seamlessly
         #  deal with this. Ignoring with the assumption that this feature is WIP and will not be used for now
         #  (aka, return_generator=True is not passed to the DistributedExplainer)
-        explanation = self.build_explanation(
+        explanation = self._build_explanation(
             X,
             shap_values,  # type: ignore
             expected_value,
@@ -868,11 +868,11 @@ class KernelShap(Explainer, FitMixin):
 
         return explanation
 
-    def build_explanation(self,
-                          X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
-                          shap_values: List[np.ndarray],
-                          expected_value: List[float],
-                          **kwargs) -> Explanation:
+    def _build_explanation(self,
+                           X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
+                           shap_values: List[np.ndarray],
+                           expected_value: List[float],
+                           **kwargs) -> Explanation:
         """
         Create an explanation object.  If output summarisation is required and all inputs necessary for this operation
         are passed, the raw shap values are summed first so that a single shap value is returned for each categorical
@@ -1468,8 +1468,8 @@ class TreeShap(Explainer, FitMixin):
         X
             Instances to be explained.
         shap_output
-            If `explain` is callled with ``interactions=True`` then the list contains tensors of dimensionality
-            `n_instances x n_features x n_features` of shap interaction values. Otherwise, it contains tensors of
+            If `explain` is callled with ``interactions=True`` then the list contains arrays of dimensionality
+            `n_instances x n_features x n_features` of shap interaction values. Otherwise, it contains arrays of
             dimension `n_instances x n_features` representing shap values. The length of the list equals the number of
             model outputs.
         expected_value

@@ -61,7 +61,7 @@ class CounterfactualProto(Explainer, FitMixin):
         Parameters
         ----------
         predict
-            `Keras` or `TensorFlow` model or any other model's prediction function returning class probabilities.
+            `tensorflow` model or any other model's prediction function returning class probabilities.
         shape
             Shape of input data starting with batch size.
         kappa
@@ -101,13 +101,13 @@ class CounterfactualProto(Explainer, FitMixin):
             and for `eps[1]` it should be (1x nb of features).
         clip
             Tuple with min and max clip ranges for both the numerical gradients and the gradients
-            obtained from the `TensorFlow` graph.
+            obtained from the `tensorflow` graph.
         update_num_grad
             If numerical gradients are used, they will be updated every `update_num_grad` iterations.
         write_dir
-            Directory to write `Tensorboard` files to.
+            Directory to write `tensorboard` files to.
         sess
-            Optional `Tensorflow` session that will be used if passed instead of creating or inferring one internally.
+            Optional `tensorflow` session that will be used if passed instead of creating or inferring one internally.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_CFP))
         params = locals()
@@ -978,7 +978,7 @@ class CounterfactualProto(Explainer, FitMixin):
         print_every
             Print frequency if verbose is ``True``.
         log_every
-            `Tensorboard` log frequency if write directory is specified.
+            `tensorboard` log frequency if write directory is specified.
 
         Returns
         -------
@@ -1310,7 +1310,7 @@ class CounterfactualProto(Explainer, FitMixin):
         print_every
             Print frequency if verbose is ``True``.
         log_every
-            `Tensorboard` log frequency if write directory is specified
+            `tensorboard` log frequency if write directory is specified
 
         Returns
         -------

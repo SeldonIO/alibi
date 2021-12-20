@@ -162,7 +162,7 @@ class AnchorBaseBeam:
         t
             Iteration number.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. ``1 - delta``.
+            Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
 
         Returns
         -------
@@ -214,7 +214,7 @@ class AnchorBaseBeam:
         n_samples
             The number of samples drawn for each candidate result.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. ``1 - delta``.
+            Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
         top_n
             Number of arms to be selected.
         t

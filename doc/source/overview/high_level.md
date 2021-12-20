@@ -64,11 +64,9 @@ an explainer uses some aspect of that model's internal structure. If the model i
 require taking gradients of the model predictions with respect to the inputs. Methods that require access to the model
 internals are known as **white-box** methods. Other explainers apply to any type of model. They can do so because the
 underlying method doesn't make use of the model internals. Instead, they only need to have access to the model outputs
-given particular inputs. Methods that apply in this general setting are known as **black-box** methods. Note that
-white-box methods are a subset of black-box methods and an explainer being a white-box method is a much stronger
-constraint than it being a black-box method. Typically, white-box methods are faster than black-box methods as they can
-exploit the model internals. For a more detailed discussion see
-[white-box and black-box models](./white_box_black_box.md).
+given particular inputs. Methods that apply in this general setting are known as **black-box** methods. Typically, 
+white-box methods are faster than black-box methods as they can exploit the model internals. For a more detailed 
+discussion see [white-box and black-box models](./white_box_black_box.md).
 
 :::{admonition} **Note 1: Black-box Definition**
 The use of black-box here varies subtly from the conventional use within machine learning. In most other contexts a

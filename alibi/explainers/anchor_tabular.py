@@ -131,7 +131,7 @@ class TabularSampler:
         Parameters
         ----------
         X
-             Instance to be explained.
+            Instance to be explained.
         """
 
         label = self.predictor(X.reshape(1, -1))[0]  # type: int
@@ -860,9 +860,9 @@ class AnchorTabular(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the result explaining the instance with additional metadata as attributes.
-            See usage `examples`_ for details.
+            See usage at `AnchorTabular examples`_ for details.
 
-            .. _examples:
+            .. _AnchorTabular examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # transform one-hot encodings to labels if ohe == True
@@ -1166,7 +1166,7 @@ class DistributedAnchorTabular(AnchorTabular):
 
         Parameters
         ----------
-        X:
+        X
             See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular._build_sampling_lookups` documentation.
         """
 

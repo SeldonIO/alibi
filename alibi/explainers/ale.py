@@ -108,9 +108,9 @@ class ALE(Explainer):
         -------
         explanation
             An `Explanation` object containing the data and the metadata of the calculated ALE curves.
-            See usage `examples`_ for details.
+            See usage at `ALE examples`_ for details.
 
-            .. _examples:
+            .. _ALE examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
         """
         self.meta['params'].update(min_bin_points=min_bin_points)

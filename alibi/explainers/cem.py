@@ -671,9 +671,9 @@ class CEM(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the PP or PN with additional metadata as attributes.
-            See usage `examples`_ for details.
+            See usage at `CEM examples`_ for details.
 
-            .. _examples:
+            .. _CEM examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html
         """
         if X.shape[0] != 1:

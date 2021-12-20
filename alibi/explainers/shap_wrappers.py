@@ -823,9 +823,9 @@ class KernelShap(Explainer, FitMixin):
         -------
         explanation
             An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
-            field containing additional data. See usage `examples`_ for details.
+            field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
-            .. _examples:
+            .. _KernelSHAP examples:
                https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
         """  # noqa W605
 
@@ -894,9 +894,9 @@ class KernelShap(Explainer, FitMixin):
         -------
         explanation
             An explanation object containing the shap values and prediction in the `data` field, along with a `meta`
-            field containing additional data. See usage `examples`_ for details.
+            field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
-            .. _examples:
+            .. _KernelSHAP examples:
                https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
 
         """
@@ -1279,9 +1279,9 @@ class TreeShap(Explainer, FitMixin):
         -------
         explanation
             An `Explanation` object containing the shap values and prediction in the `data` field, along with a
-            `meta` field containing additional data. See usage examples `here`_ for details.
+            `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
-            .. _here:
+            .. _TreeSHAP examples:
                https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
 
         """  # noqa: E501
@@ -1327,7 +1327,7 @@ class TreeShap(Explainer, FitMixin):
             params=True
         )
 
-        explanation = self.build_explanation(
+        explanation = self._build_explanation(
             X,
             shap_output,
             expected_value,
@@ -1449,11 +1449,11 @@ class TreeShap(Explainer, FitMixin):
                         f"explainer with the desired model output option and then call fit(background_data=my_data)!"
                     )
 
-    def build_explanation(self,
-                          X: Union[np.ndarray, pd.DataFrame, 'catboost.Pool'],
-                          shap_output: List[np.ndarray],
-                          expected_value: List[float],
-                          **kwargs) -> Explanation:
+    def _build_explanation(self,
+                           X: Union[np.ndarray, pd.DataFrame, 'catboost.Pool'],
+                           shap_output: List[np.ndarray],
+                           expected_value: List[float],
+                           **kwargs) -> Explanation:
 
         """
         Create an explanation object. If output summarisation is required and all inputs necessary for this operation
@@ -1480,9 +1480,9 @@ class TreeShap(Explainer, FitMixin):
         -------
         explanation
             An `Explanation` object containing the shap values and prediction in the `data` field, along with a
-            `meta` field containing additional data. See usage examples `here`_ for details.
+            `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
-            .. _here:
+            .. _TreeSHAP examples:
                https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
 
         """

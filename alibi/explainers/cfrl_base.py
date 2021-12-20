@@ -815,9 +815,9 @@ class CounterfactualRL(Explainer, FitMixin):
         -------
         explanation
             `Explanation` object containing the counterfactual with additional metadata as attributes. \
-            See usage `examples`_ for details.
+            See usage at `CFRL examples`_ for details.
 
-            .. _examples:
+            .. _CFRL examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
         """
         # General validation.

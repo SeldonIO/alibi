@@ -507,9 +507,9 @@ class AnchorImage(Explainer):
         -------
         explanation
             `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
-            See usage `examples`_ for details.
+            See usage at `AnchorImage examples`_ for details.
 
-            .. _examples:
+            .. _AnchorImage examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # get params for storage in meta

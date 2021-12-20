@@ -811,9 +811,9 @@ class IntegratedGradients(Explainer):
         -------
         explanation
             `Explanation` object including `meta` and `data` attributes with integrated gradients attributions \
-            for each feature. See usage `examples`_ for details.
+            for each feature. See usage at `IG examples`_ for details.
 
-            .. _examples:
+            .. _IG examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html
         """
         # target handling logic

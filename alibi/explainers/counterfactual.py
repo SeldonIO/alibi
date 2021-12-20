@@ -335,9 +335,9 @@ class Counterfactual(Explainer):
         -------
         explanation
             `Explanation` object containing the counterfactual with additional metadata as attributes.
-            See usage `examples`_ for details.
+            See usage at `Counterfactual examples`_ for details.
 
-            .. _examples:
+            .. _Counterfactual examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
         """
         # TODO change init parameters on the fly

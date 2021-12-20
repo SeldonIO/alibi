@@ -251,7 +251,7 @@ class TabularSampler:
 
     def perturbation(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
-        Implements functionality described in __call__.
+        Implements functionality described in :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`.
 
         Parameters
         ----------

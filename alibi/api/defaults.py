@@ -104,7 +104,7 @@ KERNEL_SHAP_PARAMS = [
     'kwargs',
 ]
 """
-KernelShap parameters updated and returned in ```metadata['params']``. 
+KernelShap parameters updated and returned in ```metadata['params']``.
 See :py:class:`alibi.explainers.shap_wrappers.KernelShap`.
 """
 

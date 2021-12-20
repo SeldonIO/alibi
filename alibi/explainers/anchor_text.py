@@ -325,7 +325,7 @@ class SimilaritySampler(AnchorTextSampler):
         """
         The function returns a `numpy` array of `num_samples` where randomly chosen features,
         except those in anchor, are replaced by similar words with the same part of speech of tag.
-        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence` for details of how
+        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence_similarity` for details of how
         the replacement works.
 
         Parameters
@@ -1158,13 +1158,13 @@ Default perturbation options for ``'language_model'`` sampling
     A `filling='autoregressive'` will generate `num_samples` masking templates regardless of the value \
     of `frac_mask_templates`.
 
-    - ``batch_size_lm`` : ``int`` - batch size used for the language model forward pass.
+    - ``'batch_size_lm'`` : ``int`` - batch size used for the language model forward pass.
 
-    - ``punctuation`` : ``str`` - string of punctuation not to be masked.
+    - ``'punctuation'`` : ``str`` - string of punctuation not to be masked.
 
-    - ``stopwords`` : ``List[str]`` - list of words not to be masked.
+    - ``'stopwords'`` : ``List[str]`` - list of words not to be masked.
 
-    - ``sample_punctuation`` : ``bool`` - whether to sample punctuation to fill the masked words. If ``False``, the \
+    - ``'sample_punctuation'`` : ``bool`` - whether to sample punctuation to fill the masked words. If ``False``, the \
     punctuation defined in `punctuation` will not be sampled.
 """
 

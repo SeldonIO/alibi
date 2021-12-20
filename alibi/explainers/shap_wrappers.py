@@ -312,7 +312,7 @@ class KernelShap(Explainer, FitMixin):
             about the semantics of explaining the model in the probability or margin space.
 
             .. _example:
-               https://github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb
+               https://github.com/slundberg/shap/blob/master/notebooks/tabular_examples/model_agnostic/Squashing%20Effect.ipynb 
 
         feature_names
             Used to infer group names when categorical data is treated by grouping and `group_names` input to `fit`

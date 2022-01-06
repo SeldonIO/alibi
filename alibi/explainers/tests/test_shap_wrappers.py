@@ -936,6 +936,9 @@ use_groups = [True, False]
 summarise_result = [True, False]
 
 
+# FIXME: behaviour of mock data and mock predictor likely needs to be reconsidered
+#  for these tests to pass. See https://github.com/SeldonIO/alibi/issues/564
+@pytest.mark.skip(reason="https://github.com/SeldonIO/alibi/issues/564")
 @pytest.mark.parametrize('mock_kernel_shap_explainer', mock_ker_exp_params, ids=mock_ker_expln_id, indirect=True)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -1080,7 +1083,6 @@ n_instances, n_features = 10, 10
 @pytest.mark.parametrize('n_instances', (n_instances,), ids='n_instances={}'.format)
 @pytest.mark.parametrize('n_features', (n_features,), ids='n_features={}'.format)
 def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_params, n_instances, n_features):
-
     import ray
 
     explainer = mock_kernel_shap_explainer

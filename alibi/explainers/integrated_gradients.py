@@ -810,7 +810,7 @@ class IntegratedGradients(Explainer):
         Returns
         -------
         explanation
-            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions \
+            `Explanation` object including `meta` and `data` attributes with integrated gradients attributions
             for each feature. See usage at `IG examples`_ for details.
 
             .. _IG examples:
@@ -977,7 +977,7 @@ class IntegratedGradients(Explainer):
                                             target,
                                             self._is_list)
 
-        return self.build_explanation(
+        return self.__build_explanation(
             X=X,
             forward_kwargs=forward_kwargs,
             baselines=baselines,  # type: ignore[arg-type]
@@ -986,13 +986,13 @@ class IntegratedGradients(Explainer):
             deltas=deltas
         )
 
-    def build_explanation(self,
-                          X: Union[List[np.ndarray], np.ndarray],
-                          forward_kwargs: Optional[dict],
-                          baselines: List[np.ndarray],
-                          target: Optional[List[int]],
-                          attributions: Union[List[np.ndarray], List[tf.Tensor]],
-                          deltas: np.ndarray) -> Explanation:
+    def __build_explanation(self,
+                            X: Union[List[np.ndarray], np.ndarray],
+                            forward_kwargs: Optional[dict],
+                            baselines: List[np.ndarray],
+                            target: Optional[List[int]],
+                            attributions: Union[List[np.ndarray], List[tf.Tensor]],
+                            deltas: np.ndarray) -> Explanation:
         if forward_kwargs is None:
             forward_kwargs = {}
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)
@@ -1179,7 +1179,7 @@ class IntegratedGradients(Explainer):
 
         Returns
         -------
-        Tuple with integrated gradients attributions, deltas and predictions
+        Tuple with integrated gradients attributions, deltas and predictions.
         """
         if forward_kwargs is None:
             forward_kwargs = {}

@@ -296,7 +296,7 @@ class SimilaritySampler(AnchorTextSampler):
         Parameters
         ----------
         text
-          Text to be processed.
+            Text to be processed.
         """
         processed = self.nlp(text)  # spaCy tokens for text
         self.words = [x.text for x in processed]  # list with words in text
@@ -771,7 +771,7 @@ class LanguageModelSampler(AnchorTextSampler):
         arr
             1D `numpy` array of strings.
         dtype
-           Array type, used to avoid truncation of strings when concatenating along axis.
+            Array type, used to avoid truncation of strings when concatenating along axis.
 
         Returns
         -------
@@ -980,6 +980,7 @@ class LanguageModelSampler(AnchorTextSampler):
         """
         Perturb the instances in an autoregressive fashion (sequential).
 
+        Parameters
         ----------
         num_samples
             Number of samples to be generated.
@@ -1204,10 +1205,14 @@ class AnchorText(Explainer):
         predictor
             A callable that takes a list of text strings representing `N` data points as inputs and returns `N` outputs.
         sampling_strategy
-            Perturbation distribution method.
+            Perturbation distribution method:
+
              - ``'unknown'`` - replaces words with UNKs.
+
              - ``'similarity'`` - samples according to a similarity score with the corpus embeddings.
+
              - ``'language_model'`` - samples according the language model's output distributions.
+
         nlp
             `spaCy` object when sampling method is ``'unknown'`` or ``'similarity'``.
         language_model
@@ -1218,8 +1223,11 @@ class AnchorText(Explainer):
         kwargs
             Sampling arguments can be passed as `kwargs` depending on the `sampling_strategy`.
             Check default arguments defined in:
+
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_UNKNOWN`
+
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_SIMILARITY`
+
                 - :py:data:`alibi.explainers.anchor_text.DEFAULT_SAMPLING_LANGUAGE_MODEL`
 
         Raises
@@ -1318,7 +1326,9 @@ class AnchorText(Explainer):
         ----------
         anchor
              - ``int`` - the position of the anchor in the input batch.
+
              - ``tuple`` - the anchor itself, a list of words to be kept unchanged.
+
         num_samples
             Number of generated perturbed samples.
         compute_labels
@@ -1330,19 +1340,19 @@ class AnchorText(Explainer):
         If ``compute_labels=True``, a list containing the following is returned
 
          - `covered_true` - perturbed examples where the anchor applies and the model prediction \
-         on perturbation is the same as the instance prediction
+         on perturbation is the same as the instance prediction.
 
          - `covered_false` - perturbed examples where the anchor applies and the model prediction \
-         is NOT the same as the instance prediction
+         is NOT the same as the instance prediction.
 
          - `labels` - num_samples ints indicating whether the prediction on the perturbed sample \
-         matches (1) the label of the instance to be explained or not (0)
+         matches (1) the label of the instance to be explained or not (0).
 
-         - `data` - Matrix with 1s and 0s indicating whether a word in the text has been perturbed for each sample
+         - `data` - Matrix with 1s and 0s indicating whether a word in the text has been perturbed for each sample.
 
-         - `-1.0` - indicates exact coverage is not computed for this algorithm
+         - `-1.0` - indicates exact coverage is not computed for this algorithm.
 
-         - `anchor[0]` - position of anchor in the batch request
+         - `anchor[0]` - position of anchor in the batch request.
 
         Otherwise, a list containing the data matrix only is returned.
         """

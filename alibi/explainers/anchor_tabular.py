@@ -83,7 +83,7 @@ class TabularSampler:
 
         Returns
         -------
-            An initialised sampler.
+        An initialised sampler.
         """
 
         self._set_data(train_data, d_train_data)
@@ -191,6 +191,7 @@ class TabularSampler:
         Returns
         -------
         If ``compute_labels=True``, a list containing the following is returned
+
          - `covered_true` - perturbed examples where the anchor applies and the model prediction \
          on perturbation is the same as the instance prediction.
 
@@ -652,7 +653,7 @@ class RemoteSampler:
 
         Returns
         -------
-            The tabular sampler object that is used in the process.
+        The tabular sampler object that is used in the process.
         """
         return self.sampler
 
@@ -667,7 +668,7 @@ class RemoteSampler:
 
         Returns
         -------
-            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
+        See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
         """
 
         cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.sampler.build_lookups(X)

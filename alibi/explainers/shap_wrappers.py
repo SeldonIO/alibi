@@ -228,8 +228,10 @@ class KernelExplainerWrapper(KernelExplainer):
     """
     A wrapper around `shap.KernelExplainer` that supports:
 
-        - fixing the seed when instantiating the KernelExplainer in a separate process
-        - passing a batch index to the explainer so that a parallel explainer pool can return batches in arbitrary order
+        - fixing the seed when instantiating the KernelExplainer in a separate process.
+
+        - passing a batch index to the explainer so that a parallel explainer pool can return batches in \
+        arbitrary order.
     """
 
     def __init__(self, *args, **kwargs):

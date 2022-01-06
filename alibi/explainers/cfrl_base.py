@@ -984,7 +984,7 @@ class CounterfactualRL(Explainer, FitMixin):
 
         Returns
         -------
-        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the
+        `Explanation` object containing the inputs with the corresponding labels, the counterfactuals with the \
         corresponding labels, targets and additional metadata.
         """
         data = deepcopy(DEFAULT_DATA_CFRL)

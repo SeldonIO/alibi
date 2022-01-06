@@ -219,7 +219,7 @@ def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='li
 
     """
     percentiles = np.linspace(0, 100, num=num_quantiles)
-    quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)
+    quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)  # type: ignore[call-overload]
     return quantiles
 
 

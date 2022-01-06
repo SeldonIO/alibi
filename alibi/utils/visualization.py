@@ -250,7 +250,7 @@ def visualize_image_attr(
                 ImageVisualizationMethod[method]
                 == ImageVisualizationMethod.blended_heat_map
         ):
-            plt_axis.imshow(np.mean(original_image, axis=2), cmap="gray")
+            plt_axis.imshow(np.mean(original_image, axis=2), cmap="gray")  # type: ignore[arg-type]
             heat_map = plt_axis.imshow(
                 norm_attr, cmap=cmap, vmin=vmin, vmax=vmax, alpha=alpha_overlay
             )

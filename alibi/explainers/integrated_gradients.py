@@ -977,7 +977,7 @@ class IntegratedGradients(Explainer):
                                             target,
                                             self._is_list)
 
-        return self.__build_explanation(
+        return self._build_explanation(
             X=X,
             forward_kwargs=forward_kwargs,
             baselines=baselines,  # type: ignore[arg-type]
@@ -986,13 +986,13 @@ class IntegratedGradients(Explainer):
             deltas=deltas
         )
 
-    def __build_explanation(self,
-                            X: Union[List[np.ndarray], np.ndarray],
-                            forward_kwargs: Optional[dict],
-                            baselines: List[np.ndarray],
-                            target: Optional[List[int]],
-                            attributions: Union[List[np.ndarray], List[tf.Tensor]],
-                            deltas: np.ndarray) -> Explanation:
+    def _build_explanation(self,
+                           X: Union[List[np.ndarray], np.ndarray],
+                           forward_kwargs: Optional[dict],
+                           baselines: List[np.ndarray],
+                           target: Optional[List[int]],
+                           attributions: Union[List[np.ndarray], List[tf.Tensor]],
+                           deltas: np.ndarray) -> Explanation:
         if forward_kwargs is None:
             forward_kwargs = {}
         data = copy.deepcopy(DEFAULT_DATA_INTGRAD)

@@ -123,10 +123,10 @@ class CEM(Explainer, FitMixin):
         self.eps = eps
         self.clip = clip
         self.write_dir = write_dir
-        if type(no_info_val) == float:
+        if isinstance(no_info_val, float):
             self.no_info_val = np.ones(shape) * no_info_val
         else:
-            self.no_info_val = no_info_val
+            self.no_info_val = no_info_val  # type: ignore[assignment]
 
         # values regarded as containing no information
         # PNs will deviate away from these values while PPs will gravitate towards them

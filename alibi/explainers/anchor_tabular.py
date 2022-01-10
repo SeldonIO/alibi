@@ -220,7 +220,8 @@ class TabularSampler:
             labels = self.compare_labels(raw_data)
             covered_true = raw_data[labels, :][:self.n_covered_ex]
             covered_false = raw_data[np.logical_not(labels), :][:self.n_covered_ex]
-            return [covered_true, covered_false, labels.astype(int), data, coverage, anchor[0]]
+            return [covered_true, covered_false, labels.astype(int), data, coverage,
+                    anchor[0]]  # type: ignore[return-value]
         else:
             return [data]  # only binarised data is used for coverage computation
 

@@ -945,7 +945,7 @@ class CounterfactualProto(Explainer, FitMixin):
             dist_orig = self.kdtrees[orig_class].query(X, k=1)[0]
         else:
             logger.warning('Need either an encoder or the k-d trees enabled to compute distance scores.')
-        return dist_orig / (dist_adv + eps)
+        return dist_orig / (dist_adv + eps)  # type: ignore[return-value]
 
     def attack(self, X: np.ndarray, Y: np.ndarray, target_class: Optional[list] = None, k: Optional[int] = None,
                k_type: str = 'mean', threshold: float = 0., verbose: bool = False, print_every: int = 100,
@@ -1060,6 +1060,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
+            self.id_proto = min(dist_proto)
             self.id_proto = min(dist_proto)
             proto_val = self.class_proto[self.id_proto]
             if verbose:

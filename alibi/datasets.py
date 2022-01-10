@@ -69,7 +69,7 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
         target_names.append('_'.join(name).split('.')[0])
     tar.close()
 
-    images = np.concatenate(images, axis=0)
+    images = np.concatenate(images, axis=0)  # type: ignore[assignment]
     targets = np.asarray(target)
     if return_X_y:
         return images, targets  # type: ignore[return-value] # TODO: allow redefiniton

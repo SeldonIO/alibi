@@ -7,7 +7,7 @@
 
 ## What is Explainability?
 
-**Explainability provides us with algorithms that give insights into trained models predictions.** It allows us to
+**Explainability provides us with algorithms that give insights into trained model predictions.** It allows us to
 answer questions such as:
 
 - How does a prediction **change** dependent on feature inputs?
@@ -22,14 +22,14 @@ answer questions such as:
 
 Alibi provides a set of **algorithms** or **methods** known as **explainers**. Each explainer provides some kind of
 insight about a model. The set of insights available given a trained model is dependent on a number of factors. For
-instance, if the model is a [regression](https://en.wikipedia.org/wiki/Regression_analysis) it makes sense to ask how
+instance, if the model is a [regression model](https://en.wikipedia.org/wiki/Regression_analysis) it makes sense to ask how
 the prediction varies for some regressor. Whereas it doesn't make sense to ask what minimal change is required to
-obtain a new class prediction. In general, given a model the explainers we can use are constrained by:
+obtain a new class prediction. In general, given a model the explainers available from **Alibi** are constrained by:
 
 - The **type of data** the model handles. Each insight applies to some or all of the following kinds of data: image,
   tabular or textual.
-- The **task the model** performs, regression
-  or [classification](https://en.wikipedia.org/wiki/Statistical_classification).
+- The **task the model** performs. Alibi provides explainers for regression
+  or [classification](https://en.wikipedia.org/wiki/Statistical_classification) models.
 - The **type of model** used. Examples of model types
   include [neural networks](https://en.wikipedia.org/wiki/Neural_network)
   and [random forests](https://en.wikipedia.org/wiki/Random_forest).
@@ -300,9 +300,10 @@ segmentation algorithms (Alibi supports
 ,
 [slic](https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#slic-k-means-based-image-segmentation)
 and [quickshift](https://scikit-image.org/docs/dev/auto_examples/segmentation/plot_segmentations.html#quickshift-image-segmentation))
-to find super-pixels. As a result, the anchors are made up of sets of these super-pixels, and so to sample from
-$\mathcal{D}(z|A)$ we replace those super-pixels that aren't in $A$ with something else. Alibi supports superimposing
-over the absent super-pixels with an image sampled from the dataset or taking the average value of the super-pixel.
+to find super-pixels. The user can also use their own custom defined segmentation function. We then create the anchors 
+from these super-pixels. To sample from $\mathcal{D}(z|A)$ we replace those super-pixels that aren't in $A$ with 
+something else. Alibi supports superimposing over the absent super-pixels with an image sampled from the dataset or 
+taking the average value of the super-pixel.
 
 The fact that the method requires perturbing and comparing anchors at each stage leads to some limitations. For instance, the
 more features, the more candidate anchors you can obtain at each process stage. The algorithm uses
@@ -359,10 +360,8 @@ Thus, we ensure that $\delta$ remains close to the original dataset distribution
 Note that $\delta$ is constrained to only "take away" features from the instance $x$. There is a slightly subtle point
 here: removing features from an instance requires correctly defining non-informative feature values. For
 the [MNIST digits](http://yann.lecun.com/exdb/mnist/), it's reasonable to assume that the black background behind each
-digit represents an absence of information. Similarly, in the case of colour images, you might take the median pixel
-value to convey no information, and moving away from this value adds information. For numerical tabular data we can use
-the feature mean. In general, having to choose a non-informative value for each feature is non-trivial and domain
-knowledge is required. This is the reverse to
+digit represents an absence of information. In general, having to choose a non-informative value for each feature is 
+non-trivial and domain knowledge is required. This is the reverse to
 the [contrastive explanation method (pertinent-negatives)](contrastive-explanation-method-pertinent-negatives) method
 introduced in the section on [counterfactual instances](#4-counterfactual-instances).
 

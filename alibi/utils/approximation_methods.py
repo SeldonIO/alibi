@@ -19,6 +19,9 @@ SUPPORTED_RIEMANN_METHODS = [
     "riemann_middle",
     "riemann_trapezoid",
 ]
+"""
+Riemann integration methods.
+"""
 
 SUPPORTED_METHODS = SUPPORTED_RIEMANN_METHODS + ["gausslegendre"]
 
@@ -26,12 +29,15 @@ SUPPORTED_METHODS = SUPPORTED_RIEMANN_METHODS + ["gausslegendre"]
 def approximation_parameters(
         method: str,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
-    """Retrieves parameters for the input approximation `method`
+    """
+    Retrieves parameters for the input approximation `method`.
 
     Parameters
     ----------
     method
-        The name of the approximation method. Currently only `riemann` and gauss legendre are
+        The name of the approximation method. Currently supported only: ``'riemann_x'`` and ``'gausslegendre``'.
+        Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_x'`` possible
+        values.
     """
     if method in SUPPORTED_RIEMANN_METHODS:
         return riemann_builders(method=Riemann[method.split("_")[-1]])
@@ -43,27 +49,25 @@ def approximation_parameters(
 def riemann_builders(
         method: Riemann = Riemann.trapezoid,
 ) -> Tuple[Callable[[int], List[float]], Callable[[int], List[float]]]:
-    """Step sizes are identical and alphas are scaled in [0, 1]
+    """
+    Step sizes are identical and alphas are scaled in [0, 1].
 
     Parameters
     ----------
     n
-        The number of integration steps
+        The number of integration steps.
     method
-        `left`, `right`, `middle` and `trapezoid` riemann
+        Riemann method: `Riemann.left` | `Riemann.right` | `Riemann.middle` | `Riemann.trapezoid`.
 
     Returns
     -------
-        2-element tuple of **step_sizes**, **alphas**:
-            - **step_sizes** (*callable*):
-                        `step_sizes` takes the number of steps as an
-                        input argument and returns an array of steps sizes which
-                        sum is smaller than or equal to one.
+    2-element tuple consisting of
 
-            - **alphas** (*callable*):
-                        `alphas` takes the number of steps as an input argument
-                        and returns the multipliers/coefficients for the inputs
-                        of integrand in the range of [0, 1]
+     - `step_sizes` :  ``Callable`` -`step_sizes` takes the number of steps as an input argument and returns an \
+     array of steps sizes which sum is smaller than or equal to one.
+
+     - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the \
+     multipliers/coefficients for the inputs of integrand in the range of [0, 1]
 
     """
 
@@ -100,9 +104,9 @@ def riemann_builders(
 def gauss_legendre_builders() -> Tuple[
     Callable[[int], List[float]], Callable[[int], List[float]]
 ]:
-    """ Numpy's `np.polynomial.legendre` function helps to compute step sizes
+    """ `Numpy` `np.polynomial.legendre` function helps to compute step sizes
     and alpha coefficients using gauss-legendre quadrature rule.
-    Since numpy returns the integration parameters in different scales we need to
+    Since `numpy` returns the integration parameters in different scales we need to
     rescale them to adjust to the desired scale.
 
     Gauss Legendre quadrature rule for approximating the integrals was originally
@@ -112,20 +116,17 @@ def gauss_legendre_builders() -> Tuple[
     Parameters
     ----------
     n
-        The number of integration steps
+        The number of integration steps.
 
     Returns
     -------
-        2-element tuple of **step_sizes**, **alphas**:
-        - **step_sizes** (*callable*):
-                    `step_sizes` takes the number of steps as an
-                    input argument and returns an array of steps sizes which
-                    sum is smaller than or equal to one.
+    2-element tuple consisting of
 
-        - **alphas** (*callable*):
-                    `alphas` takes the number of steps as an input argument
-                    and returns the multipliers/coefficients for the inputs
-                    of integrand in the range of [0, 1]
+     - `step_sizes` : ``Callable`` - `step_sizes` takes the number of steps as an input argument and returns an \
+     array of steps sizes which sum is smaller than or equal to one.
+
+     - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the \
+     multipliers/coefficients for the inputs of integrand in the range of [0, 1]
 
     """
 

@@ -3,7 +3,7 @@ import numpy as np
 
 def kl_bernoulli(p: np.ndarray, q: np.ndarray) -> np.ndarray:
     """
-    Compute KL-divergence between 2 probabilities p and q. len(p) divergences are calculated
+    Compute KL-divergence between 2 probabilities `p` and `q`. `len(p)` divergences are calculated
     simultaneously.
 
     Parameters
@@ -15,7 +15,7 @@ def kl_bernoulli(p: np.ndarray, q: np.ndarray) -> np.ndarray:
 
     Returns
     -------
-        Array with the KL-divergence between p and q.
+    Array with the KL-divergence between `p` and `q`.
     """
 
     m = np.clip(p, 0.0000001, 0.9999999999999999).astype(float)

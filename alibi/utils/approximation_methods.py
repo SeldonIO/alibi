@@ -35,7 +35,7 @@ def approximation_parameters(
     Parameters
     ----------
     method
-        The name of the approximation method. Currently supported only: ``'riemann_x'`` and ``'gausslegendre``'.
+        The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'.
         Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_x'`` possible
         values.
     """

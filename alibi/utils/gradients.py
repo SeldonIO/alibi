@@ -11,11 +11,11 @@ def perturb(X: np.ndarray,
     Parameters
     ----------
     X
-        Array to be perturbed
+        Array to be perturbed.
     eps
-        Size of perturbation
+        Size of perturbation.
     proba
-        If True, the net effect of the perturbation needs to be 0 to keep the sum of the probabilities equal to 1
+        If ``True``, the net effect of the perturbation needs to be 0 to keep the sum of the probabilities equal to 1.
 
     Returns
     -------
@@ -43,22 +43,22 @@ def num_grad_batch(func: Callable,
                    eps: Union[float, np.ndarray] = 1e-08) -> np.ndarray:
     """
     Calculate the numerical gradients of a vector-valued function (typically a prediction function in classification)
-    with respect to a batch of arrays X.
+    with respect to a batch of arrays `X`.
 
     Parameters
     ----------
     func
-        Function to be differentiated
+        Function to be differentiated.
     X
-        A batch of vectors at which to evaluate the gradient of the function
+        A batch of vectors at which to evaluate the gradient of the function.
     args
-        Any additional arguments to pass to the function
+        Any additional arguments to pass to the function.
     eps
-        Gradient step to use in the numerical calculation, can be a single float or one for each feature
+        Gradient step to use in the numerical calculation, can be a single `float` or one for each feature.
 
     Returns
     -------
-    An array of gradients at each point in the batch X
+    An array of gradients at each point in the batch `X`.
 
     """
     # N = gradient batch size; F = nb of features in X, P = nb of prediction classes, B = instance batch size

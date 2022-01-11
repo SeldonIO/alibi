@@ -13,7 +13,7 @@ ipykernel>=5.1.0, <6.0.0 # for notebook tests
 nbconvert>=6.0.7, <7.0.0 # for notebook tests
 codecov>=2.0.15, <3.0.0
 catboost>=1.0.0, <2.0.0
-alibi-testing @ git+git://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
+alibi-testing @ git+https://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
 ray>=0.8.7, <2.0.0
 # other
 pre-commit>=1.20.0, <3.0.0

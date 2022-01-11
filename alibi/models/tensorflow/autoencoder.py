@@ -34,7 +34,7 @@ class AE(keras.Model):
         self.encoder = encoder
         self.decoder = decoder
 
-    def call(self, x: tf.Tensor, **kwargs):
+    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
         """
         Forward pass.
 

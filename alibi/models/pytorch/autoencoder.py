@@ -41,7 +41,7 @@ class AE(Model):
         # send to device
         self.to(self.device)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         Forward pass.
 

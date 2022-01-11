@@ -594,7 +594,7 @@ class RemoteSampler:
     def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
                  compute_labels: bool = True) -> List:
         """
-        Wrapper around :py:meth:`alibi.explainers.anchor_tabularTabularSampler.__call__`. It allows sampling a batch
+        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`. It allows sampling a batch
         of anchors in the same process, which can improve performance.
 
         Parameters

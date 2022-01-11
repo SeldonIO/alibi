@@ -102,6 +102,14 @@ class Explainer(abc.ABC):
         return load_explainer(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
+        """
+        Resets the predictor.
+
+        Parameters
+        ----------
+        predictor
+            New predictor.
+        """
         raise NotImplementedError
 
     def save(self, path: Union[str, os.PathLike]) -> None:

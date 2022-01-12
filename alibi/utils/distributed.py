@@ -36,7 +36,7 @@ class ActorPool(object):
         import ray
         ray = ray  # module as a static variable
 
-    def __init__(self, actors: List[Any]):
+    def __init__(self, actors):
         """
         Taken fom the `ray` repository: https://github.com/ray-project/ray/pull/5945 .
         Create an actor pool from a list of existing actors.
@@ -62,19 +62,19 @@ class ActorPool(object):
         self._next_return_index = 0
         self._pending_submits = []
 
-    def map(self, fn: Callable, values: list, chunksize: int = 1):
+    def map(self, fn, values, chunksize=1):
         """Apply the given function in parallel over the `actors` and `values`. This returns an ordered iterator
         that will return results of the map as they finish. Note that you must iterate over the iterator to force
         the computation to finish.
 
         Parameters
         ----------
-        fn
+        fn : Callable
             Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over
             the `value`. The `actor` will be considered busy until the `ObjectID` completes.
-        values
+        values : list
             List of values that `fn(actor, value)` should be applied to.
-        chunksize
+        chunksize : int
             Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less.
 
         Returns
@@ -95,7 +95,7 @@ class ActorPool(object):
         while self.has_next():
             yield self.get_next()
 
-    def map_unordered(self, fn: Callable, values: list, chunksize: int = 1):
+    def map_unordered(self, fn, values, chunksize=1):
         """
         Similar to :py:meth:`alibi.utils.distributed.ActorPool.map`, but returning an unordered iterator.
         This returns an unordered iterator that will return results of the map as they finish. This can be more
@@ -104,12 +104,12 @@ class ActorPool(object):
 
         Parameters
         ----------
-        fn
+        fn : Callable
             Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over
             the `value`. The `actor` will be considered busy until the `ObjectID` completes.
-        values
+        values : list
             List of values that `fn(actor, value)` should be applied to.
-        chunksize
+        chunksize : int
             Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less.
 
         Returns

@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from alibi.models.pytorch.model import Model
-from typing import List
+from typing import List, Union
 
 
 class AE(Model):
@@ -41,7 +41,7 @@ class AE(Model):
         # send to device
         self.to(self.device)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, List[torch.Tensor]]:
         """
         Forward pass.
 

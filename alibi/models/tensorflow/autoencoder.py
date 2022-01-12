@@ -6,7 +6,7 @@ output.
 
 import tensorflow as tf
 import tensorflow.keras as keras
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 
 class AE(keras.Model):
@@ -34,7 +34,7 @@ class AE(keras.Model):
         self.encoder = encoder
         self.decoder = decoder
 
-    def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+    def call(self, x: tf.Tensor, **kwargs) -> Union[tf.Tensor, List[tf.Tensor]]:
         """
         Forward pass.
 

@@ -10,6 +10,7 @@
 :caption: Overview
 :maxdepth: 1
 
+overview/high_level
 overview/getting_started
 overview/algorithms
 overview/white_box_black_box
@@ -38,6 +39,7 @@ methods/TreeSHAP.ipynb
 :caption: Examples
 :maxdepth: 1
 
+examples/overview.ipynb
 examples/ale_regression_boston
 examples/ale_classification
 examples/anchor_tabular_adult

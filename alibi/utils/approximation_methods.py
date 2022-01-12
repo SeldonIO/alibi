@@ -63,7 +63,7 @@ def riemann_builders(
     -------
     2-element tuple consisting of
 
-     - `step_sizes` :  ``Callable`` -`step_sizes` takes the number of steps as an input argument and returns an \
+     - `step_sizes` :  ``Callable`` - `step_sizes` takes the number of steps as an input argument and returns an \
      array of steps sizes which sum is smaller than or equal to one.
 
      - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the \

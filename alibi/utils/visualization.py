@@ -90,106 +90,80 @@ def visualize_image_attr(
         fig_size: Tuple[int, int] = (6, 6),
         use_pyplot: bool = True,
 ):
-    r"""
-        Visualizes attribution for a given image by normalizing attribution values
-        of the desired sign (positive, negative, absolute value, or all) and displaying
-        them using the desired mode in a matplotlib figure.
+    """
+    Visualizes attribution for a given image by normalizing attribution values of the desired sign
+    (``'positive'`` | ``'negative'`` | ``'absolute_value'`` | ``'all'``) and displaying them using the desired mode
+    in a `matplotlib` figure.
 
-        Parameters
-        ----------
+    Parameters
+    ----------
+    attr
+        `Numpy` array corresponding to attributions to be visualized. Shape must be in the form `(H, W, C)`, with
+        channels as last dimension. Shape must also match that of the original image if provided.
+    original_image
+        `Numpy` array corresponding to original image. Shape must be in the form (H, W, C), with channels as the
+        last dimension. Image can be provided either with `float` values in range 0-1 or `int` values between 0-255.
+        This is a necessary argument for any visualization method which utilizes the original image.
+    method
+        Chosen method for visualizing attribution. Supported options are:
 
-            attr
-                Numpy array corresponding to attributions to be
-                visualized. Shape must be in the form (H, W, C), with
-                channels as last dimension. Shape must also match that of
-                the original image if provided.
-            original_image
-                Numpy array corresponding to
-                original image. Shape must be in the form (H, W, C), with
-                channels as the last dimension. Image can be provided either
-                with float values in range 0-1 or int values between 0-255.
-                This is a necessary argument for any visualization method
-                which utilizes the original image.
-            method
-                Chosen method for visualizing attribution.
-                Supported options are:
-                1. `heat_map` - Display heat map of chosen attributions
-                2. `blended_heat_map` - Overlay heat map over greyscale
-                version of original image. Parameter alpha_overlay
-                corresponds to alpha of heat map.
-                3. `original_image` - Only display original image.
-                4. `masked_image` - Mask image (pixel-wise multiply)
-                by normalized attribution values.
-                5. `alpha_scaling` - Sets alpha channel of each pixel
-                to be equal to normalized attribution value.
-                Default: `heat_map`
-            sign
-                Chosen sign of attributions to visualize. Supported
-                options are:
-                1. `positive` - Displays only positive pixel attributions.
-                2. `absolute_value` - Displays absolute value of
-                attributions.
-                3. `negative` - Displays only negative pixel attributions.
-                4. `all` - Displays both positive and negative attribution
-                values. This is not supported for `masked_image` or
-                `alpha_scaling` modes, since signed information cannot
-                be represented in these modes.
+         - ``'heat_map'`` - Display heat map of chosen attributions
 
-            plt_fig_axis
-                Tuple of matplotlib.pyplot.figure and axis
-                on which to visualize. If None is provided, then a new figure
-                and axis are created.
+         - ``'blended_heat_map'`` - Overlay heat map over greyscale version of original image. Parameter alpha_overlay \
+        corresponds to alpha of heat map.
 
-            outlier_perc
-                Top attribution values which
-                correspond to a total of outlier_perc percentage of the
-                total attribution are set to 1 and scaling is performed
-                using the minimum of these values. For sign=`all`, outliers a
-                nd scale value are computed using absolute value of
-                attributions.
+         - ``'original_image'`` - Only display original image.
 
-            cmap
-                String corresponding to desired colormap for
-                heatmap visualization. This defaults to "Reds" for negative
-                sign, "Blues" for absolute value, "Greens" for positive sign,
-                and a spectrum from red to green for all. Note that this
-                argument is only used for visualizations displaying heatmaps.
+         - ``'masked_image``' - Mask image (pixel-wise multiply) by normalized attribution values.
 
-            alpha_overlay
-                Alpha to set for heatmap when using
-                `blended_heat_map` visualization mode, which overlays the
-                heat map over the greyscaled original image.
+         - ``'alpha_scaling'`` - Sets alpha channel of each pixel to be equal to normalized attribution value.
 
-            show_colorbar
-                Displays colorbar for heatmap below
-                the visualization. If given method does not use a heatmap,
-                then a colormap axis is created and hidden. This is
-                necessary for appropriate alignment when visualizing
-                multiple plots, some with colorbars and some without.
+        Default: ``'heat_map'``
+    sign
+        Chosen sign of attributions to visualize. Supported options are:
 
-            title
-                Title string for plot. If None, no title is set.
+         - ``'positive'`` - Displays only positive pixel attributions.
 
-            fig_size
-                Size of figure created.
+         - ``'absolute_value'`` - Displays absolute value of attributions.
 
-            use_pyplot
-                If true, uses pyplot to create and show
-                figure and displays the figure after creating. If False,
-                uses Matplotlib object oriented API and simply returns a
-                figure object without showing.
+         - ``'negative'`` - Displays only negative pixel attributions.
 
-        Returns
-        -------
-            2-element tuple of **figure**, **axis**:
-            - **figure** (*matplotlib.pyplot.figure*):
-                        Figure object on which visualization
-                        is created. If plt_fig_axis argument is given, this is the
-                        same figure provided.
-            - **axis** (*matplotlib.pyplot.axis*):
-                        Axis object on which visualization
-                        is created. If plt_fig_axis argument is given, this is the
-                        same axis provided.
+         - ``'all'`` - Displays both positive and negative attribution values. This is not supported for
+         ``'masked_image'`` or ``'alpha_scaling'`` modes, since signed information cannot be represented in these modes.
+    plt_fig_axis
+        Tuple of `matplotlib.pyplot.figure` and `axis` on which to visualize. If ``None`` is provided, then a new
+        figure and axis are created.
+    outlier_perc
+        Top attribution values which correspond to a total of `outlier_perc` percentage of the total attribution are
+        set to 1 and scaling is performed using the minimum of these values. For ``sign='all'``, outliers and scale
+        value are computed using absolute value of attributions.
+    cmap
+        String corresponding to desired colormap for heatmap visualization. This defaults to ``'Reds'`` for negative
+        sign, ``'Blues'`` for absolute value, ``'Greens'`` for positive sign, and a spectrum from red to green for all.
+        Note that this argument is only used for visualizations displaying heatmaps.
+    alpha_overlay
+        Visualizes attribution for a given image by normalizing attribution values of the desired sign (positive,
+        negative, absolute value, or all) and displaying them using the desired mode in a matplotlib figure.
+    show_colorbar
+        Displays colorbar for heatmap below the visualization. If given method does not use a heatmap,
+        then a colormap axis is created and hidden. This is necessary for appropriate alignment when visualizing
+        multiple plots, some with colorbars and some without.
+    title
+        Title string for plot. If ``None``, no title is set.
+    fig_size
+        Size of figure created.
+    use_pyplot
+        If ``True``, uses pyplot to create and show figure and displays the figure after creating. If ``False``,
+        uses `matplotlib` object oriented API and simply returns a figure object without showing.
+
+    Returns
+    -------
+    2-element tuple of consisting of
+     - `figure` : ``matplotlib.pyplot.figure`` - Figure object on which visualization is created. If `plt_fig_axis` \
+     argument is given, this is the same figure provided.
+
+     - `axis` : ``matplotlib.pyplot.axis`` - Axis object on which visualization is created. If `plt_fig_axis` argument \
+     is given, this is the same axis provided.
 
     """
     # Create plot if figure, axis not provided

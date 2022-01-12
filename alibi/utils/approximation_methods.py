@@ -36,7 +36,7 @@ def approximation_parameters(
     ----------
     method
         The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'.
-        Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_x'`` possible
+        Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_*'`` possible
         values.
     """
     if method in SUPPORTED_RIEMANN_METHODS:
@@ -57,7 +57,7 @@ def riemann_builders(
     n
         The number of integration steps.
     method
-        Riemann method: `Riemann.left` | `Riemann.right` | `Riemann.middle` | `Riemann.trapezoid`.
+        Riemann method: ``Riemann.left`` | ``Riemann.right`` | ``Riemann.middle`` | ``Riemann.trapezoid``.
 
     Returns
     -------
@@ -67,7 +67,7 @@ def riemann_builders(
      array of steps sizes which sum is smaller than or equal to one.
 
      - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the \
-     multipliers/coefficients for the inputs of integrand in the range of [0, 1]
+     multipliers/coefficients for the inputs of integrand in the range of [0, 1].
 
     """
 
@@ -104,10 +104,10 @@ def riemann_builders(
 def gauss_legendre_builders() -> Tuple[
     Callable[[int], List[float]], Callable[[int], List[float]]
 ]:
-    """ `Numpy` `np.polynomial.legendre` function helps to compute step sizes
-    and alpha coefficients using gauss-legendre quadrature rule.
-    Since `numpy` returns the integration parameters in different scales we need to
-    rescale them to adjust to the desired scale.
+    """
+    `np.polynomial.legendre` function helps to compute step sizes and alpha coefficients using gauss-legendre
+    quadrature rule. Since `numpy` returns the integration parameters in different scales we need to rescale them to
+    adjust to the desired scale.
 
     Gauss Legendre quadrature rule for approximating the integrals was originally
     proposed by [Xue Feng and her intern Hauroun Habeeb]
@@ -126,7 +126,7 @@ def gauss_legendre_builders() -> Tuple[
      array of steps sizes which sum is smaller than or equal to one.
 
      - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the \
-     multipliers/coefficients for the inputs of integrand in the range of [0, 1]
+     multipliers/coefficients for the inputs of integrand in the range of [0, 1].
 
     """
 

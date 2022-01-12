@@ -101,7 +101,7 @@ def visualize_image_attr(
         `Numpy` array corresponding to attributions to be visualized. Shape must be in the form `(H, W, C)`, with
         channels as last dimension. Shape must also match that of the original image if provided.
     original_image
-        `Numpy` array corresponding to original image. Shape must be in the form (H, W, C), with channels as the
+        `Numpy` array corresponding to original image. Shape must be in the form `(H, W, C)`, with channels as the
         last dimension. Image can be provided either with `float` values in range 0-1 or `int` values between 0-255.
         This is a necessary argument for any visualization method which utilizes the original image.
     method
@@ -118,7 +118,7 @@ def visualize_image_attr(
 
          - ``'alpha_scaling'`` - Sets alpha channel of each pixel to be equal to normalized attribution value.
 
-        Default: ``'heat_map'``
+        Default: ``'heat_map'``.
     sign
         Chosen sign of attributions to visualize. Supported options are:
 

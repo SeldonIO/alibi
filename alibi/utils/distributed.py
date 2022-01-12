@@ -38,7 +38,7 @@ class ActorPool(object):
 
     def __init__(self, actors: List[Any]):
         """
-        Taken fom the `ray` repository: https://github.com/ray-project/ray/pull/5945
+        Taken fom the `ray` repository: https://github.com/ray-project/ray/pull/5945 .
         Create an actor pool from a list of existing actors.
         An actor pool is a utility class similar to `multiprocessing.Pool` that
         lets you schedule `ray` tasks over a fixed pool of actors.
@@ -96,7 +96,8 @@ class ActorPool(object):
             yield self.get_next()
 
     def map_unordered(self, fn: Callable, values: list, chunksize: int = 1):
-        """Similar to :py:meth:`alibi.utils.distributed.ActorPool.map`, but returning an unordered iterator.
+        """
+        Similar to :py:meth:`alibi.utils.distributed.ActorPool.map`, but returning an unordered iterator.
         This returns an unordered iterator that will return results of the map as they finish. This can be more
         efficient that :py:meth:`alibi.utils.distributed.ActorPool.map` if some results take longer to compute
         than others.
@@ -282,11 +283,11 @@ def batch(X: np.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -
     batch_size
         The size of each batch. In particular
 
-         - if `batch_size` is not `None`, batches of this size are created. The sizes of the batches created might \
+         - if `batch_size` is not ``None``, batches of this size are created. The sizes of the batches created might \
         vary if the 0-th dimension of `X` is not divisible by `batch_size`. For an array of length `l` that should \
         be split into `n` sections, it returns `l % n` sub-arrays of size `l//n + 1` and the rest of  `size l//n`
         
-         - if `batch_size` is `None`, then `X` is split into `n_batches` sub-arrays.
+         - if `batch_size` is ``None``, then `X` is split into `n_batches` sub-arrays.
             
     n_batches
         Number of batches in which to split the sub-array. Only used if ``batch_size = None``
@@ -363,7 +364,7 @@ def concatenate_minibatches(minibatch_results: Union[List[np.ndarray], List[List
     -------
     If the input is ``List[np.ndarray]``, a single `numpy` array obtained by concatenating `minibatch` results along \
     the 0th axis. 
-    If the input is ``List[List[np.ndarray]]`` A list of `numpy` arrays obtained by concatenating arrays in with the \ 
+    If the input is ``List[List[np.ndarray]]`` A list of `numpy` arrays obtained by concatenating arrays in with the \
     same position in the sublists along the 0th axis.
     """  # noqa W605
 
@@ -444,7 +445,7 @@ class DistributedExplainer:
     """
     if RAY_INSTALLED:
         import ray
-        ray = ray
+        ray = ray  #: `ray` module.
 
     concatenate: Callable
 
@@ -473,7 +474,7 @@ class DistributedExplainer:
                 
                 - ``'actor_cpu_frac'`` : ``(float, <= 1.0, >0.0)`` - This is used to create more than one process \
                 on one CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when \
-                few physical cores are available. In particular, this is highly useful when the user wants to share \ 
+                few physical cores are available. In particular, this is highly useful when the user wants to share \
                 a GPU for multiple tasks, with the caviat that the machine learning framework itself needs to \
                 support running multiple replicas on the same GPU. See the `ray` documentation `here_` for details.
                 
@@ -630,7 +631,7 @@ class DistributedExplainer:
         ----------
         X
             A batch of instances to be explained. Split into batches according to the settings passed to the constructor.
-        kwargs
+        **kwargs
             Any keyword-arguments for the explainer `explain` method. 
 
         Returns
@@ -675,7 +676,7 @@ class PoolCollection:
 
     if RAY_INSTALLED:
         import ray
-        ray = ray
+        ray = ray  #: `ray` module.
 
     def __init__(self,
                  distributed_opts: Dict[str, Any],
@@ -691,7 +692,7 @@ class PoolCollection:
         Parameters
         ----------
         distributed_opts , explainer_type, explainer_init_args, explainer_init_kwargs
-            See py:method:`alibi.utils.distributed.DistributedExplainer` constructor documentation for explanations. 
+            See :py:meth:`alibi.utils.distributed.DistributedExplainer` constructor documentation for explanations. 
             Each entry in the list is a different explainer configuration (e.g., CEM in PN vs PP mode, different 
             background dataset sizes for SHAP, etc).
         **kwargs
@@ -789,7 +790,7 @@ class PoolCollection:
         Parameters
         ----------
         distributed_opts, explainer_type, explainer_init_args, explainer_init_kwargs, **kwargs
-            See :py:method:`alibi.utils.distributed.PoolCollection`.
+            See :py:meth:`alibi.utils.distributed.PoolCollection`.
         """
 
         explainer_handles = [PoolCollection.ray.remote(DistributedExplainer) for _ in range(len(explainer_init_args))]

@@ -35,7 +35,7 @@ def sample_differentiable(X_hat_split: List[torch.Tensor],
 
     Returns
     -------
-        Differentiable reconstruction.
+    Differentiable reconstruction.
     """
     num_attr = len(X_hat_split) - len(category_map)
     cat_attr = len(category_map)
@@ -72,11 +72,11 @@ def l0_ohe(input: torch.Tensor,
     target
         Target tensor
     reduction
-        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+        Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
 
     Returns
     -------
-        L0 loss.
+    L0 loss.
     """
     # Order matters as the gradient of zeros will still flow if reversed order. Maybe consider clipping a bit higher?
     eps = 1e-7 / input.shape[1]
@@ -105,11 +105,11 @@ def l1_loss(input: torch.Tensor, target: torch.Tensor, reduction: str = 'none') 
     target
         Target tensor.
     reduction
-        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+        Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
 
     Returns
     -------
-        L1 loss.
+    L1 loss.
     """
     return F.l1_loss(input=input, target=target, reduction=reduction)
 
@@ -138,7 +138,7 @@ def sparsity_loss(X_hat_split: List[torch.Tensor],
 
     Returns
     -------
-        Heterogeneous sparsity loss.
+    Heterogeneous sparsity loss.
     """
     # Split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
@@ -183,7 +183,7 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor, **kwargs):
 
     Returns
     -------
-        Heterogeneous consistency loss.
+    Heterogeneous consistency loss.
     """
     # Compute consistency loss
     loss = F.mse_loss(Z_cf_pred, Z_cf_tgt)

@@ -5,12 +5,12 @@ from spacy.cli import download, link
 
 def spacy_model(model: str = 'en_core_web_md') -> None:
     """
-    Download spaCy model.
+    Download `spaCy` model.
 
     Parameters
     ----------
     model
-        Model to be downloaded
+        Model to be downloaded.
     """
     try:
         spacy.load(model)

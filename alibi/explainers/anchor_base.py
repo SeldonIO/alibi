@@ -21,7 +21,7 @@ class AnchorBaseBeam:
         Parameters
         ---------
         samplers
-            Objects that can be called with args (result, n_samples) tuple to draw samples.
+            Objects that can be called with args (`result`, `n_samples`) tuple to draw samples.
         """
 
         self.sample_fcn = samplers[0]
@@ -40,11 +40,9 @@ class AnchorBaseBeam:
         Parameters
         ----------
         batch_size
-            See anchor_beam method.
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
         coverage_data
-            See _get_coverage_samples method.
-        sample_cache_size
-            See anchor_beam method.
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` method.
         """
 
         prealloc_size = batch_size * self.sample_cache_size
@@ -78,11 +76,11 @@ class AnchorBaseBeam:
         x:
             Tuple to be sorted.
         allow_duplicates:
-            If True, duplicate entries are kept
+            If ``True``, duplicate entries are kept.
 
         Returns
         -------
-            A sorted tuple.
+        A sorted tuple.
         """
 
         if allow_duplicates:
@@ -100,13 +98,13 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            beta / nb of samples for each result.
+            `beta / nb of samples` for each result.
         n_iter
             Number of iterations during lower bound update.
 
         Returns
         -------
-            Updated upper precision bounds array.
+        Updated upper precision bounds array.
         """
         # TODO: where does 17x sampling come from?
         lm = p.copy()
@@ -132,13 +130,13 @@ class AnchorBaseBeam:
         p
             Precision of candidate anchors.
         level
-            beta / nb of samples for each result.
+            `beta / nb of samples` for each result.
         n_iter
             Number of iterations during lower bound update.
 
         Returns
         -------
-            Updated lower precision bounds array.
+        Updated lower precision bounds array.
         """
 
         um = p.copy()
@@ -164,10 +162,11 @@ class AnchorBaseBeam:
         t
             Iteration number.
         delta
+            Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
 
         Returns
         -------
-            Level used to update upper and lower precision bounds.
+        Level used to update upper and lower precision bounds.
         """
         # TODO: where do magic numbers come from?
         alpha = 1.1
@@ -183,14 +182,14 @@ class AnchorBaseBeam:
         Parameters
         ---------
         coverage_samples
-            See anchor_beam method.
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
         samplers
-            See __init__ method.
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__` method.
 
         Returns
         -------
         coverage_data
-            binarised samples, where 1 indicates the feature has same value/is in same beam as
+            Binarised samples, where 1 indicates the feature has same value/is in same beam as
             instance to be explained. Used to determine, e.g., which samples an result applies to.
         """
 
@@ -201,7 +200,7 @@ class AnchorBaseBeam:
     def select_critical_arms(self, means: np.ndarray, ub: np.ndarray, lb: np.ndarray, n_samples: np.ndarray,
                              delta: float, top_n: int, t: int):
         """
-        Determines a set of two anchors by updating the upper bound for low emprical precision anchors and
+        Determines a set of two anchors by updating the upper bound for low empirical precision anchors and
         the lower bound for anchors with high empirical precision.
 
         Parameters
@@ -215,7 +214,7 @@ class AnchorBaseBeam:
         n_samples
             The number of samples drawn for each candidate result.
         delta
-            Confidence budget, candidate anchors have close to optimal precisions with prob. 1 - delta.
+            Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
         top_n
             Number of arms to be selected.
         t
@@ -264,7 +263,7 @@ class AnchorBaseBeam:
         epsilon
             Precision bound tolerance for convergence.
         delta
-            Used to compute beta.
+            Used to compute `beta`.
         batch_size
             Number of samples.
         top_n
@@ -272,11 +271,11 @@ class AnchorBaseBeam:
         verbose
             Whether to print intermediate output.
         verbose_every
-            Whether to print intermediate output every verbose_every steps.
+            Whether to print intermediate output every `verbose_every` steps.
 
         Returns
         -------
-            Indices of best result options. Number of indices equals min of beam width or nb of candidate anchors.
+        Indices of best result options. Number of indices equals min of beam width or nb of candidate anchors.
         """
 
         # n_features equals to the nb of candidate anchors
@@ -337,15 +336,15 @@ class AnchorBaseBeam:
         """
         Parameters
         ----------
-            anchors
-                Anchors on which samples are conditioned.
-            batch_size
-                The number of samples drawn for each result.
+        anchors
+            Anchors on which samples are conditioned.
+        batch_size
+            The number of samples drawn for each result.
 
         Returns
         -------
-            A tuple of positive samples (for which prediction matches desired label)
-            and a tuple of total number of samples drawn.
+        A tuple of positive samples (for which prediction matches desired label) and a tuple of \
+        total number of samples drawn.
         """
 
         for anchor in anchors:
@@ -369,10 +368,9 @@ class AnchorBaseBeam:
         previous_best
             List with tuples of result candidates.
 
-
         Returns
         -------
-            List with tuples of candidate anchors with additional metadata.
+        List with tuples of candidate anchors with additional metadata.
         """
 
         # compute some variables used later on
@@ -424,11 +422,11 @@ class AnchorBaseBeam:
     def update_state(self, covered_true: np.ndarray, covered_false: np.ndarray, labels: np.ndarray,
                      samples: Tuple[np.ndarray, float], anchor: tuple) -> Tuple[int, int]:
         """
-        Updates the explainer state (see __init__ for full state definition).
+        Updates the explainer state (see :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__`
+        for full state definition).
 
         Parameters
         ----------
-
         covered_true
             Examples where the result applies and the prediction is the same as on
             the instance to be explained.
@@ -445,8 +443,8 @@ class AnchorBaseBeam:
 
         Returns
         -------
-            A tuple containing the number of instances equals desired label of observation
-            to be explained the total number of instances sampled, and the result that was sampled
+        A tuple containing the number of instances equals desired label of observation \
+        to be explained the total number of instances sampled, and the result that was sampled.
         """
 
         # data = binary matrix where 1 means a feature has the same value as the feature in the result
@@ -487,12 +485,11 @@ class AnchorBaseBeam:
         anchors
             Candidate anchors.
         coverages
-            If True, the statistics returned contain the coverage of the specified anchors.
+            If ``True``, the statistics returned contain the coverage of the specified anchors.
 
         Returns
         -------
-            Dictionary with lists containing nb of samples used and where sample predictions equal
-            the desired label.
+        Dictionary with lists containing nb of samples used and where sample predictions equal the desired label.
         """
 
         def array_factory(size: tuple):
@@ -512,8 +509,8 @@ class AnchorBaseBeam:
         """
         Given the features contained in a result, it retrieves metadata such as the precision and
         coverage of the result and partial anchors and examples where the result/partial anchors
-        apply and yield the same prediction as on the instance to be explained (covered_true)
-        or a different prediction (covered_false).
+        apply and yield the same prediction as on the instance to be explained (`covered_true`)
+        or a different prediction (`covered_false`).
 
         Parameters
         ----------
@@ -527,8 +524,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-            Anchor dictionary with result features and additional metadata.
-            :param success:
+        Anchor dictionary with result features and additional metadata.
         """
 
         state = self.state
@@ -585,25 +581,25 @@ class AnchorBaseBeam:
     def to_sample(means: np.ndarray, ubs: np.ndarray, lbs: np.ndarray, desired_confidence: float, epsilon_stop: float):
         """
         Given an array of mean result precisions and their upper and lower bounds, determines for which anchors
-        more samples need to be drawn in order to estimate the anchors precision with desired_confidence and error
+        more samples need to be drawn in order to estimate the anchors precision with `desired_confidence` and error
         tolerance.
 
         Parameters
         ----------
-            means:
-                Mean precisions (each element represents a different result).
-            ubs:
-                Precisions' upper bounds (each element represents a different result).
-            lbs:
-                Precisions' lower bounds (each element represents a different result).
-            desired_confidence:
-                Desired level of confidence for precision estimation.
-            epsilon_stop:
-                Tolerance around desired precision.
+        means:
+            Mean precisions (each element represents a different result).
+        ubs:
+            Precisions' upper bounds (each element represents a different result).
+        lbs:
+            Precisions' lower bounds (each element represents a different result).
+        desired_confidence:
+            Desired level of confidence for precision estimation.
+        epsilon_stop:
+            Tolerance around desired precision.
 
         Returns
         -------
-            Boolean array indicating whether more samples are to be drawn for that particular result.
+        Boolean array indicating whether more samples are to be drawn for that particular result.
         """
 
         return ((means >= desired_confidence) & (lbs < desired_confidence - epsilon_stop)) | \
@@ -618,20 +614,20 @@ class AnchorBaseBeam:
         """
         Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
         feature sets (anchors) that guarantee the prediction made by a classifier model. The search is greedy if
-        beam_size=1. Otherwise, at each of the max_anchor_size steps, beam_size solutions are explored. By construction,
-        solutions found have high precision (defined as the expected of number of times the classifier makes the same
-        prediction when queried with the feature subset combined with arbitrary samples drawn from a noise distribution)
-        The algorithm maximises the coverage of the solution found - the frequency of occurrence of records containing
-        the feature subset in set of samples.
+        ``beam_size=1``. Otherwise, at each of the `max_anchor_size` steps, `beam_size` solutions are explored.
+        By construction, solutions found have high precision (defined as the expected of number of times the classifier
+        makes the same prediction when queried with the feature subset combined with arbitrary samples drawn from a
+        noise distribution). The algorithm maximises the coverage of the solution found - the frequency of occurrence
+        of records containing the feature subset in set of samples.
 
         Parameters
         ----------
         delta
-            Used to compute beta.
+            Used to compute `beta`.
         epsilon
             Precision bound tolerance for convergence.
         desired_confidence
-            Desired level of precision (tau in paper).
+            Desired level of precision (`tau` in `paper <https://homes.cs.washington.edu/~marcotcr/aaai18.pdf>`_).
         beam_size
             Beam width.
         epsilon_stop
@@ -653,8 +649,7 @@ class AnchorBaseBeam:
 
         Returns
         -------
-            Explanation dictionary containing anchors with metadata like coverage and precision
-            and examples.
+        Explanation dictionary containing anchors with metadata like coverage and precision and examples.
         """
 
         # Select coverage set and initialise object state
@@ -823,7 +818,7 @@ class AnchorBaseBeam:
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
     if RAY_INSTALLED:
         import ray
-        ray = ray
+        ray = ray  #: `ray` module.
 
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
@@ -843,11 +838,12 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Parameters
         ----------
-            See superclass implementation.
+        coverage_samples, samplers
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
 
         Returns
         -------
-            See superclass implementation.
+        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
         """
 
         [coverage_data] = DistributedAnchorBaseBeam.ray.get(
@@ -862,11 +858,12 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
         Parameters
         ----------
-            See superclass  implementation.
+        anchors, batch_size
+            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
 
         Returns
         -------
-            Same outputs as superclass but of different types.
+        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
         """
 
         # partial anchors not generated by propose_anchors are not in the order dictionary

@@ -26,15 +26,15 @@ class TrustScore:
         alpha
             Fraction of instances to filter out to reduce impact of outliers.
         filter_type
-            Filter method; either 'distance_knn' or 'probability_knn'
+            Filter method: ``'distance_knn'`` | ``'probability_knn'``.
         leaf_size
             Number of points at which to switch to brute-force. Affects speed and memory required to build trees.
-            Memory to store the tree scales with n_samples / leaf_size.
+            Memory to store the tree scales with `n_samples / leaf_size`.
         metric
-            Distance metric used for the tree. See sklearn's DistanceMetric class for a list of available metrics.
+            Distance metric used for the tree. See `sklearn` DistanceMetric class for a list of available metrics.
         dist_filter_type
-            Use either the distance to the k-nearest point (dist_filter_type = 'point') or
-            the average distance from the first to the k-nearest point in the data (dist_filter_type = 'mean').
+            Use either the distance to the k-nearest point (``dist_filter_type = 'point'``) or
+            the average distance from the first to the k-nearest point in the data (``dist_filter_type = 'mean'``).
         """
         self.k_filter = k_filter
         self.alpha = alpha
@@ -52,7 +52,7 @@ class TrustScore:
         Parameters
         ----------
         X
-            Data
+            Data.
 
         Returns
         -------
@@ -75,9 +75,9 @@ class TrustScore:
         Parameters
         ----------
         X
-            Data
+            Data.
         Y
-            Predicted class labels
+            Predicted class labels.
 
         Returns
         -------
@@ -105,11 +105,11 @@ class TrustScore:
         Parameters
         ----------
         X
-            Data
+            Data.
         Y
             Target labels, either one-hot encoded or the actual class label.
         classes
-            Number of prediction classes, needs to be provided if Y equals the predicted class.
+            Number of prediction classes, needs to be provided if `Y` equals the predicted class.
         """
         self.classes = classes if classes is not None else Y.shape[1]
         self.kdtrees = [None] * self.classes  # type: Any
@@ -161,8 +161,8 @@ class TrustScore:
         k
             Number of nearest neighbors used for distance calculation.
         dist_type
-            Use either the distance to the k-nearest point (dist_type = 'point') or
-            the average distance from the first to the k-nearest point in the data (dist_type = 'mean').
+            Use either the distance to the k-nearest point (``dist_type = 'point'``) or
+            the average distance from the first to the k-nearest point in the data (``dist_type = 'mean'``).
 
         Returns
         -------

@@ -38,7 +38,8 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
             Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
             the `preprocessor` function.
         preprocessor
-            Preprocessor function. This function correspond to the preprocessing steps applied to the autoencoder model.
+            Preprocessor function. This function correspond to the preprocessing steps applied to
+            the auto-encoder model.
         predictor
             Prediction function. The classifier function should expect the input in the original format and preprocess
             it internally in the `predictor` if necessary.
@@ -101,22 +102,22 @@ class PtCounterfactualRLDataset(CounterfactualRLDataset, Dataset):
 
 def get_device() -> torch.device:
     """
-    Checks if cuda is available. If available, use cuda by default, else use cpu.
+    Checks if `cuda` is available. If available, use `cuda` by default, else use `cpu`.
 
     Returns
     -------
-        Device to be used.
+    Device to be used.
     """
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_optimizer(model: nn.Module, lr: float = 1e-3) -> torch.optim.Optimizer:
     """
-    Constructs default Adam optimizer.
+    Constructs default `Adam` optimizer.
 
     Returns
     -------
-        Default optimizer.
+    Default optimizer.
     """
     return torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -134,7 +135,7 @@ def get_actor(hidden_dim: int, output_dim: int) -> nn.Module:
 
     Returns
     -------
-        Actor network.
+    Actor network.
     """
     return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
@@ -150,7 +151,7 @@ def get_critic(hidden_dim: int) -> nn.Module:
 
     Returns
     -------
-        Critic network.
+    Critic network.
     """
     return Critic(hidden_dim=hidden_dim)
 
@@ -162,13 +163,13 @@ def sparsity_loss(X_hat_cf: torch.Tensor, X: torch.Tensor) -> Dict[str, torch.Te
     Parameters
     ----------
     X_hat_cf
-        Autoencoder counterfactual reconstruction.
+        Auto-encoder counterfactual reconstruction.
     X
         Input instance
 
     Returns
     -------
-        L1 sparsity loss.
+    L1 sparsity loss.
     """
     return {"sparsity_loss": F.l1_loss(X_hat_cf, X)}
 
@@ -186,7 +187,7 @@ def consistency_loss(Z_cf_pred: torch.Tensor, Z_cf_tgt: torch.Tensor):
 
     Returns
     -------
-        0 consistency loss.
+    0 consistency loss.
     """
     return {"consistency_loss": 0}
 
@@ -208,8 +209,8 @@ def data_generator(X: np.ndarray,
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     encoder_preprocessor
-        Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/autoencoder
-        model.
+        Preprocessor function. This function correspond to the preprocessing steps applied to the
+        encoder/auto-encoder model.
     predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
         it internally in the `predictor` if necessary.
@@ -220,9 +221,11 @@ def data_generator(X: np.ndarray,
         Dimension of the batch used during training. The same batch size is used to infer the classification
         labels of the input dataset.
     shuffle
-        Whether to shuffle the dataset each epoch. `True` by default.
+        Whether to shuffle the dataset each epoch. ``True`` by default.
     num_workers
         Number of worker processes to be created.
+    **kwargs
+        Other arguments. Not used.
     """
     dataset = PtCounterfactualRLDataset(X=X, preprocessor=encoder_preprocessor, predictor=predictor,
                                         conditional_func=conditional_func, batch_size=batch_size)
@@ -268,7 +271,7 @@ def decode(Z: torch.Tensor, decoder: nn.Module, device: torch.device, **kwargs):
 
     Returns
     -------
-        Embedding tensor decoding.
+    Embedding tensor decoding.
     """
     decoder.eval()
     return decoder(Z.float().to(device))
@@ -441,10 +444,12 @@ def update_actor_critic(encoder: nn.Module,
         Noised counterfactual reward.
     device
         Torch device object.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
-        Dictionary of losses.
+    Dictionary of losses.
     """
     # Set autoencoder to evaluation mode.
     encoder.eval()
@@ -526,16 +531,16 @@ def update_actor_critic(encoder: nn.Module,
 
 def to_numpy(X: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
-    Converts given tensor to numpy array.
+    Converts given tensor to `numpy` array.
 
     Parameters
     ----------
     X
-        Input tensor to be converted to numpy array.
+        Input tensor to be converted to `numpy` array.
 
     Returns
     -------
-        Numpy representation of the input tensor.
+    `Numpy` representation of the input tensor.
     """
     if X is not None:
         if isinstance(X, np.ndarray):
@@ -554,11 +559,11 @@ def to_numpy(X: Optional[Union[List, np.ndarray, torch.Tensor]]) -> Optional[Uni
 
 def to_tensor(X: Union[np.ndarray, torch.Tensor], device: torch.device, **kwargs) -> Optional[torch.Tensor]:
     """
-    Converts tensor to torch.Tensor
+    Converts tensor to `torch.Tensor`
 
     Returns
     -------
-        torch.Tensor conversion.
+    `torch.Tensor` conversion.
     """
     if X is not None:
         if isinstance(X, torch.Tensor):
@@ -594,7 +599,7 @@ def load_model(path: Union[str, os.PathLike]) -> nn.Module:
 
     Returns
     -------
-        Loaded model.
+    Loaded model.
     """
     model = torch.load(path)
     model.eval()
@@ -603,12 +608,12 @@ def load_model(path: Union[str, os.PathLike]) -> nn.Module:
 
 def set_seed(seed: int = 13):
     """
-    Sets a seed to ensure reproducibility
+    Sets a seed to ensure reproducibility.
 
     Parameters
     ----------
     seed
-        seed to be set
+        Seed to be set.
     """
     # Others
     np.random.seed(seed)

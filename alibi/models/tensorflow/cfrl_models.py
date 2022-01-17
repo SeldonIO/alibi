@@ -38,6 +38,22 @@ class MNISTClassifier(keras.Model):
         self.fc2 = keras.layers.Dense(output_dim)
 
     def call(self, x: tf.Tensor, training: bool = True, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        training
+            Training flag.
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        Classification logits.
+        """
         x = self.dropout1(self.maxpool1(self.conv1(x)), training=training)
         x = self.dropout2(self.maxpool2(self.conv2(x)), training=training)
         x = self.fc2(self.fc1(self.flatten(x)))
@@ -75,6 +91,20 @@ class MNISTEncoder(keras.Model):
         self.fc1 = keras.layers.Dense(latent_dim, activation='tanh')
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        Encoding representation having each component in the interval [-1, 1]
+        """
         x = self.maxpool1(self.conv1(x))
         x = self.maxpool2(self.conv2(x))
         x = self.maxpool3(self.conv3(x))
@@ -106,6 +136,20 @@ class MNISTDecoder(keras.Model):
         self.conv4 = keras.layers.Conv2D(1, (3, 3), padding="same", activation="sigmoid")
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        Decoded input having each component in the interval [0, 1].
+        """
         x = self.reshape(self.fc1(x))
         x = self.up1(self.conv1(x))
         x = self.up2(self.conv2(x))
@@ -138,6 +182,20 @@ class ADULTEncoder(keras.Model):
         self.fc2 = keras.layers.Dense(latent_dim)
 
     def call(self, x: tf.Tensor, **kwargs) -> tf.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments.
+
+        Returns
+        -------
+        Encoding representation having each component in the interval [-1, 1].
+        """
         x = tf.nn.relu(self.fc1(x))
         x = tf.nn.tanh(self.fc2(x))
         return x
@@ -167,6 +225,21 @@ class ADULTDecoder(keras.Model):
         self.fcs = [keras.layers.Dense(dim) for dim in output_dims]
 
     def call(self, x: tf.Tensor, **kwargs) -> List[tf.Tensor]:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the \
+        numerical features if they exist, and the rest of the elements correspond to each categorical feature.
+        """
         x = tf.nn.relu(self.fc1(x))
         xs = [fc(x) for fc in self.fcs]
         return xs

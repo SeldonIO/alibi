@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 
 from alibi.models.pytorch.model import Model
-from typing import List
+from typing import List, Union
 
 
 class AE(Model):
@@ -28,9 +28,9 @@ class AE(Model):
         Parameters
         ----------
         encoder
-            Encoder network
+            Encoder network.
         decoder
-            Decoder network
+            Decoder network.
         """
         super().__init__(**kwargs)
 
@@ -41,7 +41,20 @@ class AE(Model):
         # send to device
         self.to(self.device)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, List[torch.Tensor]]:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        x_hat
+            Reconstruction of the input tensor.
+        """
         z = self.encoder(x)
         x_hat = self.decoder(z)
         return x_hat
@@ -74,6 +87,20 @@ class HeAE(AE):
         self.to(self.device)
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        List of reconstruction of the input tensor. First element corresponds to the reconstruction of all the \
+        numerical features if they exist, and the rest of the elements correspond to each categorical feature.
+
+        """
         x_hat = super().forward(x)
 
         # TODO: think of a better way to do the check, or maybe just remove it since return type hints

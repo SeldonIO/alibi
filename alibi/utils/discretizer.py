@@ -10,18 +10,18 @@ class Discretizer(object):
     def __init__(self, data: np.ndarray, numerical_features: List[int], feature_names: List[str],
                  percentiles: Sequence[Union[int, float]] = (25, 50, 75)) -> None:
         """
-        Initialize the discretizer
+        Initialize the discretizer.
 
         Parameters
         ----------
         data
-            Data to discretize
+            Data to discretize.
         numerical_features
             List of indices corresponding to the continuous feature columns. Only these features will be discretized.
         feature_names
-            List with feature names
+            List with feature names.
         percentiles
-            Percentiles used for discretization
+            Percentiles used for discretization.
         """
 
         self.to_discretize = numerical_features
@@ -49,19 +49,20 @@ class Discretizer(object):
     def get_percentiles(x: np.ndarray, qts: np.ndarray) -> np.ndarray:
         """
         Discretizes the the data in `x` using the quantiles in `qts`.
-        This is achieved by searching for the index of each value in x
+        This is achieved by searching for the index of each value in `x`
         into `qts`, which is assumed to be a 1-D sorted array.
 
         Parameters
         ----------
         x
-            A tensor of data to be discretized
+            A `numpy` array of data to be discretized
         qts:
-            A percentiles array. This should be a 1-D array sorted in
+            A `numpy` array of percentiles. This should be a 1-D array sorted in
             ascending order.
+
         Returns
         -------
-            A discretized data tensor.
+        A discretized data `numpy` array.
         """
 
         if len(qts.shape) != 1:
@@ -94,7 +95,7 @@ class Discretizer(object):
         Parameters
         ----------
         data
-            Data to discretize
+            Data to discretize.
 
         Returns
         -------

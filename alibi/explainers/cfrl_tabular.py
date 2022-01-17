@@ -27,7 +27,7 @@ if has_tensorflow:
 
 class SampleTabularPostprocessing(Postprocessing):
     """
-    Tabular sampling post-processing. Given the output of the heterogeneous autoencoder the post-processing
+    Tabular sampling post-processing. Given the output of the heterogeneous auto-encoder the post-processing
     functions samples the output according to the conditional vector. Note that the original input instance
     is required to perform the conditional sampling.
     """
@@ -44,7 +44,7 @@ class SampleTabularPostprocessing(Postprocessing):
         stats
             Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
             feature in the training set. Each key is an index of the column and each value is another dictionary
-            containing `min` and `max` keys.
+            containing ``'min'`` and ``'max'`` keys.
         """
         super().__init__()
         self.category_map = category_map
@@ -52,7 +52,7 @@ class SampleTabularPostprocessing(Postprocessing):
 
     def __call__(self, X_cf: List[np.ndarray], X: np.ndarray, C: Optional[np.ndarray]) -> List[np.ndarray]:
         """
-        Performs counterfactual conditional sampling acording to the conditional vector and the original input.
+        Performs counterfactual conditional sampling according to the conditional vector and the original input.
 
         Parameters
         ----------
@@ -66,7 +66,7 @@ class SampleTabularPostprocessing(Postprocessing):
 
         Returns
         -------
-            Conditional sampled counterfactual instance.
+        Conditional sampled counterfactual instance.
         """
         return sample(X_hat_split=X_cf,
                       X_ohe=X,
@@ -93,7 +93,7 @@ class ConcatTabularPostprocessing(Postprocessing):
 
         Returns
         -------
-            Concatenation of the counterfactual feature columns.
+        Concatenation of the counterfactual feature columns.
         """
         return np.concatenate(X_cf, axis=1)
 
@@ -128,21 +128,21 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         Parameters
         ----------
-        predictor.
-            A callable that takes a tensor of N data points as inputs and returns N outputs. For classification task,
-            the second dimension of the output should match the number of classes. Thus, the output can be either
-            a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the
-            performance since `argmax` is applied to the predictor's output.
+        predictor
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs. For
+            classification task, the second dimension of the output should match the number of classes. Thus, the
+            output can be either a soft label distribution or a hard label distribution (i.e. one-hot encoding)
+            without affecting the performance since `argmax` is applied to the predictor's output.
         encoder
             Pretrained heterogeneous encoder network.
         decoder
             Pretrained heterogeneous decoder network. The output of the decoder must be a list of tensors.
         encoder_preprocessor
-            Autoencoder data pre-processor. Depending on the input format, the pre-processor can normalize
+            Auto-encoder data pre-processor. Depending on the input format, the pre-processor can normalize
             numerical attributes, transform label encoding to one-hot encoding etc.
         decoder_inv_preprocessor
-            Autoencoder data inverse pre-processor. This is the invers function of the pre-processor. It can
-            denormalize numerical attributes, transfrom one-hot encoding to label encoding, feature type casting etc.
+            Auto-encoder data inverse pre-processor. This is the inverse function of the pre-processor. It can
+            denormalize numerical attributes, transform one-hot encoding to label encoding, feature type casting etc.
         coeff_sparsity
            Sparsity loss coefficient.
         coeff_consistency
@@ -155,26 +155,27 @@ class CounterfactualRLTabular(CounterfactualRL):
         immutable_features
             List of immutable features.
         ranges
-            Numerical feature ranges. Note that exist numerical features such as `Age`, which are  allowed to increase
-            only. We denote those by `inc_feat`. Similarly, there exist features  allowed to decrease only. We denote
-            them by `dec_feat`. Finally, there are some free feature, which we denote by `free_feat`. With the previous
-            notation, we can define `range = {'inc_feat': [0, 1], 'dec_feat': [-1, 0], 'free_feat': [-1, 1]}`.
-            `free_feat` can be omitted, as any unspecified feature is considered free. Having the ranges of a feature
-            `{'feat': [a_low, a_high}`, when sampling is performed the numerical value will be clipped between
-            `[a_low * (max_val - min_val), a_high * [max_val - min_val]]`, where `a_low` and `a_high` are the minimum
-            and maximum values the feature `feat`. This implies that `a_low` and `a_high` are not restricted to {-1, 0}
-            and {0, 1}, but can be any float number in-between `[-1, 0]` and `[0, 1]`.
+            Numerical feature ranges. Note that exist numerical features such as ``'Age'``, which are  allowed to
+            increase only. We denote those by ``'inc_feat'``. Similarly, there exist features  allowed to decrease only.
+            We denote them by ``'dec_feat'``. Finally, there are some free feature, which we denote by ``'free_feat'``.
+            With the previous notation, we can define ``range = {'inc_feat': [0, 1], 'dec_feat': [-1, 0],
+            'free_feat': [-1, 1]}``. ``'free_feat'`` can be omitted, as any unspecified feature is considered free.
+            Having the ranges of a feature `{'feat': [a_low, a_high}`, when sampling is performed the numerical value
+            will be clipped between `[a_low * (max_val - min_val), a_high * [max_val - min_val]]`, where `a_low` and
+            `a_high` are the minimum and maximum values the feature ``'feat'``. This implies that `a_low` and `a_high`
+            are not restricted to ``{-1, 0}`` and ``{0, 1}``, but can be any float number in-between `[-1, 0]` and
+            `[0, 1]`.
         weight_num
             Numerical loss weight.
         weight_cat
             Categorical loss weight.
         latent_dim
-            Autoencoder latent dimension. Can be omitted if the actor network is user specified.
+            Auto-encoder latent dimension. Can be omitted if the actor network is user specified.
         backend
-           Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
+           Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         seed
-            Seed for reproducibility. The results are not reproducible for `tensorflow` backend.
-        kwargs
+            Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend.
+        **kwargs
             Used to replace any default parameter from :py:data:`alibi.explainers.cfrl_base.DEFAULT_BASE_PARAMS`.
         """
         super().__init__(encoder=encoder, decoder=decoder, latent_dim=latent_dim, predictor=predictor,
@@ -231,7 +232,7 @@ class CounterfactualRLTabular(CounterfactualRL):
         Parameters
         ----------
         backend
-            Deep learning backend. `tensorflow` | `pytorch`. Default `tensorflow`.
+            Deep learning backend. ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         """
         return tensorflow_tabular_backend if backend == "tensorflow" else pytorch_tabular_backend
 
@@ -285,7 +286,6 @@ class CounterfactualRLTabular(CounterfactualRL):
                 num_samples: int = 1,
                 patience: int = 1000,
                 tolerance: float = 1e-3) -> Explanation:
-
         """
         Computes counterfactuals for the given instances conditioned on the target and the conditional vector.
 
@@ -296,14 +296,14 @@ class CounterfactualRLTabular(CounterfactualRL):
         Y_t
             Target labels.
         C
-            List of conditional dictionaries. If `None`, it means that no conditioning was used during training
-            (i.e. the `conditional_func` returns `None`). If conditioning was used during training but no conditioning
-            is desired for the current input, an empty list is expected.
+            List of conditional dictionaries. If ``None``, it means that no conditioning was used during training
+            (i.e. the `conditional_func` returns ``None``). If conditioning was used during training but no
+            conditioning is desired for the current input, an empty list is expected.
         diversity
             Whether to generate diverse counterfactual set for the given instance. Only supported for a single
             input instance.
         num_samples
-            Number of diversity samples to be generated. Considered only if `diversity=True`.
+            Number of diversity samples to be generated. Considered only if ``diversity=True``.
         batch_size
             Batch size to use when generating counterfactuals.
         patience
@@ -311,6 +311,15 @@ class CounterfactualRLTabular(CounterfactualRL):
             the desired number of samples has been found.
         tolerance
             Tolerance to distinguish two counterfactual instances.
+
+        Returns
+        -------
+        explanation
+            `Explanation` object containing the counterfactual with additional metadata as attributes. \
+            See usage `CFRL examples`_ for details.
+
+            .. _CFRL examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
         """
         # General validation.
         self._validate_input(X)
@@ -353,7 +362,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         # Check the number of conditions.
         if len(C) != 1 and len(C) != X.shape[0]:
-            raise ValueError("The number of conditions should be 1 or equals the number of samples in x.")
+            raise ValueError("The number of conditions should be 1 or equals the number of samples in X.")
 
         # If only one condition is passed.
         if len(C) == 1:
@@ -395,14 +404,14 @@ class CounterfactualRLTabular(CounterfactualRL):
         Y_t
             Target label.
         C
-            List of conditional dictionaries. If `None`, it means that no conditioning was used during training
-            (i.e. the `conditional_func` returns `None`).
+            List of conditional dictionaries. If ``None``, it means that no conditioning was used during training
+            (i.e. the `conditional_func` returns ``None``).
         num_samples
             Number of counterfactual samples to be generated.
         batch_size
             Batch size used at inference.
         num_samples
-            Number of diversity samples to be generated. Considered only if `diversity=True`.
+            Number of diversity samples to be generated. Considered only if ``diversity=True``.
         batch_size
             Batch size to use when generating counterfactuals.
         patience
@@ -413,7 +422,7 @@ class CounterfactualRLTabular(CounterfactualRL):
 
         Returns
         -------
-            Explanation object containing the diverse counterfactuals.
+        Explanation object containing the diverse counterfactuals.
         """
         # Check if condition. If no conditioning was used during training, the method can not generate a diverse
         # set of counterfactual instances

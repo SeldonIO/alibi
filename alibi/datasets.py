@@ -39,9 +39,9 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
     Parameters
     ----------
     target_size
-        Size of the returned images, used to crop images for a specified model input size
+        Size of the returned images, used to crop images for a specified model input size.
     return_X_y
-        If true, return features X and labels y as numpy arrays, if False return a Bunch object
+        If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object
 
     Returns
     -------
@@ -49,7 +49,7 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
         Bunch object with fields 'data', 'target' and 'target_names'. Both `targets` and `target_names` are taken from
         the original Imagenet.
     (data, target)
-        Tuple if ``return_X_y`` is true
+        Tuple if ``return_X_y=True``.
     """
     tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "data/cats.tar.gz")),  # type: ignore[arg-type]
                        mode='r:gz')
@@ -92,7 +92,7 @@ def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bu
     Parameters
     ----------
     return_X_y
-        If true, return features X and labels y as Python lists, if False return a Bunch object
+        If ``True``, return features `X` and labels `y` as `Python` lists. If ``False`` return a `Bunch` object.
     url_id
         Index specifying which URL to use for downloading
 
@@ -101,7 +101,7 @@ def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bu
     Bunch
         Movie reviews and sentiment labels (0 means 'negative' and 1 means 'positive').
     (data, target)
-        Tuple if ``return_X_y`` is true
+        Tuple if ``return_X_y=True``.
     """
     url = MOVIESENTIMENT_URLS[url_id]
     try:
@@ -140,11 +140,11 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
     Parameters
     ----------
     features_drop
-        List of features to be dropped from dataset, by default drops ["fnlwgt", "Education-Num"]
+        List of features to be dropped from dataset, by default drops ``["fnlwgt", "Education-Num"]``.
     return_X_y
-        If true, return features X and labels y as numpy arrays, if False return a Bunch object
+        If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object.
     url_id
-        Index specifying which URL to use for downloading
+        Index specifying which URL to use for downloading.
 
     Returns
     -------
@@ -152,7 +152,7 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
         Dataset, labels, a list of features and a dictionary containing a list with the potential categories
         for each categorical feature where the key refers to the feature column.
     (data, target)
-        Tuple if ``return_X_y`` is true
+        Tuple if ``return_X_y=True``
     """
     if features_drop is None:
         features_drop = ["fnlwgt", "Education-Num"]
@@ -251,19 +251,20 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)
 
 
-def fetch_fashion_mnist(return_X_y: bool = False):
+def fetch_fashion_mnist(return_X_y: bool = False
+                        ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
     """
     Loads the Fashion MNIST dataset.
 
     Parameters
     ----------
     return_X_y:
-        If True, an NxMxP array of data points and N-array of labels are returned
+        If ``True``, an `N x M x P` array of data points and `N`-array of labels are returned
         instead of a dict.
 
     Returns
     -------
-    If return_X_y is False, a Bunch object with fields 'data', 'targets' and 'target_names'
+    If ``return_X_y=False``, a Bunch object with fields 'data', 'targets' and 'target_names'
     is returned. Otherwise an array with data points and an array of labels is returned.
     """
 

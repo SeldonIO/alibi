@@ -24,8 +24,8 @@ class ArgmaxTransformer:
     """
     A transformer for converting classification output probability
     tensors to class labels. It assumes the predictor is a callable
-    that can be called with a N-tensor of data points `x` and produces
-    an N-tensor of outputs.
+    that can be called with a `N`-tensor of data points `x` and produces
+    an `N`-tensor of outputs.
     """
 
     def __init__(self, predictor):
@@ -45,8 +45,8 @@ def methdispatch(func):
         def wrapper(*args, **kw):
             return dispatch(args[0].__class__)(*args, **kw)
 
-    This uses singledispatch to do achieve this but instead uses args[1]
-    since args[0] will always be self.
+    This uses singledispatch to do achieve this but instead uses `args[1]`
+    since `args[0]` will always be self.
     """
 
     dispatcher = singledispatch(func)

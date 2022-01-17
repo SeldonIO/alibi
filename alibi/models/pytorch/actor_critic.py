@@ -35,6 +35,18 @@ class Actor(nn.Module):
         self.fc3 = nn.LazyLinear(output_dim)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Continuous action.
+        """
         x = F.relu(self.ln1(self.fc1(x)))
         x = F.relu(self.ln2(self.fc2(x)))
         x = torch.tanh(self.fc3(x))
@@ -65,6 +77,18 @@ class Critic(nn.Module):
         self.fc3 = nn.LazyLinear(1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass.
+
+        Parameters
+        ----------
+        x
+            Input tensor.
+
+        Returns
+        -------
+        Critic value.
+        """
         x = F.relu(self.ln1(self.fc1(x)))
         x = F.relu(self.ln2(self.fc2(x)))
         x = self.fc3(x)

@@ -69,10 +69,10 @@ and class signatures. If you're using a `PyCharm`, you can configure this under
      - ``` `extrapolate_constant_perc` ```
 
 - Simple mathematical equations should be written between single back-ticks to facilitate readability in the console.
-     - ``` A callable that takes an \`N x F\` tensor, for ```
+     - ``` A callable that takes an `N x F` tensor, for ```
      - ``` `x >= v, fun(x) >= target` ```
 
-- Complex math should be written in LaTeX:
+- Complex math should be written in LaTeX.
     - ``` function where :math:`link(output - expected\_value) = sum(\phi)` ```
 
 - Variable values or examples of setting an argument to a specific values should be written in double back-ticks
@@ -128,7 +128,7 @@ Contains the following data-related attributes
 ```
 
 - Documenting a dictionary follows the same principle the as above but the key should be written between 
-double back-ticks:
+double back-ticks.
 ```
 Default perturbation options for ``'similarity'`` sampling
 
@@ -141,7 +141,7 @@ Default perturbation options for ``'similarity'`` sampling
     - ``'use_proba'`` : ``bool`` - whether to sample according to the words similarity.
 ```
 
-- Attributes are commented inline to avoid duplication:
+- Attributes are commented inline to avoid duplication.
 ```
 class ReplayBuffer:
     """
@@ -152,7 +152,7 @@ class ReplayBuffer:
     ...
 ```
 
-For more standard conventions, please check the [numpydocs style guid](https://numpydoc.readthedocs.io/en/latest/format.html).
+For more standard conventions, please check the [numpydocs style guide](https://numpydoc.readthedocs.io/en/latest/format.html).
 
 ## Building documentation
 We use `sphinx` for building documentation. You can call `make build_docs` from the project root,

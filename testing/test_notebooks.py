@@ -27,7 +27,7 @@ EXCLUDE_NOTEBOOKS = {
     'cfrl_mnist.ipynb',
     'cfrl_adult.ipynb',
     'cfproto_mnist.ipynb',  # black-box example
-    'distributed_kernel_shap_adult_lr.ipynb',  # sequential explainer cell
+    'distributed_kernel_shap_adult_lr.ipynb',  # sequential explainer cell. (Also needs excluding from Windows)
     'interventional_tree_shap_adult_xgb.ipynb',  # comparison with KernelShap
     'kernel_shap_adult_lr.ipynb',  # slow to explain 128 instances
     'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning

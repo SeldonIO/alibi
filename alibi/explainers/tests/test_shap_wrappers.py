@@ -19,7 +19,7 @@ from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, K
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
-from alibi.utils.distributed import DistributedExplainer
+from alibi.utils.distributed import DistributedExplainer, RAY_INSTALLED
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
@@ -1075,6 +1075,8 @@ n_instances, n_features = 10, 10
 
 
 # example on how to send the same parameters to a fixture via indirection and the test. Screws up test ids.
+@pytest.mark.skipif(not RAY_INSTALLED,
+                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('mock_kernel_shap_explainer, mock_ker_exp_params',
                          mock_ker_exp_params,
                          indirect=["mock_kernel_shap_explainer"],

@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/SeldonIO/alibi/workflows/CI/badge.svg?branch=master)](https://github.com/SeldonIO/alibi/actions?query=workflow%3A%22CI%22)
 [![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)](https://docs.seldon.io/projects/alibi/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/SeldonIO/alibi/branch/master/graph/badge.svg)](https://codecov.io/gh/SeldonIO/alibi)
-![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue.svg)
+![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
 [![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
 ![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)
 [![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](https://join.slack.com/t/seldondev/shared_invite/zt-vejg6ttd-ksZiQs3O_HOtPQsen_labg)

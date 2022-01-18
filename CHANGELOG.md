@@ -4,7 +4,7 @@
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 
 ### Added
-- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` if interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
+- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
 - A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/latest/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
 - The maximum `tensorflow` version has been bumped from 2.6 to 2.7 ([#377](https://github.com/SeldonIO/alibi-detect/pull/377)).
 

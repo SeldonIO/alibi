@@ -29,7 +29,7 @@ setup(name='alibi',
       license='Apache 2.0',
       packages=find_packages(),
       include_package_data=True,
-      python_requires='>=3.6',
+      python_requires='>=3.7',
       # lower bounds based on Debian Stable versions where available
       install_requires=[
           'numpy>=1.16.2, <2.0.0',

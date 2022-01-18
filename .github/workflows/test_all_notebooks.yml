@@ -2,6 +2,10 @@
 
 name: test_all_notebooks
 
+defaults:
+  run:
+    shell: bash  # To override PowerShell on Windows
+
 on:
   # Trigger the workflow on manual dispatch and once a week
   workflow_dispatch:
@@ -11,10 +15,16 @@ on:
 jobs:
   test_notebooks:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9' ]
+        os: [ubuntu-latest]
+        python-version: [ '3.7', '3.8', '3.9' ]
+        include: # Run macos and windows tests on python 3.9 only
+          - os: windows-latest 
+            python-version:  '3.9'
+          - os: macos-latest 
+            python-version:  '3.9'
 
     steps:
       - name: Checkout code
@@ -27,14 +37,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools
-          pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          pip install --upgrade --upgrade-strategy eager -e .
-          pip install --upgrade --upgrade-strategy eager -e .[examples]
-          pip install --upgrade --upgrade-strategy eager -e .[ray]
-          pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt -r testing/requirements.txt
+          python -m pip install --upgrade --upgrade-strategy eager -e .
+          python -m pip install --upgrade --upgrade-strategy eager -e .[examples]
+          python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
+          python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
-          pip freeze
+          python -m pip freeze
 
       - name: Run notebooks
         run: |

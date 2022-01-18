@@ -1,5 +1,27 @@
 # Change Log
 
+## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2021-01-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
+
+### Added
+- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
+- A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/latest/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
+- The maximum `tensorflow` version has been bumped from 2.6 to 2.7 ([#377](https://github.com/SeldonIO/alibi-detect/pull/377)).
+
+### Changed
+- Python 3.6 has been deprecated from the supported versions as it has reached end-of-life. 
+
+### Fixed
+- Fix a bug with passing background images to `AnchorImage` leading to an error ([#542](https://github.com/SeldonIO/alibi/pull/542)).
+- Fix a bug with rounding errors being introduced in `CounterfactualRLTabular` ([#550](https://github.com/SeldonIO/alibi/pull/550)).
+
+### Development
+- Docstrings have been updated and consolidated ([#548](https://github.com/SeldonIO/alibi/pull/548)). For developers, docstring conventions have been documented in [CONTRIBUTING.md](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md#docstrings).
+- `numpy` typing has been updated to be compatible with `numpy 1.22` ([#543](https://github.com/SeldonIO/alibi/pull/543)). This is a prerequisite for upgrading to `tensorflow 2.7`. 
+- To further improve reliability, strict `Optional` type-checking with `mypy` has been reinstated ([#541](https://github.com/SeldonIO/alibi/pull/541)).
+- The Alibi CI tests now include Windows and MacOS platforms ([#575](https://github.com/SeldonIO/alibi/pull/575)).
+
+
 ## [v0.6.2](https://github.com/SeldonIO/alibi/tree/v0.6.2) (2021-11-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.1...v0.6.2)
 

@@ -1,7 +1,7 @@
 # Getting Started
 
 ## Installation
-Alibi works with Python 3.6+ and can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi):
 ```bash
 pip install alibi
 ```
@@ -9,13 +9,6 @@ Alternatively, the development version can be installed:
 ```bash
 pip install git+https://github.com/SeldonIO/alibi.git 
 ```
-
-````{note}
-Before running the examples, you may need to first run:
-```bash
-pip install alibi[examples]
-```
-````
 
 ## Features
 Alibi is a Python package designed to help explain the predictions of machine learning models and gauge

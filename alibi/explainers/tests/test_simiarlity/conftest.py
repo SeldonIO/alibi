@@ -4,7 +4,14 @@ import torch
 from tensorflow import keras
 
 import torch.nn as nn
-import torch.nn.functional as F
+import tensorflow as tf
+
+
+def get_flattened_model_parameters(model):
+    if isinstance(model, nn.Module):
+        return np.concatenate([p.detach().numpy().reshape(-1) for p in model.parameters()])
+    elif isinstance(model, tf.keras.Model):
+        return np.concatenate([p.numpy().reshape(-1) for p in model.trainable_weights()])
 
 
 @pytest.fixture(scope='module')
@@ -37,6 +44,7 @@ def tf_linear_model(request):
         keras.layers.Softmax()
     ])
 
+
 @pytest.fixture(scope='module')
 def torch_linear_model(request):
     input_shape_arg = request.param.get('input_shape', (10, ))
@@ -61,18 +69,3 @@ def torch_linear_model(request):
             return self.linear_stack(x)
 
     return Model(input_shape_arg, output_shape_arg)
-#
-#
-# @pytest.fixture(scope='module')
-# def tf_cnn_model(request):
-#     """ Constructs a cnn model. """
-#     return keras.Sequential([
-#         keras.layers.InputLayer(input_shape=(16, 16, 3)),
-#         keras.layers.Conv2D(filters=10, kernel_size=(2, 3), padding='SAME'),
-#         keras.layers.ReLU(),
-#         keras.layers.Conv2D(filters=10, kernel_size=(5, 4), padding='VALID'),
-#         keras.layers.ReLU(),
-#         keras.layers.Conv2D(filters=10, kernel_size=(7, 7), padding='VALID'),
-#         keras.layers.Flatten(),
-#         keras.layers.Dense(10)
-#     ])

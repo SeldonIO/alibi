@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 from typing import Dict, Any, Callable, Optional, Union
+import random
 
 
 def get_grads(
@@ -34,8 +35,28 @@ def get_grads(
     loss = loss_fn(output, y)
     loss.backward()
     return np.concatenate([param.grad.detach().numpy().reshape(-1)
-                           for param in model.parameters()])
+                           for param in model.parameters()])[None]
 
 
 def to_tensor(x: np.ndarray) -> torch.Tensor:
     return torch.tensor(x)
+
+
+def set_seed(seed: int = 13):
+    """
+    Sets a seed to ensure reproducibility
+
+    Parameters
+    ----------
+    seed
+        seed to be set
+    """
+    # Others
+    np.random.seed(seed)
+    random.seed(seed)
+
+    # Torch related
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

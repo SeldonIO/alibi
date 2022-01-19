@@ -7,6 +7,8 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
 from typing import Dict, Any, Callable, Optional, Union
+import random
+import os
 
 
 def get_grads(
@@ -38,8 +40,26 @@ def get_grads(
 
     # compute gradients of the loss w.r.t the weights
     grad_x_train = tape.gradient(loss, model.trainable_weights)
-    return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
+    return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])[None]
 
 
 def to_tensor(x: np.ndarray) -> tf.Tensor:
     return tf.convert_to_tensor(x, dtype=tf.float32)
+
+
+def set_seed(seed: int = 13):
+    """
+    Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
+
+    Parameters
+    ----------
+    seed
+        seed to be set
+    """
+    # others
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    random.seed(seed)
+    np.random.seed(seed)
+
+    # tf random
+    tf.random.set_seed(seed)

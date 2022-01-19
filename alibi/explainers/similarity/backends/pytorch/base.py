@@ -39,7 +39,13 @@ def get_grads(
 
 
 def to_tensor(x: np.ndarray) -> torch.Tensor:
+    # TODO: align with CFRL backend
     return torch.tensor(x)
+
+
+def to_numpy(x: torch.Tensor) -> np.ndarray:
+    # TODO: align with CFRL backend
+    return x.detach().numpy()
 
 
 def set_seed(seed: int = 13):

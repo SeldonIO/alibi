@@ -79,5 +79,5 @@ class GradMatrixGradExplainer(Explainer):
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)
         return self
 
-    def explain(self, X: Any) -> "Explanation":
+    def explain(self, x: Any) -> "Explanation":
         return Explanation(meta={'params': ''}, data={})

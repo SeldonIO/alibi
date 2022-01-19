@@ -35,7 +35,7 @@ def get_grads(
 
     with tf.GradientTape() as tape:
         output = model(x, training=False)
-        # print(output[None].shape, y.shape)
+        # print(output.shape, y.shape)
         loss = loss_fn(y, output)
 
     # compute gradients of the loss w.r.t the weights
@@ -44,7 +44,13 @@ def get_grads(
 
 
 def to_tensor(x: np.ndarray) -> tf.Tensor:
+    # TODO: align with CFRL backend
     return tf.convert_to_tensor(x, dtype=tf.float32)
+
+
+def to_numpy(x: tf.Tensor) -> tf.Tensor:
+    # TODO: align with CFRL backend
+    return x.numpy()
 
 
 def set_seed(seed: int = 13):

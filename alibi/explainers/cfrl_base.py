@@ -829,7 +829,7 @@ class CounterfactualRL(Explainer, FitMixin):
             raise ValueError("The number target labels should be 1 or equals the number of samples in X.")
 
         # Check the number of conditional vectors
-        if (C is not None) and C.shape[0] != 1 and C.shape[0] != X.shape[0]:
+        if C is not None and 1 != C.shape[0] != X.shape[0]:
             raise ValueError("The number of conditional vectors should be 1 or equals the number if samples in X.")
 
         # Transform target into a 2D array.

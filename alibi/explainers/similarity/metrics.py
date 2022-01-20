@@ -53,7 +53,7 @@ def cos(x: np.ndarray, y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndar
     return np.dot(x, y) / (denominator + eps)
 
 
-def influence(x: np.ndarray, y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
+def asym_dot(x: np.ndarray, y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
     Computes the influence of instances X to instances Y. This is an asymmetric kernel.
 

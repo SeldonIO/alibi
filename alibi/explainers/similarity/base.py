@@ -1,3 +1,4 @@
+from abc import ABC
 import numpy as np
 from typing import TYPE_CHECKING, Dict, Any, Callable, Optional, Union
 from tqdm import tqdm
@@ -10,14 +11,13 @@ if TYPE_CHECKING:
     import torch
 
 
-class GradMatrixGradExplainer(Explainer):
+class SimilarityExplainer(Explainer, ABC):
     def __init__(self,
                  model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                 loss_fn: '''Callable[[
-                                       Union[tensorflow.Tensor, torch.Tensor],
+                 loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
                                        Union[tensorflow.Tensor, torch.Tensor]],
                                    Union[tensorflow.Tensor, torch.Tensor]]''',
-                 sim_fn: Union[Callable, str] = 'dot',
+                 sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
                  seed: int = 0,
                  backend: str = "tensorflow",
@@ -52,11 +52,12 @@ class GradMatrixGradExplainer(Explainer):
         self.sim_fn = sim_fn
         self.store_grads = store_grads
         self.seed = seed
+
         self.x_train = None
         self.y_train = None
         self.x_train_full = None
         self.y_train_full = None
-        self.grad_x_train = []
+        self.grad_x_train = None
 
     def fit(self,
             x_train: np.ndarray,
@@ -71,13 +72,51 @@ class GradMatrixGradExplainer(Explainer):
 
         # compute and store gradients
         if self.store_grads:
-            for i in tqdm(range(x_train.shape[0])):
-                x = self.backend.to_tensor(x_train[i:i + 1])
-                y = self.backend.to_tensor(y_train[i:i + 1])
+            for i in tqdm(range(self.x_train.shape[0])):
+                x = self.backend.to_tensor(self.x_train[i:i + 1])
+                y = self.backend.to_tensor(self.y_train[i:i + 1])
                 grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
                 self.grad_x_train.append(grad_x_train)
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)
         return self
 
-    def explain(self, x: Any) -> "Explanation":
-        return Explanation(meta={'params': ''}, data={})
+    def compute_adhoc_similarity(self, grad_x: np.ndarray) -> np.ndarray:
+        scores = np.zeros(self.x_train.shape[0])
+        for i in tqdm(range(self.x_train.shape[0])):
+            x = self.backend.to_tensor(self.x_train[i:i + 1])
+            y = self.backend.to_tensor(self.y_train[i:i + 1])
+            grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
+            scores[i] = self.sim_fn(grad_x_train, grad_x)
+        return scores
+
+
+class SimilarityClassifierExplainer(SimilarityExplainer):
+    def __init__(self,
+                 model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
+                                           Union[tensorflow.Tensor, torch.Tensor]],
+                                       Union[tensorflow.Tensor, torch.Tensor]]''',
+                 sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
+                 store_grads: bool = False,
+                 seed: int = 0,
+                 backend: str = "tensorflow",
+                 **kwargs
+                 ):
+        super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, **kwargs)
+
+    def explain(self, x: np.ndarray, y: Optional[np.ndarray]) -> "Explanation":
+        assert x.shape[0] == 1, "Only one input at a time."  # Is this necessary? Why not multiple?
+        if not y:
+            y = self.backend.to_numpy(self.model(x))
+            y = np.argmax(y)
+
+        grad_x_test = self.backend.get_grads(self.model, x, y, self.loss_fn)
+        if not self.store_grads:
+            scores = self.compute_adhoc_similarity(grad_x_test)
+        else:
+            scores = self.sim_fn(self.grad_x_train, grad_x_test)
+        return Explanation(meta={'params': ''}, data={'scores': scores})
+
+
+# class SimilarityRegressorExplainer(SimilarityExplainer):
+#     pass

@@ -7,16 +7,15 @@ from alibi.explainers.similarity.backends import select_backend
 
 
 if TYPE_CHECKING:
-    import tensorflow
+    import tensorflow as tf
     import torch
 
 
-class SimilarityExplainer(Explainer, ABC):
+class BaseSimilarityExplainer(Explainer, ABC):
     def __init__(self,
-                 model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                 loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
-                                       Union[tensorflow.Tensor, torch.Tensor]],
-                                   Union[tensorflow.Tensor, torch.Tensor]]''',
+                 model: 'Union[tf.keras.Model, torch.nn.Module]',
+                 loss_fn: '''Union[Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
+                                   Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]]''',
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
                  seed: int = 0,
@@ -72,11 +71,12 @@ class SimilarityExplainer(Explainer, ABC):
 
         # compute and store gradients
         if self.store_grads:
+            self.grad_x_train = []
             for i in tqdm(range(self.x_train.shape[0])):
                 x = self.backend.to_tensor(self.x_train[i:i + 1])
                 y = self.backend.to_tensor(self.y_train[i:i + 1])
                 grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
-                self.grad_x_train.append(grad_x_train)
+                self.grad_x_train.append(grad_x_train[None])
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)
         return self
 
@@ -89,34 +89,5 @@ class SimilarityExplainer(Explainer, ABC):
             scores[i] = self.sim_fn(grad_x_train, grad_x)
         return scores
 
-
-class SimilarityClassifierExplainer(SimilarityExplainer):
-    def __init__(self,
-                 model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                 loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
-                                           Union[tensorflow.Tensor, torch.Tensor]],
-                                       Union[tensorflow.Tensor, torch.Tensor]]''',
-                 sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
-                 store_grads: bool = False,
-                 seed: int = 0,
-                 backend: str = "tensorflow",
-                 **kwargs
-                 ):
-        super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, **kwargs)
-
-    def explain(self, x: np.ndarray, y: Optional[np.ndarray]) -> "Explanation":
-        assert x.shape[0] == 1, "Only one input at a time."  # Is this necessary? Why not multiple?
-        if not y:
-            y = self.backend.to_numpy(self.model(x))
-            y = np.argmax(y)
-
-        grad_x_test = self.backend.get_grads(self.model, x, y, self.loss_fn)
-        if not self.store_grads:
-            scores = self.compute_adhoc_similarity(grad_x_test)
-        else:
-            scores = self.sim_fn(self.grad_x_train, grad_x_test)
-        return Explanation(meta={'params': ''}, data={'scores': scores})
-
-
-# class SimilarityRegressorExplainer(SimilarityExplainer):
-#     pass
+    def reset_predictor(self, predictor: Any) -> None:
+        pass

@@ -40,7 +40,7 @@ def get_grads(
 
     # compute gradients of the loss w.r.t the weights
     grad_x_train = tape.gradient(loss, model.trainable_weights)
-    return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])[None]
+    return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
 
 
 def to_tensor(x: np.ndarray) -> tf.Tensor:

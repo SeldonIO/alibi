@@ -35,7 +35,7 @@ def get_grads(
     loss = loss_fn(output, y)
     loss.backward()
     return np.concatenate([param.grad.detach().numpy().reshape(-1)
-                           for param in model.parameters()])[None]
+                           for param in model.parameters()])
 
 
 def to_tensor(x: np.ndarray) -> torch.Tensor:

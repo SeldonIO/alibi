@@ -21,8 +21,7 @@ def dot(x: np.ndarray, y: np.ndarray) -> Union[float, np.ndarray]:
         assert x.shape == y.shape, "The vector `X` and `Y` need to have the same dimensions."
     else:
         assert x.shape[1] == y.shape[0], "The second dimension of `X` need to be the same as the dimension of `Y`"
-
-    return np.dot(x, y).item()
+    return np.dot(x, y)
 
 
 def cos(x: np.ndarray, y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:

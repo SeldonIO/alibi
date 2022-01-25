@@ -1,6 +1,6 @@
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import dot, cos, asym_dot
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 from alibi.api.interfaces import Explanation
 import numpy as np
 
@@ -41,20 +41,47 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, **kwargs)
 
-    def explain(self, x: np.ndarray, y: Optional[Union[np.ndarray, Callable]] = None) -> "Explanation":
+    def _preprocess_args(
+            self,
+            x: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
+            -> 'Union[tuple[torch.Tensor, torch.Tensor], tuple[tensorflow.Tensor, tensorflow.Tensor]]':
+
+        if isinstance(x, np.ndarray):
+            x = self.backend.to_tensor(x)
+
         if self.task == 'regression' and y is None:
             raise ValueError('Regression task requires a target value.')
 
         if not y:
-            y = self.backend.to_numpy(self.model(x))
-            y = np.argmax(y)
+            y = self.model(x)
+            y = self.backend.argmax(y)
         elif callable(y):
             y = y(x)
+
+        return x, y
+
+    def explain(
+            self,
+            x: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) -> "Explanation":
+
+        x, y = self._preprocess_args(x, y)
 
         grad_x_test = self.backend.get_grads(self.model, x, y, self.loss_fn)
         if not self.store_grads:
             scores = self.compute_adhoc_similarity(grad_x_test)
         else:
             scores = self.sim_fn(self.grad_x_train, grad_x_test)
-        return Explanation(meta={'params': ''}, data={'scores': scores})
+        return self._generate_explanation(scores)
 
+    def _generate_explanation(self, scores: np.ndarray) -> "Explanation":
+        sorted_score_indicies = np.argsort(scores)
+        return Explanation(
+            meta={},
+            data={
+                'scores': scores[sorted_score_indicies],
+                'x_train': self.x_train[sorted_score_indicies],
+                'y_train': self.y_train[sorted_score_indicies],
+            }
+        )

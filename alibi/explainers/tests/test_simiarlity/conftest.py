@@ -15,8 +15,24 @@ def get_flattened_model_parameters(model):
 
 
 @pytest.fixture(scope='module')
-def random_dataset(request):
-    """ Constructs a random 1d dataset. """
+def random_reg_dataset(request):
+    """ Constructs a random dataset. """
+    shape = request.param.get('shape', (10, ))
+    size = request.param.get('size', 100)
+
+    # define random train set
+    x_train = np.random.randn(size, *shape).astype(np.float64)
+    y_train = np.random.randn(size, *shape).astype(np.float64)
+
+    # define random test set
+    x_test = np.random.randn(size, *shape).astype(np.float64)
+    y_test = np.random.randn(size, *shape).astype(np.float64)
+    return (x_train, y_train), (x_test, y_test)
+
+
+@pytest.fixture(scope='module')
+def random_cls_dataset(request):
+    """ Constructs a random dataset. """
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -31,7 +47,7 @@ def random_dataset(request):
 
 
 @pytest.fixture(scope='module')
-def linear_model(request):
+def linear_cls_model(request):
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     framework = request.param.get('framework', 'tensorflow')
@@ -41,6 +57,20 @@ def linear_model(request):
     }[framework](input_shape, output_shape), {
         'tensorflow': lambda: tf.keras.losses.SparseCategoricalCrossentropy(),
         'pytorch': lambda: nn.CrossEntropyLoss()
+    }[framework]()
+
+
+@pytest.fixture(scope='module')
+def linear_reg_model(request):
+    input_shape = request.param.get('input_shape', (10,))
+    output_shape = request.param.get('output_shape', 10)
+    framework = request.param.get('framework', 'tensorflow')
+    return framework, {
+        'tensorflow': lambda i_shape, o_shape: tf_linear_model(i_shape, o_shape),
+        'pytorch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
+    }[framework](input_shape, output_shape), {
+        'tensorflow': lambda: tf.keras.losses.MeanSquaredError(),
+        'pytorch': lambda: nn.MSELoss()
     }[framework]()
 
 

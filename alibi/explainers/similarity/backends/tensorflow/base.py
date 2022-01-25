@@ -31,11 +31,15 @@ def get_grads(
         The target data point.
     loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
         The loss function to use.
+
+    Notes:
+    ------
+    x is assumed to be of shape (n, p) where n is the number of samples and p is the number of parameters. y is assumed
+    to be of shape (n, 1).
     """
 
     with tf.GradientTape() as tape:
         output = model(x, training=False)
-        # print(output.shape, y.shape)
         loss = loss_fn(y, output)
 
     # compute gradients of the loss w.r.t the weights
@@ -53,7 +57,13 @@ def to_numpy(x: tf.Tensor) -> tf.Tensor:
     return x.numpy()
 
 
+def argmax(x: tf.Tensor) -> tf.Tensor:
+    x = tf.math.argmax(x, axis=1)
+    return x
+
+
 def set_seed(seed: int = 13):
+    # TODO: align with CFRL backend
     """
     Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
 

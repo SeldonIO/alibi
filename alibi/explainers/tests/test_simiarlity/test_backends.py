@@ -2,9 +2,6 @@ import numpy as np
 import pytest
 from alibi.explainers.similarity.backends.tensorflow import base as tf_backend
 from alibi.explainers.similarity.backends.pytorch import base as torch_backend
-import tensorflow as tf
-
-import torch.nn as nn
 import torch
 
 

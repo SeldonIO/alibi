@@ -15,7 +15,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
     def __init__(self,
                  model: 'Union[tf.keras.Model, torch.nn.Module]',
                  loss_fn: '''Union[Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
-                                   Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]]''',
+                                   Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
                  seed: int = 0,

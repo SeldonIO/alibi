@@ -34,7 +34,7 @@ def get_grads(
     output = model(x)
     loss = loss_fn(output, y)
     loss.backward()
-    return np.concatenate([param.grad.detach().numpy().reshape(-1)
+    return np.concatenate([to_numpy(param.grad).reshape(-1)
                            for param in model.parameters()])
 
 
@@ -48,7 +48,12 @@ def to_numpy(x: torch.Tensor) -> np.ndarray:
     return x.detach().numpy()
 
 
+def argmax(x: torch.Tensor) -> torch.Tensor:
+    return torch.argmax(x, dim=1)
+
+
 def set_seed(seed: int = 13):
+    # TODO: align with CFRL backend
     """
     Sets a seed to ensure reproducibility
 

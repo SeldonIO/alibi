@@ -1,8 +1,10 @@
+import copy
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import dot, cos, asym_dot
 from typing import TYPE_CHECKING, Callable, Optional, Union
 from alibi.api.interfaces import Explanation
 import numpy as np
+from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
 
 if TYPE_CHECKING:
     import tensorflow
@@ -23,6 +25,15 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  **kwargs
                  ):
 
+        self.meta = copy.deepcopy(DEFAULT_META_ALE)
+        self.meta['params'].update(
+            sim_fn_name=sim_fn,
+            store_grads=store_grads,
+            seed=seed,
+            backend_name=backend,
+            task_name=task
+        )
+
         sim_fn_opts = {
             'grad_dot': dot,
             'grad_cos': cos,
@@ -39,7 +50,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         self.task = task
 
-        super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, **kwargs)
+        super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, meta=self.meta, **kwargs)
 
     def _preprocess_args(
             self,
@@ -77,15 +88,16 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             scores = self.compute_adhoc_similarity(grad_x_test)
         else:
             scores = self.sim_fn(self.grad_x_train, grad_x_test)
-        return self._generate_explanation(scores)
+        return self._build_explanation(scores)
 
-    def _generate_explanation(self, scores: np.ndarray) -> "Explanation":
+    def _build_explanation(self, scores: np.ndarray) -> "Explanation":
+        data = copy.deepcopy(DEFAULT_DATA_ALE)
         sorted_score_indices = np.argsort(scores)
-        return Explanation(
-            meta={},
-            data={
-                'scores': scores[sorted_score_indices],
-                'x_train': self.x_train[sorted_score_indices],
-                'y_train': self.y_train[sorted_score_indices],
-            }
+        data.update(
+            scores=scores[sorted_score_indices],
+            x_train=self.x_train[sorted_score_indices],
+            y_train=self.y_train[sorted_score_indices],
+            most_similar=self.x_train[sorted_score_indices[0]],
+            least_similar=self.x_train[sorted_score_indices[-1]],
         )
+        return Explanation(meta=self.meta, data=data)

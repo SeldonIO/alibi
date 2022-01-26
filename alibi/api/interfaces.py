@@ -74,7 +74,6 @@ class Explainer(abc.ABC):
         # add a name and version to the metadata dictionary
         self.meta["name"] = self.__class__.__name__
         self.meta["version"] = __version__
-
         # expose keys stored in self.meta as attributes of the class.
         for key, value in self.meta.items():
             setattr(self, key, value)

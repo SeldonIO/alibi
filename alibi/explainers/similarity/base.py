@@ -58,6 +58,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.y_train_full = None
         self.grad_x_train = None
 
+        super().__init__(**kwargs)
+
     def fit(self,
             x_train: np.ndarray,
             y_train: np.ndarray,

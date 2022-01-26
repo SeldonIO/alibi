@@ -51,13 +51,17 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             x = self.backend.to_tensor(x)
 
         if self.task == 'regression' and y is None:
+            # TODO: rewrite error message.
             raise ValueError('Regression task requires a target value.')
 
-        if not y:
+        if y is None:
             y = self.model(x)
             y = self.backend.argmax(y)
         elif callable(y):
             y = y(x)
+
+        if isinstance(y, np.ndarray):
+            y = self.backend.to_tensor(y)
 
         return x, y
 
@@ -76,12 +80,12 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         return self._generate_explanation(scores)
 
     def _generate_explanation(self, scores: np.ndarray) -> "Explanation":
-        sorted_score_indicies = np.argsort(scores)
+        sorted_score_indices = np.argsort(scores)
         return Explanation(
             meta={},
             data={
-                'scores': scores[sorted_score_indicies],
-                'x_train': self.x_train[sorted_score_indicies],
-                'y_train': self.y_train[sorted_score_indicies],
+                'scores': scores[sorted_score_indices],
+                'x_train': self.x_train[sorted_score_indices],
+                'y_train': self.y_train[sorted_score_indices],
             }
         )

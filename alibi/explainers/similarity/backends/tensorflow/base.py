@@ -49,7 +49,9 @@ def get_grads(
 
 def to_tensor(x: np.ndarray) -> tf.Tensor:
     # TODO: align with CFRL backend
-    return tf.convert_to_tensor(x, dtype=tf.float32)
+    # TODO: removed dtype=tf.float32 from below as ideal dtype agnostic but not sure if i've found errors that might
+    #  have subsequently arisen.
+    return tf.convert_to_tensor(x)
 
 
 def to_numpy(x: tf.Tensor) -> tf.Tensor:

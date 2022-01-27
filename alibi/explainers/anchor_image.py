@@ -368,8 +368,6 @@ class AnchorImage(Explainer):
                 'keyword arguments for built-in segmentation functions. By default '
                 'the specified segmentation function will be used.'
             )
-        else:
-            segmentation_kwargs = {}
 
         # set the predictor
         self.image_shape = tuple(image_shape)  # coerce lists
@@ -383,7 +381,7 @@ class AnchorImage(Explainer):
             self.segmentation_fn = segmentation_fn
         else:
             self.custom_segmentation = False
-            self.segmentation_fn = partial(fn_options[segmentation_fn], **segmentation_kwargs)
+            self.segmentation_fn = partial(fn_options[segmentation_fn], **segmentation_kwargs)  # type: ignore[arg-type]
 
         self.images_background = images_background
         # a superpixel is perturbed with prob 1 - p_sample

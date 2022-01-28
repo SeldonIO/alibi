@@ -1,8 +1,8 @@
 from abc import ABC
 import numpy as np
-from typing import TYPE_CHECKING, Dict, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 from tqdm import tqdm
-from alibi.api.interfaces import Explainer, Explanation
+from alibi.api.interfaces import Explainer
 from alibi.explainers.similarity.backends import select_backend
 
 
@@ -40,6 +40,10 @@ class BaseSimilarityExplainer(Explainer, ABC):
         backend:
             Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
         """
+        # TODO: test this
+        if backend not in ['torch', 'tensorflow']:
+            raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
+
         # Select backend.
         self.backend = select_backend(backend, **kwargs)
 

@@ -35,8 +35,6 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     assert result.data['x_train'].shape == (100, 10)
     assert result.data['y_train'].shape == (100, )
 
-    print(result)
-
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',

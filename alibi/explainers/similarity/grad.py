@@ -33,7 +33,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             backend_name=backend,
             task_name=task
         )
-
+        # TODO: move validation to separate method for testing!
         sim_fn_opts = {
             'grad_dot': dot,
             'grad_cos': cos,

@@ -2,20 +2,20 @@ import pytest
 
 
 def test_installed_package_works():
-    package_name = "pandas"
-    version = ">=0.23.4"
+    package_name = "requests"
+    version = ">=2.21.0, <3.0.0"
 
     try:
-        import pandas as pd
+        import requests
     except ImportError:
         from alibi.utils.notinstalled import NotInstalledPackage
-        pd = NotInstalledPackage(package_name, version=version)
+        requests = NotInstalledPackage(package_name, version=version)
 
-    assert pd.__version__
+    assert requests.__version__
 
 
-def test_uninstsalled_package_raises():
-    package_name = "thispackagedoesnotexist"
+def test_uninstalled_package_raises():
+    package_name = "this_package_does_not_exist"
     version = "==1.2.3"
 
     try:
@@ -25,6 +25,6 @@ def test_uninstsalled_package_raises():
         package = NotInstalledPackage(package_name, version=version)
 
     with pytest.raises(ImportError) as e:
-        package.__version__
+        package.__version__  # noqa
         assert package_name in str(e)
         assert version in str(e)

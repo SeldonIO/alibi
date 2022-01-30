@@ -1,4 +1,6 @@
-KNOWN_PACKAGES = {"cvxpy": {"version": ">=1.0.24", "extra_name": "cvxpy"}}
+from extras_require import extra_pkgs
+
+KNOWN_PACKAGES = {key: [{"version": dep[0], "extra_name": dep[1]} for dep in val] for key, val in extra_pkgs.items()}
 
 
 class NotInstalledPackage:
@@ -21,20 +23,15 @@ class NotInstalledPackage:
         self.modality = modality
 
         extra_name = package_info.get("extra_name", None)
-        if modality:
-            install_opts_msg = (
-                    f"`python -m pip install alibi[{extra_name}]`, or "
-                    + f"`python -m pip install alibi[{modality}].`"
-            )
-        else:
-            install_opts_msg = f"`python -m pip install alibi[{extra_name}].`"
+        install_opts_msg = + f"`python -m pip install alibi[{modality}].`" if modality else \
+            f"`python -m pip install alibi[{extra_name}].`"
 
         self.pip_message = (
             (
-                f"Install extra requirement {package_name} using "
-                + install_opts_msg
-                + "For more information, check the 'Dependency installs' section of the installation docs at "
-                + "https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html"
+                    f"Install extra requirement {package_name} using "
+                    + install_opts_msg
+                    + "For more information, check the 'Dependency installs' section of the installation docs at "
+                    + "https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html"
             )
             if extra_name
             else ""

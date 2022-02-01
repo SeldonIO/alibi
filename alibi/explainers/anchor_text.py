@@ -482,6 +482,7 @@ class LanguageModelSampler(AnchorTextSampler):
             # will not be considered when sampling for the masked words.
             if self.model.is_subword_prefix(token):
                 self.subwords_mask[vocab[token]] = True
+                continue
 
             # Add punctuation in the sampling mask. This means that the
             # punctuation will not be considered when sampling for the masked words.
@@ -705,7 +706,7 @@ class LanguageModelSampler(AnchorTextSampler):
             mask_templates = 1 if np.isclose(sample_proba, 1) else max(1, int(num_samples * frac_mask_templates))
 
         # allocate memory
-        data = np.ones((mask_templates, len(self.ids_sample)))
+        data = np.ones((mask_templates, len(self.ids_sample)), dtype=np.int32)
         raw = np.zeros((mask_templates, len(self.head_tokens)), dtype=self.dtype_token)
 
         # fill each row of the raw data matrix with the text instance to be explained

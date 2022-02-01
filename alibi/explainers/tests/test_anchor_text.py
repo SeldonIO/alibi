@@ -92,7 +92,7 @@ def test_explainer(text, n_punctuation_marks, n_unique_words, lr_classifier, pre
         assert len(explainer.perturbation.punctuation) == n_punctuation_marks
         assert len(explainer.perturbation.words) == len(explainer.perturbation.positions)
     else:
-        # do something similar for the transformers. this simplified verison
+        # do something similar for the transformers. this simplified version
         # works because there are not multiple consecutive punctuations
         tokens = lang_model.tokenizer.tokenize(text)
         punctuation = []
@@ -377,6 +377,7 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling):
         "punctuation": '',
         "stopwords": [],
         "filling": filling,
+        "frac_mask_templates": 1.0
     }
 
     # define sampler
@@ -384,7 +385,7 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling):
     sampler.set_text(text)
 
     # create a bunch of masks
-    raw, data = sampler.create_mask((), 10000, sample_proba, frac_mask_templates=1.0)
+    raw, data = sampler.create_mask((), 10000, **perturb_opts)
 
     # hope that law of large number holds
     empirical_mean1 = np.mean(np.sum(data == 0, axis=1))
@@ -431,20 +432,19 @@ def test_lm_sample_punctuation(lang_model, punctuation, filling, movie_sentiment
 
     for i in range(n):
         text = X_test[i]
-        text = ''.join([chr for chr in text if chr not in string.punctuation])
+        tokens = lang_model.tokenizer.tokenize(text)
+        tokens = [t if not lang_model.is_punctuation(t, perturb_opts['punctuation']) else ' ' for t in tokens]
+        text = lang_model.tokenizer.decoder.decode(tokens)
 
         # set sampler perturb opts
         sampler.set_text(text)
 
         # get masks samples
-        raw, data = sampler.perturb_sentence((), num_samples=10)
+        raw, data = sampler.perturb_sentence((), num_samples=10, **perturb_opts)
 
         for j in range(len(raw)):
-            mask_counts = str(raw[j]).count(lang_model.mask)
-            raw[j] = str(raw[j]).replace(lang_model.mask, '', mask_counts)
-
-            for p in punctuation:
-                assert p not in raw[j]
+            tokens = lang_model.tokenizer.tokenize(raw[j])
+            assert all([not lang_model.is_punctuation(t, perturb_opts['punctuation']) for t in tokens])
 
 
 def bad_predictor_return_type(x: List[str]) -> list:

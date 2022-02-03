@@ -6,7 +6,7 @@ from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True, ids=['torch-model', 'tf-model'])
@@ -39,7 +39,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True,
@@ -69,7 +69,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
 
 @pytest.mark.parametrize('linear_cls_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True, ids=['torch-model', 'tf-model'])
@@ -103,7 +103,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
 
 @pytest.mark.parametrize('linear_cls_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True, ids=['torch-model', 'tf-model'])
@@ -138,7 +138,7 @@ def test_method_task_error_messaging(linear_cls_model):
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True, ids=['torch-model', 'tf-model'])
@@ -169,7 +169,7 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
 @pytest.mark.parametrize('random_reg_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_reg_model',
                          [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'torch', 'input_shape': (10,), 'output_shape': 10}),
                              ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
                          ],
                          indirect=True,

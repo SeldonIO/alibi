@@ -32,7 +32,7 @@ def get_grads(
         The loss function to use.
     """
     for param in model.parameters():
-        param.grad.data.zero_()
+        if isinstance(param.grad, torch.Tensor): param.grad.data.zero_()
 
     output = model(x)
     loss = loss_fn(output, y)

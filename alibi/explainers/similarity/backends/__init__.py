@@ -16,6 +16,6 @@ def select_backend(backend, **kwargs):
     Parameters
     ---------
     backend
-        Deep learning backend: `tensorflow` | `pytorch`. Default `tensorflow`.
+        Deep learning backend: `tensorflow` | `torch`. Default `tensorflow`.
     """
     return tensorflow_base_backend if backend == "tensorflow" else pytorch_base_backend

@@ -54,17 +54,17 @@ def linear_cls_model(request):
 
     model = {
         'tensorflow': lambda i_shape, o_shape: tf_linear_model(i_shape, o_shape),
-        'pytorch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
+        'torch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
     }[framework](input_shape, output_shape)
 
     loss_fn = {
         'tensorflow': tf.keras.losses.SparseCategoricalCrossentropy,
-        'pytorch': nn.CrossEntropyLoss
+        'torch': nn.CrossEntropyLoss
     }[framework]()
 
     target_fn = {
         'tensorflow': lambda x: np.argmax(model(x)),
-        'pytorch': lambda x: torch.argmax(model(x), dim=1)
+        'torch': lambda x: torch.argmax(model(x), dim=1)
     }[framework]
 
     return framework, model, loss_fn, target_fn
@@ -78,17 +78,17 @@ def linear_reg_model(request):
 
     model = {
         'tensorflow': lambda i_shape, o_shape: tf_linear_model(i_shape, o_shape),
-        'pytorch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
+        'torch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
     }[framework](input_shape, output_shape)
 
     loss_fn = {
         'tensorflow': tf.keras.losses.MeanSquaredError,
-        'pytorch': nn.MSELoss
+        'torch': nn.MSELoss
     }[framework]()
 
     target_fn = {
         'tensorflow': lambda x: model(x),
-        'pytorch': lambda x: model(x)
+        'torch': lambda x: model(x)
     }[framework]
 
     return framework, model, loss_fn, target_fn

@@ -31,6 +31,9 @@ def get_grads(
     loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
         The loss function to use.
     """
+    for param in model.parameters():
+        param.grad.data.zero_()
+
     output = model(x)
     loss = loss_fn(output, y)
     loss.backward()

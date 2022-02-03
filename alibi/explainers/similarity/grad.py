@@ -92,7 +92,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
     def _build_explanation(self, scores: np.ndarray) -> "Explanation":
         data = copy.deepcopy(DEFAULT_DATA_ALE)
-        sorted_score_indices = np.argsort(scores)
+        sorted_score_indices = np.argsort(scores)[::-1]
         data.update(
             scores=scores[sorted_score_indices],
             x_train=self.x_train[sorted_score_indices],

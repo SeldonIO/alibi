@@ -6,7 +6,7 @@ Methods unique to the Tensorflow backend are defined here.
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
-from typing import Dict, Any, Callable, Optional, Union
+from typing import Callable
 import random
 import os
 
@@ -49,8 +49,6 @@ def get_grads(
 
 def to_tensor(x: np.ndarray) -> tf.Tensor:
     # TODO: align with CFRL backend
-    # TODO: removed dtype=tf.float32 from below as ideal dtype agnostic but not sure if i've found errors that might
-    #  have subsequently arisen.
     return tf.convert_to_tensor(x)
 
 

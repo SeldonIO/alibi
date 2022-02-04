@@ -248,7 +248,7 @@ DEFAULT_DATA_CFRL = {"orig": None,
 Default CounterfactualRL data.
 """
 
-#similarity methods
+# Similarity methods
 DEFAULT_META_SIM = {"name": None,
                     "type": ["whitebox"],
                     "explanations": ["local"],

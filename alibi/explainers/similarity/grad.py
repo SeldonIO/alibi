@@ -4,7 +4,7 @@ from alibi.explainers.similarity.metrics import dot, cos, asym_dot
 from typing import TYPE_CHECKING, Callable, Optional, Union
 from alibi.api.interfaces import Explanation
 import numpy as np
-from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
+from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
 
 if TYPE_CHECKING:
     import tensorflow
@@ -25,7 +25,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  **kwargs
                  ):
 
-        self.meta = copy.deepcopy(DEFAULT_META_ALE)
+        self.meta = copy.deepcopy(DEFAULT_META_SIM)
         self.meta['params'].update(
             sim_fn_name=sim_fn,
             store_grads=store_grads,
@@ -33,7 +33,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             backend_name=backend,
             task_name=task
         )
-        # TODO: move validation to separate method for testing!
+
         sim_fn_opts = {
             'grad_dot': dot,
             'grad_cos': cos,
@@ -91,7 +91,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         return self._build_explanation(scores)
 
     def _build_explanation(self, scores: np.ndarray) -> "Explanation":
-        data = copy.deepcopy(DEFAULT_DATA_ALE)
+        data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(
             scores=scores[sorted_score_indices],

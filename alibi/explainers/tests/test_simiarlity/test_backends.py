@@ -14,6 +14,7 @@ def test_tf_backend(random_cls_dataset, linear_models):
     Test that the Tensorflow and pytorch backends work as expected.
     """
     tf_model, tf_loss, torch_model, torch_loss = linear_models
+
     # # make the models duplicates of each other
     for w1, w2 in zip(torch_model.parameters(), tf_model.trainable_weights):
         w2.assign(w1.detach().numpy().T)
@@ -37,4 +38,4 @@ def test_tf_backend(random_cls_dataset, linear_models):
                              for param in torch_model.parameters()])[None]
     assert torch_grads.shape[-1] == params.shape[-1]
 
-    # np.testing.assert_allclose(np.sort(torch_grads), np.sort(tf_grads))
+    np.testing.assert_allclose(np.sort(torch_grads), np.sort(tf_grads))

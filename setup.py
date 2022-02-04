@@ -14,8 +14,8 @@ extras_require = {
     'ray': ['ray>=0.8.7, <2.0.0'],  # from requirements/dev.txt
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [
-        'shap>=0.40.0, <0.41.0', # versioning: https://github.com/SeldonIO/alibi/issues/333
-    ],  
+        'shap>=0.40.0, <0.41.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
+    ],
 }
 
 setup(name='alibi',
@@ -39,7 +39,7 @@ setup(name='alibi',
           'scikit-image>=0.14.2, !=0.17.1, <0.19',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',
           'Pillow>=5.4.1, <9.0',
-          'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.8.0', # https://github.com/SeldonIO/alibi-detect/issues/375
+          'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.8.0',  # https://github.com/SeldonIO/alibi-detect/issues/375
           'attrs>=19.2.0, <22.0.0',
           'scipy>=1.1.0, <2.0.0',
           'matplotlib>=3.0.0, <4.0.0',

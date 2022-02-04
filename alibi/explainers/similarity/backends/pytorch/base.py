@@ -6,7 +6,7 @@ Methods unique to the Tensorflow backend are defined here.
 import numpy as np
 import torch.nn as nn
 import torch
-from typing import Dict, Any, Callable, Optional, Union
+from typing import Callable
 import random
 
 
@@ -32,7 +32,8 @@ def get_grads(
         The loss function to use.
     """
     for param in model.parameters():
-        if isinstance(param.grad, torch.Tensor): param.grad.data.zero_()
+        if isinstance(param.grad, torch.Tensor):
+            param.grad.data.zero_()
 
     output = model(x)
     loss = loss_fn(output, y)

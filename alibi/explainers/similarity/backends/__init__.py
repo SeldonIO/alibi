@@ -1,4 +1,4 @@
-from alibi.utils.frameworks import Framework, has_pytorch, has_tensorflow
+from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if has_pytorch:
     # import pytorch backend

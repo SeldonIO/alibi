@@ -18,6 +18,8 @@ extras_require = {
     ],
 }
 
+LICENSE = "Apache 2.0"
+
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
@@ -26,7 +28,7 @@ setup(name='alibi',
       long_description=readme(),
       long_description_content_type='text/markdown',
       url='https://github.com/SeldonIO/alibi',
-      license='Apache 2.0',
+      license=LICENSE,
       packages=find_packages(),
       include_package_data=True,
       python_requires='>=3.7',
@@ -50,4 +52,15 @@ setup(name='alibi',
       ],
       extras_require=extras_require,
       test_suite='tests',
-      zip_safe=False)
+      zip_safe=False,
+      classifiers=[
+          "Intended Audience :: Science/Research",
+          "Operating System :: OS Independent",
+          "Programming Language :: Python :: 3",
+          "Programming Language :: Python :: 3.7",
+          "Programming Language :: Python :: 3.8",
+          "Programming Language :: Python :: 3.9",
+          f"License :: OSI Approved :: {LICENSE} License",
+          "Topic :: Scientific/Engineering",
+          ],
+      )

@@ -99,7 +99,7 @@ def linear_models(request):
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     tf_model = tf_linear_model(input_shape, output_shape)
-    tf_loss = tf.keras.losses.SparseCategoricalCrossentropy()
+    tf_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     torch_model = torch_linear_model(input_shape, output_shape)
     torch_loss = nn.CrossEntropyLoss()
     return tf_model, tf_loss, torch_model, torch_loss
@@ -109,8 +109,6 @@ def tf_linear_model(input_shape, output_shape):
     """ Constructs a linear model. """
     return keras.Sequential([
         keras.layers.InputLayer(input_shape=input_shape),
-        keras.layers.Dense(5),
-        keras.layers.ReLU(),
         keras.layers.Dense(output_shape),
         keras.layers.Softmax()
     ])
@@ -124,12 +122,9 @@ def torch_linear_model(input_shape_arg, output_shape_arg):
             super(Model, self).__init__()
             self.linear_stack = nn.Sequential(
                 nn.Flatten(start_dim=1),
-                nn.Linear(input_shape, 5),
-                nn.ReLU(),
-                nn.Linear(5, output_shape),
+                nn.Linear(input_shape, output_shape),
                 nn.Softmax()
             )
-            # self.double()
 
         def forward(self, x):
             x = x.type(torch.FloatTensor)

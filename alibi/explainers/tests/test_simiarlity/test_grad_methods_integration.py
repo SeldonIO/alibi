@@ -62,7 +62,7 @@ def test_correct_grad_cos_sim_result_torch(ds):
         last = current
 
 
-def test_same_class_grad_cos():
+def test_grad_cos_result_order_torch():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
@@ -73,7 +73,7 @@ def test_same_class_grad_cos():
     assert (explanation['x_train'][-1] == ds[-1]).all()
 
 
-def test_same_class_grad_dot():
+def test_grad_dot_result_order_torch():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
@@ -88,7 +88,7 @@ def loss_tf(y, x):
     return x
 
 
-def test_same_class_grad_dot_tensorflow(normed_ds):
+def test_correct_grad_dot_sim_result_tf(normed_ds):
     """"""
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
     explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_dot', backend='tensorflow')
@@ -101,7 +101,20 @@ def test_same_class_grad_dot_tensorflow(normed_ds):
         last = current
 
 
-def test_same_class_grad_cos():
+def test_correct_grad_cos_sim_result_tf(ds):
+    """"""
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_cos', backend='tensorflow')
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0][None], y=target_fn)
+    last = compute_angle(ds[0], ds[0])
+    for point in explanation['x_train'][1:]:
+        current = compute_angle(ds[0], point)
+        assert current >= last
+        last = current
+
+
+def test_grad_dot_result_order_tf():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
@@ -112,7 +125,7 @@ def test_same_class_grad_cos():
     assert (explanation['x_train'][-1] == ds[1]).all()
 
 
-def test_same_class_grad_cos():
+def test_grad_cos_result_order_tf():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])

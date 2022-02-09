@@ -62,7 +62,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             x = np.expand_dims(x, axis=0)
 
         if isinstance(x, np.ndarray):
-            x = self.backend.to_tensor(x)
+            x = self.backend._to_tensor(x)
 
         if self.task == 'regression' and y is None:
             # TODO: rewrite error message.
@@ -70,12 +70,12 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         if y is None:
             y = self.model(x)
-            y = self.backend.argmax(y)
+            y = self.backend._argmax(y)
         elif callable(y):
             y = y(x)
 
         if isinstance(y, np.ndarray):
-            y = self.backend.to_tensor(y)
+            y = self.backend._to_tensor(y)
 
         return x, y
 
@@ -86,7 +86,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         x, y = self._preprocess_args(x, y)
 
-        grad_x_test = self.backend.get_grads(self.model, x, y, self.loss_fn)
+        grad_x_test = self.backend._get_grads(self.model, x, y, self.loss_fn)
         if not self.store_grads:
             scores = self.compute_adhoc_similarity(grad_x_test)
         else:

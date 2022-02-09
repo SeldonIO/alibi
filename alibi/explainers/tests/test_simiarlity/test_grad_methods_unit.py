@@ -77,7 +77,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     x, y = explainer._preprocess_args(x_train[0])
     assert x.shape == (1, 10)
 
-    grad_x_test = explainer.backend.get_grads(model, x, y, loss_fn)
+    grad_x_test = explainer.backend._get_grads(model, x, y, loss_fn)
     assert grad_x_test.shape == (110, )
 
 

@@ -44,7 +44,7 @@ def test_define_func(logistic_iris, target_class):
     x = X[0].reshape(1, -1)
     predict_fn = model.predict_proba
     probas = predict_fn(x)
-    pred_class = probas.argmax(axis=1)[0]
+    pred_class = probas._argmax(axis=1)[0]
     pred_prob = probas[:, pred_class][0]
 
     func, target = _define_func(predict_fn, pred_class, target_class)
@@ -71,7 +71,7 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
     X, y, lr, cf = cf_iris_explainer
     x = X[0].reshape(1, -1)
     probas = cf.predict_fn(x)
-    pred_class = probas.argmax()
+    pred_class = probas._argmax()
 
     assert cf.data_shape == (1, 4)
 
@@ -84,7 +84,7 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
-    pred_class_cf = probas_cf.argmax()
+    pred_class_cf = probas_cf._argmax()
 
     # get attributes for testing
     target_class = cf.target_class
@@ -119,7 +119,7 @@ def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, mnist_data
 
     x = X[0:1]
     probas = cf.predict_fn(x)
-    pred_class = probas.argmax()
+    pred_class = probas._argmax()
 
     assert cf.data_shape == (1, 28, 28, 1)
 
@@ -132,7 +132,7 @@ def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, mnist_data
     assert x.shape == x_cf.shape
 
     probas_cf = cf.predict_fn(x_cf)
-    pred_class_cf = probas_cf.argmax()
+    pred_class_cf = probas_cf._argmax()
 
     # get attributes for testing
     target_class = cf.target_class

@@ -1,29 +1,31 @@
-"""Tensor flow backend for similarity explainers.
+"""Tensorflow backend for similarity explainers.
 
-Methods unique to the Tensorflow backend are defined here.
+Methods unique to the Tensorflow backend are defined here. The interface this class defines syncs with the torch backend
+in order to ensure that the similarity methods only require to match this interface.
 """
+
+import random
+import os
+from typing import Callable
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
-from typing import Callable
-import random
-import os
 
 
 class TensorFlowBackend:
     device = None
 
     @staticmethod
-    def get_grads(
+    def _get_grads(
             model: keras.Model,
             x: tf.Tensor,
             y: tf.Tensor,
             loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
     ) -> np.ndarray:
         """
-        Computes the gradients of the loss function with respect to the model's parameters for a single training and target
-        pair.
+        Computes the gradients of the loss function with respect to the model's parameters for a single training and
+        target pair.
 
         Parameters:
         -----------
@@ -53,26 +55,31 @@ class TensorFlowBackend:
         return grad_x_train
 
     @staticmethod
-    def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
-        # TODO: align with CFRL backend
+    def _to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
+        """Converts a numpy array to a torch tensor."""
         return tf.convert_to_tensor(x)
 
     @staticmethod
-    def set_device(device: str = 'cpu:0') -> None:
+    def _set_device(device: str = 'cpu:0') -> None:
+        """Sets the device to use for the backend.
+
+        Sets te device value on the class. Any subsequent calls to the backend will use this device.
+        """
         TensorFlowBackend.device = device
 
     @staticmethod
-    def to_numpy(x: tf.Tensor) -> tf.Tensor:
-        # TODO: align with CFRL backend
+    def _to_numpy(x: tf.Tensor) -> tf.Tensor:
+        """Converts a tensor to a numpy array."""
         return x.numpy()
 
     @staticmethod
-    def argmax(x: tf.Tensor) -> tf.Tensor:
+    def _argmax(x: tf.Tensor) -> tf.Tensor:
+        """Returns the index of the maximum value in a tensor."""
         x = tf.math.argmax(x, axis=1)
         return x
 
     @staticmethod
-    def set_seed(seed: int = 13):
+    def _set_seed(seed: int = 13):
         # TODO: align with CFRL backend
         """
         Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.

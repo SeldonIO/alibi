@@ -48,10 +48,10 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         # Select backend.
         self.backend = select_backend(backend, **kwargs)
-        self.backend.set_device(device)
+        self.backend._set_device(device)
 
         # Set seed for reproducibility.
-        self.backend.set_seed(seed)
+        self.backend._set_seed(seed)
 
         self.model = model
         self.loss_fn = loss_fn
@@ -82,9 +82,9 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if self.store_grads:
             self.grad_x_train = []
             for i in tqdm(range(self.x_train.shape[0])):
-                x = self.backend.to_tensor(self.x_train[i:i + 1])
-                y = self.backend.to_tensor(self.y_train[i:i + 1])
-                grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
+                x = self.backend._to_tensor(self.x_train[i:i + 1])
+                y = self.backend._to_tensor(self.y_train[i:i + 1])
+                grad_x_train = self.backend._get_grads(self.model, x, y, self.loss_fn)
                 self.grad_x_train.append(grad_x_train[None])
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)
         return self
@@ -92,9 +92,9 @@ class BaseSimilarityExplainer(Explainer, ABC):
     def compute_adhoc_similarity(self, grad_x: np.ndarray) -> np.ndarray:
         scores = np.zeros(self.x_train.shape[0])
         for i in tqdm(range(self.x_train.shape[0])):
-            x = self.backend.to_tensor(self.x_train[i:i + 1])
-            y = self.backend.to_tensor(self.y_train[i:i + 1])
-            grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
+            x = self.backend._to_tensor(self.x_train[i:i + 1])
+            y = self.backend._to_tensor(self.y_train[i:i + 1])
+            grad_x_train = self.backend._get_grads(self.model, x, y, self.loss_fn)
             scores[i] = self.sim_fn(grad_x_train, grad_x)
         return scores
 

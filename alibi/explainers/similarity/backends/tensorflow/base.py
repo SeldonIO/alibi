@@ -47,9 +47,13 @@ def get_grads(
     return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
 
 
-def to_tensor(x: np.ndarray) -> tf.Tensor:
+def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
     # TODO: align with CFRL backend
     return tf.convert_to_tensor(x)
+
+
+def get_device(device: str = 'cpu:0') -> tf.device:
+    return tf.device(device)
 
 
 def to_numpy(x: tf.Tensor) -> tf.Tensor:

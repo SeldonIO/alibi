@@ -20,6 +20,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  store_grads: bool = False,
                  seed: int = 0,
                  backend: str = "tensorflow",
+                 device: str = "cpu",
                  **kwargs
                  ):
         """
@@ -44,8 +45,11 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if backend not in ['torch', 'tensorflow']:
             raise ValueError(f'Unknown backend {backend}. Consider using: `torch` | `tensorflow` .')
 
+
         # Select backend.
         self.backend = select_backend(backend, **kwargs)
+
+        self.device = self.backend.get_device(device)
 
         # Set seed for reproducibility.
         self.backend.set_seed(seed)
@@ -79,8 +83,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if self.store_grads:
             self.grad_x_train = []
             for i in tqdm(range(self.x_train.shape[0])):
-                x = self.backend.to_tensor(self.x_train[i:i + 1])
-                y = self.backend.to_tensor(self.y_train[i:i + 1])
+                x = self.backend.to_tensor(self.x_train[i:i + 1], device=self.device)
+                y = self.backend.to_tensor(self.y_train[i:i + 1], device=self.device)
                 grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
                 self.grad_x_train.append(grad_x_train[None])
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)

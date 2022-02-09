@@ -42,9 +42,13 @@ def get_grads(
                            for param in model.parameters()])
 
 
-def to_tensor(x: np.ndarray) -> torch.Tensor:
+def to_tensor(x: np.ndarray, device: torch.device = torch.device('cpu')) -> torch.Tensor:
     # TODO: align with CFRL backend
-    return torch.tensor(x)
+    return torch.tensor(x).to(device)
+
+
+def get_device(device: str = 'cpu') -> torch.device:
+    return torch.device(device)
 
 
 def to_numpy(x: torch.Tensor) -> np.ndarray:

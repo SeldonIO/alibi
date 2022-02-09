@@ -74,9 +74,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         elif callable(y):
             y = y(x)
 
-        # if len(y.shape) == 1:
-        #     y = np.expand_dims(y, axis=0)
-
         if isinstance(y, np.ndarray):
             y = self.backend.to_tensor(y)
 

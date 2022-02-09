@@ -44,7 +44,13 @@ def normed_ds():
 def test_correct_grad_dot_sim_result_torch(normed_ds):
     """"""
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_torch, sim_fn='grad_dot', backend='torch')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_torch,
+        sim_fn='grad_dot',
+        backend='torch'
+    )
     explainer = explainer.fit(normed_ds, normed_ds)
     explanation = explainer.explain(normed_ds[0], y=target_fn)
     last = np.dot(normed_ds[0], normed_ds[0])
@@ -57,7 +63,13 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
 def test_correct_grad_cos_sim_result_torch(ds):
     """"""
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_torch, sim_fn='grad_cos', backend='torch')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_torch,
+        sim_fn='grad_cos',
+        backend='torch'
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], y=target_fn)
     last = 0
@@ -71,7 +83,13 @@ def test_grad_cos_result_order_torch():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_torch, sim_fn='grad_cos', backend='torch')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_torch,
+        sim_fn='grad_cos',
+        backend='torch',
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], y=target_fn)
     assert (explanation['x_train'][1] == ds[1]).all()
@@ -82,7 +100,13 @@ def test_grad_dot_result_order_torch():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_torch, sim_fn='grad_dot', backend='torch')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_torch,
+        sim_fn='grad_dot',
+        backend='torch'
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], y=target_fn)
     assert (explanation['x_train'][0] == ds[-1]).all()
@@ -96,7 +120,13 @@ def loss_tf(y, x):
 def test_correct_grad_dot_sim_result_tf(normed_ds):
     """"""
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_dot', backend='tensorflow')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_dot',
+        backend='tensorflow'
+    )
     explainer = explainer.fit(normed_ds, normed_ds)
     explanation = explainer.explain(normed_ds[0][None], y=target_fn)
     last = np.dot(normed_ds[0], normed_ds[0])
@@ -109,7 +139,13 @@ def test_correct_grad_dot_sim_result_tf(normed_ds):
 def test_correct_grad_cos_sim_result_tf(ds):
     """"""
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_cos', backend='tensorflow')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_cos',
+        backend='tensorflow'
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0][None], y=target_fn)
     last = compute_angle(ds[0], ds[0])
@@ -123,7 +159,13 @@ def test_grad_dot_result_order_tf():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_dot', backend='tensorflow')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_dot',
+        backend='tensorflow'
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0, None], y=target_fn)
     assert (explanation['x_train'][0] == ds[-1]).all()
@@ -134,7 +176,13 @@ def test_grad_cos_result_order_tf():
     """"""
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(model, task='regression', loss_fn=loss_tf, sim_fn='grad_cos', backend='tensorflow')
+    explainer = SimilarityExplainer(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_cos',
+        backend='tensorflow'
+    )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0, None], y=target_fn)
     assert (explanation['x_train'][1] == ds[1]).all()

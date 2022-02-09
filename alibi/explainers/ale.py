@@ -89,7 +89,11 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
-    def explain(self, X: np.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4) -> Explanation:
+    def explain(self,
+                X: np.ndarray,
+                features: Optional[List[int]] = None,
+                min_bin_points: int = 4,
+                grid_points: Optional[dict] = None) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -103,6 +107,9 @@ class ALE(Explainer):
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
             ALE estimation.
+        grid_points
+            Custom grid points. Must be a dict where the keys are the names of the features and the values are
+            numpy arrays defining the grid.
 
         Returns
         -------
@@ -147,6 +154,8 @@ class ALE(Explainer):
                 self.predictor,
                 X=X,
                 feature=feature,
+                feature_names=self.feature_names,
+                grid_points=grid_points,
                 min_bin_points=min_bin_points,
                 check_feature_resolution=self.check_feature_resolution,
                 low_resolution_threshold=self.low_resolution_threshold,
@@ -342,6 +351,8 @@ def ale_num(
         predictor: Callable,
         X: np.ndarray,
         feature: int,
+        feature_names: List[str],
+        grid_points: Optional[dict],
         min_bin_points: int = 4,
         check_feature_resolution: bool = True,
         low_resolution_threshold: int = 10,
@@ -359,6 +370,11 @@ def ale_num(
         Dataset for which ALE curves are computed.
     feature
         Index of the numerical feature for which to calculate ALE.
+    feature_names
+        Names of the the features
+    grid_points
+        Custom grid points. Must be a dict where the keys are the names of the features and the values are
+        numpy arrays defining the grid.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
         ALE estimation.
@@ -383,23 +399,27 @@ def ale_num(
         The constant offset used to center the ALE curves.
 
     """
-    if check_feature_resolution:
-        uniques = np.unique(X[:, feature])
-        if len(uniques) <= low_resolution_threshold:
-            q = uniques
+    if grid_points is None:
+        if check_feature_resolution:
+            uniques = np.unique(X[:, feature])
+            if len(uniques) <= low_resolution_threshold:
+                q = uniques
+            else:
+                q, _ = adaptive_grid(X[:, feature], min_bin_points)
         else:
             q, _ = adaptive_grid(X[:, feature], min_bin_points)
-    else:
-        q, _ = adaptive_grid(X[:, feature], min_bin_points)
 
-    # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
-    if len(q) == 1:
-        if extrapolate_constant:
-            delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
-            q = np.hstack((q - delta, q + delta))
-        else:
-            # ALE is 0 at a constant feature value
-            return q, np.array([[0.]]), np.array([0.])
+        # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
+        if len(q) == 1:
+            if extrapolate_constant:
+                delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
+                q = np.hstack((q - delta, q + delta))
+            else:
+                # ALE is 0 at a constant feature value
+                return q, np.array([[0.]]), np.array([0.])
+    else:
+        # set q to custom grid for feature
+        q = grid_points[feature_names[feature]]
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

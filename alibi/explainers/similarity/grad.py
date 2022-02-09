@@ -58,6 +58,9 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
             -> 'Union[tuple[torch.Tensor, torch.Tensor], tuple[tensorflow.Tensor, tensorflow.Tensor]]':
 
+        if len(x.shape) == 1:
+            x = np.expand_dims(x, axis=0)
+
         if isinstance(x, np.ndarray):
             x = self.backend.to_tensor(x)
 
@@ -70,6 +73,9 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             y = self.backend.argmax(y)
         elif callable(y):
             y = y(x)
+
+        # if len(y.shape) == 1:
+        #     y = np.expand_dims(y, axis=0)
 
         if isinstance(y, np.ndarray):
             y = self.backend.to_tensor(y)

@@ -4,7 +4,13 @@ from tensorflow import keras
 import torch.nn as nn
 import pytest
 
-np.random.seed(seed=0)
+import torch
+import numpy as np
+import tensorflow as tf
+
+tf.random.set_seed(0)
+np.random.seed(0)
+torch.manual_seed(0)
 
 
 def loss_torch(x, y):

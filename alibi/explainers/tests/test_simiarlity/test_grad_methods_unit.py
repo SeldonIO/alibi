@@ -2,6 +2,14 @@ import pytest
 from alibi.explainers.similarity.grad import SimilarityExplainer
 from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
 
+import torch
+import numpy as np
+import tensorflow as tf
+
+tf.random.set_seed(0)
+np.random.seed(0)
+torch.manual_seed(0)
+
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
@@ -30,7 +38,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     explainer.fit(x_train=x_train, y_train=y_train)
     assert explainer.grad_x_train.shape == (len(x_train), *params.shape)
 
-    result = explainer.explain(x_train[0:1])
+    result = explainer.explain(x_train)
     assert result.data['scores'].shape == (100, )
     assert result.data['x_train'].shape == (100, 10)
     assert result.data['y_train'].shape == (100, )
@@ -59,9 +67,15 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
 
     # test stored gradients
     explainer.fit(x_train=x_train, y_train=y_train)
-    x, y = explainer._preprocess_args(x_train[0:1])
+    x, y = explainer._preprocess_args(x_train[0:3])
+    assert x.shape == (3, 10)
+    assert y.shape == (3,)
+
+    x, y = explainer._preprocess_args(x_train[0])
     assert x.shape == (1, 10)
-    assert y.shape == (1,)
+
+    x, y = explainer._preprocess_args(x_train[0])
+    assert x.shape == (1, 10)
 
     grad_x_test = explainer.backend.get_grads(model, x, y, loss_fn)
     assert grad_x_test.shape == (110, )
@@ -194,7 +208,7 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
     # classification similarity method y value cannot be none
     regression_explainer.fit(x_train=x_train, y_train=y_train)
     with pytest.raises(ValueError) as err:
-        regression_explainer.explain(x_train[0:1])
+        regression_explainer.explain(x_train[0])
     assert 'Regression task requires a target value.' in str(err.value)
 
-    regression_explainer.explain(x_train[0:1], y_train[0:1])
+    regression_explainer.explain(x_train[0], y_train)

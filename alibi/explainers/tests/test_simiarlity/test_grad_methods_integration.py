@@ -1,4 +1,3 @@
-import numpy as np
 from alibi.explainers.similarity.grad import SimilarityExplainer
 from tensorflow import keras
 import torch.nn as nn

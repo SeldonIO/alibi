@@ -11,75 +11,81 @@ import random
 import os
 
 
-def get_grads(
-        model: keras.Model,
-        x: tf.Tensor,
-        y: tf.Tensor,
-        loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
-) -> np.ndarray:
-    """
-    Computes the gradients of the loss function with respect to the model's parameters for a single training and target
-    pair.
+class TensorFlowBackend:
+    device = None
 
-    Parameters:
-    -----------
-    model: keras.Model
-        The model to compute gradients for.
-    x: tf.Tensor
-        The input data point.
-    y: tf.Tensor
-        The target data point.
-    loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
-        The loss function to use.
+    @staticmethod
+    def get_grads(
+            model: keras.Model,
+            x: tf.Tensor,
+            y: tf.Tensor,
+            loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
+    ) -> np.ndarray:
+        """
+        Computes the gradients of the loss function with respect to the model's parameters for a single training and target
+        pair.
 
-    Notes:
-    ------
-    x is assumed to be of shape (n, p) where n is the number of samples and p is the number of parameters. y is assumed
-    to be of shape (n, 1).
-    """
+        Parameters:
+        -----------
+        model: keras.Model
+            The model to compute gradients for.
+        x: tf.Tensor
+            The input data point.
+        y: tf.Tensor
+            The target data point.
+        loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
+            The loss function to use.
 
-    with tf.GradientTape() as tape:
-        output = model(x, training=False)
-        loss = loss_fn(y, output)
+        Notes:
+        ------
+        x is assumed to be of shape (n, p) where n is the number of samples and p is the number of parameters. y is assumed
+        to be of shape (n, 1).
+        """
 
-    # compute gradients of the loss w.r.t the weights
-    grad_x_train = tape.gradient(loss, model.trainable_weights)
-    return np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
+        with tf.device(TensorFlowBackend.device):
+            with tf.GradientTape() as tape:
+                output = model(x, training=False)
+                loss = loss_fn(y, output)
 
+            # compute gradients of the loss w.r.t the weights
+            grad_x_train = tape.gradient(loss, model.trainable_weights)
+            grad_x_train = np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
+        return grad_x_train
 
-def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
-    # TODO: align with CFRL backend
-    return tf.convert_to_tensor(x)
+    @staticmethod
+    def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
+        # TODO: align with CFRL backend
+        return tf.convert_to_tensor(x)
 
+    @staticmethod
+    def set_device(device: str = 'cpu:0') -> None:
+        TensorFlowBackend.device = device
 
-def get_device(device: str = 'cpu:0') -> tf.device:
-    return tf.device(device)
+    @staticmethod
+    def to_numpy(x: tf.Tensor) -> tf.Tensor:
+        # TODO: align with CFRL backend
+        return x.numpy()
 
+    @staticmethod
+    def argmax(x: tf.Tensor) -> tf.Tensor:
+        x = tf.math.argmax(x, axis=1)
+        return x
 
-def to_numpy(x: tf.Tensor) -> tf.Tensor:
-    # TODO: align with CFRL backend
-    return x.numpy()
+    @staticmethod
+    def set_seed(seed: int = 13):
+        # TODO: align with CFRL backend
+        """
+        Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
 
+        Parameters
+        ----------
+        seed
+            seed to be set
+        """
+        # others
+        os.environ['PYTHONHASHSEED'] = str(seed)
+        random.seed(seed)
+        np.random.seed(seed)
 
-def argmax(x: tf.Tensor) -> tf.Tensor:
-    x = tf.math.argmax(x, axis=1)
-    return x
-
-
-def set_seed(seed: int = 13):
-    # TODO: align with CFRL backend
-    """
-    Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
-
-    Parameters
-    ----------
-    seed
-        seed to be set
-    """
-    # others
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    random.seed(seed)
-    np.random.seed(seed)
-
-    # tf random
-    tf.random.set_seed(seed)
+        # tf random
+        tf.random.set_seed(seed)

@@ -48,8 +48,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         # Select backend.
         self.backend = select_backend(backend, **kwargs)
-
-        self.device = self.backend.get_device(device)
+        self.backend.set_device(device)
 
         # Set seed for reproducibility.
         self.backend.set_seed(seed)
@@ -83,8 +82,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if self.store_grads:
             self.grad_x_train = []
             for i in tqdm(range(self.x_train.shape[0])):
-                x = self.backend.to_tensor(self.x_train[i:i + 1], device=self.device)
-                y = self.backend.to_tensor(self.y_train[i:i + 1], device=self.device)
+                x = self.backend.to_tensor(self.x_train[i:i + 1])
+                y = self.backend.to_tensor(self.y_train[i:i + 1])
                 grad_x_train = self.backend.get_grads(self.model, x, y, self.loss_fn)
                 self.grad_x_train.append(grad_x_train[None])
             self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)

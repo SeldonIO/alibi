@@ -38,10 +38,11 @@ class TensorFlowBackend:
         loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
             The loss function to use.
 
-        Notes:
-        ------
-        x is assumed to be of shape (n, p) where n is the number of samples and p is the number of parameters. y is assumed
-        to be of shape (n, 1).
+        Returns:
+        --------
+        grads: np.ndarray
+            The gradients of the loss function with respect to the model's parameters. This is returned as a flattened
+            array.
         """
 
         with tf.device(TensorFlowBackend.device):

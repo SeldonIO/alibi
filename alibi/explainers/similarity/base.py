@@ -45,7 +45,6 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if backend not in ['torch', 'tensorflow']:
             raise ValueError(f'Unknown backend {backend}. Consider using: `torch` | `tensorflow` .')
 
-
         # Select backend.
         self.backend = select_backend(backend, **kwargs)
         self.backend._set_device(device)

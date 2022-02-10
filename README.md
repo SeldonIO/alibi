@@ -2,14 +2,35 @@
   <img src="https://raw.githubusercontent.com/SeldonIO/alibi/master/doc/source/_static/Alibi_Explain_Logo_rgb.png" alt="Alibi Logo" width="50%">
 </p>
 
-[![Build Status](https://github.com/SeldonIO/alibi/workflows/CI/badge.svg?branch=master)](https://github.com/SeldonIO/alibi/actions?query=workflow%3A%22CI%22)
-[![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)](https://docs.seldon.io/projects/alibi/en/latest/?badge=latest)
+<!--- BADGES: START --->
+
+<!---
+![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
+[![PyPI version](https://badge.fury.io/py/alibi-detect.svg)](https://badge.fury.io/py/alibi-detect)
+--->
+[![Build Status](https://github.com/SeldonIO/alibi-detect/workflows/CI/badge.svg?branch=master)][#build-status]
+[![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)][#docs-package]
 [![codecov](https://codecov.io/gh/SeldonIO/alibi/branch/master/graph/badge.svg)](https://codecov.io/gh/SeldonIO/alibi)
-![Python version](https://img.shields.io/badge/python-3.6%20%7C%203.7%20%7C%203.8%20%7C%203.9-blue.svg)
-[![PyPI version](https://badge.fury.io/py/alibi.svg)](https://badge.fury.io/py/alibi)
-![GitHub Licence](https://img.shields.io/github/license/seldonio/alibi.svg)
-[![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)](https://join.slack.com/t/seldondev/shared_invite/zt-vejg6ttd-ksZiQs3O_HOtPQsen_labg)
+![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
+[![PyPI - Package Version](https://img.shields.io/pypi/v/alibi?logo=pypi&style=flat&color=orange)][#pypi-package]
+[![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/alibi?logo=anaconda&style=flat&color=orange)][#conda-forge-package]
+[![GitHub - License](https://img.shields.io/github/license/SeldonIO/alibi?logo=github&style=flat&color=green)][#github-license]
+[![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)][#slack-channel]
+<!---[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/alibi?logo=pypi&style=flat&color=blue)][#pypi-package]--->
+<!--- TODO switch to above auto Python version on new release (PyPi needs updating with classiferies in setup.py classifiers) --->
+
+<!--- Hide platform for now as platform agnostic --->
+<!--- [![Conda - Platform](https://img.shields.io/conda/pn/conda-forge/alibi?logo=anaconda&style=flat)][#conda-forge-package]--->
+
+[#github-license]: https://github.com/SeldonIO/alibi/blob/master/LICENSE
+[#pypi-package]: https://pypi.org/project/alibi/
+[#conda-forge-package]: https://anaconda.org/conda-forge/alibi
+[#docs-package]: https://docs.seldon.io/projects/alibi/en/latest/
+[#build-status]: https://github.com/SeldonIO/alibi/actions?query=workflow%3A%22CI%22
+[#slack-channel]: https://join.slack.com/t/seldondev/shared_invite/zt-vejg6ttd-ksZiQs3O_HOtPQsen_labg
+<!--- BADGES: END --->
 ---
+
 [Alibi](https://docs.seldon.io/projects/alibi) is an open source Python library aimed at machine learning model inspection and interpretation.
 The focus of the library is to provide high-quality implementations of black-box, white-box, local and global
 explanation methods for classification and regression models.
@@ -25,7 +46,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Anchor explanations for images</b>
             <br>
             <br>
-            <img src="doc/source/_static/anchor_image.png">
+            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/anchor_image.png">
         </a>
     </td>
     <td width="50%">
@@ -34,7 +55,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Integrated Gradients for text</b>
             <br>
             <br>
-            <img src="doc/source/_static/ig_text.png">
+            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/ig_text.png">
         </a>
     </td>
   </tr>
@@ -45,7 +66,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Counterfactual examples</b>
             <br>
             <br>
-            <img src="doc/source/_static/cf.png">
+            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/cf.png">
         </a>
     </td>
     <td width="50%">
@@ -54,7 +75,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Accumulated Local Effects</b>
             <br>
             <br>
-            <img src="doc/source/_static/ale.png">
+            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/ale.png">
         </a>
     </td>
   </tr>
@@ -70,25 +91,59 @@ If you're interested in outlier detection, concept drift or adversarial instance
 * [Citations](#citations)
 
 ## Installation and Usage
-Alibi can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi can be installed from:
+
+- PyPI or GitHub source (with `pip`)
+- Anaconda (with `conda`/`mamba`)
+
+### With pip
+
+- Alibi can be installed from [PyPI](https://pypi.org/project/alibi):
+
+  ```bash
+  pip install alibi
+  ```
+  
+- Alternatively, the development version can be installed:
+  ```bash
+  pip install git+https://github.com/SeldonIO/alibi.git 
+  ```
+
+- To take advantage of distributed computation of explanations, install `alibi` with `ray`:
+  ```bash
+  pip install alibi[ray]
+  ```
+
+- For SHAP support, install `alibi` as follows:
+  ```bash
+  pip install alibi[shap]
+  ```
+
+### With conda 
+
+To install from [conda-forge](https://conda-forge.org/) it is recommended to use [mamba](https://mamba.readthedocs.io/en/latest/), 
+which can be installed to the *base* conda enviroment with:
+
 ```bash
-pip install alibi
-```
-Alternatively, the development version can be installed:
-```bash
-pip install git+https://github.com/SeldonIO/alibi.git 
+conda install mamba -n base -c conda-forge
 ```
 
-To take advantage of distributed computation of explanations, install `alibi` with `ray`:
-```bash
-pip install alibi[ray]
-```
+- For the standard Alibi install:
+  ```bash
+  mamba install -c conda-forge alibi
+  ```
 
-For SHAP support, install `alibi` as follows:
-```bash
-pip install alibi[shap]
-```
+- For distributed computating support:
+  ```bash
+  mamba install -c conda-forge alibi ray
+  ```
 
+- For SHAP support:
+  ```bash
+  mamba install -c conda-forge alibi shap
+  ```
+
+### Usage
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,
 fit and explain steps. We will use the [AnchorTabular](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html)
 explainer to illustrate the API:

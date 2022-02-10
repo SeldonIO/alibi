@@ -5,7 +5,7 @@ import numpy as np
 
 def ohe_to_ord_shape(shape: tuple, cat_vars: Dict[int, int], is_ohe: bool = False) -> tuple:
     """
-    Infer shape of instance if the categorical variables have ordinal instead of on-hot encoding.
+    Infer shape of instance if the categorical variables have ordinal instead of one-hot encoding.
 
     Parameters
     ----------
@@ -38,14 +38,14 @@ def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
     Parameters
     ----------
     data
-        Numpy array with the categorical data.
+        `Numpy` array with the categorical data.
     dist
         Dict with as keys the categorical variables and as values
         the numerical value for each category.
 
     Returns
     -------
-    Numpy array with transformed categorical data into numerical values.
+    `Numpy` array with transformed categorical data into numerical values.
     """
     rng = data.shape[0]
     X = data.astype(np.float32, copy=True)
@@ -66,14 +66,14 @@ def num_to_ord(data: np.ndarray, dist: dict) -> np.ndarray:
     Parameters
     ----------
     data
-        Numpy array with the numerical data.
+        `Numpy` array with the numerical data.
     dist
         Dict with as keys the categorical variables and as values
         the numerical value for each category.
 
     Returns
     -------
-    Numpy array with transformed numerical data into categories.
+    `Numpy` array with transformed numerical data into categories.
     """
     X = data.copy()
     for k, v in dist.items():

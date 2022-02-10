@@ -35,7 +35,7 @@ def sample_differentiable(X_hat_split: List[tf.Tensor],
 
     Returns
     -------
-        Differentiable reconstruction.
+    Differentiable reconstruction.
     """
     num_attr = len(X_hat_split) - len(category_map)
     cat_attr = len(category_map)
@@ -72,11 +72,11 @@ def l0_ohe(input: tf.Tensor,
     target
         Target tensor
     reduction
-        Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+        Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
 
     Returns
     -------
-        L0 loss.
+    L0 loss.
     """
     # Order matters as the gradient of zeros will still flow if reversed order. Maybe consider clipping a bit higher?
     eps = 1e-7 / input.shape[1]
@@ -105,11 +105,11 @@ def l1_loss(input: tf.Tensor, target=tf.Tensor, reduction: str = 'none') -> tf.T
     target
        Target tensor
     reduction
-       Specifies the reduction to apply to the output: `none` | `mean` | `sum`.
+       Specifies the reduction to apply to the output: ``'none'`` | ``'mean'`` | ``'sum'``.
 
     Returns
     -------
-        L1 loss.
+    L1 loss.
     """
     loss = tf.abs(input - target)
 
@@ -149,7 +149,7 @@ def sparsity_loss(X_hat_split: List[tf.Tensor],
 
     Returns
     -------
-        Heterogeneous sparsity loss.
+    Heterogeneous sparsity loss.
     """
     # Split the input into a list of tensor, where each element corresponds to a network head
     X_ohe_num_split, X_ohe_cat_split = split_ohe(X_ohe=X_ohe,
@@ -193,10 +193,9 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: Union[np.ndarray, tf.Tensor
     Z_cf_tgt
         Counterfactual embedding target.
 
-
     Returns
     -------
-        Heterogeneous consistency loss.
+    Heterogeneous consistency loss.
     """
     # Compute consistency loss
     loss = tf.reduce_mean(tf.square(Z_cf_pred - Z_cf_tgt))

@@ -3,9 +3,9 @@ This module defines a wrapper for transformer-based masked language models used 
 strategy. The `LanguageModel` base class defines basic functionalities as loading, storing, and predicting.
 
 Language model's tokenizers usually work at a subword level, and thus, a word can be split into subwords. For example,
-a word can be decomposed as: word = [head_token tail_token_1 tail_token_2 ... tail_token_k]. For language models
-such as DistilbertBaseUncased and BertBaseUncased, the tail tokens can be identified by a special prefix `##`.
-On the other hand, for RobertaBase only the head is prefixed with the special character `Ġ`, thus the tail tokens
+a word can be decomposed as: ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``. For language models
+such as `DistilbertBaseUncased` and `BertBaseUncased`, the tail tokens can be identified by a special prefix ``'##'``.
+On the other hand, for `RobertaBase` only the head is prefixed with the special character ``'Ġ'``, thus the tail tokens
 can be identified by the absence of the special token. In this module, we refer to a tail token as a subword prefix.
 We will use the notion of a subword to refer to either a `head` or a `tail` token.
 
@@ -31,7 +31,7 @@ from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
 
 class LanguageModel(abc.ABC):
-    SUBWORD_PREFIX = ''
+    SUBWORD_PREFIX = ''  #: Language model subword prefix.
 
     # We don't type transformers objects here as it would likely require digging into
     # some private base classes which may change in the future and cause breaking changes.
@@ -50,8 +50,8 @@ class LanguageModel(abc.ABC):
         model_path
             `transformers` package model path.
         preloading
-            Whether to preload the online version of the transformer.
-            If `False`, a call to `from_disk` method is expected.
+            Whether to preload the online version of the transformer. If ``False``, a call to `from_disk`
+            method is expected.
         """
         self.model_path = model_path
 
@@ -104,12 +104,12 @@ class LanguageModel(abc.ABC):
     def is_subword_prefix(self, token: str) -> bool:
         """
         Checks if the given token is a part of the tail of a word. Note that a word can
-        be split in multiple tokens (e.g., word = [head_token tail_token_1 tail_token_2 ... tail_token_k]).
+        be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
         Each language model has a convention on how to mark a tail token. For example
-        DistilbertBaseUncased and BertBaseUncased have the tail tokens prefixed with the special
-        set of characters `##`. On the other hand, for RobertaBase only the head token is prefixed
-        with the special character 'Ġ' and thus we need to check the absence of the prefix to identify
-        the tail tokens. We call those special characters SUBWORD_PREFIX. Due to different conventions,
+        `DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
+        set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
+        with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
+        the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
         this method has to be implemented for each language model. See module docstring for namings.
 
         Parameters
@@ -119,7 +119,7 @@ class LanguageModel(abc.ABC):
 
         Returns
         -------
-        True if the given token is a subword prefix. False otherwise.
+        ``True`` if the given token is a subword prefix. ``False`` otherwise.
         """
         pass
 
@@ -129,9 +129,10 @@ class LanguageModel(abc.ABC):
                     punctuation: str) -> str:
         """
         Given a tokenized text and the starting index of a word, the function selects the entire word.
-        Note that a word is composed of multiple tokens (e.g., word = [head_token tail_token_1
-        tail_token_2 ... tail_token_k]. The tail tokens can be identified based on the
-        presence/absence of SUBWORD_PREFIX. See `is_subword_prefix` for more details.
+        Note that a word is composed of multiple tokens (e.g., ``word = [head_token tail_token_1
+        tail_token_2 ... tail_token_k]``). The tail tokens can be identified based on the
+        presence/absence of `SUBWORD_PREFIX`. See :py:meth:`alibi.utils.lang_model.LanguageModel.is_subword_prefix`
+        for more details.
 
         Parameters
         ----------
@@ -145,7 +146,7 @@ class LanguageModel(abc.ABC):
 
         Returns
         -------
-        The word obtained by concatenation [head_token tail_token_1 tail_token_2 ... tail_token_k].
+        The word obtained by concatenation ``[head_token tail_token_1 tail_token_2 ... tail_token_k]``.
         """
         # define the ending index
         end_idx = start_idx + 1
@@ -180,11 +181,11 @@ class LanguageModel(abc.ABC):
         stopwords:
             List of stop words. The words in this list should be lowercase.
         punctuation
-            Punctuation to be considered. See `select_entire_word`.
+            Punctuation to be considered. See :py:meth:`alibi.utils.lang_model.LanguageModel.select_entire_word`.
 
         Returns
         -------
-        True if the `token` is in the `stopwords` list. False otherwise.
+        ``True`` if the `token` is in the `stopwords` list. ``False`` otherwise.
         """
         if not stopwords:
             return False
@@ -193,7 +194,7 @@ class LanguageModel(abc.ABC):
             return False
 
         word = self.select_word(tokenized_text, start_idx=start_idx, punctuation=punctuation).strip()
-        return word.lower() in stopwords
+        return word.strip().lower() in stopwords
 
     def is_punctuation(self, token: str, punctuation: str) -> bool:
         """
@@ -208,10 +209,19 @@ class LanguageModel(abc.ABC):
 
         Returns
         -------
-        True if the `token` is a punctuation. False otherwise.
+        ``True`` if the `token` is a punctuation. ``False`` otherwise.
         """
-        token = token.replace(self.SUBWORD_PREFIX, '').strip()
-        return all([c in punctuation for c in token])
+        # need to convert tokens from transformers encoding representation into unicode to allow for proper
+        # punctuation check against a list of punctuation unicode characters provided (e.g., for RobertaBase this will
+        # convert special  characters such as 'Ġ[âĢ¦]' into ' […]', and will allow us to check if characters such
+        # as ' ', '[', '…', ']' appear in the punctuation list.
+        string_rep = self.tokenizer.convert_tokens_to_string([token]).strip()
+
+        # have to remove `##` prefix for Bert & DistilBert to allow the check with `any`
+        if string_rep.startswith(self.SUBWORD_PREFIX):
+            string_rep = string_rep.replace(self.SUBWORD_PREFIX, '', 1)
+
+        return any([c in punctuation for c in string_rep]) if len(string_rep) else False
 
     @property
     @abc.abstractmethod
@@ -289,7 +299,7 @@ class LanguageModel(abc.ABC):
                          vocab_size: int,
                          batch_size: int) -> np.ndarray:
         """
-        Tensorflow language model batch predictions for AnchorText.
+        `Tensorflow` language model batch predictions for `AnchorText`.
 
         Parameters
         ----------
@@ -331,12 +341,12 @@ class DistilbertBaseUncased(LanguageModel):
 
     def __init__(self, preloading: bool = True):
         """
-        Initialize DistilbertBaseUncased.
+        Initialize `DistilbertBaseUncased`.
 
         Parameters
         ----------
         preloading
-            See `LanguageModel` constructor.
+            See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`.
         """
         super().__init__("distilbert-base-uncased", preloading)
 
@@ -353,12 +363,12 @@ class BertBaseUncased(LanguageModel):
 
     def __init__(self, preloading: bool = True):
         """
-        Initialize BertBaseUncased.
+        Initialize `BertBaseUncased`.
 
         Parameters
         ----------
         preloading
-            See `LanguageModel` constructor.
+            See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`.
         """
         super().__init__("bert-base-uncased", preloading)
 
@@ -375,12 +385,12 @@ class RobertaBase(LanguageModel):
 
     def __init__(self, preloading: bool = True):
         """
-        Initialize RobertaBase
+        Initialize `RobertaBase`.
 
         Parameters
         ----------
         preloading
-            See `LanguageModel` constructor.
+            See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__` constructor.
         """
         super().__init__("roberta-base", preloading)
 

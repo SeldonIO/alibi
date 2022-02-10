@@ -92,7 +92,7 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
 
 
 @pytest.mark.skip(reason='Not testing as performance of distributed anchors (within an instance) not clear.'
-                         'Also, these tests fail intermittently with precision treshold not achieved.')
+                         'Also, these tests fail intermittently with precision threshold not achieved.')
 @pytest.mark.parametrize('ncpu', [2], ids='ncpu={}'.format)
 @pytest.mark.parametrize('predict_type', ('proba', 'class'), ids='predict_type={}'.format)
 @pytest.mark.parametrize('at_defaults', [0.9], ids='threshold={}'.format, indirect=True)
@@ -109,6 +109,8 @@ def test_distributed_anchor_tabular(ncpu,
                                     rf_classifier,
                                     test_instance_idx,
                                     ):
+    # TODO - if we add this test is back in, this conditional should be added as a @pytest.mark.skip
+    # i.e. see test_kernel_distributed_execution in test_shap_wrappers.py.
     if RAY_INSTALLED:
         import ray
 

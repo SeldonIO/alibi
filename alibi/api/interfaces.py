@@ -68,7 +68,7 @@ class Explainer(abc.ABC):
     """
     Base class for explainer algorithms
     """
-    meta = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  # type: dict
+    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Explainer meta-data.
 
     def __attrs_post_init__(self):
         # add a name and version to the metadata dictionary
@@ -101,6 +101,14 @@ class Explainer(abc.ABC):
         return load_explainer(path, predictor)
 
     def reset_predictor(self, predictor: Any) -> None:
+        """
+        Resets the predictor.
+
+        Parameters
+        ----------
+        predictor
+            New predictor.
+        """
         raise NotImplementedError
 
     def save(self, path: Union[str, os.PathLike]) -> None:
@@ -117,14 +125,14 @@ class Explainer(abc.ABC):
     def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
         """
         Updates the metadata of the explainer using the data from the `data_dict`. If the params option
-        is specified, then each key-value pair is added to the metadata `'params'` dictionary.
+        is specified, then each key-value pair is added to the metadata ``'params'`` dictionary.
 
         Parameters
         ----------
         data_dict
             Contains the data to be stored in the metadata.
         params
-            If True, the method updates the `'params'` attribute of the metatadata.
+            If ``True``, the method updates the ``'params'`` attribute of the metadata.
         """
 
         if params:
@@ -150,34 +158,34 @@ class Explanation:
 
     def __attrs_post_init__(self):
         """
-        Expose keys stored in self.meta and self.data as attributes of the class.
+        Expose keys stored in `self.meta` and `self.data` as attributes of the class.
         """
         for key, value in ChainMap(self.meta, self.data).items():
             setattr(self, key, value)
 
     def to_json(self) -> str:
         """
-        Serialize the explanation data and metadata into a json format.
+        Serialize the explanation data and metadata into a `json` format.
 
         Returns
         -------
-        String containing json representation of the explanation
+        String containing `json` representation of the explanation.
         """
         return json.dumps(attr.asdict(self), cls=NumpyEncoder)
 
     @classmethod
     def from_json(cls, jsonrepr) -> "Explanation":
         """
-        Create an instance of an Explanation class using a json representation of the Explanation.
+        Create an instance of an `Explanation` class using a `json` representation of the `Explanation`.
 
         Parameters
         ----------
         jsonrepr
-            json representation of an explanation
+            `json` representation of an explanation.
 
         Returns
         -------
-            An Explanation object
+        An Explanation object.
         """
         dictrepr = json.loads(jsonrepr)
         try:

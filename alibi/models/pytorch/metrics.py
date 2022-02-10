@@ -15,8 +15,8 @@ from typing import Dict, Union, Callable
 
 class Reduction(Enum):
     """ Reduction operation supported by the monitoring metrics. """
-    SUM = 'sum'
-    MEAN = 'mean'
+    SUM: str = 'sum'
+    MEAN: str = 'mean'
 
 
 class LossContainer:
@@ -47,6 +47,10 @@ class LossContainer:
             Prediction labels.
         y_true
             True labels.
+
+        Returns
+        -------
+        Loss value.
         """
 
         # compute loss

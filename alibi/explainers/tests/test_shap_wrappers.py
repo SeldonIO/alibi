@@ -19,7 +19,7 @@ from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, K
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
-from alibi.utils.distributed import DistributedExplainer
+from alibi.utils.distributed import DistributedExplainer, RAY_INSTALLED
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
@@ -1058,7 +1058,7 @@ def test_build_explanation_kernel(mock_kernel_shap_explainer, task):
     X = get_random_matrix(n_rows=n_instances, n_cols=n_feats)
     shap_values = [get_random_matrix(n_rows=n_instances, n_cols=n_feats) for _ in range(n_outs)]
     expected_value = [np.random.random() for _ in range(n_outs)]
-    response = explainer.build_explanation(X, shap_values, expected_value)
+    response = explainer._build_explanation(X, shap_values, expected_value)
 
     if task == 'regression':
         assert not response.data['raw']['prediction']
@@ -1075,6 +1075,8 @@ n_instances, n_features = 10, 10
 
 
 # example on how to send the same parameters to a fixture via indirection and the test. Screws up test ids.
+@pytest.mark.skipif(not RAY_INSTALLED,
+                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('mock_kernel_shap_explainer, mock_ker_exp_params',
                          mock_ker_exp_params,
                          indirect=["mock_kernel_shap_explainer"],
@@ -1307,7 +1309,7 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
     # TODO: @janis: let's do path.multiple or something like that
     with unittest.mock.patch.object(explainer, '_check_interactions'):
         with unittest.mock.patch.object(explainer, '_check_explainer_setup'):
-            with unittest.mock.patch.object(explainer, 'build_explanation'):
+            with unittest.mock.patch.object(explainer, '_build_explanation'):
 
                 # explain some instances
                 explainer.explain(
@@ -1325,8 +1327,8 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
                     explainer._check_interactions.asert_not_called()
                     explainer._check_explainer_setup.assert_called_with(background_data, explainer.model_output, None)
 
-                explainer.build_explanation.assert_called_once()
-                build_args = explainer.build_explanation.call_args
+                explainer._build_explanation.assert_called_once()
+                build_args = explainer._build_explanation.call_args
                 # check shap values and expected value are of the correct data type for all dimensions
                 assert isinstance(build_args[0][1], list)
                 assert isinstance(build_args[0][2], list)
@@ -1447,7 +1449,7 @@ def uncollect_if_test_tree_api(**kwargs):
     data_type = kwargs['data_type']
     interactions = kwargs['interactions']
 
-    # exclude this as the code would raise a value error before calling build_explanation
+    # exclude this as the code would raise a value error before calling _build_explanation
     conditions = [
         labels and model_output != 'log_loss',
         labels and data_type == 'none',

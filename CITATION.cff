@@ -17,8 +17,8 @@ authors:
   given-names: "Ashley"
   orcid: "https://orcid.org/0000-0001-8971-7224"
 title: "Alibi Explain: Algorithms for Explaining Machine Learning Models"
-version: 0.6.2
-date-released: 2021-11-18
+version: 0.6.4
+date-released: 2022-01-28
 url: "https://github.com/SeldonIO/alibi"
 preferred-citation:
   type: article

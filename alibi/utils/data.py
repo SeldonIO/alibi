@@ -9,7 +9,7 @@ from typing import Dict, List, Union
 
 class Bunch(dict):
     """
-    Container object for internal datasets
+    Container object for internal datasets.
     Dictionary-like object that exposes its keys as attributes.
     """
 
@@ -36,10 +36,10 @@ def gen_category_map(data: Union[pd.DataFrame, np.ndarray],
     Parameters
     ----------
     data
-        2-dimensional pandas dataframe or numpy array.
+        2-dimensional `pandas` dataframe or `numpy` array.
     categorical_columns
-        A list of columns indicating categorical variables. Optional if passing a pandas dataframe as inference will
-        be used based on dtype 'O'. If passing a numpy array this is compulsory.
+        A list of columns indicating categorical variables. Optional if passing a `pandas` dataframe as inference
+        will be used based on dtype ``'O'``. If passing a `numpy` array this is compulsory.
 
     Returns
     -------

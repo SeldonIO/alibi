@@ -37,7 +37,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             the `preprocessor` function.
         preprocessor
             Preprocessor function. This function correspond to the preprocessing steps applied to the
-            encoder/autoencoder model.
+            encoder/auto-encoder model.
         predictor
             Prediction function. The classifier function should expect the input in the original format and preprocess
             it internally in the `predictor` if necessary.
@@ -48,7 +48,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             Dimension of the batch used during training. The same batch size is used to infer the classification
             labels of the input dataset.
         shuffle
-            Whether to shuffle the dataset each epoch. `True` by default.
+            Whether to shuffle the dataset each epoch. ``True`` by default.
         """
         super().__init__()
 
@@ -113,7 +113,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
 
 def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) -> keras.optimizers.Optimizer:
     """
-    Constructs default Adam optimizer.
+    Constructs default `Adam` optimizer.
 
     Parameters
     ----------
@@ -124,7 +124,7 @@ def get_optimizer(model: Optional[keras.layers.Layer] = None, lr: float = 1e-3) 
 
     Returns
     -------
-        Default optimizer.
+    Default optimizer.
     """
     return keras.optimizers.Adam(learning_rate=lr)
 
@@ -142,7 +142,7 @@ def get_actor(hidden_dim: int, output_dim: int) -> keras.layers.Layer:
 
     Returns
     -------
-        Actor network.
+    Actor network.
     """
     return Actor(hidden_dim=hidden_dim, output_dim=output_dim)
 
@@ -158,7 +158,7 @@ def get_critic(hidden_dim: int) -> keras.layers.Layer:
 
     Returns
     -------
-        Critic network.
+    Critic network.
     """
     return Critic(hidden_dim=hidden_dim)
 
@@ -170,13 +170,13 @@ def sparsity_loss(X_hat_cf: tf.Tensor, X: tf.Tensor) -> Dict[str, tf.Tensor]:
     Parameters
     ----------
     X_hat_cf
-        Autoencoder counterfactual reconstruction.
+        Auto-encoder counterfactual reconstruction.
     X
-        Input instance
+        Input instance.
 
     Returns
     -------
-        L1 sparsity loss.
+    L1 sparsity loss.
     """
     return {"sparsity_loss": tf.reduce_mean(tf.abs(X_hat_cf - X))}
 
@@ -194,7 +194,7 @@ def consistency_loss(Z_cf_pred: tf.Tensor, Z_cf_tgt: tf.Tensor):
 
     Returns
     -------
-        0 consistency loss.
+    0 consistency loss.
     """
     return {"consistency_loss": 0}
 
@@ -207,7 +207,7 @@ def data_generator(X: np.ndarray,
                    shuffle: bool = True,
                    **kwargs):
     """
-    Constructs a tensorflow data generator.
+    Constructs a `tensorflow` data generator.
 
     Parameters
     ----------
@@ -215,7 +215,7 @@ def data_generator(X: np.ndarray,
         Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling
         the `preprocessor` function.
     encoder_preprocessor
-        Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/autoencoder
+        Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/auto-encoder
         model.
     predictor
         Prediction function. The classifier function should expect the input in the original format and preprocess
@@ -227,7 +227,9 @@ def data_generator(X: np.ndarray,
         Dimension of the batch used during training. The same batch size is used to infer the classification
         labels of the input dataset.
     shuffle
-        Whether to shuffle the dataset each epoch. `True` by default.
+        Whether to shuffle the dataset each epoch. ``True`` by default.
+    **kwargs
+        Other arguments. Not used.
     """
     return TfCounterfactualRLDataset(X=X, preprocessor=encoder_preprocessor, predictor=predictor,
                                      conditional_func=conditional_func, batch_size=batch_size, shuffle=shuffle)
@@ -243,10 +245,12 @@ def encode(X: Union[tf.Tensor, np.ndarray], encoder: keras.Model, **kwargs) -> t
         Input to be encoded.
     encoder
         Pretrained encoder network.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
-        Input encoding.
+    Input encoding.
     """
     return encoder(X, training=False)
 
@@ -261,10 +265,12 @@ def decode(Z: Union[tf.Tensor, np.ndarray], decoder: keras.Model, **kwargs):
         Embedding tensor to be decoded.
     decoder
         Pretrained decoder network.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
-        Embedding tensor decoding.
+    Embedding tensor decoding.
     """
     return decoder(Z, training=False)
 
@@ -290,6 +296,8 @@ def generate_cf(Z: Union[np.ndarray, tf.Tensor],
         Conditional tensor.
     actor
         Actor network. The model generates the counterfactual embedding.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
@@ -335,6 +343,8 @@ def add_noise(Z_cf: Union[tf.Tensor, np.ndarray],
     exploration_steps
         Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding
         is sampled uniformly at random.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
@@ -388,6 +398,8 @@ def initialize_optimizers(optimizer_actor, optimizer_critic, actor, critic, **kw
         Actor model to be optimized.
     critic
         Critic model to be optimized.
+    **kwargs
+        Other arguments. Not used.
     """
     initialize_optimizer(optimizer=optimizer_actor, model=actor)
     initialize_optimizer(optimizer=optimizer_critic, model=critic)
@@ -413,6 +425,8 @@ def initialize_actor_critic(actor, critic, Z, Z_cf_tilde, Y_m, Y_t, C, **kwargs)
         Target counterfactual classification label.
     C
         Conditional tensor.
+    **kwargs
+        Other arguments. Not used.
     """
     # Define zero data.
     Z = tf.zeros((1, *Z.shape[1:]), dtype=tf.float32)
@@ -499,10 +513,12 @@ def update_actor_critic(encoder: keras.Model,
         Conditional tensor.
     R_tilde
         Noised counterfactual reward.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
-        Dictionary of losses.
+    Dictionary of losses.
     """
     # Define dictionary of losses.
     losses: Dict[str, float] = dict()
@@ -572,16 +588,16 @@ def update_actor_critic(encoder: keras.Model,
 
 def to_numpy(X: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[List, np.ndarray]]:
     """
-    Converts given tensor to numpy array.
+    Converts given tensor to `numpy` array.
 
     Parameters
     ----------
     X
-        Input tensor to be converted to numpy array.
+        Input tensor to be converted to `numpy` array.
 
     Returns
     -------
-        Numpy representation of the input tensor.
+    `Numpy` representation of the input tensor.
     """
     if X is not None:
         if isinstance(X, np.ndarray):
@@ -599,11 +615,18 @@ def to_numpy(X: Optional[Union[List, np.ndarray, tf.Tensor]]) -> Optional[Union[
 
 def to_tensor(X: Union[np.ndarray, tf.Tensor], **kwargs) -> Optional[tf.Tensor]:
     """
-    Converts tensor to tf.Tensor
+    Converts tensor to `tf.Tensor`.
+
+    Parameters
+    ----------
+    X
+        Input array/tensor to be converted.
+    **kwargs
+        Other arguments. Not used.
 
     Returns
     -------
-        tf.Tensor conversion.
+    `tf.Tensor` conversion.
     """
     if X is not None:
         if isinstance(X, tf.Tensor):
@@ -639,7 +662,7 @@ def load_model(path: Union[str, os.PathLike]) -> keras.Model:
 
     Returns
     -------
-        Loaded model.
+    Loaded model.
     """
     return keras.models.load_model(path, compile=False)
 

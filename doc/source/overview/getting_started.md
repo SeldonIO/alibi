@@ -1,21 +1,100 @@
 # Getting Started
 
 ## Installation
-Alibi works with Python 3.6+ and can be installed from [PyPI](https://pypi.org/project/alibi):
+Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi/) or [conda-forge](https://conda-forge.org/)
+by following the instructions below.
+
+``````{dropdown} Install via PyPI
+```{div} sd-mb-3
+- Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
+```
+
+`````{tab-set}
+
+````{tab-item} Standard
+:sync: label-standard
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Default installation.
+```
 ```bash
 pip install alibi
 ```
-Alternatively, the development version can be installed:
-```bash
-pip install git+https://github.com/SeldonIO/alibi.git 
-```
+````
 
-````{note}
-Before running the examples, you may need to first run:
+````{tab-item} SHAP
+:sync: label-shap
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/latest/index.html) values.
+```
 ```bash
-pip install alibi[examples]
+pip install alibi[shap]
 ```
 ````
+
+````{tab-item} Distributed
+:class-label: sd-pt-0
+:sync: label-dist
+```{div} sd-mb-1
+Installation with support for distributed computation of explanations.
+```
+```bash
+pip install alibi[ray]
+```
+````
+`````
+``````
+
+``````{dropdown} Install via conda-forge
+```{div} sd-mb-3
+- To install the conda-forge version it is recommended to use [mamba](https://mamba.readthedocs.io/en/latest/), 
+which can be installed to the *base* conda enviroment with:
+```
+```bash
+conda install mamba -n base -c conda-forge
+```
+```{div} sd-mb-3
+- `mamba` can then be used to install alibi in a conda enviroment:
+```
+
+`````{tab-set}
+
+````{tab-item} Standard
+:sync: label-standard
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Default installation.
+```
+```bash
+mamba install -c conda-forge alibi
+```
+````
+
+````{tab-item} SHAP
+:sync: label-shap
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/latest/index.html) values.
+```
+```bash
+mamba install -c conda-forge alibi shap
+```
+````
+
+````{tab-item} Distributed
+:sync: label-dist
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for distributed computation of explanations.
+```
+```bash
+mamba install -c conda-forge alibi ray 
+```
+````
+
+`````
+``````
 
 ## Features
 Alibi is a Python package designed to help explain the predictions of machine learning models and gauge

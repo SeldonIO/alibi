@@ -61,6 +61,99 @@ with the exception of ommiting argument types in docstrings in favour of type hi
 and class signatures. If you're using a `PyCharm`, you can configure this under
 `File -> Settings -> Tools -> Python Integrated Tools -> Docstrings`.
 
+#### Conventions
+
+- Names of variables, functions, classes and modules should be written between single back-ticks.
+     - ``` A `numpy` scalar type that ```
+     - ``` `X` ```
+     - ``` `extrapolate_constant_perc` ```
+
+- Simple mathematical equations should be written between single back-ticks to facilitate readability in the console.
+     - ``` A callable that takes an `N x F` tensor, for ```
+     - ``` `x >= v, fun(x) >= target` ```
+
+- Complex math should be written in LaTeX.
+    - ``` function where :math:`link(output - expected\_value) = sum(\phi)` ```
+
+- Variable values or examples of setting an argument to a specific values should be written in double back-ticks
+to facilitate readability as they are rendered in a block with orange font-color.
+   - ``` is set to ``True`` ```
+   - ``` A list of features for which to plot the ALE curves or ``'all'`` for all features. ```
+   - ``` The search is greedy if ``beam_size=1`` ```
+   - ``` if the result uses ``segment_labels=(1, 2, 3)`` and ``partial_index=1``, this will return ``[1, 2]``. ```
+   
+- Listing the possible values an argument can take.
+   - ``` Possible values are: ``'all'`` | ``'row'`` | ``None``. ```
+
+- Returning the name of the variable and its description - standard convention and renders well. Writing the 
+variable types should be avoided as it would be duplicated from variables typing.
+```
+Returns
+-------
+raw
+    Array of perturbed text instances.
+data
+    Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample.
+```
+
+- Returning only the description. When the name of the variable is not returned, sphinx wrongly interprets the 
+description as the variable name which will render the text in italic. If the text exceeds one line, ``` \ ``` need 
+to be included after each line to avoid introducing bullet points at the beginning of each row. Moreover, if for 
+example the name of a variable is included between single back-ticks, the italic font is canceled for all the words
+with the exception of the ones inbetween single back-ticks.
+```
+Returns
+-------
+If the user has specified grouping, then the input object is subsampled and an object of the same \
+type is returned. Otherwise, a `shap_utils.Data` object containing the result of a k-means algorithm \
+is wrapped in a `shap_utils.DenseData` object and returned. The samples are weighted according to the \
+frequency of the occurrence of the clusters in the original data.
+```
+ 
+- Returning an object which contains multiple attributes and each attribute is described individually. 
+In this case the attribute name is written between single back-ticks and the type, if provided, would be written in 
+double back-ticks.
+```
+Returns
+-------
+`Explanation` object containing the anchor explaining the instance with additional metadata as attributes. \
+Contains the following data-related attributes
+
+ - `anchor` : ``List[str]`` - a list of words in the proposed anchor.
+
+ - `precision` : ``float`` - the fraction of times the sampled instances where the anchor holds yields \
+ the same prediction as the original instance. The precision will always be  threshold for a valid anchor.
+
+ - `coverage` : ``float`` - the fraction of sampled instances the anchor applies to.
+```
+
+- Documenting a dictionary follows the same principle the as above but the key should be written between 
+double back-ticks.
+```
+Default perturbation options for ``'similarity'`` sampling
+
+    - ``'sample_proba'`` : ``float`` - probability of a word to be masked.
+
+    - ``'top_n'`` : ``int`` - number of similar words to sample for perturbations.
+
+    - ``'temperature'`` : ``float`` - sample weight hyper-parameter if `use_proba=True`.
+
+    - ``'use_proba'`` : ``bool`` - whether to sample according to the words similarity.
+```
+
+- Attributes are commented inline to avoid duplication.
+```
+class ReplayBuffer:
+    """
+    Circular experience replay buffer for `CounterfactualRL` (DDPG) ... in performance.
+    """
+    X: np.ndarray  #: Inputs buffer.
+    Y_m: np.ndarray  #: Model's prediction buffer.
+    ...
+```
+
+For more standard conventions, please check the [numpydocs style guide](https://numpydoc.readthedocs.io/en/latest/format.html).
+
 ## Building documentation
 We use `sphinx` for building documentation. You can call `make build_docs` from the project root,
 the docs will be built under `doc/_build/html`. Detail information about documentation can be found [here](doc/README.md).

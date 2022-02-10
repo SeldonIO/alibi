@@ -2,6 +2,10 @@
 
 name: test_changed_notebooks
 
+defaults:
+  run:
+    shell: bash  # To override PowerShell on Windows
+
 on:
   push:
     branches:
@@ -19,10 +23,16 @@ jobs:
   test_changed_notebooks:
     if: github.event.pull_request.draft == false
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9' ]
+        os: [ubuntu-latest]
+        python-version: [ '3.7', '3.8', '3.9' ]
+        include: # Run macos and windows tests on python 3.9 only
+          - os: windows-latest 
+            python-version:  '3.9'
+          - os: macos-latest 
+            python-version:  '3.9'
 
     steps:
       - name: Checkout code
@@ -41,16 +51,19 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools
-          pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          pip install --upgrade --upgrade-strategy eager -e .
-          pip install --upgrade --upgrade-strategy eager -e .[examples]
-          pip install --upgrade --upgrade-strategy eager -e .[ray]
-          pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt -r testing/requirements.txt
+          python -m pip install --upgrade --upgrade-strategy eager -e .
+          if [ "$RUNNER_OS" != "Windows" ]; then  # Skip distributed tests on windows for now (Windows support for ray is experimental https://docs.ray.io/en/latest/installation.html#windows-support)
+            python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
+          fi
+          python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
-          pip freeze
+          python -m pip freeze
+
       - name: Run notebooks
         env:
           FILES: ${{ steps.changed-ipynb.outputs.all_modified_files }}

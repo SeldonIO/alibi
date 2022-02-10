@@ -30,7 +30,7 @@ def get_conditional_dim(feature_names: List[str], category_map: Dict[int, List[s
 
     Returns
     -------
-        Dimension of the conditional vector
+    Dimension of the conditional vector
     """
     cat_feat = int(np.sum([len(vals) for vals in category_map.values()]))
     num_feat = len(feature_names) - len(category_map)
@@ -55,7 +55,7 @@ def split_ohe(X_ohe: 'Union[np.ndarray, torch.Tensor, tf.Tensor]',
     Returns
     -------
     X_ohe_num_split
-        List of numerical heads. If different than `None`, the list's size is 1.
+        List of numerical heads. If different than ``None``, the list's size is 1.
     X_ohe_cat_split
         List of categorical one-hot encoded heads.
     """
@@ -92,13 +92,13 @@ def generate_numerical_condition(X_ohe: np.ndarray,
     """
     Generates numerical features conditional vector. For numerical features with a minimum value `a_min` and a
     maximum value `a_max`, we include in the conditional vector the values `-p_min`, `p_max`, where `p_min, p_max`
-    are in `[0, 1]`. The range `[-p_min, p_max]` encodes a shift and scale-invariant representation of the interval
+    are in [0, 1]. The range `[-p_min, p_max]` encodes a shift and scale-invariant representation of the interval
     `[a - p_min * (a_max - a_min), a + p_max * (a_max - a_min)], where `a` is the original feature value. During
     training, `p_min` and `p_max` are sampled from `Beta(2, 2)` for each unconstrained feature. Immutable features
     can be encoded by `p_min = p_max = 0` or listed in `immutable_features` list. Features allowed to increase or
-    decrease only correspond to setting `p_min = 0` or `p_max = 0`, respectively. For example, allowing the `age`
+    decrease only correspond to setting `p_min = 0` or `p_max = 0`, respectively. For example, allowing the ``'Age'``
     feature to increase by up to 5 years is encoded by taking `p_min = 0`, `p_max=0.1`, assuming the minimum age of
-    `10` and the maximum age of `60` years in the training set: `5 = 0.1 * (60 - 10)`.
+    10 and the maximum age of 60 years in the training set: `5 = 0.1 * (60 - 10)`.
 
     Parameters
     ----------
@@ -115,15 +115,15 @@ def generate_numerical_condition(X_ohe: np.ndarray,
         Dictionary of ranges for numerical features. Each value is a list containing two elements, first one
         negative and the second one positive.
     immutable_features
-        Dictionary of immutable features. The keys are the column indexes and the values are booleans: `True` if
-        the feature is immutable, `False` otherwise.
+        Dictionary of immutable features. The keys are the column indexes and the values are booleans: ``True`` if
+        the feature is immutable, ``False`` otherwise.
     conditional
-        Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
+        Boolean flag to generate a conditional vector. If ``False`` the conditional vector does not impose any
         restrictions on the feature value.
 
     Returns
     -------
-        Conditional vector for numerical features.
+    Conditional vector for numerical features.
     """
     num_cond = []
     size = X_ohe.shape[0]
@@ -167,8 +167,8 @@ def generate_categorical_condition(X_ohe: np.ndarray,
     Generates categorical features conditional vector. For a categorical feature of cardinality `K`, we condition the
     subset of allowed feature through a binary mask of dimension `K`. When training the counterfactual generator,
     the mask values are sampled from `Bern(0.5)`. For immutable features, only the original input feature value is
-    set to one in the binary mask. For example, the immutability of the `marital_status` having the current
-    value `married` is encoded through the binary sequence `[1, 0, 0]`, given an ordering of the possible feature
+    set to one in the binary mask. For example, the immutability of the ``'marital_status'`` having the current
+    value ``'married'`` is encoded through the binary sequence [1, 0, 0], given an ordering of the possible feature
     values `[married, unmarried, divorced]`.
 
     Parameters
@@ -185,12 +185,12 @@ def generate_categorical_condition(X_ohe: np.ndarray,
     immutable_features
         List of immutable features.
     conditional
-        Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
+        Boolean flag to generate a conditional vector. If ``False`` the conditional vector does not impose any
         restrictions on the feature value.
 
     Returns
     -------
-        Conditional vector for categorical feature.
+    Conditional vector for categorical feature.
     """
 
     C_cat = []  # define list of conditional vector for each feature
@@ -237,8 +237,8 @@ def generate_condition(X_ohe: np.ndarray,
         One-hot encoding representation of the element(s) for which the conditional vector will be generated.
         This method assumes that the input array, `X_ohe`, is has the first columns corresponding to the
         numerical features, and the rest are one-hot encodings of the categorical columns. The numerical and the
-        categorical columns are ordered by the original column index( e.g. numerical = (1, 4),
-        categorical=(0, 2, 3)).
+        categorical columns are ordered by the original column index( e.g., `numerical = (1, 4)`,
+        `categorical=(0, 2, 3)`).
     feature_names
         List of feature names.
     category_map
@@ -250,12 +250,12 @@ def generate_condition(X_ohe: np.ndarray,
     immutable_features
         List of immutable map features.
     conditional
-        Boolean flag to generate a conditional vector. If `False` the conditional vector does not impose any
+        Boolean flag to generate a conditional vector. If ``False`` the conditional vector does not impose any
         restrictions on the feature value.
 
     Returns
     -------
-        Conditional vector.
+    Conditional vector.
     """
     # Define conditional vector buffer
     C = []
@@ -306,7 +306,7 @@ def sample_numerical(X_hat_num_split: List[np.ndarray],
     stats
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
         feature in the training set. Each key is an index of the column and each value is another dictionary
-        containing `min` and `max` keys.
+        containing ``'min'`` and ``'max'`` keys.
 
     Returns
     -------
@@ -392,12 +392,12 @@ def sample(X_hat_split: List[np.ndarray],
     stats
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
         feature in the training set. Each key is an index of the column and each value is another dictionary
-        containing `min` and `max` keys.
+        containing ``'min'`` and ``'max'`` keys.
 
     Returns
     -------
     X_ohe_hat_split
-        Most probable reconstruction sample according to the autoencoder, sampled according to the conditional vector
+        Most probable reconstruction sample according to the auto-encoder, sampled according to the conditional vector
         and the dictionary of statistics. This method assumes that the input array, `X_ohe` , has the first columns
         corresponding to the numerical features, and the rest are one-hot encodings of the categorical columns.
     """
@@ -549,7 +549,7 @@ def get_statistics(X: np.ndarray,
 
     Returns
     -------
-        Dictionary of statistics. For each numerical column, the minimum and maximum value is returned.
+    Dictionary of statistics. For each numerical column, the minimum and maximum value is returned.
     """
     stats = dict()
 
@@ -577,9 +577,9 @@ def get_numerical_conditional_vector(X: np.ndarray,
                                      diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
-    For numerical features, if the `Age` feature is allowed to increase up to 10 more years, the delta change is
-    `[0, 10]`.  If the `Hours per week` is allowed to decrease down to `-5` and increases up to `+10`, then the
-    delta change is `[-5, +10]`. Note that the interval must go include `0`.
+    For numerical features, if the ``'Age'`` feature is allowed to increase up to 10 more years, the delta change is
+    [0, 10].  If the ``'Hours per week'`` is allowed to decrease down to -5 and increases up to +10, then the
+    delta change is [-5, +10]. Note that the interval must go include 0.
 
     Parameters
     ----------
@@ -597,11 +597,11 @@ def get_numerical_conditional_vector(X: np.ndarray,
         List of feature names. This should be provided by the dataset.
     category_map
         Dictionary of category mapping. The keys are column indexes and the values are lists containing the
-        possible feature values.  This should be provided by the dataset.
+        possible feature values. This should be provided by the dataset.
     stats
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
         feature in the training set. Each key is an index of the column and each value is another dictionary
-        containing `min` and `max` keys.
+        containing ``'min'`` and ``'max'`` keys.
     ranges
         Dictionary of ranges for numerical feature. Each value is a list containing two elements, first one
         negative and the second one positive.
@@ -613,7 +613,7 @@ def get_numerical_conditional_vector(X: np.ndarray,
 
     Returns
     -------
-        List of conditional vectors for each numerical feature.
+    List of conditional vectors for each numerical feature.
     """
     if ranges is None:
         ranges = dict()
@@ -693,8 +693,9 @@ def get_categorical_conditional_vector(X: np.ndarray,
                                        diverse=False) -> List[np.ndarray]:
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
-    For categorical feature, if the `Occupation` can change to `Blue-Collar` or `White-Collar` the delta change
-    is `['Blue-Collar', 'White-Collar']`. Note that the original value is optional as it is included by default.
+    For categorical feature, if the ``'Occupation'`` can change to ``'Blue-Collar'`` or ``'White-Collar'``, the delta
+    change is ``['Blue-Collar', 'White-Collar']``. Note that the original value is optional as it is
+    included by default.
 
     Parameters
     ----------
@@ -721,7 +722,7 @@ def get_categorical_conditional_vector(X: np.ndarray,
 
     Returns
     -------
-        List of conditional vectors for each categorical feature.
+    List of conditional vectors for each categorical feature.
     """
     if immutable_features is None:
         immutable_features = list()
@@ -774,12 +775,13 @@ def get_conditional_vector(X: np.ndarray,
     """
     Generates a conditional vector. The condition is expressed a a delta change of the feature.
 
-    For numerical features, if the `Age` feature is allowed to increase up to 10 more years, the delta change is
-    `[0, 10]`.  If the `Hours per week` is allowed to decrease down to `-5` and increases up to `+10`, then the
-    delta change is `[-5, +10]`. Note that the interval must go include `0`.
+    For numerical features, if the ``'Age'`` feature is allowed to increase up to 10 more years, the delta change is
+    [0, 10].  If the ``'Hours per week'`` is allowed to decrease down to -5 and increases up to +10, then the
+    delta change is [-5, +10]. Note that the interval must go include 0.
 
-    For categorical feature, if the `Occupation` can change to `Blue-Collar` or `White-Collar` the delta change
-    is `['Blue-Collar', 'White-Collar']`. Note that the original value is optional as it is included by default.
+    For categorical feature, if the ``'Occupation'`` can change to ``'Blue-Collar'`` or ``'White-Collar'``,
+    the delta change is ``['Blue-Collar', 'White-Collar']``. Note that the original value is optional as it is
+    included by default.
 
     Parameters
     ----------
@@ -801,7 +803,7 @@ def get_conditional_vector(X: np.ndarray,
     stats
         Dictionary of statistic of the training data. Contains the minimum and maximum value of each numerical
         feature in the training set. Each key is an index of the column and each value is another dictionary
-        containing `min` and `max` keys.
+        containing ``'min'`` and ``'max'`` keys.
     ranges
         Dictionary of ranges for numerical feature. Each value is a list containing two elements, first one
         negative and the second one positive.
@@ -813,7 +815,7 @@ def get_conditional_vector(X: np.ndarray,
 
     Returns
     -------
-        Conditional vector.
+    Conditional vector.
     """
     if ranges is None:
         ranges = dict()
@@ -867,7 +869,7 @@ def apply_category_mapping(X: np.ndarray, category_map: Dict[int, List[str]]) ->
 
     Returns
     -------
-        Transformed array.
+    Transformed array.
     """
     pd_X = pd.DataFrame(X)
 

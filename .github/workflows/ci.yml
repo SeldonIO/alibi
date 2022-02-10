@@ -1,5 +1,9 @@
 name: CI
 
+defaults:
+  run:
+    shell: bash  # To override PowerShell on Windows
+
 on:
   # Trigger the workflow on push or pull request,
   # but only for the master branch
@@ -14,44 +18,62 @@ on:
 
 jobs:
   build:
+    if: github.event.pull_request.draft == false
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [ '3.6', '3.7', '3.8', '3.9' ]
+        os: [ubuntu-latest]
+        python-version: [ '3.7', '3.8', '3.9' ]
+        include: # Run macos and windows tests on python 3.9 only
+          - os: windows-latest 
+            python-version:  '3.9'
+          - os: macos-latest 
+            python-version:  '3.9'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
       - name: Install dependencies
         run: |
-          pip install --upgrade pip setuptools
-          pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          pip install --upgrade --upgrade-strategy eager -e .
-          pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
+          python -m pip install --upgrade --upgrade-strategy eager -e .
+          if [ "$RUNNER_OS" != "Windows" ]; then  # Skip distributed tests on windows for now (Windows support for ray is experimental https://docs.ray.io/en/latest/installation.html#windows-support)
+            python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
+          fi
+          python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
-          pip freeze
+          python -m pip freeze
+
       - name: Lint with flake8
         run: |
           flake8 alibi
+
       - name: Typecheck with mypy
         run: |
           mypy alibi
+
       - name: Test with pytest
         run: |
           pytest -m tf1 alibi
           pytest -m "not tf1" alibi
+
       - name: Upload coverage to Codecov
         if: ${{ success() }}
         run: |
           codecov
+
       - name: Build Python package
         run: |
           make build_pypi
+
 
   docs:
 

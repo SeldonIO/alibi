@@ -65,7 +65,7 @@ class AnchorImageSampler:
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
             Function used to segment the images.
         image
@@ -76,7 +76,7 @@ class AnchorImageSampler:
             Probability for a pixel to be represented by the average value of its superpixel.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         """
         self.predictor = predictor
         self.segmentation_fn = segmentation_fn
@@ -101,28 +101,35 @@ class AnchorImageSampler:
         Parameters
         ----------
         anchor
-            int: order of anchor in the batch
-            tuple: features (= superpixels) present in the proposed anchor
+            - ``int`` - order of anchor in the batch.
+            - ``tuple`` - features (= superpixels) present in the proposed anchor.
         num_samples
-            Number of samples used
+            Number of samples used.
         compute_labels
-            If True, an array of comparisons between predictions on perturbed samples and
+            If ``True``, an array of comparisons between predictions on perturbed samples and
             instance to be explained is returned.
 
         Returns
         -------
-            If compute_labels=True, a list containing the following is returned:
-                - covered_true: perturbed examples where the anchor applies and the model prediction
-                    on perturbed is the same as the instance prediction
-                - covered_false: perturbed examples where the anchor applies and the model prediction
-                    on pertrurbed sample is NOT the same as the instance prediction
-                - labels: num_samples ints indicating whether the prediction on the perturbed sample
-                    matches (1) the label of the instance to be explained or not (0)
-                - data: Matrix with 1s and 0s indicating whether the values in a superpixel will
-                    remain unchanged (1) or will be perturbed (0), for each sample
-                - 1.0: indicates exact coverage is not computed for this algorithm
-                - anchor[0]: position of anchor in the batch request
-            Otherwise, a list containing the data matrix only is returned.
+        If ``compute_labels=True``, a list containing the following is returned
+
+         - `covered_true` - perturbed examples where the anchor applies and the model prediction  on perturbed is the \
+         same as the instance prediction.
+
+         - `covered_false` - perturbed examples where the anchor applies and the model prediction on pertrurbed sample \
+         is NOT the same as the instance prediction.
+
+         - `labels` - `num_samples` ints indicating whether the prediction on the perturbed sample matches (1) \
+         the label of the instance to be explained or not (0).
+
+         - `data` - Matrix with 1s and 0s indicating whether the values in a superpixel will remain unchanged (1) or \
+         will be perturbed (0), for each sample.
+
+         - `1.0` - indicates exact coverage is not computed for this algorithm.
+
+         - `anchor[0]` - position of anchor in the batch request
+
+        Otherwise, a list containing the data matrix only is returned.
         """
 
         if compute_labels:
@@ -154,7 +161,7 @@ class AnchorImageSampler:
 
         Returns
         -------
-            A boolean array indicating whether the prediction was the same as the instance label.
+        A boolean array indicating whether the prediction was the same as the instance label.
         """
 
         return self.predictor(samples) == self.instance_label
@@ -207,9 +214,9 @@ class AnchorImageSampler:
         Returns
         -------
         imgs
-            A [num_samples, H, W, C] array of perturbed images.
+            A `[num_samples, H, W, C]` array of perturbed images.
         segments_mask
-            A [num_samples, M] binary mask, where M is the number of image superpixels
+            A `[num_samples, M]` binary mask, where `M` is the number of image superpixels
             segments. 1 indicates the values in that particular superpixels are not
             perturbed.
         """
@@ -269,7 +276,7 @@ class AnchorImageSampler:
 
         Returns
         -------
-            A [H, W] array of integers. Each integer is a segment (superpixel) label.
+         A `[H, W]` array of integers. Each integer is a segment (superpixel) label.
         """
 
         image_preproc = self._preprocess_img(image)
@@ -287,7 +294,7 @@ class AnchorImageSampler:
 
         Returns
         -------
-            A preprocessed image.
+        A preprocessed image.
         """
 
         # Grayscale images are repeated across channels
@@ -314,17 +321,17 @@ class AnchorImage(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         image_shape
-            Shape of the image to be explained.
+            Shape of the image to be explained. The channel axis is expected to be last.
         dtype
-            A numpy scalar type that corresponds to the type of input array expected by `predictor`. This may be
+            A `numpy` scalar type that corresponds to the type of input array expected by `predictor`. This may be
             used to construct arrays of the given type to be passed through the `predictor`. For most use cases
             this argument should have no effect, but it is exposed for use with predictors that would break when
             called with an array of unsupported type.
         segmentation_fn
-            Any of the built in segmentation function strings: 'felzenszwalb', 'slic' or 'quickshift' or a custom
-            segmentation function (callable) which returns an image mask with labels for each superpixel.
+            Any of the built in segmentation function strings: ``'felzenszwalb'``, ``'slic'`` or ``'quickshift'`` or
+            a custom segmentation function (callable) which returns an image mask with labels for each superpixel.
             See http://scikit-image.org/docs/dev/api/skimage.segmentation.html for more info.
         segmentation_kwargs
             Keyword arguments for the built in segmentation functions.
@@ -361,8 +368,6 @@ class AnchorImage(Explainer):
                 'keyword arguments for built-in segmentation functions. By default '
                 'the specified segmentation function will be used.'
             )
-        else:
-            segmentation_kwargs = {}
 
         # set the predictor
         self.image_shape = tuple(image_shape)  # coerce lists
@@ -376,7 +381,7 @@ class AnchorImage(Explainer):
             self.segmentation_fn = segmentation_fn
         else:
             self.custom_segmentation = False
-            self.segmentation_fn = partial(fn_options[segmentation_fn], **segmentation_kwargs)
+            self.segmentation_fn = partial(fn_options[segmentation_fn], **segmentation_kwargs)  # type: ignore[arg-type]
 
         self.images_background = images_background
         # a superpixel is perturbed with prob 1 - p_sample
@@ -407,7 +412,7 @@ class AnchorImage(Explainer):
 
         Returns
         -------
-            A [H, W] array of integers. Each integer is a segment (superpixel) label.
+        A `[H, W]` array of integers. Each integer is a segment (superpixel) label.
         """
 
         image_preproc = self._preprocess_img(image)
@@ -425,7 +430,7 @@ class AnchorImage(Explainer):
 
         Returns
         -------
-            A preprocessed image.
+        A preprocessed image.
         """
 
         # Grayscale images are repeated across channels
@@ -466,7 +471,7 @@ class AnchorImage(Explainer):
         threshold
             Minimum precision threshold.
         delta
-            Used to compute beta.
+            Used to compute `beta`.
         tau
             Margin between lower confidence bound and minimum precision of upper bound.
         batch_size
@@ -476,7 +481,7 @@ class AnchorImage(Explainer):
         beam_size
             The number of anchors extended at each step of new anchors construction.
         stop_on_first
-            If True, the beam search algorithm will return the first anchor that has satisfies the
+            If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.
         max_anchor_size
             Maximum number of features in result.
@@ -484,12 +489,12 @@ class AnchorImage(Explainer):
             Min number of initial samples.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         binary_cache_size
-            The result search pre-allocates binary_cache_size batches for storing the binary arrays
+            The result search pre-allocates `binary_cache_size` batches for storing the binary arrays
             returned during sampling.
         cache_margin
-            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            When only ``max(cache_margin, batch_size)`` positions in the binary cache remain empty, a new cache
             of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
@@ -500,6 +505,10 @@ class AnchorImage(Explainer):
         -------
         explanation
             `Explanation` object containing the anchor explaining the instance with additional metadata as attributes.
+            See usage at `AnchorImage examples`_ for details.
+
+            .. _AnchorImage examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # get params for storage in meta
         params = locals()
@@ -538,11 +547,11 @@ class AnchorImage(Explainer):
             **kwargs,
         )  # type: Any
 
-        return self.build_explanation(
+        return self._build_explanation(
             image, result, sampler.instance_label, params, sampler
         )
 
-    def build_explanation(
+    def _build_explanation(
             self,
             image: np.ndarray,
             result: dict,
@@ -563,7 +572,7 @@ class AnchorImage(Explainer):
         predicted_label
             Label of the instance to be explained.
         params
-            Parameters passed to `explain`
+            Parameters passed to `:py:meth:alibi.explainers.anchor_image.AnchorImage.explain`.
         """
 
         result['instance'] = image
@@ -601,7 +610,7 @@ class AnchorImage(Explainer):
         image
             Image to be explained.
         segments
-            Superpixels
+            Superpixels.
         mask_features
             List with superpixels present in mask.
         scale
@@ -643,4 +652,12 @@ class AnchorImage(Explainer):
             return transformer
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New predictor function.
+        """
         self.predictor = self._transform_predictor(predictor)

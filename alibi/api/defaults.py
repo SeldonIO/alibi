@@ -104,7 +104,8 @@ KERNEL_SHAP_PARAMS = [
     'kwargs',
 ]
 """
-KernelShap parameters updated and return in metadata['params'].
+KernelShap parameters updated and returned in ``metadata['params']``.
+See :py:class:`alibi.explainers.shap_wrappers.KernelShap`.
 """
 
 DEFAULT_META_KERNEL_SHAP = {
@@ -172,7 +173,8 @@ TREE_SHAP_PARAMS = [
     'kwargs'
 ]
 """
-TreeShap parameters updated and return in metadata['params'].
+TreeShap parameters updated and returned in ``metadata['params']``.
+See :py:class:`alibi.explainers.shap_wrappers.TreeShap`.
 """
 
 DEFAULT_META_TREE_SHAP = {

@@ -7,18 +7,18 @@ from sklearn.manifold import MDS
 def cityblock_batch(X: np.ndarray,
                     y: np.ndarray) -> np.ndarray:
     """
-    Calculate the L1 distances between a batch of arrays X and an array of the same shape y.
+    Calculate the L1 distances between a batch of arrays `X` and an array of the same shape `y`.
 
     Parameters
     ----------
     X
-        Batch of arrays to calculate the distances from
+        Batch of arrays to calculate the distances from.
     y
-        Array to calculate the distance to
+        Array to calculate the distance to.
 
     Returns
     -------
-    Array of distances from each array in X to y
+    Array of distances from each array in `X` to `y`.
 
     """
     X_dim = len(X.shape)
@@ -178,20 +178,19 @@ def multidim_scaling(d_pair: dict,
         Dict with as keys the column index of the categorical variables and as values
         a pairwise distance matrix for the categories of the variable.
     feature_range
-        Tuple with min and max ranges to allow for perturbed instances. Min and max ranges can be floats or
-        numpy arrays with dimension (1 x nb of features) for feature-wise ranges.
+        Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges can be `float` or
+        `numpy` arrays with dimension (`1 x nb of features`) for feature-wise ranges.
     n_components
         Number of dimensions in which to immerse the dissimilarities.
     use_metric
-        If True, perform metric MDS; otherwise, perform nonmetric MDS.
+        If ``True``, perform metric MDS; otherwise, perform nonmetric MDS.
     standardize_cat_vars
-        Standardize numerical values of categorical variables if True.
-
+        Standardize numerical values of categorical variables if ``True``.
     smooth
-        Smoothing exponent between 0 and 1 for the distances. Lower values of l will smooth the difference in
+        Smoothing exponent between 0 and 1 for the distances. Lower values than 1 will smooth the difference in
         distance metric between different features.
     center
-        Whether to center the scaled distance measures. If False, the min distance for each feature
+        Whether to center the scaled distance measures. If ``False``, the min distance for each feature
         except for the feature with the highest raw max distance will be the lower bound of the
         feature range, but the upper bound will be below the max feature range.
     update_feature_range

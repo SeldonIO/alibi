@@ -22,9 +22,11 @@ from .anchor_explanation import AnchorExplanation
 
 class TabularSampler:
     """ A sampler that uses an underlying training set to draw records that have a subset of features with
-    values specified in an instance to be explained, X."""
+    values specified in an instance to be explained, `X`. """
 
-    instance_label: int
+    # if documented in the Attributes, it will be documented twice.
+    # Probably related to: https://github.com/sphinx-doc/sphinx/issues/7427
+    instance_label: int  #: The label of the instance to be explained.
 
     def __init__(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ...], numerical_features: List[int],
                  categorical_features: List[int], feature_names: list, feature_values: dict, n_covered_ex: int = 10,
@@ -33,9 +35,9 @@ class TabularSampler:
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a tensor of `N` data points as inputs and returns `N` outputs.
         disc_perc
-            Percentiles used for numerical feat. discretisation.
+            Percentiles used for numerical feature discretisation.
         numerical_features
             Numerical features column IDs.
         categorical_features
@@ -69,20 +71,19 @@ class TabularSampler:
 
     def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.ndarray, Any]) -> Any:
         """
-        Initialise the Tabular sampler object with data, discretizer, feature statistics and
+        Initialise the tabular sampler object with data, discretizer, feature statistics and
         build an index from feature values and bins to database rows for each feature.
 
         Parameters
         ----------
         train_data:
-            Data from which samples are drawn. Can be a numpy array or a ray future.
+            Data from which samples are drawn. Can be a `numpy` array or a `ray` future.
         d_train_data:
-            Discretized version for training data. Can be a numpy array or a ray future.
+            Discretized version for training data. Can be a `numpy` array or a `ray` future.
 
         Returns
         -------
-            An initialised sampler.
-
+        An initialised sampler.
         """
 
         self._set_data(train_data, d_train_data)
@@ -115,7 +116,7 @@ class TabularSampler:
 
     def _set_numerical_feats_stats(self) -> None:
         """
-        Compute min and max for numerical features so that sampling from this range can be performed if
+        Compute `min` and `max` for numerical features so that sampling from this range can be performed if
         a sampling request has bin that is not in the training data.
         """
 
@@ -130,7 +131,7 @@ class TabularSampler:
         Parameters
         ----------
         X
-             Instance to be explained.
+            Instance to be explained.
         """
 
         label = self.predictor(X.reshape(1, -1))[0]  # type: int
@@ -184,22 +185,29 @@ class TabularSampler:
         num_samples
             Number of samples used when sampling from training set.
         compute_labels
-            If True, an array of comparisons between predictions on perturbed samples and instance to be
+            If ``True``, an array of comparisons between predictions on perturbed samples and instance to be
             explained is returned.
 
         Returns
         -------
-            If compute_labels=True, a list containing the following is returned:
-             - covered_true: perturbed examples where the anchor applies and the model prediction
-                    on perturbation is the same as the instance prediction
-             - covered_false: perturbed examples where the anchor applies and the model prediction
-                    is NOT the same as the instance prediction
-             - labels: num_samples ints indicating whether the prediction on the perturbed sample
-                    matches (1) the label of the instance to be explained or not (0)
-             - data: Sampled data where ordinal features are binned (1 if in bin, 0 otherwise)
-             - coverage: the coverage of the anchor
-             - anchor[0]: position of anchor in the batch request
-            Otherwise, a list containing the data matrix only is returned.
+        If ``compute_labels=True``, a list containing the following is returned
+
+         - `covered_true` - perturbed examples where the anchor applies and the model prediction \
+         on perturbation is the same as the instance prediction.
+
+         - `covered_false` - perturbed examples where the anchor applies and the model prediction \
+         is NOT the same as the instance prediction.
+
+         - `labels` - `num_samples` ints indicating whether the prediction on the perturbed sample \
+         matches (1) the label of the instance to be explained or not (0).
+
+         - `data` -  Sampled data where ordinal features are binned (1 if in bin, 0 otherwise).
+
+         - `coverage` - the coverage of the anchor.
+
+         - `anchor[0]` - position of anchor in the batch request.
+
+        Otherwise, a list containing the data matrix only is returned.
         """
 
         raw_data, d_raw_data, coverage = self.perturbation(anchor[1], num_samples)
@@ -237,14 +245,14 @@ class TabularSampler:
 
         Returns
         -------
-            An array of integers indicating whether the prediction was the same as the instance label.
+        An array of integers indicating whether the prediction was the same as the instance label.
         """
 
         return self.predictor(samples) == self.instance_label
 
     def perturbation(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
-        Implements functionality described in __call__.
+        Implements functionality described in :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`.
 
         Parameters
         ----------
@@ -255,11 +263,10 @@ class TabularSampler:
 
         Returns
         -------
-
         samples
             Sampled data from training set.
         d_samples
-            Like samples, but continuous data is converted to oridinal discrete data (binned).
+            Like samples, but continuous data is converted to ordinal discrete data (binned).
         coverage
             The coverage of the result in the training data.
         """
@@ -324,13 +331,13 @@ class TabularSampler:
 
         Parameters
         ----------
-        allowed_bins:
-            See get_feature_index method.
-        num_samples:
+        allowed_bins
+            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.get_feature_index` method.
+        num_samples
             Number of replacement values.
-        samples:
+        samples
             Contains the samples whose values are to be replaced.
-        unk_feature_values:
+        unk_feature_values
             List of tuples where: [0] is original feature id, [1] feature type, [2] if var is categorical,
             replacement value, otherwise None
         """
@@ -370,7 +377,7 @@ class TabularSampler:
             the entire anchor applies.
         nb_partial_anchors
             The number of training records which contain each partial anchor.
-        num_samples:
+        num_samples
             Number of perturbed samples to be returned.
         """
 
@@ -436,7 +443,7 @@ class TabularSampler:
         the same value as the feature in the instance to be explained (for ordinal variables, the row
         indices are those of rows which contain records with feature values in the same bin). The algorithm
         uses both the feature *encoded* ids in anchor and the feature ids in the input data set. The two
-        are mapped by self.enc2feat_idx.
+        are mapped by `self.enc2feat_idx`.
 
         Parameters
         ----------
@@ -452,8 +459,8 @@ class TabularSampler:
             Maps original feature ids to the training set rows where these features have the same value as the anchor.
         unk_feat_values
             When a categorical variable with the specified value/discretized variable in the specified bin is not found
-            in the training set, a tuple is added to unk_feat_values to indicate the original feature id, its type
-            ('c'=categorical, o='discretized continuous') and the value/bin it should be sampled from.
+            in the training set, a tuple is added to `unk_feat_values` to indicate the original feature id, its type
+            (``'c'`` = categorical, ``'o'`` = discretized continuous) and the value/bin it should be sampled from.
         """
 
         # bins one can sample from for each numerical feature (key: feat id)
@@ -494,26 +501,31 @@ class TabularSampler:
     def build_lookups(self, X: np.ndarray) -> List[Dict]:
         """
         An encoding of the feature IDs is created by assigning each bin of a discretized numerical variable and each
-        categorical variable a unique index. For a dataset containg, e.g., a numerical variable with 5 bins and
+        categorical variable a unique index. For a dataset containing, e.g., a numerical variable with 5 bins and
         3 categorical variables, indices 0 - 4 represent bins of the numerical variable whereas indices 5, 6, 7
         represent the encoded indices of the categorical variables (but see note for caviats). The encoding is
         necessary so that the different ranges of the numerical variable can be sampled during result construction.
         Note that the encoded indices represent the predicates used during the anchor construction process (i.e., and
         anchor is a collection of encoded indices.
 
-        Note: Each continuous variable has n_bins - 1 corresponding entries in ord_lookup.
-
         Parameters
         ---------
         X
-            instance to be explained
+            Instance to be explained.
 
         Returns
         -------
-            a list containing three dictionaries, whose keys are encoded feature IDs:
-             - cat_lookup: maps categorical variables to their value in X
-             - ord_lookup: maps discretized numerical variables to the bins they can be sampled from given X
-             - enc2feat_idx: maps the encoded IDs to the original (training set) feature column IDs
+        A list containing three dictionaries, whose keys are encoded feature IDs
+
+         - `cat_lookup` - maps categorical variables to their value in `X`.
+
+         - `ord_lookup` - maps discretized numerical variables to the bins they can be sampled from given `X`.
+
+         - `enc2feat_idx` - maps the encoded IDs to the original (training set) feature column IDs.
+
+        Notes
+        -----
+        Each continuous variable has `n_bins - 1` corresponding entries in `ord_lookup`.
         """
 
         X = self.disc.discretize(X.reshape(1, -1))[0]  # map continuous features to ordinal discrete variables
@@ -569,10 +581,11 @@ class TabularSampler:
 
 
 class RemoteSampler:
-    """ A wrapper that facilitates the use of TabularSampler for distributed sampling."""
+    """ A wrapper that facilitates the use of `TabularSampler` for distributed sampling."""
     if RAY_INSTALLED:
         import ray
-        ray = ray  # set module as class variable to used only in this context
+        # set module as class variable to used only in this context
+        ray = ray  #: `ray` module.
 
     def __init__(self, *args):
         self.train_id, self.d_train_id, self.sampler = args
@@ -581,17 +594,14 @@ class RemoteSampler:
     def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
                  compute_labels: bool = True) -> List:
         """
-        Wrapper around TabularSampler.__call__. It allows sampling a batch of anchors in the same process,
-        which can improve performance.
+        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`. It allows sampling a batch
+        of anchors in the same process, which can improve performance.
 
         Parameters
         ----------
-        anchors_batch:
-            A list of result tuples. see TabularSampler.__call__ for details.
-        num_samples:
-            See TabularSampler.__call__.
-        compute_labels
-            See TabularSampler.__call__.
+        anchors_batch, num_samples, compute_labels
+            A list of result tuples. See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`
+            for details.
         """
 
         if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
@@ -643,22 +653,22 @@ class RemoteSampler:
 
         Returns
         -------
-            The tabular sampler object that is used in the process.
+        The tabular sampler object that is used in the process.
         """
         return self.sampler
 
-    def build_lookups(self, X):
+    def build_lookups(self, X: np.ndarray):
         """
-        Wrapper around TabularSampler.build_lookups.
+        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
 
         Parameters
         --------
         X
-            See TabularSampler.build_lookups.
+            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
 
         Returns
         -------
-            See TabularSampler.build_lookups.
+        See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
         """
 
         cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.sampler.build_lookups(X)
@@ -667,7 +677,7 @@ class RemoteSampler:
 
 
 class AnchorTabular(Explainer, FitMixin):
-    instance_label: int
+    instance_label: int  #: The label of the instance to be explained.
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
@@ -680,13 +690,13 @@ class AnchorTabular(Explainer, FitMixin):
         Parameters
         ----------
         predictor
-            A callable that takes a tensor of N data points as inputs and returns N outputs.
+            A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         feature_names
             List with feature names.
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature.
         dtype
-            A numpy scalar type that corresponds to the type of input array expected by `predictor`. This may be
+            A `numpy` scalar type that corresponds to the type of input array expected by `predictor`. This may be
             used to construct arrays of the given type to be passed through the `predictor`. For most use cases
             this argument should have no effect, but it is exposed for use with predictors that would break when
             called with an array of unsupported type.
@@ -749,7 +759,7 @@ class AnchorTabular(Explainer, FitMixin):
         train_data
             Representative sample from the training data.
         disc_perc
-            List with percentiles (int) used for discretization.
+            List with percentiles (`int`) used for discretization.
         """
 
         # transform one-hot encodings to labels if ohe == True
@@ -779,11 +789,11 @@ class AnchorTabular(Explainer, FitMixin):
     def _build_sampling_lookups(self, X: np.ndarray) -> None:
         """
         Build a series of lookup tables used to draw samples with feature subsets identical to
-        given subsets of X (see TabularSampler.build_sampling_lookups for details).
+        given subsets of `X` (see TabularSampler.build_sampling_lookups for details).
 
         Parameters
         ----------
-        X:
+        X
             Instance to be explained.
         """
 
@@ -808,7 +818,7 @@ class AnchorTabular(Explainer, FitMixin):
                 verbose_every: int = 1,
                 **kwargs: Any) -> Explanation:
         """
-        Explain prediction made by classifier on instance X.
+        Explain prediction made by classifier on instance `X`.
 
         Parameters
         ----------
@@ -817,7 +827,7 @@ class AnchorTabular(Explainer, FitMixin):
         threshold
             Minimum precision threshold.
         delta
-            Used to compute beta.
+            Used to compute `beta`.
         tau
             Margin between lower confidence bound and minimum precision or upper bound.
         batch_size
@@ -827,7 +837,7 @@ class AnchorTabular(Explainer, FitMixin):
         beam_size
             The number of anchors extended at each step of new anchors construction.
         stop_on_first
-            If True, the beam search algorithm will return the first anchor that has satisfies the
+            If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.
         max_anchor_size
             Maximum number of features in result.
@@ -835,23 +845,26 @@ class AnchorTabular(Explainer, FitMixin):
             Min number of initial samples.
         n_covered_ex
             How many examples where anchors apply to store for each anchor sampled during search
-            (both examples where prediction on samples agrees/disagrees with desired_label are stored).
+            (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         binary_cache_size
-            The result search pre-allocates binary_cache_size batches for storing the binary arrays
+            The result search pre-allocates `binary_cache_size` batches for storing the binary arrays
             returned during sampling.
         cache_margin
-            When only max(cache_margin, batch_size) positions in the binary cache remain empty, a new cache
+            When only ``max(cache_margin, batch_size)`` positions in the binary cache remain empty, a new cache
             of the same size is pre-allocated to continue buffering samples.
         verbose
             Display updates during the anchor search iterations.
         verbose_every
             Frequency of displayed iterations during anchor search process.
 
-
         Returns
         -------
         explanation
             `Explanation` object containing the result explaining the instance with additional metadata as attributes.
+            See usage at `AnchorTabular examples`_ for details.
+
+            .. _AnchorTabular examples:
+                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
@@ -890,27 +903,27 @@ class AnchorTabular(Explainer, FitMixin):
         )  # type: Any
         self.mab = mab
 
-        return self.build_explanation(X, result, self.instance_label, params)
+        return self._build_explanation(X, result, self.instance_label, params)
 
-    def build_explanation(self, X: np.ndarray, result: dict, predicted_label: int, params: dict) -> Explanation:
+    def _build_explanation(self, X: np.ndarray, result: dict, predicted_label: int, params: dict) -> Explanation:
         """
         Preprocess search output and return an explanation object containing metdata
 
         Parameters
         ----------
-        X:
+        X
             Instance to be explained.
-        result:
+        result
             Dictionary with explanation search output and metadata.
-        predicted_label:
+        predicted_label
             Label of the instance to be explained (inferred if not given).
         params
-            Parameters passed to `explain`
+            Parameters passed to :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
 
         Return
         ------
-             `Explanation` object containing human readable explanation, metadata, and precision/coverage
-             info as attributes.
+        `Explanation` object containing the anchor explaining the instance with additional metadata as attributes. \
+
         """
 
         self.add_names_to_exp(result)
@@ -1064,6 +1077,14 @@ class AnchorTabular(Explainer, FitMixin):
         return predictor
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New predictor function.
+        """
         self.predictor = predictor
         self.samplers[0].predictor = self._predictor
 
@@ -1071,7 +1092,8 @@ class AnchorTabular(Explainer, FitMixin):
 class DistributedAnchorTabular(AnchorTabular):
     if RAY_INSTALLED:
         import ray
-        ray = ray  # set module as class variable to used only in this context
+        # set module as class variable to used only in this context
+        ray = ray  #: `ray` module.
 
     def __init__(self,
                  predictor: Callable,
@@ -1095,7 +1117,8 @@ class DistributedAnchorTabular(AnchorTabular):
 
         Parameters
         ----------
-            See superclass implementation.
+        train_data, disc_perc, **kwargs
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.fit` superclass.
         """
 
         try:
@@ -1140,12 +1163,12 @@ class DistributedAnchorTabular(AnchorTabular):
 
     def _build_sampling_lookups(self, X: np.ndarray) -> None:
         """
-        See superclass documentation.
+        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular._build_sampling_lookups` documentation.
 
         Parameters
         ----------
-        X:
-            See superclass documentation.
+        X
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular._build_sampling_lookups` documentation.
         """
 
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
@@ -1169,16 +1192,18 @@ class DistributedAnchorTabular(AnchorTabular):
                 verbose_every: int = 1,
                 **kwargs: Any) -> Explanation:
         """
-        Explains the prediction made by a classifier on instance X. Sampling is done in parallel over a number of
-        cores specified in kwargs['ncpu'].
+        Explains the prediction made by a classifier on instance `X`. Sampling is done in parallel over a number of
+        cores specified in `kwargs['ncpu']`.
 
         Parameters
         ----------
-            See superclass implementation.
+        X, threshold, delta, tau, batch_size, coverage_samples, beam_size, stop_on_first, max_anchor_size, \
+        min_samples_start, n_covered_ex, binary_cache_size, cache_margin, verbose, verbose_every, **kwargs
+            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
 
         Returns
         -------
-            See superclass implementation.
+        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` superclass.
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
@@ -1217,9 +1242,17 @@ class DistributedAnchorTabular(AnchorTabular):
         )  # type: Any
         self.mab = mab
 
-        return self.build_explanation(X, result, self.instance_label, params)
+        return self._build_explanation(X, result, self.instance_label, params)
 
     def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New model prediction function.
+        """
         raise NotImplementedError("Resetting predictor is currently not supported for distributed explainers.")
         # TODO: to support resetting a predictor we would need to re-run most of the code in `fit` instantiating the
         # instances of RemoteSampler anew

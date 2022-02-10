@@ -58,11 +58,10 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
             -> 'Union[tuple[torch.Tensor, torch.Tensor], tuple[tensorflow.Tensor, tensorflow.Tensor]]':
 
-        if len(x.shape) == 1:
-            x = np.expand_dims(x, axis=0)
+        x = self._match_shape_to_data(x, 'x')
 
         if isinstance(x, np.ndarray):
-            x = self.backend._to_tensor(x)
+            x = self.backend.to_tensor(x)
 
         if self.task == 'regression' and y is None:
             # TODO: rewrite error message.
@@ -70,12 +69,13 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         if y is None:
             y = self.model(x)
-            y = self.backend._argmax(y)
+            y = self.backend.argmax(y)
         elif callable(y):
             y = y(x)
 
+        y = self._match_shape_to_data(y, 'y')
         if isinstance(y, np.ndarray):
-            y = self.backend._to_tensor(y)
+            y = self.backend.to_tensor(y)
 
         return x, y
 
@@ -86,9 +86,10 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         x, y = self._preprocess_args(x, y)
 
-        grad_x_test = self.backend._get_grads(self.model, x, y, self.loss_fn)
+        # grad_x_test = self._compute_grad(x, y)
+        grad_x_test = self.backend.get_grads(self.model, x, y, self.loss_fn)
         if not self.store_grads:
-            scores = self.compute_adhoc_similarity(grad_x_test)
+            scores = self._compute_adhoc_similarity(grad_x_test)
         else:
             scores = self.sim_fn(self.grad_x_train, grad_x_test)
         return self._build_explanation(scores)

@@ -1,6 +1,6 @@
 import pytest
-from alibi.explainers.similarity.backends.tensorflow.base import TensorFlowBackend
-from alibi.explainers.similarity.backends.pytorch.base import TorchBackend
+from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
+from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 
 import torch
 import numpy as np
@@ -27,16 +27,16 @@ def test_tf_backend(random_cls_dataset, linear_models):
 
     (X_train, Y_train), (_, _) = random_cls_dataset
 
-    x = TensorFlowBackend._to_tensor(X_train)
-    y = TensorFlowBackend._to_tensor(Y_train)
-    tf_grads = TensorFlowBackend._get_grads(tf_model, x, y, tf_loss)
+    x = _TensorFlowBackend.to_tensor(X_train)
+    y = _TensorFlowBackend.to_tensor(Y_train)
+    tf_grads = _TensorFlowBackend.get_grads(tf_model, x, y, tf_loss)
     params = np.concatenate([w.numpy().reshape(-1)
                              for w in tf_model.trainable_weights])[None]
     assert params.shape[-1] == tf_grads.shape[-1]
 
-    x = TorchBackend._to_tensor(X_train)
-    y = TorchBackend._to_tensor(Y_train).type(torch.LongTensor)
-    torch_grads = TorchBackend._get_grads(torch_model, x, y, torch_loss)
+    x = _TorchBackend.to_tensor(X_train)
+    y = _TorchBackend.to_tensor(Y_train).type(torch.LongTensor)
+    torch_grads = _TorchBackend.get_grads(torch_model, x, y, torch_loss)
     params = np.concatenate([param.detach().numpy().reshape(-1)
                              for param in torch_model.parameters()])[None]
     assert torch_grads.shape[-1] == params.shape[-1]

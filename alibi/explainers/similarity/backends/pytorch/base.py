@@ -12,11 +12,11 @@ import torch.nn as nn
 import torch
 
 
-class TorchBackend(object):
+class _TorchBackend(object):
     device = None
 
     @staticmethod
-    def _get_grads(
+    def get_grads(
             model: nn.Module,
             x: torch.Tensor,
             y: torch.Tensor,
@@ -51,36 +51,36 @@ class TorchBackend(object):
         output = model(x)
         loss = loss_fn(output, y)
         loss.backward()
-        return np.concatenate([TorchBackend._to_numpy(param.grad).reshape(-1)
+        return np.concatenate([_TorchBackend.to_numpy(param.grad).reshape(-1)
                                for param in model.parameters()])
 
     @staticmethod
-    def _to_tensor(x: np.ndarray) -> torch.Tensor:
+    def to_tensor(x: np.ndarray) -> torch.Tensor:
         """
         Converts a numpy array to a torch tensor and assigns to the backend device.
         """
-        return torch.tensor(x).to(TorchBackend.device)
+        return torch.tensor(x).to(_TorchBackend.device)
 
     @staticmethod
-    def _set_device(device: str = 'cpu') -> None:
+    def set_device(device: str = 'cpu') -> None:
         """Sets the device to use for the backend.
 
         Sets te device value on the class. Any subsequent calls to the backend will use this device.
         """
-        TorchBackend.device = torch.device(device)
+        _TorchBackend.device = torch.device(device)
 
     @staticmethod
-    def _to_numpy(x: torch.Tensor) -> np.ndarray:
+    def to_numpy(x: torch.Tensor) -> np.ndarray:
         """Maps a torch tensor to a numpy array."""
         return x.detach().numpy()
 
     @staticmethod
-    def _argmax(x: torch.Tensor) -> torch.Tensor:
+    def argmax(x: torch.Tensor) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
         return torch.argmax(x, dim=1)
 
     @staticmethod
-    def _set_seed(seed: int = 13):
+    def set_seed(seed: int = 13):
         """
         Sets a seed to ensure reproducibility
 

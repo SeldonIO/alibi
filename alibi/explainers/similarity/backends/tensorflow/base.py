@@ -13,11 +13,11 @@ import tensorflow as tf
 import tensorflow.keras as keras
 
 
-class TensorFlowBackend:
+class _TensorFlowBackend:
     device = None
 
     @staticmethod
-    def _get_grads(
+    def get_grads(
             model: keras.Model,
             x: tf.Tensor,
             y: tf.Tensor,
@@ -45,7 +45,7 @@ class TensorFlowBackend:
             array.
         """
 
-        with tf.device(TensorFlowBackend.device):
+        with tf.device(_TensorFlowBackend.device):
             with tf.GradientTape() as tape:
                 output = model(x, training=False)
                 loss = loss_fn(y, output)
@@ -56,31 +56,31 @@ class TensorFlowBackend:
         return grad_x_train
 
     @staticmethod
-    def _to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
+    def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
         """Converts a numpy array to a torch tensor."""
         return tf.convert_to_tensor(x)
 
     @staticmethod
-    def _set_device(device: str = 'cpu:0') -> None:
+    def set_device(device: str = 'cpu:0') -> None:
         """Sets the device to use for the backend.
 
         Sets te device value on the class. Any subsequent calls to the backend will use this device.
         """
-        TensorFlowBackend.device = device
+        _TensorFlowBackend.device = device
 
     @staticmethod
-    def _to_numpy(x: tf.Tensor) -> tf.Tensor:
+    def to_numpy(x: tf.Tensor) -> tf.Tensor:
         """Converts a tensor to a numpy array."""
         return x.numpy()
 
     @staticmethod
-    def _argmax(x: tf.Tensor) -> tf.Tensor:
+    def argmax(x: tf.Tensor) -> tf.Tensor:
         """Returns the index of the maximum value in a tensor."""
         x = tf.math.argmax(x, axis=1)
         return x
 
     @staticmethod
-    def _set_seed(seed: int = 13):
+    def set_seed(seed: int = 13):
         # TODO: align with CFRL backend
         """
         Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.

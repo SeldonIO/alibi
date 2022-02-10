@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable, Union
+from typing import TYPE_CHECKING, Callable, Union
 
 import numpy as np
 from tqdm import tqdm

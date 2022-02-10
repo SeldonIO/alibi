@@ -38,6 +38,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     explainer.fit(x_train=x_train, y_train=y_train)
     assert explainer.grad_x_train.shape == (len(x_train), *params.shape)
 
+    # print('x_train.shape:', x_train.shape, model(x_train))
     result = explainer.explain(x_train)
     assert result.data['scores'].shape == (100, )
     assert result.data['x_train'].shape == (100, 10)

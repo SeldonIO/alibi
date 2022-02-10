@@ -28,19 +28,19 @@ class _TorchBackend(object):
 
         Parameters:
         -----------
-        model: torch.nn.Module
+        model:
             The model to compute gradients for.
-        x: torch.Tensor
+        x:
             The input data.
-        y: torch.Tensor
+        y:
             The target data.
-        loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        loss_fn:
             The loss function to use.
 
         Returns:
         --------
-        grads: np.ndarray
-            The gradients of the loss function with respect to the model's parameters. This is returned as a flattened
+        grads:
+            The gradients of the loss function with respect to the model's parameters. This is returned as a flattened \
             array.
         """
 
@@ -56,9 +56,7 @@ class _TorchBackend(object):
 
     @staticmethod
     def to_tensor(x: np.ndarray) -> torch.Tensor:
-        """
-        Converts a numpy array to a torch tensor and assigns to the backend device.
-        """
+        """Converts a `numpy` array to a `torch` tensor and assigns to the backend device."""
         return torch.tensor(x).to(_TorchBackend.device)
 
     @staticmethod
@@ -71,7 +69,7 @@ class _TorchBackend(object):
 
     @staticmethod
     def to_numpy(x: torch.Tensor) -> np.ndarray:
-        """Maps a torch tensor to a numpy array."""
+        """Maps a `torch` tensor to a `numpy` array."""
         return x.detach().numpy()
 
     @staticmethod
@@ -81,13 +79,12 @@ class _TorchBackend(object):
 
     @staticmethod
     def set_seed(seed: int = 13):
-        """
-        Sets a seed to ensure reproducibility
+        """Sets a seed to ensure reproducibility
 
         Parameters
         ----------
-        seed
-            seed to be set
+        seed:
+            `seed` to be set
         """
         # Others
         np.random.seed(seed)

@@ -29,19 +29,19 @@ class _TensorFlowBackend:
 
         Parameters:
         -----------
-        model: keras.Model
+        model:
             The model to compute gradients for.
-        x: tf.Tensor
+        x:
             The input data point.
-        y: tf.Tensor
+        y:
             The target data point.
-        loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor]
+        loss_fn:
             The loss function to use.
 
         Returns:
         --------
         grads: np.ndarray
-            The gradients of the loss function with respect to the model's parameters. This is returned as a flattened
+            The gradients of the loss function with respect to the model's parameters. This is returned as a flattened \
             array.
         """
 
@@ -57,7 +57,7 @@ class _TensorFlowBackend:
 
     @staticmethod
     def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
-        """Converts a numpy array to a torch tensor."""
+        """Converts a `numpy` array to a `tensorflow` tensor."""
         return tf.convert_to_tensor(x)
 
     @staticmethod
@@ -70,7 +70,7 @@ class _TensorFlowBackend:
 
     @staticmethod
     def to_numpy(x: tf.Tensor) -> tf.Tensor:
-        """Converts a tensor to a numpy array."""
+        """Converts a tensor to a `numpy` array."""
         return x.numpy()
 
     @staticmethod
@@ -81,13 +81,11 @@ class _TensorFlowBackend:
 
     @staticmethod
     def set_seed(seed: int = 13):
-        # TODO: align with CFRL backend
-        """
-        Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
+        """Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
 
         Parameters
         ----------
-        seed
+        seed:
             seed to be set
         """
         # others

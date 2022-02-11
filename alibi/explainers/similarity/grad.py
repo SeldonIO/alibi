@@ -162,7 +162,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         ValueError:
             If `y` is `None` and the `task` is `regression`.
         """
-
+        self._verify_fit()
         x, y = self._preprocess_args(x, y)
         grad_x_test = self._compute_grad(x, y)
         if not self.store_grads:

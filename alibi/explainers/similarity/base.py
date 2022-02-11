@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Any, Optional
+from typing import TYPE_CHECKING, Callable, Union, Any, Tuple
 
 import numpy as np
 from tqdm import tqdm
@@ -63,12 +63,6 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.store_grads = store_grads
         self.seed = seed
 
-        self.x_train: Optional[np.ndarray] = None
-        self.y_train: Optional[np.ndarray] = None
-        self.grad_x_train: Optional[np.ndarray] = None
-        self.x_dims: Optional[tuple] = None
-        self.y_dims: Optional[tuple] = None
-
         super().__init__(**kwargs)
 
     def fit(self,
@@ -88,20 +82,32 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self:
             Returns self.
         """
-
-        self.x_train = x_train
-        self.y_train = y_train
-        self.x_dims = self.x_train.shape[1:]
-        self.y_dims = self.y_train.shape[1:]
+        self.x_train: np.ndarray = x_train
+        self.y_train: np.ndarray = y_train
+        self.x_dims: Tuple = self.x_train.shape[1:]
+        self.y_dims: Tuple = self.y_train.shape[1:]
+        self.grad_x_train: np.ndarray = np.array([])
 
         # compute and store gradients
         if self.store_grads:
-            self.grad_x_train = []
+            grads = []
             for x, y in tqdm(zip(self.x_train, self.y_train)):
                 grad_x_train = self._compute_grad(x[None], y[None])
-                self.grad_x_train.append(grad_x_train[None])
-            self.grad_x_train = np.concatenate(self.grad_x_train, axis=0)
+                grads.append(grad_x_train[None])
+            self.grad_x_train = np.concatenate(grads, axis=0)
         return self
+
+    def _verify_fit(self) -> None:
+        """Verify that the explainer has been fitted.
+
+        Raises
+        ------
+        ValueError:
+            If the explainer has not been fitted.
+        """
+
+        if getattr(self, 'x_train', None) is None or getattr(self, 'y_train', None) is None:
+            raise ValueError('Training data not set. Call `fit` and pass training data first.')
 
     def _match_shape_to_data(self,
                              data: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
@@ -124,8 +130,6 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
             calling this method.
         """
-        if self.x_train is None or self.y_train is None:
-            raise ValueError('Training data not set. Call `fit` and pass training data first.')
         target_shape = getattr(self, f'{target_type}_dims')
         if data.shape == target_shape:
             data = data[None]
@@ -144,8 +148,6 @@ class BaseSimilarityExplainer(Explainer, ABC):
         grad_x:
             Gradients of the test instances.
         """
-        if self.x_train is None or self.y_train is None:
-            raise ValueError('Training data not set. Call `fit` and pass training data first.')
         scores = np.zeros(self.x_train.shape[0])
         for i, (x, y) in tqdm(enumerate(zip(self.x_train, self.y_train))):
             grad_x_train = self._compute_grad(x[None], y[None])
@@ -157,9 +159,3 @@ class BaseSimilarityExplainer(Explainer, ABC):
         x = self.backend.to_tensor(x)
         y = self.backend.to_tensor(y)
         return self.backend.get_grads(self.model, x, y, self.loss_fn)
-
-    def reset_predictor(self, predictor: Any) -> None:
-        """Resets the explainer's predictor."""
-        self.x_train = None
-        self.y_train = None
-        self.grad_x_train = None

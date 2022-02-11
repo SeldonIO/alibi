@@ -4,7 +4,7 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 """
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple, NewType
 
 import numpy as np
 
@@ -22,9 +22,9 @@ class SimilarityExplainer(BaseSimilarityExplainer):
     def __init__(self,
                  model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
-                                       Union[tensorflow.Tensor, torch.Tensor]],
-                                       Union[tensorflow.Tensor, torch.Tensor]]''',
-                 sim_fn: str = 'grad_dot',
+                                    Union[tensorflow.Tensor, torch.Tensor]],
+                                   Union[tensorflow.Tensor, torch.Tensor]]''',
+                 sim_fn: 'Union[Callable[[np.array, np.array], np.array], str]' = 'grad_dot',
                  task: str = "classification",
                  store_grads: bool = False,
                  seed: int = 0,
@@ -63,16 +63,17 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             task_name=task
         )
 
-        sim_fn_opts = {
+        sim_fn_opts: Dict[str, Callable] = {
             'grad_dot': dot,
             'grad_cos': cos,
             'grad_asym_dot': asym_dot
         }
 
-        if sim_fn not in sim_fn_opts.keys():
-            raise ValueError(f'Unknown method {sim_fn}. Consider using: `{"` | `".join(sim_fn_opts.keys())}`.')
+        if isinstance(sim_fn, str):
+            if sim_fn not in sim_fn_opts.keys():
+                raise ValueError(f'Unknown method {sim_fn}. Consider using: `{"` | `".join(sim_fn_opts.keys())}`.')
 
-        sim_fn = sim_fn_opts[sim_fn]
+            sim_fn = sim_fn_opts[sim_fn]
 
         if task not in ['classification', 'regression']:
             raise ValueError(f'Unknown task {task}. Consider using: `classification` | `regression`.')
@@ -85,7 +86,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             self,
             x: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
             y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
-            -> 'Union[tuple[torch.Tensor, torch.Tensor], tuple[tensorflow.Tensor, tensorflow.Tensor]]':
+            -> 'Union[Tuple[torch.Tensor, torch.Tensor], Tuple[tensorflow.Tensor, tensorflow.Tensor]]':
         """Formats `x`, `y` for explain method.
 
         Parameters
@@ -189,6 +190,9 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             -  `most_similar`: ``np.array`` - most similar instances to the input.
             -  `least_similar`: ``np.array`` - least similar instances to the input.
         """
+        if self.x_train is None or self.y_train is None:
+            raise ValueError('Training data is not available. Please call `fit` before calling `explain`.')
+
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(

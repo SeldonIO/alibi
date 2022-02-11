@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union
+from typing import TYPE_CHECKING, Callable, Union, Any, Optional
 
 import numpy as np
 from tqdm import tqdm
@@ -63,13 +63,11 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.store_grads = store_grads
         self.seed = seed
 
-        self.x_train = None
-        self.y_train = None
-        self.x_train_full = None
-        self.y_train_full = None
-        self.grad_x_train = None
-        self.x_dims = None
-        self.y_dims = None
+        self.x_train: Optional[np.ndarray] = None
+        self.y_train: Optional[np.ndarray] = None
+        self.grad_x_train: Optional[np.ndarray] = None
+        self.x_dims: Optional[tuple] = None
+        self.y_dims: Optional[tuple] = None
 
         super().__init__(**kwargs)
 
@@ -119,7 +117,15 @@ class BaseSimilarityExplainer(Explainer, ABC):
         target_type:
             Type of data: ``'x'`` | ``'y'``. Used to determine if data should take the shape of model input or model \
             output.
+
+        Raises
+        ------
+        ValueError:
+            If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
+            calling this method.
         """
+        if self.x_train is None or self.y_train is None:
+            raise ValueError('Training data not set. Call `fit` and pass training data first.')
         target_shape = getattr(self, f'{target_type}_dims')
         if data.shape == target_shape:
             data = data[None]
@@ -138,6 +144,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         grad_x:
             Gradients of the test instances.
         """
+        if self.x_train is None or self.y_train is None:
+            raise ValueError('Training data not set. Call `fit` and pass training data first.')
         scores = np.zeros(self.x_train.shape[0])
         for i, (x, y) in tqdm(enumerate(zip(self.x_train, self.y_train))):
             grad_x_train = self._compute_grad(x[None], y[None])
@@ -149,3 +157,9 @@ class BaseSimilarityExplainer(Explainer, ABC):
         x = self.backend.to_tensor(x)
         y = self.backend.to_tensor(y)
         return self.backend.get_grads(self.model, x, y, self.loss_fn)
+
+    def reset_predictor(self, predictor: Any) -> None:
+        """Resets the explainer's predictor."""
+        self.x_train = None
+        self.y_train = None
+        self.grad_x_train = None

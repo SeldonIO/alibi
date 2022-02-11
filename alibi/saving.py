@@ -11,6 +11,7 @@ import numpy as np
 import tensorflow as tf
 
 if TYPE_CHECKING:
+    import torch
     from alibi.api.interfaces import Explainer
     from alibi.explainers import (
         AnchorImage,
@@ -19,7 +20,8 @@ if TYPE_CHECKING:
         KernelShap,
         TreeShap,
         CounterfactualRL,
-        CounterfactualRLTabular
+        CounterfactualRLTabular,
+        SimilarityExplainer
     )
 
 from alibi.version import __version__
@@ -371,6 +373,27 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
     # load the rest of the explainer
     return _helper_load_CounterfactualRL(path, predictor, explainer)
+
+
+def _save_SimilarityExplainer(explainer: 'SimilarityExplainer', path: Union[str, os.PathLike]) -> None:
+    model = explainer.model
+    explainer.model = None  # type: ignore[assignment]
+
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+
+    explainer.model = model
+
+
+def _load_SimilarityExplainer(path: Union[str, os.PathLike],
+                              predictor: 'Union[tf.keras.Model, torch.nn.Module]',
+                              meta: dict) -> 'SimilarityExplainer':
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+    explainer.reset_predictor(predictor)
+
+    return explainer
 
 
 class NumpyEncoder(json.JSONEncoder):

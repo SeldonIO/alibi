@@ -16,7 +16,8 @@ from alibi.explainers import (
     IntegratedGradients,
     KernelShap,
     TreeShap,
-    CounterfactualRLTabular
+    CounterfactualRLTabular,
+    SimilarityExplainer
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -264,6 +265,19 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
     return explainer
 
 
+@pytest.fixture(scope='module')
+def similarity_explainer(ffn_classifier, iris_data):
+    criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    explainer = SimilarityExplainer(
+        model=ffn_classifier,
+        loss_fn=criterion,
+        store_grads=True,
+        backend='tensorflow',
+        sim_fn='grad_cos')
+    explainer.fit(x_train=iris_data['X_train'], y_train=iris_data['y_train'])
+    return explainer
+
+
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_ALE(ale_explainer, lr_classifier, iris_data):
     X = iris_data['X_test']
@@ -436,3 +450,16 @@ def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
         # cfrl is determinstic
         assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32))
         assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32))
+
+
+@pytest.mark.parametrize('ffn_classifier', [lazy_fixture('iris_data')], indirect=True)
+def test_save_SimilartyExplainer(similarity_explainer, ffn_classifier, iris_data):
+    X = iris_data['X_test'][:2]
+    exp0 = similarity_explainer.explain(X)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        similarity_explainer.save(temp_dir)
+        similarity_explainer1 = load_explainer(temp_dir, predictor=ffn_classifier)
+        assert isinstance(similarity_explainer1, SimilarityExplainer)
+        assert similarity_explainer.meta == similarity_explainer1.meta
+        exp1 = similarity_explainer1.explain(X)
+        assert exp0.meta == exp1.meta

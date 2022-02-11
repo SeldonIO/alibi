@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any
 
 import numpy as np
 from tqdm import tqdm
@@ -159,3 +159,13 @@ class BaseSimilarityExplainer(Explainer, ABC):
         x = self.backend.to_tensor(x)
         y = self.backend.to_tensor(y)
         return self.backend.get_grads(self.model, x, y, self.loss_fn)
+
+    def reset_predictor(self, predictor: Any) -> None:
+        """Resets the predictor to the given predictor.
+
+        Parameters
+        ----------
+        predictor:
+            The new predictor to use.
+        """
+        self.model = predictor

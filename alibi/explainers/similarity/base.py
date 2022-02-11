@@ -111,7 +111,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
     def _match_shape_to_data(self,
                              data: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-                             target_type: str) -> np.ndarray:
+                             target_type: str) -> 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]':
         """Verify the shape of `x` against the shape of the training data. If `x` is not a batch, reshape to be a single
         batch element. i.e. if training data shape is `(3, 28, 28)` and data shape is `(3, 28, 28)` we reshape data to
         `(1, 3, 28, 28)`.

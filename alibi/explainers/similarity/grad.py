@@ -24,7 +24,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
                                     Union[tensorflow.Tensor, torch.Tensor]],
                                    Union[tensorflow.Tensor, torch.Tensor]]''',
-                 sim_fn: 'Union[Callable[[np.array, np.array], np.array], str]' = 'grad_dot',
+                 sim_fn: 'Union[Callable[[np.ndarray, np.ndarray], np.ndarray], str]' = 'grad_dot',
                  task: str = "classification",
                  store_grads: bool = False,
                  seed: int = 0,

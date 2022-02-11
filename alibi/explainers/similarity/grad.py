@@ -4,7 +4,7 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 """
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple, NewType
+from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
 
 import numpy as np
 
@@ -104,7 +104,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             Target data formatted for explain method.
 
         """
-
         x = self._match_shape_to_data(x, 'x')
         if isinstance(x, np.ndarray):
             x = self.backend.to_tensor(x)

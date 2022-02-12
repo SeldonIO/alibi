@@ -1,11 +1,12 @@
-from alibi.explainers.similarity.grad import SimilarityExplainer
-from tensorflow import keras
-import torch.nn as nn
 import pytest
 
-import torch
 import numpy as np
+import torch.nn as nn
+import torch
+from tensorflow import keras
 import tensorflow as tf
+
+from alibi.explainers.similarity.grad import SimilarityExplainer
 
 tf.random.set_seed(0)
 np.random.seed(0)

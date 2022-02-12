@@ -1,10 +1,11 @@
 import pytest
-from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
-from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 
 import torch
 import numpy as np
 import tensorflow as tf
+
+from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
+from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 
 tf.random.set_seed(0)
 np.random.seed(0)
@@ -16,8 +17,10 @@ torch.manual_seed(0)
                          [({'input_shape': (10,), 'output_shape': 10})],
                          indirect=True)
 def test_tf_backend(random_cls_dataset, linear_models):
-    """
-    Test that the Tensorflow and pytorch backends work as expected.
+    """Test that the Tensorflow and pytorch backends work as expected.
+
+    This test creates a tensorflow model and a torch model and computes the gradients of each through the alibi backend
+    modules respectively. The test passes if the gradients are the same.
     """
     tf_model, tf_loss, torch_model, torch_loss = linear_models
 

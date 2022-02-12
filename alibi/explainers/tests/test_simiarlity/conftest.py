@@ -1,10 +1,10 @@
 import pytest
-import numpy as np
-import torch
-from tensorflow import keras
 
-import torch.nn as nn
+import numpy as np
+from tensorflow import keras
 import tensorflow as tf
+import torch
+import torch.nn as nn
 
 
 def get_flattened_model_parameters(model):

@@ -1,5 +1,6 @@
-import numpy as np
 from typing import Union
+
+import numpy as np
 
 
 def dot(x: np.ndarray, y: np.ndarray) -> Union[float, np.ndarray]:
@@ -61,7 +62,7 @@ def asym_dot(x: np.ndarray, y: np.ndarray, eps: float = 1e-7) -> Union[float, np
     x:
         Matrix of vectors.
     y:
-        Singe vector.
+        Single vector.
     eps:
         Numerical stability.
 

@@ -1,10 +1,11 @@
 import pytest
-from alibi.explainers.similarity.grad import SimilarityExplainer
-from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
 
 import torch
 import numpy as np
 import tensorflow as tf
+
+from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
+from alibi.explainers.similarity.grad import SimilarityExplainer
 
 tf.random.set_seed(0)
 np.random.seed(0)

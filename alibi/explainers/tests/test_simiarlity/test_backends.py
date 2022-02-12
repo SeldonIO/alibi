@@ -7,6 +7,7 @@ import tensorflow as tf
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 
+# ensure deterministic results
 tf.random.set_seed(0)
 np.random.seed(0)
 torch.manual_seed(0)

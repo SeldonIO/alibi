@@ -7,6 +7,7 @@ import tensorflow as tf
 from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
 from alibi.explainers.similarity.grad import SimilarityExplainer
 
+# ensure deterministic results
 tf.random.set_seed(0)
 np.random.seed(0)
 torch.manual_seed(0)
@@ -20,7 +21,9 @@ torch.manual_seed(0)
                          ],
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_method_explanations(linear_cls_model, random_cls_dataset):
-    """"""
+    """
+    Test explanations run and give correct shapes for each backend.
+    """
     backend, model, loss_fn, target_fn = linear_cls_model
     params = get_flattened_model_parameters(model)
     (x_train, y_train), (_, _) = random_cls_dataset
@@ -38,8 +41,6 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     # test stored gradients
     explainer.fit(x_train=x_train, y_train=y_train)
     assert explainer.grad_x_train.shape == (len(x_train), *params.shape)
-
-    # print('x_train.shape:', x_train.shape, model(x_train))
     result = explainer.explain(x_train)
     assert result.data['scores'].shape == (100, )
     assert result.data['x_train'].shape == (100, 10)
@@ -56,7 +57,9 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
                          ids=['torch-model', 'tf-model']
                          )
 def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
-    """"""
+    """
+    Preprocessing method returns correct data format for correct inputs.
+    """
     backend, model, loss_fn, target_fn = linear_cls_model
     (x_train, y_train), (_, _) = random_cls_dataset
     y_train = y_train.astype(int)
@@ -91,7 +94,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_method_sim_fn_error_messaging(linear_cls_model):
     """
-    sim_fn is one of ['grad_dot', 'grad_cos', 'grad_asym_dot']
+    `sim_fn` must be one of ``'grad_dot'``, ``'grad_cos'`` or ``'grad_asym_dot'``.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
 
@@ -125,7 +128,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_method_task_error_messaging(linear_cls_model):
     """
-    task is one of ['classification', 'regression']
+    `task` must be one of ``'classification'`` or ``'regression'``.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
 
@@ -160,7 +163,7 @@ def test_method_task_error_messaging(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_task_classification_input(random_cls_dataset, linear_cls_model):
     """
-    task is one of ['classification', 'regression']
+    Classification task explainer works when `y_train` is ``None``, a ``Callable`` or a ``np.ndarray``.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     (x_train, y_train), (_, _) = random_cls_dataset
@@ -193,8 +196,10 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
                          )
 def test_regression_task_input(linear_reg_model, random_reg_dataset):
     """
-    Test method applied to regression requires y value in explain method
+    Regression task explainer works when `y_train` is a ``Callable`` or a ``np.ndarray``. Doesn't work when y_train is
+    ``None``.
     """
+
     backend, model, loss_fn, target_fn = linear_reg_model
     (x_train, y_train), (_, _) = random_reg_dataset
 

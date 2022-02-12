@@ -1,3 +1,15 @@
+"""Integration tests for gradient methods.
+
+Note:
+    The following tests use sequential models with a single linear layer of two nodes and no bias. Similarly, the loss
+    is defined as the model output. This means that the gradient w.r.t. the model parameters is just the model input.
+    We can then choose the dataset in such a way to give predictable results for the similarity score for both grad_cos
+    and grad_dot. For instance, we can choose the dataset to be made up of three vectors. Two that are close in length
+    and angular separation and one that is very long but also further away in angular separation. This dataset behaves
+    differently for each method. In the case of grad_cos the similarity score is larger for the two data points that
+    have less angular separation. In the case of grad_dot the larger vectors length dominates.
+"""
+
 import pytest
 
 import numpy as np
@@ -8,6 +20,7 @@ import tensorflow as tf
 
 from alibi.explainers.similarity.grad import SimilarityExplainer
 
+# ensure deterministic results
 tf.random.set_seed(0)
 np.random.seed(0)
 torch.manual_seed(0)
@@ -43,7 +56,10 @@ def normed_ds():
 
 
 def test_correct_grad_dot_sim_result_torch(normed_ds):
-    """"""
+    """
+    grad_dot method orders data points distributed on the unit circle by there angular separation. Test is applied to
+    torch backend.
+    """
     model = nn.Linear(2, 1, bias=False)
     explainer = SimilarityExplainer(
         model,
@@ -62,7 +78,10 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
 
 
 def test_correct_grad_cos_sim_result_torch(ds):
-    """"""
+    """
+    grad_cos method orders normally distributed data points by there angular separation. Test is applied to torch
+    backend.
+    """
     model = nn.Linear(2, 1, bias=False)
     explainer = SimilarityExplainer(
         model,
@@ -81,7 +100,10 @@ def test_correct_grad_cos_sim_result_torch(ds):
 
 
 def test_grad_cos_result_order_torch():
-    """"""
+    """
+    grad_cos finds data points with small angular separation to be more similar independent of length. Test is applied
+    to torch backend.
+    """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
     explainer = SimilarityExplainer(
@@ -98,7 +120,9 @@ def test_grad_cos_result_order_torch():
 
 
 def test_grad_dot_result_order_torch():
-    """"""
+    """
+    Size of datapoint overrides angular closeness for grad_dot similarity. Test is applied to torch backend.
+    """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
     explainer = SimilarityExplainer(
@@ -119,7 +143,10 @@ def loss_tf(y, x):
 
 
 def test_correct_grad_dot_sim_result_tf(normed_ds):
-    """"""
+    """
+    grad_dot method orders data points distributed on the unit circle by there angular separation. Test is applied to
+    tensorflow backend.
+    """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
     explainer = SimilarityExplainer(
         model,
@@ -138,7 +165,10 @@ def test_correct_grad_dot_sim_result_tf(normed_ds):
 
 
 def test_correct_grad_cos_sim_result_tf(ds):
-    """"""
+    """
+    grad_cos method orders normally distributed data points by there angular separation. Test is applied to tensorflow
+    backend.
+    """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
     explainer = SimilarityExplainer(
         model,
@@ -157,7 +187,9 @@ def test_correct_grad_cos_sim_result_tf(ds):
 
 
 def test_grad_dot_result_order_tf():
-    """"""
+    """
+    Size of datapoint overrides angular closeness for grad_dot similarity. Test is applied to torch backend.
+    """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
     explainer = SimilarityExplainer(
@@ -174,7 +206,10 @@ def test_grad_dot_result_order_tf():
 
 
 def test_grad_cos_result_order_tf():
-    """"""
+    """
+    grad_cos finds data points with small angular separation to be more similar independent of length. Test is applied
+    to tensorflow backend.
+    """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
     explainer = SimilarityExplainer(

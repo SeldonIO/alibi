@@ -8,6 +8,9 @@ import torch.nn as nn
 
 
 def get_flattened_model_parameters(model):
+    """
+    Returns a flattened list of all torch or tensorflow model parameters.
+    """
     if isinstance(model, nn.Module):
         return np.concatenate([p.detach().numpy().reshape(-1) for p in model.parameters()])
     elif isinstance(model, tf.keras.Model):
@@ -16,23 +19,27 @@ def get_flattened_model_parameters(model):
 
 @pytest.fixture(scope='module')
 def random_reg_dataset(request):
-    """ Constructs a random dataset. """
+    """
+    Constructs a random regression dataset with 1d target.
+    """
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
     # define random train set
     x_train = np.random.randn(size, *shape).astype(np.float32)
-    y_train = np.random.randn(size, *shape).astype(np.float32)
+    y_train = np.random.randn(size, 1).astype(np.float32)
 
     # define random test set
     x_test = np.random.randn(size, *shape).astype(np.float32)
-    y_test = np.random.randn(size, *shape).astype(np.float32)
+    y_test = np.random.randn(size, 1).astype(np.float32)
     return (x_train, y_train), (x_test, y_test)
 
 
 @pytest.fixture(scope='module')
 def random_cls_dataset(request):
-    """ Constructs a random dataset. """
+    """
+    Constructs a random classification dataset with 10 labels.
+    """
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -48,6 +55,9 @@ def random_cls_dataset(request):
 
 @pytest.fixture(scope='module')
 def linear_cls_model(request):
+    """
+    Constructs a linear classification model, loss function and target function.
+    """
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     framework = request.param.get('framework', 'tensorflow')
@@ -72,6 +82,9 @@ def linear_cls_model(request):
 
 @pytest.fixture(scope='module')
 def linear_reg_model(request):
+    """
+    Constructs a linear regression model, loss function and target function.
+    """
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     framework = request.param.get('framework', 'tensorflow')
@@ -96,6 +109,9 @@ def linear_reg_model(request):
 
 @pytest.fixture(scope='module')
 def linear_models(request):
+    """
+    Constructs a pair of linear models and loss functions for tensorflow and torch.
+    """
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     tf_model = tf_linear_model(input_shape, output_shape)
@@ -106,7 +122,9 @@ def linear_models(request):
 
 
 def tf_linear_model(input_shape, output_shape):
-    """ Constructs a linear model. """
+    """
+    Constructs a linear model for tensorflow.
+    """
     return keras.Sequential([
         keras.layers.InputLayer(input_shape=input_shape),
         keras.layers.Dense(output_shape),
@@ -115,6 +133,9 @@ def tf_linear_model(input_shape, output_shape):
 
 
 def torch_linear_model(input_shape_arg, output_shape_arg):
+    """
+    Constructs a linear model for torch.
+    """
     input_size = np.prod(input_shape_arg).item()
 
     class Model(nn.Module):

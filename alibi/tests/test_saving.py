@@ -269,12 +269,12 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
 def similarity_explainer(ffn_classifier, iris_data):
     criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     explainer = SimilarityExplainer(
-        model=ffn_classifier,
+        predictor=ffn_classifier,
         loss_fn=criterion,
         store_grads=True,
         backend='tensorflow',
         sim_fn='grad_cos')
-    explainer.fit(x_train=iris_data['X_train'], y_train=iris_data['y_train'])
+    explainer.fit(X_train=iris_data['X_train'], Y_train=iris_data['y_train'])
     return explainer
 
 
@@ -464,7 +464,7 @@ def test_save_SimilartyExplainer(similarity_explainer, ffn_classifier, iris_data
         exp1 = similarity_explainer1.explain(X)
         assert exp0.meta == exp1.meta
         assert (exp0.data['scores'] == exp1.data['scores']).all()
-        assert (exp0.data['x_train'] == exp1.data['x_train']).all()
-        assert (exp0.data['y_train'] == exp1.data['y_train']).all()
+        assert (exp0.data['X_train'] == exp1.data['X_train']).all()
+        assert (exp0.data['Y_train'] == exp1.data['Y_train']).all()
         assert (exp0.data['most_similar'] == exp1.data['most_similar']).all()
         assert (exp0.data['least_similar'] == exp1.data['least_similar']).all()

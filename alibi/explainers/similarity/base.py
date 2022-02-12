@@ -17,7 +17,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
     """Base class for similarity explainers."""
 
     def __init__(self,
-                 model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  loss_fn: '''Union[Callable[[tensorflow.Tensor, tensorflow.Tensor], tensorflow.Tensor],
                                    Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
@@ -31,7 +31,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Parameters
         ----------
-        model:
+        predictor:
             Model to be explained.
         loss_fn:
             Loss function.
@@ -57,7 +57,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         # Set seed for reproducibility.
         self.backend.set_seed(seed)
 
-        self.model = model
+        self.predictor = predictor
         self.loss_fn = loss_fn
         self.sim_fn = sim_fn
         self.store_grads = store_grads
@@ -122,7 +122,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Data to be matched shape-wise against the training data.
         target_type:
             Type of data: ``'x'``| ``'X'`` | ``'y'`` | ``'Y'``. Used to determine if data should take the shape of \
-            model input or model output.
+            predictor input or predictor output.
 
         Raises
         ------
@@ -155,10 +155,10 @@ class BaseSimilarityExplainer(Explainer, ABC):
         return scores
 
     def _compute_grad(self, x, y) -> np.ndarray:
-        """Computes model parameter gradients and returns a flattened `numpy` array."""
+        """Computes predictor parameter gradients and returns a flattened `numpy` array."""
         x = self.backend.to_tensor(x)
         y = self.backend.to_tensor(y)
-        return self.backend.get_grads(self.model, x, y, self.loss_fn)
+        return self.backend.get_grads(self.predictor, x, y, self.loss_fn)
 
     def reset_predictor(self, predictor: Any) -> None:
         """Resets the predictor to the given predictor.
@@ -168,4 +168,4 @@ class BaseSimilarityExplainer(Explainer, ABC):
         predictor:
             The new predictor to use.
         """
-        self.model = predictor
+        self.predictor = predictor

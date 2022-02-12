@@ -376,13 +376,13 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
 
 def _save_SimilarityExplainer(explainer: 'SimilarityExplainer', path: Union[str, os.PathLike]) -> None:
-    model = explainer.model
-    explainer.model = None  # type: ignore[assignment]
+    predictor = explainer.predictor
+    explainer.predictor = None  # type: ignore[assignment]
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)
 
-    explainer.model = model
+    explainer.predictor = predictor
 
 
 def _load_SimilarityExplainer(path: Union[str, os.PathLike],

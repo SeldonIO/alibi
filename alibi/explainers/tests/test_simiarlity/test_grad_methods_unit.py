@@ -31,7 +31,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     Y_train = Y_train.astype(int)
 
     explainer = SimilarityExplainer(
-        model=model,
+        predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         store_grads=True,
@@ -65,7 +65,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     Y_train = Y_train.astype(int)
 
     explainer = SimilarityExplainer(
-        model=model,
+        predictor=model,
         loss_fn=loss_fn,
         backend=backend,
     )
@@ -101,7 +101,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
     # sim_fn is one of ['grad_dot', 'grad_cos']
     with pytest.raises(ValueError) as err:
         SimilarityExplainer(
-            model=model,
+            predictor=model,
             loss_fn=loss_fn,
             sim_fn='not_grad_dot',
             store_grads=False,
@@ -112,7 +112,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
 
     for sim_fn in ['grad_dot', 'grad_cos', 'grad_asym_dot']:
         SimilarityExplainer(
-            model=model,
+            predictor=model,
             loss_fn=loss_fn,
             sim_fn=sim_fn,
             store_grads=False,
@@ -135,7 +135,7 @@ def test_method_task_error_messaging(linear_cls_model):
     # sim_fn is one of ['grad_dot', 'grad_cos']
     with pytest.raises(ValueError) as err:
         SimilarityExplainer(
-            model=model,
+            predictor=model,
             loss_fn=loss_fn,
             store_grads=False,
             backend=backend,
@@ -146,7 +146,7 @@ def test_method_task_error_messaging(linear_cls_model):
 
     for task in ['classification', 'regression']:
         SimilarityExplainer(
-            model=model,
+            predictor=model,
             loss_fn=loss_fn,
             store_grads=False,
             backend=backend,
@@ -170,7 +170,7 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
     Y_train = Y_train.astype(int)
 
     classification_explainer = SimilarityExplainer(
-        model=model,
+        predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         task='classification',
@@ -204,7 +204,7 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
     (X_train, Y_train), (_, _) = random_reg_dataset
 
     regression_explainer = SimilarityExplainer(
-        model=model,
+        predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         task='regression',

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 class SimilarityExplainer(BaseSimilarityExplainer):
     def __init__(self,
-                 model: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                 predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
                                     Union[tensorflow.Tensor, torch.Tensor]],
                                    Union[tensorflow.Tensor, torch.Tensor]]''',
@@ -35,8 +35,8 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         Parameters
         ----------
-        model:
-            Model to explain.
+        predictor:
+            model to explain.
         loss_fn:
             Loss function used.
         sim_fn:
@@ -80,7 +80,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         self.task = task
 
-        super().__init__(model, loss_fn, sim_fn, store_grads, seed, backend, meta=self.meta, **kwargs)
+        super().__init__(predictor, loss_fn, sim_fn, store_grads, seed, backend, meta=self.meta, **kwargs)
 
     def _preprocess_args(
             self,
@@ -113,7 +113,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             raise ValueError(err_msg)
 
         if Y is None:
-            Y = self.model(X)
+            Y = self.predictor(X)
             Y = self.backend.argmax(Y)
         elif callable(Y):
             Y = Y(X)
@@ -128,7 +128,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             self,
             X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) -> "Explanation":
-        """Explain the model's predictions for a given input.
+        """Explain the predictor's predictions for a given input.
 
         Computes the similarity score between the input and the training set. Reorders the training set according to the
         score in descending order. Returns an explainer object containing the scores and the corresponding training set

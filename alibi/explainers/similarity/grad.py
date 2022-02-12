@@ -84,51 +84,50 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
     def _preprocess_args(
             self,
-            x: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-            y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
             -> 'Union[Tuple[torch.Tensor, torch.Tensor], Tuple[tensorflow.Tensor, tensorflow.Tensor]]':
-        """Formats `x`, `y` for explain method.
+        """Formats `X`, `Y` for explain method.
 
         Parameters
         ----------
-        x:
+        X:
             Input data requiring formatting.
-        y:
+        Y:
             target data or function requiring formatting.
 
         Returns
         -------
-        x:
+        X:
             Input data formatted for explain method.
-        y:
+        Y:
             Target data formatted for explain method.
 
         """
-        x = self._match_shape_to_data(x, 'x')
-        if isinstance(x, np.ndarray):
-            x = self.backend.to_tensor(x)
+        X = self._match_shape_to_data(X, 'x')
+        if isinstance(X, np.ndarray):
+            X = self.backend.to_tensor(X)
 
-        if self.task == 'regression' and y is None:
-            err_msg = 'Regression task requires a target value. y must be provided, either as a value or a function.'
+        if self.task == 'regression' and Y is None:
+            err_msg = 'Regression task requires a target value. `Y` must be provided, either as a value or a function.'
             raise ValueError(err_msg)
 
-        if y is None:
-            y = self.model(x)
-            y = self.backend.argmax(y)
-        elif callable(y):
-            y = y(x)
+        if Y is None:
+            Y = self.model(X)
+            Y = self.backend.argmax(Y)
+        elif callable(Y):
+            Y = Y(X)
 
-        y = self._match_shape_to_data(y, 'y')
-        if isinstance(y, np.ndarray):
-            y = self.backend.to_tensor(y)
+        Y = self._match_shape_to_data(Y, 'y')
+        if isinstance(Y, np.ndarray):
+            Y = self.backend.to_tensor(Y)
 
-        return x, y
+        return X, Y
 
     def explain(
             self,
-            x: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-            y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) -> "Explanation":
-
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) -> "Explanation":
         """Explain the model's predictions for a given input.
 
         Computes the similarity score between the input and the training set. Reorders the training set according to the
@@ -138,13 +137,13 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         Parameters
         ----------
-        x:
-            `x` can be a `numpy` array, `tensorflow` tensor, or `torch` tensor of same shape as the training data with
+        X:
+            `X` can be a `numpy` array, `tensorflow` tensor, or `torch` tensor of same shape as the training data with
             or without the batch dimension. If the batch dimension is missing it's added.
-        y:
-            `y` can be a `numpy` array, `tensorflow` tensor, `torch` tensor or a function that returns one of these. It
-            must either be or return a value of the same shape as `x`. If the batch dimension is missing it's added. In
-            the case of a regression task the `y` argument must be present. If the task is classification then `y`
+        Y:
+            `Y` can be a `numpy` array, `tensorflow` tensor, `torch` tensor or a function that returns one of these. It
+            must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added. In
+            the case of a regression task the `Y` argument must be present. If the task is classification then `Y`
             defaults to the model prediction.
 
         Returns
@@ -152,23 +151,23 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         `Explanation` object containing the ordered similarity scores for the instance with additional metadata as \
         attributes. Contains the following data-related attributes
             -  `scores`: ``np.array`` - similarity scores for each instance in the training set.
-            -  `x_train`: ``np.array`` - training set instances in the order of descending similarity scores.
-            -  `y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
+            -  `X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
+            -  `Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
             -  `most_similar`: ``np.array`` - most similar instances to the input.
             -  `least_similar`: ``np.array`` - least similar instances to the input.
 
         Raises
         -------
         ValueError:
-            If `y` is `None` and the `task` is `regression`.
+            If `Y` is `None` and the `task` is `regression`.
         """
         self._verify_fit()
-        x, y = self._preprocess_args(x, y)
-        grad_x_test = self._compute_grad(x, y)
+        X, Y = self._preprocess_args(X, Y)
+        grad_X_test = self._compute_grad(X, Y)
         if not self.store_grads:
-            scores = self._compute_adhoc_similarity(grad_x_test)
+            scores = self._compute_adhoc_similarity(grad_X_test)
         else:
-            scores = self.sim_fn(self.grad_x_train, grad_x_test)
+            scores = self.sim_fn(self.grad_X_train, grad_X_test)
         return self._build_explanation(scores)
 
     def _build_explanation(self, scores: np.ndarray) -> "Explanation":
@@ -184,21 +183,21 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         `Explanation`: object containing the ordered similarity scores for the instance with additional metadata as \
         attributes. Contains the following data-related attributes
             -  `scores`: ``np.array`` - similarity scores for each instance in the training set.
-            -  `x_train`: ``np.array`` - training set instances in the order of descending similarity scores.
-            -  `y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
+            -  `X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
+            -  `Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
             -  `most_similar`: ``np.array`` - most similar instances to the input.
             -  `least_similar`: ``np.array`` - least similar instances to the input.
         """
-        if self.x_train is None or self.y_train is None:
+        if self.X_train is None or self.Y_train is None:
             raise ValueError('Training data is not available. Please call `fit` before calling `explain`.')
 
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(
             scores=scores[sorted_score_indices],
-            x_train=self.x_train[sorted_score_indices],
-            y_train=self.y_train[sorted_score_indices],
-            most_similar=self.x_train[sorted_score_indices[0]],
-            least_similar=self.x_train[sorted_score_indices[-1]],
+            X_train=self.X_train[sorted_score_indices],
+            Y_train=self.Y_train[sorted_score_indices],
+            most_similar=self.X_train[sorted_score_indices[0]],
+            least_similar=self.X_train[sorted_score_indices[-1]],
         )
         return Explanation(meta=self.meta, data=data)

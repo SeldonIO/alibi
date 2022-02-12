@@ -66,15 +66,15 @@ class BaseSimilarityExplainer(Explainer, ABC):
         super().__init__(**kwargs)
 
     def fit(self,
-            x_train: np.ndarray,
-            y_train: np.ndarray) -> "Explainer":
+            X_train: np.ndarray,
+            Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer. If ``self.store_grads == True`` then the gradients are precomputed and stored.
 
         Parameters
         ----------
-        x_train:
+        X_train:
             Training data.
-        y_train:
+        Y_train:
             Training labels.
 
         Returns
@@ -82,19 +82,19 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self:
             Returns self.
         """
-        self.x_train: np.ndarray = x_train
-        self.y_train: np.ndarray = y_train
-        self.x_dims: Tuple = self.x_train.shape[1:]
-        self.y_dims: Tuple = self.y_train.shape[1:]
-        self.grad_x_train: np.ndarray = np.array([])
+        self.X_train: np.ndarray = X_train
+        self.Y_train: np.ndarray = Y_train
+        self.X_dims: Tuple = self.X_train.shape[1:]
+        self.Y_dims: Tuple = self.Y_train.shape[1:]
+        self.grad_X_train: np.ndarray = np.array([])
 
         # compute and store gradients
         if self.store_grads:
             grads = []
-            for x, y in tqdm(zip(self.x_train, self.y_train)):
-                grad_x_train = self._compute_grad(x[None], y[None])
-                grads.append(grad_x_train[None])
-            self.grad_x_train = np.concatenate(grads, axis=0)
+            for x, y in tqdm(zip(self.X_train, self.Y_train)):
+                grad_X_train = self._compute_grad(x[None], y[None])
+                grads.append(grad_X_train[None])
+            self.grad_X_train = np.concatenate(grads, axis=0)
         return self
 
     def _verify_fit(self) -> None:
@@ -106,7 +106,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the explainer has not been fitted.
         """
 
-        if getattr(self, 'x_train', None) is None or getattr(self, 'y_train', None) is None:
+        if getattr(self, 'X_train', None) is None or getattr(self, 'Y_train', None) is None:
             raise ValueError('Training data not set. Call `fit` and pass training data first.')
 
     def _match_shape_to_data(self,
@@ -121,8 +121,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         data:
             Data to be matched shape-wise against the training data.
         target_type:
-            Type of data: ``'x'`` | ``'y'``. Used to determine if data should take the shape of model input or model \
-            output.
+            Type of data: ``'x'``| ``'X'`` | ``'y'`` | ``'Y'``. Used to determine if data should take the shape of \
+            model input or model output.
 
         Raises
         ------
@@ -130,14 +130,14 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
             calling this method.
         """
-        target_shape = getattr(self, f'{target_type}_dims')
+        target_shape = getattr(self, f'{target_type.upper()}_dims')
         if data.shape == target_shape:
             data = data[None]
         if data.shape[1:] != target_shape:
             raise ValueError(f'Input x has shape {data.shape[1:]} but training data has shape {target_shape}')
         return data
 
-    def _compute_adhoc_similarity(self, grad_x: np.ndarray) -> np.ndarray:
+    def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:
         """
         Computes the similarity between the gradients/matrix `x` gradients of the test instances and all the training
         instances. The method performs the computation of the gradients of the training instance on the flight without
@@ -145,13 +145,13 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         parameters
         ----------
-        grad_x:
+        grad_X:
             Gradients of the test instances.
         """
-        scores = np.zeros(self.x_train.shape[0])
-        for i, (x, y) in tqdm(enumerate(zip(self.x_train, self.y_train))):
+        scores = np.zeros(self.X_train.shape[0])
+        for i, (x, y) in tqdm(enumerate(zip(self.X_train, self.Y_train))):
             grad_x_train = self._compute_grad(x[None], y[None])
-            scores[i] = self.sim_fn(grad_x_train, grad_x)
+            scores[i] = self.sim_fn(grad_x_train, grad_X)
         return scores
 
     def _compute_grad(self, x, y) -> np.ndarray:

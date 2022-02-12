@@ -69,9 +69,9 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
         backend='torch'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
-    explanation = explainer.explain(normed_ds[0], y=target_fn)
+    explanation = explainer.explain(normed_ds[0], Y=target_fn)
     last = np.dot(normed_ds[0], normed_ds[0])
-    for point in explanation['x_train'][1:]:
+    for point in explanation['X_train'][1:]:
         current = np.dot(normed_ds[0], point)
         assert current <= last
         last = current
@@ -91,9 +91,9 @@ def test_correct_grad_cos_sim_result_torch(ds):
         backend='torch'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], y=target_fn)
+    explanation = explainer.explain(ds[0], Y=target_fn)
     last = 0
-    for point in explanation['x_train'][1:]:
+    for point in explanation['X_train'][1:]:
         current = compute_angle(ds[0], point)
         assert current >= last
         last = current
@@ -114,9 +114,9 @@ def test_grad_cos_result_order_torch():
         backend='torch',
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], y=target_fn)
-    assert (explanation['x_train'][1] == ds[1]).all()
-    assert (explanation['x_train'][-1] == ds[-1]).all()
+    explanation = explainer.explain(ds[0], Y=target_fn)
+    assert (explanation['X_train'][1] == ds[1]).all()
+    assert (explanation['X_train'][-1] == ds[-1]).all()
 
 
 def test_grad_dot_result_order_torch():
@@ -133,9 +133,9 @@ def test_grad_dot_result_order_torch():
         backend='torch'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], y=target_fn)
-    assert (explanation['x_train'][0] == ds[-1]).all()
-    assert (explanation['x_train'][-1] == ds[1]).all()
+    explanation = explainer.explain(ds[0], Y=target_fn)
+    assert (explanation['X_train'][0] == ds[-1]).all()
+    assert (explanation['X_train'][-1] == ds[1]).all()
 
 
 def loss_tf(y, x):
@@ -156,9 +156,9 @@ def test_correct_grad_dot_sim_result_tf(normed_ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
-    explanation = explainer.explain(normed_ds[0][None], y=target_fn)
+    explanation = explainer.explain(normed_ds[0][None], Y=target_fn)
     last = np.dot(normed_ds[0], normed_ds[0])
-    for point in explanation['x_train'][1:]:
+    for point in explanation['X_train'][1:]:
         current = np.dot(normed_ds[0], point)
         assert current <= last
         last = current
@@ -178,9 +178,9 @@ def test_correct_grad_cos_sim_result_tf(ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0][None], y=target_fn)
+    explanation = explainer.explain(ds[0][None], Y=target_fn)
     last = compute_angle(ds[0], ds[0])
-    for point in explanation['x_train'][1:]:
+    for point in explanation['X_train'][1:]:
         current = compute_angle(ds[0], point)
         assert current >= last
         last = current
@@ -200,9 +200,9 @@ def test_grad_dot_result_order_tf():
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], y=target_fn)
-    assert (explanation['x_train'][0] == ds[-1]).all()
-    assert (explanation['x_train'][-1] == ds[1]).all()
+    explanation = explainer.explain(ds[0, None], Y=target_fn)
+    assert (explanation['X_train'][0] == ds[-1]).all()
+    assert (explanation['X_train'][-1] == ds[1]).all()
 
 
 def test_grad_cos_result_order_tf():
@@ -220,6 +220,6 @@ def test_grad_cos_result_order_tf():
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], y=target_fn)
-    assert (explanation['x_train'][1] == ds[1]).all()
-    assert (explanation['x_train'][-1] == ds[-1]).all()
+    explanation = explainer.explain(ds[0, None], Y=target_fn)
+    assert (explanation['X_train'][1] == ds[1]).all()
+    assert (explanation['X_train'][-1] == ds[-1]).all()

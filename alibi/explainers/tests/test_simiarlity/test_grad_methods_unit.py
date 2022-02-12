@@ -26,9 +26,9 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     params = get_flattened_model_parameters(model)
-    (x_train, y_train), (_, _) = random_cls_dataset
+    (X_train, Y_train), (_, _) = random_cls_dataset
 
-    y_train = y_train.astype(int)
+    Y_train = Y_train.astype(int)
 
     explainer = SimilarityExplainer(
         model=model,
@@ -39,12 +39,12 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     )
 
     # test stored gradients
-    explainer.fit(x_train=x_train, y_train=y_train)
-    assert explainer.grad_x_train.shape == (len(x_train), *params.shape)
-    result = explainer.explain(x_train)
+    explainer.fit(X_train=X_train, Y_train=Y_train)
+    assert explainer.grad_X_train.shape == (len(X_train), *params.shape)
+    result = explainer.explain(X_train)
     assert result.data['scores'].shape == (100, )
-    assert result.data['x_train'].shape == (100, 10)
-    assert result.data['y_train'].shape == (100, )
+    assert result.data['X_train'].shape == (100, 10)
+    assert result.data['Y_train'].shape == (100, )
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
@@ -61,8 +61,8 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     Preprocessing method returns correct data format for correct inputs.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
-    (x_train, y_train), (_, _) = random_cls_dataset
-    y_train = y_train.astype(int)
+    (X_train, Y_train), (_, _) = random_cls_dataset
+    Y_train = Y_train.astype(int)
 
     explainer = SimilarityExplainer(
         model=model,
@@ -71,19 +71,19 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     )
 
     # test stored gradients
-    explainer.fit(x_train=x_train, y_train=y_train)
-    x, y = explainer._preprocess_args(x_train[0:3])
-    assert x.shape == (3, 10)
-    assert y.shape == (3,)
+    explainer.fit(X_train=X_train, Y_train=Y_train)
+    X, Y = explainer._preprocess_args(X_train[0:3])
+    assert X.shape == (3, 10)
+    assert Y.shape == (3,)
 
-    x, y = explainer._preprocess_args(x_train[0])
-    assert x.shape == (1, 10)
+    X, Y = explainer._preprocess_args(X_train[0])
+    assert X.shape == (1, 10)
 
-    x, y = explainer._preprocess_args(x_train[0])
-    assert x.shape == (1, 10)
+    X, Y = explainer._preprocess_args(X_train[0])
+    assert X.shape == (1, 10)
 
-    grad_x_test = explainer.backend.get_grads(model, x, y, loss_fn)
-    assert grad_x_test.shape == (110, )
+    grad_X_test = explainer.backend.get_grads(model, X, Y, loss_fn)
+    assert grad_X_test.shape == (110, )
 
 
 @pytest.mark.parametrize('linear_cls_model',
@@ -163,11 +163,11 @@ def test_method_task_error_messaging(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_task_classification_input(random_cls_dataset, linear_cls_model):
     """
-    Classification task explainer works when `y_train` is ``None``, a ``Callable`` or a ``np.ndarray``.
+    Classification task explainer works when `Y_train` is ``None``, a ``Callable`` or a ``np.ndarray``.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
-    (x_train, y_train), (_, _) = random_cls_dataset
-    y_train = y_train.astype(int)
+    (X_train, Y_train), (_, _) = random_cls_dataset
+    Y_train = Y_train.astype(int)
 
     classification_explainer = SimilarityExplainer(
         model=model,
@@ -179,10 +179,10 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
     )
 
     # classification similarity method y value can be none, a ndarray, or a function
-    classification_explainer.fit(x_train=x_train, y_train=y_train)
-    classification_explainer.explain(x_train[0:1])
-    classification_explainer.explain(x_train[0:1], y_train[0:1])
-    classification_explainer.explain(x_train[0:1], target_fn)
+    classification_explainer.fit(X_train=X_train, Y_train=Y_train)
+    classification_explainer.explain(X_train[0:1])
+    classification_explainer.explain(X_train[0:1], Y_train[0:1])
+    classification_explainer.explain(X_train[0:1], target_fn)
 
 
 @pytest.mark.parametrize('random_reg_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
@@ -196,12 +196,12 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
                          )
 def test_regression_task_input(linear_reg_model, random_reg_dataset):
     """
-    Regression task explainer works when `y_train` is a ``Callable`` or a ``np.ndarray``. Doesn't work when y_train is
-    ``None``.
+    Regression task explainer works when `Y_train` is a ``Callable`` or a ``np.ndarray``. Doesn't work when `Y_train`
+    is ``None``.
     """
 
     backend, model, loss_fn, target_fn = linear_reg_model
-    (x_train, y_train), (_, _) = random_reg_dataset
+    (X_train, Y_train), (_, _) = random_reg_dataset
 
     regression_explainer = SimilarityExplainer(
         model=model,
@@ -213,9 +213,9 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
     )
 
     # classification similarity method y value cannot be none
-    regression_explainer.fit(x_train=x_train, y_train=y_train)
+    regression_explainer.fit(X_train=X_train, Y_train=Y_train)
     with pytest.raises(ValueError) as err:
-        regression_explainer.explain(x_train[0])
+        regression_explainer.explain(X_train[0])
     assert 'Regression task requires a target value.' in str(err.value)
 
-    regression_explainer.explain(x_train[0], y_train)
+    regression_explainer.explain(X_train[0], Y_train)

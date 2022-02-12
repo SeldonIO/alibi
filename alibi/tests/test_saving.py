@@ -463,3 +463,8 @@ def test_save_SimilartyExplainer(similarity_explainer, ffn_classifier, iris_data
         assert similarity_explainer.meta == similarity_explainer1.meta
         exp1 = similarity_explainer1.explain(X)
         assert exp0.meta == exp1.meta
+        assert (exp0.data['scores'] == exp1.data['scores']).all()
+        assert (exp0.data['x_train'] == exp1.data['x_train']).all()
+        assert (exp0.data['y_train'] == exp1.data['y_train']).all()
+        assert (exp0.data['most_similar'] == exp1.data['most_similar']).all()
+        assert (exp0.data['least_similar'] == exp1.data['least_similar']).all()

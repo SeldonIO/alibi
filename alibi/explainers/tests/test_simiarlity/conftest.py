@@ -45,11 +45,11 @@ def random_cls_dataset(request):
 
     # define random train set
     x_train = np.random.randn(size, *shape)
-    y_train = np.random.randint(low=0, high=10, size=size).astype(np.float32)
+    y_train = np.random.randint(low=0, high=10, size=size).astype(np.int64)
 
     # define random test set
     x_test = np.random.randn(size, *shape)
-    y_test = np.random.randint(low=0, high=10, size=size).astype(np.float32)
+    y_test = np.random.randint(low=0, high=10, size=size).astype(np.int64)
     return (x_train, y_train), (x_test, y_test)
 
 

@@ -28,8 +28,6 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     params = get_flattened_model_parameters(model)
     (X_train, Y_train), (_, _) = random_cls_dataset
 
-    Y_train = Y_train.astype(int)
-
     explainer = SimilarityExplainer(
         predictor=model,
         loss_fn=loss_fn,
@@ -62,7 +60,6 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     (X_train, Y_train), (_, _) = random_cls_dataset
-    Y_train = Y_train.astype(int)
 
     explainer = SimilarityExplainer(
         predictor=model,
@@ -167,7 +164,6 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     (X_train, Y_train), (_, _) = random_cls_dataset
-    Y_train = Y_train.astype(int)
 
     classification_explainer = SimilarityExplainer(
         predictor=model,

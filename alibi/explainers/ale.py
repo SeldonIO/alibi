@@ -150,12 +150,15 @@ class ALE(Explainer):
 
         # TODO: use joblib to paralelise?
         for feature in features:
+            if grid_points is not None:
+                feature_grid_points = grid_points[feature_names[feature]]
+            else:
+                feature_grid_points = None
             q, ale, a0 = ale_num(
                 self.predictor,
                 X=X,
                 feature=feature,
-                feature_names=self.feature_names,
-                grid_points=grid_points,
+                feature_grid_points=feature_grid_points,
                 min_bin_points=min_bin_points,
                 check_feature_resolution=self.check_feature_resolution,
                 low_resolution_threshold=self.low_resolution_threshold,
@@ -351,8 +354,7 @@ def ale_num(
         predictor: Callable,
         X: np.ndarray,
         feature: int,
-        feature_names: List[str],
-        grid_points: Optional[dict],
+        feature_grid_points: Optional[np.ndarray],
         min_bin_points: int = 4,
         check_feature_resolution: bool = True,
         low_resolution_threshold: int = 10,
@@ -370,11 +372,8 @@ def ale_num(
         Dataset for which ALE curves are computed.
     feature
         Index of the numerical feature for which to calculate ALE.
-    feature_names
-        Names of the the features
-    grid_points
-        Custom grid points. Must be a dict where the keys are the names of the features and the values are
-        numpy arrays defining the grid.
+    feature_grid_points
+        Custom grid points. an np.array defining the grid points for the given features.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
         ALE estimation.
@@ -399,7 +398,7 @@ def ale_num(
         The constant offset used to center the ALE curves.
 
     """
-    if grid_points is None:
+    if feature_grid_points is None:
         if check_feature_resolution:
             uniques = np.unique(X[:, feature])
             if len(uniques) <= low_resolution_threshold:
@@ -419,7 +418,7 @@ def ale_num(
                 return q, np.array([[0.]]), np.array([0.])
     else:
         # set q to custom grid for feature
-        q = grid_points[feature_names[feature]]
+        q = feature_grid_points
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

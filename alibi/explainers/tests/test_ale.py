@@ -6,6 +6,7 @@ from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles, minimum_
 from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
+
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
 @pytest.mark.parametrize('dataset', [lazy_fixture('boston_data')])
 @pytest.mark.parametrize('lr_regressor',
@@ -84,16 +85,25 @@ def uncollect_if_n_features_more_than_input_dim(**kwargs):
 @pytest.mark.parametrize('input_dim', (1, 10), ids='input_dim={}'.format)
 @pytest.mark.parametrize('batch_size', (10, 100, 1000), ids='batch_size={}'.format)
 @pytest.mark.parametrize('mock_ale_explainer', out_dim_out_type, indirect=True, ids='out_dim, out_type={}'.format)
-def test_explain(mock_ale_explainer, features, input_dim, batch_size):
+@pytest.mark.parametrize('custom_grid', (False, True), ids='custom_grid={}'.format)
+def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_grid):
     out_dim = mock_ale_explainer.predictor.out_dim
     X = np.random.rand(batch_size, input_dim)
 
     if features:
         n_features = len(features)
+        if not custom_grid:
+            grid_points = None
+        else:
+            grid_points = {f: np.random.rand(2) for f in features}
     else:
         n_features = input_dim
+        if not custom_grid:
+            grid_points = None
+        else:
+            grid_points = {f: np.random.rand(2) for f in range(n_features)}
 
-    exp = mock_ale_explainer.explain(X, features=features)
+    exp = mock_ale_explainer.explain(X, features=features, grid_points=grid_points)
 
     # check that the length of all relevant attributes is the same as the number of features explained
     assert all(len(attr) == n_features for attr in (exp.ale_values, exp.feature_values,

@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 from itertools import count
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing import Callable, List, Optional, Tuple, Union, Dict, TYPE_CHECKING, no_type_check
 
 import sys
 
@@ -93,7 +93,7 @@ class ALE(Explainer):
                 X: np.ndarray,
                 features: Optional[List[int]] = None,
                 min_bin_points: int = 4,
-                grid_points: Optional[dict] = None) -> Explanation:
+                grid_points: Optional[Dict[str, np.ndarray]] = None) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -108,8 +108,8 @@ class ALE(Explainer):
             Minimum number of points each discretized interval should contain to ensure more precise
             ALE estimation.
         grid_points
-            Custom grid points. Must be a dict where the keys are the names of the features and the values are
-            numpy arrays defining the grid.
+            Custom grid points. Must be a dict where the keys features indices  and the values are
+            numpy arrays defining the grid points for each feature.
 
         Returns
         -------
@@ -148,12 +148,16 @@ class ALE(Explainer):
         ale0 = []
         feature_deciles = []
 
+        if grid_points is None:
+            grid_points = {}
+
         # TODO: use joblib to paralelise?
         for feature in features:
-            if grid_points is not None:
-                feature_grid_points = grid_points[feature_names[feature]]
-            else:
-                feature_grid_points = None
+
+            # Getting custom grid values. If the grid for a feature is not specified, `feature_grid_points = None`.
+            feature_grid_points = grid_points.get(feature)
+
+            # If `feature_grid_points` is not None, the value of q will be overwritten.
             q, ale, a0 = ale_num(
                 self.predictor,
                 X=X,
@@ -354,7 +358,7 @@ def ale_num(
         predictor: Callable,
         X: np.ndarray,
         feature: int,
-        feature_grid_points: Optional[np.ndarray],
+        feature_grid_points: Optional[np.ndarray] = None,
         min_bin_points: int = 4,
         check_feature_resolution: bool = True,
         low_resolution_threshold: int = 10,
@@ -419,6 +423,7 @@ def ale_num(
     else:
         # set q to custom grid for feature
         q = feature_grid_points
+
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

@@ -7,11 +7,14 @@ from functools import partial
 from typing import Callable, List, Optional, Tuple, Union, Dict, TYPE_CHECKING, no_type_check
 
 import sys
+import logging
 
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
     from typing_extensions import Literal
+
+logger = logging.getLogger(__name__)
 
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
@@ -422,8 +425,24 @@ def ale_num(
                 return q, np.array([[0.]]), np.array([0.])
     else:
         # set q to custom grid for feature
-        q = feature_grid_points
+        min_val, max_val = X[:, feature].min(), X[:, feature].max()
+        q = np.clip(np.sort(feature_grid_points), a_min=min_val, a_max=max_val)
 
+        # keep unique values
+        tol = 1e-4
+        q = q[np.append(True, np.diff(q) > tol)]
+
+        # add min feature value and maybe log a warning
+        if q[0] > min_val:
+            q = np.append(min_val, q)
+
+        # add max feature value and maybe log a warning
+        if q[-1] < max_val:
+            q = np.append(q, max_val)
+
+        indices = np.searchsorted(q, X[:, feature], side="left")
+        interval_n = np.bincount(indices)  # number of points in each interval
+        q = np.delete(q, np.where(interval_n == 0)[0])
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")
@@ -444,7 +463,6 @@ def ale_num(
     # make a dataframe for averaging over intervals
     concat = np.column_stack((p_deltas, indices))
     df = pd.DataFrame(concat)
-
     avg_p_deltas = df.groupby(df.shape[1] - 1).mean().values  # groupby indices
 
     # accummulate over intervals

@@ -14,13 +14,13 @@ if sys.version_info >= (3, 8):
 else:
     from typing_extensions import Literal
 
-logger = logging.getLogger(__name__)
-
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
+
+logger = logging.getLogger(__name__)
 
 
 class ALE(Explainer):
@@ -96,7 +96,8 @@ class ALE(Explainer):
                 X: np.ndarray,
                 features: Optional[List[int]] = None,
                 min_bin_points: int = 4,
-                grid_points: Optional[Dict[str, np.ndarray]] = None) -> Explanation:
+                grid_points: Optional[Dict[int, np.ndarray]] = None,
+                tol: float = 1e-5) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -111,8 +112,12 @@ class ALE(Explainer):
             Minimum number of points each discretized interval should contain to ensure more precise
             ALE estimation.
         grid_points
-            Custom grid points. Must be a dict where the keys features indices  and the values are
-            numpy arrays defining the grid points for each feature.
+            Custom grid points. Must be a `dict` where the keys features indices  and the values are
+            `numpy` arrays defining the grid points for each feature.
+
+        tol
+            Tolerance to delete consecutive quantiles obtained after clipping their values between the minimum and
+            maximum feature values. Only used when `feature_grid_points` is not ``None``.
 
         Returns
         -------
@@ -171,7 +176,8 @@ class ALE(Explainer):
                 low_resolution_threshold=self.low_resolution_threshold,
                 extrapolate_constant=self.extrapolate_constant,
                 extrapolate_constant_perc=self.extrapolate_constant_perc,
-                extrapolate_constant_min=self.extrapolate_constant_min
+                extrapolate_constant_min=self.extrapolate_constant_min,
+                tol=tol
             )
             deciles = get_quantiles(X[:, feature], num_quantiles=11)
 
@@ -367,7 +373,8 @@ def ale_num(
         low_resolution_threshold: int = 10,
         extrapolate_constant: bool = True,
         extrapolate_constant_perc: float = 10.,
-        extrapolate_constant_min: float = 0.1) -> Tuple[np.ndarray, ...]:
+        extrapolate_constant_min: float = 0.1,
+        tol: float = 1e-5) -> Tuple[np.ndarray, ...]:
     """
     Calculate the first order ALE curve for a numerical feature.
 
@@ -380,7 +387,7 @@ def ale_num(
     feature
         Index of the numerical feature for which to calculate ALE.
     feature_grid_points
-        Custom grid points. an np.array defining the grid points for the given features.
+        Custom grid points. An `numpy` array defining the grid points for the given features.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
         ALE estimation.
@@ -394,6 +401,9 @@ def ale_num(
         Refer to :class:`ALE` documentation.
     extrapolate_constant_min
         Refer to :class:`ALE` documentation.
+    tol
+        Tolerance to delete consecutive quantiles obtained after clipping their values between the minimum and maximum
+        feature values. Only used when `feature_grid_points` is not ``None``.
 
     Returns
     -------
@@ -414,35 +424,51 @@ def ale_num(
                 q, _ = adaptive_grid(X[:, feature], min_bin_points)
         else:
             q, _ = adaptive_grid(X[:, feature], min_bin_points)
-
-        # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
-        if len(q) == 1:
-            if extrapolate_constant:
-                delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
-                q = np.hstack((q - delta, q + delta))
-            else:
-                # ALE is 0 at a constant feature value
-                return q, np.array([[0.]]), np.array([0.])
     else:
         # set q to custom grid for feature
         min_val, max_val = X[:, feature].min(), X[:, feature].max()
-        q = np.clip(np.sort(feature_grid_points), a_min=min_val, a_max=max_val)
+        q = np.sort(feature_grid_points)
 
-        # keep unique values
-        tol = 1e-4
-        q = q[np.append(True, np.diff(q) > tol)]
+        if min_val > q[0]:
+            logger.warning(f'Feature {feature} grid-points contain lower values than the minimum feature value. '
+                           'Automatically lower bound clipping the grid-points values.')
+
+        if max_val < q[-1]:
+            logger.warning(f'Feature {feature} grid-points contain larger values than the maximum feature value. '
+                           'Automatically upper bound clipping the grid-points values.')
+
+        q = np.clip(q, a_min=min_val, a_max=max_val)
+        q = q[np.append(True, np.diff(q) > tol)]  # keep only unique values
 
         # add min feature value and maybe log a warning
         if q[0] > min_val:
             q = np.append(min_val, q)
+            logger.warning(f'Feature {feature} grid-points does not cover the lower feature values. '
+                           'Automatically adding the minimum feature values to the grid-points.')
 
         # add max feature value and maybe log a warning
         if q[-1] < max_val:
             q = np.append(q, max_val)
+            logger.warning(f'Feature {feature} grid-points does not cover the larger feature values. '
+                           'Automatically adding the maximum feature value tot the grid points.')
 
+        # check how many feature values are in each bin
         indices = np.searchsorted(q, X[:, feature], side="left")
         interval_n = np.bincount(indices)  # number of points in each interval
-        q = np.delete(q, np.where(interval_n == 0)[0])
+
+        if np.any(interval_n == 0):
+            q = np.delete(q, np.where(interval_n == 0)[0])
+            logger.warning(f'Some feature {feature} bins defined by the grid-points do not contain any feature values. '
+                           'Automatically merging consecutive bins to ensure that each bin contains at leas one value.')
+
+    # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
+    if len(q) == 1:
+        if extrapolate_constant:
+            delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
+            q = np.hstack((q - delta, q + delta))
+        else:
+            # ALE is 0 at a constant feature value
+            return q, np.array([[0.]]), np.array([0.])
 
     # find which interval each observation falls into
     indices = np.searchsorted(q, X[:, feature], side="left")

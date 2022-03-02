@@ -6,7 +6,6 @@ from alibi.explainers.ale import ale_num, adaptive_grid, get_quantiles, minimum_
 from alibi.api.defaults import DEFAULT_DATA_ALE, DEFAULT_META_ALE
 
 
-
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
 @pytest.mark.parametrize('dataset', [lazy_fixture('boston_data')])
 @pytest.mark.parametrize('lr_regressor',
@@ -68,6 +67,7 @@ def test_adaptive_grid(batch_size, min_bin_points):
 
 out_dim_out_type = [(1, 'continuous'), (3, 'proba')]
 features = [None, [0], [3, 5, 7]]
+num_gridpoints = [1, 2, 4, 8, 32, 64, 128]
 
 
 def uncollect_if_n_features_more_than_input_dim(**kwargs):
@@ -85,8 +85,10 @@ def uncollect_if_n_features_more_than_input_dim(**kwargs):
 @pytest.mark.parametrize('input_dim', (1, 10), ids='input_dim={}'.format)
 @pytest.mark.parametrize('batch_size', (10, 100, 1000), ids='batch_size={}'.format)
 @pytest.mark.parametrize('mock_ale_explainer', out_dim_out_type, indirect=True, ids='out_dim, out_type={}'.format)
-@pytest.mark.parametrize('custom_grid', (False, True), ids='custom_grid={}'.format)
-def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_grid):
+@pytest.mark.parametrize('custom_grid, num_grid_points', [
+    (False, None), (True, 1), (True, 2), (True, 4), (True, 8), (True, 32), (True, 128)
+], ids='custom_grid={}'.format)
+def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_grid, num_grid_points):
     out_dim = mock_ale_explainer.predictor.out_dim
     X = np.random.rand(batch_size, input_dim)
 
@@ -95,13 +97,13 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
         if not custom_grid:
             grid_points = None
         else:
-            grid_points = {f: np.random.rand(2) for f in features}
+            grid_points = {f: np.random.rand(num_grid_points) for f in features}
     else:
         n_features = input_dim
         if not custom_grid:
             grid_points = None
         else:
-            grid_points = {f: np.random.rand(5) for f in range(n_features)}
+            grid_points = {f: np.random.rand(num_grid_points) for f in range(n_features)}
 
     exp = mock_ale_explainer.explain(X, features=features, grid_points=grid_points)
 
@@ -112,10 +114,9 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
 
     assert len(exp.target_names) == out_dim
 
-    # not trivial to check for matching alev with featv.shape since beginning ending can be added
-    # and intermediate points can be removed.
-    # for alev, featv in zip(exp.ale_values, exp.feature_values):
-    #     assert alev.shape == (featv.shape[0], out_dim)
+    if not custom_grid:
+        for alev, featv in zip(exp.ale_values, exp.feature_values):
+            assert alev.shape == (featv.shape[0], out_dim)
 
     assert isinstance(exp.constant_value, float)
 
@@ -131,13 +132,19 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
 @pytest.mark.parametrize('extrapolate_constant_min', (0.1, 1.0))
 @pytest.mark.parametrize('constant_value', (5.,))
 @pytest.mark.parametrize('feature', (1,))
+@pytest.mark.parametrize('custom_grid', (True, False))
 def test_constant_feature(extrapolate_constant, extrapolate_constant_perc, extrapolate_constant_min,
-                          constant_value, feature):
+                          constant_value, feature, custom_grid):
     X = np.random.normal(size=(100, 2))
     X[:, feature] = constant_value
     predict = lambda x: x.sum(axis=1)  # dummy predictor # noqa
+    feature_grid_points = np.random.normal((1, )) if custom_grid else None
 
-    q, ale, ale0 = ale_num(predict, X, feature, extrapolate_constant=extrapolate_constant,
+    q, ale, ale0 = ale_num(predictor=predict,
+                           X=X,
+                           feature=feature,
+                           feature_grid_points=feature_grid_points,
+                           extrapolate_constant=extrapolate_constant,
                            extrapolate_constant_perc=extrapolate_constant_perc,
                            extrapolate_constant_min=extrapolate_constant_min)
     if extrapolate_constant:

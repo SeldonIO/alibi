@@ -105,7 +105,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 MarkupSafe
-2.0.1
+2.1.0
 BSD License
 Copyright 2010 Pallets
 
@@ -828,7 +828,7 @@ SOFTWARE.
 
 
 Werkzeug
-2.0.2
+2.0.3
 BSD License
 Copyright 2007 Pallets
 
@@ -1369,8 +1369,8 @@ SOFTWARE.
 
 
 blis
-0.7.5
-MIT License
+0.7.6
+BSD License
 NOTE: Portions of this project's code are copyrighted by
 
   The University of Texas at Austin
@@ -1495,7 +1495,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.0.11
+2.0.12
 MIT License
 MIT License
 
@@ -1520,7 +1520,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 click
-8.0.3
+8.0.4
 BSD License
 Copyright 2014 Pallets
 
@@ -1865,7 +1865,7 @@ BSD License
 UNKNOWN
 
 filelock
-3.4.2
+3.6.0
 Public Domain
 This is free and unencumbered software released into the public domain.
 
@@ -2578,7 +2578,7 @@ Apache Software License
 
 
 grpcio
-1.43.0
+1.44.0
 Apache Software License
 
                                  Apache License
@@ -3127,7 +3127,7 @@ THE SOFTWARE.
 
 
 imageio
-2.14.1
+2.16.1
 BSD License
 Copyright (c) 2014-2020, imageio developers
 All rights reserved.
@@ -3168,7 +3168,7 @@ different license (refer to the specific files for details):
 
 
 importlib-metadata
-4.10.1
+4.11.2
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -3957,13 +3957,13 @@ THE SOFTWARE.
 
 
 networkx
-2.6.3
+2.7.1
 BSD License
 NetworkX is distributed with the 3-clause BSD license.
 
 ::
 
-   Copyright (C) 2004-2021, NetworkX Developers
+   Copyright (C) 2004-2022, NetworkX Developers
    Aric Hagberg <hagberg@lanl.gov>
    Dan Schult <dschult@colgate.edu>
    Pieter Swart <swart@lanl.gov>
@@ -5010,7 +5010,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.4.0
+1.4.1
 BSD License
 BSD 3-Clause License
 
@@ -5472,7 +5472,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 regex
-2022.1.18
+2022.3.2
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -5929,7 +5929,7 @@ SOFTWARE.
 
 
 scikit-image
-0.19.1
+0.19.2
 BSD License
 Copyright (C) 2019, the scikit-image team
 All rights reserved.
@@ -6049,7 +6049,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.7.3
+1.8.0
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc.  2003-2019, SciPy Developers.
 All rights reserved.
@@ -7066,11 +7066,11 @@ SOFTWARE.
 
 
 spacy
-3.2.1
+3.2.3
 MIT License
 The MIT License (MIT)
 
-Copyright (C) 2016-2021 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
+Copyright (C) 2016-2022 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -7092,7 +7092,7 @@ THE SOFTWARE.
 
 
 spacy-legacy
-3.0.8
+3.0.9
 MIT License
 MIT License
 
@@ -8072,7 +8072,7 @@ Apache Software License
 UNKNOWN
 
 tensorflow-io-gcs-filesystem
-0.23.1
+0.24.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -8357,7 +8357,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2022.2.2
+2022.2.9
 BSD License
 BSD 3-Clause License
 
@@ -8392,12 +8392,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 tokenizers
-0.11.4
+0.11.6
 Apache Software License
 UNKNOWN
 
 tqdm
-4.62.3
+4.63.0
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -8451,7 +8451,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.16.2
+4.17.0
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -8685,7 +8685,7 @@ THE SOFTWARE.
 
 
 typing-extensions
-4.0.1
+4.1.1
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================

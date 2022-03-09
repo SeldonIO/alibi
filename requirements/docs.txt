@@ -3,7 +3,7 @@
 sphinx>=4.2.0, <5.0.0 # Enforce 4.x sphinx version so that mathjax works correctly
 sphinx-autodoc-typehints>=1.12.0, <=2.0.0 
 sphinx-rtd-theme>=1.0.0, <2.0.0
-myst-parser>=0.14, <0.16
+myst-parser>=0.14, <0.18
 sphinxcontrib-apidoc>=0.3.0, <0.4.0
 nbsphinx>=0.8.5, <0.9.0
 sphinx_design==0.0.13  # Pinning for now as sphinx_design is v.new and still in flux. 

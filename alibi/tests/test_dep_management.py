@@ -1,10 +1,6 @@
-"""
-note: https://tox.wiki/en/latest/example/basic.html#passing-down-environment-variables
-"""
-
 from types import ModuleType
 from collections import defaultdict
-import re
+import pytest
 
 
 dependence_relations = defaultdict(lambda: ['default'])
@@ -27,33 +23,7 @@ for dependency, relations in [
     dependence_relations[dependency] = relations
 
 
-def check_optional_dependencies():
-    deps = defaultdict(set)
-    with open('../../extra-requirements.txt') as fp:
-        for k in fp:
-            if k.startswith('#') or k.startswith('\n'):
-                continue
-            optional_dependency, bucket_name = k.split(':')
-            bucket_name = bucket_name.strip()
-            dependency_name = re.split('[<=>]', optional_dependency)[0]
-            deps[bucket_name].add(dependency_name)
-
-    buckets = {bucket: True for bucket in deps}
-
-    for bucket in deps:
-        for optional_dependency in deps[bucket]:
-            try:
-                __import__(optional_dependency)
-            except ImportError:
-                buckets[bucket] = False
-                print(optional_dependency, 'is not installed')
-    return buckets
-
-
-def test_explainer_dependencies():
-    installed_bucket = check_optional_dependencies()
-    print(installed_bucket)
-
+def test_explainer_dependencies(opt_dep):
     from alibi import explainers
     lib_obj = [obj for obj in dir(explainers) if not obj.startswith('_')]
 
@@ -61,5 +31,13 @@ def test_explainer_dependencies():
         item = getattr(explainers, item)
         if not isinstance(item, ModuleType):
             pass_contexts = dependence_relations[item.__name__]
-            print(item.__name__, pass_contexts)
+            if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
+                item.__name__
+            else:
+                with pytest.raises(ImportError) as err:
+                    item.__name__
+                # assert('pip install alibi[]' in err.exception)
+            print(item.__name__, pass_contexts, opt_dep)
+
+    assert 1 == 0
 

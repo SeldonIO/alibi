@@ -1,5 +1,4 @@
 from setuptools import find_packages, setup
-from extras_require import extras_require
 
 
 def readme():
@@ -9,6 +8,35 @@ def readme():
 
 # read version file
 exec(open('alibi/version.py').read())
+
+
+def get_extra_requires(path, add_all=True):
+    """
+    Reads and inverts the requirements in extra-requirements.txt
+    """
+    import re
+    from collections import defaultdict
+    import os
+    print(os.getcwd())
+
+    with open(path) as fp:
+        extra_deps = defaultdict(set)
+        for k in fp:
+            if k.strip() and not k.startswith('#'):
+                tags = set()
+                if ':' in k:
+                    k, v = k.split(':')
+                    tags.update(vv.strip() for vv in v.split(','))
+                tags.add(re.split('[<=>]', k)[0])
+                for t in tags:
+                    extra_deps[t].add(k)
+
+        # add tag `all` at the end
+        if add_all:
+            extra_deps['all'] = set(vv for v in extra_deps.values() for vv in v)
+
+    return extra_deps
+
 
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
@@ -39,6 +67,6 @@ setup(name='alibi',
           'transformers>=4.7.0, <5.0.0',
           'tqdm>=4.28.1, <5.0.0'
       ],
-      extras_require=extras_require(),
+      extras_require=get_extra_requires('./extra-requirements.txt'),
       test_suite='tests',
       zip_safe=False)

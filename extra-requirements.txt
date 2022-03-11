@@ -1,0 +1,10 @@
+# FORMAT
+# Put your extra requirements here in the following format
+#
+# package[version_required]: tag1, tag2, ...
+
+ray>=0.8.7, <2.0.0:                             ray
+shap>=0.40.0, <0.41.0:                          shap
+numba>=0.50.0, !=0.54.0, <0.56.0:               shap
+tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.8.0:    tensorflow
+torch>=1.9.0, <2.0.0:                           torch

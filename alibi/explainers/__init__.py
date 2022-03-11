@@ -5,6 +5,12 @@ The 'alibi.explainers' module includes feature importance, counterfactual and an
 from .ale import ALE, plot_ale
 from .anchor_tabular import AnchorTabular, DistributedAnchorTabular
 from .anchor_text import AnchorText
+
+# try:
+#     from .anchor_text import AnchorText
+# except ImportError:
+#     return NotInstalled("AnchorText")
+
 from .anchor_image import AnchorImage
 from .cem import CEM
 from .cfproto import CounterfactualProto, CounterFactualProto  # noqa: F401 TODO: remove in an upcoming release

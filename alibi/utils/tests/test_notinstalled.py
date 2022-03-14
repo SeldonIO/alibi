@@ -2,29 +2,20 @@ import pytest
 
 
 def test_installed_package_works():
-    package_name = "requests"
-    version = ">=2.21.0, <3.0.0"
-
     try:
         import requests
-    except ImportError:
+    except ImportError as err:
         from alibi.utils.notinstalled import NotInstalledPackage
-        requests = NotInstalledPackage(package_name, version=version)
-
+        requests = NotInstalledPackage(err, 'requests', install_option='requests')
     assert requests.__version__
 
 
 def test_uninstalled_package_raises():
-    package_name = "this_package_does_not_exist"
-    version = "==1.2.3"
-
     try:
         import thispackagedoesnotexist as package
-    except ImportError:
+    except ImportError as err:
         from alibi.utils.notinstalled import NotInstalledPackage
-        package = NotInstalledPackage(package_name, version=version)
+        package = NotInstalledPackage(err, 'test', install_option='test')
 
     with pytest.raises(ImportError) as e:
         package.__version__  # noqa
-        assert package_name in str(e)
-        assert version in str(e)

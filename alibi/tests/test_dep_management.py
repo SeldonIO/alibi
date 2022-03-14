@@ -46,10 +46,10 @@ def check_correct_dependencies(
         if not isinstance(item, ModuleType) and hasattr(item, '__name__'):
             pass_contexts = dependencies[item.__name__]
             if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
-                assert item.__name__
+                item.__name__ # noqa
             else:
                 with pytest.raises(ImportError) as err:
-                    assert item.__name__
+                    item.__name__  # noqa
                 # assert('pip install alibi[]' in err.exception)
             print(item.__name__, pass_contexts, opt_dep)
 

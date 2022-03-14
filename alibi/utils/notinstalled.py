@@ -4,9 +4,9 @@ class NotInstalledPackage:
     Usage:
         >>> try:
         ...     from alibi.explainers import AnchorText
-        >>> except ImportError:
+        >>> except ImportError as err:
         ...     from alibi.utils.notinstalled import NotInstalledPackage
-        ...     explainer = NotInstalledPackage('AnchorText', install_option='transformers')
+        ...     explainer = NotInstalledPackage(err, 'AnchorText', install_option='transformers')
     """
 
     def __init__(self, error: ImportError, name: str, install_option: str = None):

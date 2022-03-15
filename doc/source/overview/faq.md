@@ -18,7 +18,13 @@
 
 **Q. Is there a way I can get more information from the library during the explanation generation process?**
 
-**A.** Yes! We use [Python logging](https://docs.python.org/3/howto/logging.html) to log debug messages from the library. You can configure logging for your script to see these messages during the execution of the code. Additionally, some methods also expose a `verbose` argument to print information to standard output.
+**A.** Yes! We use [Python logging](https://docs.python.org/3/howto/logging.html) to log info and debug messages from the library. You can configure logging for your script to see these messages during the execution of the code. Additionally, some methods also expose a `verbose` argument to print information to standard output. Configuring Python logging for your application will depend on your needs, but for simple scripts you can easily configure logging to print to standard error as follows:
+
+```ipython3
+import logging
+logging.basicConfig(level=logging.DEBUG)
+```
+**Note:** this will display *all* logged messages with level `DEBUG` and higher from *all* libraries in use.
 
 ## Anchor explanations
 

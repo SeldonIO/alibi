@@ -13,12 +13,6 @@ except ModuleNotFoundError as err:
     DistributedAnchorTabular = MissingOptionalDependency(err, "DistributedAnchorTabular", install_option='ray')
 
 from .anchor_text import AnchorText
-
-# try:
-#     from .anchor_text import AnchorText
-# except ImportError:
-#     return NotInstalled("AnchorText")
-
 from .anchor_image import AnchorImage
 from .cem import CEM
 from .cfproto import CounterfactualProto, CounterFactualProto  # noqa: F401 TODO: remove in an upcoming release
@@ -27,23 +21,26 @@ from .integrated_gradients import IntegratedGradients
 from .cfrl_base import CounterfactualRL
 from .cfrl_tabular import CounterfactualRLTabular
 
-__all__ = ["ALE",
-           "AnchorTabular",
-           "DistributedAnchorTabular",
-           "AnchorText",
-           "AnchorImage",
-           "CEM",
-           "Counterfactual",
-           "CounterfactualProto",
-           "CounterfactualRL",
-           "CounterfactualRLTabular",
-           "plot_ale",
-           "IntegratedGradients",
-           ]
-
 try:
     from .shap_wrappers import KernelShap, TreeShap
+except ModuleNotFoundError as err:
+    KernelShap = MissingOptionalDependency(err, "KernelShap", install_option='shap')
+    TreeShap = MissingOptionalDependency(err, "TreeShap", install_option='shap')
 
-    __all__ += ["KernelShap", "TreeShap"]
-except ImportError:
-    pass
+
+__all__ = [
+    "ALE",
+    "AnchorTabular",
+    "DistributedAnchorTabular",
+    "AnchorText",
+    "AnchorImage",
+    "CEM",
+    "Counterfactual",
+    "CounterfactualProto",
+    "CounterfactualRL",
+    "CounterfactualRLTabular",
+    "plot_ale",
+    "IntegratedGradients",
+    "KernelShap",
+    "TreeShap"
+]

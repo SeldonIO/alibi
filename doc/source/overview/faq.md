@@ -6,7 +6,12 @@
 
 There can be many reasons why the method does not work. For code exceptions it is a good idea to check the following:
  - Read the [docstrings](../api/modules.rst) of the method, paying close attention to the [type hints](https://docs.python.org/3/library/typing.html) as most errors are due to misformatted input arguments.
- - Check that your model signature (its type and expected inputs/outputs) are in the right format. For further details refer to [White-box and black-box models](../overview/white_box_black_box.md).
+ - Check that your model signature (its type and expected inputs/outputs) are in the right format. Typically this means taking as input a `numpy` array representing a batch of data and returning a `numpy` array representing class labels, probabilities or regression values. For further details refer to [White-box and black-box models](../overview/white_box_black_box.md).
+ - Check the expected input type for the `explain` method. Note that in many cases (e.g. all the Anchor methods) the `explain` method expects a single instance *without* a leading batch dimension, e.g. for `AnchorImage` a colour image of shape `(height, width, colour_channels)`.
+
+### My model works on different input types, e.g. `pandas` dataframes instead of `numpy` arrays so the explainers don't work
+
+At the time of writing we support models that operate on `numpy` arrays. You can write simple wrapper functions for your model so that it adheres to the format that `alibi` expects, [see here](../overview/white_box_black_box.md#wrapping-white-box-models-into-black-box-models). In the future we may support more diverse input types (see [#516](https://github.com/SeldonIO/alibi/issues/516)).
 
 ### Explanations are taking a long time to complete
 

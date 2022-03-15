@@ -2,8 +2,16 @@
 The 'alibi.explainers' module includes feature importance, counterfactual and anchor-based explainers.
 """
 
+from alibi.utils.missing_optional_dependency import MissingOptionalDependency
+
 from .ale import ALE, plot_ale
-from .anchor_tabular import AnchorTabular, DistributedAnchorTabular
+from .anchor_tabular import AnchorTabular
+
+try:
+    from .anchor_tabular_distributed import DistributedAnchorTabular
+except ModuleNotFoundError as err:
+    DistributedAnchorTabular = MissingOptionalDependency(err, "DistributedAnchorTabular", install_option='ray')
+
 from .anchor_text import AnchorText
 
 # try:

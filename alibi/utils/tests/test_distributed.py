@@ -6,7 +6,7 @@ import time
 import numpy as np
 
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \
-    concatenate_minibatches, RAY_INSTALLED
+    concatenate_minibatches
 from itertools import product
 from typing import Any, Dict, List, Optional, Tuple, Union
 
@@ -123,13 +123,11 @@ explainer_init_args = [(0.01,), ]
 explainer_init_kwargs = [{'multiplier': 2}, ]
 
 
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 def test_distributed_explainer_init(expln_args, expln_kwargs, distributed_opts):
-    import ray
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
 
     atol = 1e-5  # abs tolerance for floating point comparisons
     distributed_explainer = DistributedExplainer(distributed_opts, MockExplainer, expln_args, expln_kwargs)
@@ -164,8 +162,6 @@ return_generator = [False, True]  # whether a generator is returned or the resul
 concatenate_results = [False, True]
 
 
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
@@ -179,7 +175,7 @@ def test_distributed_explainer_get_explanation(
         distributed_opts,
         return_generator,
         concatenate_results):
-    import ray
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
     atol = 1e-5  # tolerance for numerical comparisons
 
     batch_size = distributed_opts['batch_size']
@@ -267,14 +263,12 @@ distributed_opts = kwargs_factory(keys, values)  # type: ignore
 concatenate_results = [False, True]
 
 
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 @pytest.mark.parametrize('concatenate_results', concatenate_results, ids='concat_results={}'.format)
 def test_pool_collection_init(expln_args, expln_kwargs, distributed_opts, concatenate_results):
-    import ray
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
 
     ncpus = distributed_opts['n_cpus']
     batch_size = distributed_opts['batch_size']
@@ -333,14 +327,12 @@ distributed_opts = kwargs_factory(keys, values)  # type: ignore
 n_instances, n_features = 5, 6
 
 
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('data_generator', [(n_instances, n_features), ], ids=data_generator_id, indirect=True)
 @pytest.mark.parametrize('expln_args', explainer_init_args, ids='expln_init_args={}'.format)
 @pytest.mark.parametrize('expln_kwargs', explainer_init_kwargs, ids='expln_init_kwargs={}'.format)
 @pytest.mark.parametrize('distributed_opts', distributed_opts, ids=distributed_opts_id)
 def test_pool_collection_get_explanation(data_generator, expln_args, expln_kwargs, distributed_opts):
-    import ray
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
     atol = 1e-5  # absolute tolerance for floating point comparisons
 
     ncpus = distributed_opts['n_cpus']

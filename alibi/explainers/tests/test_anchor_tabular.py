@@ -11,7 +11,7 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers import AnchorTabular, DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
-from alibi.utils.distributed import RAY_INSTALLED
+import ray
 
 
 # TODO: Test DistributedAnchorBaseBeam separately
@@ -111,71 +111,69 @@ def test_distributed_anchor_tabular(ncpu,
                                     ):
     # TODO - if we add this test is back in, this conditional should be added as a @pytest.mark.skip
     # i.e. see test_kernel_distributed_execution in test_shap_wrappers.py.
-    if RAY_INSTALLED:
-        import ray
 
-        # inputs
-        params = at_defaults
-        threshold = params['desired_confidence']
-        n_covered_ex = params['n_covered_ex']  # number of covered examples to return when anchor applies
-        batch_size = params['batch_size']  # number of samples to draw during sampling
-        n_anchors_to_sample = 6  # for testing sampling function
+    # inputs
+    params = at_defaults
+    threshold = params['desired_confidence']
+    n_covered_ex = params['n_covered_ex']  # number of covered examples to return when anchor applies
+    batch_size = params['batch_size']  # number of samples to draw during sampling
+    n_anchors_to_sample = 6  # for testing sampling function
 
-        # prepare the classifier and explainer
-        data = iris_data
-        X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
-        clf, preprocessor = rf_classifier
-        predictor = predict_fcn(predict_type, clf)
-        explainer = DistributedAnchorTabular(predictor, feature_names, seed=0)
-        explainer.fit(X_train, ncpu=ncpu)
+    # prepare the classifier and explainer
+    data = iris_data
+    X_test, X_train, feature_names = data['X_test'], data['X_train'], data['metadata']['feature_names']
+    clf, preprocessor = rf_classifier
+    predictor = predict_fcn(predict_type, clf)
+    explainer = DistributedAnchorTabular(predictor, feature_names, seed=0)
+    explainer.fit(X_train, ncpu=ncpu)
 
-        # select instance to be explained
-        instance = X_test[test_instance_idx]
-        if predict_type == 'proba':
-            instance_label = np.argmax(predictor(instance.reshape(1, -1)), axis=1)
-        else:
-            instance_label = predictor(instance.reshape(1, -1))[0]
+    # select instance to be explained
+    instance = X_test[test_instance_idx]
+    if predict_type == 'proba':
+        instance_label = np.argmax(predictor(instance.reshape(1, -1)), axis=1)
+    else:
+        instance_label = predictor(instance.reshape(1, -1))[0]
 
-        # explain the instance and do basic checks on the lookups and instance labels used by samplers
-        explanation = explainer.explain(instance, threshold=threshold, n_covered_ex=n_covered_ex)
-        assert len(explainer.samplers) == ncpu
-        actors = explainer.samplers
-        for actor in actors:
-            sampler = ray.get(actor._get_sampler.remote())
-            ord_feats = sampler.ord_lookup.keys()
-            cat_feats = sampler.cat_lookup.keys()
-            enc_feats = sampler.enc2feat_idx.keys()
-            assert (set(ord_feats | set(cat_feats))) == set(enc_feats)
-            assert sampler.instance_label == instance_label
-            assert sampler.n_covered_ex == n_covered_ex
+    # explain the instance and do basic checks on the lookups and instance labels used by samplers
+    explanation = explainer.explain(instance, threshold=threshold, n_covered_ex=n_covered_ex)
+    assert len(explainer.samplers) == ncpu
+    actors = explainer.samplers
+    for actor in actors:
+        sampler = ray.get(actor._get_sampler.remote())
+        ord_feats = sampler.ord_lookup.keys()
+        cat_feats = sampler.cat_lookup.keys()
+        enc_feats = sampler.enc2feat_idx.keys()
+        assert (set(ord_feats | set(cat_feats))) == set(enc_feats)
+        assert sampler.instance_label == instance_label
+        assert sampler.n_covered_ex == n_covered_ex
 
-        # check explanation
-        assert explainer.instance_label == instance_label
-        print(explanation.anchor)
-        print(explanation.coverage)
-        assert explanation.precision >= threshold
-        assert explanation.coverage >= 0.05
+    # check explanation
+    assert explainer.instance_label == instance_label
+    print(explanation.anchor)
+    print(explanation.coverage)
+    assert explanation.precision >= threshold
+    assert explanation.coverage >= 0.05
 
-        distrib_anchor_beam = explainer.mab
-        assert len(distrib_anchor_beam.samplers) == ncpu
+    distrib_anchor_beam = explainer.mab
+    assert len(distrib_anchor_beam.samplers) == ncpu
 
-        # basic checks for DistributedAnchorBaseBeam
-        anchor_features = list(enc_feats)
-        anchor_max_len = len(anchor_features)
-        assert distrib_anchor_beam.state['coverage_data'].shape[1] == anchor_max_len
-        to_sample = []
-        for _ in range(n_anchors_to_sample):
-            anchor_len = np.random.randint(0, anchor_max_len)
-            anchor = np.random.choice(anchor_features, anchor_len, replace=False)
-            to_sample.append(tuple(anchor))
-        to_sample = list(set(to_sample))
-        current_state = deepcopy(distrib_anchor_beam.state)
-        pos, total = distrib_anchor_beam.draw_samples(to_sample, batch_size)
-        for p, t, anchor in zip(pos, total, to_sample):
-            assert distrib_anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
-            assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
+    # basic checks for DistributedAnchorBaseBeam
+    anchor_features = list(enc_feats)
+    anchor_max_len = len(anchor_features)
+    assert distrib_anchor_beam.state['coverage_data'].shape[1] == anchor_max_len
+    to_sample = []
+    for _ in range(n_anchors_to_sample):
+        anchor_len = np.random.randint(0, anchor_max_len)
+        anchor = np.random.choice(anchor_features, anchor_len, replace=False)
+        to_sample.append(tuple(anchor))
+    to_sample = list(set(to_sample))
+    current_state = deepcopy(distrib_anchor_beam.state)
+    pos, total = distrib_anchor_beam.draw_samples(to_sample, batch_size)
+    for p, t, anchor in zip(pos, total, to_sample):
+        assert distrib_anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
+        assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
 
-        ray.shutdown()
+    ray.shutdown()
 
 
 def uncollect_if_test_sampler(**kwargs):

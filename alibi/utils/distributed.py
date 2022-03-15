@@ -5,36 +5,17 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import sparse
+import ray
+
 
 logger = logging.getLogger(__name__)
-
-
-def check_ray() -> bool:
-    """
-    Checks if `ray` is installed.
-
-    Returns
-    -------
-    A `bool` indicating whether `ray` is installed or not.
-    """
-
-    import importlib
-    spec = importlib.util.find_spec('ray')  # type: ignore
-    if spec:
-        return True
-    return False
-
-
-RAY_INSTALLED = check_ray()
 
 
 class ActorPool(object):
     # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, THEN THIS CLASS SHOULD INHERIT FROM
     #  RAY.UTIL.ACTORPOOL, OVERRIDE MAP AND MAP_UNORDERED AND ADD _CHUNK STATIC METHOD.
 
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  # module as a static variable
+    ray = ray  # module as a static variable
 
     def __init__(self, actors):
         """
@@ -443,9 +424,7 @@ class DistributedExplainer:
     """
     A class that orchestrates the execution of the execution of a batch of explanations in parallel.
     """
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  #: `ray` module.
+    ray = ray  #: `ray` module.
 
     concatenate: Callable
 
@@ -505,9 +484,6 @@ class DistributedExplainer:
         When ``return_generator=True``, the caller has to take elements from the generator (e.g., by calling `next`) in 
         order to start computing the results (because the `ray` pool is implemented as a generator).
         """  # noqa W605
-
-        if not RAY_INSTALLED:
-            raise ModuleNotFoundError("Module requires ray to be installed. pip install alibi[ray] ")
 
         self.n_processes = distributed_opts['n_cpus']
         self.batch_size = distributed_opts['batch_size']
@@ -673,10 +649,7 @@ class PoolCollection:
     A wrapper object that turns a `DistributedExplainer` into a remote actor. This allows running multiple distributed
     explainers in parallel.
     """
-
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  #: `ray` module.
+    ray = ray  #: `ray` module.
 
     def __init__(self,
                  distributed_opts: Dict[str, Any],

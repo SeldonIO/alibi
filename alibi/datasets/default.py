@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import PIL
 import requests
-import tensorflow.keras as keras
 from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
 
@@ -16,11 +15,6 @@ from alibi.utils.data import Bunch
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['fetch_adult',
-           'fetch_fashion_mnist',
-           'fetch_imagenet',
-           'fetch_movie_sentiment',
-           'load_cats']
 
 ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
               'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
@@ -51,7 +45,7 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
     (data, target)
         Tuple if ``return_X_y=True``.
     """
-    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "data/cats.tar.gz")),  # type: ignore[arg-type]
+    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "../data/cats.tar.gz")),  # type: ignore[arg-type]
                        mode='r:gz')
     images = []
     target = []
@@ -251,31 +245,3 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)
 
 
-def fetch_fashion_mnist(return_X_y: bool = False
-                        ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
-    """
-    Loads the Fashion MNIST dataset.
-
-    Parameters
-    ----------
-    return_X_y:
-        If ``True``, an `N x M x P` array of data points and `N`-array of labels are returned
-        instead of a dict.
-
-    Returns
-    -------
-    If ``return_X_y=False``, a Bunch object with fields 'data', 'targets' and 'target_names'
-    is returned. Otherwise an array with data points and an array of labels is returned.
-    """
-
-    target_names = {
-        0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
-        5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',
-    }
-
-    data, labels = keras.datasets.fashion_mnist.load_data()[0]
-
-    if return_X_y:
-        return data, labels
-
-    return Bunch(data=data, target=labels, target_names=target_names)

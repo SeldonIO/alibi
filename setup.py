@@ -1,5 +1,7 @@
 from setuptools import find_packages, setup
 
+LICENSE = "Apache 2.0"
+
 
 def readme():
     with open('README.md') as f:
@@ -8,7 +10,6 @@ def readme():
 
 # read version file
 exec(open('alibi/version.py').read())
-
 
 def get_extra_requires(path, add_all=True):
     """
@@ -45,7 +46,7 @@ if __name__ == '__main__':
           long_description=readme(),
           long_description_content_type='text/markdown',
           url='https://github.com/SeldonIO/alibi',
-          license='Apache 2.0',
+          license=LICENSE,
           packages=find_packages(),
           include_package_data=True,
           python_requires='>=3.7',
@@ -68,4 +69,14 @@ if __name__ == '__main__':
           ],
           extras_require=get_extra_requires('./extra-requirements.txt'),
           test_suite='tests',
-          zip_safe=False)
+          zip_safe=False,
+          classifiers=[
+              "Intended Audience :: Science/Research",
+              "Operating System :: OS Independent",
+              "Programming Language :: Python :: 3",
+              "Programming Language :: Python :: 3.7",
+              "Programming Language :: Python :: 3.8",
+              "Programming Language :: Python :: 3.9",
+              f"License :: OSI Approved :: {LICENSE} License",
+              "Topic :: Scientific/Engineering"
+          ])

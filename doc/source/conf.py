@@ -53,7 +53,8 @@ extensions = [
     'sphinx_autodoc_typehints',
     'sphinxcontrib.apidoc',  # automatically generate API docs, see https://github.com/rtfd/readthedocs.org/issues/1139
     'nbsphinx',
-    'myst_parser'
+    'myst_parser',
+    'sphinx_design',
 ]
 
 # -- nbsphinx settings -------------------------------------------------------

@@ -1,5 +1,16 @@
 # Change Log
 
+## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2021-01-28)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.3...v0.6.4)
+
+This is a patch release to correct a regression in `AnchorImage` introduced in `v0.6.3`.
+
+### Fixed
+- Fix a bug introduced in `v0.6.3` where `AnchorImage` would ignore user `segmentation_kwargs` ([#581](https://github.com/SeldonIO/alibi/pull/581)).
+
+### Development
+- The maximum versions of `Pillow` and `scikit-image` have been bumped to 9.x and 0.19.x respectively.
+
 ## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2021-01-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 

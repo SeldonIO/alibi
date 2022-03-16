@@ -194,7 +194,7 @@ class LanguageModel(abc.ABC):
             return False
 
         word = self.select_word(tokenized_text, start_idx=start_idx, punctuation=punctuation).strip()
-        return word.lower() in stopwords
+        return word.strip().lower() in stopwords
 
     def is_punctuation(self, token: str, punctuation: str) -> bool:
         """
@@ -211,8 +211,17 @@ class LanguageModel(abc.ABC):
         -------
         ``True`` if the `token` is a punctuation. ``False`` otherwise.
         """
-        token = token.replace(self.SUBWORD_PREFIX, '').strip()
-        return all([c in punctuation for c in token])
+        # need to convert tokens from transformers encoding representation into unicode to allow for proper
+        # punctuation check against a list of punctuation unicode characters provided (e.g., for RobertaBase this will
+        # convert special  characters such as 'Ġ[âĢ¦]' into ' […]', and will allow us to check if characters such
+        # as ' ', '[', '…', ']' appear in the punctuation list.
+        string_rep = self.tokenizer.convert_tokens_to_string([token]).strip()
+
+        # have to remove `##` prefix for Bert & DistilBert to allow the check with `any`
+        if string_rep.startswith(self.SUBWORD_PREFIX):
+            string_rep = string_rep.replace(self.SUBWORD_PREFIX, '', 1)
+
+        return any([c in punctuation for c in string_rep]) if len(string_rep) else False
 
     @property
     @abc.abstractmethod

@@ -9,7 +9,7 @@ class MissingOptionalDependency:
         ...     explainer = MissingOptionalDependency(err, 'AnchorText', install_option='transformers')
     """
 
-    def __init__(self, error: ImportError, name: str, install_option: str = None):
+    def __init__(self, error: ImportError, name: str, install_option: str = 'all'):
         """
 
         Parameters

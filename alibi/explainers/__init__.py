@@ -10,7 +10,8 @@ from .anchor_tabular import AnchorTabular
 try:
     from .anchor_tabular_distributed import DistributedAnchorTabular
 except ModuleNotFoundError as err:
-    DistributedAnchorTabular = MissingOptionalDependency(err, "DistributedAnchorTabular", install_option='ray')
+    name = "DistributedAnchorTabular"
+    DistributedAnchorTabular = MissingOptionalDependency(err, name, install_option='ray')  # type: ignore
 
 from .anchor_text import AnchorText
 from .anchor_image import AnchorImage
@@ -24,8 +25,8 @@ from .cfrl_tabular import CounterfactualRLTabular
 try:
     from .shap_wrappers import KernelShap, TreeShap
 except ModuleNotFoundError as err:
-    KernelShap = MissingOptionalDependency(err, "KernelShap", install_option='shap')
-    TreeShap = MissingOptionalDependency(err, "TreeShap", install_option='shap')
+    KernelShap = MissingOptionalDependency(err, "KernelShap", install_option='shap')  # type: ignore
+    TreeShap = MissingOptionalDependency(err, "TreeShap", install_option='shap')  # type: ignore
 
 
 __all__ = [

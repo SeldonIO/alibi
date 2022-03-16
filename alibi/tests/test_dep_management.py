@@ -44,14 +44,13 @@ def check_correct_dependencies(
     for item in lib_obj:
         item = getattr(module, item)
         if not isinstance(item, ModuleType) and hasattr(item, '__name__'):
-            pass_contexts = dependencies[item.__name__]
-            print(item.__name__, pass_contexts, opt_dep)
+            pass_contexts = dependencies[item.__name__]  # type: ignore
             if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
                 with pytest.raises(AttributeError):
-                    item.test # noqa
+                    item.test  # type: ignore # noqa
             else:
-                with pytest.raises(ImportError) as err:
-                    item.test  # noqa
+                with pytest.raises(ImportError):
+                    item.test  # type: ignore # noqa
                 # assert('pip install alibi[]' in err.exception)
 
 

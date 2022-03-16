@@ -1,22 +1,13 @@
-import copy
 import logging
-from collections import OrderedDict, defaultdict
-from itertools import accumulate
-from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
-                    Tuple, Type, Union)
+from typing import (Any, Callable, Dict, List, Optional, Tuple, Type, Union)
 
 import numpy as np
 
-from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
-from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.api.interfaces import Explanation
 from alibi.utils.discretizer import Discretizer
-from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
-from alibi.utils.wrappers import ArgmaxTransformer
+from alibi.utils.mapping import ohe_to_ord
 
 from .anchor_base import AnchorBaseBeam
-from .anchor_explanation import AnchorExplanation
 from .anchor_tabular import AnchorTabular, TabularSampler
 from alibi.utils.distributed import ActorPool
 from functools import partial

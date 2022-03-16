@@ -811,5 +811,3 @@ class AnchorBaseBeam:
             success = True
 
         return self.get_anchor_metadata(best_anchor, success, batch_size=batch_size)
-
-

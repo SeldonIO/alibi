@@ -243,5 +243,3 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
         return data, labels
 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)
-
-

@@ -1,5 +1,18 @@
 # Change Log
 
+## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2021-03-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)
+
+This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.4`.
+
+### Added
+- The maximum `tensorflow` version has been bumped from 2.7 to 2.8 ([#588](https://github.com/SeldonIO/alibi-detect/pull/588)).
+- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/latest/overview/faq.html|) page to the docs.
+
+### Fixed
+- Fix a bug introduced in `v0.6.4` (https://github.com/SeldonIO/alibi/issues/610), which prevented `CounterfactualProto` working with categorical features ([TODO](https://github.com/SeldonIO/alibi/pull/TODO)).
+- Fix an issue with the `LanguageModelSampler`, where it would sometimes sample punctuation ([#585](https://github.com/SeldonIO/alibi/pull/585)). 
+
 ## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2021-01-28)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.3...v0.6.4)
 

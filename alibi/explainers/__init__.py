@@ -5,20 +5,32 @@ The 'alibi.explainers' module includes feature importance, counterfactual and an
 from alibi.utils.missing_optional_dependency import import_optional
 
 from .ale import ALE, plot_ale
-from .anchor_tabular import AnchorTabular
-
-DistributedAnchorTabular = import_optional(
-    'alibi.explainers.anchor_tabular_distributed',
-    names=['DistributedAnchorTabular'])
-
-from .anchor_text import AnchorText
-from .anchor_image import AnchorImage
-from .cem import CEM
-from .cfproto import CounterfactualProto, CounterFactualProto  # noqa: F401 TODO: remove in an upcoming release
-from .counterfactual import Counterfactual, CounterFactual  # noqa: F401 TODO: remove in an upcoming release
-from .integrated_gradients import IntegratedGradients
+from alibi.explainers.anchors.anchor_text import AnchorText
+from alibi.explainers.anchors.anchor_tabular import AnchorTabular
+from alibi.explainers.anchors.anchor_image import AnchorImage
 from .cfrl_base import CounterfactualRL
 from .cfrl_tabular import CounterfactualRLTabular
+
+
+DistributedAnchorTabular = import_optional(
+    'alibi.explainers.anchors.anchor_tabular_distributed',
+    names=['DistributedAnchorTabular'])
+
+CEM = import_optional(
+    'alibi.explainers.cem',
+    names=['CEM'])
+
+CounterfactualProto, CounterFactualProto = import_optional(
+    'alibi.explainers.cfproto',
+    names=['CounterfactualProto', 'CounterFactualProto'])  # TODO: remove in an upcoming release
+
+Counterfactual, CounterFactual = import_optional(
+    'alibi.explainers.counterfactual',
+    names=['Counterfactual', 'CounterFactual'])  # TODO: remove in an upcoming release
+
+IntegratedGradients = import_optional(
+    'alibi.explainers.integrated_gradients',
+    names=['IntegratedGradients'])
 
 KernelShap = import_optional(
     'alibi.explainers.shap_wrappers',

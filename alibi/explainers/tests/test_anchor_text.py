@@ -8,7 +8,7 @@ from typing import List
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
+from alibi.explainers.anchors.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
 
 

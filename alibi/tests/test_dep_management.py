@@ -82,7 +82,9 @@ def test_util_dependencies(opt_dep):
     """Tests that the utils module correctly protects against uninstalled optional dependencies."""
     util_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in [
-            ("DistributedExplainer", ['ray'])]:
+            ("DistributedExplainer", ['ray']),
+            ("LanguageModel", ['tensorflow'])
+            ]:
         util_dependency_map[dependency] = relations
     from alibi import utils
     check_correct_dependencies(utils, util_dependency_map, opt_dep)
@@ -91,7 +93,9 @@ def test_util_dependencies(opt_dep):
 def test_dataset_dependencies(opt_dep):
     """Tests that the datasets module correctly protects against uninstalled optional dependencies."""
     datasets_dependency_map = defaultdict(lambda: ['default'])
-    for dependency, relations in []:
+    for dependency, relations in [
+            ("fetch_fashion_mnist", ['tensorflow'])
+            ]:
         datasets_dependency_map[dependency] = relations
     from alibi import datasets
     check_correct_dependencies(datasets, datasets_dependency_map, opt_dep)
@@ -102,8 +106,8 @@ def test_confidence_dependencies(opt_dep):
     confidence_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in []:
         confidence_dependency_map[dependency] = relations
-    from alibi import datasets
-    check_correct_dependencies(datasets, confidence_dependency_map, opt_dep)
+    from alibi import confidence
+    check_correct_dependencies(confidence, confidence_dependency_map, opt_dep)
 
 
 def test_cfrl_backend_dependencies(opt_dep):

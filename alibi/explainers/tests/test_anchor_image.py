@@ -5,7 +5,7 @@ import tensorflow as tf
 import torch
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
-from alibi.explainers.anchor_image import AnchorImage, AnchorImageSampler, scale_image
+from alibi.explainers.anchors.anchor_image import AnchorImage, AnchorImageSampler, scale_image
 
 
 def test_scale_image():

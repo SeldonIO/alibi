@@ -1,6 +1,22 @@
 # Change Log
 
-## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2021-01-28)
+## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-03-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)
+
+This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.3`.
+
+### Added
+- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/latest/overview/faq.html) page to the docs.
+
+### Fixed
+- Fix a bug introduced in `v0.6.3` which prevented `CounterfactualProto` working with categorical features ([#612](https://github.com/SeldonIO/alibi/pull/612)).
+- Fix an issue with the `LanguageModelSampler` where it would sometimes sample punctuation ([#585](https://github.com/SeldonIO/alibi/pull/585)). 
+
+### Development
+- The maximum `tensorflow` version has been bumped from 2.7 to 2.8 ([#588](https://github.com/SeldonIO/alibi/pull/588)).
+
+
+## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-02-28)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.3...v0.6.4)
 
 This is a patch release to correct a regression in `AnchorImage` introduced in `v0.6.3`.
@@ -11,13 +27,12 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 ### Development
 - The maximum versions of `Pillow` and `scikit-image` have been bumped to 9.x and 0.19.x respectively.
 
-## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2021-01-18)
+## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2022-01-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 
 ### Added
 - **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
 - A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/latest/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
-- The maximum `tensorflow` version has been bumped from 2.6 to 2.7 ([#377](https://github.com/SeldonIO/alibi-detect/pull/377)).
 
 ### Changed
 - Python 3.6 has been deprecated from the supported versions as it has reached end-of-life. 
@@ -31,6 +46,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 - `numpy` typing has been updated to be compatible with `numpy 1.22` ([#543](https://github.com/SeldonIO/alibi/pull/543)). This is a prerequisite for upgrading to `tensorflow 2.7`. 
 - To further improve reliability, strict `Optional` type-checking with `mypy` has been reinstated ([#541](https://github.com/SeldonIO/alibi/pull/541)).
 - The Alibi CI tests now include Windows and MacOS platforms ([#575](https://github.com/SeldonIO/alibi/pull/575)).
+- The maximum `tensorflow` version has been bumped from 2.6 to 2.7 ([#377](https://github.com/SeldonIO/alibi-detect/pull/377)).
 
 
 ## [v0.6.2](https://github.com/SeldonIO/alibi/tree/v0.6.2) (2021-11-18)

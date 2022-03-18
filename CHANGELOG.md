@@ -1,6 +1,22 @@
 # Change Log
 
-## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2021-01-28)
+## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-03-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)
+
+This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.3`.
+
+### Added
+- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/latest/overview/faq.html) page to the docs.
+
+### Fixed
+- Fix a bug introduced in `v0.6.3` which prevented `CounterfactualProto` working with categorical features ([#612](https://github.com/SeldonIO/alibi/pull/612)).
+- Fix an issue with the `LanguageModelSampler` where it would sometimes sample punctuation ([#585](https://github.com/SeldonIO/alibi/pull/585)). 
+
+### Development
+- The maximum `tensorflow` version has been bumped from 2.7 to 2.8 ([#588](https://github.com/SeldonIO/alibi/pull/588)).
+
+
+## [v0.6.4](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-02-28)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.3...v0.6.4)
 
 This is a patch release to correct a regression in `AnchorImage` introduced in `v0.6.3`.
@@ -11,7 +27,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 ### Development
 - The maximum versions of `Pillow` and `scikit-image` have been bumped to 9.x and 0.19.x respectively.
 
-## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2021-01-18)
+## [v0.6.3](https://github.com/SeldonIO/alibi/tree/v0.6.3) (2022-01-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 
 ### Added

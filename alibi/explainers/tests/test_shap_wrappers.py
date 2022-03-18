@@ -19,13 +19,15 @@ from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, K
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
-from alibi.utils.distributed import DistributedExplainer
+from alibi.utils import DistributedExplainer
+
 from copy import copy
 from itertools import chain
 from numpy.testing import assert_allclose, assert_almost_equal
 from scipy.special import expit
 from unittest.mock import MagicMock
 from typing import Any, List
+
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 

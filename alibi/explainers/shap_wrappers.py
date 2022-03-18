@@ -17,8 +17,9 @@ from alibi.api.defaults import (DEFAULT_DATA_KERNEL_SHAP,
                                 DEFAULT_META_KERNEL_SHAP,
                                 DEFAULT_META_TREE_SHAP)
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.utils.distributed import DistributedExplainer
+from alibi.utils import DistributedExplainer
 from alibi.utils.wrappers import methdispatch
+from alibi.utils.missing_optional_dependency import MissingDependency
 
 if TYPE_CHECKING:
     import catboost  # noqa F401
@@ -281,7 +282,8 @@ class KernelExplainerWrapper(KernelExplainer):
 
 class KernelShap(Explainer, FitMixin):
     # object that implements the explanation algorithm (set in fit)
-    _explainer: Union[KernelExplainerWrapper, DistributedExplainer]
+
+    _explainer: Union[KernelExplainerWrapper, DistributedExplainer, MissingDependency]
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],

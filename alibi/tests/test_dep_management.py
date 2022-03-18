@@ -81,7 +81,8 @@ def test_explainer_dependencies(opt_dep):
 def test_util_dependencies(opt_dep):
     """Tests that the utils module correctly protects against uninstalled optional dependencies."""
     util_dependency_map = defaultdict(lambda: ['default'])
-    for dependency, relations in []:
+    for dependency, relations in [
+            ("DistributedExplainer", ['ray'])]:
         util_dependency_map[dependency] = relations
     from alibi import utils
     check_correct_dependencies(utils, util_dependency_map, opt_dep)

@@ -2,16 +2,14 @@
 The 'alibi.explainers' module includes feature importance, counterfactual and anchor-based explainers.
 """
 
-from alibi.utils.missing_optional_dependency import MissingOptionalDependency
+from alibi.utils.missing_optional_dependency import import_optional
 
 from .ale import ALE, plot_ale
 from .anchor_tabular import AnchorTabular
 
-try:
-    from .anchor_tabular_distributed import DistributedAnchorTabular
-except ModuleNotFoundError as err:
-    name = "DistributedAnchorTabular"
-    DistributedAnchorTabular = MissingOptionalDependency(err, name, install_option='ray')  # type: ignore
+DistributedAnchorTabular = import_optional(
+    'alibi.explainers.anchor_tabular_distributed',
+    names=['DistributedAnchorTabular'])
 
 from .anchor_text import AnchorText
 from .anchor_image import AnchorImage
@@ -22,12 +20,13 @@ from .integrated_gradients import IntegratedGradients
 from .cfrl_base import CounterfactualRL
 from .cfrl_tabular import CounterfactualRLTabular
 
-try:
-    from .shap_wrappers import KernelShap, TreeShap
-except ModuleNotFoundError as err:
-    KernelShap = MissingOptionalDependency(err, "KernelShap", install_option='shap')  # type: ignore
-    TreeShap = MissingOptionalDependency(err, "TreeShap", install_option='shap')  # type: ignore
+KernelShap = import_optional(
+    'alibi.explainers.shap_wrappers',
+    names=['KernelShap'])
 
+TreeShap = import_optional(
+    'alibi.explainers.shap_wrappers',
+    names=['TreeShap'])
 
 __all__ = [
     "ALE",

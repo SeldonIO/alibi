@@ -11,7 +11,6 @@ from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers import AnchorTabular, DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
-import ray
 
 
 # TODO: Test DistributedAnchorBaseBeam separately
@@ -91,6 +90,21 @@ def test_explainer(n_explainer_runs, at_defaults, rf_classifier, explainer, test
     assert sampler.n_covered_ex == n_covered_ex
 
 
+def uncollect_if_test_sampler(**kwargs):
+    """
+    Make sure only tests operating on the same dataset are run.
+    """
+    clf_dataset_name = kwargs['rf_classifier'].name.split("_")[0]  # "adult_data" -> "adult"
+    exp_dataset_name = kwargs['explainer'].name.split("_")[1]  # "at_adult_explainer" -> "adult"
+    dataset_name = kwargs['dataset'].name.split("_")[0]  # "adult_data" -> "adult"
+
+    conditions = [
+        len({clf_dataset_name, exp_dataset_name, dataset_name}) != 1,
+    ]
+
+    return any(conditions)
+
+
 @pytest.mark.skip(reason='Not testing as performance of distributed anchors (within an instance) not clear.'
                          'Also, these tests fail intermittently with precision threshold not achieved.')
 @pytest.mark.parametrize('ncpu', [2], ids='ncpu={}'.format)
@@ -111,6 +125,8 @@ def test_distributed_anchor_tabular(ncpu,
                                     ):
     # TODO - if we add this test is back in, this conditional should be added as a @pytest.mark.skip
     # i.e. see test_kernel_distributed_execution in test_shap_wrappers.py.
+
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
 
     # inputs
     params = at_defaults
@@ -174,21 +190,6 @@ def test_distributed_anchor_tabular(ncpu,
         assert distrib_anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
 
     ray.shutdown()
-
-
-def uncollect_if_test_sampler(**kwargs):
-    """
-    Make sure only tests operating on the same dataset are run.
-    """
-    clf_dataset_name = kwargs['rf_classifier'].name.split("_")[0]  # "adult_data" -> "adult"
-    exp_dataset_name = kwargs['explainer'].name.split("_")[1]  # "at_adult_explainer" -> "adult"
-    dataset_name = kwargs['dataset'].name.split("_")[0]  # "adult_data" -> "adult"
-
-    conditions = [
-        len({clf_dataset_name, exp_dataset_name, dataset_name}) != 1,
-    ]
-
-    return any(conditions)
 
 
 @pytest.mark.uncollect_if(func=uncollect_if_test_sampler)

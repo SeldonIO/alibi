@@ -1,37 +1,68 @@
-class MissingOptionalDependency:
-    """
-    Class to gracefully catch ImportErrors for modules and packages that are not installed
-    Usage:
-        >>> try:
-        ...     from alibi.explainers import AnchorText
-        >>> except ImportError as err:
-        ...     from alibi.utils.missing_optional_dependency import MissingOptionalDependency
-        ...     explainer = MissingOptionalDependency(err, 'AnchorText', install_option='transformers')
-    """
+from typing import Union, List, Optional
+from string import Template
+from importlib import import_module
 
-    def __init__(self, error: ImportError, name: str, install_option: str = 'all'):
-        """
+err_msg_template = Template((
+    f"Attempted to use $name without the correct optional dependencies installed. To install "
+    + f"the correct optional dependencies, run `pip install alibi[$missing_dependency]` "
+    + "from the command line. For more information, check the 'Dependency installs' section "
+    + "of the installation docs at https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
+))
 
-        Parameters
-        ----------
-        name:
-            Name of the object or function that cannot be imported due to uninstalled optional dependencies.
-        install_option:
-            Missing optional dependency required for the imported functionality.
-        """
-        self.__name__ = name
-        self.error = error
-        self.install_option = install_option
-        install_opts_msg = f"`python -m pip install alibi[{self.install_option}].`"
 
-        self.pip_message = (
-            (
-                    f"Attempted to use {self.__name__} without the correct optional dependencies installed. To install "
-                    + f"the correct optional dependencies, \nrun {install_opts_msg} from the command line. For more "
-                    + "information, check the 'Dependency installs' section of the \ninstallation docs at "
-                    + "https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
-            )
-        )
+class MissingDependency(type):
+    err: Union[ModuleNotFoundError, ImportError]
+    missing_dependency: str = 'all'
 
-    def __getattr__(self, name):
-        raise ImportError(self.pip_message) from self.error
+    def __new__(mcs, name, bases, attrs):
+        return super(MissingDependency, mcs) \
+            .__new__(mcs, name, bases, attrs)
+
+    @property
+    def err_msg(cls):
+        return err_msg_template.substitute(
+            name=cls.__name__,
+            missing_dependency=cls.missing_dependency)
+
+    def __getattr__(cls, key):
+        raise ImportError(cls.err_msg) from cls.err
+
+    def __call__(cls):
+        raise ImportError(cls.err_msg) from cls.err
+
+
+class MissingDependencyRay(MissingDependency):
+    missing_dependency = 'ray'
+
+
+class MissingDependencyTensorFlow(MissingDependency):
+    missing_dependency = 'tensorflow'
+
+
+class MissingDependencyTorch(MissingDependency):
+    missing_dependency = 'torch'
+
+
+class MissingDependencyShap(MissingDependency):
+    missing_dependency = 'shap'
+
+
+def import_optional(module: str, names: Optional[List[str]] = None):
+    try:
+        module = import_module(module)
+        # TODO: if want to check against specific versions we should do so here.
+        if names is not None:
+            objs = tuple(getattr(module, name) for name in names)
+            return objs if len(objs) > 1 else objs[0]
+        return module
+    except ModuleNotFoundError as err:
+        error_type = {
+            'ray': MissingDependencyRay,
+            'tensorflow': MissingDependencyTensorFlow,
+            'torch': MissingDependencyTorch,
+            'shape': MissingDependencyShap
+        }.get(err.name, MissingDependency)
+        if names is not None:
+            missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
+            return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
+        return error_type(module, (object,), {'err': err})

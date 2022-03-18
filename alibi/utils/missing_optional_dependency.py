@@ -1,3 +1,26 @@
+"""Methods and object for optional importing
+
+This module provides a way to import optional dependencies. In the case that the user imports some functionality from
+alibi that is not usable due to missing optional dependencies this code is used to allow the import but replace it
+with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
+functionality independent of the missing dependency.
+
+Instead of replacing the objects with an instance of a Missing Dependency class we instead replace them with a class
+itself. This is done to allow for type checking throughout the codebase. This means that instead of defining a class
+here we define a metaclass that is used to define the class. For instance because `MissingDependencyTensorFlow` extends
+`type` and not `object` we can say:
+
+```py
+MissingDependencyTensorFlow('IntegratedGradients', (object,), {'err': err})
+```
+
+The above will be a class that explodes on use by raising the error passed via the `attrs` in the `__new__` method.
+Importantly we can pass the above to typing constructs such as `Union`.
+
+For further discussion see: https://github.com/SeldonIO/alibi/pull/583
+"""
+
+
 from typing import Union, List, Optional
 from string import Template
 from importlib import import_module
@@ -11,6 +34,11 @@ err_msg_template = Template((
 
 
 class MissingDependency(type):
+    """Metaclass for Missing Dependency classes
+
+    Replaces any object that requires unmet optional dependencies. Attribute access or attempting to initialize
+    classes derived from this metaclass will raise an error.
+    """
     err: Union[ModuleNotFoundError, ImportError]
     missing_dependency: str = 'all'
 
@@ -48,6 +76,23 @@ class MissingDependencyShap(MissingDependency):
 
 
 def import_optional(module: str, names: Optional[List[str]] = None):
+    """Import a module that depends on optional dependencies
+
+    params:
+    ______
+        module:
+            The module to import
+        names:
+            The names to import from the module. If None, all names are imported.
+
+    returns:
+    ______
+        The module or named objects within the modules if names is not None. If the import fails due to a
+        ModuleNotFoundError or ImportError. The requested module or named objects are replaced with classes derived
+        from metaclass corresponding to the relevant optional dependency in `extras_requirements`. These classes will
+        have the same name as the objects that failed to import.
+    """
+
     try:
         module = import_module(module)
         # TODO: if want to check against specific versions we should do so here.

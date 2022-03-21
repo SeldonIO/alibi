@@ -8,9 +8,9 @@ import warnings
 
 import dill
 import numpy as np
-# import tensorflow as tf
 
 if TYPE_CHECKING:
+    import tensorflow
     from alibi.api.interfaces import Explainer
     from alibi.explainers import (
         AnchorImage,
@@ -117,7 +117,7 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
     return explainer
 
 
-def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tf.keras.Model]',
+def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
     if layer_num == 0:

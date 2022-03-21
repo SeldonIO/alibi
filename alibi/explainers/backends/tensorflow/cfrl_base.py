@@ -10,7 +10,7 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
-from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
+from alibi.explainers.backends.cfrl_base_shared import CounterfactualRLDataset
 from alibi.models.tensorflow.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:

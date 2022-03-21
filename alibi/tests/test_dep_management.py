@@ -45,6 +45,7 @@ def check_correct_dependencies(
         item = getattr(module, item)
         if not isinstance(item, ModuleType) and hasattr(item, '__name__'):
             pass_contexts = dependencies[item.__name__]  # type: ignore
+            print(opt_dep, pass_contexts, item.__name__)
             if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
                 with pytest.raises(AttributeError):
                     item.test  # type: ignore # noqa
@@ -55,7 +56,14 @@ def check_correct_dependencies(
 
 
 def test_explainer_dependencies(opt_dep):
-    """Tests that the explainer module correctly protects against uninstalled optional dependencies."""
+    """Tests that the explainer module correctly protects against uninstalled optional dependencies.
+
+    Note: counterfactual rl base and tabular requre one of torch or tensorflow. They will fail if a user tries to
+    initialize them without one of tf or torch, but they should still import correctly for all the default install
+    option. The backend optional dependency behaviour is tested for in the backend tests and requirement for one of
+    torch or tensorflow should be tested in the counterfactual tests themselves.
+    """
+
     explainer_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in [
             ("AnchorImage", ['default']),
@@ -66,8 +74,8 @@ def test_explainer_dependencies(opt_dep):
             ("CounterFactualProto", ['tensorflow']),
             ("Counterfactual", ['tensorflow']),
             ("CounterfactualProto", ['tensorflow']),
-            ("CounterfactualRL", ['tensorflow', 'pytorch']),
-            ("CounterfactualRLTabular", ['tensorflow', 'pytorch']),
+            ("CounterfactualRL", ['default']),  # See above note
+            ("CounterfactualRLTabular", ['default']),  # See above note
             ("DistributedAnchorTabular", ['ray']),
             ("IntegratedGradients", ['tensorflow']),
             ("KernelShap", ['shap']),
@@ -113,7 +121,12 @@ def test_confidence_dependencies(opt_dep):
 def test_cfrl_backend_dependencies(opt_dep):
     """Tests that the backend module correctly protects against uninstalled optional dependencies."""
     backend_dependency_map = defaultdict(lambda: ['default'])
-    for dependency, relations in []:
+    for dependency, relations in [
+        ('alibi.explainers.backends.pytorch.cfrl_base', ['torch']),
+        ('alibi.explainers.backends.pytorch.cfrl_tabular', ['torch']),
+        ('alibi.explainers.backends.tensorflow.cfrl_base', ['tensorflow']),
+        ('alibi.explainers.backends.tensorflow.cfrl_tabular', ['tensorflow']),
+    ]:
         backend_dependency_map[dependency] = relations
-    from alibi.explainers.backends import backends
+    from alibi.explainers import backends
     check_correct_dependencies(backends, backend_dependency_map, opt_dep)

@@ -9,23 +9,18 @@ from tqdm import tqdm
 
 from alibi.api.defaults import DEFAULT_DATA_CFRL, DEFAULT_META_CFRL
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.explainers.backends.cfrl_base import (generate_empty_condition,
-                                                 get_classification_reward,
-                                                 get_hard_distribution,
-                                                 identity_function)
+from alibi.explainers.backends.cfrl_base_shared import (generate_empty_condition,
+                                                        get_classification_reward,
+                                                        get_hard_distribution,
+                                                        identity_function)
 from alibi.utils.frameworks import Framework, has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
 
-if has_pytorch:
-    # import pytorch backend
-    from alibi.explainers.backends.pytorch import cfrl_base as pytorch_base_backend
-
-if has_tensorflow:
-    # import tensorflow backend
-    from alibi.explainers.backends.tensorflow import cfrl_base as tensorflow_base_backend
+from alibi.explainers.backends import pytorch_base_backend
+from alibi.explainers.backends import tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)

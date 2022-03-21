@@ -6,23 +6,17 @@ import numpy as np
 from tqdm import tqdm
 
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.explainers.backends.cfrl_tabular import (get_conditional_vector,
-                                                    get_statistics, sample)
+from alibi.explainers.backends.cfrl_tabular_shared import (get_conditional_vector,
+                                                           get_statistics, sample)
 from alibi.explainers.cfrl_base import (_PARAM_TYPES, CounterfactualRL,
                                         Postprocessing)
-from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
 
-if has_pytorch:
-    # import pytorch backend
-    from alibi.explainers.backends.pytorch import cfrl_tabular as pytorch_tabular_backend
-
-if has_tensorflow:
-    # import tensorflow backend
-    from alibi.explainers.backends.tensorflow import cfrl_tabular as tensorflow_tabular_backend
+from alibi.explainers.backends import pytorch_tabular_backend
+from alibi.explainers.backends import tensorflow_tabular_backend
 
 
 class SampleTabularPostprocessing(Postprocessing):

@@ -75,7 +75,7 @@ class MissingDependencyShap(MissingDependency):
     missing_dependency = 'shap'
 
 
-def import_optional(module: str, names: Optional[List[str]] = None):
+def import_optional(module_name: str, names: Optional[List[str]] = None):
     """Import a module that depends on optional dependencies
 
     params:
@@ -94,20 +94,21 @@ def import_optional(module: str, names: Optional[List[str]] = None):
     """
 
     try:
-        module = import_module(module)
+        module = import_module(module_name)
         # TODO: if want to check against specific versions we should do so here.
         if names is not None:
             objs = tuple(getattr(module, name) for name in names)
             return objs if len(objs) > 1 else objs[0]
         return module
     except ModuleNotFoundError as err:
+        name = err.name if hasattr(err, 'name') else module_name
         error_type = {
             'ray': MissingDependencyRay,
             'tensorflow': MissingDependencyTensorFlow,
             'torch': MissingDependencyTorch,
             'shape': MissingDependencyShap
-        }.get(err.name, MissingDependency)
+        }.get(name, MissingDependency)
         if names is not None:
             missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
-        return error_type(module, (object,), {'err': err})
+        return error_type(module_name, (object,), {'err': err})

@@ -13,7 +13,7 @@ import random
 import numpy as np
 from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
-from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
+from alibi.explainers.backends.cfrl_base_shared import CounterfactualRLDataset
 from alibi.models.pytorch.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:

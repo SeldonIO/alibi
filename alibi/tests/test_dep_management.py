@@ -45,7 +45,6 @@ def check_correct_dependencies(
         item = getattr(module, item)
         if not isinstance(item, ModuleType) and hasattr(item, '__name__'):
             pass_contexts = dependencies[item.__name__]  # type: ignore
-            print(opt_dep, pass_contexts, item.__name__)
             if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
                 with pytest.raises(AttributeError):
                     item.test  # type: ignore # noqa

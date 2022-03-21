@@ -12,12 +12,14 @@ import numpy as np
 if TYPE_CHECKING:
     import tensorflow
     from alibi.api.interfaces import Explainer
+    from alibi.explainers.integrated_gradients import IntegratedGradients
+    from alibi.explainers.shap_wrappers import KernelShap, TreeShap
     from alibi.explainers import (
         AnchorImage,
         AnchorText,
-        IntegratedGradients,
-        KernelShap,
-        TreeShap,
+        # IntegratedGradients,
+        # KernelShap,
+        # TreeShap,
         CounterfactualRL,
         CounterfactualRLTabular
     )

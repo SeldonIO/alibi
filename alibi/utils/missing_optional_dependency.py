@@ -101,13 +101,14 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
             return objs if len(objs) > 1 else objs[0]
         return module
     except ModuleNotFoundError as err:
-        name = err.name if hasattr(err, 'name') else module_name
+        if err.name is None:
+            raise TypeError()
         error_type = {
             'ray': MissingDependencyRay,
             'tensorflow': MissingDependencyTensorFlow,
             'torch': MissingDependencyTorch,
             'shape': MissingDependencyShap
-        }.get(name, MissingDependency)
+        }[err.name]
         if names is not None:
             missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]

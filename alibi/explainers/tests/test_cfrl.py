@@ -9,8 +9,8 @@ import tensorflow as tf
 import tensorflow.keras as keras
 from alibi.explainers import CounterfactualRLTabular
 from alibi.explainers.backends.cfrl_base_shared import get_hard_distribution
-from alibi.explainers.backends.cfrl_tabular_shared import get_he_preprocessor, split_ohe, get_numerical_conditional_vector,\
-    get_categorical_conditional_vector, get_statistics, get_conditional_vector, sample
+from alibi.explainers.backends.cfrl_tabular_shared import get_he_preprocessor, split_ohe, \
+    get_numerical_conditional_vector, get_categorical_conditional_vector, get_statistics, get_conditional_vector, sample
 
 
 @pytest.mark.parametrize('dataset', [lazy_fixture('iris_data'),

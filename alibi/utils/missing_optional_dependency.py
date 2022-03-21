@@ -26,8 +26,8 @@ from string import Template
 from importlib import import_module
 
 err_msg_template = Template((
-    f"Attempted to use $name without the correct optional dependencies installed. To install "
-    + f"the correct optional dependencies, run `pip install alibi[$missing_dependency]` "
+    "Attempted to use $name without the correct optional dependencies installed. To install "
+    + "the correct optional dependencies, run `pip install alibi[$missing_dependency]` "
     + "from the command line. For more information, check the 'Dependency installs' section "
     + "of the installation docs at https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
 ))

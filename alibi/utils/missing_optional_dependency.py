@@ -75,6 +75,15 @@ class MissingDependencyShap(MissingDependency):
     missing_dependency = 'shap'
 
 
+ERROR_TYPES = {
+    'ray': MissingDependencyRay,
+    'tensorflow': MissingDependencyTensorFlow,
+    'torch': MissingDependencyTorch,
+    'shap': MissingDependencyShap,
+    'numba': MissingDependencyShap,
+}
+
+
 def import_optional(module_name: str, names: Optional[List[str]] = None):
     """Import a module that depends on optional dependencies
 
@@ -86,7 +95,7 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
             The names to import from the module. If None, all names are imported.
 
     returns:
-    ______
+    _______
         The module or named objects within the modules if names is not None. If the import fails due to a
         ModuleNotFoundError or ImportError. The requested module or named objects are replaced with classes derived
         from metaclass corresponding to the relevant optional dependency in `extras_requirements`. These classes will
@@ -103,13 +112,11 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
     except ModuleNotFoundError as err:
         if err.name is None:
             raise TypeError()
-        error_type = {
-            'ray': MissingDependencyRay,
-            'tensorflow': MissingDependencyTensorFlow,
-            'torch': MissingDependencyTorch,
-            'shap': MissingDependencyShap
-        }[err.name]
+        if err.name not in ERROR_TYPES:
+            raise err
+        error_type = ERROR_TYPES[err.name]
         if names is not None:
             missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
         return error_type(module_name, (object,), {'err': err})
+

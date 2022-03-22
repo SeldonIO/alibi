@@ -107,7 +107,7 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
             'ray': MissingDependencyRay,
             'tensorflow': MissingDependencyTensorFlow,
             'torch': MissingDependencyTorch,
-            'shape': MissingDependencyShap
+            'shap': MissingDependencyShap
         }[err.name]
         if names is not None:
             missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)

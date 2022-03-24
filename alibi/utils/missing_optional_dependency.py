@@ -119,4 +119,3 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
             missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
         return error_type(module_name, (object,), {'err': err})
-

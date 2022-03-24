@@ -523,5 +523,5 @@ class AnchorText(Explainer):
 
     def _seed(self, seed: int) -> None:
         np.random.seed(seed)
-        if isinstance(self.model, LanguageModelSampler):
+        if hasattr(self, 'model') and isinstance(self.model, LanguageModelSampler):
             self.perturbation.seed(seed)

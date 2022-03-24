@@ -2,6 +2,8 @@ import inspect
 import os
 import pytest
 import time
+from itertools import product
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
@@ -9,9 +11,7 @@ import numpy as np
 ray = pytest.importorskip('ray')
 
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \
-    concatenate_minibatches
-from itertools import product
-from typing import Any, Dict, List, Optional, Tuple, Union
+    concatenate_minibatches  # noqa: E402
 
 
 class MockExplainer:

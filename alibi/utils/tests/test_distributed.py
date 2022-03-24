@@ -5,6 +5,9 @@ import time
 
 import numpy as np
 
+# Skips these tests if ray not installed, applies to Windows environments in CI
+ray = pytest.importorskip('ray')
+
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \
     concatenate_minibatches
 from itertools import product

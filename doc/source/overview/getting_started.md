@@ -43,6 +43,39 @@ Installation with support for distributed computation of explanations.
 pip install alibi[ray]
 ```
 ````
+
+````{tab-item} TensorFlow
+:class-label: sd-pt-0
+:sync: label-tensorflow
+```{div} sd-mb-1
+Installation with support for tensorflow backend, required for...
+```
+```bash
+pip install alibi[tensorflow]
+```
+````
+
+````{tab-item} Torch
+:class-label: sd-pt-0
+:sync: label-torch
+```{div} sd-mb-1
+Installation with support for torch backend, optional for...
+```
+```bash
+pip install alibi[torch]
+```
+````
+
+````{tab-item} All
+:class-label: sd-pt-0
+:sync: label-all
+```{div} sd-mb-1
+Installs all optional dependencies.
+```
+```bash
+pip install alibi[all]
+```
+````
 `````
 ``````
 

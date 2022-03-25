@@ -425,7 +425,6 @@ class DistributedExplainer:
 
     concatenate: Callable
 
-
     def __init__(self,
                  distributed_opts: Dict[str, Any],
                  explainer_type: Any,

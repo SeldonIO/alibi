@@ -16,8 +16,6 @@ import ray
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
-    ray = ray  #: `ray` module.
-
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
         super().__init__(samplers)
@@ -44,7 +42,7 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
         """
 
-        [coverage_data] = DistributedAnchorBaseBeam.ray.get(
+        [coverage_data] = ray.get(
             self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
         )
 
@@ -94,7 +92,6 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
 
 class RemoteSampler:
     """ A wrapper that facilitates the use of `TabularSampler` for distributed sampling."""
-    ray = ray
 
     def __init__(self, *args):
         self.train_id, self.d_train_id, self.sampler = args
@@ -186,8 +183,6 @@ class RemoteSampler:
 
 
 class DistributedAnchorTabular(AnchorTabular):
-    ray = ray
-
     def __init__(self,
                  predictor: Callable,
                  feature_names: List[str],
@@ -197,8 +192,8 @@ class DistributedAnchorTabular(AnchorTabular):
                  seed: Optional[int] = None) -> None:
 
         super().__init__(predictor, feature_names, categorical_names, dtype, ohe, seed)
-        if not DistributedAnchorTabular.ray.is_initialized():
-            DistributedAnchorTabular.ray.init()
+        if not ray.is_initialized():
+            ray.init()
 
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,
@@ -237,13 +232,13 @@ class DistributedAnchorTabular(AnchorTabular):
             self.feature_names,
             self.feature_values,
         )
-        train_data_id = DistributedAnchorTabular.ray.put(train_data)
-        d_train_data_id = DistributedAnchorTabular.ray.put(d_train_data)
+        train_data_id = ray.put(train_data)
+        d_train_data_id = ray.put(d_train_data)
         samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore[arg-type]
         d_samplers = []
         for sampler in samplers:
             d_samplers.append(
-                DistributedAnchorTabular.ray.remote(RemoteSampler).remote(
+                ray.remote(RemoteSampler).remote(
                     *(train_data_id, d_train_data_id, sampler)
                 )
             )
@@ -265,7 +260,7 @@ class DistributedAnchorTabular(AnchorTabular):
         """
 
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
-        self.cat_lookup, self.ord_lookup, self.enc2feat_idx = DistributedAnchorTabular.ray.get(lookups)
+        self.cat_lookup, self.ord_lookup, self.enc2feat_idx = ray.get(lookups)
 
     def explain(self,
                 X: np.ndarray,
@@ -311,7 +306,7 @@ class DistributedAnchorTabular(AnchorTabular):
             label = sampler.set_instance_label.remote(X)
             sampler.set_n_covered.remote(n_covered_ex)
 
-        self.instance_label = DistributedAnchorTabular.ray.get(label)
+        self.instance_label = ray.get(label)
 
         # build feature encoding and mappings from the instance values to database rows where similar records are found
         # get anchors and add metadata

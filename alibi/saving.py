@@ -17,9 +17,6 @@ if TYPE_CHECKING:
     from alibi.explainers import (
         AnchorImage,
         AnchorText,
-        # IntegratedGradients,
-        # KernelShap,
-        # TreeShap,
         CounterfactualRL,
         CounterfactualRLTabular
     )

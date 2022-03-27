@@ -4,5 +4,5 @@ ADULTEncoder, ADULTDecoder, MNISTEncoder, MNISTDecoder, MNISTClassifier = import
     'alibi.models.tensorflow.cfrl_models',
     names=['ADULTEncoder', 'ADULTDecoder', 'MNISTEncoder', 'MNISTDecoder', 'MNISTClassifier'])
 
-HeAE = import_optional('alibi.models.tensorflow.autoencoder', names=['HeAE'])
+HeAE, AE = import_optional('alibi.models.tensorflow.autoencoder', names=['HeAE', 'AE'])
 Actor, Critic = import_optional('alibi.models.tensorflow.actor_critic', names=['Actor', 'Critic'])

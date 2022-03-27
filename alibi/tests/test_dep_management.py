@@ -139,6 +139,7 @@ def test_tensorflow_model_dependencies(opt_dep):
             ('MNISTDecoder', ['tensorflow']),
             ('MNISTClassifier', ['tensorflow']),
             ('HeAE', ['tensorflow']),
+            ('AE', ['tensorflow']),
             ('Actor', ['tensorflow']),
             ('Critic', ['tensorflow'])]:
         tf_model_dependency_map[dependency] = relations
@@ -156,6 +157,7 @@ def test_pytorch_model_dependencies(opt_dep):
             ('MNISTDecoder', ['torch']),
             ('MNISTClassifier', ['torch']),
             ('HeAE', ['torch']),
+            ('AE', ['torch']),
             ('Actor', ['torch']),
             ('Critic', ['torch'])]:
         torch_model_dependency_map[dependency] = relations

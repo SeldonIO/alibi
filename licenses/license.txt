@@ -1,5 +1,30 @@
+Deprecated
+1.2.13
+MIT License
+The MIT License (MIT)
+
+Copyright (c) 2017 Laurent LAPORTE
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
 Jinja2
-3.0.3
+3.1.1
 BSD License
 Copyright 2007 Pallets
 
@@ -1068,7 +1093,7 @@ Apache Software License
 
 
 alibi
-0.6.5.dev0
+0.6.6.dev0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -1342,6 +1367,24 @@ agrees to be bound by the terms and conditions of this License
 Agreement.
 
 
+async-timeout
+4.0.2
+Apache Software License
+Copyright 2016-2020 aio-libs collaboration.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
 attrs
 21.4.0
 MIT License
@@ -1369,7 +1412,7 @@ SOFTWARE.
 
 
 blis
-0.7.6
+0.7.7
 BSD License
 NOTE: Portions of this project's code are copyrighted by
 
@@ -1443,7 +1486,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 catalogue
-2.0.6
+2.0.7
 MIT License
 MIT License
 
@@ -1899,7 +1942,7 @@ Apache Software License
 UNKNOWN
 
 fonttools
-4.31.0
+4.31.2
 MIT License
 MIT License
 
@@ -2578,7 +2621,7 @@ Apache Software License
 
 
 grpcio
-1.44.0
+1.43.0
 Apache Software License
 
                                  Apache License
@@ -3156,7 +3199,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 immutables
-0.16
+0.17
 Apache Software License
 The Immutables project is provided under the Apache 2.0 license.  See
 LICENSE-APACHE for the full text of the license.
@@ -3171,6 +3214,24 @@ importlib-metadata
 4.11.3
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+importlib-resources
+5.6.0
+Apache Software License
+Copyright 2017-2019 Brett Cannon, Barry Warsaw
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -3217,6 +3278,30 @@ SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+jsonschema
+4.4.0
+MIT License
+Copyright (c) 2013 Julian Berman
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
 keras
@@ -3415,7 +3500,7 @@ limitations under the License.
    END OF TERMS AND CONDITIONS
 
 kiwisolver
-1.4.0
+1.4.1
 BSD License
 =========================
  The Kiwi licensing terms
@@ -3929,6 +4014,25 @@ products or services of Licensee, or any third party.
 8. By copying, installing or otherwise using matplotlib,
 Licensee agrees to be bound by the terms and conditions of this License
 Agreement.
+
+msgpack
+1.0.3
+Apache Software License
+Copyright (C) 2008-2011 INADA Naoki <songofacandy@gmail.com>
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+
 
 murmurhash
 1.0.6
@@ -5389,6 +5493,32 @@ TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+pyrsistent
+0.18.1
+MIT License
+Copyright (c) 2022 Tobias Gustafsson
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to deal in the Software without
+restriction, including without limitation the rights to use,
+copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the
+Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
 python-dateutil
 2.8.2
 Apache Software License; BSD License
@@ -5448,7 +5578,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The above BSD License Applies to all code, even that also covered by Apache 2.0.
 
 pytz
-2021.3
+2022.1
 MIT License
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
 
@@ -5469,6 +5599,38 @@ THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+
+
+ray
+1.11.0
+Apache 2.0
+UNKNOWN
+
+redis
+4.2.0
+MIT License
+Copyright (c) 2012 Andy McCurdy
+
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
+
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
 
 
 regex
@@ -8323,7 +8485,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2022.3.16
+2022.3.25
 BSD License
 BSD 3-Clause License
 
@@ -8362,8 +8524,347 @@ tokenizers
 Apache Software License
 UNKNOWN
 
+torch
+1.11.0
+BSD License
+From PyTorch:
+
+Copyright (c) 2016-     Facebook, Inc            (Adam Paszke)
+Copyright (c) 2014-     Facebook, Inc            (Soumith Chintala)
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+
+From Caffe2:
+
+Copyright (c) 2016-present, Facebook Inc. All rights reserved.
+
+All contributions by Facebook:
+Copyright (c) 2016 Facebook Inc.
+
+All contributions by Google:
+Copyright (c) 2015 Google Inc.
+All rights reserved.
+
+All contributions by Yangqing Jia:
+Copyright (c) 2015 Yangqing Jia
+All rights reserved.
+
+All contributions by Kakao Brain:
+Copyright 2019-2020 Kakao Brain
+
+All contributions from Caffe:
+Copyright(c) 2013, 2014, 2015, the respective contributors
+All rights reserved.
+
+All other contributions:
+Copyright(c) 2015, 2016 the respective contributors
+All rights reserved.
+
+Caffe2 uses a copyright model similar to Caffe: each contributor holds
+copyright over their contributions to Caffe2. The project versioning records
+all such contribution and copyright details. If a contributor wants to further
+mark their specific copyright on a particular contribution, they should
+indicate their copyright solely in the commit message of the change when it is
+committed.
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright
+   notice, this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright
+   notice, this list of conditions and the following disclaimer in the
+   documentation and/or other materials provided with the distribution.
+
+3. Neither the names of Facebook, Deepmind Technologies, NYU, NEC Laboratories America
+   and IDIAP Research Institute nor the names of its contributors may be
+   used to endorse or promote products derived from this software without
+   specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+
+The Pytorch repository and source distributions bundle several libraries that are 
+compatibly licensed.  We list these here.
+
+Name: FP16
+License: MIT
+Files: third_party/FP16
+  For details, see third_party/FP16/LICENSE
+
+Name: FXdiv
+License: MIT
+Files: third_party/FXdiv
+  For details, see third_party/FXdiv/LICENSE
+
+Name: NNPACK
+License: BSD-2-Clause
+Files: third_party/NNPACK
+  For details, see third_party/NNPACK/LICENSE
+
+Name: QNNPACK
+License: BSD-3-Clause
+Files: third_party/QNNPACK
+  For details, see third_party/QNNPACK/LICENSE
+
+Name: XNNPACK
+License: BSD-3-Clause
+Files: third_party/XNNPACK
+  For details, see third_party/XNNPACK/LICENSE
+
+Name: benchmark
+License: Apache-2.0
+Files: third_party/benchmark,
+     third_party/protobuf/third_party/benchmark,
+     third_party/onnx-tensorrt/third_party/onnx/third_party/benchmark,
+     third_party/onnx/third_party/benchmark
+  For details, see third_party/benchmark/LICENSE,
+     third_party/protobuf/third_party/benchmark/LICENSE,
+     third_party/onnx-tensorrt/third_party/onnx/third_party/benchmark/LICENSE,
+     third_party/onnx/third_party/benchmark/LICENSE
+
+Name: clog
+License: BSD-2-Clause
+Files: third_party/cpuinfo/deps/clog,
+     third_party/fbgemm/third_party/cpuinfo/deps/clog,
+     third_party/QNNPACK/deps/clog
+  For details, see third_party/cpuinfo/deps/clog/LICENSE,
+     third_party/fbgemm/third_party/cpuinfo/deps/clog/LICENSE,
+     third_party/QNNPACK/deps/clog/LICENSE
+
+Name: cpuinfo
+License: BSD-2-Clause
+Files: third_party/cpuinfo,
+     third_party/fbgemm/third_party/cpuinfo
+  For details, see third_party/cpuinfo/LICENSE,
+     third_party/fbgemm/third_party/cpuinfo/LICENSE
+
+Name: eigen
+License: BSD-3-Clause
+Files: third_party/eigen
+  For details, see third_party/eigen/COPYING.BSD
+
+Name: enum
+License: BSD-3-Clause
+Files: third_party/python-enum/enum
+  For details, see third_party/python-enum/enum/LICENSE
+
+Name: fbgemm
+License: BSD-3-Clause
+Files: third_party/fbgemm
+  For details, see third_party/fbgemm/LICENSE
+
+Name: fmt
+License: MIT with exception
+Files: third_party/kineto/libkineto/third_party/fmt,
+     third_party/fmt
+  For details, see third_party/kineto/libkineto/third_party/fmt/LICENSE.rst,
+     third_party/fmt/LICENSE.rst
+
+Name: foxi
+License: MIT
+Files: third_party/foxi
+  For details, see third_party/foxi/LICENSE
+
+Name: gemmlowp
+License: Apache-2.0
+Files: third_party/gemmlowp/gemmlowp
+  For details, see third_party/gemmlowp/gemmlowp/LICENSE
+
+Name: generator
+License: Apache-2.0
+Files: third_party/kineto/libkineto/third_party/googletest/googlemock/scripts/generator,
+     third_party/googletest/googlemock/scripts/generator,
+     third_party/fbgemm/third_party/googletest/googlemock/scripts/generator,
+     third_party/protobuf/third_party/googletest/googlemock/scripts/generator,
+     third_party/tensorpipe/third_party/googletest/googlemock/scripts/generator
+  For details, see third_party/kineto/libkineto/third_party/googletest/googlemock/scripts/generator/LICENSE,
+     third_party/googletest/googlemock/scripts/generator/LICENSE,
+     third_party/fbgemm/third_party/googletest/googlemock/scripts/generator/LICENSE,
+     third_party/protobuf/third_party/googletest/googlemock/scripts/generator/LICENSE,
+     third_party/tensorpipe/third_party/googletest/googlemock/scripts/generator/LICENSE
+
+Name: gloo
+License: BSD-3-Clause
+Files: third_party/gloo
+  For details, see third_party/gloo/LICENSE
+
+Name: googlemock
+License: BSD-3-Clause
+Files: third_party/kineto/libkineto/third_party/googletest/googlemock,
+     third_party/googletest/googlemock,
+     third_party/fbgemm/third_party/googletest/googlemock,
+     third_party/protobuf/third_party/googletest/googlemock,
+     third_party/tensorpipe/third_party/googletest/googlemock
+  For details, see third_party/kineto/libkineto/third_party/googletest/googlemock/LICENSE,
+     third_party/googletest/googlemock/LICENSE,
+     third_party/fbgemm/third_party/googletest/googlemock/LICENSE,
+     third_party/protobuf/third_party/googletest/googlemock/LICENSE,
+     third_party/tensorpipe/third_party/googletest/googlemock/LICENSE
+
+Name: googletest
+License: BSD-3-Clause
+Files: third_party/kineto/libkineto/third_party/googletest,
+     third_party/kineto/libkineto/third_party/googletest/googletest,
+     third_party/googletest,
+     third_party/googletest/googletest,
+     third_party/fbgemm/third_party/googletest,
+     third_party/fbgemm/third_party/googletest/googletest,
+     third_party/protobuf/third_party/googletest,
+     third_party/protobuf/third_party/googletest/googletest,
+     third_party/tensorpipe/third_party/googletest,
+     third_party/tensorpipe/third_party/googletest/googletest
+  For details, see third_party/kineto/libkineto/third_party/googletest/LICENSE,
+     third_party/kineto/libkineto/third_party/googletest/googletest/LICENSE,
+     third_party/googletest/LICENSE,
+     third_party/googletest/googletest/LICENSE,
+     third_party/fbgemm/third_party/googletest/LICENSE,
+     third_party/fbgemm/third_party/googletest/googletest/LICENSE,
+     third_party/protobuf/third_party/googletest/LICENSE,
+     third_party/protobuf/third_party/googletest/googletest/LICENSE,
+     third_party/tensorpipe/third_party/googletest/LICENSE,
+     third_party/tensorpipe/third_party/googletest/googletest/LICENSE
+
+Name: gtest
+License: BSD-3-Clause
+Files: third_party/ideep/mkl-dnn/tests/gtests/gtest
+  For details, see third_party/ideep/mkl-dnn/tests/gtests/gtest/LICENSE
+
+Name: ideep
+License: MIT
+Files: third_party/ideep
+  For details, see third_party/ideep/LICENSE
+
+Name: ios-cmake
+License: BSD-3-Clause
+Files: third_party/ios-cmake
+  For details, see third_party/ios-cmake/LICENSE
+
+Name: kineto
+License: BSD-3-Clause
+Files: third_party/kineto
+  For details, see third_party/kineto/LICENSE
+
+Name: libnop
+License: Apache-2.0
+Files: third_party/tensorpipe/third_party/libnop
+  For details, see third_party/tensorpipe/third_party/libnop/LICENSE
+
+Name: libuv
+License: MIT
+Files: third_party/tensorpipe/third_party/libuv
+  For details, see third_party/tensorpipe/third_party/libuv/LICENSE
+
+Name: miniz-2.0.8
+License: MIT
+Files: third_party/miniz-2.0.8
+  For details, see third_party/miniz-2.0.8/LICENSE
+
+Name: mkl-dnn
+License: Apache-2.0
+Files: third_party/ideep/mkl-dnn
+  For details, see third_party/ideep/mkl-dnn/LICENSE
+
+Name: nccl
+License: BSD-3-Clause
+Files: third_party/nccl/nccl
+  For details, see third_party/nccl/nccl/LICENSE.txt
+
+Name: neon2sse
+License: BSD-Source-Code
+Files: third_party/neon2sse
+  For details, see third_party/neon2sse/LICENSE
+
+Name: onnx
+License: MIT
+Files: third_party/onnx-tensorrt/third_party/onnx,
+     third_party/onnx
+  For details, see third_party/onnx-tensorrt/third_party/onnx/LICENSE,
+     third_party/onnx/LICENSE
+
+Name: onnx-tensorrt
+License: MIT
+Files: third_party/onnx-tensorrt
+  For details, see third_party/onnx-tensorrt/LICENSE
+
+Name: protobuf
+License: BSD-3-Clause
+Files: third_party/protobuf
+  For details, see third_party/protobuf/LICENSE
+
+Name: psimd
+License: MIT
+Files: third_party/psimd
+  For details, see third_party/psimd/LICENSE
+
+Name: pthreadpool
+License: BSD-2-Clause
+Files: third_party/pthreadpool
+  For details, see third_party/pthreadpool/LICENSE
+
+Name: pybind11
+License: BSD-3-Clause
+Files: third_party/pybind11,
+     third_party/onnx-tensorrt/third_party/onnx/third_party/pybind11,
+     third_party/onnx/third_party/pybind11,
+     third_party/tensorpipe/third_party/pybind11
+  For details, see third_party/pybind11/LICENSE,
+     third_party/onnx-tensorrt/third_party/onnx/third_party/pybind11/LICENSE,
+     third_party/onnx/third_party/pybind11/LICENSE,
+     third_party/tensorpipe/third_party/pybind11/LICENSE
+
+Name: python-peachpy
+License: BSD-2-Clause
+Files: third_party/python-peachpy
+  For details, see third_party/python-peachpy/LICENSE.rst
+
+Name: python-six
+License: MIT
+Files: third_party/python-six
+  For details, see third_party/python-six/LICENSE
+
+Name: sleef
+License: BSL-1.0
+Files: third_party/sleef
+  For details, see third_party/sleef/LICENSE.txt
+
+Name: tbb
+License: Apache-2.0
+Files: third_party/tbb
+  For details, see third_party/tbb/LICENSE
+
+Name: tensorpipe
+License: BSD-3-Clause
+Files: third_party/tensorpipe
+  For details, see third_party/tensorpipe/LICENSE.txt
+
+Name: zstd
+License: BSD-3-Clause
+Files: third_party/zstd
+  For details, see third_party/zstd/LICENSE
+
+
+
 tqdm
-4.63.0
+4.63.1
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright

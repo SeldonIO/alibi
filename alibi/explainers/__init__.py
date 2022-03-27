@@ -8,7 +8,7 @@ from .ale import ALE, plot_ale
 from alibi.explainers.anchors.anchor_text import AnchorText
 from alibi.explainers.anchors.anchor_tabular import AnchorTabular
 from alibi.explainers.anchors.anchor_image import AnchorImage
-from .cfrl_base import CounterfactualRL
+from .cfrl_base import CounterfactualRL, Callback
 from .cfrl_tabular import CounterfactualRLTabular
 
 
@@ -32,13 +32,9 @@ IntegratedGradients = import_optional(
     'alibi.explainers.integrated_gradients',
     names=['IntegratedGradients'])
 
-KernelShap = import_optional(
+KernelShap, TreeShap, sum_categories = import_optional(
     'alibi.explainers.shap_wrappers',
-    names=['KernelShap'])
-
-TreeShap = import_optional(
-    'alibi.explainers.shap_wrappers',
-    names=['TreeShap'])
+    names=['KernelShap', 'TreeShap', 'sum_categories'])
 
 __all__ = [
     "ALE",
@@ -51,6 +47,7 @@ __all__ = [
     "CounterfactualProto",
     "CounterfactualRL",
     "CounterfactualRLTabular",
+    "Callback",
     "plot_ale",
     "IntegratedGradients",
     "KernelShap",

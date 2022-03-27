@@ -79,6 +79,7 @@ def test_explainer_dependencies(opt_dep):
             ("IntegratedGradients", ['tensorflow']),
             ("KernelShap", ['shap']),
             ("TreeShap", ['shap']),
+            ('sum_categories', ['shap']),
             ("plot_ale", ['default'])]:
         explainer_dependency_map[dependency] = relations
     from alibi import explainers
@@ -90,8 +91,10 @@ def test_util_dependencies(opt_dep):
     util_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in [
             ("DistributedExplainer", ['ray']),
-            ("LanguageModel", ['tensorflow'])
-            ]:
+            ("LanguageModel", ['tensorflow']),
+            ('DistilbertBaseUncased', ['tensorflow']),
+            ('BertBaseUncased', ['tensorflow']),
+            ('RobertaBase', ['tensorflow'])]:
         util_dependency_map[dependency] = relations
     from alibi import utils
     check_correct_dependencies(utils, util_dependency_map, opt_dep)
@@ -101,8 +104,7 @@ def test_dataset_dependencies(opt_dep):
     """Tests that the datasets module correctly protects against uninstalled optional dependencies."""
     datasets_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in [
-            ("fetch_fashion_mnist", ['tensorflow'])
-            ]:
+            ("fetch_fashion_mnist", ['tensorflow'])]:
         datasets_dependency_map[dependency] = relations
     from alibi import datasets
     check_correct_dependencies(datasets, datasets_dependency_map, opt_dep)
@@ -110,22 +112,52 @@ def test_dataset_dependencies(opt_dep):
 
 def test_confidence_dependencies(opt_dep):
     """Tests that the confidence module correctly protects against uninstalled optional dependencies."""
-    confidence_dependency_map = defaultdict(lambda: ['default'])
-    for dependency, relations in []:
-        confidence_dependency_map[dependency] = relations
     from alibi import confidence
-    check_correct_dependencies(confidence, confidence_dependency_map, opt_dep)
+    check_correct_dependencies(confidence, defaultdict(lambda: ['default']), opt_dep)
 
 
 def test_cfrl_backend_dependencies(opt_dep):
     """Tests that the backend module correctly protects against uninstalled optional dependencies."""
     backend_dependency_map = defaultdict(lambda: ['default'])
     for dependency, relations in [
-        ('alibi.explainers.backends.pytorch.cfrl_base', ['torch']),
-        ('alibi.explainers.backends.pytorch.cfrl_tabular', ['torch']),
-        ('alibi.explainers.backends.tensorflow.cfrl_base', ['tensorflow']),
-        ('alibi.explainers.backends.tensorflow.cfrl_tabular', ['tensorflow']),
-    ]:
+            ('alibi.explainers.backends.pytorch.cfrl_base', ['torch']),
+            ('alibi.explainers.backends.pytorch.cfrl_tabular', ['torch']),
+            ('alibi.explainers.backends.tensorflow.cfrl_base', ['tensorflow']),
+            ('alibi.explainers.backends.tensorflow.cfrl_tabular', ['tensorflow'])]:
         backend_dependency_map[dependency] = relations
     from alibi.explainers import backends
     check_correct_dependencies(backends, backend_dependency_map, opt_dep)
+
+
+def test_tensorflow_model_dependencies(opt_dep):
+    """Tests that the backend module correctly protects against uninstalled optional dependencies."""
+    tf_model_dependency_map = defaultdict(lambda: ['default'])
+    for dependency, relations in [
+            ('ADULTEncoder', ['tensorflow']),
+            ('ADULTDecoder', ['tensorflow']),
+            ('MNISTEncoder', ['tensorflow']),
+            ('MNISTDecoder', ['tensorflow']),
+            ('MNISTClassifier', ['tensorflow']),
+            ('HeAE', ['tensorflow']),
+            ('Actor', ['tensorflow']),
+            ('Critic', ['tensorflow'])]:
+        tf_model_dependency_map[dependency] = relations
+    from alibi.models import tensorflow
+    check_correct_dependencies(tensorflow, tf_model_dependency_map, opt_dep)
+
+
+def test_pytorch_model_dependencies(opt_dep):
+    """Tests that the backend module correctly protects against uninstalled optional dependencies."""
+    torch_model_dependency_map = defaultdict(lambda: ['default'])
+    for dependency, relations in [
+            ('ADULTEncoder', ['torch']),
+            ('ADULTDecoder', ['torch']),
+            ('MNISTEncoder', ['torch']),
+            ('MNISTDecoder', ['torch']),
+            ('MNISTClassifier', ['torch']),
+            ('HeAE', ['torch']),
+            ('Actor', ['torch']),
+            ('Critic', ['torch'])]:
+        torch_model_dependency_map[dependency] = relations
+    from alibi.models import pytorch
+    check_correct_dependencies(pytorch, torch_model_dependency_map, opt_dep)

@@ -10,13 +10,12 @@ from alibi.explainers.backends.cfrl_tabular_shared import (get_conditional_vecto
                                                            get_statistics, sample)
 from alibi.explainers.cfrl_base import (_PARAM_TYPES, CounterfactualRL,
                                         Postprocessing)
+from alibi.explainers.backends import pytorch_tabular_backend
+from alibi.explainers.backends import tensorflow_tabular_backend
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
-
-from alibi.explainers.backends import pytorch_tabular_backend
-from alibi.explainers.backends import tensorflow_tabular_backend
 
 
 class SampleTabularPostprocessing(Postprocessing):

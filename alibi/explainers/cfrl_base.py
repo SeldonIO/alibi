@@ -3,6 +3,7 @@ import os
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union, cast
+import warnings
 
 import numpy as np
 from tqdm import tqdm
@@ -14,13 +15,13 @@ from alibi.explainers.backends.cfrl_base_shared import (generate_empty_condition
                                                         get_hard_distribution,
                                                         identity_function)
 from alibi.utils.frameworks import Framework, has_pytorch, has_tensorflow
+from alibi.explainers.backends import pytorch_base_backend
+from alibi.explainers.backends import tensorflow_base_backend
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
 
-from alibi.explainers.backends import pytorch_base_backend
-from alibi.explainers.backends import tensorflow_base_backend
 
 # define logger
 logger = logging.getLogger(__name__)
@@ -470,15 +471,21 @@ class CounterfactualRL(Explainer, FitMixin):
             Backend to be checked.
         """
 
+        # TODO: Currently default to backend='tensorflow' but tensorflow is no longer the default install so this
+        #  should be changed to have the user explicitly specify the backend. Currently if the backend equals
+        #  'tensorflow' but pytorch is also installed, the user will be warned that the backend defaults to tensorflow.
+        if backend == Framework.TENSORFLOW and has_tensorflow and has_pytorch:
+            warnings.warn("backend equals 'tensorflow' but torch is present too. Did you mean 'pytorch'?")
+
+        # Allow only pytorch and tensorflow.
+        if backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
+            raise NotImplementedError(f'{backend} must be one of `tensorflow` or `pytorch`.')
+
         # Check if pytorch/tensorflow backend supported.
         if (backend == Framework.PYTORCH and not has_pytorch) or \
                 (backend == Framework.TENSORFLOW and not has_tensorflow):
             raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
                               f' with {backend} backend.')
-
-        # Allow only pytorch and tensorflow.
-        elif backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
-            raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 
     def _select_backend(self, backend: str, **kwargs):
         """

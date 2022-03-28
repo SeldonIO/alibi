@@ -6,19 +6,15 @@ from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, U
 
 import numpy as np
 import spacy
-# import tensorflow as tf
 
 from alibi.utils.missing_optional_dependency import import_optional
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.exceptions import (AlibiPredictorCallException,
                               AlibiPredictorReturnTypeError)
-
 from alibi.utils.missing_optional_dependency import MissingDependency
 from alibi.utils import LanguageModel
-
 from alibi.utils.wrappers import ArgmaxTransformer
-
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 from .text_samplers import UnknownSampler, SimilaritySampler, load_spacy_lexeme_prob

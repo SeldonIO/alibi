@@ -4,6 +4,7 @@ from typing import (Dict, List, Optional, Tuple, Type)
 
 import numpy as np
 import tensorflow as tf
+
 from alibi.utils.lang_model import LanguageModel
 from alibi.explainers.anchors.text_samplers import AnchorTextSampler
 

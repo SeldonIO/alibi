@@ -3,15 +3,16 @@ This module contains utility functions for the Counterfactual with Reinforcement
 :py:class:`alibi.explainers.cfrl_base` for the Pytorch backend.
 """
 
+
+import os
+import random
+from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
+
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
-
-import os
-import random
-import numpy as np
-from typing import List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 from alibi.explainers.backends.cfrl_base_shared import CounterfactualRLDataset
 from alibi.models.pytorch.actor_critic import Actor, Critic

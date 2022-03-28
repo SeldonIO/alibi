@@ -1,7 +1,9 @@
-import tensorflow.keras as keras
 from typing import Tuple, Union
-from alibi.utils.data import Bunch
+
+import tensorflow.keras as keras
 import numpy as np
+
+from alibi.utils.data import Bunch
 
 
 def fetch_fashion_mnist(return_X_y: bool = False

@@ -13,7 +13,6 @@ from alibi.exceptions import (AlibiPredictorCallException,
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 from alibi.utils.wrappers import ArgmaxTransformer
-
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 

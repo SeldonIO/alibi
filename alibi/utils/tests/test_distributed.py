@@ -7,7 +7,8 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-# Skips these tests if ray not installed, applies to Windows environments in CI
+# Skip distributed tests on Windows for now (Windows support for ray is experimental
+# https://docs.ray.io/en/latest/installation.html#windows-support), see CI for more info.
 ray = pytest.importorskip('ray')
 
 from alibi.utils.distributed import DistributedExplainer, PoolCollection, ResourceError, invert_permutation, \

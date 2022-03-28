@@ -3,6 +3,7 @@ from pytest_lazyfixture import lazy_fixture
 import numpy as np
 import tensorflow as tf
 import torch
+
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers.anchors.anchor_image import AnchorImage, AnchorImageSampler, scale_image

@@ -1,11 +1,9 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
+from copy import deepcopy
 
 import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
-
-from collections import defaultdict
-from copy import deepcopy
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError

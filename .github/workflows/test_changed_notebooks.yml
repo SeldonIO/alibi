@@ -60,7 +60,7 @@ jobs:
           if [ "$RUNNER_OS" != "Windows" ]; then  # Skip distributed tests on windows for now (Windows support for ray is experimental https://docs.ray.io/en/latest/installation.html#windows-support)
             python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
           fi
-          python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m pip install --upgrade --upgrade-strategy eager -e .[shap,tensorflow]
           python -m spacy download en_core_web_md
           python -m pip freeze
 

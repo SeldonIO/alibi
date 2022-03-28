@@ -7,6 +7,7 @@ import spacy
 
 if TYPE_CHECKING:
     import spacy  # noqa: F811
+
 logger = logging.getLogger(__name__)
 
 

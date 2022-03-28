@@ -1,17 +1,23 @@
 # type: ignore
-import catboost
 import itertools
 import logging
+import unittest
+from copy import copy
+from itertools import chain
+from unittest.mock import MagicMock
+from typing import Any, List
+
+import catboost
 import pandas
 import pytest
 import scipy.sparse
-import shap
 import sklearn
-import unittest
-
+import shap
 import numpy as np
 import pandas as pd
 import shap.utils._legacy as shap_utils
+from numpy.testing import assert_allclose, assert_almost_equal
+from scipy.special import expit
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
@@ -20,13 +26,6 @@ from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TRE
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
 from alibi.utils import DistributedExplainer
-
-from copy import copy
-from itertools import chain
-from numpy.testing import assert_allclose, assert_almost_equal
-from scipy.special import expit
-from unittest.mock import MagicMock
-from typing import Any, List
 
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']

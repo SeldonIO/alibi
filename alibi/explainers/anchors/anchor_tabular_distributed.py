@@ -2,17 +2,15 @@ import logging
 from typing import (Any, Callable, Dict, List, Optional, Tuple, Type, Union)
 
 import numpy as np
+import ray
 
 from alibi.api.interfaces import Explanation
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.mapping import ohe_to_ord
-
 from .anchor_base import AnchorBaseBeam
 from .anchor_tabular import AnchorTabular, TabularSampler
 from alibi.utils.distributed import ActorPool
 from functools import partial
-
-import ray
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):

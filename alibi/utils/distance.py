@@ -1,7 +1,6 @@
-from typing import Dict, Tuple
-
 import numpy as np
 from sklearn.manifold import MDS
+from typing import Dict, Tuple, Callable, Optional
 
 
 def cityblock_batch(X: np.ndarray,
@@ -243,3 +242,78 @@ def multidim_scaling(d_pair: dict,
         feature_range = new_feature_range
 
     return d_abs_scaled, feature_range
+
+
+def squared_pairwise_distance(x: np.ndarray, y: np.ndarray, a_min: float = 1e-30, a_max: float = 1e30) -> np.ndarray:
+    """
+    `numpy` pairwise squared Euclidean distance between samples `x` and `y`.
+
+    Parameters
+    ----------
+    x
+        A batch of instances of shape `Nx x features`.
+    y
+        A batch of instances of shape `Ny x features`.
+    a_min
+        Lower bound to clip distance values.
+    a_max
+        Upper bound to clip distance values.
+
+    Returns
+    -------
+    Pairwise squared Euclidean distance `Nx x Ny`.
+    """
+    x2 = np.sum(x ** 2, axis=-1, keepdims=True)
+    y2 = np.sum(y ** 2, axis=-1, keepdims=True)
+    dist = x2 + np.transpose(y2, (1, 0)) - 2. * x @ np.transpose(y, (1, 0))
+    return np.clip(dist, a_min=a_min, a_max=a_max)
+
+
+def batch_compute_kernel_matrix(x: np.ndarray,
+                                y: np.ndarray,
+                                kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
+                                batch_size: int = int(1e10),
+                                preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None) -> np.ndarray:
+    """
+    Compute the kernel matrix between `x` and `y` by filling in blocks of size
+    `batch_size x batch_size` at a time.
+
+    Parameters
+    ----------
+    x
+        The first array of data instances.
+    y
+        The second array of data instances.
+    kernel
+        Kernel function to be used for kernel matrix computation.
+    batch_size
+        Batch size to be used for each prediction.
+    preprocess_fn
+        Optional preprocessing function for each batch.
+
+    Returns
+    -------
+    Kernel matrix in the form of a `numpy` array.
+    """
+    if type(x) != type(y):
+        raise ValueError("x and y should be of the same type")
+
+    n_x, n_y = len(x), len(y)
+    n_batch_x, n_batch_y = int(np.ceil(n_x / batch_size)), int(np.ceil(n_y / batch_size))
+
+    k_is = []
+    for i in range(n_batch_x):
+        istart, istop = i * batch_size, min((i + 1) * batch_size, n_x)
+        x_batch = x[istart:istop]
+        if preprocess_fn is not None:
+            x_batch = preprocess_fn(x_batch)
+        k_ijs = []
+        for j in range(n_batch_y):
+            jstart, jstop = j * batch_size, min((j + 1) * batch_size, n_y)
+            y_batch = y[jstart:jstop]
+            if preprocess_fn is not None:
+                y_batch = preprocess_fn(y_batch)
+            k_ijs.append(kernel(x_batch, y_batch))  # type: ignore
+        k_is.append(np.concatenate(k_ijs, axis=1))
+    k_mat = np.concatenate(k_is, axis=0)
+    return k_mat

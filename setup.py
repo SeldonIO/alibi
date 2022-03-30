@@ -64,7 +64,8 @@ if __name__ == '__main__':
               'typing-extensions>=3.7.4.3',
               'dill>=0.3.0, <0.4.0',
               'transformers>=4.7.0, <5.0.0',
-              'tqdm>=4.28.1, <5.0.0'
+              'tqdm>=4.28.1, <5.0.0',
+              'click<8.1.0'  # remove once https://github.com/explosion/spaCy/pull/10573 is released
           ],
           classifiers=[
               "Intended Audience :: Science/Research",
@@ -79,4 +80,4 @@ if __name__ == '__main__':
           extras_require=get_extra_requires('./extra-requirements.txt'),
           test_suite='tests',
           zip_safe=False,
-          )
+    )

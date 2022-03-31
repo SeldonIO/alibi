@@ -1,13 +1,18 @@
+import os
+
 import numpy as np
 import logging
 from tqdm import tqdm
-from typing import Callable, Optional, Dict, List
+from copy import deepcopy
+from typing import Callable, Optional, Dict, List, Union, Any
 from alibi.utils.distance import batch_compute_kernel_matrix
+from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
 
 logger = logging.getLogger(__name__)
 
 
-class ProtoSelect:
+class ProtoSelect(Explainer, FitMixin):
     def __init__(self,
                  eps: float,
                  kernel_distance: Callable,
@@ -15,7 +20,6 @@ class ProtoSelect:
                  batch_size: int = int(1e10),
                  preprocess_fn: Callable = None,
                  verbose: bool = False,
-                 unsupervised: bool = False,
                  **kwargs):
         """
         Constructor
@@ -32,18 +36,33 @@ class ProtoSelect:
             Batch size to be used for kernel matrix computation.
         preprocess_fn
             Preprocessing function for kernel matrix computation.
-        unsupervised
-            Whether to use the unsupervised version of ProtoSelect.
         verbose
              Whether to display progression bar while computing prototypes points.
         """
+        super().__init__(meta=deepcopy(DEFAULT_META_PROTOSELECT))
         self.kernel_distance = kernel_distance
         self.eps = eps
         self.lbd = lbd
         self.batch_size = batch_size
         self.preprocess_fn = preprocess_fn
-        self.unsupervised = unsupervised
         self.verbose = verbose
+
+        # get kernel tag
+        if hasattr(self.kernel_distance, '__name__'):
+            kernel_distance_tag = self.kernel_distance.__name__
+        elif hasattr(self.kernel_distance, '__class__'):
+            kernel_distance_tag = self.kernel_distance.__class__
+        else:
+            kernel_distance_tag = 'unknown kernel distance'
+
+        # update metadata
+        self.meta['params'].update({
+            'kernel_distance': kernel_distance_tag,
+            'eps': eps,
+            'lbd': lbd,
+            'batch_size': batch_size,
+            'verbose': verbose
+        })
 
     def fit(self,
             X: np.ndarray,
@@ -68,17 +87,17 @@ class ProtoSelect:
             Reference to itself.
         """
         self.X = X
-        # if the `X_labels` are not provided, the consider that all elements belong to the same class. This means
+        # if the `X_labels` are not provided, then consider that all elements belong to the same class. This means
         # that loss term which tries to avoid including in an epsilon ball elements belonging to other classes
         # will always be 0. Still the first term of the loss tries to cover as many examples as possible with
         # minimal overlap between the epsilon balls corresponding to the other prototypes.
         self.X_labels = X_labels.astype(np.int32) if (X_labels is not None) else np.zeros((len(X), ), dtype=np.int32)
         # if the set of prototypes is not provided, then find the prototypes belonging to the reference dataset.
         self.Y = Y if (Y is not None) else self.X
-
         # initialize penalty for adding a prototype
         if self.lbd is None:
             self.lbd = 1 / len(self.X)
+            self.meta['params'].update({'lbd': self.lbd})
 
         self.max_label = np.max(self.X_labels)
         self.kmatrix_yx = batch_compute_kernel_matrix(x=self.Y,
@@ -89,9 +108,11 @@ class ProtoSelect:
 
         return self
 
-    def explain(self, num_prototypes: int = 1) -> Dict[np.ndarray, str]:
+    def explain(self, num_prototypes: int = 1) -> Explanation:
         """
-        Finds the prototypes.
+        Searches for the requested number of prototypes. Note that the algorithm can return a lower number of
+        prototypes than the requested one. To increase the number of prototypes, reduce the epsilon-ball radius
+        `eps` and the penalty `lbd` for adding a prototype.
 
         Parameters
         ----------
@@ -100,12 +121,13 @@ class ProtoSelect:
 
         Returns
         -------
-        Explanation dictionary containing:
-         - ``'prototypes_indices'`` : ``np.ndarray`` - prototypes indices.
-         - ``'prototypes'`` : ``np.ndarray`` - prototypes instances.
+        An `Explanation` object containing the prototypes, prototypes indices and protoypes labels with additional \
+        metadata as attributes
         """
-        # TODO: cover the case when the number of requested prototypes is larger then \
-        # TODO: than the size of the prototypes set.
+        if num_prototypes > len(self.Y):
+            num_prototypes = len(self.Y)
+            logger.warning('The number of prototypes requested is larger than the number of elements from '
+                           f'the prototypes selection set. Automatically setting `num_prototypes={num_prototypes}`.')
 
         # dictionary of prototypes indices for each class
         protos = {l: [] for l in range(self.max_label + 1)}
@@ -171,10 +193,19 @@ class ProtoSelect:
 
         return self._build_explanation(protos)
 
-    def _build_explanation(self, protos: Dict[int, List[int]]) -> Dict[str, np.ndarray]:
-        explanation = dict()
-        prototypes_indices = {p: np.array(protos[p]) for p in protos}
-        prototypes = {p: self.Y[protos[p]] for p in protos}
-        explanation['prototypes_indices'] = prototypes_indices
-        explanation['prototypes'] = prototypes
-        return explanation
+    def _build_explanation(self, protos: Dict[int, List[int]]) -> Explanation:
+        """
+        Helper method to build `Explanation` object.
+        """
+        data = deepcopy(DEFAULT_DATA_PROTOSELECT)
+        data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
+        data['prototypes_labels'] = np.concatenate([[l] * len(protos[l]) for l in protos]).astype(np.int32)
+        data['prototypes'] = self.Y[data['prototypes_indices']]
+        return Explanation(meta=self.meta, data=data)
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        super().save(path)
+
+    @classmethod
+    def load(cls, path: Union[str, os.PathLike], predictor: Optional[Any] = None) -> "Explainer":
+        return super().load(path, predictor)

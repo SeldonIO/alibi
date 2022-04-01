@@ -26,12 +26,11 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
                                     Union[tensorflow.Tensor, torch.Tensor]],
                                    Union[tensorflow.Tensor, torch.Tensor]]''',
-                 sim_fn: 'Union[Callable[[np.ndarray, np.ndarray], np.ndarray], str]' = 'grad_dot',
-                 task: str = "classification",
+                 sim_fn: Literal['grad_dot', 'grad_cos', 'grad_asym_dot'] = 'grad_dot',
+                 task: Literal["classification", 'regression'] = 'classification',
                  store_grads: bool = False,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
                  device: 'Union[str, torch.device, None]' = None,
-                 **kwargs
                  ):
         """Constructor
 
@@ -52,8 +51,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
         device:
             Device to use. If ``None``, the default device for the backend is used.
-        kwargs:
-            Additional arguments to pass to the similarity function.
         """
 
         self.meta = copy.deepcopy(DEFAULT_META_SIM)
@@ -70,11 +67,10 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             'grad_asym_dot': asym_dot
         }
 
-        if isinstance(sim_fn, str):
-            if sim_fn not in sim_fn_opts.keys():
-                raise ValueError(f'Unknown method {sim_fn}. Consider using: `{"` | `".join(sim_fn_opts.keys())}`.')
+        if sim_fn not in sim_fn_opts.keys():
+            raise ValueError(f'Unknown method {sim_fn}. Consider using: `{"` | `".join(sim_fn_opts.keys())}`.')
 
-            sim_fn = sim_fn_opts[sim_fn]
+        resolved_sim_fn = sim_fn_opts[sim_fn]
 
         if task not in ['classification', 'regression']:
             raise ValueError(f'Unknown task {task}. Consider using: `classification` | `regression`.')
@@ -84,8 +80,8 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         if backend not in ['pytorch', 'tensorflow']:
             raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
 
-        super().__init__(predictor, loss_fn, sim_fn, store_grads, Framework.from_str(backend),
-                         device=device, meta=self.meta, **kwargs)
+        super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework.from_str(backend),
+                         device=device, meta=self.meta)
 
     def _preprocess_args(
             self,
@@ -164,7 +160,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         Raises
         -------
         ValueError:
-            If `Y` is `None` and the `task` is `regression`.
+            If `Y` is ``None`` and the `task` is ``'regression'``.
         """
         self._verify_fit()
         X, Y = self._preprocess_args(X, Y)
@@ -182,16 +178,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         ----------
         scores:
             The scores for each of the instances in the data set computed by the similarity method.
-
-        Returns
-        -------
-        `Explanation`: object containing the ordered similarity scores for the instance with additional metadata as \
-        attributes. Contains the following data-related attributes
-            -  `scores`: ``np.array`` - similarity scores for each instance in the training set.
-            -  `X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
-            -  `Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
-            -  `most_similar`: ``np.array`` - most similar instances to the input.
-            -  `least_similar`: ``np.array`` - least similar instances to the input.
         """
         if self.X_train is None or self.Y_train is None:
             raise ValueError('Training data is not available. Please call `fit` before calling `explain`.')

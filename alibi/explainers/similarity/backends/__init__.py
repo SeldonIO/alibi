@@ -9,7 +9,7 @@ if has_tensorflow:
     from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 
 
-def _select_backend(backend: Framework = Framework.TENSORFLOW, **kwargs):
+def _select_backend(backend: Framework = Framework.TENSORFLOW):
     """
     Selects the backend according to the `backend` flag.
 

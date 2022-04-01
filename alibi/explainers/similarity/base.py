@@ -45,7 +45,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         """
 
         # Select backend.
-        self.backend = _select_backend(backend, **kwargs)
+        self.backend = _select_backend(backend)
         self.backend.set_device(device)
 
         self.predictor = predictor

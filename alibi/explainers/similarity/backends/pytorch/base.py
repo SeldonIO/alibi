@@ -70,18 +70,15 @@ class _TorchBackend(object):
         recommended in https://pytorch.org/blog/pytorch-0_4_0-migration-guide/#writing-device-agnostic-code for writing
         device-agnostic code.
         """
-        if isinstance(device, str):
+        if isinstance(device, (int, str)):
             _TorchBackend.device = torch.device(device)
-        elif isinstance(device, str):
-            device_type, index = device.split(':')
-            _TorchBackend.device = torch.device(type=device_type, index=int(index))
         elif isinstance(device, torch.device):
             _TorchBackend.device = device
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:
         """Maps a `torch` tensor to a `numpy` array."""
-        return X.detach().numpy()
+        return X.detach().cpu().numpy()
 
     @staticmethod
     def argmax(X: torch.Tensor) -> torch.Tensor:

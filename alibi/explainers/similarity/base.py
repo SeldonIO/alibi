@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal, Optional
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
 
 import numpy as np
 from tqdm import tqdm
@@ -24,7 +24,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  store_grads: bool = False,
                  seed: int = 0,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
-                 device: Optional[str] = None,
+                 device: 'Union[str, torch.device, None]' = None,
                  **kwargs
                  ):
         """Constructor

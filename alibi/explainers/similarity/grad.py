@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 
 class SimilarityExplainer(BaseSimilarityExplainer):
+
     def __init__(self,
                  predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                  loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
@@ -29,6 +30,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  store_grads: bool = False,
                  seed: int = 0,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
+                 device: 'Union[str, torch.device, None]' = None,
                  **kwargs
                  ):
         """Constructor
@@ -50,6 +52,8 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             Random seed. Default: 0.
         backend:
             Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
+        device:
+            Device to use. If ``None``, the default device for the backend is used.
         kwargs:
             Additional arguments to pass to the similarity function.
         """
@@ -80,7 +84,8 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         self.task = task
 
-        super().__init__(predictor, loss_fn, sim_fn, store_grads, seed, backend, meta=self.meta, **kwargs)
+        super().__init__(predictor, loss_fn, sim_fn, store_grads, seed, backend,
+                         device=device, meta=self.meta, **kwargs)
 
     def _preprocess_args(
             self,

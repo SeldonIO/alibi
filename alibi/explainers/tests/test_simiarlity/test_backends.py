@@ -25,7 +25,7 @@ def test_tf_backend(random_cls_dataset, linear_models):
     """
     tf_model, tf_loss, torch_model, torch_loss = linear_models
 
-    # # make the models duplicates of each other
+    # make the models duplicates of each other
     for w1, w2 in zip(torch_model.parameters(), tf_model.trainable_weights):
         w2.assign(w1.detach().numpy().T)
 

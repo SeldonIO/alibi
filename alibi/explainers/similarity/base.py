@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal, Optional
 
 import numpy as np
 from tqdm import tqdm
@@ -24,7 +24,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  store_grads: bool = False,
                  seed: int = 0,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
-                 device: str = "cpu",
+                 device: Optional[str] = None,
                  **kwargs
                  ):
         """Constructor
@@ -44,7 +44,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         backend:
             Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         device:
-            Device to be used. Default `cpu`.
+            Device to be used. Will default to the same device the choice of backend defaults to.
         """
 
         if backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:

@@ -5,7 +5,8 @@ order to ensure that the similarity methods only require to match this interface
 """
 
 import random
-from typing import Callable
+from typing import Callable, Union, Optional
+
 
 import numpy as np
 import torch.nn as nn
@@ -13,7 +14,7 @@ import torch
 
 
 class _TorchBackend(object):
-    device = None
+    device: Optional[torch.device] = None
 
     @staticmethod
     def get_grads(
@@ -60,12 +61,22 @@ class _TorchBackend(object):
         return torch.tensor(X).to(_TorchBackend.device)
 
     @staticmethod
-    def set_device(device: str = 'cpu') -> None:
+    def set_device(device: Union[str, int, torch.device, None] = None) -> None:
         """Sets the device to use for the backend.
 
         Sets te device value on the class. Any subsequent calls to the backend will use this device.
+
+        Allows the user to set using string, integer or device object directly. This is so users can follow the pattern
+        recommended in https://pytorch.org/blog/pytorch-0_4_0-migration-guide/#writing-device-agnostic-code for writing
+        device-agnostic code.
         """
-        _TorchBackend.device = torch.device(device)
+        if isinstance(device, str):
+            _TorchBackend.device = torch.device(device)
+        elif isinstance(device, str):
+            device_type, index = device.split(':')
+            _TorchBackend.device = torch.device(type=device_type, index=int(index))
+        elif isinstance(device, torch.device):
+            _TorchBackend.device = device
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:

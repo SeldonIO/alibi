@@ -6,7 +6,7 @@ in order to ensure that the similarity methods only require to match this interf
 
 import random
 import os
-from typing import Callable
+from typing import Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -14,7 +14,7 @@ import tensorflow.keras as keras
 
 
 class _TensorFlowBackend:
-    device = None
+    device: Optional[str] = None
 
     @staticmethod
     def get_grads(
@@ -61,7 +61,7 @@ class _TensorFlowBackend:
         return tf.convert_to_tensor(x)
 
     @staticmethod
-    def set_device(device: str = 'cpu:0') -> None:
+    def set_device(device: Union[str, None] = None) -> None:
         """Sets the device to use for the backend.
 
         Sets te device value on the class. Any subsequent calls to the backend will use this device.

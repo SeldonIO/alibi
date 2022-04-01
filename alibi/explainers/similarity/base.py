@@ -41,7 +41,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         backend:
             Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         device:
-            Device to be used. Will default to the same device the choice of backend defaults to.
+            Device to be used. Will default to the same device the backend defaults to.
         """
 
         # Select backend.
@@ -81,8 +81,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         # compute and store gradients
         if self.store_grads:
             grads = []
-            for x, y in tqdm(zip(self.X_train, self.Y_train)):
-                grad_X_train = self._compute_grad(x[None], y[None])
+            for X, Y in tqdm(zip(self.X_train, self.Y_train)):
+                grad_X_train = self._compute_grad(X[None], Y[None])
                 grads.append(grad_X_train[None])
             self.grad_X_train = np.concatenate(grads, axis=0)
         return self
@@ -102,7 +102,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
     def _match_shape_to_data(self,
                              data: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
                              target_type: str) -> 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]':
-        """Verify the shape of `x` against the shape of the training data. If `x` is not a batch, reshape to be a single
+        """Verify the shape of `X` against the shape of the training data. If `X` is not a batch, reshape to be a single
         batch element. i.e. if training data shape is `(3, 28, 28)` and data shape is `(3, 28, 28)` we reshape data to
         `(1, 3, 28, 28)`.
 
@@ -111,7 +111,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         data:
             Data to be matched shape-wise against the training data.
         target_type:
-            Type of data: ``'x'``| ``'X'`` | ``'y'`` | ``'Y'``. Used to determine if data should take the shape of \
+            Type of data: ``'X'``, ``'x'`` | ``'Y'``, ``'y'``. Used to determine if data should take the shape of \
             predictor input or predictor output.
 
         Raises
@@ -139,16 +139,20 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Gradients of the test instances.
         """
         scores = np.zeros(self.X_train.shape[0])
-        for i, (x, y) in tqdm(enumerate(zip(self.X_train, self.Y_train))):
-            grad_x_train = self._compute_grad(x[None], y[None])
-            scores[i] = self.sim_fn(grad_x_train, grad_X)
+        for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train))):
+            grad_X_train = self._compute_grad(X[None], Y[None])
+            scores[i] = self.sim_fn(grad_X_train, grad_X)
         return scores
 
-    def _compute_grad(self, x, y) -> np.ndarray:
+    def _compute_grad(self,
+                      X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+                      Y: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]') \
+            -> np.ndarray:
         """Computes predictor parameter gradients and returns a flattened `numpy` array."""
-        x = self.backend.to_tensor(x)
-        y = self.backend.to_tensor(y)
-        return self.backend.get_grads(self.predictor, x, y, self.loss_fn)
+        if isinstance(X, np.ndarray):
+            X = self.backend.to_tensor(X)
+            Y = self.backend.to_tensor(Y)
+        return self.backend.get_grads(self.predictor, X, Y, self.loss_fn)
 
     def reset_predictor(self, predictor: Any) -> None:
         """Resets the predictor to the given predictor.

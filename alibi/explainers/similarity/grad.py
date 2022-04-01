@@ -109,7 +109,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             Target data formatted for explain method.
 
         """
-        X = self._match_shape_to_data(X, 'x')
+        X = self._match_shape_to_data(X, 'X')
         if isinstance(X, np.ndarray):
             X = self.backend.to_tensor(X)
 
@@ -123,7 +123,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         elif callable(Y):
             Y = Y(X)
 
-        Y = self._match_shape_to_data(Y, 'y')
+        Y = self._match_shape_to_data(Y, 'Y')
         if isinstance(Y, np.ndarray):
             Y = self.backend.to_tensor(Y)
 

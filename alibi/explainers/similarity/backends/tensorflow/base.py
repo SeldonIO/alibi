@@ -49,9 +49,9 @@ class _TensorFlowBackend:
                 loss = loss_fn(Y, output)
 
             # compute gradients of the loss w.r.t the weights
-            grad_x_train = tape.gradient(loss, model.trainable_weights)
-            grad_x_train = np.concatenate([w.numpy().reshape(-1) for w in grad_x_train])
-        return grad_x_train
+            grad_X_train = tape.gradient(loss, model.trainable_weights)
+            grad_X_train = np.concatenate([w.numpy().reshape(-1) for w in grad_X_train])
+        return grad_X_train
 
     @staticmethod
     def to_tensor(X: np.ndarray, **kwargs) -> tf.Tensor:

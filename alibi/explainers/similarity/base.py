@@ -1,12 +1,12 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
 
 import numpy as np
 from tqdm import tqdm
 
 from alibi.api.interfaces import Explainer
 from alibi.explainers.similarity.backends import _select_backend
-
+from alibi.utils.frameworks import Framework
 
 if TYPE_CHECKING:
     import tensorflow
@@ -23,7 +23,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
                  seed: int = 0,
-                 backend: str = "tensorflow",
+                 backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
                  device: str = "cpu",
                  **kwargs
                  ):
@@ -42,16 +42,16 @@ class BaseSimilarityExplainer(Explainer, ABC):
         seed:
             Seed to be used,
         backend:
-            Deep learning backend: ``'tensorflow'`` | ``'torch'``. Default ``'tensorflow'``.
+            Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         device:
             Device to be used. Default `cpu`.
         """
 
-        if backend not in ['torch', 'tensorflow']:
-            raise ValueError(f'Unknown backend {backend}. Consider using: `torch` | `tensorflow` .')
+        if backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
+            raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
 
         # Select backend.
-        self.backend = _select_backend(backend, **kwargs)
+        self.backend = _select_backend(Framework.from_str(backend), **kwargs)
         self.backend.set_device(device)
 
         # Set seed for reproducibility.

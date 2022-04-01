@@ -66,7 +66,7 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
         task='regression',
         loss_fn=loss_torch,
         sim_fn='grad_dot',
-        backend='torch'
+        backend='pytorch'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
     explanation = explainer.explain(normed_ds[0], Y=target_fn)
@@ -88,7 +88,7 @@ def test_correct_grad_cos_sim_result_torch(ds):
         task='regression',
         loss_fn=loss_torch,
         sim_fn='grad_cos',
-        backend='torch'
+        backend='pytorch'
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=target_fn)
@@ -111,7 +111,7 @@ def test_grad_cos_result_order_torch():
         task='regression',
         loss_fn=loss_torch,
         sim_fn='grad_cos',
-        backend='torch',
+        backend='pytorch',
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=target_fn)
@@ -130,7 +130,7 @@ def test_grad_dot_result_order_torch():
         task='regression',
         loss_fn=loss_torch,
         sim_fn='grad_dot',
-        backend='torch'
+        backend='pytorch'
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=target_fn)

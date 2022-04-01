@@ -18,8 +18,8 @@ class _TorchBackend(object):
     @staticmethod
     def get_grads(
             model: nn.Module,
-            x: torch.Tensor,
-            y: torch.Tensor,
+            X: torch.Tensor,
+            Y: torch.Tensor,
             loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     ) -> np.ndarray:
         """
@@ -30,9 +30,9 @@ class _TorchBackend(object):
         -----------
         model:
             The model to compute gradients for.
-        x:
+        X:
             The input data.
-        y:
+        Y:
             The target data.
         loss_fn:
             The loss function to use.
@@ -48,16 +48,16 @@ class _TorchBackend(object):
             if isinstance(param.grad, torch.Tensor):
                 param.grad.data.zero_()
 
-        output = model(x)
-        loss = loss_fn(output, y)
+        output = model(X)
+        loss = loss_fn(output, Y)
         loss.backward()
         return np.concatenate([_TorchBackend.to_numpy(param.grad).reshape(-1)
                                for param in model.parameters()])
 
     @staticmethod
-    def to_tensor(x: np.ndarray) -> torch.Tensor:
+    def to_tensor(X: np.ndarray) -> torch.Tensor:
         """Converts a `numpy` array to a `torch` tensor and assigns to the backend device."""
-        return torch.tensor(x).to(_TorchBackend.device)
+        return torch.tensor(X).to(_TorchBackend.device)
 
     @staticmethod
     def set_device(device: str = 'cpu') -> None:
@@ -68,14 +68,14 @@ class _TorchBackend(object):
         _TorchBackend.device = torch.device(device)
 
     @staticmethod
-    def to_numpy(x: torch.Tensor) -> np.ndarray:
+    def to_numpy(X: torch.Tensor) -> np.ndarray:
         """Maps a `torch` tensor to a `numpy` array."""
-        return x.detach().numpy()
+        return X.detach().numpy()
 
     @staticmethod
-    def argmax(x: torch.Tensor) -> torch.Tensor:
+    def argmax(X: torch.Tensor) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
-        return torch.argmax(x, dim=1)
+        return torch.argmax(X, dim=1)
 
     @staticmethod
     def set_seed(seed: int = 13):

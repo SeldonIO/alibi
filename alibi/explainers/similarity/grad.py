@@ -4,7 +4,7 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 """
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
+from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple, Literal
 
 import numpy as np
 
@@ -28,7 +28,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  task: str = "classification",
                  store_grads: bool = False,
                  seed: int = 0,
-                 backend: str = "tensorflow",
+                 backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
                  **kwargs
                  ):
         """Constructor
@@ -49,7 +49,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         seed:
             Random seed. Default: 0.
         backend:
-            Backend to use. ``'tensorflow'`` | ``'torch'``. Default: ``'tensorflow'``.
+            Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
         kwargs:
             Additional arguments to pass to the similarity function.
         """

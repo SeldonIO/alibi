@@ -1,4 +1,4 @@
-from alibi.utils.frameworks import has_pytorch, has_tensorflow
+from alibi.utils.frameworks import has_pytorch, has_tensorflow, Framework
 
 if has_pytorch:
     # import pytorch backend
@@ -9,13 +9,13 @@ if has_tensorflow:
     from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 
 
-def _select_backend(backend, **kwargs):
+def _select_backend(backend: Framework = Framework.TENSORFLOW, **kwargs):
     """
     Selects the backend according to the `backend` flag.
 
     Parameters
     ---------
     backend
-        Deep learning backend: `tensorflow` | `torch`. Default `tensorflow`.
+        Deep learning backend: ``'tensorflow'`` | ``'torch'``. Default ``'tensorflow'``.
     """
     return _TensorFlowBackend if backend == "tensorflow" else _TorchBackend

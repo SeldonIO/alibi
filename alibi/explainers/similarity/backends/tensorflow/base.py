@@ -4,8 +4,6 @@ Methods unique to the Tensorflow backend are defined here. The interface this cl
 in order to ensure that the similarity methods only require to match this interface.
 """
 
-import random
-import os
 from typing import Callable, Optional, Union
 
 import numpy as np
@@ -19,8 +17,8 @@ class _TensorFlowBackend:
     @staticmethod
     def get_grads(
             model: keras.Model,
-            x: tf.Tensor,
-            y: tf.Tensor,
+            X: tf.Tensor,
+            Y: tf.Tensor,
             loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
     ) -> np.ndarray:
         """
@@ -31,24 +29,24 @@ class _TensorFlowBackend:
         -----------
         model:
             The model to compute gradients for.
-        x:
+        X:
             The input data point.
-        y:
+        Y:
             The target data point.
         loss_fn:
             The loss function to use.
 
         Returns:
         --------
-        grads: np.ndarray
+        grads:
             The gradients of the loss function with respect to the model's parameters. This is returned as a flattened \
             array.
         """
 
         with tf.device(_TensorFlowBackend.device):
             with tf.GradientTape() as tape:
-                output = model(x, training=False)
-                loss = loss_fn(y, output)
+                output = model(X, training=False)
+                loss = loss_fn(Y, output)
 
             # compute gradients of the loss w.r.t the weights
             grad_x_train = tape.gradient(loss, model.trainable_weights)
@@ -56,9 +54,9 @@ class _TensorFlowBackend:
         return grad_x_train
 
     @staticmethod
-    def to_tensor(x: np.ndarray, **kwargs) -> tf.Tensor:
+    def to_tensor(X: np.ndarray, **kwargs) -> tf.Tensor:
         """Converts a `numpy` array to a `tensorflow` tensor."""
-        return tf.convert_to_tensor(x)
+        return tf.convert_to_tensor(X)
 
     @staticmethod
     def set_device(device: Union[str, None] = None) -> None:
@@ -69,29 +67,12 @@ class _TensorFlowBackend:
         _TensorFlowBackend.device = device
 
     @staticmethod
-    def to_numpy(x: tf.Tensor) -> tf.Tensor:
+    def to_numpy(X: tf.Tensor) -> tf.Tensor:
         """Converts a tensor to a `numpy` array."""
-        return x.numpy()
+        return X.numpy()
 
     @staticmethod
-    def argmax(x: tf.Tensor) -> tf.Tensor:
+    def argmax(X: tf.Tensor) -> tf.Tensor:
         """Returns the index of the maximum value in a tensor."""
-        x = tf.math.argmax(x, axis=1)
-        return x
-
-    @staticmethod
-    def set_seed(seed: int = 13):
-        """Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
-
-        Parameters
-        ----------
-        seed:
-            seed to be set
-        """
-        # others
-        os.environ['PYTHONHASHSEED'] = str(seed)
-        random.seed(seed)
-        np.random.seed(seed)
-
-        # tf random
-        tf.random.set_seed(seed)
+        X = tf.math.argmax(X, axis=1)
+        return X

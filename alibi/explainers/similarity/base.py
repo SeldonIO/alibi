@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any
 
 import numpy as np
 from tqdm import tqdm
@@ -22,8 +22,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                                    Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
-                 seed: int = 0,
-                 backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
+                 backend: Framework = Framework.TENSORFLOW,
                  device: 'Union[str, torch.device, None]' = None,
                  **kwargs
                  ):
@@ -39,29 +38,20 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Similarity function. Takes two inputs and returns a similarity value.
         store_grads:
             Whether to precompute and store the gradients when fitting.
-        seed:
-            Seed to be used,
         backend:
             Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
         device:
             Device to be used. Will default to the same device the choice of backend defaults to.
         """
 
-        if backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
-            raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
-
         # Select backend.
-        self.backend = _select_backend(Framework.from_str(backend), **kwargs)
+        self.backend = _select_backend(backend, **kwargs)
         self.backend.set_device(device)
-
-        # Set seed for reproducibility.
-        self.backend.set_seed(seed)
 
         self.predictor = predictor
         self.loss_fn = loss_fn
         self.sim_fn = sim_fn
         self.store_grads = store_grads
-        self.seed = seed
 
         super().__init__(**kwargs)
 

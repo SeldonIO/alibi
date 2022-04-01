@@ -12,6 +12,7 @@ from alibi.api.interfaces import Explanation
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import dot, cos, asym_dot
 from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
+from alibi.utils.frameworks import Framework
 
 if TYPE_CHECKING:
     import tensorflow
@@ -28,7 +29,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
                  sim_fn: 'Union[Callable[[np.ndarray, np.ndarray], np.ndarray], str]' = 'grad_dot',
                  task: str = "classification",
                  store_grads: bool = False,
-                 seed: int = 0,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
                  device: 'Union[str, torch.device, None]' = None,
                  **kwargs
@@ -48,8 +48,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         store_grads:
             Whether to store gradients. Default ``False``. If ``False``, gradients are computed on the fly otherwise we
             store them which can be faster when it comes to explaining and instances.
-        seed:
-            Random seed. Default: 0.
         backend:
             Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
         device:
@@ -62,7 +60,6 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         self.meta['params'].update(
             sim_fn_name=sim_fn,
             store_grads=store_grads,
-            seed=seed,
             backend_name=backend,
             task_name=task
         )
@@ -84,7 +81,10 @@ class SimilarityExplainer(BaseSimilarityExplainer):
 
         self.task = task
 
-        super().__init__(predictor, loss_fn, sim_fn, store_grads, seed, backend,
+        if backend not in ['pytorch', 'tensorflow']:
+            raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
+
+        super().__init__(predictor, loss_fn, sim_fn, store_grads, Framework.from_str(backend),
                          device=device, meta=self.meta, **kwargs)
 
     def _preprocess_args(

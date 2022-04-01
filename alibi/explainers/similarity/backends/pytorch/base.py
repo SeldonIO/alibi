@@ -4,9 +4,7 @@ Methods unique to the Torch backend are defined here. The interface this class d
 order to ensure that the similarity methods only require to match this interface.
 """
 
-import random
 from typing import Callable, Union, Optional
-
 
 import numpy as np
 import torch.nn as nn
@@ -84,22 +82,3 @@ class _TorchBackend(object):
     def argmax(X: torch.Tensor) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
         return torch.argmax(X, dim=1)
-
-    @staticmethod
-    def set_seed(seed: int = 13):
-        """Sets a seed to ensure reproducibility
-
-        Parameters
-        ----------
-        seed:
-            `seed` to be set
-        """
-        # Others
-        np.random.seed(seed)
-        random.seed(seed)
-
-        # Torch related
-        torch.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False

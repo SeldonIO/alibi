@@ -44,13 +44,13 @@ class _TorchBackend(object):
             array.
         """
 
-        for param in model.parameters():
-            if isinstance(param.grad, torch.Tensor):
-                param.grad.data.zero_()
-
+        model.zero_grad()
+        initial_model_state = model.training
+        model.train(False)
         output = model(X)
         loss = loss_fn(output, Y)
         loss.backward()
+        model.train(initial_model_state)
         return np.concatenate([_TorchBackend.to_numpy(param.grad).reshape(-1)
                                for param in model.parameters()])
 

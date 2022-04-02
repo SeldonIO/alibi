@@ -1,7 +1,7 @@
-"""Tensorflow backend for similarity explainers.
+"""`tensorflow` backend for similarity explainers.
 
-Methods unique to the Tensorflow backend are defined here. The interface this class defines syncs with the torch backend
-in order to ensure that the similarity methods only require to match this interface.
+Methods unique to the `tensorflow` backend are defined here. The interface this class defines syncs with the `torch`
+backend in order to ensure that the similarity methods only require to match this interface.
 """
 
 from typing import Callable, Optional, Union
@@ -12,7 +12,7 @@ import tensorflow.keras as keras
 
 
 class _TensorFlowBackend:
-    device: Optional[str] = None
+    device: Optional[str] = None  # device used by `torch` backend
 
     @staticmethod
     def get_grads(

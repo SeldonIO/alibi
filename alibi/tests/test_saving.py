@@ -17,7 +17,7 @@ from alibi.explainers import (
     KernelShap,
     TreeShap,
     CounterfactualRLTabular,
-    SimilarityExplainer
+    GradientSimilarity
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -268,7 +268,7 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
 @pytest.fixture(scope='module')
 def similarity_explainer(ffn_classifier, iris_data):
     criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         predictor=ffn_classifier,
         loss_fn=criterion,
         store_grads=True,
@@ -459,7 +459,7 @@ def test_save_SimilartyExplainer(similarity_explainer, ffn_classifier, iris_data
     with tempfile.TemporaryDirectory() as temp_dir:
         similarity_explainer.save(temp_dir)
         similarity_explainer1 = load_explainer(temp_dir, predictor=ffn_classifier)
-        assert isinstance(similarity_explainer1, SimilarityExplainer)
+        assert isinstance(similarity_explainer1, GradientSimilarity)
         assert similarity_explainer.meta == similarity_explainer1.meta
         exp1 = similarity_explainer1.explain(X)
         assert exp0.meta == exp1.meta

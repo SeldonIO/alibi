@@ -1,4 +1,6 @@
 import pytest
+import random
+import os
 
 import numpy as np
 from tensorflow import keras
@@ -8,6 +10,22 @@ import torch.nn as nn
 
 from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
+
+
+def set_rdm_seed():
+    tf.random.set_seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
+    # Python std lib random seed
+    random.seed(0)
+    # Numpy, tensorflow
+    np.random.seed(0)
+    tf.random.set_seed(0)
+    # Additional seeds potentially required when using a gpu
+    # (see https://www.youtube.com/watch?v=TB07_mUMt0U&t=1804s)
+    os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
+    os.environ['TF_DETERMINISTIC_OPS'] = 'true'
+    os.environ['PYTHONHASHSEED'] = str(0)
 
 
 def get_flattened_model_parameters(model):
@@ -25,6 +43,7 @@ def random_reg_dataset(request):
     """
     Constructs a random regression dataset with 1d target.
     """
+    set_rdm_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -43,6 +62,7 @@ def random_cls_dataset(request):
     """
     Constructs a random classification dataset with 10 labels.
     """
+    set_rdm_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -115,6 +135,7 @@ def linear_models(request):
     """
     Constructs a pair of linear models and loss functions for tensorflow and torch.
     """
+    set_rdm_seed()
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     tf_model = tf_linear_model(input_shape, output_shape)

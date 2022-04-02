@@ -2,22 +2,16 @@ import pytest
 
 import torch
 import numpy as np
-import tensorflow as tf
 
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
-
-# ensure deterministic results
-tf.random.set_seed(0)
-np.random.seed(0)
-torch.manual_seed(0)
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_models',
                          [({'input_shape': (10,), 'output_shape': 10})],
                          indirect=True)
-def test_tf_backend(random_cls_dataset, linear_models):
+def test_backends(random_cls_dataset, linear_models):
     """Test that the Tensorflow and pytorch backends work as expected.
 
     This test creates a tensorflow model and a torch model and computes the gradients of each through the alibi backend
@@ -30,7 +24,6 @@ def test_tf_backend(random_cls_dataset, linear_models):
         w2.assign(w1.detach().numpy().T)
 
     (X_train, Y_train), (_, _) = random_cls_dataset
-
     X = _TensorFlowBackend.to_tensor(X_train)
     Y = _TensorFlowBackend.to_tensor(Y_train)
     tf_grads = _TensorFlowBackend.get_grads(tf_model, X, Y, tf_loss)

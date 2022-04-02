@@ -19,12 +19,17 @@ import torch
 from tensorflow import keras
 import tensorflow as tf
 
-from alibi.explainers.similarity.grad import SimilarityExplainer
+from alibi.explainers.similarity.grad import GradientSimilarity
 
-# ensure deterministic results
-tf.random.set_seed(0)
-np.random.seed(0)
-torch.manual_seed(0)
+
+def setup_function():
+    """Ensure deterministic results for each test run.
+
+    Note this is invoked for every test function in the module.
+    """
+    tf.random.set_seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
 
 
 def loss_torch(X, Y):
@@ -62,7 +67,7 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
     `torch` backend.
     """
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_torch,
@@ -84,7 +89,7 @@ def test_correct_grad_cos_sim_result_torch(ds):
     backend.
     """
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_torch,
@@ -107,7 +112,7 @@ def test_grad_cos_result_order_torch():
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_torch,
@@ -126,7 +131,7 @@ def test_grad_dot_result_order_torch():
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = nn.Linear(2, 1, bias=False)
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_torch,
@@ -149,7 +154,7 @@ def test_correct_grad_dot_sim_result_tf(normed_ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_tf,
@@ -171,7 +176,7 @@ def test_correct_grad_cos_sim_result_tf(ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_tf,
@@ -193,7 +198,7 @@ def test_grad_dot_result_order_tf():
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_tf,
@@ -213,7 +218,7 @@ def test_grad_cos_result_order_tf():
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         model,
         task='regression',
         loss_fn=loss_tf,

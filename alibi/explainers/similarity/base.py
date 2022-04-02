@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
 
 import numpy as np
 from tqdm import tqdm
@@ -23,7 +23,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  store_grads: bool = False,
                  backend: Framework = Framework.TENSORFLOW,
-                 device: 'Union[str, torch.device, None]' = None,
+                 device: 'Union[int, str, torch.device, None]' = None,
                  **kwargs
                  ):
         """Constructor
@@ -101,9 +101,12 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
     def _match_shape_to_data(self,
                              data: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-                             target_type: str) -> 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]':
-        """Verify the shape of `X` against the shape of the training data. If `X` is not a batch, reshape to be a single
-        batch element. i.e. if training data shape is `(3, 28, 28)` and data shape is `(3, 28, 28)` we reshape data to
+                             target_type: Literal['X', 'Y']) -> 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]':
+        """Verify the shape of `data` against the shape of the training data.
+
+        Used to ensure input is correct shape for gradient methods implemented in the backends. `data` will be the
+        features or label of the instance being explained. If the `data` is not a batch, reshape to be a single batch
+        element. i.e. if training data shape is `(3, 28, 28)` and data shape is `(3, 28, 28)` we reshape data to
         `(1, 3, 28, 28)`.
 
         Parameters
@@ -111,8 +114,9 @@ class BaseSimilarityExplainer(Explainer, ABC):
         data:
             Data to be matched shape-wise against the training data.
         target_type:
-            Type of data: ``'X'``, ``'x'`` | ``'Y'``, ``'y'``. Used to determine if data should take the shape of \
-            predictor input or predictor output.
+            Type of data: ``'X'`` | ``'Y'``. Used to determine if data should take the shape of predictor input or \
+            predictor output. ``'X'`` will utilize the `X_dims` attribute which stores the shape of the training data. \
+            ``'Y'`` will match the shape of `Y_dims` which is the shape of the target data.
 
         Raises
         ------
@@ -120,16 +124,16 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
             calling this method.
         """
-        target_shape = getattr(self, f'{target_type.upper()}_dims')
+        target_shape = getattr(self, f'{target_type}_dims')
         if data.shape == target_shape:
             data = data[None]
         if data.shape[1:] != target_shape:
-            raise ValueError(f'Input x has shape {data.shape[1:]} but training data has shape {target_shape}')
+            raise ValueError(f'Input `X` has shape {data.shape[1:]} but training data has shape {target_shape}')
         return data
 
     def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:
         """
-        Computes the similarity between the gradients/matrix `x` gradients of the test instances and all the training
+        Computes the similarity between the gradients/matrix `X` gradients of the test instances and all the training
         instances. The method performs the computation of the gradients of the training instance on the flight without
         storing them.
 

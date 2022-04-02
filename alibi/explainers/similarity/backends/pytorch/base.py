@@ -1,7 +1,7 @@
-"""Torch backend for similarity explainers.
+"""`torch` backend for similarity explainers.
 
-Methods unique to the Torch backend are defined here. The interface this class defines syncs with the torch backend in
-order to ensure that the similarity methods only require to match this interface.
+Methods unique to the `torch` backend are defined here. The interface this class defines syncs with the `tensorflow`
+backend in order to ensure that the similarity methods only require to match this interface.
 """
 
 from typing import Callable, Union, Optional
@@ -12,7 +12,7 @@ import torch
 
 
 class _TorchBackend(object):
-    device: Optional[torch.device] = None
+    device: Optional[torch.device] = None  # device used by `torch` backend
 
     @staticmethod
     def get_grads(
@@ -62,10 +62,9 @@ class _TorchBackend(object):
     def set_device(device: Union[str, int, torch.device, None] = None) -> None:
         """Sets the device to use for the backend.
 
-        Sets te device value on the class. Any subsequent calls to the backend will use this device.
-
-        Allows the user to set using string, integer or device object directly. This is so users can follow the pattern
-        recommended in https://pytorch.org/blog/pytorch-0_4_0-migration-guide/#writing-device-agnostic-code for writing
+        Allows the device used by the framework to be set using string, integer or device object directly. This is so
+        users can follow the pattern recommended in
+        https://pytorch.org/blog/pytorch-0_4_0-migration-guide/#writing-device-agnostic-code for writing
         device-agnostic code.
         """
         if isinstance(device, (int, str)):

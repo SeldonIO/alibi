@@ -21,7 +21,7 @@ if TYPE_CHECKING:
         TreeShap,
         CounterfactualRL,
         CounterfactualRLTabular,
-        SimilarityExplainer
+        GradientSimilarity
     )
 
 from alibi.version import __version__
@@ -375,7 +375,7 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
     return _helper_load_CounterfactualRL(path, predictor, explainer)
 
 
-def _save_SimilarityExplainer(explainer: 'SimilarityExplainer', path: Union[str, os.PathLike]) -> None:
+def _save_SimilarityExplainer(explainer: 'GradientSimilarity', path: Union[str, os.PathLike]) -> None:
     predictor = explainer.predictor
     explainer.predictor = None  # type: ignore[assignment]
 
@@ -387,7 +387,7 @@ def _save_SimilarityExplainer(explainer: 'SimilarityExplainer', path: Union[str,
 
 def _load_SimilarityExplainer(path: Union[str, os.PathLike],
                               predictor: 'Union[tf.keras.Model, torch.nn.Module]',
-                              meta: dict) -> 'SimilarityExplainer':
+                              meta: dict) -> 'GradientSimilarity':
     # load explainer
     with open(Path(path, "explainer.dill"), "rb") as f:
         explainer = dill.load(f)

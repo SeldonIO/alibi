@@ -5,12 +5,17 @@ import numpy as np
 import tensorflow as tf
 
 from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
-from alibi.explainers.similarity.grad import SimilarityExplainer
+from alibi.explainers.similarity.grad import GradientSimilarity
 
-# ensure deterministic results
-tf.random.set_seed(0)
-np.random.seed(0)
-torch.manual_seed(0)
+
+def setup_function():
+    """Ensure deterministic results for each test run.
+
+    Note this is invoked for every test function in the module.
+    """
+    tf.random.set_seed(0)
+    np.random.seed(0)
+    torch.manual_seed(0)
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
@@ -28,14 +33,13 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     params = get_flattened_model_parameters(model)
     (X_train, Y_train), (_, _) = random_cls_dataset
 
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         store_grads=True,
         backend=backend
     )
-
     # test stored gradients
     explainer.fit(X_train=X_train, Y_train=Y_train)
     assert explainer.grad_X_train.shape == (len(X_train), *params.shape)
@@ -61,7 +65,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     backend, model, loss_fn, target_fn = linear_cls_model
     (X_train, Y_train), (_, _) = random_cls_dataset
 
-    explainer = SimilarityExplainer(
+    explainer = GradientSimilarity(
         predictor=model,
         loss_fn=loss_fn,
         backend=backend,
@@ -97,7 +101,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
 
     # sim_fn is one of ['grad_dot', 'grad_cos']
     with pytest.raises(ValueError) as err:
-        SimilarityExplainer(
+        GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
             sim_fn='not_grad_dot',
@@ -105,10 +109,10 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
             backend=backend
         )
 
-    assert 'Unknown method not_grad_dot. Consider using: `grad_dot` | `grad_cos` | `grad_asym_dot`.' in str(err.value)
+    assert "Unknown method not_grad_dot. Consider using: 'grad_dot' | 'grad_cos' | 'grad_asym_dot'." in str(err.value)
 
     for sim_fn in ['grad_dot', 'grad_cos', 'grad_asym_dot']:
-        SimilarityExplainer(
+        GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
             sim_fn=sim_fn,
@@ -131,7 +135,7 @@ def test_method_task_error_messaging(linear_cls_model):
 
     # sim_fn is one of ['grad_dot', 'grad_cos']
     with pytest.raises(ValueError) as err:
-        SimilarityExplainer(
+        GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
             store_grads=False,
@@ -139,10 +143,10 @@ def test_method_task_error_messaging(linear_cls_model):
             task='not_classification'
         )
 
-    assert 'Unknown task not_classification. Consider using: `classification` | `regression`.' in str(err.value)
+    assert "Unknown task not_classification. Consider using: 'classification' | 'regression'." in str(err.value)
 
     for task in ['classification', 'regression']:
-        SimilarityExplainer(
+        GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
             store_grads=False,
@@ -160,12 +164,12 @@ def test_method_task_error_messaging(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_task_classification_input(random_cls_dataset, linear_cls_model):
     """
-    Classification task explainer works when `Y_train` is ``None``, a ``Callable`` or a ``np.ndarray``.
+    Classification task explainer works when `Y_train` is `None`, a `Callable` or a `np.ndarray`.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     (X_train, Y_train), (_, _) = random_cls_dataset
 
-    classification_explainer = SimilarityExplainer(
+    classification_explainer = GradientSimilarity(
         predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
@@ -199,7 +203,7 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
     backend, model, loss_fn, target_fn = linear_reg_model
     (X_train, Y_train), (_, _) = random_reg_dataset
 
-    regression_explainer = SimilarityExplainer(
+    regression_explainer = GradientSimilarity(
         predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',

@@ -26,7 +26,7 @@ def one_hot_grad(x, y):
 
 @tf.custom_gradient
 def argmax_grad(x):
-    argmax = tf._argmax(x)
+    argmax = tf.argmax(x)
 
     def grad(dy):
         """ Let gradients pass through. """

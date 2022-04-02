@@ -19,18 +19,17 @@ if TYPE_CHECKING:
     import torch
 
 
-class SimilarityExplainer(BaseSimilarityExplainer):
+class GradientSimilarity(BaseSimilarityExplainer):
 
     def __init__(self,
                  predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
-                 loss_fn: '''Callable[[Union[tensorflow.Tensor, torch.Tensor],
-                                    Union[tensorflow.Tensor, torch.Tensor]],
-                                   Union[tensorflow.Tensor, torch.Tensor]]''',
+                 loss_fn: '''Union[Callable[[tensorflow.Tensor, tensorflow.Tensor], tensorflow.Tensor],
+                                   Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Literal['grad_dot', 'grad_cos', 'grad_asym_dot'] = 'grad_dot',
                  task: Literal["classification", 'regression'] = 'classification',
                  store_grads: bool = False,
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
-                 device: 'Union[str, torch.device, None]' = None,
+                 device: 'Union[int, str, torch.device, None]' = None,
                  ):
         """Constructor
 
@@ -50,7 +49,11 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         backend:
             Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
         device:
-            Device to use. If ``None``, the default device for the backend is used.
+            Device to use. If ``None``, the default device for the backend is used. If using `torch` backend see
+            `torch device docs <https://pytorch.org/docs/stable/tensor_attributes.html#torch-device>`_ for correct
+            options. Note that in the `torch` backend case this parameter can be a ``torch.device``. If using
+            `tensorflow` backend see `tensorflow docs <https://www.tensorflow.org/api_docs/python/tf/device>`_ for
+            correct options.
         """
 
         self.meta = copy.deepcopy(DEFAULT_META_SIM)
@@ -68,17 +71,17 @@ class SimilarityExplainer(BaseSimilarityExplainer):
         }
 
         if sim_fn not in sim_fn_opts.keys():
-            raise ValueError(f'Unknown method {sim_fn}. Consider using: `{"` | `".join(sim_fn_opts.keys())}`.')
+            raise ValueError(f"""Unknown method {sim_fn}. Consider using: '{"' | '".join(sim_fn_opts.keys())}'.""")
 
         resolved_sim_fn = sim_fn_opts[sim_fn]
 
         if task not in ['classification', 'regression']:
-            raise ValueError(f'Unknown task {task}. Consider using: `classification` | `regression`.')
+            raise ValueError(f"Unknown task {task}. Consider using: 'classification' | 'regression'.")
 
         self.task = task
 
         if backend not in ['pytorch', 'tensorflow']:
-            raise ValueError(f'Unknown backend {backend}. Consider using: `pytorch` | `tensorflow` .')
+            raise ValueError(f"Unknown backend {backend}. Consider using: 'pytorch' | 'tensorflow' .")
 
         super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework.from_str(backend),
                          device=device, meta=self.meta)
@@ -110,7 +113,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             X = self.backend.to_tensor(X)
 
         if self.task == 'regression' and Y is None:
-            err_msg = 'Regression task requires a target value. `Y` must be provided, either as a value or a function.'
+            err_msg = "Regression task requires a target value. 'Y' must be provided, either as a value or a function."
             raise ValueError(err_msg)
 
         if Y is None:
@@ -180,7 +183,7 @@ class SimilarityExplainer(BaseSimilarityExplainer):
             The scores for each of the instances in the data set computed by the similarity method.
         """
         if self.X_train is None or self.Y_train is None:
-            raise ValueError('Training data is not available. Please call `fit` before calling `explain`.')
+            raise ValueError("Training data is not available. Please call 'fit' before calling 'explain'.")
 
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[::-1]

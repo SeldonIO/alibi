@@ -1,5 +1,6 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Literal, Optional
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Optional
+from typing_extensions import Literal
 
 import numpy as np
 from tqdm import tqdm

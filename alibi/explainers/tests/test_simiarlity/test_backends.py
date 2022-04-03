@@ -12,10 +12,10 @@ from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
                          [({'input_shape': (10,), 'output_shape': 10})],
                          indirect=True)
 def test_backends(random_cls_dataset, linear_models):
-    """Test that the Tensorflow and pytorch backends work as expected.
+    """Test that the `tensorflow` and `torch` backends work as expected.
 
-    This test creates a tensorflow model and a torch model and computes the gradients of each through the alibi backend
-    modules respectively. The test passes if the gradients are the same.
+    This test creates a `tensorflow` model and a `torch` model and computes the gradients of each through the alibi
+    backend modules respectively. The test passes if the gradients are the same.
     """
     tf_model, tf_loss, torch_model, torch_loss = linear_models
 

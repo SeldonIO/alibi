@@ -36,7 +36,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         Parameters
         ----------
         predictor:
-            model to explain.
+            Model to explain.
         loss_fn:
             Loss function used.
         sim_fn:
@@ -98,7 +98,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X:
             Input data requiring formatting.
         Y:
-            target data or function requiring formatting.
+            Target data or function requiring formatting.
 
         Returns
         -------
@@ -142,12 +142,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
         Parameters
         ----------
         X:
-            `X` can be a `numpy` array, `tensorflow` tensor, or `torch` tensor of same shape as the training data with
-            or without the batch dimension. If the batch dimension is missing it's added.
+            `X` can be a `numpy` array, `tensorflow` tensor, or `torch` tensor of the same shape as the training data
+            with or without the batch dimension. If the batch dimension is missing it's added.
         Y:
             `Y` can be a `numpy` array, `tensorflow` tensor, `torch` tensor or a function that returns one of these. It
             must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added. In
-            the case of a regression task the `Y` argument must be present. If the task is classification then `Y`
+            the case of a regression task, the `Y` argument must be present. If the task is classification then `Y`
             defaults to the model prediction.
 
         Returns

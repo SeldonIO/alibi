@@ -12,20 +12,25 @@ from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 
 
-def set_rdm_seed():
-    tf.random.set_seed(0)
-    np.random.seed(0)
-    torch.manual_seed(0)
+def set_seed(seed=0):
     # Python std lib random seed
-    random.seed(0)
-    # Numpy, tensorflow
-    np.random.seed(0)
-    tf.random.set_seed(0)
+    random.seed(seed)
+    # Numpy, tensorflow, torch
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+    tf.random.set_seed(seed)
     # Additional seeds potentially required when using a gpu
     # (see https://www.youtube.com/watch?v=TB07_mUMt0U&t=1804s)
     os.environ['TF_CUDNN_DETERMINISTIC'] = 'true'
     os.environ['TF_DETERMINISTIC_OPS'] = 'true'
-    os.environ['PYTHONHASHSEED'] = str(0)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
+
+@pytest.fixture(params=[0, 1, 2])
+def seed(request):
+    seed = request.param
+    set_seed(seed)
+    return seed
 
 
 def get_flattened_model_parameters(model):
@@ -43,7 +48,7 @@ def random_reg_dataset(request):
     """
     Constructs a random regression dataset with 1d target.
     """
-    set_rdm_seed()
+    set_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -62,7 +67,7 @@ def random_cls_dataset(request):
     """
     Constructs a random classification dataset with 10 labels.
     """
-    set_rdm_seed()
+    set_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
 
@@ -79,7 +84,7 @@ def random_cls_dataset(request):
 @pytest.fixture(scope='module')
 def linear_cls_model(request):
     """
-    Constructs a linear classification model, loss function and target function.
+    Constructs a linear classification model, loss function, and target function.
     """
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
@@ -96,7 +101,7 @@ def linear_cls_model(request):
     }[framework]()
 
     target_fn = {
-        'tensorflow': lambda x: np.argmax(model(x)),
+        'tensorflow': lambda x: np.argmax(model(x), axis=1),
         'pytorch': lambda x: torch.argmax(model(x), dim=1)
     }[framework]
 
@@ -106,7 +111,7 @@ def linear_cls_model(request):
 @pytest.fixture(scope='module')
 def linear_reg_model(request):
     """
-    Constructs a linear regression model, loss function and target function.
+    Constructs a linear regression model, loss function, and target function.
     """
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
@@ -135,7 +140,7 @@ def linear_models(request):
     """
     Constructs a pair of linear models and loss functions for tensorflow and torch.
     """
-    set_rdm_seed()
+    set_seed()
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     tf_model = tf_linear_model(input_shape, output_shape)
@@ -147,7 +152,7 @@ def linear_models(request):
 
 def tf_linear_model(input_shape, output_shape):
     """
-    Constructs a linear model for tensorflow.
+    Constructs a linear model for `tensorflow`.
     """
     return keras.Sequential([
         keras.layers.InputLayer(input_shape=input_shape),
@@ -158,7 +163,7 @@ def tf_linear_model(input_shape, output_shape):
 
 def torch_linear_model(input_shape_arg, output_shape_arg):
     """
-    Constructs a linear model for torch.
+    Constructs a linear model for `torch`.
     """
     input_size = np.prod(input_shape_arg).item()
 

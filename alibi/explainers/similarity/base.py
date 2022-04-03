@@ -133,9 +133,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
     def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:
         """
-        Computes the similarity between the gradients/matrix `X` gradients of the test instances and all the training
-        instances. The method performs the computation of the gradients of the training instance on the flight without
-        storing them.
+        Computes the similarity between the gradients of the test instances and all the training instances. The method
+        performs the computation of the gradients of the training instance on the fly without storing them.
 
         parameters
         ----------

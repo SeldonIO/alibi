@@ -62,7 +62,7 @@ class _TensorFlowBackend:
     def set_device(device: Union[str, None] = None) -> None:
         """Sets the device to use for the backend.
 
-        Sets te device value on the class. Any subsequent calls to the backend will use this device.
+        Sets the device value on the class. Any subsequent calls to the backend will use this device.
         """
         _TensorFlowBackend.device = device
 

@@ -1,21 +1,7 @@
 import pytest
 
-import torch
-import numpy as np
-import tensorflow as tf
-
 from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
 from alibi.explainers.similarity.grad import GradientSimilarity
-
-
-def setup_function():
-    """Ensure deterministic results for each test run.
-
-    Note this is invoked for every test function in the module.
-    """
-    tf.random.set_seed(0)
-    np.random.seed(0)
-    torch.manual_seed(0)
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)

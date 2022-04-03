@@ -15,11 +15,10 @@ import pytest
 
 import numpy as np
 import torch.nn as nn
-import torch
 from tensorflow import keras
-import tensorflow as tf
 
 from alibi.explainers.similarity.grad import GradientSimilarity
+from alibi.explainers.tests.test_simiarlity.conftest import set_seed
 
 
 def setup_function():
@@ -27,9 +26,7 @@ def setup_function():
 
     Note this is invoked for every test function in the module.
     """
-    tf.random.set_seed(0)
-    np.random.seed(0)
-    torch.manual_seed(0)
+    set_seed(0)
 
 
 def loss_torch(X, Y):
@@ -61,9 +58,9 @@ def normed_ds():
     return ds / np.linalg.norm(ds, axis=1, keepdims=True)
 
 
-def test_correct_grad_dot_sim_result_torch(normed_ds):
+def test_correct_grad_dot_sim_result_torch(seed, normed_ds):
     """
-    `grad_dot` method orders data points distributed on the unit circle by there angular separation. Test is applied to
+    `grad_dot` method orders data points distributed on the unit circle by their angular separation. Test is applied to
     `torch` backend.
     """
     model = nn.Linear(2, 1, bias=False)
@@ -83,9 +80,9 @@ def test_correct_grad_dot_sim_result_torch(normed_ds):
         last = current
 
 
-def test_correct_grad_cos_sim_result_torch(ds):
+def test_correct_grad_cos_sim_result_torch(seed, ds):
     """
-    `grad_cos` method orders normally distributed data points by there angular separation. Test is applied to `torch`
+    `grad_cos` method orders normally distributed data points by their angular separation. Test is applied to `torch`
     backend.
     """
     model = nn.Linear(2, 1, bias=False)
@@ -105,7 +102,7 @@ def test_correct_grad_cos_sim_result_torch(ds):
         last = current
 
 
-def test_grad_cos_result_order_torch():
+def test_grad_cos_result_order_torch(seed):
     """
     `grad_cos` finds data points with small angular separation to be more similar independent of length. Test is
     applied to `torch` backend.
@@ -125,7 +122,7 @@ def test_grad_cos_result_order_torch():
     assert (explanation['X_train'][-1] == ds[-1]).all()
 
 
-def test_grad_dot_result_order_torch():
+def test_grad_dot_result_order_torch(seed):
     """
     Size of datapoint overrides angular closeness for `grad_dot` similarity. Test is applied to `torch` backend.
     """
@@ -148,9 +145,9 @@ def loss_tf(y, x):
     return x
 
 
-def test_correct_grad_dot_sim_result_tf(normed_ds):
+def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
     """
-    `grad_dot` method orders data points distributed on the unit circle by there angular separation. Test is applied to
+    `grad_dot` method orders data points distributed on the unit circle by their angular separation. Test is applied to
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
@@ -170,9 +167,9 @@ def test_correct_grad_dot_sim_result_tf(normed_ds):
         last = current
 
 
-def test_correct_grad_cos_sim_result_tf(ds):
+def test_correct_grad_cos_sim_result_tf(seed, ds):
     """
-    `grad_cos` method orders normally distributed data points by there angular separation. Test is applied to
+    `grad_cos` method orders normally distributed data points by their angular separation. Test is applied to
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
@@ -192,7 +189,7 @@ def test_correct_grad_cos_sim_result_tf(ds):
         last = current
 
 
-def test_grad_dot_result_order_tf():
+def test_grad_dot_result_order_tf(seed):
     """
     Size of datapoint overrides angular closeness for `grad_dot` similarity. Test is applied to `torch` backend.
     """
@@ -211,7 +208,7 @@ def test_grad_dot_result_order_tf():
     assert (explanation['X_train'][-1] == ds[1]).all()
 
 
-def test_grad_cos_result_order_tf():
+def test_grad_cos_result_order_tf(seed):
     """
     `grad_cos` finds data points with small angular separation to be more similar independent of length. Test is
     applied to `tensorflow` backend.

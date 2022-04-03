@@ -1,6 +1,6 @@
-"""`torch` backend for similarity explainers.
+"""`pytorch` backend for similarity explainers.
 
-Methods unique to the `torch` backend are defined here. The interface this class defines syncs with the `tensorflow`
+Methods unique to the `pytorch` backend are defined here. The interface this class defines syncs with the `tensorflow`
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
@@ -11,8 +11,8 @@ import torch.nn as nn
 import torch
 
 
-class _TorchBackend(object):
-    device: Optional[torch.device] = None  # device used by `torch` backend
+class _PytorchBackend(object):
+    device: Optional[torch.device] = None  # device used by `pytorch` backend
 
     @staticmethod
     def get_grads(
@@ -50,13 +50,13 @@ class _TorchBackend(object):
         loss = loss_fn(output, Y)
         loss.backward()
         model.train(initial_model_state)
-        return np.concatenate([_TorchBackend.to_numpy(param.grad).reshape(-1)
+        return np.concatenate([_PytorchBackend.to_numpy(param.grad).reshape(-1)
                                for param in model.parameters()])
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> torch.Tensor:
-        """Converts a `numpy` array to a `torch` tensor and assigns to the backend device."""
-        return torch.tensor(X).to(_TorchBackend.device)
+        """Converts a `numpy` array to a `pytorch` tensor and assigns to the backend device."""
+        return torch.tensor(X).to(_PytorchBackend.device)
 
     @staticmethod
     def set_device(device: Union[str, int, torch.device, None] = None) -> None:
@@ -68,13 +68,13 @@ class _TorchBackend(object):
         device-agnostic code.
         """
         if isinstance(device, (int, str)):
-            _TorchBackend.device = torch.device(device)
+            _PytorchBackend.device = torch.device(device)
         elif isinstance(device, torch.device):
-            _TorchBackend.device = device
+            _PytorchBackend.device = device
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:
-        """Maps a `torch` tensor to a `numpy` array."""
+        """Maps a `pytorch` tensor to a `numpy` array."""
         return X.detach().cpu().numpy()
 
     @staticmethod

@@ -261,8 +261,8 @@ Default SimilarityExplainer metadata.
 """
 
 DEFAULT_DATA_SIM = {"scores": None,
-                    "X_train": None,
-                    "Y_train": None,
+                    "ordered_X_train": None,
+                    "ordered_Y_train": None,
                     "most_similar": None,
                     "least_similar": None}  # type: dict
 """

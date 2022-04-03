@@ -8,11 +8,12 @@ import tensorflow as tf
 import torch
 import torch.nn as nn
 
-from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
+from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 
 
 def set_seed(seed=0):
+    """Set random seed for reproducibility of tests."""
     # Python std lib random seed
     random.seed(seed)
     # Numpy, tensorflow, torch
@@ -38,7 +39,7 @@ def get_flattened_model_parameters(model):
     Returns a flattened list of all `torch` or `tensorflow` model parameters.
     """
     if isinstance(model, nn.Module):
-        return np.concatenate([_TorchBackend.to_numpy(p).reshape(-1) for p in model.parameters()])
+        return np.concatenate([_PytorchBackend.to_numpy(p).reshape(-1) for p in model.parameters()])
     elif isinstance(model, tf.keras.Model):
         return np.concatenate([_TensorFlowBackend.to_numpy(p).reshape(-1) for p in model.trainable_weights])
 

@@ -9,9 +9,9 @@ def dot(X: np.ndarray, Y: np.ndarray) -> Union[float, np.ndarray]:
 
     Parameters
     ----------
-    X:
+    X
         Matrix of vectors.
-    Y:
+    Y
         Single vector
 
     Returns
@@ -31,11 +31,11 @@ def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndar
 
     Parameters
     ----------
-    X:
+    X
         Matrix of vectors.
-    Y:
+    Y
         Single vector
-    eps:
+    eps
         Numerical stability.
 
     Returns
@@ -59,11 +59,11 @@ def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np
 
     Parameters
     ----------
-    X:
+    X
         Matrix of vectors.
-    Y:
+    Y
         Single vector.
-    eps:
+    eps
         Numerical stability.
 
     Returns

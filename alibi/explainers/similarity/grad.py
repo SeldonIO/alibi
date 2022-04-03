@@ -5,6 +5,7 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 
 import copy
 from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple, Literal
+from enum import Enum
 
 import numpy as np
 
@@ -13,10 +14,34 @@ from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import dot, cos, asym_dot
 from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
 from alibi.utils.frameworks import Framework
+from alibi.api.interfaces import Explainer
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
+
+
+class Task(Enum):
+    """
+    Enum of supported tasks.
+    """
+    CLASSIFICATION = "classification"
+    REGRESSION = "regression"
+
+    @staticmethod
+    def from_str(name: str):
+        return {
+            'classification': Task.CLASSIFICATION,
+            'regression': Task.REGRESSION
+        }[name]
+
+    @staticmethod
+    def values():
+        return {item.value for item in Task.__members__.values()}
+
+    @staticmethod
+    def options_string():
+        return f"""'{"' | '".join(Task.values())}'"""
 
 
 class GradientSimilarity(BaseSimilarityExplainer):
@@ -31,38 +56,33 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
                  device: 'Union[int, str, torch.device, None]' = None,
                  ):
-        """Constructor
+        """Constructor for GradientSimilarity explainer.
 
         Parameters
         ----------
-        predictor:
+        predictor
             Model to explain.
-        loss_fn:
-            Loss function used.
-        sim_fn:
+        loss_fn
+            Loss function used. The gradient of the loss function is used to compute the similarity between the test
+            instances and the training set. This should be the same loss used to train the model.
+        sim_fn
             Similarity function to use. ``'grad_dot'`` | ``'grad_cos'``. Default: ``'grad_dot'``.
-        task:
-            Task to perform. ``'classification'`` | ``'regression'``. Default: ``'classification'``.
-        store_grads:
-            Whether to store gradients. Default ``False``. If ``False``, gradients are computed on the fly otherwise we
-            store them which can be faster when it comes to explaining and instances.
-        backend:
-            Backend to use. ``'tensorflow'`` | ``'pytorch'``. Default: ``'tensorflow'``.
-        device:
-            Device to use. If ``None``, the default device for the backend is used. If using `torch` backend see
-            `torch device docs <https://pytorch.org/docs/stable/tensor_attributes.html#torch-device>`_ for correct
-            options. Note that in the `torch` backend case this parameter can be a ``torch.device``. If using
+        task
+            Task performed by the model. ``'classification'`` | ``'regression'``.
+        store_grads
+            Whether to store gradients. If ``False``, gradients are computed on the fly otherwise we store them which
+            can be faster when it comes to computing explanations. Storing gradients may be memory intensive if the
+            model is large.
+        backend
+            Backend to use. ``'tensorflow'`` | ``'pytorch'``.
+        device
+            Device to use. If ``None``, the default device for the backend is used. If using `pytorch` backend see
+            `pytorch device docs <https://pytorch.org/docs/stable/tensor_attributes.html#torch-device>`_ for correct
+            options. Note that in the `pytorch` backend case this parameter can be a ``torch.device``. If using
             `tensorflow` backend see `tensorflow docs <https://www.tensorflow.org/api_docs/python/tf/device>`_ for
             correct options.
         """
-
-        self.meta = copy.deepcopy(DEFAULT_META_SIM)
-        self.meta['params'].update(
-            sim_fn_name=sim_fn,
-            store_grads=store_grads,
-            backend_name=backend,
-            task_name=task
-        )
+        # TODO: add link to docs page for GradientSimilarity explainer in the docstring
 
         sim_fn_opts: Dict[str, Callable] = {
             'grad_dot': dot,
@@ -75,16 +95,43 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         resolved_sim_fn = sim_fn_opts[sim_fn]
 
-        if task not in ['classification', 'regression']:
-            raise ValueError(f"Unknown task {task}. Consider using: 'classification' | 'regression'.")
+        if task not in Task.values():
+            raise ValueError(f"Unknown task {task}. Consider using: {Task.options_string()}.")
 
-        self.task = task
+        self.task: Task = Task.from_str(task)
 
-        if backend not in ['pytorch', 'tensorflow']:
-            raise ValueError(f"Unknown backend {backend}. Consider using: 'pytorch' | 'tensorflow' .")
+        if backend not in Framework.values():
+            raise ValueError(f"Unknown backend {backend}. Consider using: {Framework.options_string()}.")
 
         super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework.from_str(backend),
-                         device=device, meta=self.meta)
+                         device=device, meta=copy.deepcopy(DEFAULT_META_SIM))
+
+        self.meta['params'].update(
+            sim_fn_name=sim_fn,
+            store_grads=store_grads,
+            backend_name=backend,
+            task_name=task
+        )
+
+    def fit(self,
+            X_train: np.ndarray,
+            Y_train: np.ndarray) -> "Explainer":
+        """Fit the explainer. If ``store_grads`` was set to ``True`` on initialization then the gradients are
+        precomputed and stored.
+
+        Parameters
+        ----------
+        X_train
+            Training data.
+        Y_train
+            Training labels.
+
+        Returns
+        -------
+        self
+            Returns self.
+        """
+        return super().fit(X_train, Y_train)
 
     def _preprocess_args(
             self,
@@ -95,16 +142,16 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         Parameters
         ----------
-        X:
+        X
             Input data requiring formatting.
-        Y:
+        Y
             Target data or function requiring formatting.
 
         Returns
         -------
-        X:
+        X
             Input data formatted for explain method.
-        Y:
+        Y
             Target data formatted for explain method.
 
         """
@@ -112,7 +159,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         if isinstance(X, np.ndarray):
             X = self.backend.to_tensor(X)
 
-        if self.task == 'regression' and Y is None:
+        if self.task == Task.REGRESSION and Y is None:
             err_msg = "Regression task requires a target value. 'Y' must be provided, either as a value or a function."
             raise ValueError(err_msg)
 
@@ -141,13 +188,13 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         Parameters
         ----------
-        X:
-            `X` can be a `numpy` array, `tensorflow` tensor, or `torch` tensor of the same shape as the training data
+        X
+            `X` can be a `numpy` array, `tensorflow` tensor, or `pytorch` tensor of the same shape as the training data
             with or without the batch dimension. If the batch dimension is missing it's added.
-        Y:
-            `Y` can be a `numpy` array, `tensorflow` tensor, `torch` tensor or a function that returns one of these. It
-            must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added. In
-            the case of a regression task, the `Y` argument must be present. If the task is classification then `Y`
+        Y
+            `Y` can be a `numpy` array, `tensorflow` tensor, `pytorch` tensor or a function that returns one of these.
+            It must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added.
+            In the case of a regression task, the `Y` argument must be present. If the task is classification then `Y`
             defaults to the model prediction.
 
         Returns
@@ -162,7 +209,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         Raises
         -------
-        ValueError:
+        ValueError
             If `Y` is ``None`` and the `task` is ``'regression'``.
         """
         self._verify_fit()
@@ -179,7 +226,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         Parameters
         ----------
-        scores:
+        scores
             The scores for each of the instances in the data set computed by the similarity method.
         """
         if self.X_train is None or self.Y_train is None:
@@ -189,8 +236,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(
             scores=scores[sorted_score_indices],
-            X_train=self.X_train[sorted_score_indices],
-            Y_train=self.Y_train[sorted_score_indices],
+            ordered_X_train=self.X_train[sorted_score_indices],
+            ordered_Y_train=self.Y_train[sorted_score_indices],
             most_similar=self.X_train[sorted_score_indices[0]],
             least_similar=self.X_train[sorted_score_indices[-1]],
         )

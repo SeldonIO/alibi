@@ -1,6 +1,6 @@
 """`tensorflow` backend for similarity explainers.
 
-Methods unique to the `tensorflow` backend are defined here. The interface this class defines syncs with the `torch`
+Methods unique to the `tensorflow` backend are defined here. The interface this class defines syncs with the `pytorch`
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
@@ -12,7 +12,7 @@ import tensorflow.keras as keras
 
 
 class _TensorFlowBackend:
-    device: Optional[str] = None  # device used by `torch` backend
+    device: Optional[str] = None  # device used by `tensorflow` backend
 
     @staticmethod
     def get_grads(
@@ -25,20 +25,20 @@ class _TensorFlowBackend:
         Computes the gradients of the loss function with respect to the model's parameters for a single training and
         target pair.
 
-        Parameters:
+        Parameters
         -----------
-        model:
+        model
             The model to compute gradients for.
-        X:
+        X
             The input data point.
-        Y:
+        Y
             The target data point.
-        loss_fn:
+        loss_fn
             The loss function to use.
 
-        Returns:
+        Returns
         --------
-        grads:
+        grads
             The gradients of the loss function with respect to the model's parameters. This is returned as a flattened \
             array.
         """

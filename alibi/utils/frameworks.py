@@ -12,6 +12,14 @@ class Framework(str, Enum):
             'tensorflow': Framework.TENSORFLOW
         }[name]
 
+    @staticmethod
+    def values():
+        return {item.value for item in Framework.__members__.values()}
+
+    @staticmethod
+    def options_string():
+        return f"""'{"' | '".join(Framework.values())}'"""
+
 
 try:
     import tensorflow as tf  # noqa

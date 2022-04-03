@@ -4,7 +4,7 @@ import torch
 import numpy as np
 
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
-from alibi.explainers.similarity.backends.pytorch.base import _TorchBackend
+from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
@@ -31,9 +31,9 @@ def test_backends(random_cls_dataset, linear_models):
                              for w in tf_model.trainable_weights])[None]
     assert params.shape[-1] == tf_grads.shape[-1]
 
-    X = _TorchBackend.to_tensor(X_train)
-    Y = _TorchBackend.to_tensor(Y_train).type(torch.LongTensor)
-    torch_grads = _TorchBackend.get_grads(torch_model, X, Y, torch_loss)
+    X = _PytorchBackend.to_tensor(X_train)
+    Y = _PytorchBackend.to_tensor(Y_train).type(torch.LongTensor)
+    torch_grads = _PytorchBackend.get_grads(torch_model, X, Y, torch_loss)
     params = np.concatenate([param.detach().numpy().reshape(-1)
                              for param in torch_model.parameters()])[None]
     assert torch_grads.shape[-1] == params.shape[-1]

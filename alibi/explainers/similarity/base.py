@@ -30,17 +30,17 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Parameters
         ----------
-        predictor:
+        predictor
             Model to be explained.
-        loss_fn:
+        loss_fn
             Loss function.
-        sim_fn:
+        sim_fn
             Similarity function. Takes two inputs and returns a similarity value.
-        store_grads:
+        store_grads
             Whether to precompute and store the gradients when fitting.
-        backend:
-            Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``.
-        device:
+        backend
+            Deep learning backend.
+        device
             Device to be used. Will default to the same device the backend defaults to.
         """
 
@@ -62,14 +62,14 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Parameters
         ----------
-        X_train:
+        X_train
             Training data.
-        Y_train:
+        Y_train
             Training labels.
 
         Returns
         -------
-        self:
+        self
             Returns self.
         """
         self.X_train: np.ndarray = X_train
@@ -92,7 +92,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Raises
         ------
-        ValueError:
+        ValueError
             If the explainer has not been fitted.
         """
 
@@ -111,16 +111,16 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Parameters
         ----------
-        data:
+        data
             Data to be matched shape-wise against the training data.
-        target_type:
+        target_type
             Type of data: ``'X'`` | ``'Y'``. Used to determine if data should take the shape of predictor input or \
             predictor output. ``'X'`` will utilize the `X_dims` attribute which stores the shape of the training data. \
             ``'Y'`` will match the shape of `Y_dims` which is the shape of the target data.
 
         Raises
         ------
-        ValueError:
+        ValueError
             If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
             calling this method.
         """
@@ -138,7 +138,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         parameters
         ----------
-        grad_X:
+        grad_X
             Gradients of the test instances.
         """
         scores = np.zeros(self.X_train.shape[0])
@@ -162,7 +162,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
 
         Parameters
         ----------
-        predictor:
+        predictor
             The new predictor to use.
         """
         self.predictor = predictor

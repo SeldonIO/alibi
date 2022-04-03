@@ -105,7 +105,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 MarkupSafe
-2.0.1
+2.1.1
 BSD License
 Copyright 2010 Pallets
 
@@ -778,7 +778,7 @@ the file ChangeLog history information documenting your changes.  Please read
 the FAQ for more information on the distribution of modified source versions.
 
 PyWavelets
-1.2.0
+1.3.0
 MIT License
 Copyright (c) 2006-2012 Filip Wasilewski <http://en.ig.ma/>
 Copyright (c) 2012-2020 The PyWavelets Developers <https://github.com/PyWavelets/pywt>
@@ -828,7 +828,7 @@ SOFTWARE.
 
 
 Werkzeug
-2.0.2
+2.0.3
 BSD License
 Copyright 2007 Pallets
 
@@ -1069,7 +1069,7 @@ Apache Software License
 
 alibi
 0.6.5.dev0
-Apache 2.0 License
+Apache Software License
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/
@@ -1369,8 +1369,8 @@ SOFTWARE.
 
 
 blis
-0.7.5
-MIT License
+0.7.6
+BSD License
 NOTE: Portions of this project's code are copyrighted by
 
   The University of Texas at Austin
@@ -1495,7 +1495,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.0.11
+2.0.12
 MIT License
 MIT License
 
@@ -1520,7 +1520,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 click
-8.0.3
+8.0.4
 BSD License
 Copyright 2014 Pallets
 
@@ -1865,7 +1865,7 @@ BSD License
 UNKNOWN
 
 filelock
-3.4.2
+3.6.0
 Public Domain
 This is free and unencumbered software released into the public domain.
 
@@ -1899,7 +1899,7 @@ Apache Software License
 UNKNOWN
 
 fonttools
-4.29.1
+4.31.0
 MIT License
 MIT License
 
@@ -1925,7 +1925,7 @@ SOFTWARE.
 
 
 gast
-0.4.0
+0.5.3
 BSD License
 Copyright (c) 2016, Serge Guelton
 All rights reserved.
@@ -1959,7 +1959,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.6.0
+2.6.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2578,7 +2578,7 @@ Apache Software License
 
 
 grpcio
-1.43.0
+1.44.0
 Apache Software License
 
                                  Apache License
@@ -3127,7 +3127,7 @@ THE SOFTWARE.
 
 
 imageio
-2.14.1
+2.16.1
 BSD License
 Copyright (c) 2014-2020, imageio developers
 All rights reserved.
@@ -3168,7 +3168,7 @@ different license (refer to the specific files for details):
 
 
 importlib-metadata
-4.10.1
+4.11.3
 Apache Software License
 Copyright 2017-2019 Jason R. Coombs, Barry Warsaw
 
@@ -3220,7 +3220,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 keras
-2.7.0
+2.8.0
 Apache Software License
 Copyright 2015-present The Keras Authors.  All rights reserved.
 
@@ -3415,7 +3415,7 @@ limitations under the License.
    END OF TERMS AND CONDITIONS
 
 kiwisolver
-1.3.2
+1.4.0
 BSD License
 =========================
  The Kiwi licensing terms
@@ -3957,13 +3957,13 @@ THE SOFTWARE.
 
 
 networkx
-2.6.3
+2.7.1
 BSD License
 NetworkX is distributed with the 3-clause BSD license.
 
 ::
 
-   Copyright (C) 2004-2021, NetworkX Developers
+   Copyright (C) 2004-2022, NetworkX Developers
    Aric Hagberg <hagberg@lanl.gov>
    Dan Schult <dschult@colgate.edu>
    Pieter Swart <swart@lanl.gov>
@@ -5010,7 +5010,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.4.0
+1.4.1
 BSD License
 BSD 3-Clause License
 
@@ -5472,7 +5472,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 regex
-2022.1.18
+2022.3.15
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -5903,7 +5903,7 @@ limitations under the License.
 
 
 sacremoses
-0.0.47
+0.0.49
 MIT License
 MIT License
 
@@ -5929,7 +5929,7 @@ SOFTWARE.
 
 
 scikit-image
-0.19.1
+0.19.2
 BSD License
 Copyright (C) 2019, the scikit-image team
 All rights reserved.
@@ -6049,7 +6049,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.7.3
+1.8.0
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc.  2003-2019, SciPy Developers.
 All rights reserved.
@@ -7066,11 +7066,11 @@ SOFTWARE.
 
 
 spacy
-3.2.1
+3.2.3
 MIT License
 The MIT License (MIT)
 
-Copyright (C) 2016-2021 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
+Copyright (C) 2016-2022 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -7092,7 +7092,7 @@ THE SOFTWARE.
 
 
 spacy-legacy
-3.0.8
+3.0.9
 MIT License
 MIT License
 
@@ -7778,7 +7778,7 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.7.1
+2.8.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -7982,31 +7982,27 @@ Apache Software License
    See the License for the specific language governing permissions and
    limitations under the License.
 
-------------------
-Files: third_party/compute_library/...
+## Some of TensorFlow's code is derived from Caffe, which is subject to the following copyright notice:
 
-MIT License
+COPYRIGHT
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+All contributions by the University of California:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Copyright (c) 2014, The Regents of the University of California (Regents)
+All rights reserved.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+All other contributions:
 
-------------------
-Files: ACKNOWLEDGEMENTS
+Copyright (c) 2014, the respective contributors
+All rights reserved.
+
+Caffe uses a shared copyright model: each contributor holds copyright over
+their contributions to Caffe. The project versioning records all such
+contribution and copyright details. If a contributor wants to further mark
+their specific copyright on a particular contribution, they should indicate
+their copyright solely in the commit message of the change when it is
+committed.
+
 LICENSE
 
 Redistribution and use in source and binary forms, with or without
@@ -8030,49 +8026,14 @@ modification, are permitted provided that the following conditions are met:
    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-------------------
-Files: third_party/hexagon
+CONTRIBUTION AGREEMENT
 
-Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted (subject to the limitations in the
-disclaimer below) provided that the following conditions are met:
-
-   * Redistributions of source code must retain the above copyright
-     notice, this list of conditions and the following disclaimer.
-
-   * Redistributions in binary form must reproduce the above
-     copyright notice, this list of conditions and the following
-     disclaimer in the documentation and/or other materials provided
-     with the distribution.
-
-   * Neither the name of The Linux Foundation nor the names of its
-     contributors may be used to endorse or promote products derived
-     from this software without specific prior written permission.
-
-NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-tensorflow-estimator
-2.7.0
-Apache Software License
-UNKNOWN
+By contributing to the BVLC/caffe repository through pull-request, comment,
+or otherwise, the contributor releases their content to the
+license and copyright terms herein.
 
 tensorflow-io-gcs-filesystem
-0.23.1
+0.24.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -8302,8 +8263,13 @@ THE SOFTWARE.
 
 
 
+tf-estimator-nightly
+2.8.0.dev2021122109
+Apache Software License
+UNKNOWN
+
 thinc
-8.0.13
+8.0.15
 MIT License
 The MIT License (MIT)
 
@@ -8357,7 +8323,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2022.2.2
+2022.3.16
 BSD License
 BSD 3-Clause License
 
@@ -8392,12 +8358,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 tokenizers
-0.11.4
+0.11.6
 Apache Software License
 UNKNOWN
 
 tqdm
-4.62.3
+4.63.0
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -8451,7 +8417,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.16.2
+4.17.0
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -8685,7 +8651,7 @@ THE SOFTWARE.
 
 
 typing-extensions
-4.0.1
+4.1.1
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================
@@ -8944,7 +8910,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 urllib3
-1.26.8
+1.26.9
 MIT License
 MIT License
 
@@ -8996,7 +8962,7 @@ THE SOFTWARE.
 
 
 wrapt
-1.13.3
+1.14.0
 BSD License
 Copyright (c) 2013-2019, Graham Dumpleton
 All rights reserved.

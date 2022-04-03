@@ -68,15 +68,15 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Loss function used. The gradient of the loss function is used to compute the similarity between the test
             instances and the training set. This should be the same loss used to train the model.
         sim_fn
-            Similarity function to use. ``'grad_dot'`` | ``'grad_cos'``. Default: ``'grad_dot'``.
+            Similarity function to use.
         task
-            Task performed by the model. ``'classification'`` | ``'regression'``.
+            Task performed by the model.
         store_grads
             Whether to store gradients. If ``False``, gradients are computed on the fly otherwise we store them which
             can be faster when it comes to computing explanations. Storing gradients may be memory intensive if the
             model is large.
         backend
-            Backend to use. ``'tensorflow'`` | ``'pytorch'``.
+            Backend to use.
         device
             Device to use. If ``None``, the default device for the backend is used. If using `pytorch` backend see
             `pytorch device docs <https://pytorch.org/docs/stable/tensor_attributes.html#torch-device>`_ for correct
@@ -118,8 +118,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
     def fit(self,
             X_train: np.ndarray,
             Y_train: np.ndarray) -> "Explainer":
-        """Fit the explainer. If ``store_grads`` was set to ``True`` on initialization then the gradients are
-        precomputed and stored.
+        """Fit the explainer.
+
+        The GradientSimilarity explainer requires the model gradients over the training data. In the explain method it
+        compares them to the model gradients for the test instance. If ``store_grads`` was set to ``True`` on
+        initialization then the gradients are precomputed here and stored. This will speed up the explain method call
+        but storing the gradients may not be feasible for large models.
 
         Parameters
         ----------
@@ -204,8 +208,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
         `Explanation` object containing the ordered similarity scores for the instance with additional metadata as \
         attributes. Contains the following data-related attributes
             -  `scores`: ``np.array`` - similarity scores for each instance in the training set.
-            -  `X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
-            -  `Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
+            -  `ordered_X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
+            -  `ordered_Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
             -  `most_similar`: ``np.array`` - most similar instances to the input.
             -  `least_similar`: ``np.array`` - least similar instances to the input.
 

@@ -190,7 +190,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         ----------
         X
             `X` can be a `numpy` array, `tensorflow` tensor, or `pytorch` tensor of the same shape as the training data
-            with or without the batch dimension. If the batch dimension is missing it's added.
+            with or without a leading batch dimension. If the batch dimension is missing it's added.
         Y
             `Y` can be a `numpy` array, `tensorflow` tensor, `pytorch` tensor or a function that returns one of these.
             It must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added.
@@ -211,6 +211,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
         -------
         ValueError
             If `Y` is ``None`` and the `task` is ``'regression'``.
+        ValueError
+            If the shape of `X` or `Y` does not match the shape of the training data
+        ValueError
+            If the fit method has not been called prior to calling this method.
         """
         self._verify_fit()
         X, Y = self._preprocess_args(X, Y)
@@ -229,9 +233,6 @@ class GradientSimilarity(BaseSimilarityExplainer):
         scores
             The scores for each of the instances in the data set computed by the similarity method.
         """
-        if self.X_train is None or self.Y_train is None:
-            raise ValueError("Training data is not available. Please call 'fit' before calling 'explain'.")
-
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(

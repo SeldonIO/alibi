@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch
 
 
-class _PytorchBackend(object):
+class _PytorchBackend:
     device: Optional[torch.device] = None  # device used by `pytorch` backend
 
     @staticmethod

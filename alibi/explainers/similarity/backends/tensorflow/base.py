@@ -54,7 +54,7 @@ class _TensorFlowBackend:
         return grad_X_train
 
     @staticmethod
-    def to_tensor(X: np.ndarray, **kwargs) -> tf.Tensor:
+    def to_tensor(X: np.ndarray) -> tf.Tensor:
         """Converts a `numpy` array to a `tensorflow` tensor."""
         return tf.convert_to_tensor(X)
 

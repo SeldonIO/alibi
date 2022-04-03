@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Any, Literal
+from typing import TYPE_CHECKING, Callable, Union, Tuple, Literal, Optional
 
 import numpy as np
 from tqdm import tqdm
@@ -24,7 +24,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  store_grads: bool = False,
                  backend: Framework = Framework.TENSORFLOW,
                  device: 'Union[int, str, torch.device, None]' = None,
-                 **kwargs
+                 meta: Optional[dict] = None,
                  ):
         """Constructor
 
@@ -42,6 +42,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Deep learning backend.
         device
             Device to be used. Will default to the same device the backend defaults to.
+        meta
+            Additional explainer metadata to be stored.
         """
 
         # Select backend.
@@ -53,7 +55,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.sim_fn = sim_fn
         self.store_grads = store_grads
 
-        super().__init__(**kwargs)
+        meta = {} if meta is None else meta
+        super().__init__(meta=meta)
 
     def fit(self,
             X_train: np.ndarray,
@@ -96,7 +99,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the explainer has not been fitted.
         """
 
-        if getattr(self, 'X_train', None) is None or getattr(self, 'Y_train', None) is None:
+        if not hasattr(self, 'X_train') or not hasattr(self, 'Y_train'):
             raise ValueError('Training data not set. Call `fit` and pass training data first.')
 
     def _match_shape_to_data(self,
@@ -157,7 +160,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Y = self.backend.to_tensor(Y)
         return self.backend.get_grads(self.predictor, X, Y, self.loss_fn)
 
-    def reset_predictor(self, predictor: Any) -> None:
+    def reset_predictor(self, predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]') -> None:
         """Resets the predictor to the given predictor.
 
         Parameters

@@ -221,20 +221,15 @@ class ProtoSelect(Explainer, FitMixin):
 
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
-                                       eps: float,
-                                       preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                                       batch_size: int = int(1e10)) -> KNeighborsClassifier:
+                                       eps: float) -> KNeighborsClassifier:
     # update explainer eps and get explanation
     explainer.eps = eps
     explanation = explainer.explain(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
     proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
-    proto_ft = _batch_preprocessing(X=proto,
-                                    preprocess_fn=preprocess_fn,
-                                    batch_size=batch_size) if (preprocess_fn is not None) else proto
     knn = KNeighborsClassifier(n_neighbors=1)
-    return knn.fit(X=proto_ft, y=proto_labels)
+    return knn.fit(X=proto, y=proto_labels)
 
 
 def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
@@ -293,23 +288,21 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     X_ref, X_ref_labels = refset
     X_proto = protoset[0]
 
+    if preprocess_fn is not None:
+        X_ref = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn, batch_size=batch_size)
+        X_proto = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn, batch_size=batch_size)
+
     # propose eps_range if not specified
     if eps_range is None:
-        dist = batch_compute_kernel_matrix(x=X_ref,
-                                           y=X_proto,
-                                           kernel=EuclideanDistance(),
-                                           batch_size=batch_size,
-                                           preprocess_fn=preprocess_fn).reshape(-1)
-
-        # compute quantiles to define the ranges
+        dist = batch_compute_kernel_matrix(x=X_ref, y=X_proto, kernel=EuclideanDistance()).reshape(-1)
         if quantiles is not None:
             if quantiles[0] > quantiles[1]:
                 raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
+
             quantiles = np.clip(quantiles, a_min=0, a_max=1)
             min_dist, max_dist = np.quantile(a=dist, q=quantiles)
         else:
             min_dist, max_dist = np.min(dist), np.max(dist)
-
         # define list of values for eps
         eps_range = np.linspace(min_dist, max_dist, num=grid_size)
 
@@ -322,43 +315,34 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             X_val, X_val_labels = X_ref[val_index], X_ref_labels[val_index]
 
             # define and fit explainer here, so we don't repeat the kernel matrix computation in the next for loop
-            explainer = ProtoSelect(kernel_distance=EuclideanDistance(),
-                                    eps=0,
-                                    batch_size=batch_size,
-                                    preprocess_fn=preprocess_fn,
-                                    **kwargs)
+            explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
             explainer = explainer.fit(X=X, X_labels=X_labels, Y=X_proto)
 
             for j in range(grid_size):
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
-                                                         eps=eps_range[j],
-                                                         preprocess_fn=preprocess_fn,
-                                                         batch_size=batch_size)
-
+                                                         eps=eps_range[j])
                 X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
                 scores[j][i] = knn.score(X_val_ft, X_val_labels)
 
-        # compute mean score across splitss
+        # compute mean score across splits
         scores = np.mean(scores, axis=-1)
     else:
         scores = np.zeros(grid_size)
         X_val, X_val_labels = valset
 
+        if preprocess_fn is not None:
+            X_val = _batch_preprocessing(X=X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
+
         # define and fit explainer, so we don't repeat the kernel matrix computation
-        explainer = ProtoSelect(kernel_distance=EuclideanDistance(),
-                                eps=0,
-                                batch_size=batch_size,
-                                preprocess_fn=preprocess_fn,
-                                **kwargs)
+        explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
         explainer = explainer.fit(X=X_ref, X_labels=X_ref_labels, Y=X_proto)
 
         for j in range(grid_size):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
-                                                     eps=eps_range[j],
-                                                     preprocess_fn=preprocess_fn,
-                                                     batch_size=batch_size)
+                                                     eps=eps_range[j])
+
             X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
             scores[j] = knn.score(X_val_ft, X_val_labels)
 
@@ -468,8 +452,10 @@ def visualize_prototypes(explanation: 'Explanation',
     X_proto_labels = explanation.data['prototypes_labels']
 
     # preprocess the dataset
-    X_ref_ft = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X_ref
-    X_proto_ft = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X_proto
+    X_ref_ft = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_ref
+    X_proto_ft = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_proto
 
     # train knn classifier
     knn = KNeighborsClassifier(n_neighbors=1)

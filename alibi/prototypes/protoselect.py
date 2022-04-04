@@ -4,10 +4,14 @@ import numpy as np
 import logging
 from tqdm import tqdm
 from copy import deepcopy
-from typing import Callable, Optional, Dict, List, Union, Any
+from typing import Callable, Optional, Dict, List, Union, Any, Tuple
+from sklearn.model_selection import KFold
+from sklearn.neighbors import KNeighborsClassifier
+
 from alibi.utils.distance import batch_compute_kernel_matrix
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
+from alibi.utils.kernel import EuclideanDistance
 
 logger = logging.getLogger(__name__)
 
@@ -209,3 +213,137 @@ class ProtoSelect(Explainer, FitMixin):
     @classmethod
     def load(cls, path: Union[str, os.PathLike], predictor: Optional[Any] = None) -> "Explainer":
         return super().load(path, predictor)
+
+
+def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
+                                       num_prototypes: int,
+                                       eps: float) -> KNeighborsClassifier:
+    # update explainer eps and get explanation
+    explainer.eps = eps
+    explanation = explainer.explain(num_prototypes=num_prototypes)
+
+    # train 1-knn classifier
+    proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
+    knn = KNeighborsClassifier(n_neighbors=1)
+    return knn.fit(X=proto, y=proto_labels)
+
+
+def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
+                             protoset: Tuple[np.ndarray, ],
+                             valset: Optional[Tuple[np.ndarray, np.ndarray]] = None,
+                             num_prototypes: int = 1,
+                             eps_range: Optional[np.ndarray] = None,
+                             quantiles: Optional[Tuple[float, float]] = None,
+                             grid_size: int = 25,
+                             n_splits: int = 2,
+                             batch_size: int = int(1e10),
+                             preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                             **kwargs) -> float:
+    """
+    Cross-validation parameter selection for ProtoSelect with Euclidean distance. The method computes
+    the best epsilon radius.
+
+    Parameters
+    ----------
+    refset
+        Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
+        labels.
+    protoset
+        Tuple, `(X_proto, )`, consisting of the prototypes selection set. Note that the argument is passed as a tuple
+        with a single element for consistency reasons.
+    valset
+        Optional tuple `(X_val, X_val_labels)` consisting of validation data instances with the corresponding
+        validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
+        In case ``valset=None``, then `n-splits` cross-validation is performed on the `refset`.
+    num_prototypes
+        The number of prototypes to be selected.
+    eps_range
+        Optional ranges of values to select the epsilon radius from. If not specified, the search range is
+        automatically proposed based on the inter-distances between `X_ref` and `X_proto`. The distances are filtered
+        by considering only values in between the `quantiles` values. The minimum and maximum distance values are
+        used to define the range of values to search the epsilon radius. The interval is discretized in `grid_size`
+        equal-distant bins.
+    quantiles
+        Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. See `eps_range` for
+        more details. If not specified, no filtering is applied. Only used if ``eps_range=None``.
+    grid_size
+        The number of equal-distant bins to be used to discretize the `eps_range` proposed interval. Only used if
+        ``eps_range=None``.
+    n_splits
+        The number of cross-validation splits to be used. Default value 2. Only used if ``valset=None``.
+    batch_size
+        Batch size to be used for kernel matrix computation.
+    preprocess_fn
+        Preprocessing function to be applied to the data instance before applying the kernel.
+
+    Returns
+    -------
+    Best epsilon radius according to the accuracy of a 1-KNN classifier.
+    """
+    # unpack datasets
+    X_ref, X_ref_labels = refset
+    X_proto = protoset[0]
+
+    # propose eps_range if not specified
+    if eps_range is None:
+        dist = batch_compute_kernel_matrix(x=X_ref,
+                                           y=X_proto,
+                                           kernel=EuclideanDistance(),
+                                           batch_size=batch_size,
+                                           preprocess_fn=preprocess_fn).reshape(-1)
+
+        # compute quantiles to define the ranges
+        if quantiles is not None:
+            if quantiles[0] > quantiles[1]:
+                raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
+            quantiles = np.clip(quantiles, a_min=0, a_max=1)
+            min_dist, max_dist = np.quantile(a=dist, q=quantiles)
+        else:
+            min_dist, max_dist = np.min(dist), np.max(dist)
+
+        # define list of values for eps
+        eps_range = np.linspace(min_dist, max_dist, num=grid_size)
+
+    if valset is None:
+        kf = KFold(n_splits=n_splits)
+        scores = np.zeros((grid_size, n_splits))
+
+        for i, (train_index, val_index) in enumerate(kf.split(X=X_ref, y=X_ref_labels)):
+            X, X_labels = X_ref[train_index], X_ref_labels[train_index]
+            X_val, X_val_labels = X_ref[val_index], X_ref_labels[val_index]
+
+            # define and fit explainer here, so we don't repeat the kernel matrix computation in the next for loop
+            explainer = ProtoSelect(kernel_distance=EuclideanDistance(),
+                                    eps=0,
+                                    batch_size=batch_size,
+                                    preprocess_fn=preprocess_fn,
+                                    **kwargs)
+            explainer = explainer.fit(X=X, X_labels=X_labels, Y=X_proto)
+
+            for j in range(grid_size):
+                knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
+                                                         num_prototypes=num_prototypes,
+                                                         eps=eps_range[j])
+                scores[j][i] = knn.score(X_val, X_val_labels)
+
+        # compute mean score across splits
+        scores = np.mean(scores, axis=-1)
+    else:
+        scores = np.zeros(grid_size)
+        X_val, X_val_labels = valset
+
+        # define and fit explainer, so we don't repeat the kernel matrix computation
+        explainer = ProtoSelect(kernel_distance=EuclideanDistance(),
+                                eps=0,
+                                batch_size=batch_size,
+                                preprocess_fn=preprocess_fn,
+                                **kwargs)
+        explainer = explainer.fit(X=X_ref, X_labels=X_ref_labels, Y=X_proto)
+
+        for j in range(grid_size):
+            knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
+                                                     num_prototypes=num_prototypes,
+                                                     eps=eps_range[j])
+            scores[j] = knn.score(X_val, X_val_labels)
+
+    return eps_range[np.argmax(scores)]

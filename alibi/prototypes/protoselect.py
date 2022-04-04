@@ -222,6 +222,23 @@ class ProtoSelect(Explainer, FitMixin):
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
                                        eps: float) -> KNeighborsClassifier:
+    """
+    Helper function to fit a 1-KNN classifier on the prototypes returned by the explainer.
+    Sets the epsilon radius to be used.
+
+    Parameters
+    ----------
+    explainer
+        Fitted explainer.
+    num_prototypes
+        Number of requested prototypes.
+    eps
+        Epsilon radius to be set and used for the computation of prototypes.
+
+    Returns
+    -------
+    Fitted KNN-classifier.
+    """
     # update explainer eps and get explanation
     explainer.eps = eps
     explanation = explainer.explain(num_prototypes=num_prototypes)
@@ -353,7 +370,7 @@ def _batch_preprocessing(X: np.ndarray,
                          preprocess_fn: Callable[[np.ndarray], np.ndarray],
                          batch_size: int = 32) -> np.ndarray:
     """
-    Preprocess a dataset X in batches by applying the preprocessor function.
+    Preprocess a dataset `X` in batches by applying the preprocessor function.
 
     Parameters
     ----------
@@ -362,7 +379,7 @@ def _batch_preprocessing(X: np.ndarray,
     preprocess_fn
         Preprocessor function.
     batch_size
-        Batch size to be used
+        Batch size to be used for each call to `preprocess_fn`.
 
     Returns
     -------
@@ -382,32 +399,32 @@ def _imscatterplot(x: np.ndarray,
                    y: np.ndarray,
                    images: np.ndarray,
                    figsize: Tuple[int, int],
-                   output_shape: Tuple[int, int] = (28, 28),
+                   image_size: Tuple[int, int] = (28, 28),
                    zoom: Optional[np.ndarray] = None,
                    zoom_lb: float = 1.0,
                    zoom_ub=2.0,
                    sort_by_zoom: bool = True) -> None:
     """
-    Image scatter plot.
+    2D image scatter plot.
 
     Parameters
     ----------
     x
-        x-coordinates.
+        Images' x-coordinates.
     y
-        y-coordinates.
+        Images' y-coordinates.
     images
-        Array of images to be placed at coordinates (x, y).
+        Array of images to be placed at coordinates `(x, y)`.
     figsize
         `Matplotlib` figure size.
-    output_shape
+    image_size
         Size of the generated output image as `(rows, cols)`.
     zoom
-        Images zoom.
+        Images' zoom to be used.
     zoom_lb
-        Zoom lower bound. The zoom values will be scaled linearly between [zoom_lb, zoom_up].
+        Zoom lower bound. The zoom values will be scaled linearly between `[zoom_lb, zoom_up]`.
     zoom_ub
-        Zoom upper bound. The zoom values will be scaled linearly between [zoom_lb, zoom_up].
+        Zoom upper bound. The zoom values will be scaled linearly between `[zoom_lb, zoom_up]`.
     """
     if zoom is None:
         zoom = np.ones(len(images))
@@ -424,7 +441,7 @@ def _imscatterplot(x: np.ndarray,
     ax.set_xticks([])
     ax.set_yticks([])
 
-    images = [resize(images[i], output_shape) for i in range(len(images))]
+    images = [resize(images[i], image_size) for i in range(len(images))]
     imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(images)]
     artists = []
 
@@ -442,11 +459,35 @@ def visualize_prototypes(explanation: 'Explanation',
                          reducer: Callable[[np.ndarray], np.ndarray],
                          preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                          figsize: Tuple[int, int] = (10, 10),
-                         dsize: Tuple[int, int] = (28, 28),
+                         image_size: Tuple[int, int] = (28, 28),
                          zoom_lb: float = 1.0,
                          zoom_ub: float = 3.0):
+    """
+    Plot the images of the prototypes at the location given by the `reducer` representation.
+    The size of each prototype is proportional to the log of the number of correct-class training images covered
+    by that prototype (Bien and Tibshiran (2012): https://arxiv.org/abs/1202.5933).
 
-    # unpack data
+    Parameters
+    ----------
+    explanation
+        Explanation object.
+    refset
+        Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
+        labels.
+    reducer
+        2D reducer. Reduces the input feature representation to 2D. Note that the reducer operated directly on the
+        input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
+        on the feature representation obtained after calling `preprocess_fn` on the input instances.
+    figsize
+        `Matplotlib` figure size.
+    image_size
+        Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
+        `image_size`.
+    zoom_lb
+        Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+    zoom_ub
+        Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+    """
     X_ref, X_ref_labels = refset
     X_proto = explanation.data['prototypes']
     X_proto_labels = explanation.data['prototypes_labels']
@@ -476,11 +517,11 @@ def visualize_prototypes(explanation: 'Explanation',
     zoom = np.log([correct.get(i, 0) for i in covered])
 
     # compute 2D embedding
-    X_protos_umap = reducer(X_proto_ft)
-    x, y = X_protos_umap[:, 0], X_protos_umap[:, 1]
+    X_protos_2d = reducer(X_proto_ft)
+    x, y = X_protos_2d[:, 0], X_protos_2d[:, 1]
 
     # plot images
-    _imscatterplot(x=x, y=y, images=X_proto, figsize=figsize, output_shape=dsize,
+    _imscatterplot(x=x, y=y, images=X_proto, figsize=figsize, image_size=image_size,
                    zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)
 
 

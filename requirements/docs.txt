@@ -14,5 +14,3 @@ ipython>=7.2.0, <8.0.0 # required for executing notebooks nbsphinx
 shap>=0.40.0, <0.41.0 # https://github.com/SeldonIO/alibi/issues/333
 # pandoc
 # pandoc==1.19.2 # NB: as this is not a Python library, it should be installed manually on the system or via a package manager such as `conda`
-
-jinja2<3.1.0  # temporary fix for nbconvert issue https://github.com/jupyter/nbconvert/issues/1736

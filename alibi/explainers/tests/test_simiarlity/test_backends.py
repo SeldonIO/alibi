@@ -7,7 +7,7 @@ from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBack
 from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
 
 
-@pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
+@pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_models',
                          [({'input_shape': (10,), 'output_shape': 10})],
                          indirect=True)

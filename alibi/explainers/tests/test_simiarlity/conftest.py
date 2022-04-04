@@ -52,9 +52,9 @@ def random_reg_dataset(request):
     Constructs a random regression dataset with 1d target.
     """
     set_seed()
-    shape = request.param.get('shape', (10, ))
+    shape = request.param.get('shape', 10)
     size = request.param.get('size', 100)
-    X, Y = make_regression(n_samples=2*size, n_features=shape[0], n_informative=10)
+    X, Y = make_regression(n_samples=2*size, n_features=shape, n_informative=10)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
     Y_train, Y_test = Y_train[:, None].astype(np.float32), Y_test[:, None].astype(np.float32)
     return (X_train, Y_train), (X_test, Y_test)
@@ -66,9 +66,9 @@ def random_cls_dataset(request):
     Constructs a random classification dataset with 10 labels.
     """
     set_seed()
-    shape = request.param.get('shape', (10, ))
+    shape = request.param.get('shape', 10)
     size = request.param.get('size', 100)
-    X, Y = make_classification(n_samples=2*size, n_features=shape[0], n_classes=10, n_informative=10, n_redundant=0)
+    X, Y = make_classification(n_samples=2*size, n_features=shape, n_classes=10, n_informative=10, n_redundant=0)
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
     return (X_train, Y_train), (X_test, Y_test)
 

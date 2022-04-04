@@ -4,7 +4,7 @@ from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_
 from alibi.explainers.similarity.grad import GradientSimilarity, Task
 
 
-@pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
+@pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
                              ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
@@ -35,7 +35,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     assert result.data['ordered_Y_train'].shape == (100, )
 
 
-@pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
+@pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
                              ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
@@ -141,7 +141,7 @@ def test_method_task_error_messaging(linear_cls_model):
         )
 
 
-@pytest.mark.parametrize('random_cls_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
+@pytest.mark.parametrize('random_cls_dataset', [({'shape':  10, 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_cls_model',
                          [
                              ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
@@ -171,7 +171,7 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
     classification_explainer.explain(X_train[0:1], target_fn)
 
 
-@pytest.mark.parametrize('random_reg_dataset', [({'shape': (10,), 'size': 100})], indirect=True)
+@pytest.mark.parametrize('random_reg_dataset', [({'shape': 10, 'size': 100})], indirect=True)
 @pytest.mark.parametrize('linear_reg_model',
                          [
                              ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),

@@ -7,6 +7,8 @@ from tensorflow import keras
 import tensorflow as tf
 import torch
 import torch.nn as nn
+from sklearn.datasets import make_classification, make_regression
+from sklearn.model_selection import train_test_split
 
 from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
@@ -52,14 +54,9 @@ def random_reg_dataset(request):
     set_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
-
-    # define random train set
-    X_train = np.random.randn(size, *shape).astype(np.float32)
-    Y_train = np.random.randn(size, 1).astype(np.float32)
-
-    # define random test set
-    X_test = np.random.randn(size, *shape).astype(np.float32)
-    Y_test = np.random.randn(size, 1).astype(np.float32)
+    X, Y = make_regression(n_samples=2*size, n_features=shape[0], n_informative=10)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
+    Y_train, Y_test = Y_train[:, None].astype(np.float32), Y_test[:, None].astype(np.float32)
     return (X_train, Y_train), (X_test, Y_test)
 
 
@@ -71,14 +68,8 @@ def random_cls_dataset(request):
     set_seed()
     shape = request.param.get('shape', (10, ))
     size = request.param.get('size', 100)
-
-    # define random train set
-    X_train = np.random.randn(size, *shape)
-    Y_train = np.random.randint(low=0, high=10, size=size).astype(np.int64)
-
-    # define random test set
-    X_test = np.random.randn(size, *shape)
-    Y_test = np.random.randint(low=0, high=10, size=size).astype(np.int64)
+    X, Y = make_classification(n_samples=2*size, n_features=shape[0], n_classes=10, n_informative=10, n_redundant=0)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
     return (X_train, Y_train), (X_test, Y_test)
 
 

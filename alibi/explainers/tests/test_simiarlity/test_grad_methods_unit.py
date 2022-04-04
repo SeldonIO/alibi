@@ -188,7 +188,6 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
 
     backend, model, loss_fn, target_fn = linear_reg_model
     (X_train, Y_train), (_, _) = random_reg_dataset
-
     regression_explainer = GradientSimilarity(
         predictor=model,
         loss_fn=loss_fn,

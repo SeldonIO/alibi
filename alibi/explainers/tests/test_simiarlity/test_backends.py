@@ -40,4 +40,4 @@ def test_backends(random_cls_dataset, linear_models):
 
     torch_grads = np.sort(torch_grads)
     tf_grads = np.sort(tf_grads)
-    np.testing.assert_allclose(torch_grads, tf_grads, rtol=1e-05)
+    np.testing.assert_allclose(torch_grads, tf_grads, rtol=1e-04)

@@ -1,12 +1,16 @@
 import os
-
-import numpy as np
 import logging
+import numpy as np
+
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+
 from tqdm import tqdm
 from copy import deepcopy
 from typing import Callable, Optional, Dict, List, Union, Any, Tuple
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
+from skimage.transform import resize
 
 from alibi.utils.distance import batch_compute_kernel_matrix
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -217,15 +221,20 @@ class ProtoSelect(Explainer, FitMixin):
 
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
-                                       eps: float) -> KNeighborsClassifier:
+                                       eps: float,
+                                       preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                                       batch_size: int = int(1e10)) -> KNeighborsClassifier:
     # update explainer eps and get explanation
     explainer.eps = eps
     explanation = explainer.explain(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
     proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
+    proto_ft = _batch_preprocessing(X=proto,
+                                    preprocess_fn=preprocess_fn,
+                                    batch_size=batch_size) if (preprocess_fn is not None) else proto
     knn = KNeighborsClassifier(n_neighbors=1)
-    return knn.fit(X=proto, y=proto_labels)
+    return knn.fit(X=proto_ft, y=proto_labels)
 
 
 def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
@@ -323,10 +332,14 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             for j in range(grid_size):
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
-                                                         eps=eps_range[j])
-                scores[j][i] = knn.score(X_val, X_val_labels)
+                                                         eps=eps_range[j],
+                                                         preprocess_fn=preprocess_fn,
+                                                         batch_size=batch_size)
 
-        # compute mean score across splits
+                X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
+                scores[j][i] = knn.score(X_val_ft, X_val_labels)
+
+        # compute mean score across splitss
         scores = np.mean(scores, axis=-1)
     else:
         scores = np.zeros(grid_size)
@@ -343,7 +356,145 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         for j in range(grid_size):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
-                                                     eps=eps_range[j])
-            scores[j] = knn.score(X_val, X_val_labels)
+                                                     eps=eps_range[j],
+                                                     preprocess_fn=preprocess_fn,
+                                                     batch_size=batch_size)
+            X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
+            scores[j] = knn.score(X_val_ft, X_val_labels)
 
     return eps_range[np.argmax(scores)]
+
+
+def _batch_preprocessing(X: np.ndarray,
+                         preprocess_fn: Callable[[np.ndarray], np.ndarray],
+                         batch_size: int = 32) -> np.ndarray:
+    """
+    Preprocess a dataset X in batches by applying the preprocessor function.
+
+    Parameters
+    ----------
+    X
+        Dataset to be preprocessed.
+    preprocess_fn
+        Preprocessor function.
+    batch_size
+        Batch size to be used
+
+    Returns
+    -------
+    Preprocessed dataset.
+    """
+    X_ft = []
+    num_iter = int(np.ceil(len(X) / batch_size))
+
+    for i in range(num_iter):
+        istart, iend = batch_size * i, min(batch_size * (i + 1), len(X))
+        X_ft.append(preprocess_fn(X[istart:iend]))
+
+    return np.concatenate(X_ft, axis=0)
+
+
+def _imscatterplot(x: np.ndarray,
+                   y: np.ndarray,
+                   images: np.ndarray,
+                   figsize: Tuple[int, int],
+                   output_shape: Tuple[int, int] = (28, 28),
+                   zoom: Optional[np.ndarray] = None,
+                   zoom_lb: float = 1.0,
+                   zoom_ub=2.0,
+                   sort_by_zoom: bool = True) -> None:
+    """
+    Image scatter plot.
+
+    Parameters
+    ----------
+    x
+        x-coordinates.
+    y
+        y-coordinates.
+    images
+        Array of images to be placed at coordinates (x, y).
+    figsize
+        `Matplotlib` figure size.
+    output_shape
+        Size of the generated output image as `(rows, cols)`.
+    zoom
+        Images zoom.
+    zoom_lb
+        Zoom lower bound. The zoom values will be scaled linearly between [zoom_lb, zoom_up].
+    zoom_ub
+        Zoom upper bound. The zoom values will be scaled linearly between [zoom_lb, zoom_up].
+    """
+    if zoom is None:
+        zoom = np.ones(len(images))
+
+    zoom_min, zoom_max = np.min(zoom), np.max(zoom)
+    zoom = (zoom - zoom_min) / (zoom_max - zoom_min) * (zoom_ub - zoom_lb) + zoom_lb
+
+    if sort_by_zoom:
+        idx = np.argsort(zoom)[::-1]
+        zoom = zoom[idx]
+        x, y, images = x[idx], y[idx], images[idx]
+
+    fig, ax = plt.subplots(figsize=figsize)
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    images = [resize(images[i], output_shape) for i in range(len(images))]
+    imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(images)]
+    artists = []
+
+    for i in range(len(imgs)):
+        x0, y0, im = x[i], y[i], imgs[i]
+        ab = AnnotationBbox(im, (x0, y0), xycoords='data', frameon=False)
+        artists.append(ax.add_artist(ab))
+
+    ax.update_datalim(np.column_stack([x, y]))
+    ax.autoscale()
+
+
+def visualize_prototypes(explanation: 'Explanation',
+                         refset: Tuple[np.ndarray, np.ndarray],
+                         reducer: Callable[[np.ndarray], np.ndarray],
+                         preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                         figsize: Tuple[int, int] = (10, 10),
+                         dsize: Tuple[int, int] = (28, 28),
+                         zoom_lb: float = 1.0,
+                         zoom_ub: float = 3.0):
+
+    # unpack data
+    X_ref, X_ref_labels = refset
+    X_proto = explanation.data['prototypes']
+    X_proto_labels = explanation.data['prototypes_labels']
+
+    # preprocess the dataset
+    X_ref_ft = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X_ref
+    X_proto_ft = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X_proto
+
+    # train knn classifier
+    knn = KNeighborsClassifier(n_neighbors=1)
+    knn = knn.fit(X=X_proto_ft, y=X_proto_labels)
+
+    # get neighbors indices for each training instance
+    neigh_idx = knn.kneighbors(X=X_ref_ft, n_neighbors=1)[1].reshape(-1)
+
+    # compute how many training instances each prototype covers
+    idx, counts = np.unique(neigh_idx, return_counts=True)
+    covered = {i: c for i, c in zip(idx, counts)}
+
+    # compute how many correct labeled instances each prototype covers
+    idx, counts = np.unique(neigh_idx[X_proto_labels[neigh_idx] == X_ref_labels], return_counts=True)
+    correct = {i: c for i, c in zip(idx, counts)}
+
+    # compute zoom
+    zoom = np.log([correct.get(i, 0) for i in covered])
+
+    # compute 2D embedding
+    X_protos_umap = reducer(X_proto_ft)
+    x, y = X_protos_umap[:, 0], X_protos_umap[:, 1]
+
+    # plot images
+    _imscatterplot(x=x, y=y, images=X_proto, figsize=figsize, output_shape=dsize,
+                   zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)
+
+

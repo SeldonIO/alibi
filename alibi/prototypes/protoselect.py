@@ -339,8 +339,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
                                                          eps=eps_range[j])
-                X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
-                scores[j][i] = knn.score(X_val_ft, X_val_labels)
+                scores[j][i] = knn.score(X_val, X_val_labels)
 
         # compute mean score across splits
         scores = np.mean(scores, axis=-1)
@@ -359,9 +358,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
                                                      eps=eps_range[j])
-
-            X_val_ft = preprocess_fn(X_val) if (preprocess_fn is not None) else X_val
-            scores[j] = knn.score(X_val_ft, X_val_labels)
+            scores[j] = knn.score(X_val, X_val_labels)
 
     return eps_range[np.argmax(scores)]
 

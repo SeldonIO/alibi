@@ -12,7 +12,7 @@ exec(open('alibi/version.py').read())
 
 def get_extra_requires(path, add_all=True):
     """
-    Reads and inverts the requirements in extra-requirements.txt
+    Reads and inverts the requirements in requirements/extra.txt
     """
     import re
     from collections import defaultdict
@@ -77,7 +77,7 @@ if __name__ == '__main__':
               "License :: OSI Approved :: Apache Software License",
               "Topic :: Scientific/Engineering",
           ],
-          extras_require=get_extra_requires('./extra-requirements.txt'),
+          extras_require=get_extra_requires('requirements/extra.txt'),
           test_suite='tests',
           zip_safe=False,
-    )
+      )

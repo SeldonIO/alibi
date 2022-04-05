@@ -223,7 +223,7 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
                                        eps: float,
                                        preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
-                                       ) -> KNeighborsClassifier:
+                                       ) -> Optional[KNeighborsClassifier]:
     """
     Helper function to fit a 1-KNN classifier on the prototypes returned by the explainer.
     Sets the epsilon radius to be used.
@@ -249,8 +249,8 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
 
     # train 1-knn classifier
     proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
-    if preprocess_fn is not None:
-        proto = preprocess_fn(proto)
+    if len(proto) == 0:
+        return None
 
     knn = KNeighborsClassifier(n_neighbors=1)
     return knn.fit(X=proto, y=proto_labels)
@@ -346,6 +346,8 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
                                                          eps=eps_range[j])
+                if knn is None:
+                    continue
                 scores[j][i] = knn.score(X_val, X_val_labels)
 
         # compute mean score across splits
@@ -364,7 +366,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         for j in range(grid_size):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
-                                                     eps=eps_range[j])
+                                                     eps=eps_range[j],
+                                                     preprocess_fn=preprocess_fn)
+            if knn is None:
+                continue
             scores[j] = knn.score(X_val, X_val_labels)
 
     return eps_range[np.argmax(scores)]

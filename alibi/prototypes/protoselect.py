@@ -221,7 +221,9 @@ class ProtoSelect(Explainer, FitMixin):
 
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
-                                       eps: float) -> KNeighborsClassifier:
+                                       eps: float,
+                                       preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
+                                       ) -> KNeighborsClassifier:
     """
     Helper function to fit a 1-KNN classifier on the prototypes returned by the explainer.
     Sets the epsilon radius to be used.
@@ -234,6 +236,8 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
         Number of requested prototypes.
     eps
         Epsilon radius to be set and used for the computation of prototypes.
+     preprocess_fn
+        Preprocessing function to be applied to the data instance before fitting the 1-KNN classifier
 
     Returns
     -------
@@ -245,6 +249,9 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
 
     # train 1-knn classifier
     proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
+    if preprocess_fn is not None:
+        proto = preprocess_fn(proto)
+
     knn = KNeighborsClassifier(n_neighbors=1)
     return knn.fit(X=proto, y=proto_labels)
 

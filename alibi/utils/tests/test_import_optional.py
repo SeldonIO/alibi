@@ -37,6 +37,11 @@ class TestImportOptional:
         assert 'thispackagedoesnotexist' in str(err.value)
         assert 'pip install alibi[all]' in str(err.value)
 
+        with pytest.raises(ImportError) as err:
+            package(0, 'test')  # noqa
+        assert 'thispackagedoesnotexist' in str(err.value)
+        assert 'pip install alibi[all]' in str(err.value)
+
     def test_import_optional_names_missing(self):
         """Test import_optional correctly replaces names from module that doesn't exist with MissingDependencies."""
         nonexistent_function_1, nonexistent_function_2 = import_optional(

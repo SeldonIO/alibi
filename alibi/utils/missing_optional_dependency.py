@@ -69,7 +69,7 @@ class MissingDependency(type):
         """Raise an error when attributes are accessed."""
         raise ImportError(cls.err_msg) from cls.err
 
-    def __call__(cls):
+    def __call__(cls, *args, **kwargs):
         """Raise an error if initialized."""
         raise ImportError(cls.err_msg) from cls.err
 

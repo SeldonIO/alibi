@@ -35,7 +35,7 @@ class ProtoSelect(Explainer, FitMixin):
         Parameters
         ----------
         kernel_distance
-            Kernel to be used. Use `GaussianRBFDistance` or `EuclideanDistance`.
+            Kernel to be used. Use `EuclideanDistance`.
         eps
             Epsilon ball size.
         lbd
@@ -125,7 +125,7 @@ class ProtoSelect(Explainer, FitMixin):
         Parameters
         ----------
         num_prototypes
-            Number of prototypes to be selected.
+            Number of maximum prototypes to be selected.
 
         Returns
         -------

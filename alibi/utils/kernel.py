@@ -127,5 +127,5 @@ class EuclideanDistance:
         """
         y = y.astype(x.dtype)
         x, y = x.reshape((x.shape[0], -1)), y.reshape((y.shape[0], -1))  # flatten
-        dist = squared_pairwise_distance(x, y)  # [Nx, Ny]
+        dist = np.sqrt(squared_pairwise_distance(x, y))  # [Nx, Ny]
         return dist

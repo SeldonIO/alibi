@@ -79,7 +79,7 @@ def test_EuclideanDistance(size, ft_size):
     kmatrix1 = np.empty((size, size))
     for i in range(size):
         for j in range(size):
-            kmatrix1[i, j] = np.linalg.norm(X[i] - Y[j])**2
+            kmatrix1[i, j] = np.linalg.norm(X[i] - Y[j])
 
     kernel_distance = EuclideanDistance()
     kmatrix2 = kernel_distance(X, Y)

@@ -312,7 +312,6 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     """
     X_ref, X_ref_labels = refset
     X_proto = protoset[0]
-
     if preprocess_fn is not None:
         X_ref = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn, batch_size=batch_size)
         X_proto = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn, batch_size=batch_size)
@@ -333,7 +332,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
 
     if valset is None:
         kf = KFold(n_splits=n_splits)
-        scores = np.zeros((grid_size, n_splits))
+        scores = np.zeros((len(eps_range), n_splits))
 
         for i, (train_index, val_index) in enumerate(kf.split(X=X_ref, y=X_ref_labels)):
             X, X_labels = X_ref[train_index], X_ref_labels[train_index]
@@ -343,20 +342,17 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
             explainer = explainer.fit(X=X, X_labels=X_labels, Y=X_proto)
 
-            for j in range(grid_size):
+            for j in range(len(eps_range)):
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
                                                          eps=eps_range[j])
                 if knn is None:
                     continue
                 scores[j][i] = knn.score(X_val, X_val_labels)
-
-        # compute mean score across splits
-        scores = np.mean(scores, axis=-1)
+        best_eps = eps_range[np.argmax(np.mean(scores, axis=-1))]
     else:
-        scores = np.zeros(grid_size)
+        scores = np.zeros(len(eps_range))
         X_val, X_val_labels = valset
-
         if preprocess_fn is not None:
             X_val = _batch_preprocessing(X=X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
 
@@ -364,7 +360,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
         explainer = explainer.fit(X=X_ref, X_labels=X_ref_labels, Y=X_proto)
 
-        for j in range(grid_size):
+        for j in range(len(eps_range)):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
                                                      eps=eps_range[j],
@@ -372,9 +368,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             if knn is None:
                 continue
             scores[j] = knn.score(X_val, X_val_labels)
+        best_eps = eps_range[np.argmax(scores)]
 
     return {
-        'best_eps': eps_range[np.argmax(scores)],
+        'best_eps': best_eps,
         'meta': {
             'num_prototypes': num_prototypes,
             'eps_range': eps_range,
@@ -382,7 +379,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             'grid_size': grid_size,
             'n_splits': n_splits,
             'batch_size': batch_size,
-            'scores': scores
+            'scores': scores,
         }
     }
 

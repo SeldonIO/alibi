@@ -814,7 +814,7 @@ class IntegratedGradients(Explainer):
             for each feature. See usage at `IG examples`_ for details.
 
             .. _IG examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html
         """
         # target handling logic
         if self.target_fn and target is not None:

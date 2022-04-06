@@ -275,7 +275,7 @@ git_rev + "doc/source/" + r"{{ docname }}"
 )
 
 # -- myst-parser configuration -----------------------------------------------
-# See https://myst-parser.readthedocs.io/en/latest/syntax/optional.html for 
+# See https://myst-parser.readthedocs.io/en/stable/syntax/optional.html for 
 # details of available extensions.
 myst_enable_extensions = [
     "dollarmath",

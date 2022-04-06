@@ -26,7 +26,7 @@ pip install alibi
 :sync: label-shap
 :class-label: sd-pt-0
 ```{div} sd-mb-1
-Installation with support for computing [SHAP](https://shap.readthedocs.io/en/latest/index.html) values.
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
 ```
 ```bash
 pip install alibi[shap]
@@ -48,7 +48,7 @@ pip install alibi[ray]
 
 ``````{dropdown} Install via conda-forge
 ```{div} sd-mb-3
-- To install the conda-forge version it is recommended to use [mamba](https://mamba.readthedocs.io/en/latest/), 
+- To install the conda-forge version it is recommended to use [mamba](https://mamba.readthedocs.io/en/stable/), 
 which can be installed to the *base* conda enviroment with:
 ```
 ```bash
@@ -75,7 +75,7 @@ mamba install -c conda-forge alibi
 :sync: label-shap
 :class-label: sd-pt-0
 ```{div} sd-mb-1
-Installation with support for computing [SHAP](https://shap.readthedocs.io/en/latest/index.html) values.
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
 ```
 ```bash
 mamba install -c conda-forge alibi shap

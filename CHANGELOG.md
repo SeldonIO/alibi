@@ -6,7 +6,7 @@
 This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.3`.
 
 ### Added
-- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/latest/overview/faq.html) page to the docs.
+- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/stable/overview/faq.html) page to the docs.
 
 ### Fixed
 - Fix a bug introduced in `v0.6.3` which prevented `CounterfactualProto` working with categorical features ([#612](https://github.com/SeldonIO/alibi/pull/612)).
@@ -31,8 +31,8 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 
 ### Added
-- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
-- A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/latest/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
+- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
+- A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/stable/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
 
 ### Changed
 - Python 3.6 has been deprecated from the supported versions as it has reached end-of-life. 
@@ -53,7 +53,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.1...v0.6.2)
 
 ### Added
-- Documentation on using black-box and white-box models in the context of alibi, [see here](https://docs.seldon.io/projects/alibi/en/latest/overview/white_box_black_box.html).
+- Documentation on using black-box and white-box models in the context of alibi, [see here](https://docs.seldon.io/projects/alibi/en/stable/overview/white_box_black_box.html).
 - `AnchorTabular`, `AnchorImage` and `AnchorText` now expose an additional `dtype` keyword argument with a default value of `np.float32`. This is to ensure that whenever a user `predictor` is called internally with dummy data a correct data type can be ensured ([#506](https://github.com/SeldonIO/alibi/pull/506)).
 - Custom exceptions. A new public module `alibi.exceptions` defining the `alibi` exception hierarchy. This introduces two exceptions, `AlibiPredictorCallException` and `AlibiPredictorReturnTypeError`. See [#520](https://github.com/SeldonIO/alibi/pull/520) for more details.
 
@@ -78,7 +78,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.0...v0.6.1)
 
 ### Added
-- **New feature** An implementation of [Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning](https://arxiv.org/abs/2106.02597) is now available via `alibi.explainers.CounterfactualRL` and `alibi.explainers.CounterfactualRLTabular` classes. The method is model-agnostic and the implementation is written in both PyTorch and TensorFlow. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html) for more information.
+- **New feature** An implementation of [Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning](https://arxiv.org/abs/2106.02597) is now available via `alibi.explainers.CounterfactualRL` and `alibi.explainers.CounterfactualRLTabular` classes. The method is model-agnostic and the implementation is written in both PyTorch and TensorFlow. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html) for more information.
 
 ### Changed
 - **Future breaking change** The names of `CounterFactual` and `CounterFactualProto` classes have been changed to `Counterfactual` and `CounterfactualProto` respectively for consistency and correctness. The old class names continue working for now but emit a deprecation warning message and will be removed in an upcoming version.
@@ -94,11 +94,11 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.8...v0.6.0)
 
 ### Added
-- **New feature** `AnchorText` now supports sampling according to masked language models via the `transformers` library. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) and the [example](https://docs.seldon.io/projects/alibi/en/latest/examples/anchor_text_movie.html) for using the new functionality.
-- **Breaking change** due to the new masked language model sampling for `AnchorText` the public API for the constructor has changed. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) for a full description of the new API.
+- **New feature** `AnchorText` now supports sampling according to masked language models via the `transformers` library. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html#id2) and the [example](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html) for using the new functionality.
+- **Breaking change** due to the new masked language model sampling for `AnchorText` the public API for the constructor has changed. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html#id2) for a full description of the new API.
 - `AnchorTabular` now supports one-hot encoded categorical variables in addition to the default ordinal/label encoded representation of categorical variables.
 - `IntegratedGradients` changes to allow explaining a wider variety of models. In particular, a new `forward_kwargs` argument to `explain` allows passing additional arguments to the model and `attribute_to_layer_inputs` flag to allow calculating attributions with respect to layer input instead of output if set to `True`. The API and capabilities now track more closely to the [captum.ai](https://captum.ai/api/) `PyTorch` implementation.
-- [Example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_transformers.html) of using `IntegratedGradients` to explain `transformer` models.
+- [Example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_transformers.html) of using `IntegratedGradients` to explain `transformer` models.
 - Python 3.9 support.
 
 ### Fixed
@@ -108,7 +108,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.7...v0.5.8)
 
 ### Added
-- Experimental explainer serialization support using `dill`. See [docs](https://docs.seldon.io/projects/alibi/en/latest/overview/saving.html) for more details.
+- Experimental explainer serialization support using `dill`. See [docs](https://docs.seldon.io/projects/alibi/en/stable/overview/saving.html) for more details.
 
 ### Fixed
 - Handle layers which are not part of `model.layers` for `IntegratedGradients`.
@@ -144,7 +144,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 
 ### Fixed
 - `AnchorTabular` coverage calculation was incorrect which was caused by incorrectly indexing a list, this is now resolved.
-- `ALE` was causing an error when a constant feature was present. This is now handled explicitly and the user has control over how to handle these features. See https://docs.seldon.io/projects/alibi/en/latest/api/alibi.explainers.ale.html#alibi.explainers.ale.ALE for more details.
+- `ALE` was causing an error when a constant feature was present. This is now handled explicitly and the user has control over how to handle these features. See https://docs.seldon.io/projects/alibi/en/stable/api/alibi.explainers.ale.html#alibi.explainers.ale.ALE for more details.
 - Release of Spacy 3.0 broke the `AnchorText` functionality as the way `lexeme_prob` tables are loaded was changed. This is now fixed by explicitly handling the loading depending on the `spacy` version.
 - Fixed documentation to refer to the `Explanation` object instead of the old `dict` object.
 - Added warning boxes to `CounterFactual`, `CounterFactualProto` and `CEM` docs to explain the necessity of clearing the TensorFlow graph if switching to a new model in the same session.

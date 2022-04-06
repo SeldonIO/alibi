@@ -266,7 +266,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              n_splits: int = 2,
                              batch_size: int = int(1e10),
                              preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                             **kwargs) -> float:
+                             **kwargs) -> dict:
     """
     Cross-validation parameter selection for ProtoSelect with Euclidean distance. The method computes
     the best epsilon radius.
@@ -306,9 +306,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
 
     Returns
     -------
-    Best epsilon radius according to the accuracy of a 1-KNN classifier.
+    Dictionary containing
+     - ``'best_eps'``: ``float`` - best epsilon radius according to the accuracy of a 1-KNN classifier.
+     - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
     """
-    # unpack datasets
     X_ref, X_ref_labels = refset
     X_proto = protoset[0]
 
@@ -372,7 +373,18 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                 continue
             scores[j] = knn.score(X_val, X_val_labels)
 
-    return eps_range[np.argmax(scores)]
+    return {
+        'best_eps': eps_range[np.argmax(scores)],
+        'meta': {
+            'num_prototypes': num_prototypes,
+            'eps_range': eps_range,
+            'quantiles': quantiles,
+            'grid_size': grid_size,
+            'n_splits': n_splits,
+            'batch_size': batch_size,
+            'scores': scores
+        }
+    }
 
 
 def _batch_preprocessing(X: np.ndarray,

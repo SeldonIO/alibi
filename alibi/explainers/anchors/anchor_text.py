@@ -25,6 +25,8 @@ LanguageModelSampler = import_optional(
 
 if TYPE_CHECKING:
     import spacy  # noqa: F811
+    from alibi.explainers.anchors.language_model_text_sampler import LanguageModel as LanguageModelType
+
 logger = logging.getLogger(__name__)
 
 
@@ -129,7 +131,7 @@ class AnchorText(Explainer):
                  predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
-                 language_model: Union[LanguageModel, MissingDependency, None] = None,
+                 language_model: Union['LanguageModelType', MissingDependency, None] = None,
                  seed: int = 0,
                  **kwargs: Any) -> None:
         """

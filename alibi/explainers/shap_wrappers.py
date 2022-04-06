@@ -22,6 +22,7 @@ from alibi.utils.wrappers import methdispatch
 from alibi.utils.missing_optional_dependency import MissingDependency
 
 if TYPE_CHECKING:
+    from alibi.utils.distributed import DistributedExplainer as DistributedExplainerType
     import catboost  # noqa F401
 
 logger = logging.getLogger(__name__)
@@ -283,7 +284,7 @@ class KernelExplainerWrapper(KernelExplainer):
 class KernelShap(Explainer, FitMixin):
     # object that implements the explanation algorithm (set in fit)
 
-    _explainer: Union[KernelExplainerWrapper, DistributedExplainer, MissingDependency]
+    _explainer: Union[KernelExplainerWrapper, 'DistributedExplainerType', MissingDependency]
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],

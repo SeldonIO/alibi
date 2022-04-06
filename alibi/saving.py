@@ -379,6 +379,7 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 def _save_ProtoSelect(path: Union[str, os.PathLike]) -> None:
     raise NotImplementedError('ProtoSelect saving functionality not implemented.')
 
+
 def _load_ProtoSelect(path: Union[str, os.PathLike], meta: dict) -> 'ProtoSelect':
     raise NotImplementedError('ProtoSelect loading functionality not implemented.')
 

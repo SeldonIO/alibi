@@ -98,4 +98,3 @@ def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_ran
     else:
         # if `eps_range` is not provided, check that the search interval was split in `grid_size` bins
         assert len(cv['meta']['eps_range']) == grid_size
-

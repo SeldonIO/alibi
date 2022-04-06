@@ -1,13 +1,12 @@
 import os
 import logging
 import numpy as np
-
 import matplotlib.pyplot as plt
 from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from tqdm import tqdm
 from copy import deepcopy
-from typing import Callable, Optional, Dict, List, Union, Any, Tuple
+from typing import Callable, Optional, Dict, List, Union, Tuple
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from skimage.transform import resize
@@ -23,10 +22,10 @@ logger = logging.getLogger(__name__)
 class ProtoSelect(Explainer, FitMixin):
     def __init__(self,
                  eps: float,
-                 kernel_distance: Callable,
-                 lbd: float = None,
+                 kernel_distance: Callable[[np.ndarray, np.ndarray], np.ndarray],
+                 lbd: Optional[float] = None,
                  batch_size: int = int(1e10),
-                 preprocess_fn: Callable = None,
+                 preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                  verbose: bool = False,
                  **kwargs):
         """
@@ -35,7 +34,7 @@ class ProtoSelect(Explainer, FitMixin):
         Parameters
         ----------
         kernel_distance
-            Kernel to be used. Use `EuclideanDistance`.
+            Kernel distance to be used. Expected to support computation in batches.
         eps
             Epsilon ball size.
         lbd
@@ -59,7 +58,7 @@ class ProtoSelect(Explainer, FitMixin):
         if hasattr(self.kernel_distance, '__name__'):
             kernel_distance_tag = self.kernel_distance.__name__
         elif hasattr(self.kernel_distance, '__class__'):
-            kernel_distance_tag = self.kernel_distance.__class__
+            kernel_distance_tag = self.kernel_distance.__class__.__name__
         else:
             kernel_distance_tag = 'unknown kernel distance'
 
@@ -138,7 +137,7 @@ class ProtoSelect(Explainer, FitMixin):
                            f'the prototypes selection set. Automatically setting `num_prototypes={num_prototypes}`.')
 
         # dictionary of prototypes indices for each class
-        protos = {l: [] for l in range(self.max_label + 1)}
+        protos = {l: [] for l in range(self.max_label + 1)}  # type: Dict[int, List[int]]  # noqa: E741
         # set of available prototypes indices. Note that initially we start with the entire set of Y,
         # but as the algorithm progresses, we remove the indices of the prototypes that we already selected.
         available_indices = set(range(len(self.Y)))
@@ -151,7 +150,7 @@ class ProtoSelect(Explainer, FitMixin):
         B_P = np.zeros((self.max_label + 1, len(self.X)), dtype=np.int32)
         # matrix of size `[L, NX]`. Each row `l` indicates which elements form `X` are labeled as `l`
         Xl = np.concatenate([(self.X_labels == l).reshape(1, -1)
-                             for l in range(self.max_label + 1)], axis=0).astype(np.int32)
+                             for l in range(self.max_label + 1)], axis=0).astype(np.int32)  # noqa: E741
 
         # vectorized implementation of the prototypes scores.
         # See paper (pag 8): https://arxiv.org/pdf/1202.5933.pdf for more details
@@ -176,7 +175,7 @@ class ProtoSelect(Explainer, FitMixin):
             generator = tqdm(generator)
 
         for _ in generator:
-            j = np.array(list(available_indices))
+            j = np.array(list(available_indices)).astype(np.int32)
             scores = scores_all[j]
 
             # stopping criterion. The number of the returned prototypes might be lower than
@@ -186,7 +185,7 @@ class ProtoSelect(Explainer, FitMixin):
 
             # find the index `i` of the best prototype and the class `l` that it covers
             row, col = np.unravel_index(np.argmax(scores), scores.shape)
-            i, l = j[row], col
+            i, l = j[row.item()], col.item()  # noqa: E741
 
             # update the score
             covered = np.sum(delta_xi_all[:, l, B[i].astype(bool)], axis=-1)
@@ -207,7 +206,8 @@ class ProtoSelect(Explainer, FitMixin):
         """
         data = deepcopy(DEFAULT_DATA_PROTOSELECT)
         data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
-        data['prototypes_labels'] = np.concatenate([[l] * len(protos[l]) for l in protos]).astype(np.int32)
+        data['prototypes_labels'] = np.concatenate([[l] * len(protos[l])
+                                                    for l in protos]).astype(np.int32)  # noqa: E741
         data['prototypes'] = self.Y[data['prototypes_indices']]
         return Explanation(meta=self.meta, data=data)
 
@@ -215,8 +215,8 @@ class ProtoSelect(Explainer, FitMixin):
         super().save(path)
 
     @classmethod
-    def load(cls, path: Union[str, os.PathLike], predictor: Optional[Any] = None) -> "Explainer":
-        return super().load(path, predictor)
+    def load(cls, path: Union[str, os.PathLike]) -> "Explainer":  # type: ignore[override]
+        return super().load(path, predictor=None)
 
 
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
@@ -451,16 +451,16 @@ def _imscatterplot(x: np.ndarray,
     zoom = (zoom - zoom_min) / (zoom_max - zoom_min) * (zoom_ub - zoom_lb) + zoom_lb
 
     if sort_by_zoom:
-        idx = np.argsort(zoom)[::-1]
-        zoom = zoom[idx]
+        idx = np.argsort(zoom)[::-1]  # type: ignore
+        zoom = zoom[idx]  # type: ignore
         x, y, images = x[idx], y[idx], images[idx]
 
     fig, ax = plt.subplots(figsize=figsize)
     ax.set_xticks([])
     ax.set_yticks([])
 
-    images = [resize(images[i], image_size) for i in range(len(images))]
-    imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(images)]
+    resized_imgs = [resize(images[i], image_size) for i in range(len(images))]
+    imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(resized_imgs)]  # type: ignore
     artists = []
 
     for i in range(len(imgs)):
@@ -541,5 +541,3 @@ def visualize_prototypes(explanation: 'Explanation',
     # plot images
     _imscatterplot(x=x, y=y, images=X_proto, figsize=figsize, image_size=image_size,
                    zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)
-
-

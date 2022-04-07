@@ -32,6 +32,7 @@ EXCLUDE_NOTEBOOKS = {
     'kernel_shap_adult_lr.ipynb',  # slow to explain 128 instances
     'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning
     'integrated_gradients_transformers.ipynb',  # forward pass through BERT to get embeddings is very slow
+    'protoselect_adult_cifar10.ipynb',  # wget cifar10 model from google cloud
 }
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 

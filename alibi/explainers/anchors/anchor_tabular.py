@@ -1,4 +1,12 @@
+####-Changed-####
+# Refactored to contain only the distributed anchor functionality
+# 1. moved RemoteSampler to anchor_tabular_distributed.py
+# 2. moved DisributedAnchorTabular to anchor_tabular_distributed.py
+#################
 import copy
+####-Changed-####
+# - import logging
+#################
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
 from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
@@ -11,9 +19,15 @@ from alibi.api.interfaces import Explainer, Explanation, FitMixin
 from alibi.exceptions import (AlibiPredictorCallException,
                               AlibiPredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
+####-Changed-####
+# -from alibi.utils.distributed import RAY_INSTALLED
+#################
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 from alibi.utils.wrappers import ArgmaxTransformer
+####-Changed-####
+# - from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
 from .anchor_base import AnchorBaseBeam
+#################
 from .anchor_explanation import AnchorExplanation
 
 

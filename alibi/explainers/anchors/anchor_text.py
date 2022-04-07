@@ -1,31 +1,55 @@
+####-Changed-####
+# Refactored to contain only the AnchorText class. The LanguageModelSampler,
+#################
 import copy
 import logging
 import string
 from copy import deepcopy
+####-Changed-####
+# -from abc import abstractmethod
+# -from functools import partial
+# -from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+#                      Type, Union)
 from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union)
+#################
 
 import numpy as np
 import spacy
+####-Changed-####
+# -import tensorflow as tf
+#################
 
+
+####-Changed-####
 from alibi.utils.missing_optional_dependency import import_optional
+#################
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.exceptions import (AlibiPredictorCallException,
                               AlibiPredictorReturnTypeError)
+####-Changed-####
+# -from alibi.utils.lang_model import LanguageModel
 from alibi.utils.missing_optional_dependency import MissingDependency
 from alibi.utils import LanguageModel
+#################
+
 from alibi.utils.wrappers import ArgmaxTransformer
 from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
+
+####-Changed-####
 from .text_samplers import UnknownSampler, SimilaritySampler, load_spacy_lexeme_prob
 
 LanguageModelSampler = import_optional(
     'alibi.explainers.anchors.language_model_text_sampler',
     names=['LanguageModelSampler'])
+#################
 
 if TYPE_CHECKING:
     import spacy  # noqa: F811
+    ####-Changed-####
     from alibi.explainers.anchors.language_model_text_sampler import LanguageModel as LanguageModelType
+    #################
 
 logger = logging.getLogger(__name__)
 
@@ -131,7 +155,9 @@ class AnchorText(Explainer):
                  predictor: Callable[[List[str]], np.ndarray],
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
+                 ####-Changed-####
                  language_model: Union['LanguageModelType', MissingDependency, None] = None,
+                 #################
                  seed: int = 0,
                  **kwargs: Any) -> None:
         """
@@ -221,7 +247,9 @@ class AnchorText(Explainer):
                 raise ValueError("spaCy model can not be `None` when "
                                  f"`sampling_strategy` set to `{sampling_strategy}`.")
             # set nlp object
+            ####-Changed-####
             self.model = load_spacy_lexeme_prob(nlp)
+            #################
         else:
             if language_model is None:
                 raise ValueError("Language model can not be `None` when "
@@ -521,5 +549,8 @@ class AnchorText(Explainer):
 
     def _seed(self, seed: int) -> None:
         np.random.seed(seed)
+        ####-Changed-####
+        # If LangaugeModel is used, we need to set the seed for tf as well.
         if hasattr(self, 'model') and isinstance(self.model, LanguageModelSampler):
             self.perturbation.seed(seed)
+        #################

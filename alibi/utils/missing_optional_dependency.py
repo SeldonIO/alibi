@@ -124,7 +124,7 @@ def import_optional(module_name: str, names: Optional[List[str]] = None):
             objs = tuple(getattr(module, name) for name in names)
             return objs if len(objs) > 1 else objs[0]
         return module
-    except ModuleNotFoundError as err:
+    except (ImportError, ModuleNotFoundError) as err:
         if err.name is None:
             raise TypeError()
         if err.name not in ERROR_TYPES:

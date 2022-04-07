@@ -99,7 +99,7 @@ class GaussianRBFDistance:
 class EuclideanDistance:
     def __init__(self, **kwargs) -> None:
         """
-        Euclidean distance: :math:`k(x, y) = \\sqrt{||x-y||^2}`. A forward pass takes a batch of instances `x` of
+        Euclidean distance: :math:`k(x, y) = ||x-y||`. A forward pass takes a batch of instances `x` of
         size `Nx x features` and `y` of size `Ny x features` and returns the kernel matrix `Nx x Ny`.
 
         Parameters

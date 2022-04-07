@@ -470,13 +470,6 @@ class CounterfactualRL(Explainer, FitMixin):
         backend
             Backend to be checked.
         """
-
-        # TODO: Currently default to backend='tensorflow' but tensorflow is no longer the default install so this
-        #  should be changed to have the user explicitly specify the backend. Currently if the backend equals
-        #  'tensorflow' but pytorch is also installed, the user will be warned that the backend defaults to tensorflow.
-        if backend == Framework.TENSORFLOW and has_tensorflow and has_pytorch:
-            warnings.warn("backend equals 'tensorflow' but torch is present too. Did you mean 'pytorch'?")
-
         # Allow only pytorch and tensorflow.
         if backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
             raise NotImplementedError(f'{backend} must be one of `tensorflow` or `pytorch`.')

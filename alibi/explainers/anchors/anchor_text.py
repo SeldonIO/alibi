@@ -1,5 +1,5 @@
 ####-Changed-####
-# Refactored to contain only the AnchorText class. The LanguageModelSampler,
+# Refactored to contain only the AnchorText class.
 #################
 import copy
 import logging

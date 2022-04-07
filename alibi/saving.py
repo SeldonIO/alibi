@@ -188,7 +188,7 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
         model = spacy.load(Path(path, 'nlp'))
     else:
         # load language model
-        import alibi.utils.lang_model as lang_model
+        import alibi.utils as lang_model
         model_class = explainer.model_class
         model = getattr(lang_model, model_class)(preloading=False)
         model.from_disk(Path(path, 'language_model'))

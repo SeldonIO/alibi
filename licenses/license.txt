@@ -163,7 +163,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Pillow
-9.0.1
+9.1.0
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
@@ -853,7 +853,7 @@ SOFTWARE.
 
 
 Werkzeug
-2.0.3
+2.1.1
 BSD License
 Copyright 2007 Pallets
 
@@ -2903,7 +2903,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.4.0
+0.5.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3500,7 +3500,7 @@ limitations under the License.
    END OF TERMS AND CONDITIONS
 
 kiwisolver
-1.4.1
+1.4.2
 BSD License
 =========================
  The Kiwi licensing terms
@@ -5114,7 +5114,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.4.1
+1.4.2
 BSD License
 BSD 3-Clause License
 
@@ -5382,8 +5382,8 @@ THE SOFTWARE.
 
 
 protobuf
-3.19.4
-3-Clause BSD License
+3.20.0
+BSD-3-Clause
 UNKNOWN
 
 pyasn1
@@ -5607,7 +5607,7 @@ Apache 2.0
 UNKNOWN
 
 redis
-4.2.0
+4.2.2
 MIT License
 Copyright (c) 2012 Andy McCurdy
 
@@ -7228,7 +7228,7 @@ SOFTWARE.
 
 
 spacy
-3.2.3
+3.2.4
 MIT License
 The MIT License (MIT)
 
@@ -7280,7 +7280,7 @@ SOFTWARE.
 
 
 spacy-loggers
-1.0.1
+1.0.2
 MIT
 MIT License
 
@@ -8864,7 +8864,7 @@ Files: third_party/zstd
 
 
 tqdm
-4.63.1
+4.64.0
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -8918,7 +8918,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.17.0
+4.18.0
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -9126,7 +9126,7 @@ Copyright 2018- The Hugging Face team. All rights reserved.
 
 
 typer
-0.4.0
+0.4.1
 MIT License
 The MIT License (MIT)
 
@@ -9437,7 +9437,7 @@ SOFTWARE.
 
 
 wasabi
-0.9.0
+0.9.1
 MIT
 The MIT License (MIT)
 
@@ -9492,7 +9492,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 zipp
-3.7.0
+3.8.0
 MIT License
 Copyright Jason R. Coombs
 

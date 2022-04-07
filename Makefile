@@ -57,10 +57,8 @@ check_licenses:
 	git --no-pager diff --exit-code ./licenses/license_info.no_versions.csv
 
 .PHONY: repl
+tox-env=all
 repl:
-ifndef tox-env
-$(error tox-env is not set)
-endif
 	env COMMAND="python" tox -e $(tox-env)
 
 

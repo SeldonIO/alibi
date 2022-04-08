@@ -161,19 +161,6 @@ the docs will be built under `doc/_build/html`. Detail information about documen
 ## CI
 All PRs triger a CI job to run linting, type checking, tests, and build docs. The CI script is located [here](https://github.com/SeldonIO/alibi/blob/master/.github/workflows/ci.yml) and should be considered the source of truth for running the various development commands.
 
-## PR checklist
-Checklist to run through before a PR is considered complete:
- - All functions/methods/classes/modules have docstrings and all parameters are documented.
- - All functions/methods have type hints for arguments and return types.
- - Any new public functionality is exposed in the right place (e.g. `explainers.__init__` for new explanation methods).  
- - [linting](#linter) and [type-checking](#type-checking) passes.
- - New functionality has appropriate [tests](#testing) (functions/methods have unit tests, end-to-end functionality is also tested).
- - The runtime of the whole test suite on [CI](#ci) is comparable to that of before the PR.
- - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
- - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](doc/README.md) for more information.
- - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
- - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, and `requirements/doc.txt` for documentation dependencies).
-
 ## Optional Dependencies
 
 Alibi uses optional dependencies to allow users the choice to not install large or error-prone dependencies. These are 
@@ -182,14 +169,16 @@ optional dependencies using the `import_optional` defined in `alibi/utils/missin
 replaces the dependency with a dummy class that raises an error when called. If you are working on public functionality 
 that is dependent on an optional dependency you should expose the functionality via the relevant `__init__.py` file by
 importing it there using the `optional_import` function. Currently, optional dependencies are tested by importing all 
-the public functionality and checking that no errors are raised. This is done in `alibi/tests/test_dep_mangement.py`. 
-If implementing functionality that is dependent on a new optional dependency then you will need to:
+the public functionality and checking that the correct errors are raised dependent on the environment. Developers can 
+run these tests using `tox`. These tests are in `alibi/tests/test_dep_mangement.py`. If implementing functionality that 
+is dependent on a new optional dependency then you will need to:
 
 1. Add it to `requirements/extra.txt`.
 2. Create a new `tox` environment in `setup.cfg` with the new dependency.
 3. Define a new MissingDependency class in `alibi/utils/missing_optional_dependency.py` and integrate it with the 
    `import_optional` function.
 4. Make sure any public functionality is protected by the `import_optional` function.
+5. Make sure the new dependency is tested in `alibi/tests/test_dep_mangement.py`.
 
 Note that subcomponents can be dependent on optional dependencies too. In this case the user should be able to import 
 and use the relevant parent component. The user should only get an error message if: 
@@ -201,7 +190,22 @@ the `optional_import` function. To see an example of this look at the `AnchorTex
 subcomponent implementation.
 
 #### Note:
-The `import_optional` function mirrors the python import functionality and thus its return type has to be `Any`. Using 
+- The `import_optional` function mirrors the python import functionality and thus its return type has to be `Any`. Using 
 objects imported with this function can lead to misspecification of types as `Any` when the developer intended to be 
 more restrictive. If you want to type a variable using a class that depends on an optional dependency then you should 
 use the `TYPE_CHECKING` to import it instead.
+- Developers can use `make repl tox-env=<tox-env-name>` to run a python REPL with the specified optional dependency 
+installed. This is to allow manual testing. 
+
+## PR checklist
+Checklist to run through before a PR is considered complete:
+ - All functions/methods/classes/modules have docstrings and all parameters are documented.
+ - All functions/methods have type hints for arguments and return types.
+ - Any new public functionality is exposed in the right place (e.g. `explainers.__init__` for new explanation methods).  
+ - [linting](#linter) and [type-checking](#type-checking) passes.
+ - New functionality has appropriate [tests](#testing) (functions/methods have unit tests, end-to-end functionality is also tested).
+ - The runtime of the whole test suite on [CI](#ci) is comparable to that of before the PR.
+ - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
+ - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](doc/README.md) for more information.
+ - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
+ - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, `requirements/doc.txt` for documentation dependencies and `requirements/extra.txt` for optional dependencies).

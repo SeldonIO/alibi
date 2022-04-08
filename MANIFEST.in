@@ -1,1 +1,2 @@
 include alibi/data/cats.tar.gz
+include requirements/extra.txt

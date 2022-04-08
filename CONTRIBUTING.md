@@ -174,3 +174,34 @@ Checklist to run through before a PR is considered complete:
  - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
  - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, and `requirements/doc.txt` for documentation dependencies).
 
+## Optional Dependencies
+
+Alibi uses optional dependencies to allow users the choice to not install large or error-prone dependencies. These are 
+managed in the `requirements/extra.txt` file as in inverse index. Alibi manages modularity of components that depend on 
+optional dependencies using the `import_optional` defined in `alibi/utils/missing_optional_dependency.py`. This 
+replaces the dependency with a dummy class that raises an error when called. If you are working on public functionality 
+that is dependent on an optional dependency you should expose the functionality via the relevant `__init__.py` file by
+importing it there using the `optional_import` function. Currently, optional dependencies are tested by importing all 
+the public functionality and checking that no errors are raised. This is done in `alibi/tests/test_dep_mangement.py`. 
+If implementing functionality that is dependent on a new optional dependency then you will need to:
+
+1. Add it to `requirements/extra.txt`.
+2. Create a new `tox` environment in `setup.cfg` with the new dependency.
+3. Define a new MissingDependency class in `alibi/utils/missing_optional_dependency.py` and integrate it with the 
+   `import_optional` function.
+4. Make sure any public functionality is protected by the `import_optional` function.
+
+Note that subcomponents can be dependent on optional dependencies too. In this case the user should be able to import 
+and use the relevant parent component. The user should only get an error message if: 
+1. They don't have the optional dependency installed and,
+2. They configure the parent component in such as way that it uses the subcomponent functionality.
+
+Developers should implement this by importing the subcomponent into the source code defining the parent component using 
+the `optional_import` function. To see an example of this look at the `AnchorText` and `LanguageModelSampler` 
+subcomponent implementation.
+
+#### Note:
+The `import_optional` function mirrors the python import functionality and thus its return type has to be `Any`. Using 
+objects imported with this function can lead to misspecification of types as `Any` when the developer intended to be 
+more restrictive. If you want to type a variable using a class that depends on an optional dependency then you should 
+use the `TYPE_CHECKING` to import it instead.

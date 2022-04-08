@@ -1,22 +1,22 @@
-####-Changed-####
+####-Changed-#### # noqa
 # Refactored to contain only the distributed anchor functionality
 # 1. DistributedAnchorBaseBeam moved here from anchor_base.py
 # 2. RemoteSampler moved here from anchor_tabular.py
 # 3. DistributedAnchorTabular moved here from anchor_tabular.py
 #################
 import logging
-####-Changed-####
+####-Changed-#### # noqa
 # -from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
 # -                    Tuple, Type, Union)
 from typing import (Any, Callable, Dict, List, Optional, Tuple, Type, Union)
 #################
 
 import numpy as np
-####-Changed-####
+####-Changed-#### # noqa
 import ray
 #################
 
-####-Changed-####
+####-Changed-#### # noqa
 # -from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 # -from alibi.api.interfaces import Explainer, Explanation, FitMixin
 # -from alibi.exceptions import (AlibiPredictorCallException,
@@ -24,7 +24,7 @@ import ray
 from alibi.api.interfaces import Explanation
 #################
 from alibi.utils.discretizer import Discretizer
-####-Changed-####
+####-Changed-#### # noqa
 # -from alibi.utils.wrappers import ArgmaxTransformer
 # -from alibi.utils.distributed import RAY_INSTALLED
 # -from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
@@ -39,10 +39,10 @@ from functools import partial
 
 
 class DistributedAnchorBaseBeam(AnchorBaseBeam):
-    ###-Changed-###
-    #- if RAY_INSTALLED:
-    #-     import ray
-    #-     ray = ray  #: `ray` module.
+    ####-Changed-#### # noqa
+    # - if RAY_INSTALLED:
+    # -     import ray
+    # -     ray = ray  #: `ray` module.
     ###############
     def __init__(self, samplers: List[Callable], **kwargs) -> None:
 
@@ -69,10 +69,10 @@ class DistributedAnchorBaseBeam(AnchorBaseBeam):
         -------
         See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
         """
-        ###-Changed-###
-        #- [coverage_data] = DistributedAnchorBaseBeam.ray.get(
-        #-     self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
-        #- )
+        ####-Changed-#### # noqa
+        # - [coverage_data] = DistributedAnchorBaseBeam.ray.get(
+        # -     self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
+        # - )
         [coverage_data] = ray.get(
             self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
         )
@@ -215,11 +215,11 @@ class RemoteSampler:
 
 
 class DistributedAnchorTabular(AnchorTabular):
-    ####-Changed-####
-    #- if RAY_INSTALLED:
-    #-      import ray
-    #-      # set module as class variable to used only in this context
-    #-      ray = ray  #: `ray` module.
+    ####-Changed-#### # noqa
+    # - if RAY_INSTALLED:
+    # -      import ray
+    # -      # set module as class variable to used only in this context
+    # -      ray = ray  #: `ray` module.
     #################
     def __init__(self,
                  predictor: Callable,
@@ -230,9 +230,9 @@ class DistributedAnchorTabular(AnchorTabular):
                  seed: Optional[int] = None) -> None:
 
         super().__init__(predictor, feature_names, categorical_names, dtype, ohe, seed)
-        ####-Changed-####
-        #- if not DistributedAnchorTabular.ray.is_initialized():
-        #-      DistributedAnchorTabular.ray.init()
+        ####-Changed-#### # noqa
+        # - if not DistributedAnchorTabular.ray.is_initialized():
+        # -      DistributedAnchorTabular.ray.init()
         if not ray.is_initialized():
             ray.init()
         #################
@@ -274,7 +274,7 @@ class DistributedAnchorTabular(AnchorTabular):
             self.feature_names,
             self.feature_values,
         )
-        ###-Changed-###
+        ####-Changed-#### # noqa
         # -train_data_id = DistributedAnchorTabular.ray.put(train_data)
         # -d_train_data_id = DistributedAnchorTabular.ray.put(d_train_data)
         train_data_id = ray.put(train_data)
@@ -284,7 +284,7 @@ class DistributedAnchorTabular(AnchorTabular):
         d_samplers = []
         for sampler in samplers:
             d_samplers.append(
-                ###-Changed-###
+                ####-Changed-#### # noqa
                 # DistributedAnchorTabular.ray.remote(RemoteSampler).remote(
                 ray.remote(RemoteSampler).remote(
                     *(train_data_id, d_train_data_id, sampler)
@@ -309,7 +309,7 @@ class DistributedAnchorTabular(AnchorTabular):
         """
 
         lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
-        ####-Changed-####
+        ####-Changed-#### # noqa
         # -self.cat_lookup, self.ord_lookup, self.enc2feat_idx = DistributedAnchorTabular.ray.get(lookups)
         self.cat_lookup, self.ord_lookup, self.enc2feat_idx = ray.get(lookups)
         #################
@@ -358,8 +358,8 @@ class DistributedAnchorTabular(AnchorTabular):
             label = sampler.set_instance_label.remote(X)
             sampler.set_n_covered.remote(n_covered_ex)
 
-        ####-Changed-####
-        #- self.instance_label = DistributedAnchorTabular.ray.get(label)
+        ####-Changed-#### # noqa
+        # - self.instance_label = DistributedAnchorTabular.ray.get(label)
         self.instance_label = ray.get(label)
         #################
         # build feature encoding and mappings from the instance values to database rows where similar records are found

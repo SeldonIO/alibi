@@ -1,10 +1,10 @@
-####-Changed-####
+####-Changed-#### # noqa
 # The Non-tf dependent Samplers where moved here from anchor_text.py
 #################
 import logging
 from abc import abstractmethod
 
-####-Changed-####
+####-Changed-#### # noqa
 # -from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
 # -                    Type, Union)
 from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union)
@@ -88,7 +88,7 @@ class Neighbors:
         return {'words': words, 'similarities': np.array(similarities)}
 
 
-####-Changed-####
+####-Changed-#### # noqa
 # renamed load_spacy_lexeme_prob -> _load_spacy_lexeme_prob
 #################
 def load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.Language':
@@ -174,7 +174,7 @@ class UnknownSampler(AnchorTextSampler):
         super().__init__()
 
         # set nlp and perturbation options
-        ####-Changed-####
+        ####-Changed-#### # noqa
         # -self.nlp = load_spacy_lexeme_prob(nlp)
         self.nlp = load_spacy_lexeme_prob(nlp)
         #################
@@ -275,7 +275,7 @@ class SimilaritySampler(AnchorTextSampler):
         super().__init__()
 
         # set nlp and perturbation options
-        ####-Changed-####
+        ####-Changed-#### # noqa
         # -self.nlp = load_spacy_lexeme_prob(nlp)
         self.nlp = load_spacy_lexeme_prob(nlp)
         #################

@@ -164,11 +164,10 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
         backend=backend
     )
 
-    # classification similarity method y value can be none, a ndarray, or a function
+    # classification similarity method y value can be none or a ndarray
     classification_explainer.fit(X_train=X_train, Y_train=Y_train)
     classification_explainer.explain(X_train[0:1])
     classification_explainer.explain(X_train[0:1], Y_train[0:1])
-    classification_explainer.explain(X_train[0:1], target_fn)
 
 
 @pytest.mark.parametrize('random_reg_dataset', [({'shape': 10, 'size': 100})], indirect=True)

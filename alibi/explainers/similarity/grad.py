@@ -145,7 +145,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
     def _preprocess_args(
             self,
             X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) \
+            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) \
             -> 'Union[Tuple[torch.Tensor, torch.Tensor], Tuple[tensorflow.Tensor, tensorflow.Tensor]]':
         """Formats `X`, `Y` for explain method.
 
@@ -154,7 +154,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X
             Input data requiring formatting.
         Y
-            Target data or function requiring formatting.
+            Target data requiring formatting.
 
         Returns
         -------
@@ -169,14 +169,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
             X = self.backend.to_tensor(X)
 
         if self.task == Task.REGRESSION and Y is None:
-            err_msg = "Regression task requires a target value. 'Y' must be provided, either as a value or a function."
+            err_msg = "Regression task requires a target value. 'Y' must be provided."
             raise ValueError(err_msg)
 
         if Y is None:
             Y = self.predictor(X)
             Y = self.backend.argmax(Y)  # type: ignore
-        elif callable(Y):
-            Y = Y(X)
 
         Y = self._match_shape_to_data(Y, 'Y')
         if isinstance(Y, np.ndarray):
@@ -187,7 +185,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
     def explain(
             self,
             X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
-            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Callable]]' = None) -> "Explanation":
+            Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) -> "Explanation":
         """Explain the predictor's predictions for a given input.
 
         Computes the similarity score between the input and the training set. Reorders the training set according to the

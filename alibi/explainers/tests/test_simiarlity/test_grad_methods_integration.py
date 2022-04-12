@@ -63,7 +63,7 @@ def test_correct_grad_dot_sim_result_torch(seed, normed_ds):
         backend='pytorch'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
-    explanation = explainer.explain(normed_ds[0], Y=target_fn)
+    explanation = explainer.explain(normed_ds[0], Y=normed_ds[0])
     last = np.dot(normed_ds[0], normed_ds[0])
     for point in explanation['ordered_X_train'][1:]:
         current = np.dot(normed_ds[0], point)
@@ -85,7 +85,7 @@ def test_correct_grad_cos_sim_result_torch(seed, ds):
         backend='pytorch'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], Y=target_fn)
+    explanation = explainer.explain(ds[0], Y=ds[0])
     last = 0
     for point in explanation['ordered_X_train'][1:]:
         current = compute_angle(ds[0], point)
@@ -108,7 +108,7 @@ def test_grad_cos_result_order_torch(seed):
         backend='pytorch',
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], Y=target_fn)
+    explanation = explainer.explain(ds[0], Y=ds[0])
     assert (explanation['ordered_X_train'][1] == ds[1]).all()
     assert (explanation['ordered_X_train'][-1] == ds[-1]).all()
 
@@ -127,7 +127,7 @@ def test_grad_dot_result_order_torch(seed):
         backend='pytorch'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0], Y=target_fn)
+    explanation = explainer.explain(ds[0], Y=ds[0])
     assert (explanation['ordered_X_train'][0] == ds[-1]).all()
     assert (explanation['ordered_X_train'][-1] == ds[1]).all()
 
@@ -150,7 +150,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
-    explanation = explainer.explain(normed_ds[0][None], Y=target_fn)
+    explanation = explainer.explain(normed_ds[0][None], Y=normed_ds[0][None])
     last = np.dot(normed_ds[0], normed_ds[0])
     for point in explanation['ordered_X_train'][1:]:
         current = np.dot(normed_ds[0], point)
@@ -172,7 +172,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0][None], Y=target_fn)
+    explanation = explainer.explain(ds[0][None], Y=ds[0][None])
     last = compute_angle(ds[0], ds[0])
     for point in explanation['ordered_X_train'][1:]:
         current = compute_angle(ds[0], point)
@@ -194,7 +194,7 @@ def test_grad_dot_result_order_tf(seed):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], Y=target_fn)
+    explanation = explainer.explain(ds[0, None], Y=ds[0, None])
     assert (explanation['ordered_X_train'][0] == ds[-1]).all()
     assert (explanation['ordered_X_train'][-1] == ds[1]).all()
 
@@ -214,6 +214,6 @@ def test_grad_cos_result_order_tf(seed):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], Y=target_fn)
+    explanation = explainer.explain(ds[0, None], Y=ds[0, None])
     assert (explanation['ordered_X_train'][1] == ds[1]).all()
     assert (explanation['ordered_X_train'][-1] == ds[-1]).all()

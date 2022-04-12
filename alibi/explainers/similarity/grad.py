@@ -76,8 +76,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
             instance must be specified directly.
         precompute_grads
             Whether to precompute the gradients. If ``False``, gradients are computed on the fly otherwise we
-            precompute them which can be faster when it comes to given explanations. We store them in memory so this
-            may be memory intensive if the model is large.
+            precompute them which can be faster when it comes to computing explanations. Note this option may be memory
+            intensive if the model is large.
         backend
             Backend to use.
         device

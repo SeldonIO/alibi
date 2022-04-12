@@ -55,7 +55,7 @@ def random_reg_dataset(request):
     shape = request.param.get('shape', 10)
     size = request.param.get('size', 100)
     X, Y = make_regression(n_samples=2*size, n_features=shape, n_informative=10)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5)
     Y_train, Y_test = Y_train[:, None].astype(np.float32), Y_test[:, None].astype(np.float32)
     return (X_train, Y_train), (X_test, Y_test)
 
@@ -69,7 +69,7 @@ def random_cls_dataset(request):
     shape = request.param.get('shape', 10)
     size = request.param.get('size', 100)
     X, Y = make_classification(n_samples=2*size, n_features=shape, n_classes=10, n_informative=10, n_redundant=0)
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5, random_state=42)
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5)
     Y_train, Y_test = Y_train.astype(np.int64), Y_test.astype(np.int64)
     return (X_train, Y_train), (X_test, Y_test)
 

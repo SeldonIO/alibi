@@ -22,7 +22,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  loss_fn: '''Union[Callable[[tensorflow.Tensor, tensorflow.Tensor], tensorflow.Tensor],
                                    Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Callable[[np.ndarray, np.ndarray], np.ndarray],
-                 store_grads: bool = False,
+                 precompute_grads: bool = False,
                  backend: Framework = Framework.TENSORFLOW,
                  device: 'Union[int, str, torch.device, None]' = None,
                  meta: Optional[dict] = None,
@@ -37,7 +37,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Loss function.
         sim_fn
             Similarity function. Takes two inputs and returns a similarity value.
-        store_grads
+        precompute_grads
             Whether to precompute and store the gradients when fitting.
         backend
             Deep learning backend.
@@ -55,7 +55,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.predictor = predictor
         self.loss_fn = loss_fn
         self.sim_fn = sim_fn
-        self.store_grads = store_grads
+        self.store_grads = precompute_grads
 
         meta = {} if meta is None else meta
         super().__init__(meta=meta)

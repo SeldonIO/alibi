@@ -23,7 +23,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
         predictor=model,
         loss_fn=loss_fn,
         sim_fn='grad_dot',
-        store_grads=True,
+        precompute_grads=True,
         backend=backend
     )
     # test stored gradients
@@ -91,7 +91,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
             predictor=model,
             loss_fn=loss_fn,
             sim_fn='not_grad_dot',
-            store_grads=False,
+            precompute_grads=False,
             backend=backend
         )
 
@@ -102,7 +102,7 @@ def test_method_sim_fn_error_messaging(linear_cls_model):
             predictor=model,
             loss_fn=loss_fn,
             sim_fn=sim_fn,
-            store_grads=False,
+            precompute_grads=False,
             backend=backend
         )
 
@@ -124,7 +124,7 @@ def test_method_task_error_messaging(linear_cls_model):
         GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
-            store_grads=False,
+            precompute_grads=False,
             backend=backend,
             task='not_classification'
         )
@@ -135,7 +135,7 @@ def test_method_task_error_messaging(linear_cls_model):
         GradientSimilarity(
             predictor=model,
             loss_fn=loss_fn,
-            store_grads=False,
+            precompute_grads=False,
             backend=backend,
             task=task
         )
@@ -160,7 +160,7 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         task='classification',
-        store_grads=False,
+        precompute_grads=False,
         backend=backend
     )
 
@@ -193,7 +193,7 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
         loss_fn=loss_fn,
         sim_fn='grad_dot',
         task='regression',
-        store_grads=False,
+        precompute_grads=False,
         backend=backend
     )
 

@@ -271,7 +271,7 @@ def similarity_explainer(ffn_classifier, iris_data):
     explainer = GradientSimilarity(
         predictor=ffn_classifier,
         loss_fn=criterion,
-        store_grads=True,
+        precompute_grads=True,
         backend='tensorflow',
         sim_fn='grad_cos')
     explainer.fit(X_train=iris_data['X_train'], Y_train=iris_data['y_train'])

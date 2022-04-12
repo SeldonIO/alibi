@@ -44,17 +44,18 @@ class GradientSimilarity(BaseSimilarityExplainer):
                                    Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Literal['grad_dot', 'grad_cos', 'grad_asym_dot'] = 'grad_dot',
                  task: Literal['classification', 'regression'] = 'classification',
-                 store_grads: bool = False,
+                 precompute_grads: bool = False,
                  backend: Literal['tensorflow', 'pytorch'] = 'tensorflow',
                  device: 'Union[int, str, torch.device, None]' = None,
                  ):
         """GradientSimilarity explainer.
 
         This explainer is a similarity measure derived from the predictor for instances of the data. The gradient
-        similarity is used to find examples in the training data that the predictor considers similar to a test
-        instance the user wants to explain. It works by comparing the gradients of the predictor parameters for the
-        training instance and test instance. The gradients are compared using the similarity function specified by
-        ``sim_fn``.
+        similarity is used to find examples in the training data that the predictor considers similar to test instances
+        the user wants to explain. The gradients in question are of the loss between the model output and the training
+        data labels. The explainer works by comparing the gradients of the predictor parameters for the training
+        instance and test instance. The gradients are compared using the similarity function specified by ``sim_fn``.
+
 
         Parameters
         ----------
@@ -69,11 +70,14 @@ class GradientSimilarity(BaseSimilarityExplainer):
             computes the cosine similarity between the gradients, see
             :py:func:`alibi.explainers.similarity.metrics.cos`.
         task
-            Task performed by the model.
-        store_grads
-            Whether to store gradients. If ``False``, gradients are computed on the fly otherwise we store them which
-            can be faster when it comes to computing explanations. Storing gradients may be memory intensive if the
-            model is large.
+            Type of task performed by the model. If the task is ``'classification'``, the target value passed to the
+            explain method of the test instance can be specified either directly or left  as ``None``, if left ``None``
+            we use the model's maximum prediction. If the task is ``'regression'``, the target value of the test
+            instance must be specified directly.
+        precompute_grads
+            Whether to precompute the gradients. If ``False``, gradients are computed on the fly otherwise we
+            precompute them which can be faster when it comes to given explanations. We store them in memory so this
+            may be memory intensive if the model is large.
         backend
             Backend to use.
         device
@@ -99,17 +103,17 @@ class GradientSimilarity(BaseSimilarityExplainer):
         if task not in Task.__members__.values():
             raise ValueError(f"Unknown task {task}. Consider using: {get_options_string(Task)}.")
 
-        self.task: Task = Task(task)
+        self.task = task
 
         if backend not in Framework.__members__.values():
             raise ValueError(f"Unknown backend {backend}. Consider using: {get_options_string(Framework)}.")
 
-        super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework(backend),
-                         device=device, meta=copy.deepcopy(DEFAULT_META_SIM))
+        super().__init__(predictor, loss_fn, resolved_sim_fn, precompute_grads, Framework(backend), device=device,
+                         meta=copy.deepcopy(DEFAULT_META_SIM))
 
         self.meta['params'].update(
             sim_fn_name=sim_fn,
-            store_grads=store_grads,
+            store_grads=precompute_grads,
             backend_name=backend,
             task_name=task
         )
@@ -197,10 +201,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
             `X` can be a `numpy` array, `tensorflow` tensor, or `pytorch` tensor of the same shape as the training data
             with or without a leading batch dimension. If the batch dimension is missing it's added.
         Y
-            `Y` can be a `numpy` array, `tensorflow` tensor, `pytorch` tensor or a function that returns one of these.
-            It must either be or return a value of the same shape as `X`. If the batch dimension is missing it's added.
-            In the case of a regression task, the `Y` argument must be present. If the task is classification then `Y`
-            defaults to the model prediction.
+            `Y` can be a `numpy` array, `tensorflow` tensor or a `pytorch` tensor. In the case of a regression task, the
+            `Y` argument must be present. If the task is classification then `Y` defaults to the model prediction.
 
         Returns
         -------

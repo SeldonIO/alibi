@@ -5,6 +5,7 @@ class Framework(str, Enum):
     PYTORCH = "pytorch"
     TENSORFLOW = "tensorflow"
 
+
 try:
     import tensorflow as tf  # noqa
     has_tensorflow = True

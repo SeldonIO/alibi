@@ -23,27 +23,17 @@ if TYPE_CHECKING:
     import torch
 
 
-class Task(Enum):
+def get_options_string(enum) -> str:
+    """Get the enums options seperated by pipe as a string."""
+    return f"""'{"' | '".join(enum)}'"""
+
+
+class Task(str, Enum):
     """
     Enum of supported tasks.
     """
     CLASSIFICATION = "classification"
     REGRESSION = "regression"
-
-    @staticmethod
-    def from_str(name: str):
-        return {
-            'classification': Task.CLASSIFICATION,
-            'regression': Task.REGRESSION
-        }[name]
-
-    @staticmethod
-    def values():
-        return {item.value for item in Task.__members__.values()}
-
-    @staticmethod
-    def options_string():
-        return f"""'{"' | '".join(Task.values())}'"""
 
 
 class GradientSimilarity(BaseSimilarityExplainer):
@@ -97,15 +87,15 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         resolved_sim_fn = sim_fn_opts[sim_fn]
 
-        if task not in Task.values():
-            raise ValueError(f"Unknown task {task}. Consider using: {Task.options_string()}.")
+        if task not in Task.__members__.values():
+            raise ValueError(f"Unknown task {task}. Consider using: {get_options_string(Task)}.")
 
-        self.task: Task = Task.from_str(task)
+        self.task: Task = Task(task)
 
-        if backend not in Framework.values():
-            raise ValueError(f"Unknown backend {backend}. Consider using: {Framework.options_string()}.")
+        if backend not in Framework.__members__.values():
+            raise ValueError(f"Unknown backend {backend}. Consider using: {get_options_string(Framework)}.")
 
-        super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework.from_str(backend),
+        super().__init__(predictor, loss_fn, resolved_sim_fn, store_grads, Framework(backend),
                          device=device, meta=copy.deepcopy(DEFAULT_META_SIM))
 
         self.meta['params'].update(
@@ -171,7 +161,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         if Y is None:
             Y = self.predictor(X)
-            Y = self.backend.argmax(Y)
+            Y = self.backend.argmax(Y)  # type: ignore
         elif callable(Y):
             Y = Y(X)
 

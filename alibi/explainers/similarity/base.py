@@ -44,12 +44,13 @@ class BaseSimilarityExplainer(Explainer, ABC):
         device
             Device to be used. Will default to the same device the backend defaults to.
         meta
-            Additional explainer metadata to be stored.
+            Metadata specific to explainers that inherit from this class. Should be initialized in the child class and
+            passed in here. Is used in the Explainer constructor.
         """
 
         # Select backend.
         self.backend = _select_backend(backend)
-        self.backend.set_device(device)
+        self.backend.set_device(device)  # type: ignore
 
         self.predictor = predictor
         self.loss_fn = loss_fn
@@ -156,9 +157,9 @@ class BaseSimilarityExplainer(Explainer, ABC):
                       Y: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]') \
             -> np.ndarray:
         """Computes predictor parameter gradients and returns a flattened `numpy` array."""
-        if isinstance(X, np.ndarray):
-            X = self.backend.to_tensor(X)
-            Y = self.backend.to_tensor(Y)
+
+        X = self.backend.to_tensor(X) if isinstance(X, np.ndarray) else X
+        Y = self.backend.to_tensor(Y) if isinstance(Y, np.ndarray) else Y
         return self.backend.get_grads(self.predictor, X, Y, self.loss_fn)
 
     def reset_predictor(self, predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]') -> None:

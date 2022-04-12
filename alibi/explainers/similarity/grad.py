@@ -43,12 +43,18 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  loss_fn: '''Union[Callable[[tensorflow.Tensor, tensorflow.Tensor], tensorflow.Tensor],
                                    Callable[[torch.Tensor, torch.Tensor], torch.Tensor]]''',
                  sim_fn: Literal['grad_dot', 'grad_cos', 'grad_asym_dot'] = 'grad_dot',
-                 task: Literal["classification", 'regression'] = 'classification',
+                 task: Literal['classification', 'regression'] = 'classification',
                  store_grads: bool = False,
-                 backend: Literal['tensorflow', 'pytorch'] = "tensorflow",
+                 backend: Literal['tensorflow', 'pytorch'] = 'tensorflow',
                  device: 'Union[int, str, torch.device, None]' = None,
                  ):
-        """Constructor for GradientSimilarity explainer.
+        """GradientSimilarity explainer.
+
+        This explainer is a similarity measure derived from the predictor for instances of the data. The gradient
+        similarity is used to find examples in the training data that the predictor considers similar to a test
+        instance the user wants to explain. It works by comparing the gradients of the predictor parameters for the
+        training instance and test instance. The gradients are compared using the similarity function specified by
+        ``sim_fn``.
 
         Parameters
         ----------
@@ -58,7 +64,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Loss function used. The gradient of the loss function is used to compute the similarity between the test
             instances and the training set. This should be the same loss used to train the model.
         sim_fn
-            Similarity function to use.
+            Similarity function to use. The ``'grad_dot'`` similarity function computes the dot product of the
+            gradients, see :py:func:`alibi.explainers.similarity.metrics.dot`. The ``'grad_cos'`` similarity function
+            computes the cosine similarity between the gradients, see
+            :py:func:`alibi.explainers.similarity.metrics.cos`.
         task
             Task performed by the model.
         store_grads

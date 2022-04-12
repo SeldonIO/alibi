@@ -44,8 +44,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         device
             Device to be used. Will default to the same device the backend defaults to.
         meta
-            Metadata specific to explainers that inherit from this class. Should be initialized in the child class and
-            passed in here. Is used in the Explainer constructor.
+            Metadata specific to explainers that inherit from this class. Should be initialized in the child class and \
+            passed in here. Is used in the `__init__` of the base Explainer class.
         """
 
         # Select backend.

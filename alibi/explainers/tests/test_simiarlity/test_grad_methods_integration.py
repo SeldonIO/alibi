@@ -19,11 +19,6 @@ from tensorflow import keras
 
 from alibi.explainers.similarity.grad import GradientSimilarity
 
-
-def loss_torch(X, Y):
-    return X
-
-
 def target_fn(X):
     return X
 

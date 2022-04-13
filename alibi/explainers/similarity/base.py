@@ -44,7 +44,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         device
             Device to be used. Will default to the same device the backend defaults to.
         meta
-            Metadata specific to explainers that inherit from this class. Should be initialized in the child class and \
+            Metadata specific to explainers that inherit from this class. Should be initialized in the child class and
             passed in here. Is used in the `__init__` of the base Explainer class.
         """
 
@@ -119,14 +119,14 @@ class BaseSimilarityExplainer(Explainer, ABC):
         data
             Data to be matched shape-wise against the training data.
         target_type
-            Type of data: ``'X'`` | ``'Y'``. Used to determine if data should take the shape of predictor input or \
-            predictor output. ``'X'`` will utilize the `X_dims` attribute which stores the shape of the training data. \
+            Type of data: ``'X'`` | ``'Y'``. Used to determine if data should take the shape of predictor input or
+            predictor output. ``'X'`` will utilize the `X_dims` attribute which stores the shape of the training data.
             ``'Y'`` will match the shape of `Y_dims` which is the shape of the target data.
 
         Raises
         ------
         ValueError
-            If the shape of `data` does not match the shape of the training data, or fit has not been called prior to \
+            If the shape of `data` does not match the shape of the training data, or fit has not been called prior to
             calling this method.
         """
         target_shape = getattr(self, f'{target_type}_dims')

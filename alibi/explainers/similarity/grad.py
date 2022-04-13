@@ -6,7 +6,6 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 import copy
 from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
 from typing_extensions import Literal
-
 from enum import Enum
 
 import numpy as np

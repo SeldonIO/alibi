@@ -133,7 +133,8 @@ class BaseSimilarityExplainer(Explainer, ABC):
         if data.shape == target_shape:
             data = data[None]
         if data.shape[1:] != target_shape:
-            raise ValueError(f'Input `X` has shape {data.shape[1:]} but training data has shape {target_shape}')
+            raise ValueError((f'Input `{target_type}` has shape {data.shape[1:]}'
+                              f' but training data has shape {target_shape}'))
         return data
 
     def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:

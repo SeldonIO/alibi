@@ -55,7 +55,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.predictor = predictor
         self.loss_fn = loss_fn
         self.sim_fn = sim_fn
-        self.store_grads = precompute_grads
+        self.precompute_grads = precompute_grads
 
         meta = {} if meta is None else meta
         super().__init__(meta=meta)
@@ -63,7 +63,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
     def fit(self,
             X_train: np.ndarray,
             Y_train: np.ndarray) -> "Explainer":
-        """Fit the explainer. If ``self.store_grads == True`` then the gradients are precomputed and stored.
+        """Fit the explainer. If ``self.precompute_grads == True`` then the gradients are precomputed and stored.
 
         Parameters
         ----------
@@ -84,7 +84,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.grad_X_train: np.ndarray = np.array([])
 
         # compute and store gradients
-        if self.store_grads:
+        if self.precompute_grads:
             grads = []
             for X, Y in tqdm(zip(self.X_train, self.Y_train)):
                 grad_X_train = self._compute_grad(X[None], Y[None])
@@ -140,7 +140,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
     def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:
         """
         Computes the similarity between the gradients of the test instances and all the training instances. The method
-        performs the computation of the gradients of the training instance on the fly without storing them.
+        performs the computation of the gradients of the training instance on the fly without storing them in memory.
 
         parameters
         ----------

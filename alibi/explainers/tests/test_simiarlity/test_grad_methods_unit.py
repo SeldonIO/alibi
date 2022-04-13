@@ -31,8 +31,7 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     assert explainer.grad_X_train.shape == (len(X_train), *params.shape)
     result = explainer.explain(X_train)
     assert result.data['scores'].shape == (100, )
-    assert result.data['ordered_X_train'].shape == (100, 10)
-    assert result.data['ordered_Y_train'].shape == (100, )
+    assert result.data['ordered_indices'].shape == (100,)
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)

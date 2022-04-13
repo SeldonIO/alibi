@@ -87,7 +87,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             `tensorflow` backend see `tensorflow docs <https://www.tensorflow.org/api_docs/python/tf/device>`_ for
             correct options.
         """
-        # TODO: add link to docs page for GradientSimilarity explainer in the docstring
+        # TODO: add link to docs page for GradientSimilarity explainer in the docstring once written
 
         sim_fn_opts: Dict[str, Callable] = {
             'grad_dot': dot,
@@ -206,25 +206,26 @@ class GradientSimilarity(BaseSimilarityExplainer):
         -------
         `Explanation` object containing the ordered similarity scores for the instance with additional metadata as \
         attributes. Contains the following data-related attributes
-            -  `scores`: ``np.array`` - similarity scores for each instance in the training set.
-            -  `ordered_X_train`: ``np.array`` - training set instances in the order of descending similarity scores.
-            -  `ordered_Y_train`: ``np.array`` - training set labels in the order of descending similarity scores.
-            -  `most_similar`: ``np.array`` - most similar instances to the input.
-            -  `least_similar`: ``np.array`` - least similar instances to the input.
+            -  `scores`: ``np.ndarray`` - similarity scores for each instance in the training set sorted in descending \
+            order.
+            -  `ordered_indices`: ``np.ndarray`` - indices of the training set instances sorted by the similarity \
+            score in descending order.
+            -  `most_similar`: ``np.ndarray`` - most similar instances to the input.
+            -  `least_similar`: ``np.ndarray`` - least similar instances to the input.
 
         Raises
         -------
         ValueError
             If `Y` is ``None`` and the `task` is ``'regression'``.
         ValueError
-            If the shape of `X` or `Y` does not match the shape of the training data
+            If the shape of `X` or `Y` does not match the shape of the training or target data
         ValueError
             If the fit method has not been called prior to calling this method.
         """
         self._verify_fit()
         X, Y = self._preprocess_args(X, Y)
         grad_X_test = self._compute_grad(X, Y)
-        if not self.store_grads:
+        if not self.precompute_grads:
             scores = self._compute_adhoc_similarity(grad_X_test)
         else:
             scores = self.sim_fn(self.grad_X_train, grad_X_test)
@@ -242,8 +243,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         sorted_score_indices = np.argsort(scores)[::-1]
         data.update(
             scores=scores[sorted_score_indices],
-            ordered_X_train=self.X_train[sorted_score_indices],
-            ordered_Y_train=self.Y_train[sorted_score_indices],
+            ordered_indices=sorted_score_indices,
             most_similar=self.X_train[sorted_score_indices[0]],
             least_similar=self.X_train[sorted_score_indices[-1]],
         )

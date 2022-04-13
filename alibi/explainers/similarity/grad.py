@@ -49,11 +49,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  ):
         """GradientSimilarity explainer.
 
-        This explainer is a similarity measure derived from the predictor for instances of the data. The gradient
-        similarity is used to find examples in the training data that the predictor considers similar to test instances
-        the user wants to explain. The gradients in question are of the loss between the model output and the training
-        data labels. The explainer works by comparing the gradients of the predictor parameters for the training
-        instance and test instance. The gradients are compared using the similarity function specified by ``sim_fn``.
+        The gradient similarity explainer is used to find examples in the training data that the predictor considers
+        similar to test instances the user wants to explain. It uses the gradients of the loss between the model output
+        and the training data labels. These are compared using the similarity function specified by ``sim_fn``. The
+        GradientSimilarity can be applied to models trained for both classification and regression tasks.
 
 
         Parameters

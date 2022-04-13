@@ -149,7 +149,7 @@ def test_method_task_error_messaging(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_task_classification_input(random_cls_dataset, linear_cls_model):
     """
-    Classification task explainer works when `Y_train` is `None`, a `Callable` or a `np.ndarray`.
+    Classification task explainer works when `Y_train` is `None` or a `np.ndarray`.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
     (X_train, Y_train), (_, _) = random_cls_dataset
@@ -180,7 +180,7 @@ def test_task_classification_input(random_cls_dataset, linear_cls_model):
                          )
 def test_regression_task_input(linear_reg_model, random_reg_dataset):
     """
-    Regression task explainer works when `Y_train` is a ``Callable`` or a ``np.ndarray``. Doesn't work when `Y_train`
+    Regression task explainer works when `Y_train` is a ``np.ndarray``. Doesn't work when `Y_train`
     is ``None``.
     """
 

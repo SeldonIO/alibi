@@ -186,10 +186,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) -> "Explanation":
         """Explain the predictor's predictions for a given input.
 
-        Computes the similarity score between the input and the training set. Reorders the training set according to the
-        score in descending order. Returns an explainer object containing the scores and the corresponding training set
-        instances as well as the most and least similar instances of the data set.
-
+        Computes the similarity score between the input and the training set. Returns an explainer object containing
+        the scores, the indices of the training set instances sorted by descending similarity to the input and the
+        most similar and least similar instances of the data set.
 
         Parameters
         ----------

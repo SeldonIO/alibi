@@ -21,8 +21,10 @@ if TYPE_CHECKING:
     import tensorflow
     import torch
 
+from typing import Type
 
-def get_options_string(enum) -> str:
+
+def get_options_string(enum: Type[Enum]) -> str:
     """Get the enums options seperated by pipe as a string."""
     return f"""'{"' | '".join(enum)}'"""
 

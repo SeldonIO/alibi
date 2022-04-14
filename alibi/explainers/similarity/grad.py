@@ -86,6 +86,18 @@ class GradientSimilarity(BaseSimilarityExplainer):
             options. Note that in the `pytorch` backend case this parameter can be a ``torch.device``. If using
             `tensorflow` backend see `tensorflow docs <https://www.tensorflow.org/api_docs/python/tf/device>`_ for
             correct options.
+
+        Raises
+        ______
+        ValueError
+            If the ``task`` is not ``'classification'`` or ``'regression'``.
+        ValueError
+            If the ``sim_fn`` is not ``'grad_dot'``, ``'grad_cos'`` or ``'grad_asym_dot'``.
+        ValueError
+            If the ``backend`` is not ``'tensorflow'`` or ``'pytorch'``.
+        TypeError
+            If the device is not an ``int``, ``str``, ``torch.device`` or ``None`` for the torch backend option or if
+            the device is not ``str`` or ``None`` for the tensorflow backend option.
         """
         # TODO: add link to docs page for GradientSimilarity explainer in the docstring once written
 

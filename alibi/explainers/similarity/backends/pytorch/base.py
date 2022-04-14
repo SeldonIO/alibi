@@ -25,20 +25,20 @@ class _PytorchBackend:
         Computes the gradients of the loss function with respect to the model's parameters for a single training and
         target pair.
 
-        Parameters:
-        -----------
-        model:
+        Parameters
+        ----------
+        model
             The model to compute gradients for.
-        X:
+        X
             The input data.
-        Y:
+        Y
             The target data.
-        loss_fn:
+        loss_fn
             The loss function to use.
 
-        Returns:
-        --------
-        grads:
+        Returns
+        -------
+        grads
             The gradients of the loss function with respect to the model's parameters. This is returned as a flattened \
             array.
         """
@@ -71,6 +71,9 @@ class _PytorchBackend:
             _PytorchBackend.device = torch.device(device)
         elif isinstance(device, torch.device):
             _PytorchBackend.device = device
+        elif device is not None:
+            raise TypeError(("`device` must be a None, string, integer or "
+                            f"torch.device object. Got {type(device)} instead."))
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:
@@ -78,6 +81,6 @@ class _PytorchBackend:
         return X.detach().cpu().numpy()
 
     @staticmethod
-    def argmax(X: torch.Tensor) -> torch.Tensor:
+    def argmax(X: torch.Tensor, dim=-1) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
-        return torch.argmax(X, dim=1)
+        return torch.argmax(X, dim=dim)

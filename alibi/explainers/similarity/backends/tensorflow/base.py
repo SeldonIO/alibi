@@ -64,7 +64,10 @@ class _TensorFlowBackend:
 
         Sets the device value on the class. Any subsequent calls to the backend will use this device.
         """
-        _TensorFlowBackend.device = device
+        if device is None or isinstance(device, str):
+            _TensorFlowBackend.device = device
+        else:
+            raise TypeError(f"`device` must be a string or None. Got {type(device)} instead.")
 
     @staticmethod
     def to_numpy(X: tf.Tensor) -> tf.Tensor:
@@ -72,7 +75,7 @@ class _TensorFlowBackend:
         return X.numpy()
 
     @staticmethod
-    def argmax(X: tf.Tensor) -> tf.Tensor:
+    def argmax(X: tf.Tensor, dim=-1) -> tf.Tensor:
         """Returns the index of the maximum value in a tensor."""
-        X = tf.math.argmax(X, axis=1)
+        X = tf.math.argmax(X, axis=dim)
         return X

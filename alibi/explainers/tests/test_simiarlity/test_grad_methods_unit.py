@@ -202,3 +202,33 @@ def test_regression_task_input(linear_reg_model, random_reg_dataset):
     assert 'Regression task requires a target value.' in str(err.value)
 
     regression_explainer.explain(X_train[0], Y_train)
+
+
+@pytest.mark.parametrize('linear_reg_model',
+                         [
+                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
+                         ],
+                         indirect=True,
+                         ids=['torch-model', 'tf-model']
+                         )
+def test_device_error_msgs(linear_reg_model):
+    """
+    Test that incorrect device type raises an error for each backend.
+    """
+
+    backend, model, loss_fn, target_fn = linear_reg_model
+    with pytest.raises(TypeError) as err:
+        GradientSimilarity(
+            predictor=model,
+            loss_fn=loss_fn,
+            sim_fn='grad_dot',
+            precompute_grads=False,
+            backend=backend,
+            device=[0]
+        )
+    if backend == 'pytorch':
+        assert ("`device` must be a None, string, integer or torch.device object."
+               " Got <class 'list'> instead.") in str(err.value)
+    elif backend == 'tensorflow':
+        assert "`device` must be a string or None. Got <class 'list'> instead." in str(err.value)

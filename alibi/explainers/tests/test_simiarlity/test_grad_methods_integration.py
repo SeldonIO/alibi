@@ -146,7 +146,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(normed_ds, normed_ds)
-    explanation = explainer.explain(normed_ds[0][None], Y=normed_ds[0][None])
+    explanation = explainer.explain(normed_ds[0], Y=normed_ds[0])
     last = np.dot(normed_ds[0], normed_ds[0])
     for ind in explanation['ordered_indices'][1:]:
         current = np.dot(normed_ds[0], normed_ds[ind])
@@ -168,7 +168,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0][None], Y=ds[0][None])
+    explanation = explainer.explain(ds[0], Y=ds[0])
     last = compute_angle(ds[0], ds[0])
     for ind in explanation['ordered_indices'][1:]:
         current = compute_angle(ds[0], ds[ind])
@@ -190,7 +190,7 @@ def test_grad_dot_result_order_tf(seed):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], Y=ds[0, None])
+    explanation = explainer.explain(ds[0], Y=ds[0])
     assert (ds[explanation['ordered_indices'][0]] == ds[-1]).all()
     assert (ds[explanation['ordered_indices'][-1]] == ds[1]).all()
 
@@ -210,6 +210,6 @@ def test_grad_cos_result_order_tf(seed):
         backend='tensorflow'
     )
     explainer = explainer.fit(ds, ds)
-    explanation = explainer.explain(ds[0, None], Y=ds[0, None])
+    explanation = explainer.explain(ds[0], Y=ds[0])
     assert (ds[explanation['ordered_indices'][1]] == ds[1]).all()
     assert (ds[explanation['ordered_indices'][-1]] == ds[-1]).all()

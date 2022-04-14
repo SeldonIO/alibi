@@ -226,7 +226,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             score in descending order.
             -  `most_similar`: ``np.ndarray`` - 5 most similar instances to the input. The first element is the most \
             similar instance, the last element is the least similar instance.
-            -  `least_similar`: ``np.ndarray`` - least similar instances to the input. The first element is the least \
+            -  `least_similar`: ``np.ndarray`` - 5 least similar instances to the input. The first element is the least \
             similar instance, the last element is the most similar instance.
 
         Raises

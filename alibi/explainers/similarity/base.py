@@ -26,6 +26,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
                  backend: Framework = Framework.TENSORFLOW,
                  device: 'Union[int, str, torch.device, None]' = None,
                  meta: Optional[dict] = None,
+                 verbose: bool = False,
                  ):
         """Constructor
 
@@ -56,6 +57,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self.loss_fn = loss_fn
         self.sim_fn = sim_fn
         self.precompute_grads = precompute_grads
+        self.verbose = verbose
 
         meta = {} if meta is None else meta
         super().__init__(meta=meta)
@@ -86,7 +88,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         # compute and store gradients
         if self.precompute_grads:
             grads = []
-            for X, Y in tqdm(zip(self.X_train, self.Y_train)):
+            for X, Y in tqdm(zip(self.X_train, self.Y_train), disable=not self.verbose):
                 grad_X_train = self._compute_grad(X[None], Y[None])
                 grads.append(grad_X_train[None])
             self.grad_X_train = np.concatenate(grads, axis=0)
@@ -148,7 +150,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
             Gradients of the test instances.
         """
         scores = np.zeros(self.X_train.shape[0])
-        for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train))):
+        for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train)), disable=not self.verbose):
             grad_X_train = self._compute_grad(X[None], Y[None])
             scores[i] = self.sim_fn(grad_X_train, grad_X)
         return scores

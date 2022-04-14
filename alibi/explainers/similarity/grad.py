@@ -48,6 +48,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  precompute_grads: bool = False,
                  backend: Literal['tensorflow', 'pytorch'] = 'tensorflow',
                  device: 'Union[int, str, torch.device, None]' = None,
+                 verbose: bool = False,
                  ):
         """GradientSimilarity explainer.
 
@@ -86,6 +87,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
             options. Note that in the `pytorch` backend case this parameter can be a ``torch.device``. If using
             `tensorflow` backend see `tensorflow docs <https://www.tensorflow.org/api_docs/python/tf/device>`_ for
             correct options.
+        verbose
+            Whether to print the progress of the explainer.
 
         Raises
         ______
@@ -121,7 +124,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             raise ValueError(f"Unknown backend {backend}. Consider using: {get_options_string(Framework)}.")
 
         super().__init__(predictor, loss_fn, resolved_sim_fn, precompute_grads, Framework(backend), device=device,
-                         meta=copy.deepcopy(DEFAULT_META_SIM))
+                         meta=copy.deepcopy(DEFAULT_META_SIM), verbose=verbose)
 
         self.meta['params'].update(
             sim_fn_name=sim_fn,
@@ -221,8 +224,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
             order.
             -  `ordered_indices`: ``np.ndarray`` - indices of the training set instances sorted by the similarity \
             score in descending order.
-            -  `most_similar`: ``np.ndarray`` - most similar instances to the input.
-            -  `least_similar`: ``np.ndarray`` - least similar instances to the input.
+            -  `most_similar`: ``np.ndarray`` - 5 most similar instances to the input. The first element is the most \
+            similar instance, the last element is the least similar instance.
+            -  `least_similar`: ``np.ndarray`` - least similar instances to the input. The first element is the least \
+            similar instance, the last element is the most similar instance.
 
         Raises
         -------
@@ -255,7 +260,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         data.update(
             scores=scores[sorted_score_indices],
             ordered_indices=sorted_score_indices,
-            most_similar=self.X_train[sorted_score_indices[0]],
-            least_similar=self.X_train[sorted_score_indices[-1]],
+            most_similar=self.X_train[sorted_score_indices[:5]],
+            least_similar=self.X_train[sorted_score_indices[-1:-6:-1]],
         )
         return Explanation(meta=self.meta, data=data)

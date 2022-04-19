@@ -508,7 +508,7 @@ class AnchorImage(Explainer):
             See usage at `AnchorImage examples`_ for details.
 
             .. _AnchorImage examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
         """
         # get params for storage in meta
         params = locals()

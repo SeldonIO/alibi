@@ -1318,7 +1318,7 @@ class CounterfactualProto(Explainer, FitMixin):
             See usage at `CFProto examples`_ for details.
 
             .. _CFProto examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html
         """
         # get params for storage in meta
         params = locals()

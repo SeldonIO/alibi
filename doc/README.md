@@ -35,7 +35,7 @@ with the resulting pdf file residing at `_build/latex/alibi.pdf`.
 
 ## Sphinx extensions and plugins
 We use various Sphinx extensions and plugins to build the documentation, including:
- * [myst-parser](https://myst-parser.readthedocs.io/en/latest/) - to allow `rst` directives in Markdown files (see [here](#myst-format))
+ * [myst-parser](https://myst-parser.readthedocs.io/en/stable/) - to allow `rst` directives in Markdown files (see [here](#myst-format))
  * [sphinx.ext.napoleon](https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html) - support extracting Numpy style doctrings for API doc generation
  * [sphinx_autodoc_typehints](https://github.com/agronholm/sphinx-autodoc-typehints) - support parsing of typehints for API doc generation
  * [sphinxcontrib.apidoc](https://github.com/sphinx-contrib/apidoc) - automatic running of [sphinx-apidoc](https://www.sphinx-doc.org/en/master/man/sphinx-apidoc.html) during the build to document API
@@ -51,7 +51,7 @@ in `examples/`. When adding a new notebook, you should run `make build_docs` to 
 ## MyST format
 
 For consistency, all docs files excluding `.ipynb` notebooks are written as Markedly Structured Text (MyST) files. 
-Although still named as `.md` files, the files are passed through [myst-parser](https://myst-parser.readthedocs.io/en/latest/), 
+Although still named as `.md` files, the files are passed through [myst-parser](https://myst-parser.readthedocs.io/en/stable/), 
 which processes `rst`-type directives contained within the `.md` files. This allows for more powerful functionality 
 to be included in the docs. For example, an admonition block can be included in a `.md` file with:
 
@@ -72,7 +72,7 @@ and an image can be embedded with:
 ```
 ````
 
-For more details on the MyST syntax see the [MyST docs](https://myst-parser.readthedocs.io/en/latest/syntax/syntax.html). 
+For more details on the MyST syntax see the [MyST docs](https://myst-parser.readthedocs.io/en/stable/syntax/syntax.html). 
 
 ## Gotchas when writing notebooks as examples
 We use Jupyter notebooks for examples and method descriptions and invoke the [nbsphinx](https://nbsphinx.readthedocs.io) plugin, which in turn invokes `pandoc` for rendering the notebooks as static documentation. Generally, the Jupyter notebook is more permissive for what it can render correctly than the static documentation, so it is important to check that the content is rendered correctly in the static docs as well. Here is a list of common formatting gotchas and how to fix them:

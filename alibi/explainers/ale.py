@@ -111,7 +111,7 @@ class ALE(Explainer):
             See usage at `ALE examples`_ for details.
 
             .. _ALE examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
 

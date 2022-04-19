@@ -64,12 +64,13 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Model to explain.
         loss_fn
             Loss function used. The gradient of the loss function is used to compute the similarity between the test
-            instances and the training set. This should be the same loss used to train the model.
+            instances and the training set.
         sim_fn
             Similarity function to use. The ``'grad_dot'`` similarity function computes the dot product of the
             gradients, see :py:func:`alibi.explainers.similarity.metrics.dot`. The ``'grad_cos'`` similarity function
             computes the cosine similarity between the gradients, see
-            :py:func:`alibi.explainers.similarity.metrics.cos`.
+            :py:func:`alibi.explainers.similarity.metrics.cos`. The ``'grad_asym_dot'`` similarity function is similar
+            to ``'grad_dot'`` but is asymmetric, see :py:func:`alibi.explainers.similarity.metrics.asym_dot`.
         task
             Type of task performed by the model. If the task is ``'classification'``, the target value passed to the
             explain method of the test instance can be specified either directly or left  as ``None``, if left ``None``
@@ -226,15 +227,15 @@ class GradientSimilarity(BaseSimilarityExplainer):
             score in descending order.
             -  `most_similar`: ``np.ndarray`` - 5 most similar instances to the input. The first element is the most \
             similar instance, the last element is the least similar instance.
-            -  `least_similar`: ``np.ndarray`` - 5 least similar instances to the input. The first element is the least \
-            similar instance, the last element is the most similar instance.
+            -  `least_similar`: ``np.ndarray`` - 5 least similar instances to the input. The first element is the \
+            least similar instance, the last element is the most similar instance.
 
         Raises
         -------
         ValueError
             If `Y` is ``None`` and the `task` is ``'regression'``.
         ValueError
-            If the shape of `X` or `Y` does not match the shape of the training or target data
+            If the shape of `X` or `Y` does not match the shape of the training or target data.
         ValueError
             If the fit method has not been called prior to calling this method.
         """

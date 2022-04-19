@@ -5,7 +5,7 @@ import numpy as np
 
 def dot(X: np.ndarray, Y: np.ndarray) -> Union[float, np.ndarray]:
     """
-    Performs a dot product between the vector(s) in X and vector Y.
+    Performs a dot product between the vector(s) in X and vector Y. (:math:`X^T Y = \\sum_i X_i Y_i`).
 
     Parameters
     ----------
@@ -27,7 +27,7 @@ def dot(X: np.ndarray, Y: np.ndarray) -> Union[float, np.ndarray]:
 
 def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
-    Computes the cosine between the vector(s) in X and vector Y.
+    Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y//\\|X\\|\\|Y\\|`).
 
     Parameters
     ----------
@@ -56,6 +56,7 @@ def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndar
 def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
     Computes the influence of instances `X` to instances `Y`. This is an asymmetric kernel.
+    (:math:`X^T Y//\\|X\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details.
 
     Parameters
     ----------

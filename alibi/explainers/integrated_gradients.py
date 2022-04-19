@@ -112,13 +112,17 @@ def _select_target(preds: tf.Tensor,
     Selected predictions.
 
     """
+    if not isinstance(targets, tf.Tensor):
+        targets = tf.convert_to_tensor(targets)
+
     if targets is not None:
         if isinstance(preds, tf.Tensor):
-            preds = tf.linalg.diag_part(tf.gather(preds, targets, axis=1))
+            preds = tf.gather_nd(preds, tf.expand_dims(targets, axis=1), batch_dims=1)
         else:
             raise NotImplementedError
     else:
         raise ValueError("target cannot be `None` if `model` output dimensions > 1")
+
     return preds
 
 
@@ -530,9 +534,9 @@ def _format_baseline(X: np.ndarray,
 
 
 def _format_target(target: Union[None, int, list, np.ndarray],
-                   nb_samples: int) -> Union[None, List[int]]:
+                   nb_samples: int) -> Union[None, np.ndarray]:
     """
-    Formats target to return a list.
+    Formats target to return a np.array.
 
     Parameters
     ----------
@@ -543,14 +547,16 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 
     Returns
     -------
-    Formatted target as a list.
+    Formatted target as a np.array.
 
     """
     if target is not None:
         if isinstance(target, int):
-            target = [target for _ in range(nb_samples)]
-        elif isinstance(target, list) or isinstance(target, np.ndarray):
-            target = [t.astype(int) for t in target]
+            target = np.array([target for _ in range(nb_samples)]).astype(int)
+        elif isinstance(target, list):
+            target = np.array(target).astype(int)
+        elif isinstance(target, np.ndarray):
+            target = target.astype(int)
         else:
             raise NotImplementedError
 

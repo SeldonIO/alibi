@@ -92,7 +92,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Whether to print the progress of the explainer.
 
         Raises
-        ______
+        ------
         ValueError
             If the ``task`` is not ``'classification'`` or ``'regression'``.
         ValueError
@@ -231,7 +231,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             least similar instance, the last element is the most similar instance.
 
         Raises
-        -------
+        ------
         ValueError
             If `Y` is ``None`` and the `task` is ``'regression'``.
         ValueError

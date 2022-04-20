@@ -29,15 +29,15 @@ def check_correct_dependencies(
         opt_dep: str):
     """Checks that imported modules that depend on optional dependencies throw correct errors on use.
 
-    Parameters:
-    __________
-    module:
+    Parameters
+    ----------
+    module
         The module to check. Each of the public objects within this module will be checked.
-    dependencies:
+    dependencies
         A dictionary mapping the name of the object to the list of optional dependencies that it depends on. If a name
         is not in the dictionary, the named object is assumed to be independent of optional dependencies. Therefor it
         should pass for the default alibi install.
-    opt_dep:
+    opt_dep
         The name of the optional dependency that is being tested.
     """
     lib_obj = [obj for obj in dir(module) if not obj.startswith('_')]

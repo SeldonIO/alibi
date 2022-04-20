@@ -12,6 +12,7 @@ from .counterfactual import Counterfactual, CounterFactual  # noqa: F401 TODO: r
 from .integrated_gradients import IntegratedGradients
 from .cfrl_base import CounterfactualRL
 from .cfrl_tabular import CounterfactualRLTabular
+from .similarity.grad import GradientSimilarity
 
 __all__ = ["ALE",
            "AnchorTabular",
@@ -25,6 +26,7 @@ __all__ = ["ALE",
            "CounterfactualRLTabular",
            "plot_ale",
            "IntegratedGradients",
+           "GradientSimilarity"
            ]
 
 try:

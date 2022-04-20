@@ -779,7 +779,7 @@ class AnchorTabular(Explainer, FitMixin):
             See usage at `AnchorTabular examples`_ for details.
 
             .. _AnchorTabular examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
         """
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X

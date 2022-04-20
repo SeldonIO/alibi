@@ -113,7 +113,7 @@ not needed) and convert to a `numpy` array.
 If you are using [Pytorch Lightning](https://www.pytorchlightning.ai)
 to create `torch` models, then the `dtype` and `device` can be
 retrieved as attributes of your `LightningModule`, see
-[here](https://pytorch-lightning.readthedocs.io/en/latest/common/lightning_module.html).
+[here](https://pytorch-lightning.readthedocs.io/en/stable/common/lightning_module.html).
 
 ### General models
 

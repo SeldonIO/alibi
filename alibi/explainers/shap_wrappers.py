@@ -822,7 +822,7 @@ class KernelShap(Explainer, FitMixin):
             For more details, please see the shap library `documentation`_ .
 
                 .. _documentation:
-                   https://shap.readthedocs.io/en/latest/.
+                   https://shap.readthedocs.io/en/stable/.
 
         Returns
         -------
@@ -831,7 +831,7 @@ class KernelShap(Explainer, FitMixin):
             field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
             .. _KernelSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html
         """  # noqa W605
 
         if not self._fitted:
@@ -902,7 +902,7 @@ class KernelShap(Explainer, FitMixin):
             field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
             .. _KernelSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html
 
         """
 
@@ -1287,7 +1287,7 @@ class TreeShap(Explainer, FitMixin):
             `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
             .. _TreeSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html
 
         """  # noqa: E501
 
@@ -1488,7 +1488,7 @@ class TreeShap(Explainer, FitMixin):
             `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
             .. _TreeSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html
 
         """
 

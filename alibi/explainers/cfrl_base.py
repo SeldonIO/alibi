@@ -812,7 +812,7 @@ class CounterfactualRL(Explainer, FitMixin):
             See usage at `CFRL examples`_ for details.
 
             .. _CFRL examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html
         """
         # General validation.
         self._validate_target(Y_t)

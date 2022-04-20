@@ -674,7 +674,7 @@ class CEM(Explainer, FitMixin):
             See usage at `CEM examples`_ for details.
 
             .. _CEM examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CEM.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html
         """
         if X.shape[0] != 1:
             logger.warning('Currently only single instance explanations supported (first dim = 1), '

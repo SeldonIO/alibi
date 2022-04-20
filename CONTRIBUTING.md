@@ -11,7 +11,7 @@ in a separate virtual environment:
 ```
 git clone git@github.com:SeldonIO/alibi.git
 cd alibi
-pip install -e .
+pip install -e .[all]
 pip install -r requirements/dev.txt -r requirements/docs.txt
 ```
 This will install everything needed to run alibi and all the dev tools
@@ -164,7 +164,7 @@ All PRs triger a CI job to run linting, type checking, tests, and build docs. Th
 ## Optional Dependencies
 
 Alibi uses optional dependencies to allow users the choice to not install large or error-prone dependencies. These are 
-managed in the `requirements/extra.txt` file as in inverse index. Alibi manages modularity of components that depend on 
+managed in the `requirements/extra.txt` file as an inverse index. Alibi manages modularity of components that depend on 
 optional dependencies using the `import_optional` defined in `alibi/utils/missing_optional_dependency.py`. This 
 replaces the dependency with a dummy class that raises an error when called. If you are working on public functionality 
 that is dependent on an optional dependency you should expose the functionality via the relevant `__init__.py` file by
@@ -189,11 +189,32 @@ Developers should implement this by importing the subcomponent into the source c
 the `optional_import` function. To see an example of this look at the `AnchorText` and `LanguageModelSampler` 
 subcomponent implementation.
 
+The general layout of a subpackage with optional dependencies should look like: 
+
+```
+alibi/supackage/
+  __init__.py  # expose public API with optional import guards
+  defaults.py  # private implementations requiring only core deps
+  optional_dep.py # private implementations requiring an optional dependency (or several?)
+```
+
+any public functionality that is dependent on an optional dependency should be imported into `__init__.py` using the 
+`import_optional` function. 
+
 #### Note:
 - The `import_optional` function mirrors the python import functionality and thus its return type has to be `Any`. Using 
 objects imported with this function can lead to misspecification of types as `Any` when the developer intended to be 
 more restrictive. If you want to type a variable using a class that depends on an optional dependency then you should 
-use the `TYPE_CHECKING` to import it instead.
+use the `TYPE_CHECKING` to import it instead. For instance:
+  ```py
+  if TYPE_CHECKING:
+    # Import for type checking, this will be type LanguageModel. Note import is from implementation file.
+    from alibi.utils.lang_model import LanguageModel
+  else:
+    # Import is from `__init__` public API file. Class will be protected by optional_import function and so this will 
+    # be type any.
+    from alibi.utils import LanguageModel
+  ```
 - Developers can use `make repl tox-env=<tox-env-name>` to run a python REPL with the specified optional dependency 
 installed. This is to allow manual testing. 
 

@@ -21,7 +21,7 @@ For further discussion see: https://github.com/SeldonIO/alibi/pull/583
 """
 
 
-from typing import Union, List, Optional
+from typing import Union, List, Optional, Any
 from string import Template
 from importlib import import_module
 
@@ -45,13 +45,13 @@ class MissingDependency(type):
     def __new__(mcs, name, bases, attrs):
         """ Metaclass for MissingDependency classes
 
-        Parameters
+        Params
         ----------
-        name:
+        name
             Name of the class to be created
-        bases:
+        bases
             Base classes of the class to be created
-        attrs:
+        attrs
             Attributes of the class to be created, should contain an `err` attribute that will be used to raise an
             error when the class is accessed or initialized.
         """
@@ -99,22 +99,22 @@ ERROR_TYPES = {
 }
 
 
-def import_optional(module_name: str, names: Optional[List[str]] = None):
+def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
     """Import a module that depends on optional dependencies
 
     Note: This function is used to import modules that depend on optional dependencies. Because it mirrors the python
     import functionality its return type has to be `Any`. Using objects imported with this function can lead to
     misspecification of types as `Any` when the developer intended to be more restrictive.
 
-    params:
-    ______
-        module:
+    params
+    ------
+        module
             The module to import
-        names:
+        names
             The names to import from the module. If None, all names are imported.
 
-    returns:
-    _______
+    returns
+    -------
         The module or named objects within the modules if names is not None. If the import fails due to a
         ModuleNotFoundError or ImportError. The requested module or named objects are replaced with classes derived
         from metaclass corresponding to the relevant optional dependency in `extras_requirements`. These classes will

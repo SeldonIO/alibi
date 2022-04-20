@@ -4,5 +4,5 @@ ADULTEncoder, ADULTDecoder, MNISTEncoder, MNISTDecoder, MNISTClassifier = import
     'alibi.models.pytorch.cfrl_models',
     names=['ADULTEncoder', 'ADULTDecoder', 'MNISTEncoder', 'MNISTDecoder', 'MNISTClassifier'])
 
-AE, HeAE = import_optional('alibi.models.pytorch.autoencoder', names=['HeAE', 'AE'])
+HeAE, AE = import_optional('alibi.models.pytorch.autoencoder', names=['HeAE', 'AE'])
 Actor, Critic = import_optional('alibi.models.pytorch.actor_critic', names=['Actor', 'Critic'])

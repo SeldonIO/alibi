@@ -37,7 +37,7 @@ pip install alibi[shap]
 :class-label: sd-pt-0
 :sync: label-dist
 ```{div} sd-mb-1
-Installation with support for AnchorTabularDistributed and 
+Installation with support for 
 [distributed Kernel SHAP](../examples/distributed_kernel_shap_adult_lr.ipynb).
 ```
 ```bash
@@ -50,11 +50,12 @@ pip install alibi[ray]
 :sync: label-tensorflow
 ```{div} sd-mb-1
 Installation with support for tensorflow backends. Required for 
-[Contrastive Explanation Method (CEM)](../methods/CEM.ipynb), 
-[Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb), [Counterfactual Instances](../methods/CF.ipynb) and 
-[Integrated gradients](../methods/IntegratedGradients.ipynb). Also Required if using 
-[Anchors on Textual data](../examples/anchor_text_movie.ipynb) with `sampling_strategy='language_model'`. 
-One of Torch or TensorFlow is required for the [Counterfactuals with RL](../methods/CFRL.ipynb) methods.
+- [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb) 
+- [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb) 
+- [Counterfactual Instances](../methods/CF.ipynb)
+- [Integrated gradients](../methods/IntegratedGradients.ipynb) 
+- [Anchors on Textual data](../examples/anchor_text_movie.ipynb) with `sampling_strategy='language_model'` 
+- One of Torch or TensorFlow is required for the [Counterfactuals with RL](../methods/CFRL.ipynb) methods
 ```
 ```bash
 pip install alibi[tensorflow]

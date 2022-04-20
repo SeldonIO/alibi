@@ -1,5 +1,5 @@
 ####-Changed-#### # noqa
-# Refactored to contain only the distributed anchor functionality
+# Refactored to contain only the non-distributed anchor functionality
 # 1. moved RemoteSampler to anchor_tabular_distributed.py
 # 2. moved DisributedAnchorTabular to anchor_tabular_distributed.py
 #################

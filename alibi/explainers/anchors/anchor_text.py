@@ -27,11 +27,6 @@ from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.exceptions import (AlibiPredictorCallException,
                               AlibiPredictorReturnTypeError)
-####-Changed-#### # noqa
-# -from alibi.utils.lang_model import LanguageModel
-from alibi.utils.missing_optional_dependency import MissingDependency
-from alibi.utils import LanguageModel
-#################
 
 from alibi.utils.wrappers import ArgmaxTransformer
 from .anchor_base import AnchorBaseBeam
@@ -48,7 +43,9 @@ LanguageModelSampler = import_optional(
 if TYPE_CHECKING:
     import spacy  # noqa: F811
     ####-Changed-#### # noqa
-    from alibi.explainers.anchors.language_model_text_sampler import LanguageModel as LanguageModelType
+    from alibi.utils.lang_model import LanguageModel
+else:
+    from alibi.utils import LanguageModel
     #################
 
 logger = logging.getLogger(__name__)
@@ -156,7 +153,7 @@ class AnchorText(Explainer):
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
                  ####-Changed-#### # noqa
-                 language_model: Union['LanguageModelType', MissingDependency, None] = None,
+                 language_model: Union['LanguageModel', None] = None,
                  #################
                  seed: int = 0,
                  **kwargs: Any) -> None:
@@ -550,7 +547,7 @@ class AnchorText(Explainer):
     def _seed(self, seed: int) -> None:
         np.random.seed(seed)
         ####-Changed-#### # noqa
-        # If LangaugeModel is used, we need to set the seed for tf as well.
+        # If LanguageModel is used, we need to set the seed for tf as well.
         if hasattr(self, 'model') and isinstance(self.model, LanguageModelSampler):
             self.perturbation.seed(seed)
         #################

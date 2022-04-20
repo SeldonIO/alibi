@@ -1,8 +1,8 @@
-from alibi.utils.missing_optional_dependency import import_optional
-from alibi.utils.download import spacy_model
-from alibi.utils.data import gen_category_map
-from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
-from alibi.utils.visualization import visualize_image_attr
+from .missing_optional_dependency import import_optional
+from .download import spacy_model
+from .data import gen_category_map
+from .mapping import ohe_to_ord, ord_to_ohe
+from .visualization import visualize_image_attr
 
 
 DistributedExplainer = import_optional('alibi.utils.distributed', names=['DistributedExplainer'])

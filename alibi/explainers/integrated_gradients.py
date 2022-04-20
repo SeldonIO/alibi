@@ -94,7 +94,6 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
 
     return _deltas
 
-
 def _select_target(preds: tf.Tensor,
                    targets: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
     """
@@ -533,6 +532,23 @@ def _format_baseline(X: np.ndarray,
     return bls
 
 
+def _check_target(output_shape: Tuple,
+                  target: Optional[np.ndarray],
+                  nb_samples: int) -> None:
+
+    if target is not None:
+        assert target.shape[0] == nb_samples, f"First dimension in target must be egual to nb od samples" \
+                                              f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}"
+        if len(output_shape) > 2:
+
+            oshape, tshape = output_shape[1:], target[1:]
+
+            if len(oshape) != len(tshape):
+                raise ValueError(f"Number of dimensions in target must be the same as "
+                                 f"number of dimensions in model's output"
+                                 f"Found target dimensions {tshape}; model;s output dimensions {oshape}")
+
+
 def _format_target(target: Union[None, int, list, np.ndarray],
                    nb_samples: int) -> Union[None, np.ndarray]:
     """
@@ -874,6 +890,7 @@ class IntegratedGradients(Explainer):
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
+        _check_target(self.model.output_shape, target, nb_samples)
         target = _format_target(target, nb_samples)  # type: ignore[assignment]
 
         if self._is_list:

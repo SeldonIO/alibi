@@ -22,7 +22,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                start_point: Union[List[np.ndarray], np.ndarray],
                                end_point: Union[List[np.ndarray], np.ndarray],
                                forward_kwargs: Optional[dict],
-                               target: Optional[List[int]],
+                               target: Optional[np.ndarray],
                                _is_list: bool) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
@@ -93,6 +93,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
     _deltas = attr_sum - (end_out_sum - start_out_sum)
 
     return _deltas
+
 
 def _select_target(preds: tf.Tensor,
                    targets: Union[None, tf.Tensor, np.ndarray, list]) -> tf.Tensor:
@@ -890,10 +891,7 @@ class IntegratedGradients(Explainer):
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        print("before", type(target), target)
         target = _format_target(target, nb_samples)  # type: ignore[assignment]
-        print("after", type(target), target)
-        _check_target(self.model.output_shape, target, nb_samples)
 
         if self._is_list:
             X = cast(List[np.ndarray], X)  # help mypy out
@@ -905,7 +903,7 @@ class IntegratedGradients(Explainer):
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)  # type: ignore[arg-type]
-
+            _check_target(self.model.output_shape, target, nb_samples)
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions = self._compute_attributions_list_input(X,
@@ -953,7 +951,7 @@ class IntegratedGradients(Explainer):
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
-
+            _check_target(self.model.output_shape, target, nb_samples)
             if self.layer is None:
                 attributions = self._compute_attributions_tensor_input(X,
                                                                        baselines,

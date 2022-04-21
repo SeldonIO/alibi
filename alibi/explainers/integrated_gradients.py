@@ -568,16 +568,43 @@ def _check_target(output_shape: Tuple,
                   nb_samples: int) -> None:
 
     if target is not None:
-        assert target.shape[0] == nb_samples, f"First dimension in target must be egual to nb od samples" \
-                                              f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}"
-        if len(output_shape) > 2:
+        if target.shape[0] != nb_samples:
+            raise ValueError(f"First dimension in target must be egual to nb of samples. "
+                             f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}")
 
+        if len(target.shape) > 2:
+            raise ValueError(f"Targets must be 1-d or 2-d arrays. In 2-d arrays, each column must contain "
+                             f"the target index of the corresponding dimension in the model's output tensor.")
+
+        if len(output_shape) == 1:
+            onbdim, tnbdim = 1, len(target.shape)
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
+
+            if tmax > 1:
+                raise ValueError(f"Targets values {tmax} out of range for output shape {output_shape[-1]} ")
+
+        elif len(output_shape) == 2:
+            onbdim, tnbdim = 1, len(target.shape)
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
+
+            if (output_shape[-1] > 1 and (tmax >= output_shape[-1]).any()) or (output_shape[-1] == 1 and tmax > 1):
+                raise ValueError(f"Targets value {tmax} out of range for output shape {output_shape[-1]} ")
+
+        else:
             onbdim, tnbdim = len(output_shape[1:]), target.shape[-1]
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
 
-            if onbdim != tnbdim:
-                raise ValueError(f"Number of dimensions in target must be the same as "
-                                 f"number of dimensions in model's output"
-                                 f"Found target nb of dimensions {tnbdim}; model output nb of dimensions {onbdim}")
+            if (tmax >= output_shape[1:]).any():
+                raise ValueError(f"Targets value {tmax} out of range for output shape {output_shape[1:]} ")
+
+        if (tmin < 0).any():
+            raise ValueError(f"Negative value {tmin} for target. Targets represent positional "
+                             f"arguments and cannot be negative")
+
+        if onbdim != tnbdim:
+            raise ValueError(f"Number of dimensions in target must be the same as "
+                             f"number of dimensions in model's output. "
+                             f"Found target nb of dimensions {tnbdim}; model output nb of dimensions {onbdim}")
 
 
 def _get_target_from_target_fn(target_fn: Callable,
@@ -656,7 +683,7 @@ def _sum_integral_terms(step_sizes: list,
 
 def _calculate_sum_int(batches: List[List[tf.Tensor]],
                        model: Union[tf.keras.Model],
-                       target: Union[None, List[int]],
+                       target: Optional[np.ndarray],
                        target_paths: np.ndarray,
                        n_steps: int,
                        nb_samples: int,
@@ -706,7 +733,7 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
 
 
 def _validate_output(model: tf.keras.Model,
-                     target: Optional[List[int]]) -> None:
+                     target: Optional[np.ndarray]) -> None:
     """
     Validates the model's output type and raises an error if the output type is not supported.
 
@@ -1013,7 +1040,7 @@ class IntegratedGradients(Explainer):
                            X: Union[List[np.ndarray], np.ndarray],
                            forward_kwargs: Optional[dict],
                            baselines: List[np.ndarray],
-                           target: Optional[List[int]],
+                           target: Optional[np.ndarray],
                            attributions: Union[List[np.ndarray], List[tf.Tensor]],
                            deltas: np.ndarray) -> Explanation:
         if forward_kwargs is None:
@@ -1047,7 +1074,7 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_list_input(self,
                                          X: List[np.ndarray],
                                          baselines: Union[List[int], List[float], List[np.ndarray]],
-                                         target: Optional[List[int]],
+                                         target: Optional[np.ndarray],
                                          step_sizes: List[float],
                                          alphas: List[float],
                                          nb_samples: int,
@@ -1172,7 +1199,7 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_tensor_input(self,
                                            X: Union[np.ndarray, tf.Tensor],
                                            baselines: Union[np.ndarray, tf.Tensor],
-                                           target: Optional[List[int]],
+                                           target: Optional[np.ndarray],
                                            step_sizes: List[float],
                                            alphas: List[float],
                                            nb_samples: int,

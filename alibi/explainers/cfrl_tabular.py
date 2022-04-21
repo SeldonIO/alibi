@@ -10,7 +10,7 @@ from alibi.explainers.backends.cfrl_tabular import (get_conditional_vector,
                                                     get_statistics, sample)
 from alibi.explainers.cfrl_base import (_PARAM_TYPES, CounterfactualRL,
                                         Postprocessing)
-from alibi.utils.frameworks import Framework, has_pytorch, has_tensorflow
+from alibi.utils.frameworks import has_pytorch, has_tensorflow
 
 if TYPE_CHECKING:
     import tensorflow

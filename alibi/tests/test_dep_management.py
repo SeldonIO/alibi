@@ -77,7 +77,6 @@ def test_explainer_dependencies(opt_dep):
             ("IntegratedGradients", ['tensorflow']),
             ("KernelShap", ['shap']),
             ("TreeShap", ['shap']),
-            ('sum_categories', ['shap']),
             ("plot_ale", ['default'])]:
         explainer_dependency_map[dependency] = relations
     from alibi import explainers

@@ -208,7 +208,7 @@ more restrictive. If you want to type a variable using a class that depends on a
 use the `TYPE_CHECKING` to import it instead. For instance:
   ```py
   if TYPE_CHECKING:
-    # Import for type checking, this will be type LanguageModel. Note import is from implementation file.
+    # Import for type checking. This will be type LanguageModel. Note import is from implementation file.
     from alibi.utils.lang_model import LanguageModel
   else:
     # Import is from `__init__` public API file. Class will be protected by optional_import function and so this will 

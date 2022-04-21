@@ -573,8 +573,8 @@ def _check_target(output_shape: Tuple,
                              f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}")
 
         if len(target.shape) > 2:
-            raise ValueError(f"Targets must be 1-d or 2-d arrays. In 2-d arrays, each column must contain "
-                             f"the target index of the corresponding dimension in the model's output tensor.")
+            raise ValueError("Targets must be 1-d or 2-d arrays. In 2-d arrays, each column must contain "
+                             "the target index of the corresponding dimension in the model's output tensor.")
 
         if len(output_shape) == 1:
             onbdim, tnbdim = 1, len(target.shape)

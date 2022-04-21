@@ -8,7 +8,7 @@ from typing import List, Dict
 import torch
 import torch.nn.functional as F
 
-from alibi.explainers.backends.cfrl_tabular_shared import split_ohe, generate_condition  # noqa: F401
+from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
 
 # The following methods are included since `alibi.explainers.backends.pytorch.cfrl_tabular` is an extension to the
 # `alibi.explainers.backends.pytorch.cfrl_base.py`. In the explainer class `alibi.explainers.cfrl_tabular` the

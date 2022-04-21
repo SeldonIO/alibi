@@ -114,19 +114,6 @@ def test_confidence_dependencies(opt_dep):
     check_correct_dependencies(confidence, defaultdict(lambda: ['default']), opt_dep)
 
 
-def test_cfrl_backend_dependencies(opt_dep):
-    """Tests that the counterfactual RL backend module correctly protects against uninstalled optional dependencies."""
-    backend_dependency_map = defaultdict(lambda: ['default'])
-    for dependency, relations in [
-            ('alibi.explainers.backends.pytorch.cfrl_base', ['torch']),
-            ('alibi.explainers.backends.pytorch.cfrl_tabular', ['torch']),
-            ('alibi.explainers.backends.tensorflow.cfrl_base', ['tensorflow']),
-            ('alibi.explainers.backends.tensorflow.cfrl_tabular', ['tensorflow'])]:
-        backend_dependency_map[dependency] = relations
-    from alibi.explainers import backends
-    check_correct_dependencies(backends, backend_dependency_map, opt_dep)
-
-
 def test_tensorflow_model_dependencies(opt_dep):
     """Tests that the tensorflow model module correctly protects against uninstalled optional dependencies."""
     tf_model_dependency_map = defaultdict(lambda: ['default'])

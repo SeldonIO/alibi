@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset
 
-from alibi.explainers.backends.cfrl_base_shared import CounterfactualRLDataset
+from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.pytorch.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:

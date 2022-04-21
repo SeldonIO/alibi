@@ -11,7 +11,7 @@ import numpy as np
 import tensorflow as tf
 import tensorflow.keras as keras
 
-from alibi.explainers.backends.cfrl_base_shared import CounterfactualRLDataset
+from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.tensorflow.actor_critic import Actor, Critic
 
 if TYPE_CHECKING:

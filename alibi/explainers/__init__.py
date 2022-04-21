@@ -31,9 +31,9 @@ IntegratedGradients = import_optional(
     'alibi.explainers.integrated_gradients',
     names=['IntegratedGradients'])
 
-KernelShap, TreeShap, sum_categories = import_optional(
+KernelShap, TreeShap = import_optional(
     'alibi.explainers.shap_wrappers',
-    names=['KernelShap', 'TreeShap', 'sum_categories'])
+    names=['KernelShap', 'TreeShap'])
 
 __all__ = [
     "ALE",

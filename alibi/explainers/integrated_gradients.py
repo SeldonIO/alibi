@@ -552,11 +552,11 @@ def _format_target(target: Union[None, int, list, np.ndarray],
     """
     if target is not None:
         if isinstance(target, int):
-            target = np.array([target for _ in range(nb_samples)]).astype(int)
+            target = np.array([target for _ in range(nb_samples)])
         elif isinstance(target, list):
-            target = np.array(target).astype(int)
+            target = np.array(target)
         elif isinstance(target, np.ndarray):
-            target = target.astype(int)
+            pass
         else:
             raise NotImplementedError
 
@@ -566,8 +566,27 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 def _check_target(output_shape: Tuple,
                   target: Optional[np.ndarray],
                   nb_samples: int) -> None:
+    """
+    Parameters
+    ----------
+    output_shape
+        Output shape of the tensorflow model
+    target
+        Target formatted as np array target.
+    nb_samples
+        Number of samples in the batch.
+
+    Returns
+    -------
+    None
+
+    """
 
     if target is not None:
+
+        if not (target.dtype == int):
+            raise ValueError("Targets must be integers")
+
         if target.shape[0] != nb_samples:
             raise ValueError(f"First dimension in target must be egual to nb of samples. "
                              f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}")

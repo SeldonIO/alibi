@@ -592,7 +592,7 @@ def _check_target(output_shape: Tuple,
                              f"Found target 1st dimension: {target.shape[0]}; nb samples: {nb_samples}")
 
         if len(target.shape) > 2:
-            raise ValueError("Target must be a rank 1 or a rank 2 tensor. If target is a rank 2 tensor, "
+            raise ValueError("Target must be a rank-1 or a rank-2 tensor. If target is a rank-2 tensor, "
                              "each column contains the index of the corresponding dimension "
                              "in the model's output tensor.")
 
@@ -868,15 +868,15 @@ class IntegratedGradients(Explainer):
         target
             Defines which element of the model output is considered to compute the gradients.
             It can be a numpy array, a list of integers or a numeric value.
-            Numeric values are only valid if the rank of the
-            model's output tensor is < 2 (regression and classification models).
+            Numeric values are only valid if the
+            model's output is a rank-n tensor with n <= 2 (regression and classification models).
             If a numeric value is passed, the gradients are calculated for
             the same element of the output for all data points.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
             It must be provided if the model output dimension is higher than 1.
-            If the model's output is a  rank-n tensor with n > 2,
-            the target must a rank 2 tensor with dimensions nb_samples x n.
+            If the model's output is a rank-n tensor with n > 2,
+            the target must a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
         attribute_to_layer_inputs
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If ``True``, gradients are computed for the layer's inputs, if ``False`` for the layer's outputs.

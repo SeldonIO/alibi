@@ -597,11 +597,11 @@ def _check_target(output_shape: Tuple,
                              "in the model's output tensor.")
 
         if len(output_shape) == 1:
-            out_rank, target_rank = 1, len(target.shape)
+            out_rank, target_rank = 1, len(target.shape)  # in case of squash output, the output
             tmax, tmin = target.max(axis=0), target.min(axis=0)
 
             if tmax > 1:
-                raise ValueError(f"Target value {tmax} out of range for output shape = 1 ")
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
 
         elif len(output_shape) == 2:
             out_rank, target_rank = 1, len(target.shape)

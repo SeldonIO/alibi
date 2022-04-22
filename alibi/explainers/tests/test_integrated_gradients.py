@@ -708,9 +708,6 @@ def test_select_target(args):
     expected = args['expected']
 
     selected = _select_target(preds, target)
-    print(expected)
-    print('=======')
-    print(selected)
     assert (expected == selected.numpy()).all()
 
 

@@ -588,42 +588,42 @@ def _check_target(output_shape: Tuple,
             raise ValueError("Targets must be integers")
 
         if target.shape[0] != nb_samples:
-            raise ValueError(f"First dimension in target must be egual to nb of samples. "
-                             f"Found target 1st dimension {target.shape[0]}; nb samples: {nb_samples}")
+            raise ValueError(f"First dimension in target must be the same as nb of samples. "
+                             f"Found target 1st dimension: {target.shape[0]}; nb samples: {nb_samples}")
 
         if len(target.shape) > 2:
-            raise ValueError("Targets must be 1-d or 2-d arrays. In 2-d arrays, each column must contain "
-                             "the target index of the corresponding dimension in the model's output tensor.")
+            raise ValueError("Target must be a rank 1 or a rank 2 tensor. If target is a rank 2 tensor, "
+                             "each column contains the index of the corresponding dimension "
+                             "in the model's output tensor.")
 
         if len(output_shape) == 1:
-            onbdim, tnbdim = 1, len(target.shape)
+            out_rank, target_rank = 1, len(target.shape)
             tmax, tmin = target.max(axis=0), target.min(axis=0)
 
             if tmax > 1:
-                raise ValueError(f"Targets values {tmax} out of range for output shape {output_shape[-1]} ")
+                raise ValueError(f"Target value {tmax} out of range for output shape = 1 ")
 
         elif len(output_shape) == 2:
-            onbdim, tnbdim = 1, len(target.shape)
+            out_rank, target_rank = 1, len(target.shape)
             tmax, tmin = target.max(axis=0), target.min(axis=0)
 
             if (output_shape[-1] > 1 and (tmax >= output_shape[-1]).any()) or (output_shape[-1] == 1 and tmax > 1):
-                raise ValueError(f"Targets value {tmax} out of range for output shape {output_shape[-1]} ")
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
 
         else:
-            onbdim, tnbdim = len(output_shape[1:]), target.shape[-1]
+            out_rank, target_rank = len(output_shape[1:]), target.shape[-1]
             tmax, tmin = target.max(axis=0), target.min(axis=0)
 
             if (tmax >= output_shape[1:]).any():
-                raise ValueError(f"Targets value {tmax} out of range for output shape {output_shape[1:]} ")
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
 
         if (tmin < 0).any():
             raise ValueError(f"Negative value {tmin} for target. Targets represent positional "
                              f"arguments and cannot be negative")
 
-        if onbdim != tnbdim:
-            raise ValueError(f"Number of dimensions in target must be the same as "
-                             f"number of dimensions in model's output. "
-                             f"Found target nb of dimensions {tnbdim}; model output nb of dimensions {onbdim}")
+        if out_rank != target_rank:
+            raise ValueError(f"The last dimension of target  must match the rank of the model's output tensor. "
+                             f"Found target last dimension: {target_rank}; model's output rank: {out_rank}")
 
 
 def _get_target_from_target_fn(target_fn: Callable,
@@ -867,11 +867,16 @@ class IntegratedGradients(Explainer):
             If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.
-            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
-            for the same element of the output for all data points.
-            It must be provided if the model output dimension is higher than 1.
+            It can be a numpy array, a list of integers or a numeric value.
+            Numeric values are only valid if the rank of the
+            model's output tensor is < 2 (regression and classification models).
+            If a numeric value is passed, the gradients are calculated for
+            the same element of the output for all data points.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
+            It must be provided if the model output dimension is higher than 1.
+            If the model's output is a  rank-n tensor with n > 2,
+            the target must a rank 2 tensor with dimensions nb_samples x n.
         attribute_to_layer_inputs
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If ``True``, gradients are computed for the layer's inputs, if ``False`` for the layer's outputs.

@@ -652,17 +652,26 @@ def test_run_forward_from_layer(layer_nb,
     assert np.allclose(preds_from_layer, expected_values)
 
 
-BAD_TARGETS = [{'output_shape': (None, 2), 'target': np.array([0, 2]), 'nb_samples': 2},
-               {'output_shape': (None,), 'target': np.array([0]), 'nb_samples': 2},
-               {'output_shape': (None, 3), 'target': np.array([0, 0, 0]), 'nb_samples': 2},
-               {'output_shape': (None, 3), 'target': np.array([-123, -123]), 'nb_samples': 2},
-               {'output_shape': (None, 3), 'target': np.array([99, 99, 99]), 'nb_samples': 2},
-               {'output_shape': (None, 3), 'target': 999, 'nb_samples': 2},
-               {'output_shape': (None, 2), 'target': np.array([[0, 2]]), 'nb_samples': 2},
-               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 0], [0, 0]]), 'nb_samples': 2},
-               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 0, 3], [0, 0, 0]]), 'nb_samples': 2},
-               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 4, 0], [0, 0, 0]]), 'nb_samples': 2},
-               {'output_shape': (None, 4, 4, 3), 'target': np.array([[99, 99, 99], [0, 0, 0]]), 'nb_samples': 2}]
+TARGETS_ARGS = [{'output_shape': (None, 2), 'target': np.array([0, 2]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None,), 'target': np.array([0]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 3), 'target': np.array([0, 0, 0]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 3), 'target': np.array([-123, -123]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 3), 'target': np.array([99, 99, 99]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 3), 'target': 999, 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 2), 'target': np.array([[0, 2]]), 'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 0], [0, 0]]),
+                'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 0, 3], [0, 0, 0]]),
+                'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 4, 0], [0, 0, 0]]),
+                'nb_samples': 2, 'bad_target': True},
+               {'output_shape': (None, 4, 4, 3), 'target': np.array([[99, 99, 99], [0, 0, 0]]),
+                'nb_samples': 2, 'bad_target': True},
+                {'output_shape': (None, 2), 'target': np.array([0, 1]), 'nb_samples': 2, 'bad_target': False},
+                {'output_shape': (None,), 'target': np.array([0, 1]), 'nb_samples': 2, 'bad_target': False},
+                {'output_shape': (None, 3), 'target': np.array([0, 2]), 'nb_samples': 2, 'bad_target': False},
+                {'output_shape': (None, 4, 4, 3), 'target': np.array([[0, 0, 0], [3, 3, 2]]),
+                'nb_samples': 2, 'bad_target': False}]
 
 SELECT_ARGS = [{'preds': np.array([[0.0, 0.1],
                                    [1.0, 1.1]]),
@@ -678,12 +687,17 @@ SELECT_ARGS = [{'preds': np.array([[0.0, 0.1],
                                       [2.0]])}]
 
 
-@pytest.mark.parametrize('args', BAD_TARGETS)
+@pytest.mark.parametrize('args', TARGETS_ARGS)
 def test_check_target(args):
     output_shape = args['output_shape']
     target = args['target']
     nb_samples = args['nb_samples']
-    with pytest.raises((ValueError, AttributeError)):
+    bad_target = args['bad_target']
+
+    if bad_target:
+        with pytest.raises((ValueError, AttributeError)):
+            _check_target(output_shape, target, nb_samples)
+    else:
         _check_target(output_shape, target, nb_samples)
 
 

@@ -867,9 +867,9 @@ class IntegratedGradients(Explainer):
             If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.
-            It can be a numpy array, a list of integers or a numeric value.
-            Numeric values are only valid if the
-            model's output is a rank-n tensor with n <= 2 (regression and classification models).
+            Target can be a numpy array, a list or a numeric value.
+            Numeric values are only valid if the model's output is a rank-n tensor
+            with n <= 2 (regression and classification models).
             If a numeric value is passed, the gradients are calculated for
             the same element of the output for all data points.
             For regression models whose output is a scalar, target should not be provided.

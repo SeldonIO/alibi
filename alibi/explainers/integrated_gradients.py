@@ -876,7 +876,7 @@ class IntegratedGradients(Explainer):
             For classification models `target` can be either the true classes or the classes predicted by the model.
             It must be provided if the model output dimension is higher than 1.
             If the model's output is a rank-n tensor with n > 2,
-            the target must a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
+            the target must be a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
         attribute_to_layer_inputs
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If ``True``, gradients are computed for the layer's inputs, if ``False`` for the layer's outputs.

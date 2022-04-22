@@ -3,7 +3,7 @@ The 'alibi.explainers' module includes feature importance, counterfactual and an
 """
 
 from alibi.utils.missing_optional_dependency import import_optional
-from .ale import ALE
+from .ale import ALE, plot_ale
 from .anchors.anchor_text import AnchorText
 from .anchors.anchor_tabular import AnchorTabular
 from .anchors.anchor_image import AnchorImage
@@ -46,6 +46,7 @@ __all__ = [
     "CounterfactualProto",
     "CounterfactualRL",
     "CounterfactualRLTabular",
+    "plot_ale",
     "IntegratedGradients",
     "KernelShap",
     "TreeShap"

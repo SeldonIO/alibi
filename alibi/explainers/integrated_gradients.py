@@ -589,7 +589,7 @@ def _check_target(output_shape: Tuple,
 
         if target.shape[0] != nb_samples:
             raise ValueError(f"First dimension in target must be the same as nb of samples. "
-                             f"Found target 1st dimension: {target.shape[0]}; nb samples: {nb_samples}")
+                             f"Found target first dimension: {target.shape[0]}; nb of samples: {nb_samples}")
 
         if len(target.shape) > 2:
             raise ValueError("Target must be a rank-1 or a rank-2 tensor. If target is a rank-2 tensor, "
@@ -597,12 +597,14 @@ def _check_target(output_shape: Tuple,
                              "in the model's output tensor.")
 
         if len(output_shape) == 1:
-            out_rank, target_rank = 1, len(target.shape)  # in case of squash output, the output
+            # in case of squash output, the rank of the model's output tensor (out_rank) consider the batch dimension
+            out_rank, target_rank = 1, len(target.shape)
             tmax, tmin = target.max(axis=0), target.min(axis=0)
 
             if tmax > 1:
                 raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
 
+        # for all other cases, batch dimension is not considered in the out_rank
         elif len(output_shape) == 2:
             out_rank, target_rank = 1, len(target.shape)
             tmax, tmin = target.max(axis=0), target.min(axis=0)
@@ -874,7 +876,7 @@ class IntegratedGradients(Explainer):
             the same element of the output for all data points.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
-            It must be provided if the model output dimension is higher than 1.
+            It must be provided for classification models and regression models whose output is a vector.
             If the model's output is a rank-n tensor with n > 2,
             the target must be a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
         attribute_to_layer_inputs

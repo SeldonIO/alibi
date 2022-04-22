@@ -667,7 +667,7 @@ def _get_target_from_target_fn(target_fn: Callable,
         # TODO: in the future we want to support outputs that are >2D at which point this check should change
         msg = f"`target_fn` returned an array of shape {target.shape} but expected an array of shape {expected_shape}."
         raise ValueError(msg)  # TODO: raise a more specific error type?
-    return target
+    return target.astype(int)
 
 
 def _sum_integral_terms(step_sizes: list,

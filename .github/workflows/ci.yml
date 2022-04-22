@@ -6,14 +6,14 @@ defaults:
 
 on:
   # Trigger the workflow on push or pull request,
-  # but only for the master branch
+  # push only for the master branch.
   push:
     branches:
       - master
   pull_request:
-    branches:
-      - master
-  # Trigger workflow once per week
+    # don't trigger for draft PRs
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Trigger workflow once per day at midnight
   schedule:
     - cron: '0 0 * * *'
   # Trigger the workflow on manual dispatch

@@ -192,7 +192,7 @@ class CounterfactualProto(Explainer, FitMixin):
             self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in cat_vars.items()])
 
             # define placeholder for mapping which can be fed after the fit step
-            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[type-var] # feature with the most categories
+            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[arg-type]  # feature with the most categories
             self.max_cat = cat_vars[max_key]
             cat_keys = list(cat_vars.keys())
             n_cat = len(cat_keys)
@@ -1059,7 +1059,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
-            self.id_proto = min(dist_proto, key=dist_proto.get)  # type: ignore[type-var]
+            self.id_proto = min(dist_proto, key=dist_proto.get)  # type: ignore[arg-type]
             proto_val = self.class_proto[self.id_proto]
             if verbose:
                 print('Prototype class: {}'.format(self.id_proto))

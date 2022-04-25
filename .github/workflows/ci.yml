@@ -6,10 +6,12 @@ defaults:
 
 on:
   # Trigger the workflow on push or pull request,
-  # push only for the master branch.
+  # push only for the master branch,
+  # pull request for master and feature branches.
   push:
     branches:
       - master
+      - 'feature/*'
   pull_request:
     # don't trigger for draft PRs
     types: [opened, synchronize, reopened, ready_for_review]
@@ -29,9 +31,9 @@ jobs:
         os: [ubuntu-latest]
         python-version: [ '3.7', '3.8', '3.9' ]
         include: # Run macos and windows tests on python 3.9 only
-          - os: windows-latest 
+          - os: windows-latest
             python-version:  '3.9'
-          - os: macos-latest 
+          - os: macos-latest
             python-version:  '3.9'
 
     steps:

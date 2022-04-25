@@ -1152,7 +1152,7 @@ class DistributedAnchorTabular(AnchorTabular):
             d_samplers.append(
                 DistributedAnchorTabular.ray.remote(RemoteSampler).remote(
                     *(train_data_id, d_train_data_id, sampler)
-                )
+                )  # type: ignore[call-overload]
             )
         self.samplers = d_samplers
 

@@ -338,7 +338,7 @@ class Counterfactual(Explainer):
             See usage at `Counterfactual examples`_ for details.
 
             .. _Counterfactual examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CF.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html
         """
         # TODO change init parameters on the fly
 

@@ -18,8 +18,6 @@ extras_require = {
     ],
 }
 
-LICENSE = "Apache 2.0"
-
 setup(name='alibi',
       author='Seldon Technologies Ltd.',
       author_email='hello@seldon.io',
@@ -28,7 +26,7 @@ setup(name='alibi',
       long_description=readme(),
       long_description_content_type='text/markdown',
       url='https://github.com/SeldonIO/alibi',
-      license=LICENSE,
+      license="Apache 2.0",
       packages=find_packages(),
       include_package_data=True,
       python_requires='>=3.7',
@@ -41,11 +39,11 @@ setup(name='alibi',
           'scikit-image>=0.14.2, !=0.17.1, <0.20',  # https://github.com/SeldonIO/alibi/issues/215
           'requests>=2.21.0, <3.0.0',
           'Pillow>=5.4.1, <10.0',
-          'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.8.0',  # https://github.com/SeldonIO/alibi-detect/issues/375
+          'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.9.0',  # https://github.com/SeldonIO/alibi-detect/issues/375
           'attrs>=19.2.0, <22.0.0',
           'scipy>=1.1.0, <2.0.0',
           'matplotlib>=3.0.0, <4.0.0',
-          'typing-extensions>=3.7.2; python_version < "3.8"',  # https://github.com/SeldonIO/alibi/pull/248
+          'typing-extensions>=3.7.4.3',
           'dill>=0.3.0, <0.4.0',
           'transformers>=4.7.0, <5.0.0',
           'tqdm>=4.28.1, <5.0.0'
@@ -60,7 +58,8 @@ setup(name='alibi',
           "Programming Language :: Python :: 3.7",
           "Programming Language :: Python :: 3.8",
           "Programming Language :: Python :: 3.9",
-          f"License :: OSI Approved :: {LICENSE} License",
+          "Programming Language :: Python :: 3.10",
+          "License :: OSI Approved :: Apache Software License",
           "Topic :: Scientific/Engineering",
           ],
       )

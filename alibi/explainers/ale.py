@@ -113,8 +113,8 @@ class ALE(Explainer):
         grid_points
             Custom grid points. Must be a `dict` where the keys are features indices and the values are
             monotonically increasing `numpy` arrays defining the grid points for each feature.
-            See :ref:`Notes<Notes ALE explain>` section for the default behavior when potential edge-cases arise when
-            using grid-points. If no grid points are specified (i.e. the feature is missing from the `grid_points`
+            See the :ref:`Notes<Notes ALE explain>` section for the default behavior when potential edge-cases arise
+            when using grid-points. If no grid points are specified (i.e. the feature is missing from the `grid_points`
             dictionary), deciles discretization is used instead.
 
         Returns
@@ -144,7 +144,7 @@ class ALE(Explainer):
         and maximum value of feature `f`. The grid-points considered will be: `(O|X) X O X X O X O X X X X (X|O)`.
 
          - Grid points that do not contain any values in between. Consider the following example: \
-        `(O|X) X X O O O X O X O O (X|O)`. The intervals which do not contain any feature values are removed. \
+        `(O|X) X X O O O X O X O O (X|O)`. The intervals which do not contain any feature values are removed/merged. \
         The grid-points considered will be: `(O|X) X X O X O X O (X|O)`.
 
         """
@@ -423,7 +423,7 @@ def ale_num(
     fvals
         Array of quantiles or custom grid-points of the input values.
     ale
-        ALE values for each feature at each of the points in `q`.
+        ALE values for each feature at each of the points in `fvals`.
     ale0
         The constant offset used to center the ALE curves.
 
@@ -471,9 +471,9 @@ def ale_num(
 
         if np.any(interval_n == 0):
             fvals = np.delete(fvals, np.where(interval_n == 0)[0])
-            logger.warning(f'Some feature {feature} bins defined by the grid-points do not contain '
-                           f'any feature values. Automatically merging consecutive bins to ensure that '
-                           f'each bin contains at least one value.')
+            logger.warning(f'Some bins of feature {feature} defined by the grid-points do not contain '
+                           'any feature values. Automatically merging consecutive bins to ensure that '
+                           'each bin contains at least one value.')
 
     # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
     if len(fvals) == 1:

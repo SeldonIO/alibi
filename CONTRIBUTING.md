@@ -75,6 +75,8 @@ and class signatures. If you're using a `PyCharm`, you can configure this under
 - Complex math should be written in LaTeX.
     - ``` function where :math:`link(output - expected\_value) = sum(\phi)` ```
 
+- Other `alibi` objects should be cross-referenced using references of the form `` :role:`~object` ``, where `role` is one of the roles listed in the [sphinx documentation](https://www.sphinx-doc.org/en/master/usage/restructuredtext/domains.html#cross-referencing-python-objects), and `object` is the full path of the object to reference. For example, the `ALE` explainer's `explain` method would be referenced with `` :meth:`~alibi.explainers.ale.ALE.explain` ``. This will render as ALE.explain() and link to the relevent API docs page. The same convention can be used to reference objects from other libaries, providing the library is included in `intersphinx_mapping` in `doc/source/conf.py`. If the `~` is removed, the absolute object location will be rendered.
+
 - Variable values or examples of setting an argument to a specific values should be written in double back-ticks
 to facilitate readability as they are rendered in a block with orange font-color.
    - ``` is set to ``True`` ```

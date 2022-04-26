@@ -192,7 +192,7 @@ class CounterfactualProto(Explainer, FitMixin):
             self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in cat_vars.items()])
 
             # define placeholder for mapping which can be fed after the fit step
-            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[arg-type]  # feature with the most categories
+            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[arg-type] # feature with the most categories
             self.max_cat = cat_vars[max_key]
             cat_keys = list(cat_vars.keys())
             n_cat = len(cat_keys)
@@ -1318,7 +1318,7 @@ class CounterfactualProto(Explainer, FitMixin):
             See usage at `CFProto examples`_ for details.
 
             .. _CFProto examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html
         """
         # get params for storage in meta
         params = locals()

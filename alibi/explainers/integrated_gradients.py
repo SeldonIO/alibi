@@ -730,6 +730,12 @@ class IntegratedGradients(Explainer):
         layer
             Layer with respect to which the gradients are calculated.
             If not provided, the gradients are calculated with respect to the input.
+        target_fn
+            A scalar function that is applied to the predictions of the model.
+            This can be used to specify which scalar output the attributions should be calculated for.
+            This can be particularly useful if the desired output is not known before calling the model
+            (e.g. explaining the `argmax` output for a probabilistic classifier, in this case we could pass
+            ``target_fn=partial(np.argmax, axis=1)``).
         method
             Method for the integral approximation. Methods available:
             ``"riemann_left"``, ``"riemann_right"``, ``"riemann_middle"``, ``"riemann_trapezoid"``, ``"gausslegendre"``.
@@ -814,7 +820,7 @@ class IntegratedGradients(Explainer):
             for each feature. See usage at `IG examples`_ for details.
 
             .. _IG examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html
         """
         # target handling logic
         if self.target_fn and target is not None:

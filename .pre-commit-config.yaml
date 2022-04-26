@@ -14,5 +14,4 @@ repos:
       - id: mypy
         additional_dependencies: [
           types-requests>=2.25.0,
-          types-attrs>=19.1.0,
         ]

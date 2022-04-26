@@ -112,10 +112,10 @@ class ALE(Explainer):
             ALE estimation.
         grid_points
             Custom grid points. Must be a `dict` where the keys are features indices and the values are
-            monotonically increasing `numpy` arrays defining the grid points for each feature. See the ref:`Notes`
-            section for the default behavior when potential edge-cases arise when using grid-points. If no grid
-            points are specified (i.e. the feature is missing from the `grid_points` dictionary), deciles
-            discretization is used instead.
+            monotonically increasing `numpy` arrays defining the grid points for each feature.
+            See :ref:`Notes<Notes ALE explain>` section for the default behavior when potential edge-cases arise when
+            using grid-points. If no grid points are specified (i.e. the feature is missing from the `grid_points`
+            dictionary), deciles discretization is used instead.
 
         Returns
         -------
@@ -126,10 +126,10 @@ class ALE(Explainer):
             .. _ALE examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
 
-
-        .. _Notes:
         Notes
         -----
+        .. _Notes ALE explain:
+
         Consider `f` to be a feature of interest. We denote possible feature values of `f` by `X` (i.e. the values
         from the dataset column corresponding to feature `f`), by `O` a user-specified grid-point value, and by
         `(X|O)` an overlap between a grid-point and a feature value. We can encounter the following edge-cases:

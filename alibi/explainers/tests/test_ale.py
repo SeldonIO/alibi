@@ -117,6 +117,11 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
     if not custom_grid:
         for alev, featv in zip(exp.ale_values, exp.feature_values):
             assert alev.shape == (featv.shape[0], out_dim)
+    else:
+        for i, f in enumerate(grid_points.keys()):
+            # need to remove the first and last element just in case the feature values are extended
+            # with the min & max feature value
+            assert np.all(np.isin(exp.feature_values[i][1:-1], grid_points[f]))
 
     assert isinstance(exp.constant_value, float)
 

@@ -241,11 +241,14 @@ class GradientSimilarity(BaseSimilarityExplainer):
         """
         self._verify_fit()
         X, Y = self._preprocess_args(X, Y)
-        grad_X_test = self._compute_grad(X, Y)
+        test_grads = []
+        for x, y in zip(X, Y):
+            test_grads.append(self._compute_grad(x[None], y[None])[None])
+        grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:
-            scores = self._compute_adhoc_similarity(grad_X_test)
+            scores = self._compute_adhoc_similarity(grads_X_test)
         else:
-            scores = self.sim_fn(self.grad_X_train, grad_X_test)
+            scores = self.sim_fn(grads_X_test, self.grad_X_train)
         return self._build_explanation(scores)
 
     def _build_explanation(self, scores: np.ndarray) -> "Explanation":
@@ -257,11 +260,13 @@ class GradientSimilarity(BaseSimilarityExplainer):
             The scores for each of the instances in the data set computed by the similarity method.
         """
         data = copy.deepcopy(DEFAULT_DATA_SIM)
-        sorted_score_indices = np.argsort(scores)[::-1]
+        sorted_score_indices = np.argsort(scores)[:, ::-1]
         data.update(
-            scores=scores[sorted_score_indices],
+            scores=np.take_along_axis(scores, sorted_score_indices, axis=1),
             ordered_indices=sorted_score_indices,
-            most_similar=self.X_train[sorted_score_indices[:5]],
-            least_similar=self.X_train[sorted_score_indices[-1:-6:-1]],
+            most_similar=np.take_along_axis(
+                self.X_train[None, :, :], sorted_score_indices[:, :5, None], axis=1),
+            least_similar=np.take_along_axis(
+                self.X_train[None, :, :], sorted_score_indices[:, -1:-6:-1, None], axis=1),
         )
         return Explanation(meta=self.meta, data=data)

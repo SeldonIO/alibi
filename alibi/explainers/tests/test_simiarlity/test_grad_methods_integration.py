@@ -61,7 +61,7 @@ def test_correct_grad_dot_sim_result_torch(seed, normed_ds):
     explainer = explainer.fit(normed_ds, normed_ds)
     explanation = explainer.explain(normed_ds[0], Y=normed_ds[0])
     last = np.dot(normed_ds[0], normed_ds[0])
-    for ind in explanation['ordered_indices'][1:]:
+    for ind in explanation['ordered_indices'][0][1:]:
         current = np.dot(normed_ds[0], normed_ds[ind])
         assert current <= last
         last = current
@@ -83,7 +83,7 @@ def test_correct_grad_cos_sim_result_torch(seed, ds):
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
     last = 0
-    for ind in explanation['ordered_indices'][1:]:
+    for ind in explanation['ordered_indices'][0][1:]:
         current = compute_angle(ds[0], ds[ind])
         assert current >= last
         last = current
@@ -105,8 +105,8 @@ def test_grad_cos_result_order_torch(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][1]] == ds[1]).all()
-    assert (ds[explanation['ordered_indices'][-1]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
 
 
 def test_grad_dot_result_order_torch(seed):
@@ -124,8 +124,8 @@ def test_grad_dot_result_order_torch(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][-1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[1]).all()
 
 
 def loss_tf(y, x):
@@ -148,7 +148,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
     explainer = explainer.fit(normed_ds, normed_ds)
     explanation = explainer.explain(normed_ds[0], Y=normed_ds[0])
     last = np.dot(normed_ds[0], normed_ds[0])
-    for ind in explanation['ordered_indices'][1:]:
+    for ind in explanation['ordered_indices'][0][1:]:
         current = np.dot(normed_ds[0], normed_ds[ind])
         assert current <= last
         last = current
@@ -170,7 +170,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
     last = compute_angle(ds[0], ds[0])
-    for ind in explanation['ordered_indices'][1:]:
+    for ind in explanation['ordered_indices'][0][1:]:
         current = compute_angle(ds[0], ds[ind])
         assert current >= last
         last = current
@@ -191,8 +191,8 @@ def test_grad_dot_result_order_tf(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][-1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[1]).all()
 
 
 def test_grad_cos_result_order_tf(seed):
@@ -211,5 +211,123 @@ def test_grad_cos_result_order_tf(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][1]] == ds[1]).all()
-    assert (ds[explanation['ordered_indices'][-1]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
+
+
+def test_multiple_test_instances_grad_cos():
+    """
+    Test that multiple test instances get correct explanations for `grad_cos` similarity.
+    """
+    ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = GradientSimilarity(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_cos',
+        backend='tensorflow'
+    )
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0:2], Y=ds[0:2])
+    # Test that the first two datapoints are the most similar
+    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][1][1]] == ds[0]).all()
+
+    # Test that the greatest difference is between the first two and the last datapoint
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][1][-1]] == ds[-1]).all()
+
+
+def test_multiple_test_instances_stored_grads_grad_cos():
+    """
+    Test that multiple test instances get correct explanations for `grad_cos` similarity and when explainer
+    `precompute_grads` is true.
+    """
+    ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = GradientSimilarity(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_cos',
+        backend='tensorflow',
+        precompute_grads=True
+    )
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0:2], Y=ds[0:2])
+    # Test that the first two datapoints are the most similar
+    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
+    assert (ds[explanation['ordered_indices'][1][1]] == ds[0]).all()
+
+    # Test that the greatest difference is between the first two and the last datapoint
+    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][1][-1]] == ds[-1]).all()
+
+
+def test_multiple_test_instances_grad_dot():
+    """
+    Test that multiple test instances get correct explanations for `grad_dot` similarity.
+    """
+    ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = GradientSimilarity(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_dot',
+        backend='tensorflow'
+    )
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0:2], Y=ds[0:2])
+
+    # Check that the last datapoint is the most similar to the first datapoint.
+    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
+
+
+def test_multiple_test_instances_stored_grads_grad_dot():
+    """
+    Test that multiple test instances get correct explanations for `grad_dot` similarity and when explainer
+    `precompute_grads` is true.
+    """
+    ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = GradientSimilarity(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_dot',
+        backend='tensorflow',
+        precompute_grads=True
+    )
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0:2], Y=ds[0:2])
+    # Check that the last datapoint is the most similar to the first datapoint.
+    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
+
+
+def test_multiple_test_instances_stored_grads_asym_dot():
+    """
+    Test that multiple test instances get correct explanations for `grad_asym_dot` when explainer `precompute_grads` is
+    true.
+    """
+    ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    explainer = GradientSimilarity(
+        model,
+        task='regression',
+        loss_fn=loss_tf,
+        sim_fn='grad_asym_dot',
+        backend='tensorflow',
+        precompute_grads=True
+    )
+    explainer = explainer.fit(ds, ds)
+    explanation = explainer.explain(ds[0:2], Y=ds[0:2])
+
+    # Check asymmetric dot product scores are correct
+    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
+    assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
+    explanation = explainer.explain(ds[-1], Y=ds[-1])
+    assert (explanation.scores == np.array([[1., 0.01, 0.01]], dtype=np.float32)).all()

@@ -15,3 +15,7 @@ repos:
         additional_dependencies: [
           types-requests>=2.25.0,
         ]
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.5.0
+    hooks:
+      - id: nbstripout

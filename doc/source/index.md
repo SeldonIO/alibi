@@ -32,9 +32,9 @@ methods/CFRL.ipynb
 methods/IntegratedGradients.ipynb
 methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
+methods/ProtoSelect.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
-methods/ProtoSelect.ipynb
 ```
 
 ```{toctree}
@@ -73,7 +73,7 @@ examples/integrated_gradients_imagenet.ipynb
 examples/integrated_gradients_mnist.ipynb
 examples/integrated_gradients_imdb.ipynb
 examples/integrated_gradients_transformers.ipynb
-examples/protoselect.ipynb
+examples/protoselect_adult_cifar10.ipynb
 ```
 
 ```{toctree}

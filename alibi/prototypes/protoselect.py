@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from tqdm import tqdm
 from copy import deepcopy
-from typing import Callable, Optional, Dict, List, Union, Tuple
+from typing import Any, Callable, Optional, Dict, List, Union, Tuple
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from skimage.transform import resize
@@ -476,6 +476,7 @@ def visualize_prototypes(explanation: 'Explanation',
                          refset: Tuple[np.ndarray, np.ndarray],
                          reducer: Callable[[np.ndarray], np.ndarray],
                          preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                         knn_kwargs: Dict[str, Any] = {'metric': 'euclidean'},
                          figsize: Tuple[int, int] = (10, 10),
                          image_size: Tuple[int, int] = (28, 28),
                          zoom_lb: float = 1.0,
@@ -493,9 +494,13 @@ def visualize_prototypes(explanation: 'Explanation',
         Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
         labels.
     reducer
-        2D reducer. Reduces the input feature representation to 2D. Note that the reducer operated directly on the
+        2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
         input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
         on the feature representation obtained after calling `preprocess_fn` on the input instances.
+    preprocess_fn
+        Preprocessor function.
+    knn_kwargs
+        Sklearn KNN classifier kwargs.
     figsize
         `Matplotlib` figure size.
     image_size
@@ -517,7 +522,7 @@ def visualize_prototypes(explanation: 'Explanation',
         if (preprocess_fn is not None) else X_proto
 
     # train knn classifier
-    knn = KNeighborsClassifier(n_neighbors=1)
+    knn = KNeighborsClassifier(n_neighbors=1, **knn_kwargs)
     knn = knn.fit(X=X_proto_ft, y=X_proto_labels)
 
     # get neighbors indices for each training instance

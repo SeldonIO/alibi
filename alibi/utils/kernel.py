@@ -4,7 +4,7 @@ from alibi.utils.distance import squared_pairwise_distance
 
 
 class GaussianRBF:
-    def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None, **kwargs) -> None:
+    def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None) -> None:
         """
         Gaussian RBF kernel: :math:`k(x,y) = \\exp(-\\frac{||x-y||^2}{2\\sigma^2})`.
         A forward pass takes a batch of instances `x` of size `Nx x features` and `y` of size `Ny x features`
@@ -15,12 +15,9 @@ class GaussianRBF:
         sigma
             Kernel bandwidth. Need not to be specified if being inferred or trained.
             Can pass multiple values to eval kernel with and then average.
-        **kwargs
-            Other arguments. Not used.
         """
         super().__init__()
         self.config = {'sigma': sigma}
-        self.min_val, self.max_val = 0., 1.   # minimum and maximum values that the kernel can take.
 
         if sigma is None:
             self.log_sigma = np.empty(1, dtype=np.float32)
@@ -75,7 +72,7 @@ class GaussianRBF:
 
 
 class GaussianRBFDistance:
-    def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None, **kwargs):
+    def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None):
         """
         Gaussian RBF kernel dissimilarity/distance: :math:`k(x, y) = 1 - \\exp(-\\frac{||x-y||^2}{2\\sigma^2})`.
         A forward pass takes a batch of instances `x` of size `Nx x features` and `y` of size `Ny x features`
@@ -85,29 +82,22 @@ class GaussianRBFDistance:
         ----------
         sigma
             See :py:meth:`alibi.utils.kernel.GaussianRBF.__init__`.
-        **kwargs
-            Other arguments. Not used.
         """
         super().__init__()
         self.kernel = GaussianRBF(sigma=sigma)
 
     def __call__(self, x: np.ndarray, y: np.ndarray, infer_sigma: bool = False) -> np.ndarray:
         kmatrix = self.kernel(x, y, infer_sigma)
-        return self.kernel.max_val - kmatrix
+        return 1. - kmatrix
 
 
 class EuclideanDistance:
-    def __init__(self, **kwargs) -> None:
+    def __init__(self) -> None:
         """
         Euclidean distance: :math:`k(x, y) = ||x-y||`. A forward pass takes a batch of instances `x` of
         size `Nx x features` and `y` of size `Ny x features` and returns the kernel matrix `Nx x Ny`.
-
-        Parameters
-        ----------
-        **kwargs
-            Other arguments. Not used.
         """
-        self.min_val, self.max_val = 0., np.inf   # minimum and maximum values that the kernel can take.
+        pass
 
     def __call__(self, x: np.ndarray, y: np.ndarray) -> np.ndarray:
         """

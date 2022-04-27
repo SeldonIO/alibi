@@ -113,14 +113,14 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
                                                     exp.ale0))
 
     assert len(exp.target_names) == out_dim
+    for alev, featv in zip(exp.ale_values, exp.feature_values):
+        assert alev.shape == (featv.shape[0], out_dim)
 
-    if not custom_grid:
-        for alev, featv in zip(exp.ale_values, exp.feature_values):
-            assert alev.shape == (featv.shape[0], out_dim)
-    else:
+    if custom_grid:
         for i, f in enumerate(grid_points.keys()):
             # need to remove the first and last element just in case the feature values are extended
-            # with the min & max feature value
+            # with the min & max feature value. Check if subset since some grid-points might have
+            # been removed because of merging empty intervals.
             assert np.all(np.isin(exp.feature_values[i][1:-1], grid_points[f]))
 
     assert isinstance(exp.constant_value, float)

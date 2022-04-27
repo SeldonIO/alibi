@@ -51,12 +51,14 @@ class ALE(Explainer):
         check_feature_resolution
             If ``True``, the number of unique values is calculated for each feature and if it is less than
             `low_resolution_threshold` then the feature values are used for grid-points instead of quantiles.
-            This may increase the runtime of the algorithm for large datasets.
+            This may increase the runtime of the algorithm for large datasets. Only used for features without custom
+            grid-points specified in :py:meth:`alibi.explainers.ale.ALE.explain`.
         low_resolution_threshold
             If a feature has at most this many unique values, these are used as the grid points instead of
             quantiles. This is to avoid situations when the quantile algorithm returns quantiles between discrete
             values which can result in jumps in the ALE plot obscuring the true effect. Only used if
-            `check_feature_resolution` is ``True``.
+            `check_feature_resolution` is ``True`` and for features without custom grid-points specified in
+            :py:meth:`alibi.explainers.ale.ALE.explain`.
         extrapolate_constant
             If a feature is constant, only one quantile exists where all the data points lie. In this case the
             ALE value at that point is zero, however this may be misleading if the feature does have an effect on

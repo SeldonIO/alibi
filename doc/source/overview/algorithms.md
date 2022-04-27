@@ -18,7 +18,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
 |[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
-|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
+|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
 |[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |

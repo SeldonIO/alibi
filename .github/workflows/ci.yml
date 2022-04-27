@@ -6,14 +6,16 @@ defaults:
 
 on:
   # Trigger the workflow on push or pull request,
-  # but only for the master branch
+  # push only for the master branch,
+  # pull request for master and feature branches.
   push:
     branches:
       - master
+      - 'feature/*'
   pull_request:
-    branches:
-      - master
-  # Trigger workflow once per week
+    # don't trigger for draft PRs
+    types: [opened, synchronize, reopened, ready_for_review]
+  # Trigger workflow once per day at midnight
   schedule:
     - cron: '0 0 * * *'
   # Trigger the workflow on manual dispatch
@@ -27,12 +29,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [ '3.7', '3.8', '3.9' ]
-        include: # Run macos and windows tests on python 3.9 only
+        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
+        include: # Run macos and windows tests on only one python version
           - os: windows-latest 
-            python-version:  '3.9'
+            python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python) 
           - os: macos-latest 
-            python-version:  '3.9'
+            python-version:  '3.10'
 
     steps:
       - name: Checkout code
@@ -48,7 +50,9 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
           python -m pip install --upgrade --upgrade-strategy eager -e .
-          if [ "$RUNNER_OS" != "Windows" ]; then  # Skip distributed tests on windows for now (Windows support for ray is experimental https://docs.ray.io/en/latest/installation.html#windows-support)
+          if [ "$RUNNER_OS" != "Windows" ] && [ ${{ matrix.python }} < '3.10' ]; then  
+          # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
+          # Python 3.10 is not yet supported (https://github.com/ray-project/ray/blob/master/python/setup.py#L24) 
             python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
           fi
           python -m pip install --upgrade --upgrade-strategy eager -e .[shap]

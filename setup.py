@@ -66,6 +66,9 @@ if __name__ == '__main__':
               'transformers>=4.7.0, <5.0.0',
               'tqdm>=4.28.1, <5.0.0'
           ],
+          extras_require=get_extra_requires('requirements/extra.txt'),
+          test_suite='tests',
+          zip_safe=False,
           classifiers=[
               "Intended Audience :: Science/Research",
               "Operating System :: OS Independent",
@@ -73,9 +76,7 @@ if __name__ == '__main__':
               "Programming Language :: Python :: 3.7",
               "Programming Language :: Python :: 3.8",
               "Programming Language :: Python :: 3.9",
+              "Programming Language :: Python :: 3.10",
               "License :: OSI Approved :: Apache Software License",
               "Topic :: Scientific/Engineering",
-          ],
-          extras_require = get_extra_requires('requirements/extra.txt'),
-          test_suite = 'tests',
-          zip_safe = False)
+          ])

@@ -4,20 +4,14 @@
 
 <!--- BADGES: START --->
 
-<!---
-![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
-[![PyPI version](https://badge.fury.io/py/alibi-detect.svg)](https://badge.fury.io/py/alibi-detect)
---->
 [![Build Status](https://github.com/SeldonIO/alibi-detect/workflows/CI/badge.svg?branch=master)][#build-status]
 [![Documentation Status](https://readthedocs.org/projects/alibi/badge/?version=latest)][#docs-package]
 [![codecov](https://codecov.io/gh/SeldonIO/alibi/branch/master/graph/badge.svg)](https://codecov.io/gh/SeldonIO/alibi)
-![Python version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9-blue.svg)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/alibi?logo=pypi&style=flat&color=blue)][#pypi-package]
 [![PyPI - Package Version](https://img.shields.io/pypi/v/alibi?logo=pypi&style=flat&color=orange)][#pypi-package]
 [![Conda (channel only)](https://img.shields.io/conda/vn/conda-forge/alibi?logo=anaconda&style=flat&color=orange)][#conda-forge-package]
 [![GitHub - License](https://img.shields.io/github/license/SeldonIO/alibi?logo=github&style=flat&color=green)][#github-license]
 [![Slack channel](https://img.shields.io/badge/chat-on%20slack-e51670.svg)][#slack-channel]
-<!---[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/alibi?logo=pypi&style=flat&color=blue)][#pypi-package]--->
-<!--- TODO switch to above auto Python version on new release (PyPi needs updating with classiferies in setup.py classifiers) --->
 
 <!--- Hide platform for now as platform agnostic --->
 <!--- [![Conda - Platform](https://img.shields.io/conda/pn/conda-forge/alibi?logo=anaconda&style=flat)][#conda-forge-package]--->

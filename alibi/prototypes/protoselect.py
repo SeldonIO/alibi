@@ -21,15 +21,14 @@ logger = logging.getLogger(__name__)
 
 class ProtoSelect(Explainer, FitMixin):
     def __init__(self,
-                 eps: float,
                  kernel_distance: Callable[[np.ndarray, np.ndarray], np.ndarray],
+                 eps: float,
                  lbd: Optional[float] = None,
                  batch_size: int = int(1e10),
                  preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                 verbose: bool = False,
-                 **kwargs):
+                 verbose: bool = False):
         """
-        Constructor
+        Prototype selection for dataset distillation and interpretable classification.
 
         Parameters
         ----------
@@ -76,14 +75,17 @@ class ProtoSelect(Explainer, FitMixin):
             X_labels: Optional[np.ndarray] = None,
             Y: Optional[np.ndarray] = None) -> 'ProtoSelect':
         """
-        Fit the explainer by setting the reference dataset.
+        Fit the explainer by setting the reference dataset. This step form the kernel matrix in memory
+        which has a shape of `Nx x Ny`, where `Nx` are the number of instances in `X` and `Ny` are the
+        number of instances in `Y`.
 
         Parameters
         ---------
         X
             Reference dataset to be summarized.
         X_labels
-            Labels of the reference dataset.
+            Labels of the reference dataset. The labels are expected to be represented as integers `[0, 1, ..., L-1]`,
+            where `L` is the number of classes in the reference dataset.
         Y
             Dataset to choose the prototypes from. If ``None``, the prototypes will be selected from the reference
             dataset `X`.
@@ -128,7 +130,7 @@ class ProtoSelect(Explainer, FitMixin):
 
         Returns
         -------
-        An `Explanation` object containing the prototypes, prototypes indices and protoypes labels with additional \
+        An `Explanation` object containing the prototypes, prototype indices and prototype labels with additional \
         metadata as attributes
         """
         if num_prototypes > len(self.Y):
@@ -163,18 +165,13 @@ class ProtoSelect(Explainer, FitMixin):
         # [NY, 1, NX] +  [1, L, NX] -> [NY, L, NX]
         delta_nu_all = B[:, np.newaxis, :] + (1 - Xl[np.newaxis, ...]) >= 2
         # [NY, L]. For every row `y` and every column `l`, we compute how many new instances belonging to all the
-        # other classes different then `l` will be covered if we add the prototype `y`.
+        # other classes different from `l` will be covered if we add the prototype `y`.
         delta_nu_summed = np.sum(delta_nu_all, axis=-1)
         # compute the tradeoff score - each prototype tries to cover as many new elements as possible
         # belonging to the same class, while trying to avoid covering elements belonging to another class
         scores_all = delta_xi_summed - delta_nu_summed - self.lbd
 
-        # add progressing bar if `verbose=True`
-        generator = range(num_prototypes)
-        if self.verbose:
-            generator = tqdm(generator)
-
-        for _ in generator:
+        for _ in tqdm(range(num_prototypes), disable=(not self.verbose)):
             j = np.array(list(available_indices)).astype(np.int32)
             scores = scores_all[j]
 
@@ -221,9 +218,7 @@ class ProtoSelect(Explainer, FitMixin):
 
 def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
                                        num_prototypes: int,
-                                       eps: float,
-                                       preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None
-                                       ) -> Optional[KNeighborsClassifier]:
+                                       eps: float) -> Optional[KNeighborsClassifier]:
     """
     Helper function to fit a 1-KNN classifier on the prototypes returned by the explainer.
     Sets the epsilon radius to be used.
@@ -260,7 +255,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              protoset: Tuple[np.ndarray, ],
                              valset: Optional[Tuple[np.ndarray, np.ndarray]] = None,
                              num_prototypes: int = 1,
-                             eps_range: Optional[np.ndarray] = None,
+                             eps_grid: Optional[np.ndarray] = None,
                              quantiles: Optional[Tuple[float, float]] = None,
                              grid_size: int = 25,
                              n_splits: int = 2,
@@ -285,18 +280,19 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         In case ``valset=None``, then `n-splits` cross-validation is performed on the `refset`.
     num_prototypes
         The number of prototypes to be selected.
-    eps_range
-        Optional ranges of values to select the epsilon radius from. If not specified, the search range is
+    eps_grid
+        Optional grid of values to select the epsilon radius from. If not specified, the search grid is
         automatically proposed based on the inter-distances between `X_ref` and `X_proto`. The distances are filtered
         by considering only values in between the `quantiles` values. The minimum and maximum distance values are
         used to define the range of values to search the epsilon radius. The interval is discretized in `grid_size`
-        equal-distant bins.
+        equi-distant bins.
     quantiles
-        Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. See `eps_range` for
-        more details. If not specified, no filtering is applied. Only used if ``eps_range=None``.
+        Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. The expected
+        quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
+        If not specified, no filtering is applied. Only used if ``eps_grid=None``.
     grid_size
-        The number of equal-distant bins to be used to discretize the `eps_range` proposed interval. Only used if
-        ``eps_range=None``.
+        The number of equal-distant bins to be used to discretize the `eps_grid` proposed interval. Only used if
+        ``eps_grid=None``.
     n_splits
         The number of cross-validation splits to be used. Default value 2. Only used if ``valset=None``.
     batch_size
@@ -316,8 +312,8 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         X_ref = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn, batch_size=batch_size)
         X_proto = _batch_preprocessing(X=X_proto, preprocess_fn=preprocess_fn, batch_size=batch_size)
 
-    # propose eps_range if not specified
-    if eps_range is None:
+    # propose eps_grid if not specified
+    if eps_grid is None:
         dist = batch_compute_kernel_matrix(x=X_ref, y=X_proto, kernel=EuclideanDistance()).reshape(-1)
         if quantiles is not None:
             if quantiles[0] > quantiles[1]:
@@ -328,11 +324,11 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         else:
             min_dist, max_dist = np.min(dist), np.max(dist)
         # define list of values for eps
-        eps_range = np.linspace(min_dist, max_dist, num=grid_size)
+        eps_grid = np.linspace(min_dist, max_dist, num=grid_size)
 
     if valset is None:
         kf = KFold(n_splits=n_splits)
-        scores = np.zeros((len(eps_range), n_splits))
+        scores = np.zeros((len(eps_grid), n_splits))
 
         for i, (train_index, val_index) in enumerate(kf.split(X=X_ref, y=X_ref_labels)):
             X, X_labels = X_ref[train_index], X_ref_labels[train_index]
@@ -342,16 +338,16 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
             explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
             explainer = explainer.fit(X=X, X_labels=X_labels, Y=X_proto)
 
-            for j in range(len(eps_range)):
+            for j in range(len(eps_grid)):
                 knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                          num_prototypes=num_prototypes,
-                                                         eps=eps_range[j])
+                                                         eps=eps_grid[j])
                 if knn is None:
                     continue
                 scores[j][i] = knn.score(X_val, X_val_labels)
-        best_eps = eps_range[np.argmax(np.mean(scores, axis=-1))]
+        best_eps = eps_grid[np.argmax(np.mean(scores, axis=-1))]
     else:
-        scores = np.zeros(len(eps_range))
+        scores = np.zeros(len(eps_grid))
         X_val, X_val_labels = valset
         if preprocess_fn is not None:
             X_val = _batch_preprocessing(X=X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
@@ -360,21 +356,20 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
         explainer = explainer.fit(X=X_ref, X_labels=X_ref_labels, Y=X_proto)
 
-        for j in range(len(eps_range)):
+        for j in range(len(eps_grid)):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
                                                      num_prototypes=num_prototypes,
-                                                     eps=eps_range[j],
-                                                     preprocess_fn=preprocess_fn)
+                                                     eps=eps_grid[j])
             if knn is None:
                 continue
             scores[j] = knn.score(X_val, X_val_labels)
-        best_eps = eps_range[np.argmax(scores)]
+        best_eps = eps_grid[np.argmax(scores)]
 
     return {
         'best_eps': best_eps,
         'meta': {
             'num_prototypes': num_prototypes,
-            'eps_range': eps_range,
+            'eps_grid': eps_grid,
             'quantiles': quantiles,
             'grid_size': grid_size,
             'n_splits': n_splits,
@@ -489,7 +484,8 @@ def visualize_prototypes(explanation: 'Explanation',
     Parameters
     ----------
     explanation
-        Explanation object.
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.prototypes.protoselect.ProtoSelect.explain` method.
     refset
         Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
         labels.

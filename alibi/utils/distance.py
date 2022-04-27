@@ -295,9 +295,6 @@ def batch_compute_kernel_matrix(x: np.ndarray,
     -------
     Kernel matrix in the form of a `numpy` array.
     """
-    if type(x) != type(y):
-        raise ValueError("x and y should be of the same type")
-
     n_x, n_y = len(x), len(y)
     n_batch_x, n_batch_y = int(np.ceil(n_x / batch_size)), int(np.ceil(n_y / batch_size))
 

@@ -13,8 +13,8 @@ from alibi.prototypes.protoselect import cv_protoselect_euclidean
 @pytest.mark.parametrize('kernel_distance', [EuclideanDistance()])
 @pytest.mark.parametrize('num_prototypes', [30, 40, 50, 100])
 @pytest.mark.parametrize('eps', [0.2, 0.5])
-def test_multimodal(n_classes, ft_factor, kernel_distance, num_prototypes, eps):
-    """ Integration test. """
+def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps):
+    """ ProtoSelect integration test on a multiclass dataset."""
     X, Y = make_classification(n_samples=1000,
                                n_features=ft_factor * n_classes,
                                n_informative=n_classes,
@@ -43,12 +43,12 @@ def test_multimodal(n_classes, ft_factor, kernel_distance, num_prototypes, eps):
 @pytest.mark.parametrize('n_classes', [2])
 @pytest.mark.parametrize('use_valset', [False, True])
 @pytest.mark.parametrize('num_prototypes', [10, 30])
-@pytest.mark.parametrize('eps_range', [None, np.arange(15)])
+@pytest.mark.parametrize('eps_grid', [None, np.arange(15)])
 @pytest.mark.parametrize('quantiles', [(0, 1.), (0.1, 0.9), (0.1, 1), (0., 0.4)])
 @pytest.mark.parametrize('grid_size', [2, 10, 20])
 @pytest.mark.parametrize('n_splits', [2, 5])
 @pytest.mark.parametrize('batch_size', [100])
-def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_range, quantiles, grid_size,
+def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_grid, quantiles, grid_size,
                                   n_splits, batch_size):
     """
     Unit test for cross-validation. Checks if all parameters are passed correctly and checks the
@@ -79,7 +79,7 @@ def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_ran
                                   protoset=protoset,
                                   valset=valset,
                                   num_prototypes=num_prototypes,
-                                  eps_range=eps_range,
+                                  eps_grid=eps_grid,
                                   quantiles=quantiles,
                                   grid_size=grid_size,
                                   n_splits=n_splits,
@@ -87,14 +87,14 @@ def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_ran
 
     if use_valset:
         # check if the `scores` shape is 1D when validation set is passed
-        assert len(cv['meta']['scores']) == len(cv['meta']['eps_range'])
+        assert len(cv['meta']['scores']) == len(cv['meta']['eps_grid'])
     else:
         # check if the `scores` shape is 2D when no validation is passed
-        assert cv['meta']['scores'].shape == (len(cv['meta']['eps_range']), n_splits)
+        assert cv['meta']['scores'].shape == (len(cv['meta']['eps_grid']), n_splits)
 
-    if eps_range is not None:
-        # if `eps_range` is provided, the check that the `best_eps` is amongst `eps_range` values.
-        assert np.any(np.isclose(eps_range, cv['best_eps']))
+    if eps_grid is not None:
+        # if `eps_grid` is provided, the check that the `best_eps` is amongst `eps_grid` values.
+        assert np.any(np.isclose(eps_grid, cv['best_eps']))
     else:
-        # if `eps_range` is not provided, check that the search interval was split in `grid_size` bins
-        assert len(cv['meta']['eps_range']) == grid_size
+        # if `eps_grid` is not provided, check that the search interval was split in `grid_size` bins
+        assert len(cv['meta']['eps_grid']) == grid_size

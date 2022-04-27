@@ -7,8 +7,8 @@ class GaussianRBF:
     def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None) -> None:
         """
         Gaussian RBF kernel: :math:`k(x,y) = \\exp(-\\frac{||x-y||^2}{2\\sigma^2})`.
-        A forward pass takes a batch of instances `x` of size `Nx x features` and `y` of size `Ny x features`
-        and returns the kernel matrix of size `Nx x Ny`.
+        A forward pass takes a batch of instances `x` of size `Nx x f1 x f2 x ...` and
+        `y` of size `Ny x f1 x f2 x ... ` and returns the kernel matrix of size `Nx x Ny`.
 
         Parameters
         ----------
@@ -75,8 +75,8 @@ class GaussianRBFDistance:
     def __init__(self, sigma: Optional[Union[float, np.ndarray]] = None):
         """
         Gaussian RBF kernel dissimilarity/distance: :math:`k(x, y) = 1 - \\exp(-\\frac{||x-y||^2}{2\\sigma^2})`.
-        A forward pass takes a batch of instances `x` of size `Nx x features` and `y` of size `Ny x features`
-        and returns the kernel matrix of size `Nx x Ny`.
+        A forward pass takes a batch of instances `x` of size `Nx x f1 x f2 x ...` and
+        `y` of size `Ny x f1 x f2 x ...` and returns the kernel matrix of size `Nx x Ny`.
 
         Parameters
         ----------
@@ -95,7 +95,7 @@ class EuclideanDistance:
     def __init__(self) -> None:
         """
         Euclidean distance: :math:`k(x, y) = ||x-y||`. A forward pass takes a batch of instances `x` of
-        size `Nx x features` and `y` of size `Ny x features` and returns the kernel matrix `Nx x Ny`.
+        size `Nx x f1 x f2 x ... ` and `y` of size `Ny x f1 x f2 x ...` and returns the kernel matrix `Nx x Ny`.
         """
         pass
 

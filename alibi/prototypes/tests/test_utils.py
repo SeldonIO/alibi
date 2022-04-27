@@ -31,7 +31,6 @@ def test_GaussianRBF(size, ft_size, sigma):
     """
     Test GaussianRBF kernel implementation
     """
-    np.random.seed(0)
     X = np.random.randn(size, ft_size)
     Y = np.random.randn(size, ft_size)
 
@@ -52,7 +51,6 @@ def test_GaussianRBFDistance(size, ft_size, sigma):
     """
     Test GaussianRBF distance kernel implementation
     """
-    np.random.seed(0)
     X = np.random.randn(size, ft_size)
     Y = np.random.randn(size, ft_size)
 
@@ -72,7 +70,6 @@ def test_EuclideanDistance(size, ft_size):
     """
     Test Euclidean distance kernel implementation
     """
-    np.random.seed(0)
     X = np.random.randn(size, ft_size)
     Y = np.random.randn(size, ft_size)
 
@@ -94,7 +91,6 @@ def test_batch_compute_kernel_matrix(size, ft_size, batch_size, kernel):
     """
     Test Euclidean distance kernel implementation
     """
-    np.random.seed(0)
     X = np.random.randn(size, ft_size)
     Y = np.random.randn(size, ft_size)
 

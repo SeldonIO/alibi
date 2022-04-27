@@ -45,7 +45,7 @@ class MissingDependency(type):
     def __new__(mcs, name, bases, attrs):
         """ Metaclass for MissingDependency classes
 
-        Params
+        Parameters
         ----------
         name
             Name of the class to be created
@@ -106,14 +106,14 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
     import functionality its return type has to be `Any`. Using objects imported with this function can lead to
     misspecification of types as `Any` when the developer intended to be more restrictive.
 
-    params
-    ------
+    Parameters
+    ----------
         module
             The module to import
         names
             The names to import from the module. If None, all names are imported.
 
-    returns
+    Returns
     -------
         The module or named objects within the modules if names is not None. If the import fails due to a
         ModuleNotFoundError or ImportError. The requested module or named objects are replaced with classes derived

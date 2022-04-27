@@ -480,7 +480,8 @@ class CounterfactualRL(Explainer, FitMixin):
                 (backend == Framework.TENSORFLOW and not has_tensorflow):
             raise ImportError(f'{backend} not installed. Cannot initialize and run the CounterfactualRL'
                               f' with {backend} backend.')
-            # Allow only pytorch and tensorflow.
+
+        # Allow only pytorch and tensorflow.
         elif backend not in [Framework.PYTORCH, Framework.TENSORFLOW]:
             raise NotImplementedError(f'{backend} not implemented. Use `tensorflow` or `pytorch` instead.')
 

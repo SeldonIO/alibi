@@ -163,15 +163,15 @@ All PRs triger a CI job to run linting, type checking, tests, and build docs. Th
 
 ## Optional Dependencies
 
-Alibi uses optional dependencies to allow users the choice to not install large or error-prone dependencies. These are 
-managed in the `requirements/extra.txt` file as an inverse index. Alibi manages modularity of components that depend on 
-optional dependencies using the `import_optional` defined in `alibi/utils/missing_optional_dependency.py`. This 
-replaces the dependency with a dummy class that raises an error when called. If you are working on public functionality 
-that is dependent on an optional dependency you should expose the functionality via the relevant `__init__.py` file by
-importing it there using the `optional_import` function. Currently, optional dependencies are tested by importing all 
-the public functionality and checking that the correct errors are raised dependent on the environment. Developers can 
-run these tests using `tox`. These tests are in `alibi/tests/test_dep_mangement.py`. If implementing functionality that 
-is dependent on a new optional dependency then you will need to:
+Alibi uses optional dependencies to allow users to avoid installing large or challenging to install dependencies. These 
+are managed in the `requirements/extra.txt` file as an inverse index. Alibi manages modularity of components that 
+depend on optional dependencies using the `import_optional` defined in `alibi/utils/missing_optional_dependency.py`. 
+This replaces the dependency with a dummy class that raises an error when called. If you are working on public 
+functionality that is dependent on an optional dependency you should expose the functionality via the relevant 
+`__init__.py` file by importing it there using the `optional_import` function. Currently, optional dependencies are 
+tested by importing all the public functionality and checking that the correct errors are raised dependent on the 
+environment. Developers can run these tests using `tox`. These tests are in `alibi/tests/test_dep_mangement.py`. If 
+implementing functionality that is dependent on a new optional dependency then you will need to:
 
 1. Add it to `requirements/extra.txt`.
 2. Create a new `tox` environment in `setup.cfg` with the new dependency.
@@ -192,7 +192,7 @@ subcomponent implementation.
 The general layout of a subpackage with optional dependencies should look like: 
 
 ```
-alibi/supackage/
+alibi/subpackage/
   __init__.py  # expose public API with optional import guards
   defaults.py  # private implementations requiring only core deps
   optional_dep.py # private implementations requiring an optional dependency (or several?)

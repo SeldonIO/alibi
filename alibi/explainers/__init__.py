@@ -3,12 +3,12 @@ The 'alibi.explainers' module includes feature importance, counterfactual and an
 """
 
 from alibi.utils.missing_optional_dependency import import_optional
-from .ale import ALE, plot_ale
-from .anchors.anchor_text import AnchorText
-from .anchors.anchor_tabular import AnchorTabular
-from .anchors.anchor_image import AnchorImage
-from .cfrl_base import CounterfactualRL
-from .cfrl_tabular import CounterfactualRLTabular
+from alibi.explainers.ale import ALE, plot_ale
+from alibi.explainers.anchors.anchor_text import AnchorText
+from alibi.explainers.anchors.anchor_tabular import AnchorTabular
+from alibi.explainers.anchors.anchor_image import AnchorImage
+from alibi.explainers.cfrl_base import CounterfactualRL
+from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
 
 
 DistributedAnchorTabular = import_optional(

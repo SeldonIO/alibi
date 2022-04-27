@@ -1324,7 +1324,7 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
                     explainer._check_explainer_setup.assert_not_called()
                     explainer._check_interactions.assert_called_with(False, background_data, None)
                 else:
-                    explainer._check_interactions.asert_not_called()
+                    explainer._check_interactions.assert_not_called()
                     explainer._check_explainer_setup.assert_called_with(background_data, explainer.model_output, None)
 
                 explainer._build_explanation.assert_called_once()

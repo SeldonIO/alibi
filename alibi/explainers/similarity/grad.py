@@ -140,7 +140,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         """Fit the explainer.
 
         The GradientSimilarity explainer requires the model gradients over the training data. In the explain method it
-        compares them to the model gradients for the test instance. If ``store_grads`` was set to ``True`` on
+        compares them to the model gradients for the test instance(s). If ``store_grads`` was set to ``True`` on
         initialization then the gradients are precomputed here and stored. This will speed up the explain method call
         but storing the gradients may not be feasible for large models.
 
@@ -204,9 +204,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) -> "Explanation":
         """Explain the predictor's predictions for a given input.
 
-        Computes the similarity score between the input and the training set. Returns an explainer object containing
-        the scores, the indices of the training set instances sorted by descending similarity to the input and the
-        most similar and least similar instances of the data set.
+        Computes the similarity score between the inputs and the training set. Returns an explainer object
+        containing the scores, the indices of the training set instances sorted by descending similarity and the
+        most similar and least similar instances of the data set for the input. Note that the input may be a single
+        instance or a batch of instances.
 
         Parameters
         ----------
@@ -219,16 +220,16 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         Returns
         -------
-        `Explanation` object containing the ordered similarity scores for the instance with additional metadata as \
-        attributes. Contains the following data-related attributes
-            -  `scores`: ``np.ndarray`` - similarity scores for each instance in the training set sorted in descending \
-            order.
-            -  `ordered_indices`: ``np.ndarray`` - indices of the training set instances sorted by the similarity \
-            score in descending order.
-            -  `most_similar`: ``np.ndarray`` - 5 most similar instances to the input. The first element is the most \
-            similar instance, the last element is the least similar instance.
-            -  `least_similar`: ``np.ndarray`` - 5 least similar instances to the input. The first element is the \
-            least similar instance, the last element is the most similar instance.
+        `Explanation` object containing the ordered similarity scores for the test instance(s) with additional \
+        metadata as attributes. Contains the following data-related attributes
+            - `scores`: ``np.ndarray`` - similarity scores for each pair of instances in the training and test set \
+            sorted in descending order.
+            - `ordered_indices`: ``np.ndarray`` - indices of the paired training and test set instances sorted by the \
+            similarity score in descending order.
+            - `most_similar`: ``np.ndarray`` - 5 most similar instances in the training set for each test instance \
+            The first element is the most similar instance.
+            -  `least_similar`: ``np.ndarray`` - 5 least similar instances in the training set for each test instance. \
+            The first element is the least similar instance.
 
         Raises
         ------
@@ -241,11 +242,14 @@ class GradientSimilarity(BaseSimilarityExplainer):
         """
         self._verify_fit()
         X, Y = self._preprocess_args(X, Y)
-        grad_X_test = self._compute_grad(X, Y)
+        test_grads = []
+        for x, y in zip(X, Y):
+            test_grads.append(self._compute_grad(x[None], y[None])[None])
+        grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:
-            scores = self._compute_adhoc_similarity(grad_X_test)
+            scores = self._compute_adhoc_similarity(grads_X_test)
         else:
-            scores = self.sim_fn(self.grad_X_train, grad_X_test)
+            scores = self.sim_fn(grads_X_test, self.grad_X_train)
         return self._build_explanation(scores)
 
     def _build_explanation(self, scores: np.ndarray) -> "Explanation":
@@ -257,11 +261,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
             The scores for each of the instances in the data set computed by the similarity method.
         """
         data = copy.deepcopy(DEFAULT_DATA_SIM)
-        sorted_score_indices = np.argsort(scores)[::-1]
+        sorted_score_indices = np.argsort(scores)[:, ::-1]
+        broadcast_indices = np.expand_dims(sorted_score_indices, axis=tuple(range(2, len(self.X_train[None].shape))))
         data.update(
-            scores=scores[sorted_score_indices],
+            scores=np.take_along_axis(scores, sorted_score_indices, axis=1),
             ordered_indices=sorted_score_indices,
-            most_similar=self.X_train[sorted_score_indices[:5]],
-            least_similar=self.X_train[sorted_score_indices[-1:-6:-1]],
+            most_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, :5], axis=1),
+            least_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, -1:-6:-1], axis=1),
         )
         return Explanation(meta=self.meta, data=data)

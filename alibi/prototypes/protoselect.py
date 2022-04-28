@@ -419,12 +419,13 @@ def _batch_preprocessing(X: np.ndarray,
 def _imscatterplot(x: np.ndarray,
                    y: np.ndarray,
                    images: np.ndarray,
-                   figsize: Tuple[int, int],
+                   ax: Optional[plt.Axes] = None,
+                   fig_kw: Optional[dict] = None,
                    image_size: Tuple[int, int] = (28, 28),
                    zoom: Optional[np.ndarray] = None,
                    zoom_lb: float = 1.0,
                    zoom_ub=2.0,
-                   sort_by_zoom: bool = True) -> None:
+                   sort_by_zoom: bool = True) -> plt.Axes:
     """
     2D image scatter plot.
 
@@ -436,8 +437,10 @@ def _imscatterplot(x: np.ndarray,
         Images' y-coordinates.
     images
         Array of images to be placed at coordinates `(x, y)`.
-    figsize
-        `Matplotlib` figure size.
+    ax
+        A `matplotlib` axes object to plot on.
+    fig_kw
+        Keyword arguments passed to the `fig.set` function.
     image_size
         Size of the generated output image as `(rows, cols)`.
     zoom
@@ -447,6 +450,9 @@ def _imscatterplot(x: np.ndarray,
     zoom_ub
         Zoom upper bound. The zoom values will be scaled linearly between `[zoom_lb, zoom_up]`.
     """
+    if fig_kw is None:
+        fig_kw = {}
+
     if zoom is None:
         zoom = np.ones(len(images))
 
@@ -458,9 +464,12 @@ def _imscatterplot(x: np.ndarray,
         zoom = zoom[idx]  # type: ignore
         x, y, images = x[idx], y[idx], images[idx]
 
-    fig, ax = plt.subplots(figsize=figsize)
-    ax.set_xticks([])
-    ax.set_yticks([])
+    if ax is None:
+        fig, ax = plt.subplots()
+        ax.set_xticks([])
+        ax.set_yticks([])
+    else:
+        fig = ax.figure
 
     resized_imgs = [resize(images[i], image_size) for i in range(len(images))]
     imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(resized_imgs)]  # type: ignore
@@ -473,17 +482,20 @@ def _imscatterplot(x: np.ndarray,
 
     ax.update_datalim(np.column_stack([x, y]))
     ax.autoscale()
+    fig.set(**fig_kw)
+    return ax
 
 
 def visualize_prototypes(explanation: 'Explanation',
                          refset: Tuple[np.ndarray, np.ndarray],
                          reducer: Callable[[np.ndarray], np.ndarray],
                          preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                         knn_kwargs: Dict[str, Any] = {'metric': 'euclidean'},
-                         figsize: Tuple[int, int] = (10, 10),
+                         knn_kw: Optional[dict] = None,
+                         ax: Optional[plt.Axes] = None,
+                         fig_kw: Optional[dict] = None,
                          image_size: Tuple[int, int] = (28, 28),
                          zoom_lb: float = 1.0,
-                         zoom_ub: float = 3.0):
+                         zoom_ub: float = 3.0) -> plt.Axes:
     """
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the log of the number of correct-class training images covered
@@ -503,10 +515,12 @@ def visualize_prototypes(explanation: 'Explanation',
         on the feature representation obtained after calling `preprocess_fn` on the input instances.
     preprocess_fn
         Preprocessor function.
-    knn_kwargs
-        Sklearn KNN classifier kwargs.
-    figsize
-        `Matplotlib` figure size.
+    knn_kw
+        Keyword arguments passed to `sklearn KNNClassifier` constructor.
+    ax
+        A `matplotlib` axes object to plot on.
+    fig_kw
+        Keyword arguments passed to the `fig.set` function.
     image_size
         Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
         `image_size`.
@@ -515,11 +529,11 @@ def visualize_prototypes(explanation: 'Explanation',
     zoom_ub
         Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
     """
-    if knn_kwargs is None:
-        knn_kwargs = {}
+    if knn_kw is None:
+        knn_kw = {}
+    if knn_kw.get('metric') is None:
+        knn_kw.update({'metric': 'euclidean'})
 
-    if knn_kwargs.get('metric') is None:
-        knn_kwargs.update({'metric': 'euclidean'})
 
     X_ref, Y_ref = refset
     X = explanation.data['prototypes']
@@ -532,7 +546,7 @@ def visualize_prototypes(explanation: 'Explanation',
         if (preprocess_fn is not None) else X
 
     # train knn classifier
-    knn = KNeighborsClassifier(n_neighbors=1, **knn_kwargs)
+    knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
     knn = knn.fit(X=X_ft, y=Y)
 
     # get neighbors indices for each training instance
@@ -554,5 +568,5 @@ def visualize_prototypes(explanation: 'Explanation',
     x, y = X_protos_2d[:, 0], X_protos_2d[:, 1]
 
     # plot images
-    _imscatterplot(x=x, y=y, images=X, figsize=figsize, image_size=image_size,
-                   zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)
+    return _imscatterplot(x=x, y=y, images=X, ax=ax, fig_kw=fig_kw, image_size=image_size,
+                          zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

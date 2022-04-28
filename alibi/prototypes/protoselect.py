@@ -258,6 +258,48 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
     return knn.fit(X=proto, y=proto_labels)
 
 
+def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
+                valset: Tuple[Optional[np.ndarray], Optional[np.ndarray]],
+                n_splits: int) -> Tuple[
+                    Tuple[np.ndarray, np.ndarray],
+                    Tuple[np.ndarray, np.ndarray],
+                    List[Tuple[np.ndarray, np.ndarray]]
+                ]:
+    """
+    Helper function to obtain appropriate train-validation splits.
+
+    If the validation dataset is not provided, then the method returns the appropriate datasets and indices
+    to perform k-fold validation. Otherwise, if the validation dataset is provided, then use it instead of performing
+    k-fold validation.
+
+    Parameters
+    ----------
+    refset
+        Tuple, `(X_ref, Y_ref)`, consisting of the reference data instances with the corresponding reference
+        labels.
+    valset
+        Optional tuple `(X_val, Y_val)` consisting of validation data instances with the corresponding
+        validation labels.
+    n_splits
+        The number of cross-validation splits to be used.
+
+    Returns
+    -------
+    Tuple consisting of reference dataset, validation dataset (can overlap with reference if validation is not
+    provided), and a list of splits containing indices from the reference and validation datasets.
+    """
+    X_ref, Y_ref = refset
+    X_val, Y_val = valset
+
+    if X_val is None:
+        kf = KFold(n_splits=n_splits)
+        splits = kf.split(X=X_ref, y=Y_ref)
+        return refset, refset, list(splits)
+
+    splits = [(np.arange(len(X_ref)), np.arange(len(X_val)))]
+    return refset, valset, splits  # type: ignore
+
+
 def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              protoset: Optional[Tuple[np.ndarray, ]] = None,
                              valset: Optional[Tuple[np.ndarray, np.ndarray]] = None,
@@ -276,13 +318,13 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     Parameters
     ----------
     refset
-        Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
+        Tuple, `(X_ref, Y_ref)`, consisting of the reference data instances with the corresponding reference
         labels.
     protoset
-        Tuple, `(X_proto, )`, consisting of the prototypes selection set. Note that the argument is passed as a tuple
+        Tuple, `(X, )`, consisting of the prototypes selection set. Note that the argument is passed as a tuple
         with a single element for consistency reasons.
     valset
-        Optional tuple `(X_val, X_val_labels)` consisting of validation data instances with the corresponding
+        Optional tuple `(X_val, Y_val)` consisting of validation data instances with the corresponding
         validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
         In case ``valset=None``, then `n-splits` cross-validation is performed on the `refset`.
     num_prototypes
@@ -292,7 +334,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         automatically proposed based on the inter-distances between `X_ref` and `X_proto`. The distances are filtered
         by considering only values in between the `quantiles` values. The minimum and maximum distance values are
         used to define the range of values to search the epsilon radius. The interval is discretized in `grid_size`
-        equi-distant bins.
+        equidistant bins.
     quantiles
         Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. The expected
         quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
@@ -315,10 +357,13 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     """
     X_ref, Y_ref = refset
     X = protoset[0] if (protoset is not None) else X_ref
+    X_val, Y_val = valset if (valset is not None) else (None, None)
 
     if preprocess_fn is not None:
         X_ref = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn, batch_size=batch_size)
         X = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn, batch_size=batch_size)
+        if X_val is not None:
+            X_val = _batch_preprocessing(X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
 
     # propose eps_grid if not specified
     if eps_grid is None:
@@ -334,35 +379,18 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         # define list of values for eps
         eps_grid = np.linspace(min_dist, max_dist, num=grid_size)
 
-    if valset is None:
-        kf = KFold(n_splits=n_splits)
-        scores = np.zeros((len(eps_grid), n_splits))
+    (X_ref, Y_ref), (X_val, Y_val), splits = _get_splits(refset=(X_ref, Y_ref),
+                                                         valset=(X_val, Y_val),
+                                                         n_splits=n_splits)
+    scores = np.zeros((len(eps_grid), len(splits)))
 
-        for i, (train_index, val_index) in enumerate(kf.split(X=X_ref, y=Y_ref)):
-            X_ref_i, Y_ref_i = X_ref[train_index], Y_ref[train_index]
-            X_val, Y_val = X_ref[val_index], Y_ref[val_index]
+    for i, (train_index, val_index) in enumerate(splits):
+        X_ref_i, Y_ref_i = X_ref[train_index], Y_ref[train_index]
+        X_val_i, Y_val_i = X_val[val_index], Y_val[val_index]
 
-            # define and fit explainer here, so we don't repeat the kernel matrix computation in the next for loop
-            explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
-            explainer = explainer.fit(X_ref=X_ref_i, Y_ref=Y_ref_i, X=X)
-
-            for j in range(len(eps_grid)):
-                knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
-                                                         num_prototypes=num_prototypes,
-                                                         eps=eps_grid[j])
-                if knn is None:
-                    continue
-                scores[j][i] = knn.score(X_val, Y_val)
-        best_eps = eps_grid[np.argmax(np.mean(scores, axis=-1))]
-    else:
-        scores = np.zeros(len(eps_grid))
-        X_val, Y_val = valset
-        if preprocess_fn is not None:
-            X_val = _batch_preprocessing(X=X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
-
-        # define and fit explainer, so we don't repeat the kernel matrix computation
+        # define and fit explainer here, so we don't repeat the kernel matrix computation in the next for loop
         explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
-        explainer = explainer.fit(X_ref=X_ref, Y_ref=Y_ref, X=X)
+        explainer = explainer.fit(X_ref=X_ref_i, Y_ref=Y_ref_i, X=X)
 
         for j in range(len(eps_grid)):
             knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
@@ -370,11 +398,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                                                      eps=eps_grid[j])
             if knn is None:
                 continue
-            scores[j] = knn.score(X_val, Y_val)
-        best_eps = eps_grid[np.argmax(scores)]
+            scores[j][i] = knn.score(X_val_i, Y_val_i)
 
     return {
-        'best_eps': best_eps,
+        'best_eps': eps_grid[np.argmax(np.mean(scores, axis=-1))],
         'meta': {
             'num_prototypes': num_prototypes,
             'eps_grid': eps_grid,

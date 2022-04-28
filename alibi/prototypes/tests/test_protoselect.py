@@ -88,7 +88,7 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
 
     if use_valset:
         # check if the `scores` shape is 1D when validation set is passed
-        assert len(cv['meta']['scores']) == len(cv['meta']['eps_grid'])
+        assert cv['meta']['scores'].shape == (len(cv['meta']['eps_grid']), 1)
     else:
         # check if the `scores` shape is 2D when no validation is passed
         assert cv['meta']['scores'].shape == (len(cv['meta']['eps_grid']), n_splits)

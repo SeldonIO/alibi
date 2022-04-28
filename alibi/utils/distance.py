@@ -1,6 +1,6 @@
 import numpy as np
 from sklearn.manifold import MDS
-from typing import Dict, Tuple, Callable, Optional
+from typing import Dict, Tuple, Callable, Optional, Union
 
 
 def cityblock_batch(X: np.ndarray,
@@ -244,7 +244,10 @@ def multidim_scaling(d_pair: dict,
     return d_abs_scaled, feature_range
 
 
-def squared_pairwise_distance(x: np.ndarray, y: np.ndarray, a_min: float = 1e-30, a_max: float = 1e30) -> np.ndarray:
+def squared_pairwise_distance(x: np.ndarray,
+                              y: np.ndarray,
+                              a_min: float = 1e-7,
+                              a_max: float = 1e30) -> np.ndarray:
     """
     `numpy` pairwise squared Euclidean distance between samples `x` and `y`.
 
@@ -269,11 +272,12 @@ def squared_pairwise_distance(x: np.ndarray, y: np.ndarray, a_min: float = 1e-30
     return np.clip(dist, a_min=a_min, a_max=a_max)
 
 
-def batch_compute_kernel_matrix(x: np.ndarray,
-                                y: np.ndarray,
+def batch_compute_kernel_matrix(x: Union[list, np.ndarray],
+                                y: Union[list, np.ndarray],
                                 kernel: Callable[[np.ndarray, np.ndarray], np.ndarray],
                                 batch_size: int = int(1e10),
-                                preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None) -> np.ndarray:
+                                preprocess_fn: Optional[Callable[[Union[list, np.ndarray]], np.ndarray]] = None
+                                ) -> np.ndarray:
     """
     Compute the kernel matrix between `x` and `y` by filling in blocks of size
     `batch_size x batch_size` at a time.
@@ -281,9 +285,9 @@ def batch_compute_kernel_matrix(x: np.ndarray,
     Parameters
     ----------
     x
-        The first array of data instances.
+        The first list/`numpy` array of data instances.
     y
-        The second array of data instances.
+        The second list/`numpy` array of data instances.
     kernel
         Kernel function to be used for kernel matrix computation.
     batch_size
@@ -295,6 +299,9 @@ def batch_compute_kernel_matrix(x: np.ndarray,
     -------
     Kernel matrix in the form of a `numpy` array.
     """
+    if type(x) != type(y):
+        raise ValueError("x and y should be of the same type")
+
     n_x, n_y = len(x), len(y)
     n_batch_x, n_batch_y = int(np.ceil(n_x / batch_size)), int(np.ceil(n_y / batch_size))
 

@@ -25,7 +25,7 @@ class ProtoSelect(Explainer, FitMixin):
                  eps: float,
                  lbd: Optional[float] = None,
                  batch_size: int = int(1e10),
-                 preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                 preprocess_fn: Optional[Callable[[Union[list, np.ndarray]], np.ndarray]] = None,
                  verbose: bool = False):
         """
         Prototype selection for dataset distillation and interpretable classification.
@@ -71,9 +71,9 @@ class ProtoSelect(Explainer, FitMixin):
         })
 
     def fit(self,
-            X: np.ndarray,
+            X: Union[list, np.ndarray],
             X_labels: Optional[np.ndarray] = None,
-            Y: Optional[np.ndarray] = None) -> 'ProtoSelect':
+            Y: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
         Fit the explainer by setting the reference dataset. This step form the kernel matrix in memory
         which has a shape of `Nx x Ny`, where `Nx` are the number of instances in `X` and `Ny` are the
@@ -507,6 +507,12 @@ def visualize_prototypes(explanation: 'Explanation',
     zoom_ub
         Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
     """
+    if knn_kwargs is None:
+        knn_kwargs = {}
+
+    if knn_kwargs.get('metric') is None:
+        knn_kwargs.update({'metric': 'euclidean'})
+
     X_ref, X_ref_labels = refset
     X_proto = explanation.data['prototypes']
     X_proto_labels = explanation.data['prototypes_labels']

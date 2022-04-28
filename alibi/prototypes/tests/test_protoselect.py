@@ -27,7 +27,7 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
 
     # define & fit the explainer
     explainer = ProtoSelect(eps=eps, kernel_distance=kernel_distance)
-    explainer = explainer.fit(X=X, X_labels=Y)
+    explainer = explainer.fit(X_ref=X, Y_ref=Y)
 
     # get prototypes
     explanation = explainer.explain(num_prototypes=num_prototypes)

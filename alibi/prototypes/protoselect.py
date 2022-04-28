@@ -6,7 +6,7 @@ from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 from tqdm import tqdm
 from copy import deepcopy
-from typing import Any, Callable, Optional, Dict, List, Union, Tuple
+from typing import Callable, Optional, Dict, List, Union, Tuple
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
 from skimage.transform import resize
@@ -77,7 +77,7 @@ class ProtoSelect(Explainer, FitMixin):
             'verbose': verbose
         })
 
-    def fit(self,
+    def fit(self,  # type: ignore[override]
             X_ref: Union[list, np.ndarray],
             Y_ref: Optional[np.ndarray] = None,
             X: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
@@ -533,7 +533,6 @@ def visualize_prototypes(explanation: 'Explanation',
         knn_kw = {}
     if knn_kw.get('metric') is None:
         knn_kw.update({'metric': 'euclidean'})
-
 
     X_ref, Y_ref = refset
     X = explanation.data['prototypes']

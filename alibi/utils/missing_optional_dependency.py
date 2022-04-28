@@ -4,20 +4,6 @@ This module provides a way to import optional dependencies. In the case that the
 alibi that is not usable due to missing optional dependencies this code is used to allow the import but replace it
 with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
 functionality independent of the missing dependency.
-
-We replace objects that require unmet dependencies with a class that generates errors on use. We use a class instead
-of an instance as this allows for type checking throughout the codebase. This means that instead of defining a class
-here we define a metaclass that is used to define the class we replace the object with. For instance because
-`MissingDependencyTensorFlow` extends `type` and not `object` we can say:
-
-```py
-MissingDependencyTensorFlow('IntegratedGradients', (object,), {'err': err})
-```
-
-The above will be a class that raises the error passed via the `attrs` in the `__new__` method as well as informing the
-user of the necessary steps to fix. Importantly we can pass the above to typing constructs such as `Union`.
-
-For further discussion see: https://github.com/SeldonIO/alibi/pull/583
 """
 
 
@@ -26,77 +12,57 @@ from string import Template
 from importlib import import_module
 
 err_msg_template = Template((
-    "Attempted to use $name without the correct optional dependencies installed. To install "
+    "Attempted to use $object_name without the correct optional dependencies installed. To install "
     + "the correct optional dependencies, run `pip install alibi[$missing_dependency]` "
     + "from the command line. For more information, check the Installation documentation "
     + "at https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
 ))
 
 
-class MissingDependency(type):
-    """Metaclass for Missing Dependency classes
+ERROR_TYPES = {'ray', 'tensorflow', 'torch', 'shap', 'numba'}
 
-    Replaces any object that requires unmet optional dependencies. Attribute access or attempting to initialize
-    classes derived from this metaclass will raise an error.
+
+class MissingDependency:
+    """Missing Dependency Class
+
+    Used to replace any object that requires unmet optional dependencies. Attribute access or calling the __call__
+    method on this object will raise an error.
     """
-    err: Union[ModuleNotFoundError, ImportError]
-    missing_dependency: str = 'all'
-
-    def __new__(mcs, name, bases, attrs):
+    def __init__(self,
+                 object_name: str,
+                 err: Union[ModuleNotFoundError, ImportError],
+                 missing_dependency: str = 'all',):
         """ Metaclass for MissingDependency classes
 
         Parameters
         ----------
-        name
-            Name of the class to be created
-        bases
-            Base classes of the class to be created
-        attrs
-            Attributes of the class to be created, should contain an `err` attribute that will be used to raise an
-            error when the class is accessed or initialized.
+        object_name
+            Name of object we are replacing
+        missing_dependency
+            Name of missing dependency required for object
+        err
+            Error to be raised when the class is initialized or used
         """
-        return super(MissingDependency, mcs) \
-            .__new__(mcs, name, bases, attrs)
+        if missing_dependency not in ERROR_TYPES:
+            raise ValueError(f"missing_dependency must be one of {ERROR_TYPES}")
+        self.missing_dependency = missing_dependency
+        self.object_name = object_name
+        self.err = err
 
     @property
-    def err_msg(cls):
+    def err_msg(self):
         """Generate error message informing user to install missing dependencies."""
         return err_msg_template.substitute(
-            name=cls.__name__,
-            missing_dependency=cls.missing_dependency)
+            object_name=self.object_name,
+            missing_dependency=self.missing_dependency)
 
-    def __getattr__(cls, key):
+    def __getattr__(self, key):
         """Raise an error when attributes are accessed."""
-        raise ImportError(cls.err_msg) from cls.err
+        raise ImportError(self.err_msg) from self.err
 
-    def __call__(cls, *args, **kwargs):
+    def __call__(self, *args, **kwargs):
         """Raise an error if initialized."""
-        raise ImportError(cls.err_msg) from cls.err
-
-
-class MissingDependencyRay(MissingDependency):
-    missing_dependency = 'ray'
-
-
-class MissingDependencyTensorFlow(MissingDependency):
-    missing_dependency = 'tensorflow'
-
-
-class MissingDependencyTorch(MissingDependency):
-    missing_dependency = 'torch'
-
-
-class MissingDependencyShap(MissingDependency):
-    missing_dependency = 'shap'
-
-
-ERROR_TYPES = {
-    'ray': MissingDependencyRay,
-    'tensorflow': MissingDependencyTensorFlow,
-    'torch': MissingDependencyTorch,
-    'shap': MissingDependencyShap,
-    'numba': MissingDependencyShap,
-}
+        raise ImportError(self.err_msg) from self.err
 
 
 def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
@@ -108,7 +74,7 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
 
     Parameters
     ----------
-        module
+        module_name
             The module to import
         names
             The names to import from the module. If None, all names are imported.
@@ -116,9 +82,8 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
     Returns
     -------
         The module or named objects within the modules if names is not None. If the import fails due to a
-        ModuleNotFoundError or ImportError. The requested module or named objects are replaced with classes derived
-        from metaclass corresponding to the relevant optional dependency in `extras_requirements`. These classes will
-        have the same name as the objects that failed to import but will error on use.
+        ModuleNotFoundError or ImportError then the requested module or named objects are replaced with instances of
+        the MissingDependency class above.
     """
 
     try:
@@ -133,8 +98,8 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
             raise TypeError()
         if err.name not in ERROR_TYPES:
             raise err
-        error_type = ERROR_TYPES[err.name]
         if names is not None:
-            missing_dependencies = tuple(error_type(name, (object,), {'err': err}) for name in names)
+            missing_dependencies = \
+                tuple(MissingDependency(missing_dependency=err.name, object_name=name, err=err) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
-        return error_type(module_name, (object,), {'err': err})
+        return MissingDependency(missing_dependency=err.name, object_name=module_name, err=err)

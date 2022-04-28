@@ -41,10 +41,10 @@ def check_correct_dependencies(
         The name of the optional dependency that is being tested.
     """
     lib_obj = [obj for obj in dir(module) if not obj.startswith('_')]
-    for item in lib_obj:
-        item = getattr(module, item)
-        if not isinstance(item, ModuleType) and hasattr(item, '__name__'):
-            pass_contexts = dependencies[item.__name__]  # type: ignore
+    for item_name in lib_obj:
+        item = getattr(module, item_name)
+        if not isinstance(item, ModuleType):
+            pass_contexts = dependencies[item_name]  # type: ignore
             if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
                 with pytest.raises(AttributeError):
                     item.test  # type: ignore # noqa

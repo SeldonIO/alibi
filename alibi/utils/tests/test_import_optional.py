@@ -8,11 +8,11 @@ class TestImportOptional:
 
     def setup_method(self):
         # mock missing dependency error for non existent module
-        ERROR_TYPES['thispackagedoesnotexist'] = MissingDependency
+        ERROR_TYPES.add('non_existent_module')
 
     def teardown_method(self):
         # remove mock missing dependency error for other tests
-        del ERROR_TYPES['thispackagedoesnotexist']
+        ERROR_TYPES.remove('non_existent_module')
 
     def test_import_optional_module(self):
         """Test import_optional correctly imports installed module."""
@@ -30,31 +30,31 @@ class TestImportOptional:
 
     def test_import_optional_module_missing(self):
         """Test import_optional correctly replaces module that doesn't exist with MissingDependency."""
-        package = import_optional('thispackagedoesnotexist')
+        package = import_optional('alibi.utils.tests.mocked_opt_dep')
         assert isinstance(package, MissingDependency)
         with pytest.raises(ImportError) as err:
             package.__version__  # noqa
-        assert 'thispackagedoesnotexist' in str(err.value)
-        assert 'pip install alibi[all]' in str(err.value)
+        assert 'alibi.utils.tests.mocked_opt_dep' in str(err.value)
+        assert 'pip install alibi[non_existent_module]' in str(err.value)
 
         with pytest.raises(ImportError) as err:
             package(0, 'test')  # noqa
-        assert 'thispackagedoesnotexist' in str(err.value)
-        assert 'pip install alibi[all]' in str(err.value)
+        assert 'alibi.utils.tests.mocked_opt_dep' in str(err.value)
+        assert 'pip install alibi[non_existent_module]' in str(err.value)
 
     def test_import_optional_names_missing(self):
         """Test import_optional correctly replaces names from module that doesn't exist with MissingDependencies."""
-        nonexistent_function_1, nonexistent_function_2 = import_optional(
-            'thispackagedoesnotexist',
-            names=['nonexistent_function_1', 'nonexistent_function_2'])
-        assert isinstance(nonexistent_function_1, MissingDependency)
+        MockedClassWithoutRequiredDeps, mocked_function_without_required_deps = import_optional(
+            'alibi.utils.tests.mocked_opt_dep',
+            names=['MockedClassWithoutRequiredDeps', 'mocked_function_without_required_deps'])
+        assert isinstance(MockedClassWithoutRequiredDeps, MissingDependency)
         with pytest.raises(ImportError) as err:
-            nonexistent_function_1.__version__  # noqa
-        assert 'nonexistent_function_1' in str(err.value)
-        assert 'pip install alibi[all]' in str(err.value)
+            MockedClassWithoutRequiredDeps.__version__  # noqa
+        assert 'MockedClassWithoutRequiredDeps' in str(err.value)
+        assert 'pip install alibi[non_existent_module]' in str(err.value)
 
-        assert isinstance(nonexistent_function_2, MissingDependency)
+        assert isinstance(mocked_function_without_required_deps, MissingDependency)
         with pytest.raises(ImportError) as err:
-            nonexistent_function_2.__version__  # noqa
-        assert 'nonexistent_function_2' in str(err.value)
-        assert 'pip install alibi[all]' in str(err.value)
+            mocked_function_without_required_deps.__version__  # noqa
+        assert 'mocked_function_without_required_deps' in str(err.value)
+        assert 'pip install alibi[non_existent_module]' in str(err.value)

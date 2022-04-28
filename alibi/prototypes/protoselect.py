@@ -33,7 +33,9 @@ class ProtoSelect(Explainer, FitMixin):
         Parameters
         ----------
         kernel_distance
-            Kernel distance to be used. Expected to support computation in batches.
+            Kernel distance to be used. Expected to support computation in batches. Given an input `x` of
+            size `Nx x f1 x f2 x ...` and an input `y` of size `Ny x f1 x f2 x ...`, the kernel distance
+            should return a kernel matrix of size `Nx x Ny`.
         eps
             Epsilon ball size.
         lambda_penalty

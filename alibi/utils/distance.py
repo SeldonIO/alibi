@@ -240,6 +240,6 @@ def multidim_scaling(d_pair: dict,
         d_abs_scaled[k] = d_scaled  # scaled distance from the origin for each category
 
     if update_feature_range:
-        feature_range = new_feature_range
+        feature_range = new_feature_range  # type: ignore
 
     return d_abs_scaled, feature_range

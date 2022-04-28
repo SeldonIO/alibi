@@ -178,11 +178,9 @@ class CounterfactualProto(Explainer, FitMixin):
         self.max_iterations = max_iterations
         self.c_init = c_init
         self.c_steps = c_steps
-        self.feature_range = list(feature_range)
-        for _ in range(2):
-            if isinstance(feature_range[_], float):
-                self.feature_range[_] = (np.ones(shape[1:]) * feature_range[_])[None, :]
-        self.feature_range = tuple(self.feature_range)
+        self.feature_range = tuple([(np.ones(shape[1:]) * feature_range[_])[None, :]
+                                    if isinstance(feature_range[_], float) else feature_range[_]
+                                    for _ in range(2)])
         self.update_num_grad = update_num_grad
         self.eps = eps
         self.clip = clip
@@ -758,13 +756,13 @@ class CounterfactualProto(Explainer, FitMixin):
 
                 # multidim scaled distances
                 d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,
+                                                 feature_range=self.feature_range,  # type: ignore
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)
 
                 d_abs_mvdm, _ = multidim_scaling(d_mvdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,
+                                                 feature_range=self.feature_range,  # type: ignore
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)
@@ -783,7 +781,7 @@ class CounterfactualProto(Explainer, FitMixin):
                     self.feature_range = new_feature_range
             else:  # apply multidimensional scaling for the abdm or mvdm distances
                 self.d_abs, self.feature_range = multidim_scaling(d_pair, n_components=2, use_metric=True,
-                                                                  feature_range=self.feature_range,
+                                                                  feature_range=self.feature_range,  # type: ignore
                                                                   standardize_cat_vars=standardize_cat_vars,
                                                                   smooth=smooth, center=center,
                                                                   update_feature_range=update_feature_range)

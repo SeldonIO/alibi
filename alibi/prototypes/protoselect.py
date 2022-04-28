@@ -23,7 +23,7 @@ class ProtoSelect(Explainer, FitMixin):
     def __init__(self,
                  kernel_distance: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  eps: float,
-                 lbd: Optional[float] = None,
+                 lambda_penalty: Optional[float] = None,
                  batch_size: int = int(1e10),
                  preprocess_fn: Optional[Callable[[Union[list, np.ndarray]], np.ndarray]] = None,
                  verbose: bool = False):
@@ -36,19 +36,24 @@ class ProtoSelect(Explainer, FitMixin):
             Kernel distance to be used. Expected to support computation in batches.
         eps
             Epsilon ball size.
-        lbd
-            Penalty for each prototype. Encourages a lower number of prototypes to be selected.
+        lambda_penalty
+            Penalty for each prototype. Encourages a lower number of prototypes to be selected. Corresponds to
+            :math:`\\lambda` in the paper's notation. If not specified, the default value is set to `1 / N` where
+            `N` represents the number of reference instances passed to the
+            :py:meth:`alibi.prototypes.protoselect.ProtoSelect.fit` method.
         batch_size
             Batch size to be used for kernel matrix computation.
         preprocess_fn
-            Preprocessing function for kernel matrix computation.
+            Preprocessing function used for kernel matrix computation. The preprocessing function takes the input in
+            a raw format or as a `numpy` array and transforms it into a `numpy` array which is then fed to the
+            `kernel_distance` function. The use of `preprocess_fn` allows the method to be applied to any data modality.
         verbose
              Whether to display progression bar while computing prototypes points.
         """
         super().__init__(meta=deepcopy(DEFAULT_META_PROTOSELECT))
         self.kernel_distance = kernel_distance
         self.eps = eps
-        self.lbd = lbd
+        self.lambda_penalty = lambda_penalty
         self.batch_size = batch_size
         self.preprocess_fn = preprocess_fn
         self.verbose = verbose
@@ -65,7 +70,7 @@ class ProtoSelect(Explainer, FitMixin):
         self.meta['params'].update({
             'kernel_distance': kernel_distance_tag,
             'eps': eps,
-            'lbd': lbd,
+            'lambda_penalty': lambda_penalty,
             'batch_size': batch_size,
             'verbose': verbose
         })
@@ -104,9 +109,9 @@ class ProtoSelect(Explainer, FitMixin):
         # if the set of prototypes is not provided, then find the prototypes belonging to the reference dataset.
         self.Y = Y if (Y is not None) else self.X
         # initialize penalty for adding a prototype
-        if self.lbd is None:
-            self.lbd = 1 / len(self.X)
-            self.meta['params'].update({'lbd': self.lbd})
+        if self.lambda_penalty is None:
+            self.lambda_penalty = 1 / len(self.X)
+            self.meta['params'].update({'lbd': self.lambda_penalty})
 
         self.max_label = np.max(self.X_labels)
         self.kmatrix_yx = batch_compute_kernel_matrix(x=self.Y,
@@ -169,7 +174,7 @@ class ProtoSelect(Explainer, FitMixin):
         delta_nu_summed = np.sum(delta_nu_all, axis=-1)
         # compute the tradeoff score - each prototype tries to cover as many new elements as possible
         # belonging to the same class, while trying to avoid covering elements belonging to another class
-        scores_all = delta_xi_summed - delta_nu_summed - self.lbd
+        scores_all = delta_xi_summed - delta_nu_summed - self.lambda_penalty
 
         for _ in tqdm(range(num_prototypes), disable=(not self.verbose)):
             j = np.array(list(available_indices)).astype(np.int32)

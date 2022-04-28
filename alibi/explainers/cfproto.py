@@ -38,7 +38,7 @@ class CounterfactualProto(Explainer, FitMixin):
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
-                 feature_range: tuple = (-1e10, 1e10),
+                 feature_range: Tuple[Union[float, np.ndarray], Union[float, np.ndarray]] = (-1e10, 1e10),
                  gamma: float = 0.,
                  ae_model: Optional[tf.keras.Model] = None,
                  enc_model: Optional[tf.keras.Model] = None,
@@ -178,7 +178,11 @@ class CounterfactualProto(Explainer, FitMixin):
         self.max_iterations = max_iterations
         self.c_init = c_init
         self.c_steps = c_steps
-        self.feature_range = feature_range
+        self.feature_range = list(feature_range)
+        for _ in range(2):
+            if isinstance(feature_range[_], float):
+                self.feature_range[_] = (np.ones(shape[1:]) * feature_range[_])[None, :]
+        self.feature_range = tuple(self.feature_range)
         self.update_num_grad = update_num_grad
         self.eps = eps
         self.clip = clip

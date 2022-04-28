@@ -162,7 +162,7 @@ def abdm(X: np.ndarray,
 
 
 def multidim_scaling(d_pair: dict,
-                     feature_range: tuple,
+                     feature_range: Tuple[np.ndarray, np.ndarray],
                      n_components: int = 2,
                      use_metric: bool = True,
                      standardize_cat_vars: bool = True,
@@ -178,8 +178,8 @@ def multidim_scaling(d_pair: dict,
         Dict with as keys the column index of the categorical variables and as values
         a pairwise distance matrix for the categories of the variable.
     feature_range
-        Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges can be `float` or
-        `numpy` arrays with dimension (`1 x nb of features`) for feature-wise ranges.
+        Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges are
+        `numpy` arrays with dimension (`1 x nb of features`).
     n_components
         Number of dimensions in which to immerse the dissimilarities.
     use_metric

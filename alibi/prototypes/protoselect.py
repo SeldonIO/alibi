@@ -259,7 +259,7 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
 
 
 def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
-                             protoset: Tuple[np.ndarray, ],
+                             protoset: Optional[Tuple[np.ndarray, ]] = None,
                              valset: Optional[Tuple[np.ndarray, np.ndarray]] = None,
                              num_prototypes: int = 1,
                              eps_grid: Optional[np.ndarray] = None,
@@ -314,7 +314,8 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
      - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
     """
     X_ref, Y_ref = refset
-    X = protoset[0]
+    X = protoset[0] if (protoset is not None) else X_ref
+
     if preprocess_fn is not None:
         X_ref = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn, batch_size=batch_size)
         X = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn, batch_size=batch_size)

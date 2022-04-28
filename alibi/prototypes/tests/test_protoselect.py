@@ -41,14 +41,15 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
 
 
 @pytest.mark.parametrize('n_classes', [2])
+@pytest.mark.parametrize('use_protos', [False, True])
 @pytest.mark.parametrize('use_valset', [False, True])
 @pytest.mark.parametrize('num_prototypes', [10, 30])
 @pytest.mark.parametrize('eps_grid', [None, np.arange(15)])
-@pytest.mark.parametrize('quantiles', [(0, 1.), (0.1, 0.9), (0.1, 1), (0., 0.4)])
+@pytest.mark.parametrize('quantiles', [(0., 1.), (0.1, 0.9), (0.1, 1.), (0., 0.4)])
 @pytest.mark.parametrize('grid_size', [2, 10, 20])
 @pytest.mark.parametrize('n_splits', [2, 5])
 @pytest.mark.parametrize('batch_size', [100])
-def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_grid, quantiles, grid_size,
+def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototypes, eps_grid, quantiles, grid_size,
                                   n_splits, batch_size):
     """
     Unit test for cross-validation. Checks if all parameters are passed correctly and checks the
@@ -68,11 +69,11 @@ def test_cv_protoselect_euclidean(n_classes, use_valset, num_prototypes, eps_gri
     if use_valset:
         X_ref, X_val, Y_ref, Y_val = train_test_split(X, Y, test_size=0.2, random_state=0)
         refset = (X_ref, Y_ref)
-        protoset = (X_ref,)
+        protoset = (X_ref,) if use_protos else None
         valset = (X_val, Y_val)
     else:
         refset = (X, Y)
-        protoset = (X,)
+        protoset = (X,) if use_protos else None
         valset = None
 
     cv = cv_protoselect_euclidean(refset=refset,

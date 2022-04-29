@@ -147,32 +147,32 @@ class ProtoSelect(Explainer, FitMixin):
 
         # dictionary of prototypes indices for each class
         protos = {l: [] for l in range(self.max_label + 1)}  # type: Dict[int, List[int]]  # noqa: E741
-        # set of available prototypes indices. Note that initially we start with the entire set of Y,
+        # set of available prototypes indices. Note that initially we start with the entire set of X,
         # but as the algorithm progresses, we remove the indices of the prototypes that we already selected.
         available_indices = set(range(len(self.X)))
-        # matrix of size `[NY, NX]`, where `NY = len(Y)` and `NX = len(X)`
-        # represents a mask which indicates for each element `y` in `Y` what are the elements of `X` that are in an
-        # epsilon ball centered in `y`.
+        # matrix of size `[NX, NX_ref]`, where `NX = len(X)` and `NX_ref = len(X_ref)`
+        # represents a mask which indicates for each element `x` in `X` what are the elements of `X_ref` that are in an
+        # epsilon ball centered in `x`.
         B = (self.kmatrix <= self.eps).astype(np.int32)
-        # matrix of size `[L, NX]`, where `L` is the number of labels
-        # each row `l` indicates the elements from `X` that are covered by prototypes belonging to class `l`
+        # matrix of size `[L, NX_ref]`, where `L` is the number of labels
+        # each row `l` indicates the elements from `X_ref` that are covered by prototypes belonging to class `l`
         B_P = np.zeros((self.max_label + 1, len(self.X_ref)), dtype=np.int32)
-        # matrix of size `[L, NX]`. Each row `l` indicates which elements form `X` are labeled as `l`
+        # matrix of size `[L, NX_ref]`. Each row `l` indicates which elements form `X_ref` are labeled as `l`
         Xl = np.concatenate([(self.Y_ref == l).reshape(1, -1)
                              for l in range(self.max_label + 1)], axis=0).astype(np.int32)  # noqa: E741
 
         # vectorized implementation of the prototypes scores.
         # See paper (pag 8): https://arxiv.org/pdf/1202.5933.pdf for more details
-        B_diff = B[:, np.newaxis, :] - B_P[np.newaxis, :, :]  # [NY, 1, NX] - [1, L, NX] -> [NY, L, NX]
-        # [NY, L, NX] + [1, L, NX] -> [NY, L, NX]
+        B_diff = B[:, np.newaxis, :] - B_P[np.newaxis, :, :]  # [NX, 1, NX_ref] - [1, L, NX_ref] -> [NX, L, NX_ref]
+        # [NX, L, NX_ref] + [1, L, NX_ref] -> [NX, L, NX_ref]
         delta_xi_all = B_diff + Xl[np.newaxis, ...] >= 2
-        # [NY, L]. For every row `y` and every column `l`, we compute how many new instances belonging to class
-        # `l` will be covered if we add the prototype `y`.
+        # [NX, L]. For every row `x` and every column `l`, we compute how many new instances belonging to class
+        # `l` will be covered if we add the prototype `x`.
         delta_xi_summed = np.sum(delta_xi_all, axis=-1)
-        # [NY, 1, NX] +  [1, L, NX] -> [NY, L, NX]
+        # [NX, 1, NX_ref] +  [1, L, NX_ref] -> [NX, L, NX_ref]
         delta_nu_all = B[:, np.newaxis, :] + (1 - Xl[np.newaxis, ...]) >= 2
-        # [NY, L]. For every row `y` and every column `l`, we compute how many new instances belonging to all the
-        # other classes different from `l` will be covered if we add the prototype `y`.
+        # [NX, L]. For every row `x` and every column `l`, we compute how many new instances belonging to all the
+        # other classes different from `l` will be covered if we add the prototype `x`.
         delta_nu_summed = np.sum(delta_nu_all, axis=-1)
         # compute the tradeoff score - each prototype tries to cover as many new elements as possible
         # belonging to the same class, while trying to avoid covering elements belonging to another class
@@ -352,7 +352,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     Returns
     -------
     Dictionary containing
-     - ``'best_eps'``: ``float`` - best epsilon radius according to the accuracy of a 1-KNN classifier.
+     - ``'best_eps'``: ``float`` - the best epsilon radius according to the accuracy of a 1-KNN classifier.
      - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
     """
     X_ref, Y_ref = refset
@@ -513,20 +513,20 @@ def _imscatterplot(x: np.ndarray,
     return ax
 
 
-def visualize_prototypes(explanation: 'Explanation',
-                         refset: Tuple[np.ndarray, np.ndarray],
-                         reducer: Callable[[np.ndarray], np.ndarray],
-                         preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                         knn_kw: Optional[dict] = None,
-                         ax: Optional[plt.Axes] = None,
-                         fig_kw: Optional[dict] = None,
-                         image_size: Tuple[int, int] = (28, 28),
-                         zoom_lb: float = 1.0,
-                         zoom_ub: float = 3.0) -> plt.Axes:
+def visualize_image_prototypes(explanation: 'Explanation',
+                               refset: Tuple[np.ndarray, np.ndarray],
+                               reducer: Callable[[np.ndarray], np.ndarray],
+                               preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                               knn_kw: Optional[dict] = None,
+                               ax: Optional[plt.Axes] = None,
+                               fig_kw: Optional[dict] = None,
+                               image_size: Tuple[int, int] = (28, 28),
+                               zoom_lb: float = 1.0,
+                               zoom_ub: float = 3.0) -> plt.Axes:
     """
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the log of the number of correct-class training images covered
-    by that prototype (Bien and Tibshiran (2012): https://arxiv.org/abs/1202.5933).
+    by that prototype (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
     Parameters
     ----------

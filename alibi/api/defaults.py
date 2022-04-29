@@ -252,7 +252,7 @@ Default CounterfactualRL data.
 
 
 DEFAULT_META_PROTOSELECT = {"name": None,
-                            "type": ["prototypes"],
+                            "type": ["data"],
                             "explanation": ["global"],
                             "params": {},
                             "version": None}  # type: dict

@@ -28,7 +28,8 @@ class ProtoSelect(Explainer, FitMixin):
                  preprocess_fn: Optional[Callable[[Union[list, np.ndarray]], np.ndarray]] = None,
                  verbose: bool = False):
         """
-        Prototype selection for dataset distillation and interpretable classification.
+        Prototype selection for dataset distillation and interpretable classification propose by
+        Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933
 
         Parameters
         ----------

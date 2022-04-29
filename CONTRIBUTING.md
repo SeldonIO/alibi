@@ -166,8 +166,8 @@ All PRs triger a CI job to run linting, type checking, tests, and build docs. Th
 ## Optional Dependencies
 
 Alibi uses optional dependencies to allow users to avoid installing large or challenging to install dependencies. Alibi 
-manages modularity of components that depend on optional dependencies using the `import_optional` defined in 
-`alibi/utils/missing_optional_dependency.py`. This replaces the dependency with a dummy class that raises an error when 
+manages modularity of components that depend on optional dependencies using the `import_optional` function defined in 
+`alibi/utils/missing_optional_dependency.py`. This replaces the dependency with a dummy object that raises an error when
 called. If you are working on public functionality that is dependent on an optional dependency you should expose the 
 functionality via the relevant `__init__.py` file by importing it there using the `optional_import` function. Currently,
 optional dependencies are tested by importing all the public functionality and checking that the correct errors are 
@@ -177,8 +177,7 @@ you will need to:
 
 1. Add it to `extras_require` in `setup.py`.
 2. Create a new `tox` environment in `setup.cfg` with the new dependency.
-3. Define a new MissingDependency class in `alibi/utils/missing_optional_dependency.py` and integrate it with the 
-   `import_optional` function.
+3. Add a new dependency name to `ERROR_TYPES` in `alibi/utils/missing_optional_dependency.py`. 
 4. Make sure any public functionality is protected by the `import_optional` function.
 5. Make sure the new dependency is tested in `alibi/tests/test_dep_mangement.py`.
 
@@ -204,11 +203,14 @@ any public functionality that is dependent on an optional dependency should be i
 `import_optional` function. 
 
 #### Note:
-- The `import_optional` function mirrors the python import functionality and thus its return type has to be `Any`. Using 
-objects imported with this function can lead to misspecification of types as `Any` when the developer intended to be 
-more restrictive. If you want to type a variable using a class that depends on an optional dependency then you should 
-use the `TYPE_CHECKING` to import it instead. For instance:
+- The `import_optional` function returns an object instance rather than an object. This will cause typechecking to fail 
+if not all optional dependencies are installed. Because of this we also need to 1. Conditionally import the true object
+dependent on `TYPE_CHECKING` and 2. Use forward referencing within typing constructs such as `Union`. We use forward 
+referencing because in a user environment the optional dependency may not be installed in which case it'll be replaced 
+with an instance of the MissingDependency class. This will throw an error when passed to `Union`. For example: 
   ```py
+  from typing import TYPE_CHECKING, Union
+
   if TYPE_CHECKING:
     # Import for type checking. This will be type LanguageModel. Note import is from implementation file.
     from alibi.utils.lang_model import LanguageModel
@@ -216,6 +218,10 @@ use the `TYPE_CHECKING` to import it instead. For instance:
     # Import is from `__init__` public API file. Class will be protected by optional_import function and so this will 
     # be type any.
     from alibi.utils import LanguageModel
+  
+  # The following will not throw an error because of the forward reference but mypy will still work.
+  def example_function(language_model: Union['LanguageModel', str]) -> None:
+    ...
   ```
 - Developers can use `make repl tox-env=<tox-env-name>` to run a python REPL with the specified optional dependency 
 installed. This is to allow manual testing. 

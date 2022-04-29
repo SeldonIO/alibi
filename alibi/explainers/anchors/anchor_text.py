@@ -222,7 +222,7 @@ class AnchorText(Explainer):
     def _validate_kwargs(self,
                          sampling_strategy: str,
                          nlp: Optional['spacy.language.Language'] = None,
-                         language_model: Optional[LanguageModel] = None,
+                         language_model: Optional['LanguageModel'] = None,
                          **kwargs: Any) -> Tuple[dict, dict]:
 
         # set sampling method

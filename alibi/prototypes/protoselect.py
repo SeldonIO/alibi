@@ -103,7 +103,7 @@ class ProtoSelect(Explainer, FitMixin):
         self
             Reference to itself.
         """
-        if len(X_ref) != len(Y_ref):
+        if (Y_ref is not None) and (len(X_ref) != len(Y_ref)):
             raise ValueError('The number of data instances does not match the number of labels. '
                              f'Got len(X_ref)={len(X_ref)} and len(Y_ref)={len(Y_ref)}.')
 

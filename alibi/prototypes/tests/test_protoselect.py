@@ -99,3 +99,14 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
     else:
         # if `eps_grid` is not provided, check that the search interval was split in `grid_size` bins
         assert len(cv['meta']['eps_grid']) == grid_size
+
+
+def test_size_match():
+    """ Tests if the error is raised when the number of data instance does not match
+    the numebr of labels. """
+    X_ref = np.random.randn(100, 5)
+    Y_ref = np.random.randint(0, 10, 50)
+
+    explainer = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
+    with pytest.raises(ValueError):
+        explainer.fit(X_ref=X_ref, Y_ref=Y_ref)

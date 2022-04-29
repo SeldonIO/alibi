@@ -102,8 +102,12 @@ class ProtoSelect(Explainer, FitMixin):
         self
             Reference to itself.
         """
+        if len(X_ref) != len(Y_ref):
+            raise ValueError('The number of data instances does not match the number of labels. '
+                             f'Got len(X_ref)={len(X_ref)} and len(Y_ref)={len(Y_ref)}.')
+
         self.X_ref = X_ref
-        # if the `X_labels` are not provided, then consider that all elements belong to the same class. This means
+        # if the `Y_ref` are not provided, then consider that all elements belong to the same class. This means
         # that loss term which tries to avoid including in an epsilon ball elements belonging to other classes
         # will always be 0. Still the first term of the loss tries to cover as many examples as possible with
         # minimal overlap between the epsilon balls corresponding to the other prototypes.

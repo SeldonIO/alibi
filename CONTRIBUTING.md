@@ -165,17 +165,17 @@ All PRs triger a CI job to run linting, type checking, tests, and build docs. Th
 
 ## Optional Dependencies
 
-Alibi uses optional dependencies to allow users to avoid installing large or challenging to install dependencies. These 
-are managed in the `requirements/extra.txt` file as an inverse index. Alibi manages modularity of components that 
-depend on optional dependencies using the `import_optional` defined in `alibi/utils/missing_optional_dependency.py`. 
-This replaces the dependency with a dummy class that raises an error when called. If you are working on public 
-functionality that is dependent on an optional dependency you should expose the functionality via the relevant 
-`__init__.py` file by importing it there using the `optional_import` function. Currently, optional dependencies are 
-tested by importing all the public functionality and checking that the correct errors are raised dependent on the 
-environment. Developers can run these tests using `tox`. These tests are in `alibi/tests/test_dep_mangement.py`. If 
-implementing functionality that is dependent on a new optional dependency then you will need to:
+Alibi uses optional dependencies to allow users to avoid installing large or challenging to install dependencies. Alibi 
+manages modularity of components that depend on optional dependencies using the `import_optional` defined in 
+`alibi/utils/missing_optional_dependency.py`. This replaces the dependency with a dummy class that raises an error when 
+called. If you are working on public functionality that is dependent on an optional dependency you should expose the 
+functionality via the relevant `__init__.py` file by importing it there using the `optional_import` function. Currently,
+optional dependencies are tested by importing all the public functionality and checking that the correct errors are 
+raised dependent on the environment. Developers can run these tests using `tox`. These tests are in 
+`alibi/tests/test_dep_mangement.py`. If implementing functionality that is dependent on a new optional dependency then 
+you will need to:
 
-1. Add it to `requirements/extra.txt`.
+1. Add it to `extras_require` in `setup.py`.
 2. Create a new `tox` environment in `setup.cfg` with the new dependency.
 3. Define a new MissingDependency class in `alibi/utils/missing_optional_dependency.py` and integrate it with the 
    `import_optional` function.
@@ -231,4 +231,4 @@ Checklist to run through before a PR is considered complete:
  - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
  - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](doc/README.md) for more information.
  - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
- - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, `requirements/doc.txt` for documentation dependencies and `requirements/extra.txt` for optional dependencies).
+ - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime and optional dependencies, `requirements/dev.txt` for development dependencies and `requirements/doc.txt` for documentation dependencies).

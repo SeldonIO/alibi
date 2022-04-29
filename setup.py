@@ -9,32 +9,23 @@ def readme():
 # read version file
 exec(open('alibi/version.py').read())
 
-
-def get_extra_requires(path, add_all=True):
-    """
-    Reads and inverts the requirements in requirements/extra.txt
-    """
-    import re
-    from collections import defaultdict
-
-    with open(path) as fp:
-        extra_deps = defaultdict(set)
-        for k in fp:
-            if k.strip() and not k.startswith('#'):
-                tags = set()
-                if ':' in k:
-                    k, v = k.split(':')
-                    tags.update(vv.strip() for vv in v.split(','))
-                tags.add(re.split('[<=>]', k)[0])
-                for t in tags:
-                    extra_deps[t].add(k)
-
-        # add tag `all` at the end
-        if add_all:
-            extra_deps['all'] = set(vv for v in extra_deps.values() for vv in v)
-
-    return extra_deps
-
+extras_require = {
+    'ray': ['ray>=0.8.7, <2.0.0'],
+    # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
+    'shap': [
+        'shap>=0.40.0, <0.41.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
+        'numba>=0.50.0, !=0.54.0, <0.56.0',  # Avoid 0.54 due to: https://github.com/SeldonIO/alibi/issues/466
+    ],
+    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.9.0'],
+    'torch': ['torch>=1.9.0, <2.0.0'],
+    'all': [
+        'ray>=0.8.7, <2.0.0',
+        'shap>=0.40.0, <0.41.0',
+        'numba>=0.50.0, !=0.54.0, <0.56.0',
+        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.9.0',
+        'torch>=1.9.0, <2.0.0'
+    ]
+}
 
 if __name__ == '__main__':
     setup(name='alibi',
@@ -66,7 +57,7 @@ if __name__ == '__main__':
               'transformers>=4.7.0, <5.0.0',
               'tqdm>=4.28.1, <5.0.0'
           ],
-          extras_require=get_extra_requires('requirements/extra.txt'),
+          extras_require=extras_require,
           test_suite='tests',
           zip_safe=False,
           classifiers=[

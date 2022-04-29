@@ -61,7 +61,7 @@ class MissingDependency:
         raise ImportError(self.err_msg) from self.err
 
     def __call__(self, *args, **kwargs):
-        """Raise an error if initialized."""
+        """If called, raise an error."""
         raise ImportError(self.err_msg) from self.err
 
 

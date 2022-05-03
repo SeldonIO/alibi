@@ -101,6 +101,36 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
         assert len(cv['meta']['eps_grid']) == grid_size
 
 
+@pytest.mark.parametrize('n_samples', [10, 50, 100])
+@pytest.mark.parametrize('n_classes', [1000])
+def test_relabeling(n_samples, n_classes):
+    """ Tests whether the internal relabeling works properly. For example, if the labels provided were `[40, 51]`,
+     internally, we relabel them as `[0, 1]`. """
+
+    X, Y = make_classification(n_samples=n_samples,
+                               n_features=n_classes,
+                               n_informative=n_classes,
+                               n_redundant=0,
+                               n_repeated=0,
+                               n_classes=n_classes,
+                               n_clusters_per_class=1,
+                               class_sep=10,
+                               random_state=0)
+
+    # define explainer and obtain explanation
+    explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0.5)
+    explainer = explainer.fit(X_ref=X, Y_ref=Y)
+    explanation = explainer.explain(num_prototypes=np.random.randint(1, n_samples, 1).item())
+
+    # check internal Y_ref relabeling
+    provided_labels = np.unique(Y)
+    internal_labels = np.unique(explainer.Y_ref)
+    assert np.array_equal(internal_labels, np.arange(len(provided_labels)))
+
+    # check if the prototypes labels are labels with the provided labels
+    assert np.all(np.isin(np.unique(explanation.data['prototypes_labels']), provided_labels))
+
+
 def test_size_match():
     """ Tests if the error is raised when the number of data instance does not match
     the numebr of labels. """

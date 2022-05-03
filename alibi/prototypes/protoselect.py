@@ -113,6 +113,16 @@ class ProtoSelect(Explainer, FitMixin):
         # will always be 0. Still the first term of the loss tries to cover as many examples as possible with
         # minimal overlap between the epsilon balls corresponding to the other prototypes.
         self.Y_ref = Y_ref.astype(np.int32) if (Y_ref is not None) else np.zeros((len(X_ref),), dtype=np.int32)
+
+        # redefine the labels, so they are in the interval [0, len(np.unique(Y_ref)) - 1].
+        # For example, if the labels provided were `[40, 51]`, internally, we relabel them as `[0, 1]`.
+        # Can reduce computation and memory allocation, as without the intermediate mapping we had to allocate memory
+        # corresponding 52 labels for some internal matrices.
+        self.label_mapping = {l: i for i, l in enumerate(np.unique(self.Y_ref))}
+        self.label_inv_mapping = {v: k for k, v in self.label_mapping.items()}
+        idx = np.nonzero(np.asarray(list(self.label_mapping.keys())) == self.Y_ref[:, None])[1]
+        self.Y_ref = np.asarray(list(self.label_mapping.values()))[idx]
+
         # if the set of prototypes is not provided, then find the prototypes belonging to the reference dataset.
         self.X = X if (X is not None) else self.X_ref
         # initialize penalty for adding a prototype
@@ -120,7 +130,6 @@ class ProtoSelect(Explainer, FitMixin):
             self.lambda_penalty = 1 / len(self.X_ref)
             self.meta['params'].update({'lambda_penalty': self.lambda_penalty})
 
-        self.max_label = np.max(self.Y_ref)
         self.kmatrix = batch_compute_kernel_matrix(x=self.X,
                                                    y=self.X_ref,
                                                    kernel=self.kernel_distance,
@@ -151,7 +160,7 @@ class ProtoSelect(Explainer, FitMixin):
                            f'the prototypes selection set. Automatically setting `num_prototypes={num_prototypes}`.')
 
         # dictionary of prototypes indices for each class
-        protos = {l: [] for l in range(self.max_label + 1)}  # type: Dict[int, List[int]]  # noqa: E741
+        protos = {l: [] for l in range(len(self.label_mapping))}  # type: Dict[int, List[int]]  # noqa: E741
         # set of available prototypes indices. Note that initially we start with the entire set of X,
         # but as the algorithm progresses, we remove the indices of the prototypes that we already selected.
         available_indices = set(range(len(self.X)))
@@ -161,10 +170,10 @@ class ProtoSelect(Explainer, FitMixin):
         B = (self.kmatrix <= self.eps).astype(np.int32)
         # matrix of size `[L, NX_ref]`, where `L` is the number of labels
         # each row `l` indicates the elements from `X_ref` that are covered by prototypes belonging to class `l`
-        B_P = np.zeros((self.max_label + 1, len(self.X_ref)), dtype=np.int32)
+        B_P = np.zeros((len(self.label_mapping), len(self.X_ref)), dtype=np.int32)
         # matrix of size `[L, NX_ref]`. Each row `l` indicates which elements form `X_ref` are labeled as `l`
         Xl = np.concatenate([(self.Y_ref == l).reshape(1, -1)
-                             for l in range(self.max_label + 1)], axis=0).astype(np.int32)  # noqa: E741
+                             for l in range(len(self.label_mapping))], axis=0).astype(np.int32)  # noqa: E741
 
         # vectorized implementation of the prototypes scores.
         # See paper (pag 8): https://arxiv.org/pdf/1202.5933.pdf for more details
@@ -215,7 +224,7 @@ class ProtoSelect(Explainer, FitMixin):
         """
         data = deepcopy(DEFAULT_DATA_PROTOSELECT)
         data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
-        data['prototypes_labels'] = np.concatenate([[l] * len(protos[l])
+        data['prototypes_labels'] = np.concatenate([[self.label_inv_mapping[l]] * len(protos[l])
                                                     for l in protos]).astype(np.int32)  # noqa: E741
         data['prototypes'] = self.X[data['prototypes_indices']]
         return Explanation(meta=self.meta, data=data)

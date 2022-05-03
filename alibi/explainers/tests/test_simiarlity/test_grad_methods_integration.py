@@ -282,7 +282,17 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0:2], Y=ds[0:2])
 
-    # Check asymmetric dot product scores are correct
+    # In the case of `grad_asym_dot` we manually check the similarities as the asymmetry of the metric means ordering
+    # is important.
+    sim_ds_0 = np.array([(1 * 1 + 0 * 0) / 1., (1 * 0.9 + 0 * 0.1) / 1., (1 * 50 + 0 * 50) / 1.])
+    sim_ds_0.sort()
+    np.testing.assert_almost_equal(explanation.scores[0], sim_ds_0[::-1], decimal=3)
+
+    d = (0.9**2 + 0.1**2)
+    sim_ds_1 = np.array([(0.9 * 1 + 0.1 * 0) / d, (0.9 * 0.9 + 0.1 * 0.1) / d, (0.9 * 50 + 0.1 * 50) / d])
+    sim_ds_1.sort()
+    np.testing.assert_almost_equal(explanation.scores[1], sim_ds_1[::-1], decimal=3)
+
     assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
     assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
     explanation = explainer.explain(ds[-1], Y=ds[-1])

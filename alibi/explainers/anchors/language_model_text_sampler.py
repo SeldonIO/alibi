@@ -1,23 +1,13 @@
-####-Changed-#### # noqa
-# The LanguageModelSampler was moved here from its original place in anchor_text.py. This is in order to scope the
-# tensorflow import.
-#################
 import string
 from functools import partial
 
-####-Changed-#### # noqa
-# -from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
-# -                    Type, Union)
 from typing import (Dict, List, Optional, Tuple, Type)
-#################
 
 import numpy as np
 import tensorflow as tf
 
 from alibi.utils.lang_model import LanguageModel
-####-Changed-#### # noqa
 from alibi.explainers.anchors.text_samplers import AnchorTextSampler
-#################
 
 
 class LanguageModelSampler(AnchorTextSampler):
@@ -670,9 +660,5 @@ class LanguageModelSampler(AnchorTextSampler):
         self.dtype_token = '<U' + str(max_len)
         self.dtype_sent = '<U' + str(max_sent_len)
 
-    # ####-Changed-#### # noqa
-    # This is here because anchor_text previously set the seed for both np and tf in a private method called
-    # _seed. This can no longer be done there as tf is an optional import and should only exist here.
     def seed(self, seed: int) -> None:
         tf.random.set_seed(seed)
-    #################

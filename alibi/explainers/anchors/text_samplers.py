@@ -1,14 +1,7 @@
-####-Changed-#### # noqa
-# The Non-tf dependent Samplers where moved here from anchor_text.py
-#################
 import logging
 from abc import abstractmethod
 
-####-Changed-#### # noqa
-# -from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
-# -                    Type, Union)
 from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union)
-#################
 
 import numpy as np
 import spacy
@@ -88,9 +81,6 @@ class Neighbors:
         return {'words': words, 'similarities': np.array(similarities)}
 
 
-####-Changed-#### # noqa
-# renamed load_spacy_lexeme_prob -> _load_spacy_lexeme_prob
-#################
 def load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.Language':
     """
     This utility function loads the `lexeme_prob` table for a spacy model if it is not present.
@@ -174,10 +164,7 @@ class UnknownSampler(AnchorTextSampler):
         super().__init__()
 
         # set nlp and perturbation options
-        ####-Changed-#### # noqa
-        # -self.nlp = load_spacy_lexeme_prob(nlp)
         self.nlp = load_spacy_lexeme_prob(nlp)
-        #################
         self.perturb_opts = perturb_opts  # type: Union[Dict, None]
 
         # define buffer for word, punctuation and position
@@ -275,10 +262,7 @@ class SimilaritySampler(AnchorTextSampler):
         super().__init__()
 
         # set nlp and perturbation options
-        ####-Changed-#### # noqa
-        # -self.nlp = load_spacy_lexeme_prob(nlp)
         self.nlp = load_spacy_lexeme_prob(nlp)
-        #################
         self.perturb_opts = perturb_opts
 
         # define synonym generator

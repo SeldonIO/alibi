@@ -203,11 +203,11 @@ any public functionality that is dependent on an optional dependency should be i
 `import_optional` function. 
 
 #### Note:
-- The `import_optional` function returns an object instance rather than an object. This will cause typechecking to fail 
-if not all optional dependencies are installed. Because of this we also need to 1. Conditionally import the true object
-dependent on `TYPE_CHECKING` and 2. Use forward referencing within typing constructs such as `Union`. We use forward 
-referencing because in a user environment the optional dependency may not be installed in which case it'll be replaced 
-with an instance of the MissingDependency class. This will throw an error when passed to `Union`. For example: 
+- The `import_optional` function returns an instance of a class and if this is passed to type-checking constructs, such 
+as Union, it will raise errors. Thus, in order to do type-checking, we need to 1. Conditionally import the true object 
+dependent on `TYPE_CHECKING` and 2. Use forward referencing when passing to typing constructs such as `Union`. We use 
+forward referencing because in a user environment the optional dependency may not be installed in which case it'll be 
+replaced with an instance of the MissingDependency class. For example: 
   ```py
   from typing import TYPE_CHECKING, Union
 

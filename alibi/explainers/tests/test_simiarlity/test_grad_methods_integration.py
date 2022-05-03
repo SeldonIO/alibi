@@ -105,8 +105,8 @@ def test_grad_cos_result_order_torch(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
-    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][1]], ds[1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][-1]], ds[-1])
 
 
 def test_grad_dot_result_order_torch(seed):
@@ -124,8 +124,8 @@ def test_grad_dot_result_order_torch(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][0][-1]] == ds[1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[-1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][-1]], ds[1])
 
 
 def loss_tf(y, x):
@@ -191,8 +191,8 @@ def test_grad_dot_result_order_tf(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][0][-1]] == ds[1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[-1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][-1]], ds[1])
 
 
 def test_grad_cos_result_order_tf(seed):
@@ -211,8 +211,8 @@ def test_grad_cos_result_order_tf(seed):
     )
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0], Y=ds[0])
-    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
-    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][1]], ds[1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][-1]], ds[-1])
 
 
 @pytest.mark.parametrize('precompute_grads', [True, False])
@@ -233,12 +233,12 @@ def test_multiple_test_instances_grad_cos(precompute_grads):
     explainer = explainer.fit(ds, ds)
     explanation = explainer.explain(ds[0:2], Y=ds[0:2])
     # Test that the first two datapoints are the most similar
-    assert (ds[explanation['ordered_indices'][0][1]] == ds[1]).all()
-    assert (ds[explanation['ordered_indices'][1][1]] == ds[0]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][1]], ds[1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][1]], ds[0])
 
     # Test that the greatest difference is between the first two and the last datapoint
-    assert (ds[explanation['ordered_indices'][0][-1]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][1][-1]] == ds[-1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][-1]], ds[-1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][-1]], ds[-1])
 
 
 @pytest.mark.parametrize('precompute_grads', [True, False])
@@ -260,8 +260,8 @@ def test_multiple_test_instances_grad_dot(precompute_grads):
     explanation = explainer.explain(ds[0:2], Y=ds[0:2])
 
     # Check that the last datapoint is the most similar to the first datapoint.
-    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[-1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][0]], ds[-1])
 
 
 @pytest.mark.parametrize('precompute_grads', [True, False])
@@ -284,16 +284,16 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
 
     # In the case of `grad_asym_dot` we manually check the similarities as the asymmetry of the metric means ordering
     # is important.
-    sim_ds_0 = np.array([(1 * 1 + 0 * 0) / 1., (1 * 0.9 + 0 * 0.1) / 1., (1 * 50 + 0 * 50) / 1.])
+    sim_ds_0 = np.array([(1 * 1 + 0 * 0), (1 * 0.9 + 0 * 0.1), (1 * 50 + 0 * 50)]) / (1 + 1e-7)
     sim_ds_0.sort()
-    np.testing.assert_almost_equal(explanation.scores[0], sim_ds_0[::-1], decimal=3)
+    np.testing.assert_allclose(explanation.scores[0], sim_ds_0[::-1], atol=1e-6)
 
     d = (0.9**2 + 0.1**2)
-    sim_ds_1 = np.array([(0.9 * 1 + 0.1 * 0) / d, (0.9 * 0.9 + 0.1 * 0.1) / d, (0.9 * 50 + 0.1 * 50) / d])
+    sim_ds_1 = np.array([(0.9 * 1 + 0.1 * 0), (0.9 * 0.9 + 0.1 * 0.1), (0.9 * 50 + 0.1 * 50)]) / (d + 1e-7)
     sim_ds_1.sort()
-    np.testing.assert_almost_equal(explanation.scores[1], sim_ds_1[::-1], decimal=3)
+    np.testing.assert_allclose(explanation.scores[1], sim_ds_1[::-1], atol=1e-6)
 
-    assert (ds[explanation['ordered_indices'][0][0]] == ds[-1]).all()
-    assert (ds[explanation['ordered_indices'][1][0]] == ds[-1]).all()
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[-1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][0]], ds[-1])
     explanation = explainer.explain(ds[-1], Y=ds[-1])
-    assert (explanation.scores == np.array([[1., 0.01, 0.01]], dtype=np.float32)).all()
+    np.testing.assert_array_equal(explanation.scores, np.array([[1., 0.01, 0.01]], dtype=np.float32))

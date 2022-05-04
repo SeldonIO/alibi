@@ -133,7 +133,7 @@ def test_relabeling(n_samples, n_classes):
 
 def test_size_match():
     """ Tests if the error is raised when the number of data instance does not match
-    the numebr of labels. """
+    the number of labels. """
     X_ref = np.random.randn(100, 5)
     Y_ref = np.random.randint(0, 10, 50)
 

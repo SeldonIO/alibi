@@ -150,6 +150,23 @@ class Explainer(abc.ABC, Base):
         save_explainer(self, path)
 
 
+class Summariser(abc.ABC, Base):
+    """
+    Base class for explainer algorithms from :py:mod:`alibi.prototypes`.
+    """
+
+    @abc.abstractmethod
+    def summarise(self, X: Any) -> "Explanation":
+        pass
+
+    @classmethod
+    def load(cls, path: Union[str, os.PathLike]) -> "Summariser":
+        raise NotImplementedError('Loading functionality not implemented.')
+
+    def save(self, path: Union[str, os.PathLike]) -> None:
+        raise NotImplementedError('Saving functionality not implemented.')
+
+
 class FitMixin(abc.ABC):
     @abc.abstractmethod
     def fit(self, X: Any) -> "Explainer":

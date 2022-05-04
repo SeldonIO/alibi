@@ -69,7 +69,7 @@ class Base:
     Base class for all `alibi` algorithms. Implements a structured approach to handle metadata.
     """
 
-    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Explainer meta-data.
+    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Object's metadata.
 
     def __attrs_post_init__(self):
         # add a name and version to the metadata dictionary

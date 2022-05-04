@@ -40,7 +40,7 @@ class ProtoSelect(Summariser, FitMixin):
             Epsilon ball size.
         lambda_penalty
             Penalty for each prototype. Encourages a lower number of prototypes to be selected. Corresponds to
-            :math:`\\lambda` in the paper's notation. If not specified, the default value is set to `1 / N` where
+            :math:`\\lambda` in the paper notation. If not specified, the default value is set to `1 / N` where
             `N` represents the number of reference instances passed to the
             :py:meth:`alibi.prototypes.protoselect.ProtoSelect.fit` method.
         batch_size
@@ -82,8 +82,8 @@ class ProtoSelect(Summariser, FitMixin):
             Y_ref: Optional[np.ndarray] = None,
             X: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
-        Fit the summariser by setting the reference dataset. This step form the kernel matrix in memory
-        which has a shape of `Nx x Ny`, where `Nx` are the number of instances in `X` and `Ny` are the
+        Fit the summariser by setting the reference dataset. This step forms the kernel matrix in memory
+        which has a shape of `Nx x Ny`, where `Nx` is the number of instances in `X` and `Ny` is the
         number of instances in `Y`.
 
         Parameters
@@ -141,7 +141,7 @@ class ProtoSelect(Summariser, FitMixin):
         """
         Searches for the requested number of prototypes. Note that the algorithm can return a lower number of
         prototypes than the requested one. To increase the number of prototypes, reduce the epsilon-ball radius
-        `eps` and the penalty `lambda_penalty` for adding a prototype.
+        (`eps`), and the penalty for adding a prototype (`lambda_penalty`).
 
         Parameters
         ----------
@@ -344,7 +344,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
         If not specified, no filtering is applied. Only used if ``eps_grid=None``.
     grid_size
-        The number of equal-distant bins to be used to discretize the `eps_grid` proposed interval. Only used if
+        The number of equidistant bins to be used to discretize the `eps_grid` proposed interval. Only used if
         ``eps_grid=None``.
     n_splits
         The number of cross-validation splits to be used. Default value 2. Only used if ``valset=None``.
@@ -375,7 +375,6 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         if quantiles is not None:
             if quantiles[0] > quantiles[1]:
                 raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
-
             quantiles = np.clip(quantiles, a_min=0, a_max=1)
             min_dist, max_dist = np.quantile(a=dist, q=quantiles)
         else:

@@ -756,13 +756,13 @@ class CounterfactualProto(Explainer, FitMixin):
 
                 # multidim scaled distances
                 d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,  # type: ignore
+                                                 feature_range=self.feature_range,  # type: ignore[arg-type]
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)
 
                 d_abs_mvdm, _ = multidim_scaling(d_mvdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,  # type: ignore
+                                                 feature_range=self.feature_range,  # type: ignore[arg-type]
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)

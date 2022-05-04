@@ -26,14 +26,14 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
                                random_state=0)
 
     # define & fit the explainer
-    explainer = ProtoSelect(eps=eps, kernel_distance=kernel_distance)
-    explainer = explainer.fit(X_ref=X, Y_ref=Y)
+    summariser = ProtoSelect(eps=eps, kernel_distance=kernel_distance)
+    summariser = summariser.fit(X_ref=X, Y_ref=Y)
 
     # get prototypes
-    explanation = explainer.explain(num_prototypes=num_prototypes)
-    protos = explanation.prototypes
-    protos_indices = explanation.prototypes_indices
-    protos_labels = explanation.prototypes_labels
+    summary = summariser.summarise(num_prototypes=num_prototypes)
+    protos = summary.prototypes
+    protos_indices = summary.prototypes_indices
+    protos_labels = summary.prototypes_labels
 
     assert len(protos) == len(protos_indices) == len(protos_labels)
     assert len(protos) <= num_prototypes
@@ -118,17 +118,17 @@ def test_relabeling(n_samples, n_classes):
                                random_state=0)
 
     # define explainer and obtain explanation
-    explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0.5)
-    explainer = explainer.fit(X_ref=X, Y_ref=Y)
-    explanation = explainer.explain(num_prototypes=np.random.randint(1, n_samples, 1).item())
+    summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0.5)
+    summariser = summariser.fit(X_ref=X, Y_ref=Y)
+    summary = summariser.summarise(num_prototypes=np.random.randint(1, n_samples, 1).item())
 
     # check internal Y_ref relabeling
     provided_labels = np.unique(Y)
-    internal_labels = np.unique(explainer.Y_ref)
+    internal_labels = np.unique(summariser.Y_ref)
     assert np.array_equal(internal_labels, np.arange(len(provided_labels)))
 
     # check if the prototypes labels are labels with the provided labels
-    assert np.all(np.isin(np.unique(explanation.data['prototypes_labels']), provided_labels))
+    assert np.all(np.isin(np.unique(summary.data['prototypes_labels']), provided_labels))
 
 
 def test_size_match():
@@ -137,6 +137,6 @@ def test_size_match():
     X_ref = np.random.randn(100, 5)
     Y_ref = np.random.randint(0, 10, 50)
 
-    explainer = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
+    summariser = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
     with pytest.raises(ValueError):
-        explainer.fit(X_ref=X_ref, Y_ref=Y_ref)
+        summariser.fit(X_ref=X_ref, Y_ref=Y_ref)

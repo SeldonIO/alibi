@@ -156,7 +156,7 @@ class Summariser(abc.ABC, Base):
     """
 
     @abc.abstractmethod
-    def summarise(self, X: Any) -> "Explanation":
+    def summarise(self, num_prototypes: int) -> "Explanation":
         pass
 
     @classmethod

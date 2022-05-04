@@ -12,14 +12,14 @@ from sklearn.neighbors import KNeighborsClassifier
 from skimage.transform import resize
 
 from alibi.utils.distance import batch_compute_kernel_matrix
-from alibi.api.interfaces import Explainer, Explanation, FitMixin
+from alibi.api.interfaces import Summariser, Explanation, FitMixin
 from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
 from alibi.utils.kernel import EuclideanDistance
 
 logger = logging.getLogger(__name__)
 
 
-class ProtoSelect(Explainer, FitMixin):
+class ProtoSelect(Summariser, FitMixin):
     def __init__(self,
                  kernel_distance: Callable[[np.ndarray, np.ndarray], np.ndarray],
                  eps: float,
@@ -83,14 +83,14 @@ class ProtoSelect(Explainer, FitMixin):
             Y_ref: Optional[np.ndarray] = None,
             X: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
-        Fit the explainer by setting the reference dataset. This step form the kernel matrix in memory
+        Fit the summariser by setting the reference dataset. This step form the kernel matrix in memory
         which has a shape of `Nx x Ny`, where `Nx` are the number of instances in `X` and `Ny` are the
         number of instances in `Y`.
 
         Parameters
         ---------
         X_ref
-            Reference dataset to be summarized.
+            Reference dataset to be summarised.
         Y_ref
             Labels of the reference dataset. The labels are expected to be represented as integers `[0, 1, ..., L-1]`,
             where `L` is the number of classes in the reference dataset.
@@ -108,14 +108,14 @@ class ProtoSelect(Explainer, FitMixin):
                              f'Got len(X_ref)={len(X_ref)} and len(Y_ref)={len(Y_ref)}.')
 
         self.X_ref = X_ref
-        # if the `Y_ref` are not provided, then consider that all elements belong to the same class. This means
+        # if the Y_ref are not provided, then consider that all elements belong to the same class. This means
         # that loss term which tries to avoid including in an epsilon ball elements belonging to other classes
         # will always be 0. Still the first term of the loss tries to cover as many examples as possible with
         # minimal overlap between the epsilon balls corresponding to the other prototypes.
         self.Y_ref = Y_ref.astype(np.int32) if (Y_ref is not None) else np.zeros((len(X_ref),), dtype=np.int32)
 
         # redefine the labels, so they are in the interval [0, len(np.unique(Y_ref)) - 1].
-        # For example, if the labels provided were `[40, 51]`, internally, we relabel them as `[0, 1]`.
+        # For example, if the labels provided were [40, 51], internally, we relabel them as [0, 1].
         # Can reduce computation and memory allocation, as without the intermediate mapping we had to allocate memory
         # corresponding 52 labels for some internal matrices.
         self.label_mapping = {l: i for i, l in enumerate(np.unique(self.Y_ref))}
@@ -138,11 +138,11 @@ class ProtoSelect(Explainer, FitMixin):
 
         return self
 
-    def explain(self, num_prototypes: int = 1) -> Explanation:
+    def summarise(self, num_prototypes: int = 1) -> Explanation:
         """
         Searches for the requested number of prototypes. Note that the algorithm can return a lower number of
         prototypes than the requested one. To increase the number of prototypes, reduce the epsilon-ball radius
-        `eps` and the penalty `lbd` for adding a prototype.
+        `eps` and the penalty `lambda_penalty` for adding a prototype.
 
         Parameters
         ----------
@@ -152,7 +152,7 @@ class ProtoSelect(Explainer, FitMixin):
         Returns
         -------
         An `Explanation` object containing the prototypes, prototype indices and prototype labels with additional \
-        metadata as attributes
+        metadata as attributes.
         """
         if num_prototypes > len(self.X):
             num_prototypes = len(self.X)
@@ -164,14 +164,14 @@ class ProtoSelect(Explainer, FitMixin):
         # set of available prototypes indices. Note that initially we start with the entire set of X,
         # but as the algorithm progresses, we remove the indices of the prototypes that we already selected.
         available_indices = set(range(len(self.X)))
-        # matrix of size `[NX, NX_ref]`, where `NX = len(X)` and `NX_ref = len(X_ref)`
-        # represents a mask which indicates for each element `x` in `X` what are the elements of `X_ref` that are in an
-        # epsilon ball centered in `x`.
+        # matrix of size [NX, NX_ref], where NX = len(X) and NX_ref = len(X_ref)
+        # represents a mask which indicates for each element x in X what are the elements of X_ref that are in an
+        # epsilon ball centered in x.
         B = (self.kmatrix <= self.eps).astype(np.int32)
-        # matrix of size `[L, NX_ref]`, where `L` is the number of labels
-        # each row `l` indicates the elements from `X_ref` that are covered by prototypes belonging to class `l`
+        # matrix of size [L, NX_ref], where L is the number of labels
+        # each row l indicates the elements from X_ref that are covered by prototypes belonging to class l.
         B_P = np.zeros((len(self.label_mapping), len(self.X_ref)), dtype=np.int32)
-        # matrix of size `[L, NX_ref]`. Each row `l` indicates which elements form `X_ref` are labeled as `l`
+        # matrix of size [L, NX_ref]. Each row l indicates which elements form X_ref are labeled as l.
         Xl = np.concatenate([(self.Y_ref == l).reshape(1, -1)
                              for l in range(len(self.label_mapping))], axis=0).astype(np.int32)  # noqa: E741
 
@@ -180,13 +180,13 @@ class ProtoSelect(Explainer, FitMixin):
         B_diff = B[:, np.newaxis, :] - B_P[np.newaxis, :, :]  # [NX, 1, NX_ref] - [1, L, NX_ref] -> [NX, L, NX_ref]
         # [NX, L, NX_ref] + [1, L, NX_ref] -> [NX, L, NX_ref]
         delta_xi_all = B_diff + Xl[np.newaxis, ...] >= 2
-        # [NX, L]. For every row `x` and every column `l`, we compute how many new instances belonging to class
-        # `l` will be covered if we add the prototype `x`.
+        # [NX, L]. For every row x and every column l, we compute how many new instances belonging to class
+        # l will be covered if we add the prototype x.
         delta_xi_summed = np.sum(delta_xi_all, axis=-1)
         # [NX, 1, NX_ref] +  [1, L, NX_ref] -> [NX, L, NX_ref]
         delta_nu_all = B[:, np.newaxis, :] + (1 - Xl[np.newaxis, ...]) >= 2
-        # [NX, L]. For every row `x` and every column `l`, we compute how many new instances belonging to all the
-        # other classes different from `l` will be covered if we add the prototype `x`.
+        # [NX, L]. For every row x and every column l, we compute how many new instances belonging to all the
+        # other classes different from l will be covered if we add the prototype x.
         delta_nu_summed = np.sum(delta_nu_all, axis=-1)
         # compute the tradeoff score - each prototype tries to cover as many new elements as possible
         # belonging to the same class, while trying to avoid covering elements belonging to another class
@@ -197,22 +197,22 @@ class ProtoSelect(Explainer, FitMixin):
             scores = scores_all[j]
 
             # stopping criterion. The number of the returned prototypes might be lower than
-            # the number of requested prototypes
+            # the number of requested prototypes.
             if np.all(scores < 0):
                 break
 
-            # find the index `i` of the best prototype and the class `l` that it covers
+            # find the index i of the best prototype and the class l that it covers.
             row, col = np.unravel_index(np.argmax(scores), scores.shape)
             i, l = j[row.item()], col.item()  # noqa: E741
 
-            # update the score
+            # update the score.
             covered = np.sum(delta_xi_all[:, l, B[i].astype(bool)], axis=-1)
             delta_xi_all[:, l, B[i].astype(bool)] = 0
             delta_xi_summed[:, l] -= covered
             scores_all[:, l] -= covered
 
-            # add prototype to the corresponding list according to the class label `l` that it covers
-            # and remove the index `i` from list of available indices
+            # add prototype to the corresponding list according to the class label l that it covers
+            # and remove the index i from list of available indices.
             protos[l].append(i)
             available_indices.remove(i)
 
@@ -229,15 +229,8 @@ class ProtoSelect(Explainer, FitMixin):
         data['prototypes'] = self.X[data['prototypes_indices']]
         return Explanation(meta=self.meta, data=data)
 
-    def save(self, path: Union[str, os.PathLike]) -> None:
-        super().save(path)
 
-    @classmethod
-    def load(cls, path: Union[str, os.PathLike]) -> "Explainer":  # type: ignore[override]
-        return super().load(path, predictor=None)
-
-
-def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
+def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
                                        num_prototypes: int,
                                        eps: float) -> Optional[KNeighborsClassifier]:
     """
@@ -246,8 +239,8 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
 
     Parameters
     ----------
-    explainer
-        Fitted explainer.
+    summariser
+        Fitted summariser.
     num_prototypes
         Number of requested prototypes.
     eps
@@ -260,11 +253,11 @@ def _helper_protoselect_euclidean_1knn(explainer: ProtoSelect,
     Fitted KNN-classifier.
     """
     # update explainer eps and get explanation
-    explainer.eps = eps
-    explanation = explainer.explain(num_prototypes=num_prototypes)
+    summariser.eps = eps
+    summary = summariser.summarise(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
-    proto, proto_labels = explanation.data['prototypes'], explanation.data['prototypes_labels']
+    proto, proto_labels = summary.data['prototypes'], summary.data['prototypes_labels']
     if len(proto) == 0:
         return None
 
@@ -402,12 +395,12 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         X_ref_i, Y_ref_i = X_ref[train_index], Y_ref[train_index]
         X_val_i, Y_val_i = X_val[val_index], Y_val[val_index]
 
-        # define and fit explainer here, so we don't repeat the kernel matrix computation in the next for loop
-        explainer = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
-        explainer = explainer.fit(X_ref=X_ref_i, Y_ref=Y_ref_i, X=X)
+        # define and fit the summariser here, so we don't repeat the kernel matrix computation in the next for loop
+        summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
+        summariser = summariser.fit(X_ref=X_ref_i, Y_ref=Y_ref_i, X=X)
 
         for j in range(len(eps_grid)):
-            knn = _helper_protoselect_euclidean_1knn(explainer=explainer,
+            knn = _helper_protoselect_euclidean_1knn(summariser=summariser,
                                                      num_prototypes=num_prototypes,
                                                      eps=eps_grid[j])
             if knn is None:
@@ -485,7 +478,7 @@ def _imscatterplot(x: np.ndarray,
     image_size
         Size of the generated output image as `(rows, cols)`.
     zoom
-        Images' zoom to be used.
+        Images zoom to be used.
     zoom_lb
         Zoom lower bound. The zoom values will be scaled linearly between `[zoom_lb, zoom_up]`.
     zoom_ub
@@ -527,7 +520,7 @@ def _imscatterplot(x: np.ndarray,
     return ax
 
 
-def visualize_image_prototypes(explanation: 'Explanation',
+def visualize_image_prototypes(summary: 'Explanation',
                                refset: Tuple[np.ndarray, np.ndarray],
                                reducer: Callable[[np.ndarray], np.ndarray],
                                preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
@@ -544,9 +537,9 @@ def visualize_image_prototypes(explanation: 'Explanation',
 
     Parameters
     ----------
-    explanation
+    summary
         An `Explanation` object produced by a call to the
-        :py:meth:`alibi.prototypes.protoselect.ProtoSelect.explain` method.
+        :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
     refset
         Tuple, `(X_ref, X_ref_labels)`, consisting of the reference data instances with the corresponding reference
         labels.
@@ -576,8 +569,8 @@ def visualize_image_prototypes(explanation: 'Explanation',
         knn_kw.update({'metric': 'euclidean'})
 
     X_ref, Y_ref = refset
-    X = explanation.data['prototypes']
-    Y = explanation.data['prototypes_labels']
+    X = summary.data['prototypes']
+    Y = summary.data['prototypes_labels']
 
     # preprocess the dataset
     X_ref_ft = _batch_preprocessing(X=X_ref, preprocess_fn=preprocess_fn) \

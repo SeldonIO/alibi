@@ -1,4 +1,3 @@
-import os
 import logging
 import numpy as np
 import matplotlib.pyplot as plt
@@ -48,10 +47,10 @@ class ProtoSelect(Summariser, FitMixin):
             Batch size to be used for kernel matrix computation.
         preprocess_fn
             Preprocessing function used for kernel matrix computation. The preprocessing function takes the input in
-            a raw format or as a `numpy` array and transforms it into a `numpy` array which is then fed to the
+            a `list` or a `numpy` array and transforms it into a `numpy` array which is then fed to the
             `kernel_distance` function. The use of `preprocess_fn` allows the method to be applied to any data modality.
         verbose
-             Whether to display progression bar while computing prototypes points.
+             Whether to display progression bar while computing prototype points.
         """
         super().__init__(meta=deepcopy(DEFAULT_META_PROTOSELECT))
         self.kernel_distance = kernel_distance
@@ -116,8 +115,8 @@ class ProtoSelect(Summariser, FitMixin):
 
         # redefine the labels, so they are in the interval [0, len(np.unique(Y_ref)) - 1].
         # For example, if the labels provided were [40, 51], internally, we relabel them as [0, 1].
-        # Can reduce computation and memory allocation, as without the intermediate mapping we had to allocate memory
-        # corresponding 52 labels for some internal matrices.
+        # This approach can reduce computation and memory allocation, as without the intermediate mapping we had to
+        # allocate memory corresponding 52 labels for some internal matrices.
         self.label_mapping = {l: i for i, l in enumerate(np.unique(self.Y_ref))}
         self.label_inv_mapping = {v: k for k, v in self.label_mapping.items()}
         idx = np.nonzero(np.asarray(list(self.label_mapping.keys())) == self.Y_ref[:, None])[1]
@@ -216,11 +215,11 @@ class ProtoSelect(Summariser, FitMixin):
             protos[l].append(i)
             available_indices.remove(i)
 
-        return self._build_explanation(protos)
+        return self._build_summary(protos)
 
-    def _build_explanation(self, protos: Dict[int, List[int]]) -> Explanation:
+    def _build_summary(self, protos: Dict[int, List[int]]) -> Explanation:
         """
-        Helper method to build `Explanation` object.
+        Helper method to build the summary as an `Explanation` object.
         """
         data = deepcopy(DEFAULT_DATA_PROTOSELECT)
         data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
@@ -234,7 +233,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
                                        num_prototypes: int,
                                        eps: float) -> Optional[KNeighborsClassifier]:
     """
-    Helper function to fit a 1-KNN classifier on the prototypes returned by the explainer.
+    Helper function to fit a 1-KNN classifier on the prototypes returned by the `summariser`.
     Sets the epsilon radius to be used.
 
     Parameters
@@ -245,14 +244,12 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
         Number of requested prototypes.
     eps
         Epsilon radius to be set and used for the computation of prototypes.
-     preprocess_fn
-        Preprocessing function to be applied to the data instance before fitting the 1-KNN classifier
 
     Returns
     -------
-    Fitted KNN-classifier.
+    Fitted 1-KNN classifier with Euclidean distance metric.
     """
-    # update explainer eps and get explanation
+    # update summariser eps and get the summary
     summariser.eps = eps
     summary = summariser.summarise(num_prototypes=num_prototypes)
 
@@ -261,7 +258,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     if len(proto) == 0:
         return None
 
-    knn = KNeighborsClassifier(n_neighbors=1)
+    knn = KNeighborsClassifier(n_neighbors=1, metric='euclidean')
     return knn.fit(X=proto, y=proto_labels)
 
 
@@ -319,7 +316,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                              **kwargs) -> dict:
     """
-    Cross-validation parameter selection for ProtoSelect with Euclidean distance. The method computes
+    Cross-validation parameter selection for `ProtoSelect` with Euclidean distance. The method computes
     the best epsilon radius.
 
     Parameters
@@ -466,9 +463,9 @@ def _imscatterplot(x: np.ndarray,
     Parameters
     ----------
     x
-        Images' x-coordinates.
+        Images x-coordinates.
     y
-        Images' y-coordinates.
+        Images y-coordinates.
     images
         Array of images to be placed at coordinates `(x, y)`.
     ax

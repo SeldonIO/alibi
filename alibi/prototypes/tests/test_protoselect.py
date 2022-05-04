@@ -25,7 +25,7 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
                                class_sep=10,
                                random_state=0)
 
-    # define & fit the explainer
+    # define & fit the summariser
     summariser = ProtoSelect(eps=eps, kernel_distance=kernel_distance)
     summariser = summariser.fit(X_ref=X, Y_ref=Y)
 
@@ -104,8 +104,10 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
 @pytest.mark.parametrize('n_samples', [10, 50, 100])
 @pytest.mark.parametrize('n_classes', [1000])
 def test_relabeling(n_samples, n_classes):
-    """ Tests whether the internal relabeling works properly. For example, if the labels provided were `[40, 51]`,
-     internally, we relabel them as `[0, 1]`. """
+    """
+    Tests whether the internal relabeling works properly. For example, if the labels provided were `[40, 51]`,
+    internally, we relabel them as `[0, 1]`.
+    """
 
     X, Y = make_classification(n_samples=n_samples,
                                n_features=n_classes,
@@ -117,7 +119,7 @@ def test_relabeling(n_samples, n_classes):
                                class_sep=10,
                                random_state=0)
 
-    # define explainer and obtain explanation
+    # define summariser and obtain summary
     summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0.5)
     summariser = summariser.fit(X_ref=X, Y_ref=Y)
     summary = summariser.summarise(num_prototypes=np.random.randint(1, n_samples, 1).item())
@@ -132,8 +134,9 @@ def test_relabeling(n_samples, n_classes):
 
 
 def test_size_match():
-    """ Tests if the error is raised when the number of data instance does not match
-    the number of labels. """
+    """
+    Tests if the error is raised when the number of data instance does not match the number of labels.
+    """
     X_ref = np.random.randn(100, 5)
     Y_ref = np.random.randint(0, 10, 50)
 

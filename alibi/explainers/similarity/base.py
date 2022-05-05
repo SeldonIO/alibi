@@ -149,10 +149,10 @@ class BaseSimilarityExplainer(Explainer, ABC):
         grad_X
             Gradients of the test instances.
         """
-        scores = np.zeros(self.X_train.shape[0])
+        scores = np.zeros((grad_X.shape[0], self.X_train.shape[0]))
         for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train)), disable=not self.verbose):
             grad_X_train = self._compute_grad(X[None], Y[None])
-            scores[i] = self.sim_fn(grad_X_train, grad_X)
+            scores[:, i] = self.sim_fn(grad_X, grad_X_train[None])[:, 0]
         return scores
 
     def _compute_grad(self,

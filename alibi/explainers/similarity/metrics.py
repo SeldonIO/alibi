@@ -5,77 +5,70 @@ import numpy as np
 
 def dot(X: np.ndarray, Y: np.ndarray) -> Union[float, np.ndarray]:
     """
-    Performs a dot product between the vector(s) in X and vector Y. (:math:`X^T Y = \\sum_i X_i Y_i`).
+    Performs a dot product between the vector(s) in X and vector Y. (:math:`X^T Y = \\sum_i X_i Y_i`). Each of `X` and
+    `Y` should have a leading batch dimension of size at least 1.
 
     Parameters
     ----------
     X
         Matrix of vectors.
     Y
-        Single vector
+        Matrix of vectors.
 
     Returns
     -------
-        Dot product between the vector(s) in X and vector Y.
+        Matrix of dot products between the vector(s) in X and vectors in Y.
     """
-    if len(X.shape) == 1:
-        assert X.shape == Y.shape, "The vector `X` and `Y` need to have the same dimensions."
-    else:
-        assert X.shape[1] == Y.shape[0], "The second dimension of `X` need to be the same as the dimension of `Y`"
-    return np.dot(X, Y)
+    assert len(X.shape) > 1 and len(Y.shape) > 1, "The vectors `X` and `Y` should have a leading batch dimension."
+    assert X.shape[1] == Y.shape[1], "The second dimension of `X` needs to be the same as the dimension of `Y`."
+    return np.dot(X, Y.T)
 
 
 def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
-    Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y//\\|X\\|\\|Y\\|`).
+    Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y//\\|X\\|\\|Y\\|`). Each of `X` and `Y`
+    should have a leading batch dimension of size at least 1.
 
     Parameters
     ----------
     X
         Matrix of vectors.
     Y
-        Single vector
+        Matrix of vectors.
     eps
         Numerical stability.
 
     Returns
     -------
-        Cosine between the vector(s) in X and vector Y.
+        Matrix of cosine similarities between the vector(s) in X and vectors in Y.
     """
-
-    if len(X.shape) == 1:
-        assert X.shape == Y.shape, "The vectors `X` and `Y` need to have the same dimensions."
-        denominator = np.linalg.norm(X) * np.linalg.norm(Y)
-    else:
-        assert X.shape[1] == Y.shape[0], "The second dimension of `X` need to be the same as the dimension of `Y`"
-        denominator = np.linalg.norm(X, axis=1) * np.linalg.norm(Y)
-
-    return np.dot(X, Y) / (denominator + eps)
+    assert len(X.shape) > 1 and len(Y.shape) > 1, "The vectors `X` and `Y` should have a leading batch dimension."
+    assert X.shape[1] == Y.shape[1], "The second dimension of `X` needs to be the same as the dimension of `Y`."
+    denominator = np.linalg.norm(X, axis=1)[:, None] @ np.linalg.norm(Y, axis=1)[None, :]
+    return np.dot(X, Y.T) / (denominator + eps)
 
 
 def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
     Computes the influence of instances `X` to instances `Y`. This is an asymmetric kernel.
-    (:math:`X^T Y//\\|X\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details.
+    (:math:`X^T Y//\\|X\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
+    `Y` should have a leading batch dimension of size at least 1.
 
     Parameters
     ----------
     X
         Matrix of vectors.
     Y
-        Single vector.
+        Matrix of vectors.
     eps
         Numerical stability.
 
     Returns
     -------
-        Influence asymmetric kernel value.
+        Matrix of asymmetric dot product similarity values between the vector(s) in X and vectors in Y.
     """
-    if len(X.shape) == 1:
-        assert X.shape == Y.shape, "The vectors `X` and `Y` need to have the same dimensions."
-        denominator = np.linalg.norm(X) ** 2
-    else:
-        assert X.shape[1] == Y.shape[0], "The second dimension of `X` need to be the same as the dimension of `Y`."
-        denominator = np.linalg.norm(X, axis=1) ** 2
 
-    return np.dot(X, Y) / (denominator + eps)
+    assert len(X.shape) > 1 and len(Y.shape) > 1, "The vectors `X` and `Y` should have a leading batch dimension."
+    assert X.shape[1] == Y.shape[1], "The second dimension of `X` needs to be the same as the dimension of `Y`."
+    denominator = np.linalg.norm(X, axis=1) ** 2
+    return np.dot(X, Y.T) / (denominator + eps)[:, None]

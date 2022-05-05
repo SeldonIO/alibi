@@ -29,9 +29,13 @@ def test_method_explanations(linear_cls_model, random_cls_dataset):
     # test stored gradients
     explainer.fit(X_train=X_train, Y_train=Y_train)
     assert explainer.grad_X_train.shape == (len(X_train), *params.shape)
-    result = explainer.explain(X_train)
-    assert result.data['scores'].shape == (100, )
-    assert result.data['ordered_indices'].shape == (100,)
+    result = explainer.explain(X_train[0])
+    assert result.data['scores'].shape == (1, 100, )
+    assert result.data['ordered_indices'].shape == (1, 100,)
+
+    result = explainer.explain(X_train[0:4])
+    assert result.data['scores'].shape == (4, 100, )
+    assert result.data['ordered_indices'].shape == (4, 100,)
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)

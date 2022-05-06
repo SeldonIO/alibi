@@ -41,7 +41,7 @@ class ProtoSelect(Summariser, FitMixin):
         lambda_penalty
             Penalty for each prototype. Encourages a lower number of prototypes to be selected. Corresponds to
             :math:`\\lambda` in the paper notation. If not specified, the default value is set to `1 / N` where
-            `N` represents the number of reference instances passed to the
+            `N` is the size of the dataset to choose the prototype instances from, passed to the
             :py:meth:`alibi.prototypes.protoselect.ProtoSelect.fit` method.
         batch_size
             Batch size to be used for kernel matrix computation.
@@ -127,7 +127,7 @@ class ProtoSelect(Summariser, FitMixin):
         self.Z = Z if (Z is not None) else self.X
         # initialize penalty for adding a prototype
         if self.lambda_penalty is None:
-            self.lambda_penalty = 1 / len(self.X)
+            self.lambda_penalty = 1. / len(self.Z)
             self.meta['params'].update({'lambda_penalty': self.lambda_penalty})
 
         self.kmatrix = batch_compute_kernel_matrix(x=self.Z,

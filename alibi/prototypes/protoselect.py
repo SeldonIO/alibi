@@ -95,7 +95,7 @@ class ProtoSelect(Summariser, FitMixin):
             where `L` is the number of classes in the reference dataset.
         Z
             Dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
-            reference dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X` but
+            reference dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
             it is summarised by prototypes belonging to the dataset `Z`.
 
         Returns
@@ -335,7 +335,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     protoset
         Tuple, `(Z, )`, consisting of the prototypes selection set. If `Z` is not provided (i.e., ``protoset=None``),
         the prototypes will be selected from the reference dataset `X`. Otherwise, if `Z` is provided, the dataset
-        to be summarised is still `X` but it is summarised by prototypes belonging to the dataset `Z`.
+        to be summarised is still `X`, but it is summarised by prototypes belonging to the dataset `Z`.
         Note that the argument is passed as a tuple with a single element for consistency reasons.
     valset
         Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding

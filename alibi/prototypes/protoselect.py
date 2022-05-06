@@ -594,6 +594,7 @@ def visualize_image_prototypes(summary: 'Explanation',
         knn_kw = {}
     if knn_kw.get('metric') is None:
         knn_kw.update({'metric': 'euclidean'})
+        logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
 
     X, y = refset
     protos = summary.data['prototypes']
@@ -604,11 +605,6 @@ def visualize_image_prototypes(summary: 'Explanation',
     protos_ft = _batch_preprocessing(X=protos, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else protos
 
     # train knn classifier
-    metric = knn_kw.get('metric', None)
-    if metric is None:
-        knn_kw.update({'metric': 'euclidean'})
-        logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
-
     knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
     knn = knn.fit(X=protos_ft, y=protos_labels)
 

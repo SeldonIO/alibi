@@ -55,7 +55,7 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
     Unit test for cross-validation. Checks if all parameters are passed correctly and checks the
     appropriate behavior when the validation is passed or omitted.
     """
-    X, y = make_classification(n_samples=1000,
+    X_train, y_train = make_classification(n_samples=1000,
                                n_features=n_classes,
                                n_informative=n_classes,
                                n_redundant=0,
@@ -67,16 +67,16 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
 
     # construct datasets
     if use_valset:
-        X, X_val, y, y_val = train_test_split(X, y, test_size=0.2, random_state=0)
-        refset = (X, y)
-        protoset = (X,) if use_protos else None
+        X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=0)
+        trainset = (X_train, y_train)
+        protoset = (X_train,) if use_protos else None
         valset = (X_val, y_val)
     else:
-        refset = (X, y)
-        protoset = (X,) if use_protos else None
+        trainset = (X_train, y_train)
+        protoset = (X_train,) if use_protos else None
         valset = None
 
-    cv = cv_protoselect_euclidean(refset=refset,
+    cv = cv_protoselect_euclidean(trainset=trainset,
                                   protoset=protoset,
                                   valset=valset,
                                   num_prototypes=num_prototypes,

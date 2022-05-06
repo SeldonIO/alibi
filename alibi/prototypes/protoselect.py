@@ -82,20 +82,19 @@ class ProtoSelect(Summariser, FitMixin):
             y: Optional[np.ndarray] = None,
             Z: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
-        Fit the summariser by setting the reference dataset. This step forms the kernel matrix in memory
-        which has a shape of `NX x NZ`, where `NX` is the number of instances in `X` and `NZ` is the
-        number of instances in `Z`.
+        Fit the summariser. This step forms the kernel matrix in memory which has a shape of `NX x NZ`,
+        where `NX` is the number of instances in `X` and `NZ` is the number of instances in `Z`.
 
         Parameters
         ---------
         X
-            Reference dataset to be summarised.
+            Dataset to be summarised.
         y
-            Labels of the reference dataset. The labels are expected to be represented as integers `[0, 1, ..., L-1]`,
-            where `L` is the number of classes in the reference dataset.
+            Labels of the dataset `X` to be summarised. The labels are expected to be represented as integers
+            `[0, 1, ..., L-1]`, where `L` is the number of classes in the dataset `X`.
         Z
-            Dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
-            reference dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
+            Optional dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
+            dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
             it is summarised by prototypes belonging to the dataset `Z`.
 
         Returns
@@ -123,7 +122,7 @@ class ProtoSelect(Summariser, FitMixin):
         idx = np.nonzero(np.asarray(list(self.label_mapping.keys())) == self.y[:, None])[1]
         self.y = np.asarray(list(self.label_mapping.values()))[idx]
 
-        # if the set of prototypes is not provided, then find the prototypes belonging to the reference dataset.
+        # if the set of prototypes is not provided, then find the prototypes belonging to the X dataset.
         self.Z = Z if (Z is not None) else self.X
         # initialize penalty for adding a prototype
         if self.lambda_penalty is None:
@@ -259,16 +258,16 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     summary = summariser.summarise(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
-    proto, proto_labels = summary.data['prototypes'], summary.data['prototypes_labels']
-    if len(proto) == 0:
+    X_protos, y_protos = summary.data['prototypes'], summary.data['prototypes_labels']
+    if len(X_protos) == 0:
         return None
 
     # note that the knn_kw are updated in `cv_protoselect_euclidean` to define a 1-KNN with Euclidean distance
     knn = KNeighborsClassifier(**knn_kw)
-    return knn.fit(X=proto, y=proto_labels)
+    return knn.fit(X=X_protos, y=y_protos)
 
 
-def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
+def _get_splits(trainset: Tuple[np.ndarray, np.ndarray],
                 valset: Tuple[Optional[np.ndarray], Optional[np.ndarray]],
                 kfold_kw: dict) -> Tuple[
                     Tuple[np.ndarray, np.ndarray],
@@ -284,34 +283,32 @@ def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
 
     Parameters
     ----------
-    refset
-        Tuple, `(X, y)`, consisting of the reference data instances with the corresponding reference
-        labels.
+    trainset
+        Tuple `(X_train, y_train)` consisting of the training data instances with the corresponding labels.
     valset
-        Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
-        validation labels.
+        Optional tuple, `(X_val, y_val)`, consisting of validation data instances with the corresponding labels.
     kfold_kw
         Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
         https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
 
     Returns
     -------
-    Tuple consisting of reference dataset, validation dataset (can overlap with reference if validation is not
-    provided), and a list of splits containing indices from the reference and validation datasets.
+    Tuple consisting of training dataset, validation dataset (can overlap with training if validation is not
+    provided), and a list of splits containing indices from the training and validation datasets.
     """
-    X, y = refset
+    X_train, y_train = trainset
     X_val, y_val = valset
 
     if X_val is None:
         kfold = KFold(**kfold_kw)
-        splits = kfold.split(X=X, y=y)
-        return refset, refset, list(splits)
+        splits = kfold.split(X=X_train, y=y_train)
+        return trainset, trainset, list(splits)
 
-    splits = [(np.arange(len(X)), np.arange(len(X_val)))]
-    return refset, valset, splits  # type: ignore
+    splits = [(np.arange(len(X_train)), np.arange(len(X_val)))]
+    return trainset, valset, splits  # type: ignore
 
 
-def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
+def cv_protoselect_euclidean(trainset: Tuple[np.ndarray, np.ndarray],
                              protoset: Optional[Tuple[np.ndarray, ]] = None,
                              valset: Optional[Tuple[np.ndarray, np.ndarray]] = None,
                              num_prototypes: int = 1,
@@ -330,18 +327,17 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
 
     Parameters
     ----------
-    refset
-        Tuple, `(X, y)`, consisting of the reference data instances with the corresponding reference
-        labels.
+    trainset
+        Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
     protoset
         Tuple, `(Z, )`, consisting of the dataset to choose the prototypes from. If `Z` is not provided
-        (i.e., ``protoset=None``), the prototypes will be selected from the reference dataset `X`. Otherwise, if `Z`
+        (i.e., ``protoset=None``), the prototypes will be selected from the training dataset `X`. Otherwise, if `Z`
         is provided, the dataset to be summarised is still `X`, but it is summarised by prototypes belonging to
         the dataset `Z`. Note that the argument is passed as a tuple with a single element for consistency reasons.
     valset
         Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
         validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
-        In case ``valset=None``, then `n-splits` cross-validation is performed on the `refset`.
+        In case ``valset=None``, then `n-splits` cross-validation is performed on the `trainset`.
     num_prototypes
         The number of prototypes to be selected.
     eps_grid
@@ -388,19 +384,19 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     # ensure that we are training a 1-KNN classifier with Euclidean distance metric
     knn_kw.update({'n_neighbors': 1, 'metric': 'euclidean'})
 
-    X, y = refset
-    Z = protoset[0] if (protoset is not None) else X
+    X_train, y_train = trainset
+    Z = protoset[0] if (protoset is not None) else X_train
     X_val, y_val = valset if (valset is not None) else (None, None)
 
     if preprocess_fn is not None:
-        X = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn, batch_size=batch_size)
+        X_train = _batch_preprocessing(X=X_train, preprocess_fn=preprocess_fn, batch_size=batch_size)
         Z = _batch_preprocessing(X=Z, preprocess_fn=preprocess_fn, batch_size=batch_size)
         if X_val is not None:
             X_val = _batch_preprocessing(X_val, preprocess_fn=preprocess_fn, batch_size=batch_size)
 
     # propose eps_grid if not specified
     if eps_grid is None:
-        dist = batch_compute_kernel_matrix(x=X, y=Z, kernel=EuclideanDistance()).reshape(-1)
+        dist = batch_compute_kernel_matrix(x=X_train, y=Z, kernel=EuclideanDistance()).reshape(-1)
         if quantiles is not None:
             if quantiles[0] > quantiles[1]:
                 raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
@@ -411,16 +407,18 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         # define list of values for eps
         eps_grid = np.linspace(min_dist, max_dist, num=grid_size)
 
-    (X, y), (X_val, y_val), splits = _get_splits(refset=(X, y), valset=(X_val, y_val), kfold_kw=kfold_kw)
+    (X_train, y_train), (X_val, y_val), splits = _get_splits(trainset=(X_train, y_train),
+                                                             valset=(X_val, y_val),
+                                                             kfold_kw=kfold_kw)
     scores = np.zeros((len(eps_grid), len(splits)))
 
     for i, (train_index, val_index) in enumerate(splits):
-        X_i, y_i = X[train_index], y[train_index]
+        X_train_i, y_train_i = X_train[train_index], y_train[train_index]
         X_val_i, y_val_i = X_val[val_index], y_val[val_index]
 
         # define and fit the summariser here, so we don't repeat the kernel matrix computation in the next for loop
         summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **protoselect_kw)
-        summariser = summariser.fit(X=X_i, y=y_i, Z=Z)
+        summariser = summariser.fit(X=X_train_i, y=y_train_i, Z=Z)
 
         for j in range(len(eps_grid)):
             knn = _helper_protoselect_euclidean_1knn(summariser=summariser,
@@ -545,7 +543,7 @@ def _imscatterplot(x: np.ndarray,
 
 
 def visualize_image_prototypes(summary: 'Explanation',
-                               refset: Tuple[np.ndarray, np.ndarray],
+                               trainset: Tuple[np.ndarray, np.ndarray],
                                reducer: Callable[[np.ndarray], np.ndarray],
                                preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                                knn_kw: Optional[dict] = None,
@@ -556,7 +554,7 @@ def visualize_image_prototypes(summary: 'Explanation',
                                zoom_ub: float = 3.0) -> plt.Axes:
     """
     Plot the images of the prototypes at the location given by the `reducer` representation.
-    The size of each prototype is proportional to the logarithm of the number of assigned reference instances correctly
+    The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
     classified according to the 1-KNN classifier. (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
     Parameters
@@ -564,8 +562,8 @@ def visualize_image_prototypes(summary: 'Explanation',
     summary
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
-    refset
-        Tuple, `(X, y)`, consisting of the reference data instances with the corresponding reference labels.
+    trainset
+        Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
     reducer
         2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
         input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
@@ -596,36 +594,38 @@ def visualize_image_prototypes(summary: 'Explanation',
         knn_kw.update({'metric': 'euclidean'})
         logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
 
-    X, y = refset
-    protos = summary.data['prototypes']
-    protos_labels = summary.data['prototypes_labels']
+    X_train, y_train = trainset
+    X_protos = summary.data['prototypes']
+    y_protos = summary.data['prototypes_labels']
 
     # preprocess the dataset
-    X_ft = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X
-    protos_ft = _batch_preprocessing(X=protos, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else protos
+    X_train_ft = _batch_preprocessing(X=X_train, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_train
+    X_protos_ft = _batch_preprocessing(X=X_protos, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_protos
 
     # train knn classifier
     knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
-    knn = knn.fit(X=protos_ft, y=protos_labels)
+    knn = knn.fit(X=X_protos_ft, y=y_protos)
 
     # get neighbors indices for each training instance
-    neigh_idx = knn.kneighbors(X=X_ft, n_neighbors=1)[1].reshape(-1)
+    neigh_idx = knn.kneighbors(X=X_train_ft, n_neighbors=1)[1].reshape(-1)
 
     # compute how many training instances each prototype covers
     idx, counts = np.unique(neigh_idx, return_counts=True)
     covered = {i: c for i, c in zip(idx, counts)}
 
     # compute how many correct labeled instances each prototype covers
-    idx, counts = np.unique(neigh_idx[protos_labels[neigh_idx] == y], return_counts=True)
+    idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
     correct = {i: c for i, c in zip(idx, counts)}
 
     # compute zoom
     zoom = np.log([correct.get(i, 0) for i in covered])
 
     # compute 2D embedding
-    protos_2d = reducer(protos_ft)
-    x, y = protos_2d[:, 0], protos_2d[:, 1]
+    protos_2d = reducer(X_protos_ft)
+    x, y_train = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images
-    return _imscatterplot(x=x, y=y, images=protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
+    return _imscatterplot(x=x, y=y_train, images=X_protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
                           zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

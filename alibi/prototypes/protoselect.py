@@ -46,7 +46,7 @@ class ProtoSelect(Summariser, FitMixin):
         batch_size
             Batch size to be used for kernel matrix computation.
         preprocess_fn
-            Preprocessing function used for kernel matrix computation. The preprocessing function takes the input in
+            Preprocessing function used for kernel matrix computation. The preprocessing function takes the input as
             a `list` or a `numpy` array and transforms it into a `numpy` array which is then fed to the
             `kernel_distance` function. The use of `preprocess_fn` allows the method to be applied to any data modality.
         verbose
@@ -83,8 +83,8 @@ class ProtoSelect(Summariser, FitMixin):
             Z: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
         Fit the summariser by setting the reference dataset. This step forms the kernel matrix in memory
-        which has a shape of `Nx x Ny`, where `Nx` is the number of instances in `X` and `Ny` is the
-        number of instances in `Y`.
+        which has a shape of `NX x NZ`, where `NX` is the number of instances in `X` and `NZ` is the
+        number of instances in `Z`.
 
         Parameters
         ---------
@@ -263,6 +263,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     if len(proto) == 0:
         return None
 
+    # note that the knn_kw are updated in `cv_protoselect_euclidean` to define a 1-KNN with Euclidean distance
     knn = KNeighborsClassifier(**knn_kw)
     return knn.fit(X=proto, y=proto_labels)
 
@@ -333,10 +334,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         Tuple, `(X, y)`, consisting of the reference data instances with the corresponding reference
         labels.
     protoset
-        Tuple, `(Z, )`, consisting of the prototypes selection set. If `Z` is not provided (i.e., ``protoset=None``),
-        the prototypes will be selected from the reference dataset `X`. Otherwise, if `Z` is provided, the dataset
-        to be summarised is still `X`, but it is summarised by prototypes belonging to the dataset `Z`.
-        Note that the argument is passed as a tuple with a single element for consistency reasons.
+        Tuple, `(Z, )`, consisting of the dataset to choose the prototypes from. If `Z` is not provided
+        (i.e., ``protoset=None``), the prototypes will be selected from the reference dataset `X`. Otherwise, if `Z`
+        is provided, the dataset to be summarised is still `X`, but it is summarised by prototypes belonging to
+        the dataset `Z`. Note that the argument is passed as a tuple with a single element for consistency reasons.
     valset
         Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
         validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
@@ -364,7 +365,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         Keyword arguments passed to :py:meth:`alibi.prototypes.protoselect.ProtoSelect.__init__`.
     knn_kw
         Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
-        set automatically to 1 as well as the `metric` will be set to ``'euclidean``. See parameters description:
+        set automatically to 1 and the `metric` will be set to ``'euclidean``. See parameters description:
         https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
     kfold_kw
         Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
@@ -555,8 +556,8 @@ def visualize_image_prototypes(summary: 'Explanation',
                                zoom_ub: float = 3.0) -> plt.Axes:
     """
     Plot the images of the prototypes at the location given by the `reducer` representation.
-    The size of each prototype is proportional to the log of the number of correct-class training images covered
-    by that prototype (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+    The size of each prototype is proportional to the logarithm of the number of assigned reference instances correctly
+    classified according to the 1-KNN classifier. (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
     Parameters
     ----------

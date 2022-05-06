@@ -14,7 +14,7 @@ class GaussianRBF:
         ----------
         sigma
             Kernel bandwidth. Not to be specified if being inferred or trained.
-            Can pass multiple values to eval kernel with and then average.
+            Can pass multiple values to evaluate the kernel with and then average.
         """
         super().__init__()
         self.config = {'sigma': sigma}

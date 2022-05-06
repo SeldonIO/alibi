@@ -115,8 +115,8 @@ class ProtoSelect(Summariser, FitMixin):
 
         # redefine the labels, so they are in the interval [0, len(np.unique(y)) - 1].
         # For example, if the labels provided were [40, 51], internally, we relabel them as [0, 1].
-        # This approach can reduce computation and memory allocation, as without the intermediate mapping we had to
-        # allocate memory corresponding to 52 labels for some internal matrices.
+        # This approach can reduce computation and memory allocation, as without the intermediate mapping we would
+        # have to allocate memory corresponding to 52 labels, [0, ..., 51], for some internal matrices.
         self.label_mapping = {l: i for i, l in enumerate(np.unique(self.y))}
         self.label_inv_mapping = {v: k for k, v in self.label_mapping.items()}
         idx = np.nonzero(np.asarray(list(self.label_mapping.keys())) == self.y[:, None])[1]
@@ -146,7 +146,7 @@ class ProtoSelect(Summariser, FitMixin):
         Parameters
         ----------
         num_prototypes
-            Number of maximum prototypes to be selected.
+            Maximum number of prototypes to be selected.
 
         Returns
         -------

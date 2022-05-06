@@ -95,7 +95,8 @@ class ProtoSelect(Summariser, FitMixin):
             where `L` is the number of classes in the reference dataset.
         Z
             Dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
-            reference dataset `X`.
+            reference dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X` but
+            it is summarised by prototypes belonging to the dataset `Z`.
 
         Returns
         -------
@@ -231,7 +232,8 @@ class ProtoSelect(Summariser, FitMixin):
 
 def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
                                        num_prototypes: int,
-                                       eps: float) -> Optional[KNeighborsClassifier]:
+                                       eps: float,
+                                       knn_kw: dict) -> Optional[KNeighborsClassifier]:
     """
     Helper function to fit a 1-KNN classifier on the prototypes returned by the `summariser`.
     Sets the epsilon radius to be used.
@@ -244,6 +246,9 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
         Number of requested prototypes.
     eps
         Epsilon radius to be set and used for the computation of prototypes.
+    knn_kw
+        Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
 
     Returns
     -------
@@ -258,13 +263,13 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     if len(proto) == 0:
         return None
 
-    knn = KNeighborsClassifier(n_neighbors=1, metric='euclidean')
+    knn = KNeighborsClassifier(**knn_kw)
     return knn.fit(X=proto, y=proto_labels)
 
 
 def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
                 valset: Tuple[Optional[np.ndarray], Optional[np.ndarray]],
-                n_splits: int) -> Tuple[
+                kfold_kw: dict) -> Tuple[
                     Tuple[np.ndarray, np.ndarray],
                     Tuple[np.ndarray, np.ndarray],
                     List[Tuple[np.ndarray, np.ndarray]]
@@ -284,8 +289,9 @@ def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
     valset
         Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
         validation labels.
-    n_splits
-        The number of cross-validation splits to be used.
+    kfold_kw
+        Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
 
     Returns
     -------
@@ -296,8 +302,8 @@ def _get_splits(refset: Tuple[np.ndarray, np.ndarray],
     X_val, y_val = valset
 
     if X_val is None:
-        kf = KFold(n_splits=n_splits)
-        splits = kf.split(X=X, y=y)
+        kfold = KFold(**kfold_kw)
+        splits = kfold.split(X=X, y=y)
         return refset, refset, list(splits)
 
     splits = [(np.arange(len(X)), np.arange(len(X_val)))]
@@ -314,7 +320,9 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              n_splits: int = 2,
                              batch_size: int = int(1e10),
                              preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                             **kwargs) -> dict:
+                             protoselect_kw: dict = None,
+                             knn_kw: dict = None,
+                             kfold_kw: dict = None) -> dict:
     """
     Cross-validation parameter selection for `ProtoSelect` with Euclidean distance. The method computes
     the best epsilon radius.
@@ -325,8 +333,10 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         Tuple, `(X, y)`, consisting of the reference data instances with the corresponding reference
         labels.
     protoset
-        Tuple, `(Z, )`, consisting of the prototypes selection set. Note that the argument is passed as a tuple
-        with a single element for consistency reasons.
+        Tuple, `(Z, )`, consisting of the prototypes selection set. If `Z` is not provided (i.e., ``protoset=None``),
+        the prototypes will be selected from the reference dataset `X`. Otherwise, if `Z` is provided, the dataset
+        to be summarised is still `X` but it is summarised by prototypes belonging to the dataset `Z`.
+        Note that the argument is passed as a tuple with a single element for consistency reasons.
     valset
         Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
         validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
@@ -346,12 +356,19 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
     grid_size
         The number of equidistant bins to be used to discretize the `eps_grid` proposed interval. Only used if
         ``eps_grid=None``.
-    n_splits
-        The number of cross-validation splits to be used. Default value 2. Only used if ``valset=None``.
     batch_size
         Batch size to be used for kernel matrix computation.
     preprocess_fn
         Preprocessing function to be applied to the data instance before applying the kernel.
+    protoselect_kw
+        Keyword arguments passed to :py:meth:`alibi.prototypes.protoselect.ProtoSelect.__init__`.
+    knn_kw
+        Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+        set automatically to 1 as well as the `metric` will be set to ``'euclidean``. See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+    kfold_kw
+        Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
 
     Returns
     -------
@@ -359,6 +376,17 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
      - ``'best_eps'``: ``float`` - the best epsilon radius according to the accuracy of a 1-KNN classifier.
      - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
     """
+    if protoselect_kw is None:
+        protoselect_kw = {}
+
+    if kfold_kw is None:
+        kfold_kw = {}
+
+    if knn_kw is None:
+        knn_kw = {}
+    # ensure that we are training a 1-KNN classifier with Euclidean distance metric
+    knn_kw.update({'n_neighbors': 1, 'metric': 'euclidean'})
+
     X, y = refset
     Z = protoset[0] if (protoset is not None) else X
     X_val, y_val = valset if (valset is not None) else (None, None)
@@ -382,7 +410,7 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         # define list of values for eps
         eps_grid = np.linspace(min_dist, max_dist, num=grid_size)
 
-    (X, y), (X_val, y_val), splits = _get_splits(refset=(X, y), valset=(X_val, y_val), n_splits=n_splits)
+    (X, y), (X_val, y_val), splits = _get_splits(refset=(X, y), valset=(X_val, y_val), kfold_kw=kfold_kw)
     scores = np.zeros((len(eps_grid), len(splits)))
 
     for i, (train_index, val_index) in enumerate(splits):
@@ -390,13 +418,14 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
         X_val_i, y_val_i = X_val[val_index], y_val[val_index]
 
         # define and fit the summariser here, so we don't repeat the kernel matrix computation in the next for loop
-        summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **kwargs)
+        summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0, **protoselect_kw)
         summariser = summariser.fit(X=X_i, y=y_i, Z=Z)
 
         for j in range(len(eps_grid)):
             knn = _helper_protoselect_euclidean_1knn(summariser=summariser,
                                                      num_prototypes=num_prototypes,
-                                                     eps=eps_grid[j])
+                                                     eps=eps_grid[j],
+                                                     knn_kw=knn_kw)
             if knn is None:
                 continue
             scores[j][i] = knn.score(X_val_i, y_val_i)
@@ -543,7 +572,11 @@ def visualize_image_prototypes(summary: 'Explanation',
     preprocess_fn
         Preprocessor function.
     knn_kw
-        Keyword arguments passed to `sklearn KNNClassifier` constructor.
+        Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+        set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+        If the `metric` is not specified, it will be set automatically to ``'euclidean'``.
+        See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
     ax
         A `matplotlib` axes object to plot on.
     fig_kw
@@ -570,6 +603,11 @@ def visualize_image_prototypes(summary: 'Explanation',
     protos_ft = _batch_preprocessing(X=protos, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else protos
 
     # train knn classifier
+    metric = knn_kw.get('metric', None)
+    if metric is None:
+        knn_kw.update({'metric': 'euclidean'})
+        logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
+
     knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
     knn = knn.fit(X=protos_ft, y=protos_labels)
 

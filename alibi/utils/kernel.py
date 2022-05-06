@@ -13,7 +13,7 @@ class GaussianRBF:
         Parameters
         ----------
         sigma
-            Kernel bandwidth. Need not to be specified if being inferred or trained.
+            Kernel bandwidth. Not to be specified if being inferred or trained.
             Can pass multiple values to eval kernel with and then average.
         """
         super().__init__()

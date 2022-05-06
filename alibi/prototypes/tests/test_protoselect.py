@@ -15,7 +15,7 @@ from alibi.prototypes.protoselect import cv_protoselect_euclidean
 @pytest.mark.parametrize('eps', [0.2, 0.5])
 def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps):
     """ ProtoSelect integration test on a multiclass dataset."""
-    X, Y = make_classification(n_samples=1000,
+    X, y = make_classification(n_samples=1000,
                                n_features=ft_factor * n_classes,
                                n_informative=n_classes,
                                n_redundant=0,
@@ -27,7 +27,7 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
 
     # define & fit the summariser
     summariser = ProtoSelect(eps=eps, kernel_distance=kernel_distance)
-    summariser = summariser.fit(X_ref=X, Y_ref=Y)
+    summariser = summariser.fit(X=X, y=y)
 
     # get prototypes
     summary = summariser.summarise(num_prototypes=num_prototypes)
@@ -37,7 +37,7 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
 
     assert len(protos) == len(protos_indices) == len(protos_labels)
     assert len(protos) <= num_prototypes
-    assert set(protos_labels).issubset(set(Y))
+    assert set(protos_labels).issubset(set(y))
 
 
 @pytest.mark.parametrize('n_classes', [2])
@@ -55,7 +55,7 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
     Unit test for cross-validation. Checks if all parameters are passed correctly and checks the
     appropriate behavior when the validation is passed or omitted.
     """
-    X, Y = make_classification(n_samples=1000,
+    X, y = make_classification(n_samples=1000,
                                n_features=n_classes,
                                n_informative=n_classes,
                                n_redundant=0,
@@ -67,12 +67,12 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
 
     # construct datasets
     if use_valset:
-        X_ref, X_val, Y_ref, Y_val = train_test_split(X, Y, test_size=0.2, random_state=0)
-        refset = (X_ref, Y_ref)
-        protoset = (X_ref,) if use_protos else None
-        valset = (X_val, Y_val)
+        X, X_val, y, y_val = train_test_split(X, y, test_size=0.2, random_state=0)
+        refset = (X, y)
+        protoset = (X,) if use_protos else None
+        valset = (X_val, y_val)
     else:
-        refset = (X, Y)
+        refset = (X, y)
         protoset = (X,) if use_protos else None
         valset = None
 
@@ -109,7 +109,7 @@ def test_relabeling(n_samples, n_classes):
     internally, we relabel them as `[0, 1]`.
     """
 
-    X, Y = make_classification(n_samples=n_samples,
+    X, y = make_classification(n_samples=n_samples,
                                n_features=n_classes,
                                n_informative=n_classes,
                                n_redundant=0,
@@ -121,12 +121,12 @@ def test_relabeling(n_samples, n_classes):
 
     # define summariser and obtain summary
     summariser = ProtoSelect(kernel_distance=EuclideanDistance(), eps=0.5)
-    summariser = summariser.fit(X_ref=X, Y_ref=Y)
+    summariser = summariser.fit(X=X, y=y)
     summary = summariser.summarise(num_prototypes=np.random.randint(1, n_samples, 1).item())
 
     # check internal Y_ref relabeling
-    provided_labels = np.unique(Y)
-    internal_labels = np.unique(summariser.Y_ref)
+    provided_labels = np.unique(y)
+    internal_labels = np.unique(summariser.y)
     assert np.array_equal(internal_labels, np.arange(len(provided_labels)))
 
     # check if the prototypes labels are labels with the provided labels
@@ -137,9 +137,9 @@ def test_size_match():
     """
     Tests if the error is raised when the number of data instance does not match the number of labels.
     """
-    X_ref = np.random.randn(100, 5)
-    Y_ref = np.random.randint(0, 10, 50)
+    X = np.random.randn(100, 5)
+    y = np.random.randint(0, 10, 50)
 
     summariser = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
     with pytest.raises(ValueError):
-        summariser.fit(X_ref=X_ref, Y_ref=Y_ref)
+        summariser.fit(X=X, y=y)

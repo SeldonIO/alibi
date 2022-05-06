@@ -320,9 +320,9 @@ def cv_protoselect_euclidean(refset: Tuple[np.ndarray, np.ndarray],
                              n_splits: int = 2,
                              batch_size: int = int(1e10),
                              preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                             protoselect_kw: dict = None,
-                             knn_kw: dict = None,
-                             kfold_kw: dict = None) -> dict:
+                             protoselect_kw: Optional[dict] = None,
+                             knn_kw: Optional[dict] = None,
+                             kfold_kw: Optional[dict] = None) -> dict:
     """
     Cross-validation parameter selection for `ProtoSelect` with Euclidean distance. The method computes
     the best epsilon radius.

@@ -83,8 +83,8 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
                                   eps_grid=eps_grid,
                                   quantiles=quantiles,
                                   grid_size=grid_size,
-                                  n_splits=n_splits,
-                                  batch_size=batch_size)
+                                  kfold_kw={'n_splits': n_splits},
+                                  protoselect_kw={'batch_size': batch_size})
 
     if use_valset:
         # check if the `scores` shape is 1D when validation set is passed

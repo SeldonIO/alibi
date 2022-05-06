@@ -152,7 +152,7 @@ class Explainer(abc.ABC, Base):
 
 class Summariser(abc.ABC, Base):
     """
-    Base class for explainer algorithms from :py:mod:`alibi.prototypes`.
+    Base class for prototype algorithms from :py:mod:`alibi.prototypes`.
     """
 
     @abc.abstractmethod

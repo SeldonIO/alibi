@@ -562,16 +562,16 @@ def visualize_image_prototypes(summary: 'Explanation',
         knn_kw.update({'metric': 'euclidean'})
 
     X, y = refset
-    Z = summary.data['prototypes']
-    Z_labels = summary.data['prototypes_labels']
+    protos = summary.data['prototypes']
+    protos_labels = summary.data['prototypes_labels']
 
     # preprocess the dataset
     X_ft = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else X
-    Z_ft = _batch_preprocessing(X=Z, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else Z
+    protos_ft = _batch_preprocessing(X=protos, preprocess_fn=preprocess_fn) if (preprocess_fn is not None) else protos
 
     # train knn classifier
     knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
-    knn = knn.fit(X=Z_ft, y=Z_labels)
+    knn = knn.fit(X=protos_ft, y=protos_labels)
 
     # get neighbors indices for each training instance
     neigh_idx = knn.kneighbors(X=X_ft, n_neighbors=1)[1].reshape(-1)
@@ -581,16 +581,16 @@ def visualize_image_prototypes(summary: 'Explanation',
     covered = {i: c for i, c in zip(idx, counts)}
 
     # compute how many correct labeled instances each prototype covers
-    idx, counts = np.unique(neigh_idx[Z_labels[neigh_idx] == y], return_counts=True)
+    idx, counts = np.unique(neigh_idx[protos_labels[neigh_idx] == y], return_counts=True)
     correct = {i: c for i, c in zip(idx, counts)}
 
     # compute zoom
     zoom = np.log([correct.get(i, 0) for i in covered])
 
     # compute 2D embedding
-    Z_2d = reducer(Z_ft)
-    x, y = Z_2d[:, 0], Z_2d[:, 1]
+    protos_2d = reducer(protos_ft)
+    x, y = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images
-    return _imscatterplot(x=x, y=y, images=Z, ax=ax, fig_kw=fig_kw, image_size=image_size,
+    return _imscatterplot(x=x, y=y, images=protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
                           zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

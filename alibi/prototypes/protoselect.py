@@ -82,8 +82,10 @@ class ProtoSelect(Summariser, FitMixin):
             y: Optional[np.ndarray] = None,
             Z: Optional[Union[list, np.ndarray]] = None) -> 'ProtoSelect':
         """
-        Fit the summariser. This step forms the kernel matrix in memory which has a shape of `NX x NZ`,
-        where `NX` is the number of instances in `X` and `NZ` is the number of instances in `Z`.
+        Fit the summariser. This step forms the kernel matrix in memory which has a shape of `NX x NX`,
+        where `NX` is  the number of instances in `X`, if the optional dataset `Z` is not provided. Otherwise, if
+        the optional dataset `Z` is provided, the kernel matrix has a shape of `NZ x NX`, where `NZ` is the
+        number of instances in `Z`.
 
         Parameters
         ---------

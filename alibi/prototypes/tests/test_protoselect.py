@@ -56,14 +56,14 @@ def test_cv_protoselect_euclidean(n_classes, use_protos, use_valset, num_prototy
     appropriate behavior when the validation is passed or omitted.
     """
     X_train, y_train = make_classification(n_samples=1000,
-                               n_features=n_classes,
-                               n_informative=n_classes,
-                               n_redundant=0,
-                               n_repeated=0,
-                               n_classes=n_classes,
-                               n_clusters_per_class=1,
-                               class_sep=10,
-                               random_state=0)
+                                           n_features=n_classes,
+                                           n_informative=n_classes,
+                                           n_redundant=0,
+                                           n_repeated=0,
+                                           n_classes=n_classes,
+                                           n_clusters_per_class=1,
+                                           class_sep=10,
+                                           random_state=0)
 
     # construct datasets
     if use_valset:

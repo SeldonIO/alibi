@@ -107,7 +107,7 @@ class ProtoSelect(Summariser, FitMixin):
                              f'Got len(X)={len(X)} and len(y)={len(y)}.')
 
         self.X = X
-        # if the y are not provided, then consider that all elements belong to the same class. This means
+        # if the y is not provided, then consider that all elements belong to the same class. This means
         # that loss term which tries to avoid including in an epsilon ball elements belonging to other classes
         # will always be 0. Still the first term of the loss tries to cover as many examples as possible with
         # minimal overlap between the epsilon balls corresponding to the other prototypes.
@@ -240,7 +240,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     Parameters
     ----------
     summariser
-        Fitted summariser.
+        Fitted `ProtoSelect` summariser.
     num_prototypes
         Number of requested prototypes.
     eps
@@ -351,8 +351,8 @@ def cv_protoselect_euclidean(trainset: Tuple[np.ndarray, np.ndarray],
         quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
         If not specified, no filtering is applied. Only used if ``eps_grid=None``.
     grid_size
-        The number of equidistant bins to be used to discretize the `eps_grid` proposed interval. Only used if
-        ``eps_grid=None``.
+        The number of equidistant bins to be used to discretize the `eps_grid` automatically proposed interval.
+        Only used if ``eps_grid=None``.
     batch_size
         Batch size to be used for kernel matrix computation.
     preprocess_fn
@@ -511,14 +511,14 @@ def _imscatterplot(x: np.ndarray,
 
     if zoom is None:
         zoom = np.ones(len(images))
+    else:
+        zoom_min, zoom_max = np.min(zoom), np.max(zoom)
+        zoom = (zoom - zoom_min) / (zoom_max - zoom_min) * (zoom_ub - zoom_lb) + zoom_lb
 
-    zoom_min, zoom_max = np.min(zoom), np.max(zoom)
-    zoom = (zoom - zoom_min) / (zoom_max - zoom_min) * (zoom_ub - zoom_lb) + zoom_lb
-
-    if sort_by_zoom:
-        idx = np.argsort(zoom)[::-1]  # type: ignore
-        zoom = zoom[idx]  # type: ignore
-        x, y, images = x[idx], y[idx], images[idx]
+        if sort_by_zoom:
+            idx = np.argsort(zoom)[::-1]  # type: ignore
+            zoom = zoom[idx]  # type: ignore
+            x, y, images = x[idx], y[idx], images[idx]
 
     if ax is None:
         fig, ax = plt.subplots()
@@ -555,7 +555,7 @@ def visualize_image_prototypes(summary: 'Explanation',
     """
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
-    classified according to the 1-KNN classifier. (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+    classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
     Parameters
     ----------
@@ -567,13 +567,13 @@ def visualize_image_prototypes(summary: 'Explanation',
     reducer
         2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
         input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
-        on the feature representation obtained after calling `preprocess_fn` on the input instances.
+        on the feature representation obtained after passing the input instances through the `preprocess_fn`.
     preprocess_fn
         Preprocessor function.
     knn_kw
         Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
         set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
-        If the `metric` is not specified, it will be set automatically to ``'euclidean'``.
+        If the `metric` is not specified, it will be set by default to ``'euclidean'``.
         See parameters description:
         https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
     ax
@@ -609,23 +609,16 @@ def visualize_image_prototypes(summary: 'Explanation',
     knn = knn.fit(X=X_protos_ft, y=y_protos)
 
     # get neighbors indices for each training instance
-    neigh_idx = knn.kneighbors(X=X_train_ft, n_neighbors=1)[1].reshape(-1)
-
-    # compute how many training instances each prototype covers
-    idx, counts = np.unique(neigh_idx, return_counts=True)
-    covered = {i: c for i, c in zip(idx, counts)}
+    neigh_idx = knn.kneighbors(X=X_train_ft, n_neighbors=1, return_distance=False).reshape(-1)
 
     # compute how many correct labeled instances each prototype covers
     idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
-    correct = {i: c for i, c in zip(idx, counts)}
-
-    # compute zoom
-    zoom = np.log([correct.get(i, 0) for i in covered])
+    zoom = np.log(counts)
 
     # compute 2D embedding
-    protos_2d = reducer(X_protos_ft)
-    x, y_train = protos_2d[:, 0], protos_2d[:, 1]
+    protos_2d = reducer(X_protos_ft[idx])
+    x, y = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images
-    return _imscatterplot(x=x, y=y_train, images=X_protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
+    return _imscatterplot(x=x, y=y, images=X_protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
                           zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

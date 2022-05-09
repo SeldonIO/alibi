@@ -3,6 +3,11 @@ This module contains utility functions for the Counterfactual with Reinforcement
 :py:class:`alibi.explainers.cfrl_tabular`, for the Pytorch backend.
 """
 
+from typing import List, Dict
+
+import torch
+import torch.nn.functional as F
+
 from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
 
 # The following methods are included since `alibi.explainers.backends.pytorch.cfrl_tabular` is an extension to the
@@ -14,10 +19,6 @@ from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition
 from alibi.explainers.backends.pytorch.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
     encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor, set_seed, \
     save_model, load_model  # noqa: F403, F401
-
-import torch
-import torch.nn.functional as F
-from typing import List, Dict
 
 
 def sample_differentiable(X_hat_split: List[torch.Tensor],

@@ -124,3 +124,18 @@ jobs:
           pip install "tox>=3.21.0,<4.0.0"
           make licenses
           make check_licenses
+
+  optional_dependencies:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.8'
+      - name: Check optional dependency imports are protected
+        run: |
+          pip install "tox>=3.21.0,<4.0.0"
+          tox

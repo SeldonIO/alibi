@@ -8,16 +8,15 @@ import warnings
 
 import dill
 import numpy as np
-import tensorflow as tf
 
 if TYPE_CHECKING:
+    import tensorflow
     from alibi.api.interfaces import Explainer
+    from alibi.explainers.integrated_gradients import IntegratedGradients
+    from alibi.explainers.shap_wrappers import KernelShap, TreeShap
     from alibi.explainers import (
         AnchorImage,
         AnchorText,
-        IntegratedGradients,
-        KernelShap,
-        TreeShap,
         CounterfactualRL,
         CounterfactualRLTabular
     )
@@ -117,7 +116,7 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
     return explainer
 
 
-def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: Union[tf.keras.Model],
+def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
     if layer_num == 0:
@@ -189,7 +188,7 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
         model = spacy.load(Path(path, 'nlp'))
     else:
         # load language model
-        import alibi.utils.lang_model as lang_model
+        import alibi.utils as lang_model
         model_class = explainer.model_class
         model = getattr(lang_model, model_class)(preloading=False)
         model.from_disk(Path(path, 'language_model'))

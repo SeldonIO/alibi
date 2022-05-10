@@ -34,7 +34,7 @@ MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_
 IMAGENET_URLS = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.joblib']
 
 
-def fetch_imagenet10(url_id: int = 0) -> Union[Dict, Tuple[np.ndarray, np.ndarray]]:
+def fetch_imagenet_10(url_id: int = 0) -> Union[Dict, Tuple[np.ndarray, np.ndarray]]:
     """
     Sample dataset extracted from imagenet in a dictionary format.
     The train set contains 1000 random samples, 100 for each of the following 10 selected classes:

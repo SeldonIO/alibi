@@ -34,6 +34,7 @@ methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
+methods/Similarity.ipynb
 ```
 
 ```{toctree}
@@ -72,6 +73,9 @@ examples/integrated_gradients_imagenet.ipynb
 examples/integrated_gradients_mnist.ipynb
 examples/integrated_gradients_imdb.ipynb
 examples/integrated_gradients_transformers.ipynb
+examples/similarity_explanations_20ng.ipynb
+examples/similarity_explanations_mnist.ipynb
+examples/similarity_explanations_imagenet.ipynb
 ```
 
 ```{toctree}

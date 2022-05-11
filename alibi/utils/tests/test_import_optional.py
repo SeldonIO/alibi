@@ -8,11 +8,11 @@ class TestImportOptional:
 
     def setup_method(self):
         # mock missing dependency error for non existent module
-        ERROR_TYPES.add('non_existent_module')
+        ERROR_TYPES['non_existent_module'] = 'optional-deps'
 
     def teardown_method(self):
         # remove mock missing dependency error for other tests
-        ERROR_TYPES.remove('non_existent_module')
+        del ERROR_TYPES['non_existent_module']
 
     def test_import_optional_module(self):
         """Test import_optional correctly imports installed module."""
@@ -35,12 +35,12 @@ class TestImportOptional:
         with pytest.raises(ImportError) as err:
             package.__version__  # noqa
         assert 'alibi.utils.tests.mocked_opt_dep' in str(err.value)
-        assert 'pip install alibi[non_existent_module]' in str(err.value)
+        assert 'pip install alibi[optional-deps]' in str(err.value)
 
         with pytest.raises(ImportError) as err:
             package(0, 'test')  # noqa
         assert 'alibi.utils.tests.mocked_opt_dep' in str(err.value)
-        assert 'pip install alibi[non_existent_module]' in str(err.value)
+        assert 'pip install alibi[optional-deps]' in str(err.value)
 
     def test_import_optional_names_missing(self):
         """Test import_optional correctly replaces names from module that doesn't exist with MissingDependencies."""
@@ -51,10 +51,10 @@ class TestImportOptional:
         with pytest.raises(ImportError) as err:
             MockedClassWithoutRequiredDeps.__version__  # noqa
         assert 'MockedClassWithoutRequiredDeps' in str(err.value)
-        assert 'pip install alibi[non_existent_module]' in str(err.value)
+        assert 'pip install alibi[optional-deps]' in str(err.value)
 
         assert isinstance(mocked_function_without_required_deps, MissingDependency)
         with pytest.raises(ImportError) as err:
             mocked_function_without_required_deps.__version__  # noqa
         assert 'mocked_function_without_required_deps' in str(err.value)
-        assert 'pip install alibi[non_existent_module]' in str(err.value)
+        assert 'pip install alibi[optional-deps]' in str(err.value)

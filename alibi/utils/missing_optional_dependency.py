@@ -19,7 +19,14 @@ err_msg_template = Template((
 ))
 
 
-ERROR_TYPES = {'ray', 'tensorflow', 'torch', 'shap', 'numba'}
+# Map from specific missing dependency to the name of the optional dependency bucket
+ERROR_TYPES = {
+    'ray': 'ray',
+    'tensorflow': 'tensorflow',
+    'torch': 'torch',
+    'shap': 'shap',
+    'numba': 'shap'
+}
 
 
 class MissingDependency:
@@ -43,8 +50,6 @@ class MissingDependency:
         err
             Error to be raised when the class is initialized or used
         """
-        if missing_dependency not in ERROR_TYPES:
-            raise ValueError(f"missing_dependency must be one of {ERROR_TYPES}")
         self.missing_dependency = missing_dependency
         self.object_name = object_name
         self.err = err
@@ -98,8 +103,15 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
             raise TypeError()
         if err.name not in ERROR_TYPES:
             raise err
+        missing_dependency = ERROR_TYPES[err.name]
         if names is not None:
             missing_dependencies = \
-                tuple(MissingDependency(missing_dependency=err.name, object_name=name, err=err) for name in names)
+                tuple(MissingDependency(
+                    missing_dependency=missing_dependency,
+                    object_name=name,
+                    err=err) for name in names)
             return missing_dependencies if len(missing_dependencies) > 1 else missing_dependencies[0]
-        return MissingDependency(missing_dependency=err.name, object_name=module_name, err=err)
+        return MissingDependency(
+            missing_dependency=missing_dependency,
+            object_name=module_name,
+            err=err)

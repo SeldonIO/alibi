@@ -177,7 +177,7 @@ you will need to:
 
 1. Add it to `extras_require` in `setup.py`.
 2. Create a new `tox` environment in `setup.cfg` with the new dependency.
-3. Add a new dependency name to `ERROR_TYPES` in `alibi/utils/missing_optional_dependency.py`. 
+3. Add a new dependency mapping for `ERROR_TYPES` in `alibi/utils/missing_optional_dependency.py`. 
 4. Make sure any public functionality is protected by the `import_optional` function.
 5. Make sure the new dependency is tested in `alibi/tests/test_dep_mangement.py`.
 

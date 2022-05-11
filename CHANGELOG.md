@@ -1,6 +1,32 @@
 # Change Log
 
-## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-03-18)
+## [v0.7.0](https://github.com/SeldonIO/alibi/tree/v0.7.0) (2022-05-[TODO])
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.5...v0.7.0)
+
+This release introduces two new methods, a `GradientSimilarity` explainer and a `ProtoSelect` data summarization algorithm.
+
+## Added
+- **New feature** `GradientSimilarity` explainer for explaining predictions of gradient-based (PyTorch and TensorFlow) models by returning the most similar training data points from the point of view of the model ([docs](TODO)).
+- **New feature** We have introduced a new subpackage `alibi.prototypes` which contains the `ProtoSelect` algorithm for summarizing datasets with a representative set of "prototypes" ([docs](TODO)).
+- `ALE` explainer now can take a custom grid-point per feature to evaluate the `ALE` on. This can help in certain situations when grid-points defined by quantiles might not be the best choice ([docs](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html#Usage)).
+- Extended the `IntegratedGradients` method target selection to handle explaining any scalar dimension of tensors of any rank (previously only rank-1 and rank-2 were supported). See [#635](https://github.com/SeldonIO/alibi/pull/635).
+- Python 3.10 support. Note that `PyTorch` at the time of writing doesn't support Python 3.10 on Windows.
+
+## Fixed
+- Fixed a bug which incorrectly handled multi-dimensional scaling in `CounterfactualProto` ([#646](https://github.com/SeldonIO/alibi/pull/646)).
+- Fixed a bug in the example using `CounterfactualRLTabular` ([#651](https://github.com/SeldonIO/alibi/pull/651)).
+
+## Changed
+- `TensorFlow` is now an optional dependency. To use methods that require `TensorFlow` you can install `alibi` using `pip install alibi[tensorflow]` which will pull in a supported version. For full instructions for the recommended way of installing optional dependencies please refer to [Installation docs](https://docs.seldon.io/projects/alibi/en/stable/overview/getting_started.html#installation).
+
+## Development
+- This release introduces a way to manage the absence of optional dependencies. In short, the design is such that if an optional dependency is required for an algorithm but missing, at import time the corresponding public (or private in the case of the optional dependency being required for a subset of) algorithm class will be replaced by a `MissingDependency` object. For full details on developing `alibi` with optional dependencies see [Contributing: Optional Dependencies](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md#optional-dependencies).
+- The [CONTRIBUTING.md](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md) has been updated with further instructions for managing optional dependencies (see point above) and more conventions around docstrings.
+- We have split the `Explainer` base class into `Base` and `Explainer` to facilitate reusability and better class hierarchy semantics with introducing methods that are not explainers ([#649](https://github.com/SeldonIO/alibi/pull/649)).
+- `mypy` has been updated to `~=0.900` which requires additional development dependencies for type stubs, currently only `types-requests` has been necessary to add to `requirements/dev.txt`.
+- [TODO: leaner sdist]
+
+## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.5) (2022-03-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)
 
 This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.3`.

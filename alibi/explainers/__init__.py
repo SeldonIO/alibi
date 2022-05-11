@@ -10,10 +10,11 @@ from alibi.explainers.anchors.anchor_tabular import AnchorTabular
 from alibi.explainers.anchors.anchor_image import AnchorImage
 from alibi.explainers.cfrl_base import CounterfactualRL
 from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
+from .similarity.grad import GradientSimilarity
 
-GradientSimilarity = import_optional(
-    'alibi.explainers.similarity.grad',
-    names=['GradientSimilarity'])
+# GradientSimilarity = import_optional(
+#     'alibi.explainers.similarity.grad',
+#     names=['GradientSimilarity'])
 
 DistributedAnchorTabular = import_optional(
     'alibi.explainers.anchors.anchor_tabular_distributed',

@@ -2,36 +2,57 @@
 The 'alibi.explainers' module includes feature importance, counterfactual and anchor-based explainers.
 """
 
-from .ale import ALE, plot_ale
-from .anchor_tabular import AnchorTabular, DistributedAnchorTabular
-from .anchor_text import AnchorText
-from .anchor_image import AnchorImage
-from .cem import CEM
-from .cfproto import CounterfactualProto, CounterFactualProto  # noqa: F401 TODO: remove in an upcoming release
-from .counterfactual import Counterfactual, CounterFactual  # noqa: F401 TODO: remove in an upcoming release
-from .integrated_gradients import IntegratedGradients
-from .cfrl_base import CounterfactualRL
-from .cfrl_tabular import CounterfactualRLTabular
-from .similarity.grad import GradientSimilarity
+from alibi.utils.missing_optional_dependency import import_optional
 
-__all__ = ["ALE",
-           "AnchorTabular",
-           "DistributedAnchorTabular",
-           "AnchorText",
-           "AnchorImage",
-           "CEM",
-           "Counterfactual",
-           "CounterfactualProto",
-           "CounterfactualRL",
-           "CounterfactualRLTabular",
-           "plot_ale",
-           "IntegratedGradients",
-           "GradientSimilarity"
-           ]
+from alibi.explainers.ale import ALE, plot_ale
+from alibi.explainers.anchors.anchor_text import AnchorText
+from alibi.explainers.anchors.anchor_tabular import AnchorTabular
+from alibi.explainers.anchors.anchor_image import AnchorImage
+from alibi.explainers.cfrl_base import CounterfactualRL
+from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
 
-try:
-    from .shap_wrappers import KernelShap, TreeShap
+GradientSimilarity = import_optional(
+    'alibi.explainers.similarity.grad',
+    names=['GradientSimilarity'])
 
-    __all__ += ["KernelShap", "TreeShap"]
-except ImportError:
-    pass
+DistributedAnchorTabular = import_optional(
+    'alibi.explainers.anchors.anchor_tabular_distributed',
+    names=['DistributedAnchorTabular'])
+
+CEM = import_optional(
+    'alibi.explainers.cem',
+    names=['CEM'])
+
+CounterfactualProto, CounterFactualProto = import_optional(
+    'alibi.explainers.cfproto',
+    names=['CounterfactualProto', 'CounterFactualProto'])  # TODO: remove in an upcoming release
+
+Counterfactual, CounterFactual = import_optional(
+    'alibi.explainers.counterfactual',
+    names=['Counterfactual', 'CounterFactual'])  # TODO: remove in an upcoming release
+
+IntegratedGradients = import_optional(
+    'alibi.explainers.integrated_gradients',
+    names=['IntegratedGradients'])
+
+KernelShap, TreeShap = import_optional(
+    'alibi.explainers.shap_wrappers',
+    names=['KernelShap', 'TreeShap'])
+
+__all__ = [
+    "ALE",
+    "AnchorTabular",
+    "DistributedAnchorTabular",
+    "AnchorText",
+    "AnchorImage",
+    "CEM",
+    "Counterfactual",
+    "CounterfactualProto",
+    "CounterfactualRL",
+    "CounterfactualRLTabular",
+    "plot_ale",
+    "IntegratedGradients",
+    "KernelShap",
+    "TreeShap",
+    "GradientSimilarity"
+]

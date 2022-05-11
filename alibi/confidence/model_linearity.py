@@ -333,7 +333,7 @@ def _linearity_measure(predict_fn: Callable,
     return score
 
 
-def _infer_feature_range(X_train: np.ndarray) -> np.ndarray:
+def infer_feature_range(X_train: np.ndarray) -> np.ndarray:
     """Infers the feature range from the training set.
 
     Parameters
@@ -399,7 +399,7 @@ class LinearityMeasure:
 
         """
         self.X_train = X_train
-        self.feature_range = _infer_feature_range(X_train)
+        self.feature_range = infer_feature_range(X_train)
         self.input_shape = X_train.shape[1:]
         self.is_fit = True
 
@@ -493,7 +493,7 @@ def linearity_measure(predict_fn: Callable,
         assert feature_range is not None or X_train is not None, "Method 'grid' requires " \
                                                                  "feature_range != None or X_train != None"
         if X_train is not None and feature_range is None:
-            feature_range = _infer_feature_range(X_train)  # infer from dataset
+            feature_range = infer_feature_range(X_train)  # infer from dataset
         elif feature_range is not None:
             feature_range = np.asarray(feature_range)
 

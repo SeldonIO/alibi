@@ -385,7 +385,7 @@ def _save_SimilarityExplainer(explainer: 'GradientSimilarity', path: Union[str, 
 
 
 def _load_SimilarityExplainer(path: Union[str, os.PathLike],
-                              predictor: 'Union[tf.keras.Model, torch.nn.Module]',
+                              predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
                               meta: dict) -> 'GradientSimilarity':
     # load explainer
     with open(Path(path, "explainer.dill"), "rb") as f:

@@ -32,9 +32,9 @@ methods/CFRL.ipynb
 methods/IntegratedGradients.ipynb
 methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
+methods/Similarity.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
-methods/Similarity.ipynb
 ```
 
 ```{toctree}

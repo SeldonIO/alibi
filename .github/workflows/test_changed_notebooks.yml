@@ -62,7 +62,7 @@ jobs:
           # Python 3.10 is not yet supported (https://github.com/ray-project/ray/blob/master/python/setup.py#L24) 
             python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
           fi
-          python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
+          python -m pip install --upgrade --upgrade-strategy eager -e .[shap,tensorflow]
           python -m spacy download en_core_web_md
           python -m pip freeze
 

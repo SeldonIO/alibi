@@ -127,7 +127,7 @@ conda install mamba -n base -c conda-forge
   mamba install -c conda-forge alibi
   ```
 
-- For distributed computating support:
+- For distributed computing support:
   ```bash
   mamba install -c conda-forge alibi ray
   ```

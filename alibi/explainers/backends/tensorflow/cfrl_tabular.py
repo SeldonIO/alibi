@@ -2,6 +2,10 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning tabular class (`cfrl_tabular`)
 for the Tensorflow backend.
 """
+from typing import List, Dict, Union
+
+import numpy as np
+import tensorflow as tf
 
 from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition  # noqa: F401
 
@@ -14,10 +18,6 @@ from alibi.explainers.backends.cfrl_tabular import split_ohe, generate_condition
 from alibi.explainers.backends.tensorflow.cfrl_base import get_actor, get_critic, get_optimizer, data_generator, \
     encode, decode, generate_cf, update_actor_critic, add_noise, to_numpy, to_tensor, set_seed, \
     save_model, load_model, initialize_optimizers, initialize_actor_critic  # noqa: F403, F401
-
-import numpy as np
-import tensorflow as tf
-from typing import List, Dict, Union
 
 
 def sample_differentiable(X_hat_split: List[tf.Tensor],

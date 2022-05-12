@@ -8,7 +8,8 @@ from typing import List
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
 from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
+from alibi.explainers.anchors.text_samplers import Neighbors, load_spacy_lexeme_prob
+from alibi.explainers.anchors.language_model_text_sampler import LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
 
 
@@ -142,7 +143,7 @@ def test_neighbors(nlp):
     tag = 'NN'
     top_n = 10
 
-    neighbor = Neighbors(_load_spacy_lexeme_prob(nlp), w_prob=w_prob)
+    neighbor = Neighbors(load_spacy_lexeme_prob(nlp), w_prob=w_prob)
     n = neighbor.neighbors('book', tag, top_n)
     # The word itself is excluded from the array with similar words
     assert 'book' not in n['words']

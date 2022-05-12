@@ -11,7 +11,7 @@ in a separate virtual environment:
 ```
 git clone git@github.com:SeldonIO/alibi.git
 cd alibi
-pip install -e .
+pip install -e .[all]
 pip install -r requirements/dev.txt -r requirements/docs.txt
 ```
 This will install everything needed to run alibi and all the dev tools
@@ -163,6 +163,69 @@ the docs will be built under `doc/_build/html`. Detail information about documen
 ## CI
 All PRs triger a CI job to run linting, type checking, tests, and build docs. The CI script is located [here](https://github.com/SeldonIO/alibi/blob/master/.github/workflows/ci.yml) and should be considered the source of truth for running the various development commands.
 
+## Optional Dependencies
+
+Alibi uses optional dependencies to allow users to avoid installing large or challenging to install dependencies. Alibi 
+manages modularity of components that depend on optional dependencies using the `import_optional` function defined in 
+`alibi/utils/missing_optional_dependency.py`. This replaces the dependency with a dummy object that raises an error when
+called. If you are working on public functionality that is dependent on an optional dependency you should expose the 
+functionality via the relevant `__init__.py` file by importing it there using the `optional_import` function. Currently,
+optional dependencies are tested by importing all the public functionality and checking that the correct errors are 
+raised dependent on the environment. Developers can run these tests using `tox`. These tests are in 
+`alibi/tests/test_dep_mangement.py`. If implementing functionality that is dependent on a new optional dependency then 
+you will need to:
+
+1. Add it to `extras_require` in `setup.py`.
+2. Create a new `tox` environment in `setup.cfg` with the new dependency.
+3. Add a new dependency mapping for `ERROR_TYPES` in `alibi/utils/missing_optional_dependency.py`. 
+4. Make sure any public functionality is protected by the `import_optional` function.
+5. Make sure the new dependency is tested in `alibi/tests/test_dep_mangement.py`.
+
+Note that subcomponents can be dependent on optional dependencies too. In this case the user should be able to import 
+and use the relevant parent component. The user should only get an error message if: 
+1. They don't have the optional dependency installed and,
+2. They configure the parent component in such as way that it uses the subcomponent functionality.
+
+Developers should implement this by importing the subcomponent into the source code defining the parent component using 
+the `optional_import` function. To see an example of this look at the `AnchorText` and `LanguageModelSampler` 
+subcomponent implementation.
+
+The general layout of a subpackage with optional dependencies should look like: 
+
+```
+alibi/subpackage/
+  __init__.py  # expose public API with optional import guards
+  defaults.py  # private implementations requiring only core deps
+  optional_dep.py # private implementations requiring an optional dependency (or several?)
+```
+
+any public functionality that is dependent on an optional dependency should be imported into `__init__.py` using the 
+`import_optional` function. 
+
+#### Note:
+- The `import_optional` function returns an instance of a class and if this is passed to type-checking constructs, such 
+as Union, it will raise errors. Thus, in order to do type-checking, we need to 1. Conditionally import the true object 
+dependent on `TYPE_CHECKING` and 2. Use forward referencing when passing to typing constructs such as `Union`. We use 
+forward referencing because in a user environment the optional dependency may not be installed in which case it'll be 
+replaced with an instance of the MissingDependency class. For example: 
+  ```py
+  from typing import TYPE_CHECKING, Union
+
+  if TYPE_CHECKING:
+    # Import for type checking. This will be type LanguageModel. Note import is from implementation file.
+    from alibi.utils.lang_model import LanguageModel
+  else:
+    # Import is from `__init__` public API file. Class will be protected by optional_import function and so this will 
+    # be type any.
+    from alibi.utils import LanguageModel
+  
+  # The following will not throw an error because of the forward reference but mypy will still work.
+  def example_function(language_model: Union['LanguageModel', str]) -> None:
+    ...
+  ```
+- Developers can use `make repl tox-env=<tox-env-name>` to run a python REPL with the specified optional dependency 
+installed. This is to allow manual testing. 
+
 ## PR checklist
 Checklist to run through before a PR is considered complete:
  - All functions/methods/classes/modules have docstrings and all parameters are documented.
@@ -174,5 +237,4 @@ Checklist to run through before a PR is considered complete:
  - [Documentation](#building-documentation) is built locally and checked for errors/warning in the build log and any issues in the final docs, including API docs.
  - For any new functionality or new examples, appropriate links are added (`README.md`, `doc/source/index.rst`, `doc/source/overview/getting_started.md`,`doc/source/overview/algorithms.md`, `doc/source/examples`), see [Documentation for alibi](doc/README.md) for more information.
  - For any changes to existing algorithms, run the example notebooks manually and check that everything still works as expected and there are no extensive warnings/outputs from dependencies.
- - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime dependencies, `requirements/dev.txt` for development dependencies, and `requirements/doc.txt` for documentation dependencies).
-
+ - Any changes to dependencies are reflected in the appropriate place (`setup.py` for runtime and optional dependencies, `requirements/dev.txt` for development dependencies and `requirements/doc.txt` for documentation dependencies).

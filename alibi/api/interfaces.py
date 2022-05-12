@@ -64,11 +64,12 @@ alibi_pformat = partial(AlibiPrettyPrinter().pformat)
 
 
 @attr.s
-class Explainer(abc.ABC):
+class Base:
     """
-    Base class for explainer algorithms
+    Base class for all `alibi` algorithms. Implements a structured approach to handle metadata.
     """
-    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Explainer meta-data.
+
+    meta: dict = attr.ib(default=attr.Factory(default_meta), repr=alibi_pformat)  #: Object metadata.
 
     def __attrs_post_init__(self):
         # add a name and version to the metadata dictionary
@@ -78,6 +79,31 @@ class Explainer(abc.ABC):
         # expose keys stored in self.meta as attributes of the class.
         for key, value in self.meta.items():
             setattr(self, key, value)
+
+    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
+        """
+        Updates the metadata of the object using the data from the `data_dict`. If the params option
+        is specified, then each key-value pair is added to the metadata ``'params'`` dictionary.
+
+        Parameters
+        ----------
+        data_dict
+            Contains the data to be stored in the metadata.
+        params
+            If ``True``, the method updates the ``'params'`` attribute of the metadata.
+        """
+
+        if params:
+            for key in data_dict.keys():
+                self.meta['params'].update([(key, data_dict[key])])
+        else:
+            self.meta.update(data_dict)
+
+
+class Explainer(abc.ABC, Base):
+    """
+    Base class for explainer algorithms from :py:mod:`alibi.explainers`.
+    """
 
     @abc.abstractmethod
     def explain(self, X: Any) -> "Explanation":
@@ -122,25 +148,6 @@ class Explainer(abc.ABC):
             Path to a directory. A new directory will be created if one does not exist.
         """
         save_explainer(self, path)
-
-    def _update_metadata(self, data_dict: dict, params: bool = False) -> None:
-        """
-        Updates the metadata of the explainer using the data from the `data_dict`. If the params option
-        is specified, then each key-value pair is added to the metadata ``'params'`` dictionary.
-
-        Parameters
-        ----------
-        data_dict
-            Contains the data to be stored in the metadata.
-        params
-            If ``True``, the method updates the ``'params'`` attribute of the metadata.
-        """
-
-        if params:
-            for key in data_dict.keys():
-                self.meta['params'].update([(key, data_dict[key])])
-        else:
-            self.meta.update(data_dict)
 
 
 class FitMixin(abc.ABC):

@@ -5,36 +5,15 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Union
 
 import numpy as np
 from scipy import sparse
+import ray
+
 
 logger = logging.getLogger(__name__)
-
-
-def check_ray() -> bool:
-    """
-    Checks if `ray` is installed.
-
-    Returns
-    -------
-    A `bool` indicating whether `ray` is installed or not.
-    """
-
-    import importlib
-    spec = importlib.util.find_spec('ray')  # type: ignore
-    if spec:
-        return True
-    return False
-
-
-RAY_INSTALLED = check_ray()
 
 
 class ActorPool(object):
     # TODO: JANIS: IF YOU DECIDE TO TAKE A DEPENDENCY ON RAY CORE, THEN THIS CLASS SHOULD INHERIT FROM
     #  RAY.UTIL.ACTORPOOL, OVERRIDE MAP AND MAP_UNORDERED AND ADD _CHUNK STATIC METHOD.
-
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  # module as a static variable
 
     def __init__(self, actors):
         """
@@ -212,14 +191,14 @@ class ActorPool(object):
                              "get_next_unordered().")
         future = self._index_to_future[self._next_return_index]
         if timeout is not None:
-            res, _ = self.ray.wait([future], timeout=timeout)
+            res, _ = ray.wait([future], timeout=timeout)
             if not res:
                 raise TimeoutError("Timed out waiting for result")
         del self._index_to_future[self._next_return_index]
         self._next_return_index += 1
         i, a = self._future_to_actor.pop(future)
         self._return_actor(a)
-        return self.ray.get(future)
+        return ray.get(future)
 
     def get_next_unordered(self, timeout=None):
         """
@@ -248,7 +227,7 @@ class ActorPool(object):
         """
         if not self.has_next():
             raise StopIteration("No more results to get")
-        res, _ = self.ray.wait(
+        res, _ = ray.wait(
             list(self._future_to_actor), num_returns=1, timeout=timeout)
         if res:
             [future] = res
@@ -258,7 +237,7 @@ class ActorPool(object):
         self._return_actor(a)
         del self._index_to_future[i]
         self._next_return_index = max(self._next_return_index, i + 1)
-        return self.ray.get(future)
+        return ray.get(future)
 
     def _return_actor(self, actor):
         self._idle_actors.append(actor)
@@ -443,9 +422,6 @@ class DistributedExplainer:
     """
     A class that orchestrates the execution of the execution of a batch of explanations in parallel.
     """
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  #: `ray` module.
 
     concatenate: Callable
 
@@ -506,9 +482,6 @@ class DistributedExplainer:
         order to start computing the results (because the `ray` pool is implemented as a generator).
         """  # noqa W605
 
-        if not RAY_INSTALLED:
-            raise ModuleNotFoundError("Module requires ray to be installed. pip install alibi[ray] ")
-
         self.n_processes = distributed_opts['n_cpus']
         self.batch_size = distributed_opts['batch_size']
         self.return_generator = return_generator
@@ -525,9 +498,9 @@ class DistributedExplainer:
         if f"{algorithm}_target_fcn" in globals():
             self.target_fcn = globals()[f"{algorithm}_target_fcn"]
 
-        if not DistributedExplainer.ray.is_initialized():
+        if not ray.is_initialized():
             logger.info(f"Initialising ray on {self.n_processes} processes!")
-            DistributedExplainer.ray.init(num_cpus=self.n_processes)
+            ray.init(num_cpus=self.n_processes)
 
         # a pool is a collection of handles to different processes that can process data points in parallel
         self.pool = self.create_parallel_pool(
@@ -573,7 +546,7 @@ class DistributedExplainer:
             raise ValueError(f"Index of actor should be less than or equal to {self.n_processes - 1}!")
 
         actor = self.pool._idle_actors[self._actor_index]  # noqa
-        return DistributedExplainer.ray.get(actor.return_attribute.remote(item))
+        return ray.get(actor.return_attribute.remote(item))
 
     @property
     def actor_index(self) -> int:
@@ -618,9 +591,9 @@ class DistributedExplainer:
         See constructor documentation.
         """
 
-        handles = [DistributedExplainer.ray.remote(explainer_type) for _ in range(self.n_processes)]
+        handles = [ray.remote(explainer_type) for _ in range(self.n_processes)]
         workers = [handle.remote(*explainer_init_args, **explainer_init_kwargs) for handle in handles]
-        return DistributedExplainer.ray.util.ActorPool(workers)
+        return ray.util.ActorPool(workers)
 
     def get_explanation(self, X: np.ndarray, **kwargs) -> \
             Union[Generator[Tuple[int, Any], None, None], List[Any], Any]:
@@ -674,10 +647,6 @@ class PoolCollection:
     explainers in parallel.
     """
 
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  #: `ray` module.
-
     def __init__(self,
                  distributed_opts: Dict[str, Any],
                  explainer_type: Any,
@@ -724,9 +693,9 @@ class PoolCollection:
             if actor_cpu_fraction is not None:
                 cpus_per_pool /= actor_cpu_fraction
 
-        if not PoolCollection.ray.is_initialized():
+        if not ray.is_initialized():
             logger.info(f"Initialising ray on {distributed_opts['n_cpus']} CPUs")
-            PoolCollection.ray.init(num_cpus=distributed_opts['n_cpus'])
+            ray.init(num_cpus=distributed_opts['n_cpus'])
 
         opts = copy.deepcopy(distributed_opts)
         opts.update(n_cpus=int(cpus_per_pool))
@@ -766,7 +735,7 @@ class PoolCollection:
             )
 
         actor = self.distributed_explainers[self._remote_explainer_index]  # noqa
-        return PoolCollection.ray.get(actor.return_attribute.remote(item))
+        return ray.get(actor.return_attribute.remote(item))
 
     def __getitem__(self, item: int):
 
@@ -793,7 +762,7 @@ class PoolCollection:
             See :py:meth:`alibi.utils.distributed.PoolCollection`.
         """
 
-        explainer_handles = [PoolCollection.ray.remote(DistributedExplainer) for _ in range(len(explainer_init_args))]
+        explainer_handles = [ray.remote(DistributedExplainer) for _ in range(len(explainer_init_args))]
         distributed_explainers = []
         for handle, exp_args, exp_kwargs in zip(explainer_handles, explainer_init_args, explainer_init_kwargs):
             distributed_explainers.append(handle.remote(
@@ -832,6 +801,6 @@ class PoolCollection:
 
         """
 
-        return PoolCollection.ray.get(
+        return ray.get(
             [explainer.get_explanation.remote(X, **kwargs) for explainer in self.distributed_explainers]
         )

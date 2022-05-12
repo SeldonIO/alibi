@@ -22,7 +22,8 @@ __all__ = ['fetch_adult',
            'fetch_fashion_mnist',
            'fetch_imagenet',
            'fetch_movie_sentiment',
-           'load_cats']
+           'load_cats',
+           'fetch_imagenet_10']
 
 ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
               'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
@@ -31,40 +32,40 @@ ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
 MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
                        'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
 
+#  TODO change storage format.
 IMAGENET_URLS = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.joblib']
 
 
-def fetch_imagenet_10(url_id: int = 0) -> Union[Dict, Tuple[np.ndarray, np.ndarray]]:
+def fetch_imagenet_10(url_id: int = 0) -> Dict:
     """
     Sample dataset extracted from imagenet in a dictionary format.
     The train set contains 1000 random samples, 100 for each of the following 10 selected classes:
 
-    'stingray'
-    'trilobite'
-    'centipede'
-    'slug'
-    'snail'
-    'Rhodesian ridgeback'
-    'beagle'
-    'golden retriever'
-    'sea lion'
-    'espresso'
+    * stingray
+    * trilobite
+    * centipede
+    * slug
+    * snail
+    * Rhodesian ridgeback
+    * beagle
+    * golden retriever
+    * sea lion
+    * espresso
 
     The test set contains 50 random samples, 5 for each of the classes above.
 
     Parameters
     ----------
     url_id
-        Index specifying which URL to use for downloading
 
     Returns
     -------
-    Dictionary with the follwoing keys
-        `trainset`: train set tuple (X_train, y_train)
-        `testset`: test set tuple (X_test, y_test)
-        `int_to_str_labels`: map from target to target name
-        `str_to_int_labels`: map from target name to target
+    Dictionary with the following keys:
 
+        * trainset - train set tuple (X_train, y_train)
+        * testset - test set tuple (X_test, y_test)
+        * int_to_str_labels - map from target to target name
+        * str_to_int_labels -  map from target name to target
     """
     url = IMAGENET_URLS[url_id]
     try:

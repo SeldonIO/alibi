@@ -132,3 +132,19 @@ predictions on single inputs.
 [Documentation](../methods/LinearityMeasure.ipynb)
 [Tabular example](../examples/linearity_measure_iris.ipynb),
 [image classification](../examples/linearity_measure_fashion_mnist.ipynb)
+
+### Prototypes
+These algorithms provide a **distilled** view of the dataset and help construct a 1-KNN **interpretable** classifier.
+
+|Method|Classification|Regression|Tabular|Text|Images|Categorical Features| Reference set labels |
+|:-----|:-------------|:---------|:------|:---|:-----|:-------------------|:---------------------|
+|[ProtoSelect](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)|✔| |✔|✔|✔|✔|Optional|
+
+**ProtoSelect**: produces a condensed view of the training dataset and facilitates the construction of an interpretable
+classification model through 1-KNN. Every class *k* of the training dataset is summarised by a prototype set
+constructed to encourage the following three properties: i) covers as many training points as possible of the
+class *k*; ii) covers as few training points as possible of classes different from *k*; iii) is sparse - contains as
+few prototypes as possible. The method can be applied to any data modality as long as there is a meaningful way of
+defining a "distance" between data points which can often be done using a domain-specific pre-processing function.
+[Documentation](../methods/ProtoSelect.ipynb)
+[Tabular and image example](../examples/protoselect_adult_cifar10.ipynb),

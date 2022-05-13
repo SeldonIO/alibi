@@ -174,6 +174,13 @@ alibi.confidence.__all__
  'TrustScore']
 ```
 
+For dataset summarization
+```python
+alibi.prototypes.__all__
+```
+```
+['ProtoSelect']
+```
 
 
 For detailed information on the methods:
@@ -184,9 +191,11 @@ For detailed information on the methods:
     * [Counterfactual Instances](../methods/CF.ipynb)
     * [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb)
     * [Counterfactuals with RL](../methods/CFRL.ipynb)
-    * [Kernel SHAP](../methods/KernelSHAP.ipynb)
     * [Integrated gradients](../methods/IntegratedGradients.ipynb)
+    * [Kernel SHAP](../methods/KernelSHAP.ipynb)
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)
+    * [ProtoSelect](../methods/ProtoSelect.ipynb)
+    * [TreeShap](../methods/TreeSHAP.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
 
 ## Basic Usage

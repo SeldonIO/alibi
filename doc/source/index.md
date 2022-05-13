@@ -33,8 +33,8 @@ methods/IntegratedGradients.ipynb
 methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
 methods/ProtoSelect.ipynb
-methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
+methods/TrustScores.ipynb
 ```
 
 ```{toctree}

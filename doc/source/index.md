@@ -33,7 +33,7 @@ methods/IntegratedGradients.ipynb
 methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
 methods/ProtoSelect.ipynb
-mthods/Similarity.ipynb
+methods/Similarity.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
 ```

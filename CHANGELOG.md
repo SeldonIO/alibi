@@ -3,11 +3,11 @@
 ## [v0.7.0](https://github.com/SeldonIO/alibi/tree/v0.7.0) (2022-05-[TODO])
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.5...v0.7.0)
 
-This release introduces two new methods, a `GradientSimilarity` explainer and a `ProtoSelect` data summarization algorithm.
+This release introduces two new methods, a `GradientSimilarity` explainer and a `ProtoSelect` data summarisation algorithm.
 
 ## Added
 - **New feature** `GradientSimilarity` explainer for explaining predictions of gradient-based (PyTorch and TensorFlow) models by returning the most similar training data points from the point of view of the model ([docs](TODO)).
-- **New feature** We have introduced a new subpackage `alibi.prototypes` which contains the `ProtoSelect` algorithm for summarizing datasets with a representative set of "prototypes" ([docs](TODO)).
+- **New feature** We have introduced a new subpackage `alibi.prototypes` which contains the `ProtoSelect` algorithm for summarising datasets with a representative set of "prototypes" ([docs](TODO)).
 - `ALE` explainer now can take a custom grid-point per feature to evaluate the `ALE` on. This can help in certain situations when grid-points defined by quantiles might not be the best choice ([docs](https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html#Usage)).
 - Extended the `IntegratedGradients` method target selection to handle explaining any scalar dimension of tensors of any rank (previously only rank-1 and rank-2 were supported). See [#635](https://github.com/SeldonIO/alibi/pull/635).
 - Python 3.10 support. Note that `PyTorch` at the time of writing doesn't support Python 3.10 on Windows.

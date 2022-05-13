@@ -300,6 +300,6 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[1])
     np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][0]], ds[1])
     explanation = explainer.explain(ds[-1], Y=ds[-1])
-    scores = np.array([[50, 50 / (0.9 ** 2 + 0.1 ** 2), 1]], dtype=np.float32)
+    scores = np.array([[50, 50, 2*50**2]], dtype=np.float32) / (denoms + 1e-7)
     scores.sort()
     np.testing.assert_allclose(explanation.scores, scores[:, ::-1], atol=1e-4)

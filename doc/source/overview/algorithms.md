@@ -81,7 +81,7 @@ straight line from the baseline to the input.
 [Documentation](../methods/IntegratedGradients.ipynb),
 [MNIST example](../examples/integrated_gradients_mnist.ipynb),
 [Imagenet example](../examples/integrated_gradients_imagenet.ipynb),
-[IMDB example](../examples/integrated_gradients_imdb.ipynb).
+[IMDB example](../examples/integrated_gradients_imdb.ipynb),
 [Transformers example](../examples/integrated_gradients_transformers.ipynb).
 
 **Kernel Shapley Additive Explanations (Kernel SHAP)**: attribute the change of a model output with respect
@@ -93,7 +93,7 @@ dataset. This algorithm can be used to explain regression models and it is optim
 [continuous data](../examples/kernel_shap_wine_intro.ipynb),
 [more continuous data](../examples/kernel_shap_wine_lr.ipynb),
 [categorical data](../examples/kernel_shap_adult_lr.ipynb),
-[distributed_batch_explanations](../examples/distributed_kernel_shap_adult_lr.ipynb)
+[distributed_batch_explanations](../examples/distributed_kernel_shap_adult_lr.ipynb).
 
 **Tree Shapley Additive Explanations (Tree SHAP)**: attribute the change of a model output with respect to a baseline
 (e.g., average over a reference set or inferred from node data) to each of the input features. Similar to Kernel SHAP,
@@ -123,17 +123,17 @@ between the distance to the nearest class different from the predicted class and
 predicted class, higher scores correspond to more trustworthy predictions.
 [Documentation](../methods/TrustScores.ipynb),
 [tabular example](../examples/trustscore_iris.ipynb),
-[image classification](../examples/trustscore_mnist.ipynb)
+[image classification](../examples/trustscore_mnist.ipynb).
 
 **Linearity measure**: produces a score quantifying how linear the model is around a test instance.
 The linearity score measures the model linearity around a test instance by feeding the model linear
 superpositions of inputs and comparing the outputs with the linear combination of outputs from
 predictions on single inputs.
-[Documentation](../methods/LinearityMeasure.ipynb)
+[Documentation](../methods/LinearityMeasure.ipynb),
 [Tabular example](../examples/linearity_measure_iris.ipynb),
-[image classification](../examples/linearity_measure_fashion_mnist.ipynb)
+[image classification](../examples/linearity_measure_fashion_mnist.ipynb).
 
-### Prototypes
+## Prototypes
 These algorithms provide a **distilled** view of the dataset and help construct a 1-KNN **interpretable** classifier.
 
 |Method|Classification|Regression|Tabular|Text|Images|Categorical Features| Reference set labels |
@@ -146,5 +146,5 @@ constructed to encourage the following three properties: i) covers as many train
 class *k*; ii) covers as few training points as possible of classes different from *k*; iii) is sparse - contains as
 few prototypes as possible. The method can be applied to any data modality as long as there is a meaningful way of
 defining a "distance" between data points which can often be done using a domain-specific pre-processing function.
-[Documentation](../methods/ProtoSelect.ipynb)
-[Tabular and image example](../examples/protoselect_adult_cifar10.ipynb),
+[Documentation](../methods/ProtoSelect.ipynb),
+[Tabular and image example](../examples/protoselect_adult_cifar10.ipynb).

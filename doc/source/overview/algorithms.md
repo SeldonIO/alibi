@@ -108,7 +108,7 @@ perturbation variants of Tree SHAP. This algorithm can be used to explain regres
 [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
 [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
 
-**Similarity explanations**: presents instances in the training set that are similar to the instance of interest 
+**Similarity explanations**: present instances in the training set that are similar to the instance of interest 
 according to a kernel metric. The implemented kernels are gradient-based, meaning that the similarity between 2 
 instances is based on the gradients of the loss function with respect to the model's parameters calculated at each 
 of the instances.

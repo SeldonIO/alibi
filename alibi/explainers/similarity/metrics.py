@@ -50,8 +50,8 @@ def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndar
 
 def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
-    Computes the influence of instances `X` to instances `Y`. This is an asymmetric kernel.
-    (:math:`X^T Y//\\|X\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
+    Computes the influence of training instances `Y` to test instances `X`. This is an asymmetric kernel.
+    (:math:`X^T Y//\\|Y\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
     `Y` should have a leading batch dimension of size at least 1.
 
     Parameters
@@ -70,5 +70,5 @@ def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np
 
     assert len(X.shape) > 1 and len(Y.shape) > 1, "The vectors `X` and `Y` should have a leading batch dimension."
     assert X.shape[1] == Y.shape[1], "The second dimension of `X` needs to be the same as the dimension of `Y`."
-    denominator = np.linalg.norm(X, axis=1) ** 2
-    return np.dot(X, Y.T) / (denominator + eps)[:, None]
+    denominator = np.linalg.norm(Y, axis=1) ** 2
+    return np.dot(X, Y.T) / (denominator + eps)[None, :]

@@ -284,16 +284,22 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
 
     # In the case of `grad_asym_dot` we manually check the similarities as the asymmetry of the metric means ordering
     # is important.
-    sim_ds_0 = np.array([(1 * 1 + 0 * 0), (1 * 0.9 + 0 * 0.1), (1 * 50 + 0 * 50)]) / (1 + 1e-7)
+    denoms = np.array([1, (0.9**2 + 0.1**2), 2 * 50**2])
+    sim_ds_0 = np.array([
+        (1 * 1 + 0 * 0),
+        (1 * 0.9 + 0 * 0.1),
+        (1 * 50 + 0 * 50)
+    ]) / (denoms + 1e-7)
     sim_ds_0.sort()
+
     np.testing.assert_allclose(explanation.scores[0], sim_ds_0[::-1], atol=1e-6)
-
-    d = (0.9**2 + 0.1**2)
-    sim_ds_1 = np.array([(0.9 * 1 + 0.1 * 0), (0.9 * 0.9 + 0.1 * 0.1), (0.9 * 50 + 0.1 * 50)]) / (d + 1e-7)
+    sim_ds_1 = np.array([(0.9 * 1 + 0.1 * 0), (0.9 * 0.9 + 0.1 * 0.1), (0.9 * 50 + 0.1 * 50)]) / (denoms + 1e-7)
     sim_ds_1.sort()
-    np.testing.assert_allclose(explanation.scores[1], sim_ds_1[::-1], atol=1e-6)
 
-    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[-1])
-    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][0]], ds[-1])
+    np.testing.assert_allclose(explanation.scores[1], sim_ds_1[::-1], atol=1e-6)
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][0][0]], ds[1])
+    np.testing.assert_array_equal(ds[explanation['ordered_indices'][1][0]], ds[1])
     explanation = explainer.explain(ds[-1], Y=ds[-1])
-    np.testing.assert_array_equal(explanation.scores, np.array([[1., 0.01, 0.01]], dtype=np.float32))
+    scores = np.array([[50, 50 / (0.9 ** 2 + 0.1 ** 2), 1]], dtype=np.float32)
+    scores.sort()
+    np.testing.assert_allclose(explanation.scores, scores[:, ::-1], atol=1e-4)

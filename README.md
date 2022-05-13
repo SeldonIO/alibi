@@ -81,6 +81,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
 * [Supported Methods](#supported-methods)
   * [Model Explanations](#model-explanations)
   * [Model Confidence](#model-confidence)
+  * [Prototypes](#prototypes)
   * [References and Examples](#references-and-examples)
 * [Citations](#citations)
 
@@ -176,6 +177,7 @@ The following tables summarize the possible use cases for each method.
 |[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
+|[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -195,6 +197,14 @@ Key:
  - **Global** - explains the model with respect to a set of instances
  - **(1)** -  depending on model
  - **(2)** -  may require dimensionality reduction
+
+### Prototypes
+These algorithms provide a **distilled** view of the dataset and help construct a 1-KNN **interpretable** classifier.
+
+|Method|Classification|Regression|Tabular|Text|Images|Categorical Features| Reference set labels |
+|:-----|:-------------|:---------|:------|:---|:-----|:-------------------|:---------------------|
+|[ProtoSelect](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)|✔| |✔|✔|✔|✔| Optional             |
+
 
 ## References and Examples
  - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
@@ -268,6 +278,18 @@ Key:
   - Examples:
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_iris.html),
     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_fashion_mnist.html)
+
+- ProtoSelect
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)
+  - Examples:
+    [Adult Census & CIFAR10](https://docs.seldon.io/projects/alibi/en/latest/examples/protoselect_adult_cifar10.html)
+
+- Similarity explanations
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)
+  - Examples:
+    [20 news groups dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_20ng.html),
+    [ImageNet dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_imagenet.html),
+    [MNIST dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_mnist.html)
 
 ## Citations
 If you use alibi in your research, please consider citing it.

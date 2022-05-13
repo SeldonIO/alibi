@@ -37,10 +37,51 @@ pip install alibi[shap]
 :class-label: sd-pt-0
 :sync: label-dist
 ```{div} sd-mb-1
-Installation with support for distributed computation of explanations.
+Installation with support for 
+[distributed Kernel SHAP](../examples/distributed_kernel_shap_adult_lr.ipynb).
 ```
 ```bash
 pip install alibi[ray]
+```
+````
+
+````{tab-item} TensorFlow
+:class-label: sd-pt-0
+:sync: label-tensorflow
+```{div} sd-mb-1
+Installation with support for tensorflow backends. Required for 
+- [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb) 
+- [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb) 
+- [Counterfactual Instances](../methods/CF.ipynb)
+- [Integrated gradients](../methods/IntegratedGradients.ipynb) 
+- [Anchors on Textual data](../examples/anchor_text_movie.ipynb) with `sampling_strategy='language_model'` 
+- One of Torch or TensorFlow is required for the [Counterfactuals with RL](../methods/CFRL.ipynb) methods
+```
+```bash
+pip install alibi[tensorflow]
+```
+````
+
+````{tab-item} Torch
+:class-label: sd-pt-0
+:sync: label-torch
+```{div} sd-mb-1
+Installation with support for torch backends. One of Torch or TensorFlow is required for the 
+[Counterfactuals with RL](../methods/CFRL.ipynb) methods.
+```
+```bash
+pip install alibi[torch]
+```
+````
+
+````{tab-item} All
+:class-label: sd-pt-0
+:sync: label-all
+```{div} sd-mb-1
+Installs all optional dependencies.
+```
+```bash
+pip install alibi[all]
 ```
 ````
 `````
@@ -107,18 +148,20 @@ import alibi
 alibi.explainers.__all__
 ```
 ```
-['ALE',
- 'AnchorTabular',
- 'AnchorText',
- 'AnchorImage',
- 'CEM',
- 'Counterfactual',
- 'CounterfactualProto',
- 'CounterfactualRL',
- 'CounterfactualRLTabular',
- 'KernelShap',
- 'plot_ale',
- 'IntegratedGradients'] 
+['ALE', 
+'AnchorTabular',
+'DistributedAnchorTabular', 
+'AnchorText', 
+'AnchorImage', 
+'CEM', 
+'Counterfactual', 
+'CounterfactualProto', 
+'CounterfactualRL', 
+'CounterfactualRLTabular', 
+'plot_ale', 
+'IntegratedGradients', 
+'KernelShap', 
+'TreeShap']
 ```
 
 For gauging model confidence:

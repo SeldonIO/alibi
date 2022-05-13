@@ -1,17 +1,23 @@
 # type: ignore
-import catboost
 import itertools
 import logging
+import unittest
+from copy import copy
+from itertools import chain
+from unittest.mock import MagicMock
+from typing import Any, List
+
+import catboost
 import pandas
 import pytest
 import scipy.sparse
-import shap
 import sklearn
-import unittest
-
+import shap
 import numpy as np
 import pandas as pd
 import shap.utils._legacy as shap_utils
+from numpy.testing import assert_allclose, assert_almost_equal
+from scipy.special import expit
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
@@ -19,13 +25,8 @@ from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, K
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
-from alibi.utils.distributed import DistributedExplainer, RAY_INSTALLED
-from copy import copy
-from itertools import chain
-from numpy.testing import assert_allclose, assert_almost_equal
-from scipy.special import expit
-from unittest.mock import MagicMock
-from typing import Any, List
+from alibi.utils import DistributedExplainer
+
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 
@@ -1075,8 +1076,6 @@ n_instances, n_features = 10, 10
 
 
 # example on how to send the same parameters to a fixture via indirection and the test. Screws up test ids.
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('mock_kernel_shap_explainer, mock_ker_exp_params',
                          mock_ker_exp_params,
                          indirect=["mock_kernel_shap_explainer"],
@@ -1085,8 +1084,7 @@ n_instances, n_features = 10, 10
 @pytest.mark.parametrize('n_instances', (n_instances,), ids='n_instances={}'.format)
 @pytest.mark.parametrize('n_features', (n_features,), ids='n_features={}'.format)
 def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_params, n_instances, n_features):
-    import ray
-
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
     explainer = mock_kernel_shap_explainer
     background_data = get_random_matrix(n_rows=n_instances, n_cols=n_features)
     explainer.fit(background_data)

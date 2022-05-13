@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     import tensorflow
     import torch
 
+
 if has_pytorch:
     # import pytorch backend
     from alibi.explainers.backends.pytorch import cfrl_tabular as pytorch_tabular_backend

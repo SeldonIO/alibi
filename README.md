@@ -81,6 +81,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
 * [Supported Methods](#supported-methods)
   * [Model Explanations](#model-explanations)
   * [Model Confidence](#model-confidence)
+  * [Prototypes](#prototypes)
   * [References and Examples](#references-and-examples)
 * [Citations](#citations)
 
@@ -196,6 +197,14 @@ Key:
  - **(1)** -  depending on model
  - **(2)** -  may require dimensionality reduction
 
+### Prototypes
+These algorithms provide a **distilled** view of the dataset and help construct a 1-KNN **interpretable** classifier.
+
+|Method|Classification|Regression|Tabular|Text|Images|Categorical Features| Reference set labels |
+|:-----|:-------------|:---------|:------|:---|:-----|:-------------------|:---------------------|
+|[ProtoSelect](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)|✔| |✔|✔|✔|✔| Optional             |
+
+
 ## References and Examples
  - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
    - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)
@@ -268,6 +277,11 @@ Key:
   - Examples:
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_iris.html),
     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_fashion_mnist.html)
+
+- ProtoSelect
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)
+  - Examples:
+    [Adult Census & CIFAR10](https://docs.seldon.io/projects/alibi/en/latest/examples/protoselect_adult_cifar10.html)
 
 ## Citations
 If you use alibi in your research, please consider citing it.

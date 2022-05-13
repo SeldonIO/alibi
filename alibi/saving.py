@@ -20,6 +20,9 @@ if TYPE_CHECKING:
         CounterfactualRL,
         CounterfactualRLTabular
     )
+    from alibi.prototypes import (
+        ProtoSelect
+    )
 
 from alibi.version import __version__
 
@@ -370,6 +373,14 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
     # load the rest of the explainer
     return _helper_load_CounterfactualRL(path, predictor, explainer)
+
+
+def _save_ProtoSelect(path: Union[str, os.PathLike]) -> None:
+    raise NotImplementedError('ProtoSelect saving functionality not implemented.')
+
+
+def _load_ProtoSelect(path: Union[str, os.PathLike], meta: dict) -> 'ProtoSelect':
+    raise NotImplementedError('ProtoSelect loading functionality not implemented.')
 
 
 class NumpyEncoder(json.JSONEncoder):

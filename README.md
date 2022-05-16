@@ -177,6 +177,7 @@ The following tables summarize the possible use cases for each method.
 |[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
+|[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -282,6 +283,13 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)
   - Examples:
     [Adult Census & CIFAR10](https://docs.seldon.io/projects/alibi/en/latest/examples/protoselect_adult_cifar10.html)
+
+- Similarity explanations
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)
+  - Examples:
+    [20 news groups dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_20ng.html),
+    [ImageNet dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_imagenet.html),
+    [MNIST dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_mnist.html)
 
 ## Citations
 If you use alibi in your research, please consider citing it.

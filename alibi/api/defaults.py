@@ -267,19 +267,3 @@ DEFAULT_DATA_SIM = {"scores": None,
 """
 Default SimilarityExplainer data.
 """
-
-DEFAULT_META_PROTOSELECT = {"name": None,
-                            "type": ["data"],
-                            "explanation": ["global"],
-                            "params": {},
-                            "version": None}  # type: dict
-"""
-Default ProtoSelect metadata.
-"""
-
-DEFAULT_DATA_PROTOSELECT = {"prototypes": None,
-                            "prototypes_indices": None,
-                            "prototypes_labels": None}  # type: dict
-"""
-Default ProtoSelect data.
-"""

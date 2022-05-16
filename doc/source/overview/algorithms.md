@@ -22,6 +22,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
+|[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
 
 
 
@@ -105,6 +106,15 @@ perturbation variants of Tree SHAP. This algorithm can be used to explain regres
 [Documentation](../methods/TreeSHAP.ipynb),
 [interventional feature perturbation Tree SHAP](../examples/interventional_tree_shap_adult_xgb.ipynb),
 [path-dependent feature perturbation Tree SHAP](../examples/path_dependent_tree_shap_adult_xgb.ipynb).
+
+**Similarity explanations**: present instances in the training set that are similar to the instance of interest 
+according to a kernel metric. The implemented kernels are gradient-based, meaning that the similarity between 2 
+instances is based on the gradients of the loss function with respect to the model's parameters calculated at each 
+of the instances.
+[Documentation](../methods/Similarity.ipynb),
+[MNIST example](../examples/similarity_explanations_mnist.ipynb),
+[Imagenet example](../examples/similarity_explanations_imagenet.ipynb),
+[20 news groups example](../examples/similarity_explanations_20ng.ipynb).
 
 ## Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

@@ -161,8 +161,7 @@ alibi.explainers.__all__
 'plot_ale', 
 'IntegratedGradients', 
 'KernelShap', 
-'TreeShap',
-'GradientSimilarity']
+'TreeShap']
 ```
 
 For gauging model confidence:
@@ -189,7 +188,6 @@ For detailed information on the methods:
     * [Integrated gradients](../methods/IntegratedGradients.ipynb)
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
-    * [Similarity explanations](../methods/Similarity.ipynb)
 
 ## Basic Usage
 The alibi explanation API takes inspiration from `scikit-learn`, consisting of distinct initialize,

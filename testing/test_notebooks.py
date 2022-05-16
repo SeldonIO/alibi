@@ -32,7 +32,7 @@ EXCLUDE_NOTEBOOKS = {
     'kernel_shap_adult_lr.ipynb',  # slow to explain 128 instances
     'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning
     'integrated_gradients_transformers.ipynb',  # forward pass through BERT to get embeddings is very slow
-    'similarity_explanations_imagenet',  # forward pass through ResNet too slow
+    'similarity_explanations_imagenet.ipynb',  # forward pass through ResNet too slow
 }
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 

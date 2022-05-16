@@ -22,6 +22,9 @@ if TYPE_CHECKING:
         CounterfactualRLTabular,
         GradientSimilarity
     )
+    from alibi.prototypes import (
+        ProtoSelect
+    )
 
 from alibi.version import __version__
 
@@ -393,6 +396,14 @@ def _load_SimilarityExplainer(path: Union[str, os.PathLike],
     explainer.reset_predictor(predictor)
 
     return explainer
+
+
+def _save_ProtoSelect(path: Union[str, os.PathLike]) -> None:
+    raise NotImplementedError('ProtoSelect saving functionality not implemented.')
+
+
+def _load_ProtoSelect(path: Union[str, os.PathLike], meta: dict) -> 'ProtoSelect':
+    raise NotImplementedError('ProtoSelect loading functionality not implemented.')
 
 
 class NumpyEncoder(json.JSONEncoder):

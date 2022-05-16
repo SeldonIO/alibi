@@ -4,6 +4,7 @@ plugin. This approach may be more flexible if our requirements change in the fut
 """
 
 import glob
+import platform
 from pathlib import Path
 import pytest
 from jupytext.cli import jupytext
@@ -32,10 +33,10 @@ EXCLUDE_NOTEBOOKS = {
     'kernel_shap_adult_lr.ipynb',  # slow to explain 128 instances
     'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning
     'integrated_gradients_transformers.ipynb',  # forward pass through BERT to get embeddings is very slow
-    'similarity_explanations_imagenet.ipynb',  # forward pass through ResNet too slow
 }
+if platform.system() == 'Windows':
+   EXCLUDE_NOTEBOOKS.add('protoselect_adult_cifar10.ipynb')  # Exclude <your notebook> on Windows due to the use of wget
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
-
 
 @pytest.mark.timeout(600)
 @pytest.mark.parametrize("notebook", EXECUTE_NOTEBOOKS)

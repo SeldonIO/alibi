@@ -399,6 +399,8 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling):
     assert empirical_mean1 == empirical_mean2
 
 
+# marked xfail as test intermittently failing, see https://github.com/SeldonIO/alibi/issues/664
+@pytest.mark.xfail()
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('filling', ['parallel'])
 @pytest.mark.parametrize('punctuation', [string.punctuation])

@@ -1082,6 +1082,7 @@ that the ALE plots potentially miss details local to individual instances as the
 :align: center
 :alt: Ale plots for those features that the above counterfactuals have changed the most. 
 ```
+(similarity-explanations)=
 
 ### 5. Similarity explanations
 

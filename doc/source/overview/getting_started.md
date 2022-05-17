@@ -180,7 +180,8 @@ For dataset summarization
 alibi.prototypes.__all__
 ```
 ```
-['ProtoSelect']
+['ProtoSelect',
+ 'visualize_image_prototypes']
 ```
 
 

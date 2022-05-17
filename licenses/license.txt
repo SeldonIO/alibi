@@ -1624,11 +1624,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 cachetools
-5.0.0
+5.1.0
 MIT License
 The MIT License (MIT)
 
-Copyright (c) 2014-2021 Thomas Kemmer
+Copyright (c) 2014-2022 Thomas Kemmer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -3828,7 +3828,7 @@ THE SOFTWARE.
 
 
 imageio
-2.19.1
+2.19.2
 BSD License
 Copyright (c) 2014-2022, imageio developers
 All rights reserved.
@@ -6265,7 +6265,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 ray
-1.12.0
+1.12.1
 Apache 2.0
 UNKNOWN
 
@@ -6787,7 +6787,7 @@ skimage/_shared/version_requirements.py:is_installed:
 
 
 scikit-learn
-1.0.2
+1.1.0
 new BSD
 BSD 3-Clause License
 
@@ -8550,7 +8550,7 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.8.0
+2.8.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -8804,6 +8804,11 @@ By contributing to the BVLC/caffe repository through pull-request, comment,
 or otherwise, the contributor releases their content to the
 license and copyright terms herein.
 
+tensorflow-estimator
+2.8.0
+Apache Software License
+UNKNOWN
+
 tensorflow-io-gcs-filesystem
 0.25.0
 Apache Software License
@@ -9034,11 +9039,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 
 
-
-tf-estimator-nightly
-2.8.0.dev2021122109
-Apache Software License
-UNKNOWN
 
 thinc
 8.0.15
@@ -9528,7 +9528,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.19.0
+4.19.2
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 

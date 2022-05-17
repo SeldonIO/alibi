@@ -10,6 +10,7 @@ import dill
 import numpy as np
 
 if TYPE_CHECKING:
+    import torch
     import tensorflow
     from alibi.api.interfaces import Explainer
     from alibi.explainers.integrated_gradients import IntegratedGradients
@@ -18,7 +19,8 @@ if TYPE_CHECKING:
         AnchorImage,
         AnchorText,
         CounterfactualRL,
-        CounterfactualRLTabular
+        CounterfactualRLTabular,
+        GradientSimilarity
     )
     from alibi.prototypes import (
         ProtoSelect
@@ -373,6 +375,27 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
     # load the rest of the explainer
     return _helper_load_CounterfactualRL(path, predictor, explainer)
+
+
+def _save_SimilarityExplainer(explainer: 'GradientSimilarity', path: Union[str, os.PathLike]) -> None:
+    predictor = explainer.predictor
+    explainer.predictor = None  # type: ignore[assignment]
+
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+
+    explainer.predictor = predictor
+
+
+def _load_SimilarityExplainer(path: Union[str, os.PathLike],
+                              predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                              meta: dict) -> 'GradientSimilarity':
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+    explainer.reset_predictor(predictor)
+
+    return explainer
 
 
 def _save_ProtoSelect(path: Union[str, os.PathLike]) -> None:

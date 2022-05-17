@@ -9,6 +9,7 @@ from alibi.explainers.anchors.anchor_tabular import AnchorTabular
 from alibi.explainers.anchors.anchor_image import AnchorImage
 from alibi.explainers.cfrl_base import CounterfactualRL
 from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
+from alibi.explainers.similarity.grad import GradientSimilarity
 
 
 DistributedAnchorTabular = import_optional(
@@ -49,5 +50,6 @@ __all__ = [
     "plot_ale",
     "IntegratedGradients",
     "KernelShap",
-    "TreeShap"
+    "TreeShap",
+    "GradientSimilarity"
 ]

@@ -250,6 +250,23 @@ DEFAULT_DATA_CFRL = {"orig": None,
 Default CounterfactualRL data.
 """
 
+# Similarity methods
+DEFAULT_META_SIM = {"name": None,
+                    "type": ["whitebox"],
+                    "explanations": ["local"],
+                    "params": {},
+                    "version": None}  # type: dict
+"""
+Default SimilarityExplainer metadata.
+"""
+
+DEFAULT_DATA_SIM = {"scores": None,
+                    "ordered_indices": None,
+                    "most_similar": None,
+                    "least_similar": None}  # type: dict
+"""
+Default SimilarityExplainer data.
+"""
 
 DEFAULT_META_PROTOSELECT = {"name": None,
                             "type": ["data"],

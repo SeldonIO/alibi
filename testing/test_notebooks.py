@@ -34,10 +34,10 @@ EXCLUDE_NOTEBOOKS = {
     'xgboost_model_fitting_adult.ipynb',  # very expensive hyperparameter tuning
     'integrated_gradients_transformers.ipynb',  # forward pass through BERT to get embeddings is very slow
     'similarity_explanations_imagenet.ipynb',  # forward pass through ResNet too slow
-    'similarity_explanations_20ng.ipymb', # times out, likely due to the EmbeddingModel being slow
 }
 if platform.system() == 'Windows':
    EXCLUDE_NOTEBOOKS.add('protoselect_adult_cifar10.ipynb')  # Exclude <your notebook> on Windows due to the use of wget
+   EXCLUDE_NOTEBOOKS.add('similarity_explanations_20ng.ipynb')  # times out, likely due to the EmbeddingModel being slow
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 
 @pytest.mark.timeout(600)

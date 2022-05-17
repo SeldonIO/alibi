@@ -87,8 +87,3 @@ examples/protoselect_adult_cifar10.ipynb
 API reference <api/modules>
 ```
 
-# Indices and tables
-
-- {ref}`genindex`
-- {ref}`modindex`
-- {ref}`search`

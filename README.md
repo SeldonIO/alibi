@@ -201,9 +201,9 @@ Key:
 ### Prototypes
 These algorithms provide a **distilled** view of the dataset and help construct a 1-KNN **interpretable** classifier.
 
-|Method|Classification|Regression|Tabular|Text|Images|Categorical Features| Reference set labels |
-|:-----|:-------------|:---------|:------|:---|:-----|:-------------------|:---------------------|
-|[ProtoSelect](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)|✔| |✔|✔|✔|✔| Optional             |
+|Method|Classification|Regression|Tabular|Text|Images|Categorical Features|Train set labels|
+|:-----|:-------------|:---------|:------|:---|:-----|:-------------------|:---------------|
+|[ProtoSelect](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)|✔| |✔|✔|✔|✔| Optional       |
 
 
 ## References and Examples

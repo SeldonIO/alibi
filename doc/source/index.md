@@ -33,6 +33,7 @@ methods/IntegratedGradients.ipynb
 methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
 methods/Similarity.ipynb
+methods/ProtoSelect.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
 ```
@@ -73,9 +74,13 @@ examples/integrated_gradients_imagenet.ipynb
 examples/integrated_gradients_mnist.ipynb
 examples/integrated_gradients_imdb.ipynb
 examples/integrated_gradients_transformers.ipynb
+<<<<<<< HEAD
 examples/similarity_explanations_20ng.ipynb
 examples/similarity_explanations_mnist.ipynb
 examples/similarity_explanations_imagenet.ipynb
+=======
+examples/protoselect_adult_cifar10.ipynb
+>>>>>>> 8f41645
 ```
 
 ```{toctree}

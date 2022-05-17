@@ -34,7 +34,6 @@ methods/KernelSHAP.ipynb
 methods/LinearityMeasure.ipynb
 methods/Similarity.ipynb
 methods/ProtoSelect.ipynb
-methods/Similarity.ipynb
 methods/TrustScores.ipynb
 methods/TreeSHAP.ipynb
 ```
@@ -79,9 +78,6 @@ examples/similarity_explanations_20ng.ipynb
 examples/similarity_explanations_mnist.ipynb
 examples/similarity_explanations_imagenet.ipynb
 examples/protoselect_adult_cifar10.ipynb
-examples/similarity_explanations_20ng.ipynb
-examples/similarity_explanations_imagenet.ipynb
-examples/similarity_explanations_mnist.ipynb
 ```
 
 ```{toctree}

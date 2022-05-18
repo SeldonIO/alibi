@@ -26,7 +26,7 @@ This release introduces two new methods, a `GradientSimilarity` explainer and a 
 - The [CONTRIBUTING.md](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md) has been updated with further instructions for managing optional dependencies (see point above) and more conventions around docstrings.
 - We have split the `Explainer` base class into `Base` and `Explainer` to facilitate reusability and better class hierarchy semantics with introducing methods that are not explainers ([#649](https://github.com/SeldonIO/alibi/pull/649)).
 - `mypy` has been updated to `~=0.900` which requires additional development dependencies for type stubs, currently only `types-requests` has been necessary to add to `requirements/dev.txt`.
-- [TODO: leaner sdist]
+- Fron this release onwards we exclude the directories `doc/` and `examples/` from the source distribution (by adding `prune` directives in `MANIFEST.in`). This results in considerably smaller file sizes for the source distribution.
 
 ## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.5) (2022-03-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)

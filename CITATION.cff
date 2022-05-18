@@ -16,9 +16,11 @@ authors:
 - family-names: "Scillitoe"
   given-names: "Ashley"
   orcid: "https://orcid.org/0000-0001-8971-7224"
+- family-names: "Athorne"
+  given-names: "Alex"
 title: "Alibi Explain: Algorithms for Explaining Machine Learning Models"
-version: 0.6.5
-date-released: 2022-03-18
+version: 0.7.0
+date-released: 2022-05-18
 url: "https://github.com/SeldonIO/alibi"
 preferred-citation:
   type: article

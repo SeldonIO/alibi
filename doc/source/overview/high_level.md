@@ -1091,4 +1091,11 @@ that the ALE plots potentially miss details local to individual instances as the
 | [Similarity explanations](similarity-explanations)                                         | Local  | White-box                                                                       | Classification, Regression | Tabular (numerical, categorical), Text and Image | What are the instances in the training set that are most similar to the instance of interest according to the model? | [docs](../methods/Similarity.ipynb), [paper](https://papers.nips.cc/paper/2019/hash/c61f571dbd2fb949d3fe5ae1608dd48b-Abstract.html) | 
 
 
-TBA
+Similarity explanations are instance-based explanations that focus on training data points to justify a model prediction on a test instance. Given a trained model and a test instance whose prediction is to be explained, these methods scan the training set, finding the most similar data points according to the model which forms an explanations. This type of explanation can be interpreted as the model justifying its prediction by referring to similar instances which may share the same prediction---*"I classify this image as a 'Golden Retriever' because it is most similar to images in the training set which I also classified as 'Golden Retriever'"*.
+
+```{figure} images/golden-retrievers.png
+:align: center
+:alt: A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.
+
+*A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.*
+```

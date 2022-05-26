@@ -179,7 +179,7 @@ class CounterfactualProto(Explainer, FitMixin):
         self.c_init = c_init
         self.c_steps = c_steps
         self.feature_range = tuple([(np.ones(shape[1:]) * feature_range[_])[None, :]
-                                    if isinstance(feature_range[_], float) else feature_range[_]
+                                    if isinstance(feature_range[_], float) else np.array(feature_range[_])
                                     for _ in range(2)])
         self.update_num_grad = update_num_grad
         self.eps = eps

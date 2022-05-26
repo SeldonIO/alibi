@@ -403,7 +403,7 @@ def cv_protoselect_euclidean(trainset: Tuple[np.ndarray, np.ndarray],
             if quantiles[0] > quantiles[1]:
                 raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
             quantiles = np.clip(quantiles, a_min=0, a_max=1)
-            min_dist, max_dist = np.quantile(a=dist, q=quantiles)
+            min_dist, max_dist = np.quantile(a=dist, q=np.array(quantiles))
         else:
             min_dist, max_dist = np.min(dist), np.max(dist)
         # define list of values for eps

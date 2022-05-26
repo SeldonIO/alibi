@@ -860,8 +860,9 @@ class CounterfactualRL(Explainer, FitMixin):
 
             # Append the new batch off results.
             for key in all_results:
-                if all_results[key] is not None:
-                    all_results[key] = np.concatenate([all_results[key], results[key]], axis=0)
+                all_results_val, results_val = all_results[key], results[key]
+                if all_results_val is not None and results_val is not None:
+                    all_results[key] = np.concatenate([all_results_val, results_val], axis=0)
 
         # see https://github.com/python/mypy/issues/5382 for the type ignore
         return self._build_explanation(**all_results)  # type: ignore[arg-type]

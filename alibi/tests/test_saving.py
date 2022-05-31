@@ -448,8 +448,8 @@ def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
         assert exp0.meta == exp1.meta
 
         # cfrl is determinstic
-        assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32))
-        assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32))
+        assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32), rtol=1e-06)
+        assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32), rtol=1e-06)
 
 
 @pytest.mark.parametrize('ffn_classifier', [lazy_fixture('iris_data')], indirect=True)

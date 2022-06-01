@@ -12,7 +12,7 @@ exec(open('alibi/version.py').read())
 extras_require = {
     'ray': [
         'ray>=0.8.7, <2.0.0',
-        'protobuf<4'
+        'protobuf<5'
     ],
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [

@@ -10,10 +10,7 @@ def readme():
 exec(open('alibi/version.py').read())
 
 extras_require = {
-    'ray': [
-        'ray>=0.8.7, <2.0.0',
-        'protobuf<4'
-    ],
+    'ray': ['ray>=0.8.7, <2.0.0'],
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [
         'shap>=0.40.0, <0.41.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333

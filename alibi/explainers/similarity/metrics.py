@@ -26,7 +26,7 @@ def dot(X: np.ndarray, Y: np.ndarray) -> Union[float, np.ndarray]:
 
 def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
-    Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y//\\|X\\|\\|Y\\|`). Each of `X` and `Y`
+    Computes the cosine between the vector(s) in X and vector Y. (:math:`X^T Y/\\|X\\|\\|Y\\|`). Each of `X` and `Y`
     should have a leading batch dimension of size at least 1.
 
     Parameters
@@ -51,7 +51,7 @@ def cos(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndar
 def asym_dot(X: np.ndarray, Y: np.ndarray, eps: float = 1e-7) -> Union[float, np.ndarray]:
     """
     Computes the influence of training instances `Y` to test instances `X`. This is an asymmetric kernel.
-    (:math:`X^T Y//\\|Y\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
+    (:math:`X^T Y/\\|Y\\|^2`). See the `paper <https://arxiv.org/abs/2102.05262>`_ for more details. Each of `X` and
     `Y` should have a leading batch dimension of size at least 1.
 
     Parameters

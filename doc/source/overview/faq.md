@@ -35,9 +35,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 ### Why is my anchor explanation empty (tabular or text data) or black (image data)?
 
-This is expected behaviour and signals that there is no salient subset of features that is necessary for the prediction to hold. This can happen in two ways:
- - The predicted class of the data point does not change regardless of the perturbations applied to it.
- - The predicted class of the data point always changes regardless of the perturbations applied to it.
+This is expected behaviour and signals that there is no salient subset of features that is necessary for the prediction to hold. In other words, the predicted class of the data point does not change regardless of the perturbations applied to it.
 
 **Note:** this behaviour can be typical for very imbalanced datasets, [see comment from the author](https://github.com/marcotcr/anchor/issues/71#issuecomment-863591122).
 

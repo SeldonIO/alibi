@@ -37,9 +37,9 @@ class AnchorBaseBeam:
         Parameters
         ----------
         batch_size
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.anchor_beam` method.
         coverage_data
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam._get_coverage_samples` method.
         """
 
         prealloc_size = batch_size * self.sample_cache_size
@@ -179,9 +179,9 @@ class AnchorBaseBeam:
         Parameters
         ---------
         coverage_samples
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.anchor_beam` method.
         samplers
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.__init__` method.
 
         Returns
         -------
@@ -419,7 +419,7 @@ class AnchorBaseBeam:
     def update_state(self, covered_true: np.ndarray, covered_false: np.ndarray, labels: np.ndarray,
                      samples: Tuple[np.ndarray, float], anchor: tuple) -> Tuple[int, int]:
         """
-        Updates the explainer state (see :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__`
+        Updates the explainer state (see :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.__init__`
         for full state definition).
 
         Parameters

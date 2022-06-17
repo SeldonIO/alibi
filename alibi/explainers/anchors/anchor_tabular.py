@@ -249,7 +249,8 @@ class TabularSampler:
 
     def perturbation(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
-        Implements functionality described in :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`.
+        Implements functionality described in
+        :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.__call__`.
 
         Parameters
         ----------
@@ -329,7 +330,7 @@ class TabularSampler:
         Parameters
         ----------
         allowed_bins
-            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.get_feature_index` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.get_features_index` method.
         num_samples
             Number of replacement values.
         samples
@@ -819,7 +820,7 @@ class AnchorTabular(Explainer, FitMixin):
         predicted_label
             Label of the instance to be explained (inferred if not given).
         params
-            Parameters passed to :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
+            Parameters passed to :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain`.
 
         Return
         ------

@@ -101,7 +101,7 @@ appropriate. However, human bias itself is still an element. Hence, if the model
 data, we are vulnerable to using explainability to justify relations in the data that may not be accurate. Consider:
 > _"Before launching the model, risk analysts are asked to review the Shapley value explanations to ensure that the
 > model exhibits expected behavior (i.e., the model uses the same features that a human would for the same task)."_
-> &mdash; <cite>[Explainable Machine Learning in Deployment](https://dl.acm.org/doi/pdf/10.1145/3351095.3375624)</cite>
+> &mdash; <cite>[Explainable Machine Learning in Deployment](https://dl.acm.org/doi/abs/10.1145/3351095.3375624)</cite>
 
 The critical point here is that the risk analysts in the above scenario must be aware of their own bias and potential
 bias in the dataset. The Shapley value explanations themselves don't remove this source of human error; they just make
@@ -126,7 +126,7 @@ practitioner an understanding of which explainers are suitable in which situatio
 | Explainer                                                                                  | Scope  | Model types                                                                     | Task types                 | Data types                                       | Use                                                                                                                  | Resources                                                                                                                           |
 |--------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box                                                                       | Classification, Regression | Tabular (numerical)                              | How does model prediction vary with respect to features of interest?                                                 | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
-| [Anchors](anchors)                                                                         | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same?                    | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)                                     |
+| [Anchors](anchors)                                                                         | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same?                    | [docs](../methods/Anchors.ipynb), [paper](https://dl.acm.org/doi/abs/10.5555/3504035.3504222)                                       |
 | [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box, White-box (_TensorFlow_)                                             | Classification             | Tabular (numerical), Image                       | ""                                                                                                                   | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
 | [Integrated Gradients](integrated-gradients)                                               | Local  | White-box (_TensorFlow_)                                                        | Classification, Regression | Tabular (numerical, categorical), Text and Image | What does each feature contribute to the model prediction?                                                           | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
 | [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box                                                                       | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                                   | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) |
@@ -220,12 +220,12 @@ and [pertinent positives](contrastive-explanation-method-pertinent-positives).
 
 #### Anchors
 
-| Explainer                           | Scope   | Model types   | Task types       | Data types                                        | Use                                                                                               | Resources                                                                                       |
-|-------------------------------------|---------|---------------|------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [Anchors](../methods/Anchors.ipynb) | Local   | Black-box     | Classification   | Tabular (numerical, categorical), Text and Image  | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf) |
+| Explainer                           | Scope   | Model types   | Task types       | Data types                                        | Use                                                                                               | Resources                                                                                      |
+|-------------------------------------|---------|---------------|------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [Anchors](../methods/Anchors.ipynb) | Local   | Black-box     | Classification   | Tabular (numerical, categorical), Text and Image  | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://dl.acm.org/doi/abs/10.5555/3504035.3504222)  |
 
 Anchors are introduced
-in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf). More detailed documentation can be found [here](../methods/Anchors.ipynb).
+in [Anchors: High-Precision Model-Agnostic Explanations](https://dl.acm.org/doi/abs/10.5555/3504035.3504222). More detailed documentation can be found [here](../methods/Anchors.ipynb).
 
 Let $A$ be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
 predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) adjusted
@@ -428,7 +428,7 @@ they should satisfy the following properties.
   combination of attributions of that feature for each of those models
 
 Not all LFA methods satisfy these
-methods ([LIME](https://papers.nips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf) for example) but the
+methods ([LIME](https://arxiv.org/abs/1705.07874) for example) but the
 ones provided by Alibi ([Integrated Gradients](integrated-gradients), [Kernel SHAP](kernel-shap)
 , [Path-dependent](path-dependent-tree-shap) and [Interventional](interventional-tree-shap) Tree SHAP) do.
 

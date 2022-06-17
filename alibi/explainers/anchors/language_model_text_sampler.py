@@ -151,7 +151,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
         Returns
         -------
-        See :py:meth:`alibi.explainers.anchor_text.LanguageModelSampler.perturb_sentence`.
+        See :py:meth:`alibi.explainers.anchors.language_model_text_sampler.LanguageModelSampler.perturb_sentence`.
         """
         assert self.perturb_opts, "Perturbation options are not set."
         return self.perturb_sentence(anchor, num_samples, **self.perturb_opts)

@@ -311,8 +311,8 @@ class SimilaritySampler(AnchorTextSampler):
         """
         The function returns a `numpy` array of `num_samples` where randomly chosen features,
         except those in anchor, are replaced by similar words with the same part of speech of tag.
-        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence_similarity` for details of how
-        the replacement works.
+        See :py:meth:`alibi.explainers.anchors.text_samplers.SimilaritySampler.perturb_sentence_similarity` for details
+        of how the replacement works.
 
         Parameters
         ----------
@@ -323,7 +323,7 @@ class SimilaritySampler(AnchorTextSampler):
 
         Returns
         -------
-        See :py:meth:`alibi.explainers.anchor_text.SimilaritySampler.perturb_sentence`.
+        See :py:meth:`alibi.explainers.anchors.text_samplers.SimilaritySampler.perturb_sentence_similarity`.
         """
         assert self.perturb_opts, "Perturbation options are not set."
         return self.perturb_sentence_similarity(anchor, num_samples, **self.perturb_opts)

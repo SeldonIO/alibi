@@ -101,7 +101,7 @@ appropriate. However, human bias itself is still an element. Hence, if the model
 data, we are vulnerable to using explainability to justify relations in the data that may not be accurate. Consider:
 > _"Before launching the model, risk analysts are asked to review the Shapley value explanations to ensure that the
 > model exhibits expected behavior (i.e., the model uses the same features that a human would for the same task)."_
-> &mdash; <cite>[Explainable Machine Learning in Deployment](https://arxiv.org/abs/1909.06342)</cite>
+> &mdash; <cite>[Explainable Machine Learning in Deployment](https://dl.acm.org/doi/abs/10.1145/3351095.3375624)</cite>
 
 The critical point here is that the risk analysts in the above scenario must be aware of their own bias and potential
 bias in the dataset. The Shapley value explanations themselves don't remove this source of human error; they just make

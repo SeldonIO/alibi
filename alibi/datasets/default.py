@@ -1,8 +1,7 @@
 import logging
 import pkgutil
 import tarfile
-import joblib
-import urllib
+import json
 from io import BytesIO, StringIO
 from typing import Optional, Tuple, Union, Dict
 
@@ -26,7 +25,7 @@ MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_
                        'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
 
 #  TODO change storage format.
-IMAGENET_URLS = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.joblib']
+IMAGENET_URLS = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.tar.gz']
 
 
 def fetch_imagenet_10(url_id: int = 0) -> Dict:
@@ -67,7 +66,45 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
     except RequestException:
         logger.exception("Could not connect, URL may be out of service")
         raise
-    imagenet10 = joblib.load(urllib.request.urlopen(url))
+    tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
+    imagenet10 = {}
+
+    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'))
+    str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))
+
+    # hack to load npy files from a tar archive
+    # see https://github.com/numpy/numpy/issues/7989
+    mean_channels_af = BytesIO()
+    mean_channels_af.write(tar.extractfile('imagenet10/mean_channels.npy').read())
+    mean_channels_af.seek(0)
+    mean_channels = np.load(mean_channels_af)  # type: ignore
+
+    X_train_af = BytesIO()
+    X_train_af.write(tar.extractfile('imagenet10/trainset/X.npy').read())
+    X_train_af.seek(0)
+    X_train = np.load(X_train_af)  # type: ignore
+
+    y_train_af = BytesIO()
+    y_train_af.write(tar.extractfile('imagenet10/trainset/y.npy').read())
+    y_train_af.seek(0)
+    y_train = np.load(y_train_af)  # type: ignore
+
+    X_test_af = BytesIO()
+    X_test_af.write(tar.extractfile('imagenet10/testset/X.npy').read())
+    X_test_af.seek(0)  
+    X_test = np.load(X_test_af)  # type: ignore
+
+    y_test_af = BytesIO()
+    y_test_af.write(tar.extractfile('imagenet10/testset/y.npy').read())
+    y_test_af.seek(0)
+    y_test = np.load(y_test_af)  # type: ignore
+
+    # buiding dataset dict
+    imagenet10['trainset'] = (X_train, y_train)
+    imagenet10['testset'] = (X_test, y_test)
+    imagenet10['int_to_str_labels'] = int_to_str_labels
+    imagenet10['str_to_int_labels'] = str_to_int_labels
+    imagenet10['mean_channels'] = mean_channels
 
     return imagenet10
 

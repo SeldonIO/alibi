@@ -1160,6 +1160,10 @@ class TreeShap(Explainer, FitMixin):
             else:
                 self._check_inputs(background_data)
 
+            # summarisation can return a DenseData object
+            n_samples = (background_data.data if isinstance(background_data, shap_utils.DenseData)
+                         else background_data).shape[0]
+
             # Warns the user that TreeShap supports only up to TREE_SHAP_BACKGROUND_SIZE(100) samples in the
             # background dataset. Note that there is a logic above related to the summarisation of the background
             # dataset which uses TREE_SHAP_BACKGROUND_WARNING_THRESHOLD(1000) as (warning) threshold. Although the
@@ -1168,7 +1172,7 @@ class TreeShap(Explainer, FitMixin):
             #   i) minimal refactoring
             #   ii) return the correct result if a newer version of shap which fixes the issue is used before we
             #   update our wrapper in alibi (i.e. just ignore the warning)
-            if background_data.shape[0] > TREE_SHAP_BACKGROUND_SUPPORTED_SIZE:
+            if n_samples > TREE_SHAP_BACKGROUND_SUPPORTED_SIZE:
                 logger.warning('The upstream implementation of interventional TreeShap supports only up to '
                                f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} samples in the background dataset. '
                                'A larger background dataset size will result in erroneous Shap values.')

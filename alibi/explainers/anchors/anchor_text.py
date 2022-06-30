@@ -352,17 +352,36 @@ class AnchorText(Explainer):
         text
             Text instance to be explained.
         threshold
-            Minimum precision threshold.
+            Minimum anchor precision threshold. The algorithm tries to find an anchor that maximizes the coverage
+            under precision constraint. The precision constraint is formally defined as
+            :math:`P(prec(A) \ge t) \ge 1 - \delta`, where :math:`A` is an anchor, :math:`t` is the `threshold`
+            parameter, :math:`\delta` is the `delta` parameter, and :math:`prec(\cdot)` denotes the precision
+            of an anchor. In other words, we are seeking for an anchor having its precision greater or equal than
+            the given `threshold` with a confidence of `(1 - delta)`. Note that there are cases in which the precision
+            constraint cannot be satisfied due to the quantile-based discretisation of the numerical features.
+            If that is the case, the best (i.e. highest coverage) non-eligible anchor is returned.
         delta
-            Used to compute `beta`.
+            Significant threshold. `1 - delta` represents the confidence threshold for the anchor precision
+            (see `threshold`) and the selection of the best anchor candidate in each iteration (see `tau`).
         tau
-            Margin between lower confidence bound and minimum precision or upper bound.
+            Multi-armed bandit parameter used to select candidate anchors in each iteration. The multi-armed bandit
+            algorithm tries to find the potentially best (i.e. highest precision) `beam_size` candidate anchors from a
+            list of anchors created by including a new predicate in the candidate anchors form the previous iteration.
+            Formally, when the `beam_size=1`, the multi-armed bandit algorithm seeks to find an anchor :math:`A` such
+            that :math:`P(prec(A) \ge prec(A^\star) - \\tau) \ge 1 - \delta`, where :math:`A^\star` is the anchor
+            with the highest true precision, :math:`\\tau` is the `tau` parameter, :math:`\delta` is the `delta`
+            parameter, and :math:`prec(\cdot)` denotes the precision of an anchor. In other words, in each iteration,
+            the algorithm returns with a probability of at least `1 - delta` an anchor :math:`A` with a precision lower
+            than the precision of the highest precision anchor in the current iterration, :math:`A^\star`,
+            with a maximum tolerance of `tau`.
         batch_size
-            Batch size used for sampling.
+            Batch size used for sampling. The Anchor algorithm will query the black-box model in batches of size
+            `batch_size`.
         coverage_samples
             Number of samples used to estimate coverage from during anchor search.
         beam_size
-            Number of options kept after each stage of anchor building.
+            The number of anchors extended (i.e. candidate anchors returned by the multi-armed bandit)
+            at each step of new anchors construction.
         stop_on_first
             If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.

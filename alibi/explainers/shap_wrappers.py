@@ -1171,11 +1171,12 @@ class TreeShap(Explainer, FitMixin):
             # leave the logic above untouched. This approach has at least two benefits:
             #   i) minimal refactoring
             #   ii) return the correct result if a newer version of shap which fixes the issue is used before we
-            #   update our wrapper in alibi (i.e. just ignore the warning)
+            #   update our dependencies in alibi (i.e. just ignore the warning)
             if n_samples > TREE_SHAP_BACKGROUND_SUPPORTED_SIZE:
-                logger.warning('The upstream implementation of interventional TreeShap supports only up to '
+                logger.warning(f'The upstream implementation of interventional TreeShap supports only up to '
                                f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} samples in the background dataset. '
-                               'A larger background dataset size will result in erroneous Shap values.')
+                               f'A larger background dataset will be sampled with replacement to '
+                               f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} instances.')
 
         perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
         self.background_data = background_data

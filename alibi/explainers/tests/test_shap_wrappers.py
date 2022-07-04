@@ -937,9 +937,6 @@ use_groups = [True, False]
 summarise_result = [True, False]
 
 
-# FIXME: behaviour of mock data and mock predictor likely needs to be reconsidered
-#  for these tests to pass. See https://github.com/SeldonIO/alibi/issues/564
-@pytest.mark.skip(reason="https://github.com/SeldonIO/alibi/issues/564")
 @pytest.mark.parametrize('mock_kernel_shap_explainer', mock_ker_exp_params, ids=mock_ker_expln_id, indirect=True)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -997,13 +994,23 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     explainer.use_groups = use_groups
     explainer.fit(background_data, group_names=group_names, groups=groups)
 
-    # explain some instances
+    # Explain some instances. Note that we disable the default 'auto' regularization which causes sklearn to throw
+    # ValueError in LassoLARSIC. The noise variance estimate used in the AIC criterion is obtained by solving an
+    # Ordinary Least Squares problem: ||Ax - b||^2, where matrix A has nsamples(4) rows. The error is thrown when the
+    # number of rows in A is less than its number of columns. Note that when the number of rows is less than the
+    # number of columns, the solution is not unique, and depending on the rank(A), the solution might be exact
+    # (i.e. variance of zero). An alternative would be to increase the number of rows which corresponds to increasing
+    # nsamples. Increasing the number of rows will also bypass the warning message returned by KernelSHAP. KernelSHAP
+    # solves a Weighted Least Squares problem, and uses the pseudo-inverse when inversion is not possible. If the
+    # pseudo-inverse is used, KernalSHAP throws a warning along with some suggestions to overcome obtaining a
+    # singular matrix.
     explanation = explainer.explain(
         instances,
         summarise_result=summarise_result,
         cat_vars_enc_dim=cat_vars_enc_dim,
         cat_vars_start_idx=cat_vars_start_idx,
         nsamples=4,
+        l1_reg=False
     )
 
     # check that explanation metadata and data keys are as expected

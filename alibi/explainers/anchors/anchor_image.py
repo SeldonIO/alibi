@@ -125,7 +125,7 @@ class AnchorImageSampler:
          - `data` - Matrix with 1s and 0s indicating whether the values in a superpixel will remain unchanged (1) or \
          will be perturbed (0), for each sample.
 
-         - `1.0` - indicates exact coverage is not computed for this algorithm.
+         - `-1.0` - indicates exact coverage is not computed for this algorithm.
 
          - `anchor[0]` - position of anchor in the batch request
 
@@ -139,7 +139,7 @@ class AnchorImageSampler:
             covered_true = [scale_image(img) for img in covered_true]
             covered_false = raw_data[np.logical_not(labels)][: self.n_covered_ex]
             covered_false = [scale_image(img) for img in covered_false]
-            # coverage set to -1.0 as we can't compute 'true'coverage for this model
+            # coverage set to -1.0 as we can't compute 'true' coverage for this model
 
             return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]  # type: ignore
 
@@ -467,9 +467,10 @@ class AnchorImage(Explainer):
         image
             Image to be explained.
         p_sample
-            Probability for a pixel to be represented by the average value of its superpixel. The missingness of a
-            superpixel (i.e. querying the model on a reduced input) is simulated by randomly turning it on and off
-            with a probability `p_sample`.
+            The probability of simulating the absence of a superpixel. If the `images_background` is not provided,
+            the absent superpixels will be replaced by the average value of their constituent pixels. Otherwise,
+            the synthetic instances are created by fixing the present superpixels and superimposing another image
+            from the `images_background` over the rest of the absent superpixels.
         threshold
             Minimum anchor precision threshold. The algorithm tries to find an anchor that maximizes the coverage
             under precision constraint. The precision constraint is formally defined as

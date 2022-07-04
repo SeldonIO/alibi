@@ -792,9 +792,10 @@ class AnchorBaseBeam:
             success = False  # indicates the method has not found an anchor
             logger.warning(f'Could not find an anchor satisfying the {desired_confidence} precision constraint. '
                            f'Now returning the best non-eligible result. The desired precision threshold might not be '
-                           f'achieved due to the quantile-based discretisation of the numerical features since the '
-                           f'synthetic instances satisfying the anchor are constructed by sampling the numerical '
-                           f'features from their corresponding, potentially large, quantile intervals.')
+                           f'achieved due to the quantile-based discretisation of the numerical features. The '
+                           f'resolution of the bins may be too large to find an anchor of required precision. '
+                           f'Note that higher resolution may or may not be easily achieved depending on the underling '
+                           f'numerical features distributions.')
             anchors = []
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])

@@ -741,15 +741,15 @@ class AnchorTabular(Explainer, FitMixin):
             (see `threshold`) and the selection of the best anchor candidate in each iteration (see `tau`).
         tau
             Multi-armed bandit parameter used to select candidate anchors in each iteration. The multi-armed bandit
-            algorithm tries to find the potentially best (i.e. highest precision) `beam_size` candidate anchors from a
-            list of anchors created by including a new predicate in the candidate anchors form the previous iteration.
-            Formally, when the `beam_size=1`, the multi-armed bandit algorithm seeks to find an anchor :math:`A` such
-            that :math:`P(prec(A) \\ge prec(A^\\star) - \\tau) \\ge 1 - \\delta`, where :math:`A^\\star` is the anchor
-            with the highest true precision, :math:`\\tau` is the `tau` parameter, :math:`\\delta` is the `delta`
-            parameter, and :math:`prec(\\cdot)` denotes the precision of an anchor. In other words, in each iteration,
-            the algorithm returns with a probability of at least `1 - delta` an anchor :math:`A` with a precision lower
-            than the precision of the highest precision anchor in the current iteration, :math:`A^\\star`,
-            with a maximum error tolerance of `tau`. A bigger value for `tau` means faster convergence but also looser
+            algorithm tries to find within a tolerance `tau` the most promising (i.e. according to the precision)
+            `beam_size` candidate anchor(s) from a list of proposed anchors. Formally, when the `beam_size=1`,
+            the multi-armed bandit algorithm seeks to find an anchor :math:`A` such that
+            :math:`P(prec(A) \\ge prec(A^\\star) - \\tau) \\ge 1 - \\delta`, where :math:`A^\\star` is the anchor
+            with the highest true precision (which we don't know), :math:`\\tau` is the `tau` parameter,
+            :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision of an anchor.
+            In other words, in each iteration, the algorithm returns with a probability of at least `1 - delta` an
+            anchor :math:`A` with a precision lower than the precision of the highest precision anchor :math:`A^\\star`,
+            within an error tolerance of `tau`. A bigger value for `tau` means faster convergence but also looser
             anchor conditions.
         batch_size
             Batch size used for sampling. The Anchor algorithm will query the black-box model in batches of size
@@ -758,9 +758,9 @@ class AnchorTabular(Explainer, FitMixin):
         coverage_samples
             Number of samples used to estimate coverage from during result search.
         beam_size
-            The number of anchors extended (i.e. candidate anchors returned by the multi-armed bandit)
-            at each step of new anchors construction. A bigger beam width can lead to a better overall anchor at the
-            expense of more computation time.
+            Number of candidate anchors selected by the multi-armed bandit algorithm in each iteration from a list of
+            proposed anchors. A bigger beam  width can lead to a better overall anchor (i.e. prevents the algorithm
+            of getting stuck in a local maximum) at the expense of more computation time.
         stop_on_first
             If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.

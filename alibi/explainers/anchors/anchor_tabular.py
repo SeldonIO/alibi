@@ -748,9 +748,9 @@ class AnchorTabular(Explainer, FitMixin):
             with the highest true precision (which we don't know), :math:`\\tau` is the `tau` parameter,
             :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision of an anchor.
             In other words, in each iteration, the algorithm returns with a probability of at least `1 - delta` an
-            anchor :math:`A` with a precision lower than the precision of the highest precision anchor :math:`A^\\star`,
-            within an error tolerance of `tau`. A bigger value for `tau` means faster convergence but also looser
-            anchor conditions.
+            anchor :math:`A` with a precision within an error tolerance of `tau` from the precision of the
+            highest true precision anchor :math:`A^\\star`. A bigger value for `tau` means faster convergence but also
+            looser anchor conditions.
         batch_size
             Batch size used for sampling. The Anchor algorithm will query the black-box model in batches of size
             `batch_size`. A larger `batch_size` gives more confidence in the anchor, again at the expense of

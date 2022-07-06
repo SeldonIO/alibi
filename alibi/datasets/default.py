@@ -91,7 +91,7 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
 
     X_test_af = BytesIO()
     X_test_af.write(tar.extractfile('imagenet10/testset/X.npy').read())
-    X_test_af.seek(0)  
+    X_test_af.seek(0)
     X_test = np.load(X_test_af)  # type: ignore
 
     y_test_af = BytesIO()

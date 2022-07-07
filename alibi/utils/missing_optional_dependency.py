@@ -99,9 +99,9 @@ def import_optional(module_name: str, names: Optional[List[str]] = None) -> Any:
             return objs if len(objs) > 1 else objs[0]
         return module
     except (ImportError, ModuleNotFoundError) as err:
-        name, *_ = err.name.split('.')
-        if name is None:
+        if err.name is None:
             raise TypeError()
+        name, *_ = err.name.split('.')
         if name not in ERROR_TYPES:
             raise err
         missing_dependency = ERROR_TYPES[name]

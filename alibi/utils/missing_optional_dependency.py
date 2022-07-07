@@ -12,10 +12,10 @@ from string import Template
 from importlib import import_module
 
 err_msg_template = Template((
-    "Attempted to use $object_name without the correct optional dependencies installed. To install "
-    + "the correct optional dependencies, run `pip install alibi[$missing_dependency]` "
-    + "from the command line. For more information, check the Installation documentation "
-    + "at https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
+    "Attempted to use $object_name without the correct optional dependencies installed. This may be due to missing"
+    + " or incompatible versions of dependencies. To install the correct optional dependencies, run"
+    + "`pip install alibi[$missing_dependency]` from the command line. For more information, check the installation"
+    + "documentation at https://docs.seldon.io/projects/alibi/en/latest/overview/getting_started.html."
 ))
 
 

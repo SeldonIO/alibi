@@ -298,10 +298,17 @@ Default PartialDependence metadata.
 """
 
 DEFAULT_DATA_PD = {
-    "pd_values": [],
-    "constant_value": None,
+    "deciles_values": None,
+    "pd_values": None,
+    "ice_values": None,
+    "feature_values": None,
     "feature_names": None,
-    "target_names": None,
+    "all_feature_names": None,
+    "all_categorical_names": None,
+    "all_target_names": None,
+    "response_method": None,
+    "method": None,
+    "kind": None,
 }  # type: dict
 """
 Default PartialDependence data.

@@ -1,21 +1,29 @@
 import copy
+import math
 import numbers
-
-import numpy as np
 import logging
+import numpy as np
+
+
 from enum import Enum
+from itertools import count
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Literal
 
 from sklearn.utils.validation import check_is_fitted
 from sklearn.base import is_classifier, is_regressor
+from sklearn.utils.extmath import cartesian
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble._gb import BaseGradientBoosting
 from sklearn.ensemble._hist_gradient_boosting.gradient_boosting import BaseHistGradientBoosting
-from sklearn.inspection._partial_dependence import _grid_from_X
-from sklearn.utils.extmath import cartesian
 from sklearn.utils import _get_column_indices, _safe_indexing
+from sklearn.inspection._partial_dependence import (
+    _grid_from_X,
+    _partial_dependence_brute,
+    _partial_dependence_recursion
+)
 
+from alibi.explainers.ale import get_quantiles
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_PD, DEFAULT_DATA_PD
 
@@ -152,33 +160,55 @@ class PartialDependence(Explainer):
         if self.categorical_names is None:
             self.categorical_names = {}
 
-        # # set the target_names when the user did not provide the target names
-        # if self.target_names is None:
-        #     pred = np.atleast_2d(self.predictor(X[0].reshape(1, -1)))
-        #     n_targets = pred.shape[1]
-        #     self.target_names = [f'c_{i}' for i in range(n_targets)]
-
         self.feature_names = np.array(self.feature_names)
-        # self.target_names = np.array(self.target_names)
         self.categorical_names = {k: np.array(v) for k, v in self.categorical_names.items()}
 
         # parameters sanity checks
-        self._params_sanity_checks(estimator=self.predictor, response_method=response_method, method=method, kind=kind)
         self._features_sanity_checks(features=features_list)
+        response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,
+                                                                   response_method=response_method,
+                                                                   method=method,
+                                                                   kind=kind)
 
-        explanation = []
+
+
+        # compute partial dependencies for every features.
+        # TODO: implement parallel version
+        pds = []
+        feature_names = []
+
         for features in features_list:
-            pd = self._partial_dependence(estimator=self.predictor,
-                                          X=X,
-                                          features=features,
-                                          response_method=response_method,
-                                          percentiles=percentiles,
-                                          grid_resolution=grid_resolution,
-                                          method=method,
-                                          kind=kind)
-            explanation.append(pd)
+            if isinstance(features, Tuple):
+                feature_names.append(tuple([self.feature_names[f] for f in features]))
+            else:
+                feature_names.append(self.feature_names[features])
 
-        return self._build_explanation(explanation)
+            # compute partial dependence
+            pds.append(
+                self._partial_dependence(
+                            estimator=self.predictor,
+                            X=X,
+                            features=features,
+                            response_method=response_method,
+                            percentiles=percentiles,
+                            grid_resolution=grid_resolution,
+                            method=method,
+                            kind=kind
+                )
+            )
+
+        # set the target_names when the user did not provide the target names
+        # we do it here to avoid checking model's type, prediction function etc
+        if self.target_names is None:
+            key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
+            n_targets = pds[features_list[0]][key].shape[0]
+            self.target_names = [f'c_{i}' for i in range(n_targets)]
+
+        return self._build_explanation(response_method=response_method,
+                                       method=method,
+                                       kind=kind,
+                                       feature_names=feature_names,
+                                       pds=pds)
 
     def _features_sanity_checks(self, features: List[Union[int, Tuple[int, int]]]):
         """ Features sanity checks. """
@@ -264,6 +294,8 @@ class PartialDependence(Explainer):
                 raise ValueError(f"With the '{method.RECURSION.value}' method, the response_method must be "
                                  f"'{response_method.DECISION_FUNCTION.value}'. Got {response_method}.")
 
+        return response_method, method, kind
+
     def _partial_dependence(self,
                             estimator: Callable[[np.ndarray], np.ndarray],
                             X: np.ndarray,
@@ -274,58 +306,64 @@ class PartialDependence(Explainer):
                             method: Literal['auto', 'recursion', 'brute'] = 'auto',
                             kind: Literal['average', 'individual', 'both'] = 'average'):
 
-        if isinstance(features, Tuple):
-            f0, f1 = features
+        if isinstance(features, numbers.Integral):
+            features = (features, )
 
-            if self._is_numerical(f0) and self._is_numerical(f1):
-                feature_indices = np.asarray(_get_column_indices(X, features), dtype=np.int32, order='C').ravel()
-                grid, values = _grid_from_X(X=_safe_indexing(X, feature_indices, axis=1),
+        deciles, grid, values, features_indices = [], [], [], []
+        for f in features:
+            f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
+            X_f = _safe_indexing(X, f_indices, axis=1)
+
+            # get deciles
+            deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
+
+            # construct grid for feature f
+            grid_f, values_f = _grid_from_X(X_f,
                                             percentiles=percentiles,
-                                            grid_resolution=grid_resolution)
+                                            grid_resolution=grid_resolution if self._is_numerical(f) else np.inf)
 
-            elif self._is_numerical(f0) and self._is_categorical(f1):
-                feature_indices0 = np.asarray(_get_column_indices(X, f0), dtype=np.int32, order='C').ravel()
-                grid0, values0 = _grid_from_X(X=_safe_indexing(X, feature_indices0, axis=1),
-                                              percentiles=percentiles,
-                                              grid_resolution=grid_resolution)
+            features_indices.append(f_indices)
+            deciles.append(deciles_f)
+            grid.append(grid_f)
+            values += values_f
 
-                feature_indices1 = np.asarray(_get_column_indices(X, f1), dtype=np.int32, order='C').ravel()
-                grid1, values1 = _grid_from_X(X=_safe_indexing(X, feature_indices1, axis=1),
-                                              percentiles=percentiles,
-                                              grid_resolution=np.inf)
+        # covers also the case of a single feature, just to ensure it has the right shape
+        features_indices = np.concatenate(features_indices, axis=0)
+        grid = cartesian(tuple([g.reshape(-1) for g in grid]))
 
-                grid = cartesian(grid0.reshape(-1), grid1.reshape(-1))
-                values = values0 + values1
-            elif self._is_categorical(f0) and self._is_numerical(f1):
-                feature_indices0 = np.asarray(_get_column_indices(X, f0), dtype=np.int32, order='C').ravel()
-                grid0, values0 = _grid_from_X(X=_safe_indexing(X, feature_indices0, axis=1),
-                                              percentiles=percentiles,
-                                              grid_resolution=np.inf)
+        if method == "brute":
+            averaged_predictions, predictions = _partial_dependence_brute(
+                estimator, grid, features_indices, X, response_method
+            )
 
-                feature_indices1 = np.asarray(_get_column_indices(X, f1), dtype=np.int32, order='C').ravel()
-                grid1, values1 = _grid_from_X(X=_safe_indexing(X, feature_indices1, axis=1),
-                                              percentiles=percentiles,
-                                              grid_resolution=grid_resolution)
-
-                grid = cartesian(grid0.reshape(-1), grid1.reshape(-1))
-                values = values0 + values1
-            else:
-
-                grid, values = _grid_from_X(X=X[: [f0, f1]], percentiles=percentiles, grid_resolution=np.inf)
+            # reshape predictions to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
+            predictions = predictions.reshape(
+                -1, X.shape[0], *[val.shape[0] for val in values]
+            )
         else:
-            feature_indices = np.asarray(_get_column_indices(X, features), dtype=np.int32, order='C').ravel()
-            grid, values = _grid_from_X(X=_safe_indexing(X, feature_indices, axis=1),
-                                        percentiles=percentiles,
-                                        grid_resolution=grid_resolution if self._is_numerical(features) else np.inf)
+            averaged_predictions = _partial_dependence_recursion(
+                estimator, grid, features_indices
+            )
 
-        print("Grid:")
-        print("=====")
-        print(grid)
+            # reshape averaged_predictions to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
+        averaged_predictions = averaged_predictions.reshape(
+            -1, *[val.shape[0] for val in values]
+        )
 
-        print("Values:")
-        print("=======")
-        print(values)
-        return None
+        pd = {
+            'values': values if len(values) > 1 else values[0],
+            'deciles': deciles if len(deciles) > 1 else deciles[0],
+        }
+        if kind == Kind.AVERAGE:
+            pd.update({'average': averaged_predictions})
+        elif kind == Kind.INDIVIDUAL:
+            pd.update({'individual': predictions})
+        else:
+            pd.update({
+                'average': averaged_predictions,
+                'individual': predictions
+            })
+        return pd
 
     def _is_categorical(self, feature):
         return (self.categorical_names is not None) and (feature in self.categorical_names)
@@ -333,8 +371,234 @@ class PartialDependence(Explainer):
     def _is_numerical(self, feature):
         return (self.categorical_names is None) or (feature not in self.categorical_names)
 
-    def _build_explanation(self, explanation):
-        return explanation
+    def _build_explanation(self, response_method, method, kind, feature_names, pds):
+        deciles_values, feature_values = [], []
+        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None
+        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None
+
+        for pd in pds:
+            feature_values.append(pd['values'])
+            deciles_values.append(pd['deciles'])
+
+            if Kind.AVERAGE in pd:
+                pd_values.append(pd[Kind.AVERAGE])
+            if Kind.INDIVIDUAL in pd:
+                ice_values.append(pd[Kind.INDIVIDUAL])
+
+        data = copy.deepcopy(DEFAULT_DATA_PD)
+        data.update(
+            all_feature_names=self.feature_names,
+            all_categorical_names=self.categorical_names,
+            all_target_names=self.target_names,
+            feature_names=feature_names,
+            feature_values=feature_values,
+            ice_values=ice_values,
+            pd_values=pd_values,
+            deciles_values=deciles_values,
+            response_method=response_method,
+            method=method,
+            kind=kind
+        )
+        return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
 
     def reset_predictor(self, predictor: Any) -> None:
         pass
+
+
+
+def plot_pd(exp: Explanation,
+            features_list: Union[List[int], Literal['all']] = 'all',
+            target_idx: Union[int, str] = 0,
+            n_cols: int = 3,
+            centered: bool = True,
+            ax: Union['plt.Axes', np.ndarray, None] = None,
+            pd_graph_kw: Optional[dict] = None,
+            ice_graph_kw: Optional[dict] = None,
+            fig_kw: Optional[dict] = None) -> 'np.ndarray':
+    """
+    Plot Partial Dependence curves on matplotlib axes.
+
+    Parameters
+    ----------
+    exp
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+    features_list
+        A list of features for which to plot the Partial Dependence curves or ``'all'`` for all features.
+        Can be a integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
+    target_idx
+        Target index for which to plot the Partial Dependence curves. Can be a mix of integers denoting target
+        index or strings denoting entries in `exp.target_names`.
+    n_cols
+        Number of columns to organize the resulting plot into.
+    centered
+        Boolean flag to center numerical Individual Conditional Expectation curves.
+    ax
+        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+    pd_graph_kw
+        Keyword arguments passed to the `plt.plot` function when plotting the Partial Dependenc.
+    ice_graph_kw
+        Keyward arguments passed to the `plt.plot` function when plotting the Individual Conditional Expectation.
+    fig_kw
+        Keyword arguments passed to the `fig.set` function.
+
+    Returns
+    -------
+    An array of `matplotlib` axes with the resulting Partial Dependence plots.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+
+    default_fig_kw = {'tight_layout': 'tight'}
+    if fig_kw is None:
+        fig_kw = {}
+    fig_kw = {**default_fig_kw, **fig_kw}
+
+    if features_list == 'all':
+        features_list = range(0, len(exp.feature_names))
+    else:
+        for features in features_list:
+            if features > len(exp.feature_names):
+                raise ValueError(f'The feature_list indices must be less than the '
+                                 f'len(exp.feature_names) = {len(exp.feature_names)}. Received {features}.')
+
+    # corresponds to the number of subplots
+    n_features = len(features_list)
+
+    # make axes
+    if ax is None:
+        fig, ax = plt.subplots()
+
+    if isinstance(ax, plt.Axes) and n_features != 1:
+        ax.set_axis_off()  # treat passed axis as a canvas for subplots
+        fig = ax.figure
+        n_cols = min(n_cols, n_features)
+        n_rows = math.ceil(n_features / n_cols)
+
+        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes_ravel = axes.ravel()
+        # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
+        gs = GridSpec(n_rows, n_cols)
+        for i, spec in zip(range(n_features), gs):
+            axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i-1] if i > 0 else None)
+
+    else:  # array-like
+        if isinstance(ax, plt.Axes):
+            ax = np.array(ax)
+        if ax.size < n_features:
+            raise ValueError(f"Expected ax to have {n_features} axes, got {ax.size}")
+        axes = np.atleast_2d(ax)
+        axes_ravel = axes.ravel()
+        fig = axes_ravel[0].figure
+
+    def _is_categorical(feature):
+        feature_idx = np.where(exp.all_feature_names == feature)[0].item()
+        return feature_idx in exp.all_categorical_names
+
+    # make plots
+    for ix, features, ax_ravel in zip(count(), features_list, axes_ravel):
+        # extract the feature names
+        feature_names = exp.feature_names[features]
+
+        # if it is tuple, then we need a 2D plot and address 4 cases: (num, num), (num, cat), (cat, num), (cat, cat)
+        if isinstance(feature_names, Tuple):
+            f0, f1 = feature_names
+
+            if (not _is_categorical(f0)) and (not _is_categorical(f1)):
+                _ = _plot_two_pd_num_num()
+            elif (not _is_categorical(f0)) and _is_categorical(f1):
+                _ = _plot_two_pd_num_cat()
+            elif _is_categorical(f0) and (not _is_categorical(f1)):
+                _ = _plot_two_pd_num_cat()
+            else:
+                _ = _plot_two_pd_cat_cat
+
+        else:
+            if _is_categorical(feature_names):
+                _ = _plot_one_pd_cat()
+            else:
+                _ = _plot_one_pd_num(exp=exp,
+                                     feature=features,
+                                     target_idx=target_idx,
+                                     centered=centered,
+                                     ax=ax_ravel,
+                                     legend=True,
+                                     pd_graph_kw=pd_graph_kw,
+                                     ice_graph_kw=ice_graph_kw, )
+
+    fig.set(**fig_kw)
+    return axes
+
+def _plot_one_pd_num(exp: Explanation,
+                     feature: int,
+                     target_idx: int,
+                     centered: bool = True,
+                     ax: 'plt.Axes' = None,
+                     legend: bool = True,
+                     pd_graph_kw: dict = None,
+                     ice_graph_kw: dict = None) -> 'plt.Axes':
+    import matplotlib.pyplot as plt
+    from matplotlib import transforms
+
+    if ax is None:
+        ax = plt.gca()
+
+    if exp.kind == Kind.AVERAGE:
+        default_pd_graph_kw = {'markersize': 2, 'marker': 'o', 'label': None}
+        pd_graph_kw = default_pd_graph_kw if pd_graph_kw is None else {**default_pd_graph_kw, **pd_graph_kw}
+        ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_graph_kw)
+        # shay = ax.get_shared_y_axes()
+        # shay.remove(ax)
+
+    elif exp.kind == Kind.INDIVIDUAL:
+        default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
+        ice_graph_kw = default_ice_graph_kw if ice_graph_kw is None else {**default_ice_graph_kw, **ice_graph_kw}
+
+        # extract and center ice values if necessary
+        ice_values = exp.ice_values[feature][target_idx].T
+        if centered:
+            ice_values = ice_values - ice_values[0:1]
+
+        ax.plot(exp.feature_values[feature], ice_values, **ice_graph_kw)
+    else:
+        default_pd_graph_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'darkorange', 'label': 'average'}
+        pd_graph_kw = default_pd_graph_kw if pd_graph_kw is None else {**default_pd_graph_kw, **pd_graph_kw}
+
+        default_ice_graph_kw = {'alpha': 0.5, 'color': 'lightsteelblue', 'label': None}
+        ice_graph_kw = default_ice_graph_kw if ice_graph_kw is None else {**default_ice_graph_kw, **ice_graph_kw}
+
+        # extract and center pd values if necessary
+        pd_values = exp.pd_values[feature][target_idx]
+        if centered:
+            pd_values = pd_values - pd_values[0]
+
+        # extract and center ice values if necessary
+        ice_values = exp.ice_values[feature][target_idx].T
+        if centered:
+            ice_values = ice_values - ice_values[0:1]
+
+        ax.plot(exp.feature_values[feature], ice_values, **ice_graph_kw)
+        ax.plot(exp.feature_values[feature], pd_values, **pd_graph_kw)
+        ax.legend()
+
+    # add decile markers to the bottom of the plot
+    trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+    ax.vlines(exp.deciles_values[feature][1:], 0, 0.05, transform=trans)
+
+    ax.set_xlabel(exp.all_feature_names[feature])
+    ax.set_ylabel(exp.all_target_names[target_idx])
+    return ax
+
+
+def _plot_one_pd_cat():
+    print('Plot one cat.')
+
+def _plot_two_pd_num_num():
+    print('Plot two num num')
+
+def _plot_two_pd_num_cat():
+    print('Plot two cat num')
+
+def _plot_two_pd_cat_cat():
+    print('Plot tow cat cat')

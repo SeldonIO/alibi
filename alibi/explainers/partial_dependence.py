@@ -413,8 +413,16 @@ def plot_pd(exp: Explanation,
             n_cols: int = 3,
             centered: bool = True,
             ax: Union['plt.Axes', np.ndarray, None] = None,
-            pd_graph_kw: Optional[dict] = None,
-            ice_graph_kw: Optional[dict] = None,
+            pd_num_kw: Optional[dict] = None,
+            pd_cat_kw: Optional[dict] = None,
+            pd_num_num_kw: Optional[dict] = None,
+            pd_num_cat_kw: Optional[dict] = None,
+            pd_cat_cat_kw: Optional[dict] = None,
+            ice_num_kw: Optional[dict] = None,
+            ice_cat_kw: Optional[dict] = None,
+            ice_num_num_kw: Optional[dict] = None,
+            ice_num_cat_kw: Optional[dict] = None,
+            ice_cat_cat_kw: Optional[dict] = None,
             fig_kw: Optional[dict] = None) -> 'np.ndarray':
     """
     Plot Partial Dependence curves on matplotlib axes.
@@ -436,9 +444,9 @@ def plot_pd(exp: Explanation,
         Boolean flag to center numerical Individual Conditional Expectation curves.
     ax
         A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
-    pd_graph_kw
+    pd_num_kw
         Keyword arguments passed to the `plt.plot` function when plotting the Partial Dependenc.
-    ice_graph_kw
+    ice_num_kw
         Keyward arguments passed to the `plt.plot` function when plotting the Individual Conditional Expectation.
     fig_kw
         Keyword arguments passed to the `fig.set` function.
@@ -516,7 +524,13 @@ def plot_pd(exp: Explanation,
 
         else:
             if _is_categorical(feature_names):
-                _ = _plot_one_pd_cat()
+                _ = _plot_one_pd_cat(exp=exp,
+                                     feature=features,
+                                     target_idx=target_idx,
+                                     ax=ax_ravel,
+                                     legend=True,
+                                     pd_cat_kw=pd_cat_kw,
+                                     ice_cat_kw=ice_cat_kw)
             else:
                 _ = _plot_one_pd_num(exp=exp,
                                      feature=features,
@@ -524,8 +538,8 @@ def plot_pd(exp: Explanation,
                                      centered=centered,
                                      ax=ax_ravel,
                                      legend=True,
-                                     pd_graph_kw=pd_graph_kw,
-                                     ice_graph_kw=ice_graph_kw, )
+                                     pd_num_kw=pd_num_kw,
+                                     ice_num_kw=ice_num_kw, )
 
     fig.set(**fig_kw)
     return axes
@@ -536,8 +550,8 @@ def _plot_one_pd_num(exp: Explanation,
                      centered: bool = True,
                      ax: 'plt.Axes' = None,
                      legend: bool = True,
-                     pd_graph_kw: dict = None,
-                     ice_graph_kw: dict = None) -> 'plt.Axes':
+                     pd_num_kw: dict = None,
+                     ice_num_kw: dict = None) -> 'plt.Axes':
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
@@ -546,27 +560,27 @@ def _plot_one_pd_num(exp: Explanation,
 
     if exp.kind == Kind.AVERAGE:
         default_pd_graph_kw = {'markersize': 2, 'marker': 'o', 'label': None}
-        pd_graph_kw = default_pd_graph_kw if pd_graph_kw is None else {**default_pd_graph_kw, **pd_graph_kw}
-        ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_graph_kw)
+        pd_num_kw = default_pd_graph_kw if pd_num_kw is None else {**default_pd_graph_kw, **pd_num_kw}
+        ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_num_kw)
         # shay = ax.get_shared_y_axes()
         # shay.remove(ax)
 
     elif exp.kind == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
-        ice_graph_kw = default_ice_graph_kw if ice_graph_kw is None else {**default_ice_graph_kw, **ice_graph_kw}
+        ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center ice values if necessary
         ice_values = exp.ice_values[feature][target_idx].T
         if centered:
             ice_values = ice_values - ice_values[0:1]
 
-        ax.plot(exp.feature_values[feature], ice_values, **ice_graph_kw)
+        ax.plot(exp.feature_values[feature], ice_values, **ice_num_kw)
     else:
         default_pd_graph_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'darkorange', 'label': 'average'}
-        pd_graph_kw = default_pd_graph_kw if pd_graph_kw is None else {**default_pd_graph_kw, **pd_graph_kw}
+        pd_num_kw = default_pd_graph_kw if pd_num_kw is None else {**default_pd_graph_kw, **pd_num_kw}
 
         default_ice_graph_kw = {'alpha': 0.5, 'color': 'lightsteelblue', 'label': None}
-        ice_graph_kw = default_ice_graph_kw if ice_graph_kw is None else {**default_ice_graph_kw, **ice_graph_kw}
+        ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center pd values if necessary
         pd_values = exp.pd_values[feature][target_idx]
@@ -578,8 +592,8 @@ def _plot_one_pd_num(exp: Explanation,
         if centered:
             ice_values = ice_values - ice_values[0:1]
 
-        ax.plot(exp.feature_values[feature], ice_values, **ice_graph_kw)
-        ax.plot(exp.feature_values[feature], pd_values, **pd_graph_kw)
+        ax.plot(exp.feature_values[feature], ice_values, **ice_num_kw)
+        ax.plot(exp.feature_values[feature], pd_values, **pd_num_kw)
         ax.legend()
 
     # add decile markers to the bottom of the plot
@@ -591,7 +605,13 @@ def _plot_one_pd_num(exp: Explanation,
     return ax
 
 
-def _plot_one_pd_cat():
+def _plot_one_pd_cat(exp: Explanation,
+                     feature: int,
+                     target_idx: int,
+                     ax: 'plt.Axes' = None,
+                     legend: bool = True,
+                     pd_cat_kw: dict = None,
+                     ice_cat_kw: dict = None):
     print('Plot one cat.')
 
 def _plot_two_pd_num_num():

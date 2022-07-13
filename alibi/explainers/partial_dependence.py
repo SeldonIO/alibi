@@ -490,15 +490,24 @@ def plot_pd(exp: Explanation,
         axes = np.empty((n_rows, n_cols), dtype=np.object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
-        for i, spec in zip(range(n_features), gs):
-            # determine which y-axes should share
-            if sharey == 'all':
-                cond = i != 0
-            elif sharey == 'row':
-                cond = i % n_cols != 0
-            else:
-                cond = False
-            axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i-1] if cond else None)
+
+        def _set_common_axes(start: int, stop: int, all_different: bool = False ):
+            common_axes = None
+            for i, spec in zip(range(start, stop), list(gs)[start:stop]):
+                if not isinstance(exp.feature_names[i], Tuple) and (not all_different):
+                    axes_ravel[i] = fig.add_subplot(spec, sharey=common_axes)
+                    if common_axes is None:
+                        common_axes = axes_ravel[i]
+                else:
+                    axes_ravel[i] = fig.add_subplot(spec)
+
+        if sharey == 'all':
+            _set_common_axes(0, n_features)
+        elif sharey == 'row':
+            for i in range(n_rows):
+                _set_common_axes(i * n_cols, min((i + 1) * n_cols, n_features))
+        else:
+            _set_common_axes(0, n_features, all_different=True)
 
     else:  # array-like
         if isinstance(ax, plt.Axes):
@@ -699,9 +708,6 @@ def _plot_two_pd_num_num(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    # unset sharey axis
-    ax.get_shared_y_axes().remove(ax)
-
     # set contour plot default params
     default_pd_num_num_kw = {"alpha": 0.75}
     pd_num_num_kw = default_pd_num_num_kw if pd_num_num_kw is None else {**default_pd_num_num_kw, **pd_num_num_kw}
@@ -739,8 +745,6 @@ def _plot_two_pd_num_cat(exp: Explanation,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
                          pd_num_cat_kw: dict = None):
-
-    # TODO: remove sharey
     import matplotlib.pyplot as plt
 
     if exp.kind != Kind.AVERAGE:
@@ -748,9 +752,6 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     if ax is None:
         ax = plt.gca()
-
-    # unset sharey axis
-    ax.get_shared_y_axes().remove(ax)
 
     def _get_feature_idx(feature):
         return np.where(exp.all_feature_names == feature)[0].item()

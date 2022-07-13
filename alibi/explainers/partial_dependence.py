@@ -2,6 +2,8 @@ import copy
 import math
 import numbers
 import logging
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -301,7 +303,7 @@ class PartialDependence(Explainer):
                             X: np.ndarray,
                             features: Union[int, Tuple[int, int]],
                             response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
-                            percentiles: Tuple[float, float] = (0.05, 0.95),
+                            percentiles: Tuple[float, float] = (0., 1.),
                             grid_resolution: int = 100,
                             method: Literal['auto', 'recursion', 'brute'] = 'auto',
                             kind: Literal['average', 'individual', 'both'] = 'average'):
@@ -413,16 +415,14 @@ def plot_pd(exp: Explanation,
             n_cols: int = 3,
             centered: bool = True,
             ax: Union['plt.Axes', np.ndarray, None] = None,
+            sharey: str = 'all',
             pd_num_kw: Optional[dict] = None,
+            ice_num_kw: Optional[dict] = None,
             pd_cat_kw: Optional[dict] = None,
+            ice_cat_kw: Optional[dict] = None,
             pd_num_num_kw: Optional[dict] = None,
             pd_num_cat_kw: Optional[dict] = None,
             pd_cat_cat_kw: Optional[dict] = None,
-            ice_num_kw: Optional[dict] = None,
-            ice_cat_kw: Optional[dict] = None,
-            ice_num_num_kw: Optional[dict] = None,
-            ice_num_cat_kw: Optional[dict] = None,
-            ice_cat_cat_kw: Optional[dict] = None,
             fig_kw: Optional[dict] = None) -> 'np.ndarray':
     """
     Plot Partial Dependence curves on matplotlib axes.
@@ -444,6 +444,9 @@ def plot_pd(exp: Explanation,
         Boolean flag to center numerical Individual Conditional Expectation curves.
     ax
         A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+    sharey
+        A parameter specifying whether the y-axis of the ALE curves should be on the same scale
+        for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
         Keyword arguments passed to the `plt.plot` function when plotting the Partial Dependenc.
     ice_num_kw
@@ -486,10 +489,16 @@ def plot_pd(exp: Explanation,
 
         axes = np.empty((n_rows, n_cols), dtype=np.object)
         axes_ravel = axes.ravel()
-        # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
         gs = GridSpec(n_rows, n_cols)
         for i, spec in zip(range(n_features), gs):
-            axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i-1] if i > 0 else None)
+            # determine which y-axes should share
+            if sharey == 'all':
+                cond = i != 0
+            elif sharey == 'row':
+                cond = i % n_cols != 0
+            else:
+                cond = False
+            axes_ravel[i] = fig.add_subplot(spec, sharey=axes_ravel[i-1] if cond else None)
 
     else:  # array-like
         if isinstance(ax, plt.Axes):
@@ -514,13 +523,25 @@ def plot_pd(exp: Explanation,
             f0, f1 = feature_names
 
             if (not _is_categorical(f0)) and (not _is_categorical(f1)):
-                _ = _plot_two_pd_num_num()
-            elif (not _is_categorical(f0)) and _is_categorical(f1):
-                _ = _plot_two_pd_num_cat()
-            elif _is_categorical(f0) and (not _is_categorical(f1)):
-                _ = _plot_two_pd_num_cat()
+                _ = _plot_two_pd_num_num(exp=exp,
+                                         feature=features,
+                                         target_idx=target_idx,
+                                         ax=ax_ravel,
+                                         pd_num_num_kw=pd_num_num_kw)
+
+            elif _is_categorical(f0) and _is_categorical(f1):
+                _ = _plot_two_pd_cat_cat(exp=exp,
+                                         feature=features,
+                                         target_idx=target_idx,
+                                         ax=ax_ravel,
+                                         pd_cat_cat_kw=pd_cat_cat_kw)
+
             else:
-                _ = _plot_two_pd_cat_cat
+                _ = _plot_two_pd_num_cat(exp=exp,
+                                         feature=features,
+                                         target_idx=target_idx,
+                                         ax=ax_ravel,
+                                         pd_num_cat_kw=pd_num_cat_kw)
 
         else:
             if _is_categorical(feature_names):
@@ -528,7 +549,6 @@ def plot_pd(exp: Explanation,
                                      feature=features,
                                      target_idx=target_idx,
                                      ax=ax_ravel,
-                                     legend=True,
                                      pd_cat_kw=pd_cat_kw,
                                      ice_cat_kw=ice_cat_kw)
             else:
@@ -537,7 +557,6 @@ def plot_pd(exp: Explanation,
                                      target_idx=target_idx,
                                      centered=centered,
                                      ax=ax_ravel,
-                                     legend=True,
                                      pd_num_kw=pd_num_kw,
                                      ice_num_kw=ice_num_kw, )
 
@@ -549,7 +568,6 @@ def _plot_one_pd_num(exp: Explanation,
                      target_idx: int,
                      centered: bool = True,
                      ax: 'plt.Axes' = None,
-                     legend: bool = True,
                      pd_num_kw: dict = None,
                      ice_num_kw: dict = None) -> 'plt.Axes':
     import matplotlib.pyplot as plt
@@ -559,8 +577,8 @@ def _plot_one_pd_num(exp: Explanation,
         ax = plt.gca()
 
     if exp.kind == Kind.AVERAGE:
-        default_pd_graph_kw = {'markersize': 2, 'marker': 'o', 'label': None}
-        pd_num_kw = default_pd_graph_kw if pd_num_kw is None else {**default_pd_graph_kw, **pd_num_kw}
+        default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
+        pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
         ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_num_kw)
         # shay = ax.get_shared_y_axes()
         # shay.remove(ax)
@@ -576,10 +594,10 @@ def _plot_one_pd_num(exp: Explanation,
 
         ax.plot(exp.feature_values[feature], ice_values, **ice_num_kw)
     else:
-        default_pd_graph_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'darkorange', 'label': 'average'}
-        pd_num_kw = default_pd_graph_kw if pd_num_kw is None else {**default_pd_graph_kw, **pd_num_kw}
+        default_pd_num_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'tab:orange', 'label': 'average'}
+        pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
 
-        default_ice_graph_kw = {'alpha': 0.5, 'color': 'lightsteelblue', 'label': None}
+        default_ice_graph_kw = {'alpha': 0.8, 'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center pd values if necessary
@@ -596,7 +614,7 @@ def _plot_one_pd_num(exp: Explanation,
         ax.plot(exp.feature_values[feature], pd_values, **pd_num_kw)
         ax.legend()
 
-    # add decile markers to the bottom of the plot
+    # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(exp.deciles_values[feature][1:], 0, 0.05, transform=trans)
 
@@ -609,16 +627,205 @@ def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      ax: 'plt.Axes' = None,
-                     legend: bool = True,
                      pd_cat_kw: dict = None,
                      ice_cat_kw: dict = None):
-    print('Plot one cat.')
+    import matplotlib.pyplot as plt
+    import seaborn as sns
 
-def _plot_two_pd_num_num():
-    print('Plot two num num')
+    if ax is None:
+        ax = plt.gca()
 
-def _plot_two_pd_num_cat():
-    print('Plot two cat num')
 
-def _plot_two_pd_cat_cat():
-    print('Plot tow cat cat')
+    feature_names = exp.feature_names[feature]
+    feature_values = exp.feature_values[feature]
+    pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
+    ice_values = exp.ice_values[feature][target_idx] if (exp.ice_values is not None) else None
+
+    def _get_feature_idx(feature):
+        return np.where(exp.all_feature_names == feature)[0].item()
+
+    # extract labels for the categorical feature
+    feature_index = _get_feature_idx(feature_names)
+    labels = [exp.all_categorical_names[feature_index][i] for i in feature_values.astype(np.int32)]
+
+    if exp.kind in [Kind.INDIVIDUAL, Kind.BOTH]:
+        x, y = [], []
+
+        for i in range(len(feature_values)):
+            x.append([feature_values[i]] * ice_values.shape[0])
+            y.append(ice_values[:, i])
+
+        x = np.concatenate(x, axis=0).astype(np.int32)
+        y = np.concatenate(y, axis=0)
+
+    if exp.kind == Kind.AVERAGE:
+        default_pd_graph_kw = {'color': 'tab:blue'}
+        pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
+        sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
+
+    elif exp.kind == Kind.INDIVIDUAL:
+        default_ice_graph_kw = {'color': 'lightsteelblue'}
+        ice_cat_kw = default_ice_graph_kw if ice_cat_kw is None else {**default_ice_graph_kw, **ice_cat_kw}
+        sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
+
+    else:
+        default_pd_graph_kw = {'color': 'tab:orange'}
+        pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
+        default_ice_graph_kw = {'color': 'lightsteelblue'}
+        ice_cat_kw = default_ice_graph_kw if ice_cat_kw is None else {**default_ice_graph_kw, **ice_cat_kw}
+        sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
+        sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
+
+    # set xticks labels
+    ax.set_xticklabels(labels)
+
+    # set axis labels
+    ax.set_xlabel(exp.all_feature_names[feature])
+    ax.set_ylabel(exp.all_target_names[target_idx])
+    return ax
+
+
+def _plot_two_pd_num_num(exp: Explanation,
+                         feature: int,
+                         target_idx: int,
+                         ax: 'plt.Axes' = None,
+                         pd_num_num_kw: dict = None,):
+    import matplotlib.pyplot as plt
+    from matplotlib import transforms
+
+    if exp.kind != Kind.AVERAGE:
+        raise ValueError("Can only plot Partial Dependence for kind='average'.")
+
+    if ax is None:
+        ax = plt.gca()
+
+    # unset sharey axis
+    ax.get_shared_y_axes().remove(ax)
+
+    # set contour plot default params
+    default_pd_num_num_kw = {"alpha": 0.75}
+    pd_num_num_kw = default_pd_num_num_kw if pd_num_num_kw is None else {**default_pd_num_num_kw, **pd_num_num_kw}
+
+    feature_values = exp.feature_values[feature]
+    pd_values = exp.pd_values[feature][target_idx]
+
+    X, Y = np.meshgrid(feature_values[0], feature_values[1])
+    Z = pd_values.T
+    Z_level = np.linspace(Z.min(), Z.max(), 8)
+
+    CS = ax.contour(X, Y, Z, levels=Z_level, linewidths=0.5, colors="k")
+    ax.contourf(X, Y, Z, levels=Z_level, vmax=Z_level[-1], vmin=Z_level[0], **pd_num_num_kw)
+    ax.clabel(CS, fmt="%2.2f", colors="k", fontsize=10, inline=True)
+
+    # create the deciles line for the vertical & horizontal axis
+    xlim, ylim = ax.get_xlim(), ax.get_ylim()
+
+    # the horizontal lines do not display (same for the sklearn)
+    trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+    ax.vlines(exp.deciles_values[feature][0][1:], 0, 0.05, transform=trans)
+    ax.hlines(exp.deciles_values[feature][1][1:], 0, 0.05, transform=trans)
+
+    # reset xlim and ylim since they are overwritten by hlines and vlines
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+
+    # set x & y labels
+    ax.set_xlabel(exp.feature_names[feature][0])
+    ax.set_ylabel(exp.feature_names[feature][1])
+
+
+def _plot_two_pd_num_cat(exp: Explanation,
+                         feature: int,
+                         target_idx: int,
+                         ax: 'plt.Axes' = None,
+                         pd_num_cat_kw: dict = None):
+
+    # TODO: remove sharey
+    import matplotlib.pyplot as plt
+
+    if exp.kind != Kind.AVERAGE:
+        raise ValueError("Can only plot Partial Dependece for kind='average'.")
+
+    if ax is None:
+        ax = plt.gca()
+
+    # unset sharey axis
+    ax.get_shared_y_axes().remove(ax)
+
+    def _get_feature_idx(feature):
+        return np.where(exp.all_feature_names == feature)[0].item()
+
+    def _is_categorical(feature):
+        feature_idx = _get_feature_idx(feature)
+        return feature_idx in exp.all_categorical_names
+
+    # find which feature is categorical and which one is numerical
+    feature_names = exp.feature_names[feature]
+    cat_idx, num_idx = (0, 1) if _is_categorical(feature_names[0]) else (1, 0)
+
+    # extract feature values and partial dependence vaues
+    feature_values = exp.feature_values[feature]
+    pd_values = exp.pd_values[feature][target_idx]
+
+    # define labels
+    cat_feature_index = _get_feature_idx(feature_names[cat_idx])
+    labels = [exp.all_categorical_names[cat_feature_index][i] for i in feature_values[cat_idx].astype(np.int32)]
+
+    # plot arguments
+    default_pd_num_cat_kw = {'markersize': 2, 'marker': 'o', 'label': labels}
+    pd_num_cat_kw = default_pd_num_cat_kw if pd_num_cat_kw is None else {**default_pd_num_cat_kw, **pd_num_cat_kw}
+
+    # plot lines
+    x, y = feature_values[num_idx], pd_values if num_idx == 0 else pd_values.T
+    ax.plot([], [], ' ', label=exp.feature_names[cat_idx])
+    ax.plot(x, y, **pd_num_cat_kw)
+    ax.set_xlabel(exp.feature_names[num_idx])
+    ax.legend()
+
+
+
+def _plot_two_pd_cat_cat(exp: Explanation,
+                         feature: int,
+                         target_idx: int,
+                         ax: 'plt.Axes' = None,
+                         pd_cat_cat_kw: dict = None):
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    if ax is None:
+        ax = plt.gca()
+
+    if exp.kind != Kind.AVERAGE:
+        raise ValueError("Can only plot Partial Dependence for kind='average'.")
+
+    def _get_feature_idx(feature):
+        return np.where(exp.all_feature_names == feature)[0].item()
+
+    feature_names = exp.feature_names[feature]
+    feature_values = exp.feature_values[feature]
+    pd_values = exp.pd_values[feature][target_idx]
+
+    # extract labels for each categorical features
+    feature0_index = _get_feature_idx(feature_names[0])
+    feature1_index = _get_feature_idx(feature_names[1])
+    labels0 = [exp.all_categorical_names[feature0_index][i] for i in feature_values[0].astype(np.int32)]
+    labels1 = [exp.all_categorical_names[feature1_index][i] for i in feature_values[1].astype(np.int32)]
+
+    # plot heatmap
+    default_pd_cat_cat_kw = {
+        'annot': True,
+        'fmt': '.2f',
+        'linewidths': .5,
+        'yticklabels': labels0,
+        'xticklabels': labels1
+    }
+    pd_cat_cat_kw = default_pd_cat_cat_kw if pd_cat_cat_kw is None else {**default_pd_cat_cat_kw, **pd_cat_cat_kw}
+    sns.heatmap(pd_values, **pd_cat_cat_kw)
+
+    # set ticks labels
+    ax.set_xticklabels(labels1)
+    ax.set_yticklabels(labels0)
+
+    # set axis labels
+    ax.set_xlabel(exp.feature_names[feature][0])
+    ax.set_ylabel(exp.feature_names[feature][1])

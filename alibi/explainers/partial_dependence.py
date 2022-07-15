@@ -12,7 +12,7 @@ from itertools import count
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Literal
 
 from sklearn.utils.validation import check_is_fitted
-from sklearn.base import is_classifier, is_regressor
+from sklearn.base import is_classifier, is_regressor, BaseEstimator
 from sklearn.utils.extmath import cartesian
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
@@ -66,7 +66,7 @@ class Kind(str, Enum):
 
 class PartialDependence(Explainer):
     def __init__(self,
-                 predictor: Callable[[np.ndarray], np.ndarray],
+                 predictor: BaseEstimator,
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None):
@@ -76,15 +76,15 @@ class PartialDependence(Explainer):
         Parameters
         ----------
         predictor
-            A callable that takes in an `N x F` array as input and outputs an `N x T` array (`N` -number of data
-            points, `F` - number of features, `T` - number of outputs/targets.
+            A `sklearn` estimator.
         feature_names
             A list of feature names used for displaying results.
+        categorical_names
+            Dictionary where keys are feature columns and values are the categories for the feature.
         target_names
             A list of target/output names used for displaying results.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
-
         self.predictor = predictor
         self.feature_names = feature_names
         self.categorical_names = categorical_names
@@ -175,15 +175,10 @@ class PartialDependence(Explainer):
         # compute partial dependencies for every features.
         # TODO: implement parallel version
         pds = []
-        feature_names = []
+        feature_names = [tuple([self.feature_names[f] for f in features]) if isinstance(features, Tuple) else
+                         self.feature_names[features] for features in features_list]
 
         for features in features_list:
-            if isinstance(features, Tuple):
-                feature_names.append(tuple([self.feature_names[f] for f in features]))
-            else:
-                feature_names.append(self.feature_names[features])
-
-            # compute partial dependence
             pds.append(
                 self._partial_dependence(
                             estimator=self.predictor,
@@ -210,8 +205,16 @@ class PartialDependence(Explainer):
                                        feature_names=feature_names,
                                        pds=pds)
 
-    def _features_sanity_checks(self, features: List[Union[int, Tuple[int, int]]]):
-        """ Features sanity checks. """
+    def _features_sanity_checks(self, features: List[Union[int, Tuple[int, int]]]) -> None:
+        """
+        Features sanity checks.
+
+        Parameters
+        ----------
+        features
+            List of feature indices or pairs of feature indices to compute the partial dependence for.
+        """
+
         def check_feature(f):
             if not isinstance(f, numbers.Integral):
                 raise ValueError(f'All feature entries must be integers. Got a feature value of {type(f)} type.')
@@ -232,13 +235,23 @@ class PartialDependence(Explainer):
                 check_feature(f)
 
     def _params_sanity_checks(self,
-                              estimator: Callable[[np.ndarray], np.ndarray],
+                              estimator: BaseEstimator,
                               response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                               method: Literal['auto', 'recursion', 'brute'] = 'auto',
-                              kind: Literal['average', 'individual', 'both'] = 'average'):
+                              kind: Literal['average', 'individual', 'both'] = 'average'
+                              ) -> Tuple[str, str, str]:
         """
         Parameters sanity checks. Most of the code is borrowed from:
         https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
+
+        estimator
+            A `sklearn` estimator.
+        response_method, method, kind
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+
+        Returns
+        -------
+        Update parameters `(response_method, method, kind)`.
         """
         check_is_fitted(estimator)
 
@@ -297,14 +310,27 @@ class PartialDependence(Explainer):
         return response_method, method, kind
 
     def _partial_dependence(self,
-                            estimator: Callable[[np.ndarray], np.ndarray],
+                            estimator: BaseEstimator,
                             X: np.ndarray,
                             features: Union[int, Tuple[int, int]],
                             response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                             percentiles: Tuple[float, float] = (0., 1.),
                             grid_resolution: int = 100,
                             method: Literal['auto', 'recursion', 'brute'] = 'auto',
-                            kind: Literal['average', 'individual', 'both'] = 'average'):
+                            kind: Literal['average', 'individual', 'both'] = 'average') -> Dict[str, np.ndarray]:
+        """
+        Computes partial dependence for a feature or a pair of features.
+
+        Parameters
+        ----------
+        estimator, X, features, response_method, percentiles, grid_resolution, method, kind
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+
+        Returns
+        -------
+        A dictionary containing the feature(s) values, feature(s) deciles, average and/or individual values
+        (i.e. partial dependence or individual conditional expectation) of the give (pair) of feature(s))
+        """
 
         if isinstance(features, numbers.Integral):
             features = (features, )
@@ -365,13 +391,60 @@ class PartialDependence(Explainer):
             })
         return pd
 
-    def _is_categorical(self, feature):
+    def _is_categorical(self, feature) -> bool:
+        """
+        Checks if the given feature is categorical.
+
+        Parameters
+        ----------
+        feature
+            Feature to be checked.
+
+        Returns
+        -------
+        ``True`` if the feature is categorical. ``False`` otherwise.
+        """
         return (self.categorical_names is not None) and (feature in self.categorical_names)
 
     def _is_numerical(self, feature):
+        """
+        Checks if the given feature is numerical.
+
+        Parameters
+        ----------
+        feature
+            Feature to be checked.
+
+        Returns
+        -------
+        ``True`` if the feature is numerical. ``False`` otherwise.
+        """
         return (self.categorical_names is None) or (feature not in self.categorical_names)
 
-    def _build_explanation(self, response_method, method, kind, feature_names, pds):
+    def _build_explanation(self,
+                           response_method: str,
+                           method: str,
+                           kind: str,
+                           feature_names: List[Union[int, Tuple[int, int]]],
+                           pds: List[Dict[str, np.ndarray]]) -> Explanation:
+        """
+        Helper method to build `Explanation` object.
+
+        Parameters
+        ----------
+        response_method, method, kind
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+        feature_names
+            List of feature of pairs of features for which the partial dependencies/individual conditional expectation
+            were computed.
+        pds
+            List of dictionary containing the partial dependencies/individual conditional expectation. For
+            more details see :py:meth:`alibi.explainers.partial_dependence.PartialDependence._partial_dependence`.
+
+        Returns
+        -------
+        `Explanation` object.
+        """
         deciles_values, feature_values = [], []
         pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None
         ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None
@@ -401,9 +474,16 @@ class PartialDependence(Explainer):
         )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-
     def reset_predictor(self, predictor: Any) -> None:
-        pass
+        """
+        Resets the predictor function
+
+        Parameters
+        ----------
+        predictor
+            New `sklearn` estimator.
+        """
+        self.predictor = predictor
 
 
 

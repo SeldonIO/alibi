@@ -71,7 +71,7 @@ class PartialDependence(Explainer):
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None):
         """
-        Partial Dependence for tabular datasets. Supports one feature or two feature interactions.
+        Partial dependence for tabular datasets. Supports one feature or two feature interactions.
 
         Parameters
         ----------
@@ -100,15 +100,15 @@ class PartialDependence(Explainer):
                 method: Literal['auto', 'recursion', 'brute'] = 'auto',
                 kind: Literal['average', 'individual', 'both'] = 'average') -> Explanation:
         """
-        Calculate the Partial Dependence for each feature with respect to the given target and the dataset `X`.
+        Calculate the partial dependence for each feature with respect to the given target and the dataset `X`.
 
         Parameters
         ----------
         X
-            An `N x F` tabular dataset used to calculate Partial Dependence curves. This is typically the training
+            An `N x F` tabular dataset used to calculate partial dependence curves. This is typically the training
             dataset or a representative sample.
         features_list
-            Features for which to calculate the Partial Dependence.
+            Features for which to calculate the partial dependence.
         response_method
             Specifies the prediction function to be used. For classifier it specifies whether to use the
             `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
@@ -135,7 +135,7 @@ class PartialDependence(Explainer):
 
              - `'auto'` - uses `'recursion'` if the `predictor` supports it. Otherwise uses the `'brute'` method.
         kind
-            If set to `'average'`, then only the Partial Dependence (PD) averaged across all samples from the dataset
+            If set to `'average'`, then only the partial dependence (PD) averaged across all samples from the dataset
             is returned. If set to `individual`, then only the Individual Conditional Expectation (ICE) is returned for
             each individual from the dataset. Otherwise, if set to `'both'`, then both the PD and the ICE are returned.
             Note that for the faster `method='recursion'` option the only compatible parameter value is
@@ -144,10 +144,10 @@ class PartialDependence(Explainer):
         Returns
         -------
         explanation
-            An `Explanation` object containing the data and the metadata of the calculated Partial Dependece
-            curves. See usage at `Partial Dependence examples`_ for details
+            An `Explanation` object containing the data and the metadata of the calculated partial Dependece
+            curves. See usage at `Partial dependence examples`_ for details
 
-            .. _Partial Dependence examples:
+            .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/PartialDependence.html
         """
         if X.ndim != 2:
@@ -227,7 +227,7 @@ class PartialDependence(Explainer):
         for f in features:
             if isinstance(f, Tuple):
                 if len(f) > 2:
-                    raise ValueError(f'Current implementation of the Partial Dependence supports only up to '
+                    raise ValueError(f'Current implementation of the Partial dependence supports only up to '
                                      f'two features at a time. Received {len(f)} features with the values {f}.')
                 check_feature(f[0])
                 check_feature(f[1])
@@ -503,7 +503,7 @@ def plot_pd(exp: Explanation,
             pd_cat_cat_kw: Optional[dict] = None,
             fig_kw: Optional[dict] = None) -> 'np.ndarray':
     """
-    Plot Partial Dependence curves on matplotlib axes.
+    Plot Partial dependence curves on matplotlib axes.
 
     Parameters
     ----------
@@ -511,10 +511,10 @@ def plot_pd(exp: Explanation,
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
     features_list
-        A list of features for which to plot the Partial Dependence curves or ``'all'`` for all features.
+        A list of features for which to plot the Partial dependence curves or ``'all'`` for all features.
         Can be a integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
     target_idx
-        Target index for which to plot the Partial Dependence curves. Can be a mix of integers denoting target
+        Target index for which to plot the Partial dependence curves. Can be a mix of integers denoting target
         index or strings denoting entries in `exp.target_names`.
     n_cols
         Number of columns to organize the resulting plot into.
@@ -526,7 +526,7 @@ def plot_pd(exp: Explanation,
         A parameter specifying whether the y-axis of the ALE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
-        Keyword arguments passed to the `plt.plot` function when plotting the Partial Dependenc.
+        Keyword arguments passed to the `plt.plot` function when plotting the Partial dependence.
     ice_num_kw
         Keyward arguments passed to the `plt.plot` function when plotting the Individual Conditional Expectation.
     fig_kw
@@ -534,7 +534,7 @@ def plot_pd(exp: Explanation,
 
     Returns
     -------
-    An array of `matplotlib` axes with the resulting Partial Dependence plots.
+    An array of `matplotlib` axes with the resulting Partial dependence plots.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
@@ -564,13 +564,13 @@ def plot_pd(exp: Explanation,
         fig = ax.figure
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
-        print(n_rows, n_cols)
 
         axes = np.empty((n_rows, n_cols), dtype=np.object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 
-        def _set_common_axes(start: int, stop: int, all_different: bool = False ):
+        def _set_common_axes(start: int, stop: int, all_different: bool = False):
+            """ Helper function to add subplots and share common y axes. """
             common_axes = None
             for i, spec in zip(range(start, stop), list(gs)[start:stop]):
                 if not isinstance(exp.feature_names[i], Tuple) and (not all_different):
@@ -659,6 +659,17 @@ def _plot_one_pd_num(exp: Explanation,
                      ax: 'plt.Axes' = None,
                      pd_num_kw: dict = None,
                      ice_num_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots one way partial dependence curve for a single numerical feature.
+
+    Parameters
+    ----------
+    exp, feature, target_idx, centered, pd_num_kw, ice_num_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    ax
+        Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    """
+
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
@@ -717,7 +728,17 @@ def _plot_one_pd_cat(exp: Explanation,
                      target_idx: int,
                      ax: 'plt.Axes' = None,
                      pd_cat_kw: dict = None,
-                     ice_cat_kw: dict = None):
+                     ice_cat_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots one way partial dependence curve for a single categorical feature.
+
+    Parameters
+    ----------
+    exp, feature, target_idx, pd_cat_kw, ice_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    ax
+        Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    """
     import matplotlib.pyplot as plt
     import seaborn as sns
 
@@ -780,12 +801,23 @@ def _plot_two_pd_num_num(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_num_num_kw: dict = None,):
+                         pd_num_num_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots two ways partial dependence curve for two numerical features.
+
+    Parameters
+    ----------
+    exp, feature, target_idx, pd_num_num_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    ax
+        Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    """
+
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
     if exp.kind != Kind.AVERAGE:
-        raise ValueError("Can only plot Partial Dependence for kind='average'.")
+        raise ValueError("Can only plot partial dependence for kind='average'.")
 
     if ax is None:
         ax = plt.gca()
@@ -820,17 +852,28 @@ def _plot_two_pd_num_num(exp: Explanation,
     # set x & y labels
     ax.set_xlabel(exp.feature_names[feature][0])
     ax.set_ylabel(exp.feature_names[feature][1])
+    return ax
 
 
 def _plot_two_pd_num_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_num_cat_kw: dict = None):
+                         pd_num_cat_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots two ways partial dependence curve for a numerical feature and a categorical feature.
+
+    Parameters
+    ----------
+    exp, feature, target_idx, pd_num_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    ax
+        Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    """
     import matplotlib.pyplot as plt
 
     if exp.kind != Kind.AVERAGE:
-        raise ValueError("Can only plot Partial Dependece for kind='average'.")
+        raise ValueError("Can only plot partial dependece for kind='average'.")
 
     if ax is None:
         ax = plt.gca()
@@ -876,7 +919,17 @@ def _plot_two_pd_cat_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_cat_cat_kw: dict = None):
+                         pd_cat_cat_kw: dict = None) -> 'plt.Axes':
+    """
+    Plots two ways partial dependence curve for a numerical feature and a categorical feature.
+
+    Parameters
+    ----------
+    exp, feature, target_idx, pd_cat_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    ax
+        Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    """
     import matplotlib.pyplot as plt
     import seaborn as sns
 
@@ -884,7 +937,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
         ax = plt.gca()
 
     if exp.kind != Kind.AVERAGE:
-        raise ValueError("Can only plot Partial Dependence for kind='average'.")
+        raise ValueError("Can only plot partial dependence for kind='average'.")
 
     def _get_feature_idx(feature):
         return np.where(exp.all_feature_names == feature)[0].item()
@@ -917,3 +970,4 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     # set axis labels
     ax.set_xlabel(exp.feature_names[feature][1])
     ax.set_ylabel(exp.feature_names[feature][0])
+    return ax

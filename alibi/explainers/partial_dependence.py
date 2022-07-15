@@ -138,7 +138,7 @@ class PartialDependence(Explainer):
             If set to `'average'`, then only the Partial Dependence (PD) averaged across all samples from the dataset
             is returned. If set to `individual`, then only the Individual Conditional Expectation (ICE) is returned for
             each individual from the dataset. Otherwise, if set to `'both'`, then both the PD and the ICE are returned.
-            Note that for the faster `method='recursion'` option the only compatible paramter value is
+            Note that for the faster `method='recursion'` option the only compatible parameter value is
             `kind='average'`. To plot the ICE, consider using the more computation intensive `method='brute'`.
 
         Returns
@@ -171,8 +171,6 @@ class PartialDependence(Explainer):
                                                                    response_method=response_method,
                                                                    method=method,
                                                                    kind=kind)
-
-
 
         # compute partial dependencies for every features.
         # TODO: implement parallel version
@@ -486,6 +484,7 @@ def plot_pd(exp: Explanation,
         fig = ax.figure
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
+        print(n_rows, n_cols)
 
         axes = np.empty((n_rows, n_cols), dtype=np.object)
         axes_ravel = axes.ravel()
@@ -572,6 +571,7 @@ def plot_pd(exp: Explanation,
     fig.set(**fig_kw)
     return axes
 
+
 def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
@@ -644,7 +644,6 @@ def _plot_one_pd_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-
     feature_names = exp.feature_names[feature]
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
@@ -673,23 +672,26 @@ def _plot_one_pd_cat(exp: Explanation,
         sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
 
     elif exp.kind == Kind.INDIVIDUAL:
-        default_ice_graph_kw = {'color': 'lightsteelblue'}
-        ice_cat_kw = default_ice_graph_kw if ice_cat_kw is None else {**default_ice_graph_kw, **ice_cat_kw}
+        default_ice_cat_kw = {'color': 'lightsteelblue'}
+        ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
         sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
 
     else:
-        default_pd_graph_kw = {'color': 'tab:orange'}
-        pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
-        default_ice_graph_kw = {'color': 'lightsteelblue'}
-        ice_cat_kw = default_ice_graph_kw if ice_cat_kw is None else {**default_ice_graph_kw, **ice_cat_kw}
+        default_pd_cat_kw = {'color': 'tab:orange', 'label': 'average'}
+        pd_cat_kw = default_pd_cat_kw if pd_cat_kw is None else {**default_pd_cat_kw, **pd_cat_kw}
+
+        default_ice_cat_kw = {'color': 'lightsteelblue'}
+        ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
+
         sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
         sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
+        ax.legend()
 
     # set xticks labels
     ax.set_xticklabels(labels)
 
     # set axis labels
-    ax.set_xlabel(exp.all_feature_names[feature])
+    ax.set_xlabel(feature_names)
     ax.set_ylabel(exp.all_target_names[target_idx])
     return ax
 
@@ -760,29 +762,34 @@ def _plot_two_pd_num_cat(exp: Explanation,
         feature_idx = _get_feature_idx(feature)
         return feature_idx in exp.all_categorical_names
 
-    # find which feature is categorical and which one is numerical
-    feature_names = exp.feature_names[feature]
-    cat_idx, num_idx = (0, 1) if _is_categorical(feature_names[0]) else (1, 0)
-
-    # extract feature values and partial dependence vaues
+    # extract feature values and partial dependence values
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx]
 
-    # define labels
-    cat_feature_index = _get_feature_idx(feature_names[cat_idx])
-    labels = [exp.all_categorical_names[cat_feature_index][i] for i in feature_values[cat_idx].astype(np.int32)]
+    # find which feature is categorical and which one is numerical
+    feature_names = exp.feature_names[feature]
+    if _is_categorical(feature_names[0]):
+        feature_names = feature_names[::-1]
+        feature_values = feature_values[::-1]
+        pd_values = pd_values.T
 
-    # plot arguments
-    default_pd_num_cat_kw = {'markersize': 2, 'marker': 'o', 'label': labels}
-    pd_num_cat_kw = default_pd_num_cat_kw if pd_num_cat_kw is None else {**default_pd_num_cat_kw, **pd_num_cat_kw}
+    # define labels
+    cat_feature_index = _get_feature_idx(feature_names[1])
+    labels = [exp.all_categorical_names[cat_feature_index][i] for i in feature_values[1].astype(np.int32)]
 
     # plot lines
-    x, y = feature_values[num_idx], pd_values if num_idx == 0 else pd_values.T
-    ax.plot([], [], ' ', label=exp.feature_names[cat_idx])
-    ax.plot(x, y, **pd_num_cat_kw)
-    ax.set_xlabel(exp.feature_names[num_idx])
-    ax.legend()
+    default_pd_num_cat_kw = {'markersize': 2, 'marker': 'o'}
+    pd_num_cat_kw = default_pd_num_cat_kw if pd_num_cat_kw is None else {**default_pd_num_cat_kw, **pd_num_cat_kw}
+    ax.plot([], [], ' ', label=feature_names[1])
 
+    for i in range(pd_values.shape[1]):
+        x, y = feature_values[0], pd_values[:, i]
+        pd_num_cat_kw.update({'label': labels[i]})
+        ax.plot(x, y, **pd_num_cat_kw)
+
+    ax.set_ylabel(exp.all_target_names[target_idx])
+    ax.set_xlabel(feature_names[0])
+    ax.legend()
 
 
 def _plot_two_pd_cat_cat(exp: Explanation,
@@ -821,12 +828,12 @@ def _plot_two_pd_cat_cat(exp: Explanation,
         'xticklabels': labels1
     }
     pd_cat_cat_kw = default_pd_cat_cat_kw if pd_cat_cat_kw is None else {**default_pd_cat_cat_kw, **pd_cat_cat_kw}
-    sns.heatmap(pd_values, **pd_cat_cat_kw)
+    sns.heatmap(pd_values, ax=ax, **pd_cat_cat_kw)
 
     # set ticks labels
     ax.set_xticklabels(labels1)
     ax.set_yticklabels(labels0)
 
     # set axis labels
-    ax.set_xlabel(exp.feature_names[feature][0])
-    ax.set_ylabel(exp.feature_names[feature][1])
+    ax.set_xlabel(exp.feature_names[feature][1])
+    ax.set_ylabel(exp.feature_names[feature][0])

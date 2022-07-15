@@ -15,7 +15,7 @@ from alibi.utils.lang_model import BertBaseUncased, DistilbertBaseUncased, Rober
 from alibi.utils.download import spacy_model
 
 import tensorflow as tf
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import alibi_testing
 from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
@@ -145,6 +145,29 @@ def lr_classifier(request):
         clf.fit(data['X_train'], data['y_train'])
 
     return clf, preprocessor
+
+
+@pytest.fixture(scope='module')
+def rf_regressor(request):
+    """
+    Trains a random forest regression model.
+    """
+    is_preprocessor = False
+    preprocessor = False
+
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    model = RandomForestRegressor()
+
+    if is_preprocessor:
+        model.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        model.fit(data['X_train'], data['y_train'])
+
+    return model, preprocessor
 
 
 @pytest.fixture(scope='module')

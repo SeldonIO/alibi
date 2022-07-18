@@ -5,8 +5,9 @@ from typing import Tuple, List
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from alibi.explainers import PartialDependence
+from alibi.explainers import PartialDependence, PDEstimatorWrapper
 from alibi.explainers.partial_dependence import ResponseMethod, Kind, Method
+
 
 from sklearn.utils import shuffle
 from sklearn.exceptions import NotFittedError
@@ -251,3 +252,66 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
             assert exp.ice_values[i].shape == (num_targets, num_instances, len(exp.feature_values[i]))
 
 
+@pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
+@pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
+@pytest.mark.parametrize('feature_list', [
+    [0, 1, 2],
+    [(0, 1), (0, 2), (1, 2)],
+    [0, 1, (0, 1)]
+])
+def test_regression_wrapper(rf_regressor, boston_data, kind, feature_list):
+    """ Test the black-box wrapper for a regression function. """
+    rf, _ = rf_regressor
+    predictor = rf.predict  # equivalent of black-box model
+    X_train = boston_data['X_train']
+
+    # define predictor pd wrapper
+    wrapped_predictor = PDEstimatorWrapper(predictor=predictor,
+                                           predictor_type='regressor',
+                                           prediction_fn='predict')
+
+    # define and fit explainer
+    explainer = PartialDependence(predictor=wrapped_predictor)
+    explainer.explain(X=X_train,
+                      features_list=feature_list,
+                      grid_resolution=10,
+                      response_method='auto',
+                      method='brute',
+                      kind=kind)
+
+
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
+@pytest.mark.parametrize('response_method', ['auto', 'predict_proba', 'decision_function'])
+@pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
+@pytest.mark.parametrize('feature_list', [
+    [0, 1, 2],
+    [(0, 1), (0, 2), (1, 2)],
+    [0, 1, (0, 1)]
+])
+def test_classification_wrapper(lr_classifier, iris_data, response_method, kind, feature_list):
+    """ Test the black-box wrapper for a classification function. """
+    X_train, y_train = iris_data['X_train'], iris_data['y_train']
+    lr, _ = lr_classifier
+    num_classes = len(np.unique(y_train))
+
+    if response_method == 'decision_function':
+        predictor = lr.decision_function
+        prediction_fn = 'decision_function'
+    else:
+        predictor = lr.predict_proba
+        prediction_fn = 'predict_proba'
+
+    # define predictor pd wrapper
+    wrapped_predictor = PDEstimatorWrapper(predictor=predictor,
+                                           predictor_type='classifier',
+                                           prediction_fn=prediction_fn,
+                                           num_classes=num_classes)
+
+    # define and fit explainer
+    explainer = PartialDependence(predictor=wrapped_predictor)
+    explainer.explain(X=X_train,
+                      features_list=feature_list,
+                      grid_resolution=10,
+                      response_method=response_method,
+                      method='brute',
+                      kind=kind)

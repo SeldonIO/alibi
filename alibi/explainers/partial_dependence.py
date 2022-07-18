@@ -33,32 +33,26 @@ logger = logging.getLogger(__name__)
 
 
 def get_options_string(enum: Type[Enum]) -> str:
-    """Get the enums options seperated by pipe as a string."""
+    """ Get the enums options seperated by pipe as a string. """
     return f"""'{"' | '".join(enum)}'"""
 
 
 class ResponseMethod(str, Enum):
-    """
-    Enumeration of supported response methods.
-    """
+    """ Enumeration of supported response methods. """
     AUTO = 'auto'
     PREDICT_PROBA = 'predict_proba'
     DECISION_FUNCTION = 'decision_function'
 
 
 class Method(str, Enum):
-    """
-    Enumeration of supported methods.
-    """
+    """ Enumeration of supported methods. """
     AUTO = 'auto'
     RECURSION = 'recursion'
     BRUTE = 'brute'
 
 
 class Kind(str, Enum):
-    """
-    Enumeration of supported kinds.
-    """
+    """ Enumeration of supported kinds. """
     AVERAGE = 'average'
     INDIVIDUAL = 'individual'
     BOTH = 'both'
@@ -196,7 +190,7 @@ class PartialDependence(Explainer):
         # we do it here to avoid checking model's type, prediction function etc
         if self.target_names is None:
             key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
-            n_targets = pds[features_list[0]][key].shape[0]
+            n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
 
         return self._build_explanation(response_method=response_method,
@@ -333,7 +327,6 @@ class PartialDependence(Explainer):
         A dictionary containing the feature(s) values, feature(s) deciles, average and/or individual values
         (i.e. partial dependence or individual conditional expectation) of the give (pair) of feature(s))
         """
-
         if isinstance(features, numbers.Integral):
             features = (features, )
 
@@ -487,7 +480,6 @@ class PartialDependence(Explainer):
             New `sklearn` estimator.
         """
         self.predictor = predictor
-
 
 
 def plot_pd(exp: Explanation,
@@ -974,3 +966,84 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     ax.set_xlabel(exp.feature_names[feature][1])
     ax.set_ylabel(exp.feature_names[feature][0])
     return ax
+
+
+class PredictorType(str, Enum):
+    """ Enumeration of supported predictor types. """
+    REGRESSION = 'regressor'
+    CLASSIFIER = 'classifier'
+
+
+class PredictionFunction(str, Enum):
+    """ Enumeration of supported prediction function. """
+    PREDICT = 'predict'
+    PREDICT_PROBA = 'predict_proba'
+    DECISION_FUNCTION = 'decision_function'
+
+
+class PDEstimatorWrapper:
+    """ Estimator wrapper class for a black-box predictor to be compatible to the
+    :py:class:`alibi.explainers.partial_dependence.PartialDependence`."""
+
+    def __init__(self,
+                 predictor: Callable[[np.ndarray], np.ndarray],
+                 predictor_type: Literal['regression', 'classifier'],
+                 prediction_fn: Literal['predict', 'predict_proba', 'decision_function'],
+                 num_classes: int = None):
+        """
+        Constructor.
+
+        Parameters
+        ----------
+        predictor
+            Prediction function to be wrapped.
+        predictor_type
+            Type of the predictor. Available values: ``'regressor'`` | ``'classifier'``.
+        prediction_fn
+            Name of the prediction function. Available value for regression: ``'predict'``. Available values
+            for classification: ``'predict_proba'`` | ``'decision_function'``. The choice should be considered
+            in analogy with the `sklearn` estimators API and the `response_method` used in
+            :py:meth:`alibi.explainers.partial_dependence.explain`.
+        num_classes
+            Number of classes predicted by the `predictor` function. Considered only for
+            ``prediction_type='classification'``.
+        """
+        self.predictor = predictor
+        self._is_fitted = True
+
+        if predictor_type in PredictorType.__members__.values():
+            self._estimator_type = predictor_type
+        else:
+            raise ValueError(f"predictor_type='{predictor_type}' is invalid. Accepted predictor_type names "
+                             f"are {get_options_string(ResponseMethod)}.")
+
+        if predictor_type == PredictorType.CLASSIFIER:
+            if isinstance(num_classes, numbers.Integral):
+                self.classes_ = np.arange(num_classes)
+            else:
+                raise ValueError(f"num_classes must be an integer when "
+                                 f"predictor_type='{PredictorType.CLASSIFIER.value}'.")
+
+            if prediction_fn == PredictionFunction.PREDICT_PROBA:
+                self.predict_proba = predictor
+            elif prediction_fn == PredictionFunction.DECISION_FUNCTION:
+                self.decision_function = predictor
+            else:
+                raise ValueError(f"prediction_fn='{prediction_fn}' is invalid when "
+                                 f"predictor_type='{PredictorType.CLASSIFIER.value}'. "
+                                 f"Accepted prediction_fn names are {get_options_string(PredictionFunction)}.")
+
+        else:
+            if prediction_fn == PredictionFunction.PREDICT:
+                self.predict = predictor
+            else:
+                raise ValueError(f"prediction_fn={prediction_fn} is invalid when "
+                                 f"predictor_type='{PredictorType.REGRESSION}'. "
+                                 f"Accepted predictor_type names are {get_options_string(PredictorType)}.")
+
+    def __sklearn_is_fitted__(self):
+        return self._is_fitted
+
+    def fit(self, *args, **kwargs):
+        pass
+

@@ -9,7 +9,7 @@ from alibi.explainers.anchors.anchor_tabular import AnchorTabular
 from alibi.explainers.anchors.anchor_image import AnchorImage
 from alibi.explainers.cfrl_base import CounterfactualRL
 from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
-from alibi.explainers.partial_dependence import PartialDependence, plot_pd
+from alibi.explainers.partial_dependence import PartialDependence, PDEstimatorWrapper, plot_pd
 from alibi.explainers.similarity.grad import GradientSimilarity
 
 
@@ -50,6 +50,7 @@ __all__ = [
     "CounterfactualRLTabular",
     "plot_ale",
     "PartialDependence",
+    "PDEstimatorWrapper",
     "plot_pd",
     "IntegratedGradients",
     "KernelShap",

@@ -1,6 +1,8 @@
-import pytest
 import re
 import numpy as np
+from typing import Tuple, List
+
+import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from alibi.explainers import PartialDependence
@@ -8,10 +10,10 @@ from alibi.explainers.partial_dependence import ResponseMethod, Kind, Method
 
 from sklearn.utils import shuffle
 from sklearn.exceptions import NotFittedError
-from sklearn.datasets import make_classification, make_regression
+from sklearn.datasets import make_classification
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingRegressor, \
-    GradientBoostingClassifier
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, \
+    GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputClassifier
 
@@ -183,3 +185,69 @@ def test_num_features(rf_classifier, iris_data, features):
                                   feature_names=list(range(iris_data['X_train'].shape[1])))
     with pytest.raises(ValueError):
         explainer._features_sanity_checks(features=features)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+@pytest.mark.parametrize('grid_resolution', [3, 5, np.inf])
+@pytest.mark.parametrize('features', [
+    [0, 1, (0, 1), (1, 2)]
+])
+def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution, features):
+    """ Checks the correct shapes of the arrays contained in the explanation object for numerical features. """
+    predictor, _ = rf_classifier
+    X_train, y_train = iris_data['X_train'], iris_data['y_train']
+    unique_labels = len(np.unique(y_train))
+    num_targets = 1 if unique_labels == 2 else unique_labels
+    num_instances = len(X_train)
+
+    explanier = PartialDependence(predictor=predictor)
+    exp = explanier.explain(X=X_train, features_list=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
+
+    # check that the values returned match the number of requested features
+    assert len(exp.deciles_values) == len(features)
+    assert len(exp.pd_values) == len(features)
+    assert len(exp.ice_values) == len(features)
+    assert len(exp.feature_values) == len(features)
+
+    for i, f in enumerate(features):
+        if isinstance(f, Tuple):
+            # check deciles
+            assert isinstance(exp.deciles_values[i], List)
+            assert len(exp.deciles_values[i]) == len(f)
+            assert len(exp.deciles_values[i][0]) == 11
+            assert len(exp.deciles_values[i][1]) == 11
+
+            # check feature_values
+            assert isinstance(exp.feature_values[i], List)
+            assert len(exp.feature_values[i]) == len(f)
+            assert len(exp.feature_values[i][0]) == (len(np.unique(X_train[:, f[0]]))
+                                                     if grid_resolution == np.inf else grid_resolution)
+            assert len(exp.feature_values[i][1]) == (len(np.unique(X_train[:, f[1]]))
+                                                     if grid_resolution == np.inf else grid_resolution)
+
+            # check pd_values
+            assert exp.pd_values[i].shape == (num_targets,
+                                              len(exp.feature_values[i][0]),
+                                              len(exp.feature_values[i][1]))
+
+            # check ice_values
+            assert exp.ice_values[i].shape == (num_targets,
+                                               num_instances,
+                                               len(exp.feature_values[i][0]),
+                                               len(exp.feature_values[i][1]))
+
+        else:
+            # check deciles_values
+            assert len(exp.deciles_values[i]) == 11
+
+            # check feature_values
+            assert len(exp.feature_values[i]) == (len(np.unique(X_train[:, f]))
+                                                  if grid_resolution == np.inf else grid_resolution)
+
+            # check pd_values
+            assert exp.pd_values[i].shape == (num_targets, len(exp.feature_values[i]))
+
+            # check ice_value
+            assert exp.ice_values[i].shape == (num_targets, num_instances, len(exp.feature_values[i]))
+
+

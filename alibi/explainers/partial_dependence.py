@@ -226,9 +226,11 @@ class PartialDependence(Explainer):
 
         for f in features:
             if isinstance(f, Tuple):
-                if len(f) > 2:
-                    raise ValueError(f'Current implementation of the Partial dependence supports only up to '
-                                     f'two features at a time. Received {len(f)} features with the values {f}.')
+                if len(f) != 2:
+                    raise ValueError(f'Current implementation of the Partial dependence supports only two features '
+                                     f'at a time when a tuple is passed. Received {len(f)} features with the '
+                                     f'values {f}.')
+
                 check_feature(f[0])
                 check_feature(f[1])
             else:
@@ -337,6 +339,7 @@ class PartialDependence(Explainer):
 
         deciles, grid, values, features_indices = [], [], [], []
         for f in features:
+            # TODO: consider all values of a categorical features instead of using the unique values in the data?
             f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
             X_f = _safe_indexing(X, f_indices, axis=1)
 

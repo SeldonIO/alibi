@@ -166,3 +166,20 @@ def test_method_recursion_response_method_predict_proba(predictor, iris_data):
                                         method=Method.RECURSION,
                                         response_method=ResponseMethod.PREDICT_PROBA)
     assert re.search('the response_method must be', err.value.args[0].lower())
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+@pytest.mark.parametrize('features', [
+    [(0, 1, 2)],
+    [0, (0, 1), (0, 1, 2)],
+    [0, 1, 2, (0, 1, 2)],
+    [0, 1, tuple()]
+])
+def test_num_features(rf_classifier, iris_data, features):
+    """ Checks if raises error when a requested partial dependence for a tuple of containing more than two features or
+    less than one. """
+    predictor, _ = rf_classifier
+    explainer = PartialDependence(predictor=predictor,
+                                  feature_names=list(range(iris_data['X_train'].shape[1])))
+    with pytest.raises(ValueError):
+        explainer._features_sanity_checks(features=features)

@@ -85,7 +85,7 @@ class PartialDependence(Explainer):
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
-                features_list: List[Union[int, Tuple[int, int]]],
+                features_list: Optional[List[Union[int, Tuple[int, int]]]] = None,
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                 percentiles: Tuple[float, float] = (0.05, 0.95),
                 grid_resolution: int = 100,
@@ -100,7 +100,8 @@ class PartialDependence(Explainer):
             An `N x F` tabular dataset used to calculate partial dependence curves. This is typically the training
             dataset or a representative sample.
         features_list
-            Features for which to calculate the partial dependence.
+            An optional list of features or pair of features for which to calculate the partial dependence for.
+            If not provided, the partial dependece will be computed for all single features in the dataset.
         response_method
             Specifies the prediction function to be used. For classifier it specifies whether to use the
             `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
@@ -164,13 +165,21 @@ class PartialDependence(Explainer):
                                                                    method=method,
                                                                    kind=kind)
 
+        # construct feature_names based on the feature_list. If feature_list is None, then initialize
+        # feature_list with all single feature available in the dataset.
+        if features_list:
+            feature_names = [tuple([self.feature_names[f] for f in features])  # type: ignore
+                             if isinstance(features, tuple)
+                             else self.feature_names[features] for features in features_list]  # type: ignore
+        else:
+            feature_names = self.feature_names
+            features_list = list(range(n_features))
+
+        # buffer of all partial dependencies
+        pds = []
+
         # compute partial dependencies for every features.
         # TODO: implement parallel version - future work as it can be done for ALE too
-        pds = []
-        feature_names = [tuple([self.feature_names[f] for f in features])  # type: ignore
-                         if isinstance(features, tuple)
-                         else self.feature_names[features] for features in features_list]  # type: ignore
-
         for features in features_list:
             pds.append(
                 self._partial_dependence(
@@ -198,7 +207,7 @@ class PartialDependence(Explainer):
                                        feature_names=feature_names,  # type: ignore
                                        pds=pds)
 
-    def _features_sanity_checks(self, features: List[Union[int, Tuple[int, int]]]) -> None:
+    def _features_sanity_checks(self, features: Optional[List[Union[int, Tuple[int, int]]]]) -> None:
         """
         Features sanity checks.
 
@@ -207,6 +216,8 @@ class PartialDependence(Explainer):
         features
             List of feature indices or pairs of feature indices to compute the partial dependence for.
         """
+        if features is None:
+            return
 
         def check_feature(f):
             if not isinstance(f, numbers.Integral):
@@ -1115,9 +1126,10 @@ class PDEstimatorWrapper:
     def fit(self, *args, **kwargs):
         pass
 
-# TODO: consider a better `explain` API for PD and ALE -- may be long term
 
-# TODO: consider all one way as default for `explain -> features_list`. Check ALE
+# TODO: consider a better `explain` API for PD and ALE -- maybe in the future ...
+# TODO: consider all one way as default for `explain -> features_list`. Check ALE -> solved
+
 # TODO: consider all values of a categorical features instead of using the unique values in the data?
 # TODO: display for both targets in binary classification?
 # TODO: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output evolves for an individual. Line plot with markes might be a better option

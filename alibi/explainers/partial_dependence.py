@@ -521,9 +521,26 @@ def plot_pd(exp: Explanation,
         A parameter specifying whether the y-axis of the ALE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
-        Keyword arguments passed to the `plt.plot` function when plotting the Partial dependence.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence
+        for a numerical feature.
     ice_num_kw
-        Keyward arguments passed to the `plt.plot` function when plotting the Individual Conditional Expectation.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the individual conditional
+        expectation for a numerical feature.
+    pd_cat_kw
+        Keyword arguments passed to the `seaborn bar` function when plotting the partial dependence for a
+        categorical feature.
+    ice_cat_kw
+        Keyword arguments passed to the `seaborn stripplot` function when plotting the individual conditional
+        expectation for a categorical feature.
+    pd_num_num_kw
+        Keyword arguments passed to the `matplotlib contourf` function when plotting the partial dependence
+        for two numerical features.
+    pd_num_cat_kw
+        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence for
+        a numerical and a categorical feature.
+    pd_cat_cat_kw
+        Keyword arguments passed to the `seaborn heatmap` functon when plotting the partial dependence for
+        two categorical features.
     fig_kw
         Keyword arguments passed to the `fig.set` function.
 
@@ -665,8 +682,17 @@ def _plot_one_pd_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    """
+    pd_num_kw
+        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence
+        for a numerical feature.
+    ice_num_kw
+        Keyword arguments passed to the `matplotlib plot` function when plotting the individual conditional
+        expectation for a numerical feature.
 
+    Returns
+    -------
+    `matplotlib` axes.
+    """
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
@@ -735,6 +761,16 @@ def _plot_one_pd_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    pd_cat_kw
+        Keyword arguments passed to the `seaborn bar` function when plotting the partial dependence for a
+        categorical feature.
+    ice_cat_kw
+        Keyword arguments passed to the `seaborn stripplot` function when plotting the individual conditional
+        expectation for a categorical feature.
+
+    Returns
+    -------
+    `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
     import seaborn as sns
@@ -811,6 +847,13 @@ def _plot_two_pd_num_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    pd_num_num_kw
+        Keyword arguments passed to the `matplotlib contourf` function when plotting the partial dependence
+        for two numerical features.
+
+    Returns
+    -------
+    `matplotlib` axes.
     """
 
     import matplotlib.pyplot as plt
@@ -871,6 +914,13 @@ def _plot_two_pd_num_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    pd_num_cat_kw
+        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence for
+        a numerical and a categorical feature.
+
+    Returns
+    -------
+    `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
 
@@ -933,6 +983,13 @@ def _plot_two_pd_cat_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
+    pd_cat_cat_kw
+        Keyword arguments passed to the `seaborn heatmap` functon when plotting the partial dependence for
+        two categorical features.
+
+    Return
+    ------
+    `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
     import seaborn as sns

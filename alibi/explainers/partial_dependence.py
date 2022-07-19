@@ -675,8 +675,6 @@ def _plot_one_pd_num(exp: Explanation,
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
         ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_num_kw)
-        # shay = ax.get_shared_y_axes()
-        # shay.remove(ax)
 
     elif exp.kind == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
@@ -713,7 +711,7 @@ def _plot_one_pd_num(exp: Explanation,
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(exp.deciles_values[feature][1:], 0, 0.05, transform=trans)
 
-    ax.set_xlabel(exp.all_feature_names[feature])
+    ax.set_xlabel(exp.feature_names[feature])
     ax.set_ylabel(exp.all_target_names[target_idx])
     return ax
 
@@ -785,6 +783,7 @@ def _plot_one_pd_cat(exp: Explanation,
 
     # set xticks labels
     ax.set_xticklabels(labels)
+    ax.tick_params(axis='x', rotation=90)
 
     # set axis labels
     ax.set_xlabel(feature_names)

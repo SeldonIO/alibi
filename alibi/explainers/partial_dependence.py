@@ -82,9 +82,10 @@ class PartialDependence(Explainer):
         self.categorical_names = categorical_names
         self.target_names = target_names
 
+    # TODO: consider a better API for PD and ALE
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
-                features_list: List[Union[int, Tuple[int, int]]],
+                features_list: List[Union[int, Tuple[int, int]]],  # TODO: consider all one way as default. Check ALE
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                 percentiles: Tuple[float, float] = (0.05, 0.95),
                 grid_resolution: int = 100,
@@ -164,7 +165,7 @@ class PartialDependence(Explainer):
                                                                    kind=kind)
 
         # compute partial dependencies for every features.
-        # TODO: implement parallel version
+        # TODO: implement parallel version - future work as it can be done for ALE too
         pds = []
         feature_names = [tuple([self.feature_names[f] for f in features])  # type: ignore
                          if isinstance(features, tuple)
@@ -331,6 +332,7 @@ class PartialDependence(Explainer):
         deciles, grid, values, features_indices = [], [], [], []
         for f in features:  # type: ignore
             # TODO: consider all values of a categorical features instead of using the unique values in the data?
+            # check against the category map and raise a warning. Need to choose one or the other
             f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
             X_f = _safe_indexing(X, f_indices, axis=1)
 
@@ -1112,3 +1114,7 @@ class PDEstimatorWrapper:
 
     def fit(self, *args, **kwargs):
         pass
+
+# TODO: display for both targets in binary classification?
+# TODO: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output
+# evolves for an individual. Line plot with markes might be a better option

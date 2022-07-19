@@ -84,7 +84,6 @@ class PartialDependence(Explainer):
         self.categorical_names = categorical_names
         self.target_names = target_names
 
-
     def explain(self,
                 X: np.ndarray,
                 features_list: List[Union[int, Tuple[int, int]]],
@@ -1045,4 +1044,3 @@ class PDEstimatorWrapper:
 
     def fit(self, *args, **kwargs):
         pass
-

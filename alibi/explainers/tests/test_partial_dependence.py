@@ -69,7 +69,7 @@ def test_unknown_response_method(rf_classifier, response_method):
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
         explainer._params_sanity_checks(estimator=predictor, response_method=response_method)
-    assert re.search("response_method=\'\w+\' is invalid", err.value.args[0].lower())
+    assert re.search("response_method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
 
 
 @pytest.mark.parametrize('response_method', [ResponseMethod.DECISION_FUNCTION, ResponseMethod.PREDICT_PROBA])
@@ -91,7 +91,7 @@ def test_unknown_method(rf_classifier, method):
     explainer = PartialDependence(predictor)
     with pytest.raises(ValueError) as err:
         explainer._params_sanity_checks(estimator=predictor, method=method)
-    assert re.search("method=\'\w+\' is invalid", err.value.args[0].lower())
+    assert re.search("method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
 
 
 @pytest.mark.parametrize('kind', [Kind.INDIVIDUAL, Kind.BOTH])

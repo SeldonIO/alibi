@@ -6,10 +6,8 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-
 from enum import Enum
-from itertools import count
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Literal
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Literal, no_type_check
 
 from sklearn.utils.validation import check_is_fitted
 from sklearn.base import is_classifier, is_regressor, BaseEstimator
@@ -84,7 +82,7 @@ class PartialDependence(Explainer):
         self.categorical_names = categorical_names
         self.target_names = target_names
 
-    def explain(self,
+    def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 features_list: List[Union[int, Tuple[int, int]]],
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
@@ -160,7 +158,7 @@ class PartialDependence(Explainer):
 
         # parameters sanity checks
         self._features_sanity_checks(features=features_list)
-        response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,
+        response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,  # type: ignore
                                                                    response_method=response_method,
                                                                    method=method,
                                                                    kind=kind)
@@ -168,8 +166,9 @@ class PartialDependence(Explainer):
         # compute partial dependencies for every features.
         # TODO: implement parallel version
         pds = []
-        feature_names = [tuple([self.feature_names[f] for f in features]) if isinstance(features, Tuple) else
-                         self.feature_names[features] for features in features_list]
+        feature_names = [tuple([self.feature_names[f] for f in features])  # type: ignore
+                         if isinstance(features, tuple)
+                         else self.feature_names[features] for features in features_list]  # type: ignore
 
         for features in features_list:
             pds.append(
@@ -195,7 +194,7 @@ class PartialDependence(Explainer):
         return self._build_explanation(response_method=response_method,
                                        method=method,
                                        kind=kind,
-                                       feature_names=feature_names,
+                                       feature_names=feature_names,  # type: ignore
                                        pds=pds)
 
     def _features_sanity_checks(self, features: List[Union[int, Tuple[int, int]]]) -> None:
@@ -218,7 +217,7 @@ class PartialDependence(Explainer):
                 raise ValueError(f'All features entries must be greater or equal to 0. Got a feature value of {f}.')
 
         for f in features:
-            if isinstance(f, Tuple):
+            if isinstance(f, tuple):
                 if len(f) != 2:
                     raise ValueError(f'Current implementation of the Partial dependence supports only two features '
                                      f'at a time when a tuple is passed. Received {len(f)} features with the '
@@ -270,7 +269,7 @@ class PartialDependence(Explainer):
         if kind != Kind.AVERAGE:
             if method == Method.RECURSION:
                 raise ValueError(f"The '{Method.RECURSION.value}' method only applies when kind='average'.")
-            method = Method.BRUTE
+            method = Method.BRUTE  # type: ignore
 
         if method == Method.AUTO:
             if isinstance(estimator, BaseGradientBoosting) and estimator.init is None:
@@ -330,7 +329,7 @@ class PartialDependence(Explainer):
             features = (features, )
 
         deciles, grid, values, features_indices = [], [], [], []
-        for f in features:
+        for f in features:  # type: ignore
             # TODO: consider all values of a categorical features instead of using the unique values in the data?
             f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
             X_f = _safe_indexing(X, f_indices, axis=1)
@@ -441,16 +440,16 @@ class PartialDependence(Explainer):
         `Explanation` object.
         """
         deciles_values, feature_values = [], []
-        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None
-        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None
+        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None  # type: Optional[List[str]]
+        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None  # type: Optional[List[str]]
 
         for pd in pds:
             feature_values.append(pd['values'])
             deciles_values.append(pd['deciles'])
 
-            if Kind.AVERAGE in pd:
+            if (pd_values is not None) and (Kind.AVERAGE in pd):
                 pd_values.append(pd[Kind.AVERAGE])
-            if Kind.INDIVIDUAL in pd:
+            if (ice_values is not None) and Kind.INDIVIDUAL in pd:
                 ice_values.append(pd[Kind.INDIVIDUAL])
 
         data = copy.deepcopy(DEFAULT_DATA_PD)
@@ -481,9 +480,11 @@ class PartialDependence(Explainer):
         self.predictor = predictor
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def plot_pd(exp: Explanation,
             features_list: Union[List[int], Literal['all']] = 'all',
-            target_idx: Union[int, str] = 0,
+            target_idx: int = 0,
             n_cols: int = 3,
             centered: bool = True,
             ax: Union['plt.Axes', np.ndarray, None] = None,
@@ -567,7 +568,7 @@ def plot_pd(exp: Explanation,
             """ Helper function to add subplots and share common y axes. """
             common_axes = None
             for i, spec in zip(range(start, stop), list(gs)[start:stop]):
-                if not isinstance(exp.feature_names[i], Tuple) and (not all_different):
+                if not isinstance(exp.feature_names[i], tuple) and (not all_different):
                     axes_ravel[i] = fig.add_subplot(spec, sharey=common_axes)
                     if common_axes is None:
                         common_axes = axes_ravel[i]
@@ -596,12 +597,12 @@ def plot_pd(exp: Explanation,
         return feature_idx in exp.all_categorical_names
 
     # make plots
-    for ix, features, ax_ravel in zip(count(), features_list, axes_ravel):
+    for features, ax_ravel in zip(features_list, axes_ravel):  # type: ignore
         # extract the feature names
         feature_names = exp.feature_names[features]
 
         # if it is tuple, then we need a 2D plot and address 4 cases: (num, num), (num, cat), (cat, num), (cat, cat)
-        if isinstance(feature_names, Tuple):
+        if isinstance(feature_names, tuple):
             f0, f1 = feature_names
 
             if (not _is_categorical(f0)) and (not _is_categorical(f1)):
@@ -646,13 +647,15 @@ def plot_pd(exp: Explanation,
     return axes
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
                      ax: 'plt.Axes' = None,
-                     pd_num_kw: dict = None,
-                     ice_num_kw: dict = None) -> 'plt.Axes':
+                     pd_num_kw: Optional[dict] = None,
+                     ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single numerical feature.
 
@@ -689,7 +692,7 @@ def _plot_one_pd_num(exp: Explanation,
         default_pd_num_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'tab:orange', 'label': 'average'}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
 
-        default_ice_graph_kw = {'alpha': 0.8, 'color': 'lightsteelblue', 'label': None}
+        default_ice_graph_kw = {'alpha': 0.8, 'color': 'lightsteelblue', 'label': None}  # type: ignore
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center pd values if necessary
@@ -715,12 +718,14 @@ def _plot_one_pd_num(exp: Explanation,
     return ax
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      ax: 'plt.Axes' = None,
-                     pd_cat_kw: dict = None,
-                     ice_cat_kw: dict = None) -> 'plt.Axes':
+                     pd_cat_kw: Optional[dict] = None,
+                     ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single categorical feature.
 
@@ -790,11 +795,13 @@ def _plot_one_pd_cat(exp: Explanation,
     return ax
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def _plot_two_pd_num_num(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_num_num_kw: dict = None) -> 'plt.Axes':
+                         pd_num_num_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for two numerical features.
 
@@ -848,11 +855,13 @@ def _plot_two_pd_num_num(exp: Explanation,
     return ax
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def _plot_two_pd_num_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_num_cat_kw: dict = None) -> 'plt.Axes':
+                         pd_num_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for a numerical feature and a categorical feature.
 
@@ -908,11 +917,13 @@ def _plot_two_pd_num_cat(exp: Explanation,
     ax.legend()
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def _plot_two_pd_cat_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: 'plt.Axes' = None,
-                         pd_cat_cat_kw: dict = None) -> 'plt.Axes':
+                         pd_cat_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for a numerical feature and a categorical feature.
 
@@ -987,7 +998,7 @@ class PDEstimatorWrapper:
                  predictor: Callable[[np.ndarray], np.ndarray],
                  predictor_type: Literal['regression', 'classifier'],
                  prediction_fn: Literal['predict', 'predict_proba', 'decision_function'],
-                 num_classes: int = None):
+                 num_classes: Optional[int] = None):
         """
         Constructor.
 

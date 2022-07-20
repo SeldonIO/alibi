@@ -472,15 +472,34 @@ class PartialDependence(Explainer):
                 estimator, grid, features_indices
             )
 
-            # reshape averaged_predictions to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
+        # reshape averaged_predictions to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
         averaged_predictions = averaged_predictions.reshape(
             -1, *[val.shape[0] for val in values]
         )
 
+        # special case when dealing with a binary classifier that uses predict_proba - sklearn remove
+        # the computation for the label 0 and only returns the predictions for label 1. To make it consistent with
+        # the ALE, we re-add the predictions for label 0.
+        n_outputs = averaged_predictions.shape[0]
+        conditions = [
+            is_classifier(estimator),
+            response_method in [ResponseMethod.PREDICT_PROBA, ResponseMethod.AUTO],
+            hasattr(estimator, 'predict_proba'),  # works because predict_proba has priority over decision_function
+            n_outputs == 1
+        ]
+
+        if all(conditions):
+            averaged_predictions = np.concatenate([1 - averaged_predictions, averaged_predictions], axis=0)
+            if method == 'brute':
+                predictions = np.concatenate([1 - predictions, predictions], axis=0)
+
+        # define feature values (i.e. grid values) and the corresponding deciles. Note that the deciles
+        # were computed on the raw (i.e. unprocessed) feature value as provided in the reference dataset X
         pd = {
             'values': values if len(values) > 1 else values[0],
             'deciles': deciles if len(deciles) > 1 else deciles[0],
         }
+
         if kind == Kind.AVERAGE:
             pd.update({'average': averaged_predictions})
         elif kind == Kind.INDIVIDUAL:
@@ -1229,7 +1248,7 @@ class PDEstimatorWrapper:
 # 4. SOLVED : consider all values of a categorical features instead of using the unique values in the data?
 # This was solved by custom grid_points
 # 5. SOLVED: consider wrapping the black-box predictor inside init
-
-# TODO: display for both targets in binary classification?
-# TODO: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output evolves for an individual. Line plot with markes might be a better option
-# TODO: OHE not supported for now, but do include decorator workaround in the example
+# 6. SOLVED: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output
+# evolves for an individual. Line plot with markers might be a better option
+# 7. SOLVED: display for both targets in binary classification?
+# 8. TODO: OHE not supported for now, but do include decorator workaround in the example

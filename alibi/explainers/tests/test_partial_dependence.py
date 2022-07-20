@@ -18,11 +18,29 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, \
     GradientBoostingRegressor, GradientBoostingClassifier
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputClassifier
+from sklearn.model_selection import train_test_split
 
 
 @pytest.fixture(scope='module')
+def binary_data():
+    n_samples, n_feautres, n_informative, n_classes = 200, 100, 30, 2
+    X, y = make_classification(n_samples=n_samples,
+                               n_features=n_feautres,
+                               n_informative=n_informative,
+                               n_classes=n_classes,
+                               random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5)
+    return {
+        'X_train': X_train,
+        'y_train': y_train,
+        'X_test': X_test,
+        'y_test': y_test,
+        'preprocessor': None,
+    }
+
+@pytest.fixture(scope='module')
 def multioutput_dataset():
-    n_samples, n_features, n_informative, n_classes = 10, 100, 30, 3
+    n_samples, n_features, n_informative, n_classes = 200, 100, 30, 3
     X, y1 = make_classification(n_samples=n_samples,
                                 n_features=n_features,
                                 n_informative=n_informative,
@@ -32,7 +50,14 @@ def multioutput_dataset():
     y2 = shuffle(y1, random_state=1)
     y3 = shuffle(y1, random_state=2)
     Y = np.vstack((y1, y2, y3)).T
-    return {'X': X,  'Y': Y}
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.5)
+    return {
+        'X_train': X_train,
+        'Y_train': Y_train,
+        'X_test': X_test,
+        'Y_test': Y_test,
+        'preprocessor': None
+    }
 
 
 @pytest.fixture(scope='module')
@@ -53,8 +78,8 @@ def test_unfitted_estimator(predictor):
 @pytest.mark.parametrize('multioutput_classifier', [RandomForestClassifier()], indirect=True)
 def test_multioutput_estimator(multioutput_classifier, multioutput_dataset):
     """ Check if raises error for multi-output model"""
-    X, Y = multioutput_dataset['X'], multioutput_dataset['Y']
-    multioutput_classifier.fit(X, Y)
+    X_train, Y_train = multioutput_dataset['X_train'], multioutput_dataset['Y_train']
+    multioutput_classifier.fit(X_train, Y_train)
 
     explainer = PartialDependence(predictor=multioutput_classifier)
     with pytest.raises(ValueError) as err:
@@ -324,7 +349,7 @@ def test_classification_wrapper(lr_classifier, iris_data, response_method, kind,
 @pytest.mark.parametrize('use_int', [False, True])
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
 def test_grid_points(adult_data, rf_classifier, use_int):
-    """ Checks whether the grid points provided are used for computing the partial dependecies. """
+    """ Checks whether the grid points provided are used for computing the partial dependencies. """
     rf, _ = rf_classifier
     rf_clone = deepcopy(rf)  # need to deepcopy as the rf_classifier fixture has module scope
 
@@ -373,10 +398,9 @@ def test_grid_points(adult_data, rf_classifier, use_int):
 
 
 @pytest.mark.parametrize('use_int', [False, True])
-@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
-def test_grid_points_error(adult_data, rf_classifier, use_int):
-    """ Checks if the sanity checks throw an error when the grid_points for a categorical feature are not a subset
-    of the feature values provided in categorical_names. """
+def test_grid_points_error(adult_data, use_int):
+    """ Checks if the _grid_points_sanity_checks throw an error when the grid_points for a categorical feature
+    are not a subset of the feature values provided in categorical_names. """
     feature_names = adult_data['metadata']['feature_names']
     categorical_names = adult_data['metadata']['category_map']
     X_train, y_train = adult_data['X_train'], adult_data['y_train']
@@ -396,8 +420,44 @@ def test_grid_points_error(adult_data, rf_classifier, use_int):
     # define explainer
     explainer = PartialDependence(predictor=lambda x: np.zeros(x.shape[0]),
                                   feature_names=feature_names,
-                                  categorical_names=categorical_names)
+                                  categorical_names=categorical_names,
+                                  predictor_kw={
+                                      'predictor_type': 'classifier',
+                                      'prediction_fn': 'predict_proba',
+                                      'num_classes': 2
+                                  })
 
     # compute explanation for every feature using the grid_points
     with pytest.raises(ValueError):
         explainer._grid_points_sanity_checks(grid_points, n_features=X_train.shape[1])
+
+
+@pytest.mark.parametrize('response_method', ['predict_proba', 'auto'])
+@pytest.mark.parametrize('lr_classifier', [lazy_fixture('binary_data')], indirect=True)
+def test_binary_classifier_two_targets(lr_classifier, binary_data, response_method):
+    """ Checks that for a classifier which has predict_proba and decision and for which the
+    response_method in ['predict_proba', 'auto'], the partial dependence has two targets. """
+    lr, _ = lr_classifier
+    X_train = binary_data['X_train']
+
+    explainer = PartialDependence(predictor=lr)
+    exp = explainer.explain(X=X_train, response_method=response_method, kind='both')
+
+    for pd, ice in zip(exp.pd_values, exp.ice_values):
+        assert pd.shape[0] == 2
+        assert ice.shape[0] == 2
+
+
+@pytest.mark.parametrize('svc_classifier', [lazy_fixture('binary_data')], indirect=True)
+def test_binary_classifier_one_target(svc_classifier, binary_data):
+    """ Checks that for a classifier which does not have predict_proba and for which the response_method='auto',
+    the partial dependence has only one target. """
+    svc, _ = svc_classifier
+    X_train = binary_data['X_train']
+
+    explainer = PartialDependence(predictor=svc)
+    exp = explainer.explain(X=X_train, response_method='auto', kind='both')
+
+    for pd, ice in zip(exp.pd_values, exp.ice_values):
+        assert pd.shape[0] == 1
+        assert ice.shape[0] == 1

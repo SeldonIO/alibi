@@ -4,7 +4,10 @@ import shap
 
 import spacy
 import numpy as np
+
 from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+from sklearn.svm import SVC
 
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
@@ -15,7 +18,6 @@ from alibi.utils.lang_model import BertBaseUncased, DistilbertBaseUncased, Rober
 from alibi.utils.download import spacy_model
 
 import tensorflow as tf
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 import alibi_testing
 from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
@@ -87,6 +89,37 @@ def movie_sentiment_data():
 # TODO: The classifier training code is identical so should be
 #  ble to parametrize with module name and param dict to have only 1
 #  such fixture
+
+@pytest.fixture(scope='module')
+def svc_classifier(request):
+    """
+    Trains a random forest classifier. Because it is scoped
+    at module level, the state of this  fixture should not be
+    mutated during test - if you need to do so, please copy the
+    objects returned.
+    """
+
+    is_preprocessor = False
+    preprocessor = None
+    # this fixture should be parametrised with a fixture that
+    # returns a dataset dictionary with specified attributes
+    # see test_anchor_tabular for a usage example
+    data = request.param
+
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    np.random.seed(0)
+    clf = SVC()
+
+    if is_preprocessor:
+        clf.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        clf.fit(data['X_train'], data['y_train'])
+
+    return clf, preprocessor
+
 
 @pytest.fixture(scope='module')
 def rf_classifier(request):

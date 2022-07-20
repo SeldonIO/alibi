@@ -266,13 +266,14 @@ def test_regression_wrapper(rf_regressor, boston_data, kind, feature_list):
     predictor = rf.predict  # equivalent of black-box model
     X_train = boston_data['X_train']
 
-    # define predictor pd wrapper
-    wrapped_predictor = PDEstimatorWrapper(predictor=predictor,
-                                           predictor_type='regressor',
-                                           prediction_fn='predict')
+    # define predictor kwargs
+    predictor_kw = {
+        'predictor_type': 'regressor',
+        'prediction_fn': 'predict'
+    }
 
-    # define and fit explainer
-    explainer = PartialDependence(predictor=wrapped_predictor)
+    # define explainer and compute explanation
+    explainer = PartialDependence(predictor=predictor, predictor_kw=predictor_kw)
     explainer.explain(X=X_train,
                       features_list=feature_list,
                       grid_resolution=10,
@@ -302,14 +303,16 @@ def test_classification_wrapper(lr_classifier, iris_data, response_method, kind,
         predictor = lr.predict_proba
         prediction_fn = 'predict_proba'
 
-    # define predictor pd wrapper
-    wrapped_predictor = PDEstimatorWrapper(predictor=predictor,
-                                           predictor_type='classifier',
-                                           prediction_fn=prediction_fn,
-                                           num_classes=num_classes)
+    # define predictor kwargs
+    predictor_kw = {
+        'predictor_type': 'classifier',
+        'prediction_fn': prediction_fn,
+        'num_classes': num_classes
 
-    # define and fit explainer
-    explainer = PartialDependence(predictor=wrapped_predictor)
+    }
+
+    # define explainer and compute explanation
+    explainer = PartialDependence(predictor=predictor, predictor_kw=predictor_kw)
     explainer.explain(X=X_train,
                       features_list=feature_list,
                       grid_resolution=10,

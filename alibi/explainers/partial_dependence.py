@@ -58,29 +58,53 @@ class Kind(str, Enum):
 
 class PartialDependence(Explainer):
     def __init__(self,
-                 predictor: BaseEstimator,
+                 predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
-                 target_names: Optional[List[str]] = None):
+                 target_names: Optional[List[str]] = None,
+                 predictor_kw: Optional[Dict[str, Any]] = None):
         """
         Partial dependence for tabular datasets. Supports one feature or two feature interactions.
 
         Parameters
         ----------
         predictor
-            A `sklearn` estimator.
+            A `sklearn` estimator or a prediction function which receives as input a `numpy` array and outputs a
+            `numpy` array.
         feature_names
             A list of feature names used for displaying results.
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature.
         target_names
             A list of target/output names used for displaying results.
+        predictor_kw
+            Predictor identifier arguments when the predictor is a callable prediction function. The following
+            arguments must be provided:
+
+             - ``'predictor_type'`` : ``str`` - Type of the predictor. Available
+             values: ``'regressor'`` | ``'classifier'``.
+
+             - ``'prediction_fn'`` : ``str`` - Name of the prediction function. Available value for
+             regression: ``'predict'``. Available values for
+             classification: ``'predict_proba'`` | ``'decision_function'``. The choice should be considered
+             in analogy with the `sklearn` estimators API and the `response_method` used in
+             :py:meth:`alibi.explainers.partial_dependence.explain`.
+
+            - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function.
+            Considered only for ``prediction_type='classification'``.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
-        self.predictor = predictor
         self.feature_names = feature_names
         self.categorical_names = categorical_names
         self.target_names = target_names
+
+        if isinstance(predictor, BaseEstimator):
+            self.predictor = predictor
+        elif isinstance(predictor, Callable):
+            self.predictor = PDEstimatorWrapper(predictor=predictor, **predictor_kw)
+        else:
+            raise ValueError(f'Unknown predictor type. Received {type(predictor)}. Supported type are: '
+                             f'sklearn.base.BaseEstimator | Callable[[np.ndarray], np.ndarray].')
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
@@ -731,6 +755,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_one_pd_cat(exp=exp,
                                      feature=features,
                                      target_idx=target_idx,
+                                     centered=centered,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
                                      ice_cat_kw=ice_cat_kw)
@@ -782,40 +807,41 @@ def _plot_one_pd_num(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
+    feature_values = exp.feature_values[feature]
+    pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
+    ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
+
     if exp.kind == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
-        ax.plot(exp.feature_values[feature], exp.pd_values[feature][target_idx], **pd_num_kw)
+        ax.plot(feature_values, pd_values, **pd_num_kw)
 
     elif exp.kind == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center ice values if necessary
-        ice_values = exp.ice_values[feature][target_idx].T
         if centered:
             ice_values = ice_values - ice_values[0:1]
 
-        ax.plot(exp.feature_values[feature], ice_values, **ice_num_kw)
+        ax.plot(feature_values, ice_values, **ice_num_kw)
     else:
         default_pd_num_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'tab:orange', 'label': 'average'}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
 
-        default_ice_graph_kw = {'alpha': 0.8, 'color': 'lightsteelblue', 'label': None}  # type: ignore
+        default_ice_graph_kw = {'alpha': 0.6, 'color': 'lightsteelblue', 'label': None}  # type: ignore
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
-        # extract and center pd values if necessary
-        pd_values = exp.pd_values[feature][target_idx]
+        # center pd values if necessary
         if centered:
             pd_values = pd_values - pd_values[0]
 
-        # extract and center ice values if necessary
-        ice_values = exp.ice_values[feature][target_idx].T
+        # center ice values if necessary
         if centered:
             ice_values = ice_values - ice_values[0:1]
 
-        ax.plot(exp.feature_values[feature], ice_values, **ice_num_kw)
-        ax.plot(exp.feature_values[feature], pd_values, **pd_num_kw)
+        ax.plot(feature_values, ice_values, **ice_num_kw)
+        ax.plot(feature_values, pd_values, **pd_num_kw)
         ax.legend()
 
     # add deciles markers to the bottom of the plot
@@ -832,6 +858,7 @@ def _plot_one_pd_num(exp: Explanation,
 def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
+                     centered: bool = True,
                      ax: 'plt.Axes' = None,
                      pd_cat_kw: Optional[dict] = None,
                      ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -856,7 +883,6 @@ def _plot_one_pd_cat(exp: Explanation,
     `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
-    import seaborn as sns
 
     if ax is None:
         ax = plt.gca()
@@ -864,48 +890,49 @@ def _plot_one_pd_cat(exp: Explanation,
     feature_names = exp.feature_names[feature]
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
-    ice_values = exp.ice_values[feature][target_idx] if (exp.ice_values is not None) else None
+    ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
     def _get_feature_idx(feature):
         return np.where(exp.all_feature_names == feature)[0].item()
 
-    # extract labels for the categorical feature
     feature_index = _get_feature_idx(feature_names)
     labels = [exp.all_categorical_names[feature_index][i] for i in feature_values.astype(np.int32)]
 
-    if exp.kind in [Kind.INDIVIDUAL, Kind.BOTH]:
-        x, y = [], []
-
-        for i in range(len(feature_values)):
-            x.append([feature_values[i]] * ice_values.shape[0])
-            y.append(ice_values[:, i])
-
-        x = np.concatenate(x, axis=0).astype(np.int32)
-        y = np.concatenate(y, axis=0)
-
     if exp.kind == Kind.AVERAGE:
-        default_pd_graph_kw = {'color': 'tab:blue'}
+        default_pd_graph_kw = {'markersize': 8, 'marker': 's', 'color': 'tab:blue'}
         pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
-        sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
+        ax.plot(labels, pd_values, **pd_cat_kw)
 
     elif exp.kind == Kind.INDIVIDUAL:
-        default_ice_cat_kw = {'color': 'lightsteelblue'}
+        default_ice_cat_kw = {'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
-        sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
+
+        # extract and center ice values if necessary
+        if centered:
+            ice_values = ice_values - ice_values[0:1]
+
+        ax.plot(labels, ice_values, **ice_cat_kw)
 
     else:
-        default_pd_cat_kw = {'color': 'tab:orange', 'label': 'average'}
+        default_pd_cat_kw = {'markersize': 8, 'marker': 's', 'color': 'tab:orange', 'label': 'average'}
         pd_cat_kw = default_pd_cat_kw if pd_cat_kw is None else {**default_pd_cat_kw, **pd_cat_kw}
 
-        default_ice_cat_kw = {'color': 'lightsteelblue'}
+        default_ice_cat_kw = {'alpha': 0.6, 'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
 
-        sns.barplot(x=feature_values, y=pd_values, ax=ax, **pd_cat_kw)
-        sns.stripplot(x=x, y=y, ax=ax, **ice_cat_kw)
+        # center pd values if necessary
+        if centered:
+            pd_values = pd_values - pd_values[0]
+
+        # center ice values if necessary
+        if centered:
+            ice_values = ice_values - ice_values[0:1]
+
+        ax.plot(labels, ice_values, **ice_cat_kw)
+        ax.plot(labels, pd_values, **pd_cat_kw)
         ax.legend()
 
-    # set xticks labels
-    ax.set_xticklabels(labels)
+    # rotate xticks labels
     ax.tick_params(axis='x', rotation=90)
 
     # set axis labels
@@ -938,7 +965,6 @@ def _plot_two_pd_num_num(exp: Explanation,
     -------
     `matplotlib` axes.
     """
-
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
@@ -1197,12 +1223,13 @@ class PDEstimatorWrapper:
         pass
 
 
-# TODO: consider a better `explain` API for PD and ALE -- maybe in the future ...
-# TODO: consider all one way as default for `explain -> features_list`. Check ALE -> solved
+# 1. TODO: consider a better `explain` API for PD and ALE -- maybe in the future ...
+# 2. SOLVED: consider all one way as default for `explain -> features_list`. Check ALE -> solved
+# 3. SOLVED: add custom grid_points
+# 4. SOLVED : consider all values of a categorical features instead of using the unique values in the data?
+# This was solved by custom grid_points
+# 5. SOLVED: consider wrapping the black-box predictor inside init
 
-# TODO: consider all values of a categorical features instead of using the unique values in the data?
 # TODO: display for both targets in binary classification?
 # TODO: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output evolves for an individual. Line plot with markes might be a better option
-# TODO: consider wrapping the black-box predictor inside init
 # TODO: OHE not supported for now, but do include decorator workaround in the example
-# TODO: add custom grid points

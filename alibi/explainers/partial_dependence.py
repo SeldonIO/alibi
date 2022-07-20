@@ -100,7 +100,9 @@ class PartialDependence(Explainer):
 
         if isinstance(predictor, BaseEstimator):
             self.predictor = predictor
-        elif isinstance(predictor, Callable):
+        elif callable(predictor):
+            if predictor_kw is None:
+                predictor_kw = {}
             self.predictor = PDEstimatorWrapper(predictor=predictor, **predictor_kw)
         else:
             raise ValueError(f'Unknown predictor type. Received {type(predictor)}. Supported type are: '
@@ -190,8 +192,8 @@ class PartialDependence(Explainer):
         if self.categorical_names is None:
             self.categorical_names = {}
 
-        self.feature_names = np.array(self.feature_names)
-        self.categorical_names = {k: np.array(v) for k, v in self.categorical_names.items()}
+        self.feature_names = np.array(self.feature_names)  # type: ignore
+        self.categorical_names = {k: np.array(v) for k, v in self.categorical_names.items()}  # type: ignore
 
         # sanity checks
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
@@ -204,11 +206,11 @@ class PartialDependence(Explainer):
         # construct feature_names based on the feature_list. If feature_list is None, then initialize
         # feature_list with all single feature available in the dataset.
         if features_list:
-            feature_names = [tuple([self.feature_names[f] for f in features])  # type: ignore
-                             if isinstance(features, tuple)
-                             else self.feature_names[features] for features in features_list]  # type: ignore
+            feature_names = np.array([tuple([self.feature_names[f] for f in features])
+                                      if isinstance(features, tuple) else self.feature_names[features]
+                                      for features in features_list], dtype=object)  # type: ignore
         else:
-            feature_names = self.feature_names
+            feature_names = self.feature_names  # type: ignore
             features_list = list(range(n_features))
 
         # buffer of all partial dependencies
@@ -276,7 +278,8 @@ class PartialDependence(Explainer):
                     int_values = []
 
                     for str_vals in grid_points[f]:
-                        index = np.where(str_vals == self.categorical_names[f])[0]
+                        # self.categorical_names cannot be None because of the check in self._is_numerical
+                        index = np.where(str_vals == self.categorical_names[f])[0]  # type: ignore[index]
                         if len(index) > 0:
                             int_values.append(index[0])
                         else:
@@ -284,7 +287,8 @@ class PartialDependence(Explainer):
 
                     grid_points[f] = np.array(int_values)
 
-                mask = np.isin(grid_points[f], np.arange(len(self.categorical_names[f])))
+                # self.categorical_names cannot be None because of the check in self._is numerical
+                mask = np.isin(grid_points[f], np.arange(len(self.categorical_names[f])))  # type: ignore[index]
                 if not np.all(mask):
                     index = np.where(not mask)[0][0]
                     raise ValueError(message.format(f, grid_points[f][index]))
@@ -566,8 +570,8 @@ class PartialDependence(Explainer):
         `Explanation` object.
         """
         deciles_values, feature_values = [], []
-        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None  # type: Optional[List[str]]
-        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None  # type: Optional[List[str]]
+        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
+        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
 
         for pd in pds:
             feature_values.append(pd['values'])

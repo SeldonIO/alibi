@@ -6,9 +6,8 @@ from copy import deepcopy
 import pytest
 from pytest_lazyfixture import lazy_fixture
 
-from alibi.explainers import PartialDependence, PDEstimatorWrapper
+from alibi.explainers import PartialDependence
 from alibi.explainers.partial_dependence import ResponseMethod, Kind, Method
-
 
 from sklearn.utils import shuffle
 from sklearn.exceptions import NotFittedError
@@ -37,6 +36,7 @@ def binary_data():
         'y_test': y_test,
         'preprocessor': None,
     }
+
 
 @pytest.fixture(scope='module')
 def multioutput_dataset():
@@ -364,7 +364,7 @@ def test_grid_points(adult_data, rf_classifier, use_int):
 
     feature_names = adult_data['metadata']['feature_names']
     categorical_names = adult_data['metadata']['category_map']
-    X_train, y_train = adult_data['X_train'], adult_data['y_train']
+    X_train = adult_data['X_train']
 
     # construct random grid_points by choosing random values between min and max for each numerical feature,
     # and sampling at random from the categorical names for each categorical feature.
@@ -403,7 +403,7 @@ def test_grid_points_error(adult_data, use_int):
     are not a subset of the feature values provided in categorical_names. """
     feature_names = adult_data['metadata']['feature_names']
     categorical_names = adult_data['metadata']['category_map']
-    X_train, y_train = adult_data['X_train'], adult_data['y_train']
+    X_train = adult_data['X_train']
 
     # construct random grid_points by choosing random values between min and max for each numerical feature,
     # and sampling at random from the categorical names for each categorical feature.

@@ -82,15 +82,15 @@ class PartialDependence(Explainer):
         self.categorical_names = categorical_names
         self.target_names = target_names
 
-
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 features_list: Optional[List[Union[int, Tuple[int, int]]]] = None,
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
+                method: Literal['auto', 'recursion', 'brute'] = 'auto',
+                kind: Literal['average', 'individual', 'both'] = 'average',
                 percentiles: Tuple[float, float] = (0.05, 0.95),
                 grid_resolution: int = 100,
-                method: Literal['auto', 'recursion', 'brute'] = 'auto',
-                kind: Literal['average', 'individual', 'both'] = 'average') -> Explanation:
+                grid_points: Optional[Dict[int, np.ndarray]] = None) -> Explanation:
         """
         Calculate the partial dependence for each feature with respect to the given target and the dataset `X`.
 
@@ -100,18 +100,13 @@ class PartialDependence(Explainer):
             An `N x F` tabular dataset used to calculate partial dependence curves. This is typically the training
             dataset or a representative sample.
         features_list
-            An optional list of features or pair of features for which to calculate the partial dependence for.
-            If not provided, the partial dependece will be computed for all single features in the dataset.
+            An optional list of features or pairs of features for which to calculate the partial dependence for.
+            If not provided, the partial dependence will be computed for all single features in the dataset.
         response_method
             Specifies the prediction function to be used. For classifier it specifies whether to use the
             `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
             the `predict_proba` is tried first, and if not supported then it reverts to `decision_function`. Note
             that if `method='recursion'`, the that the prediction function always uses `decision_function`.
-        percentiles
-            Lower and upper percentiles used to create extreme values which can potential remove outliers in low
-            density regions. The values must be in [0, 1].
-        grid_resolution
-            Number of equidistant points to split the range of each target feature.
         method
             The method used to calculate the average predictions
 
@@ -133,6 +128,22 @@ class PartialDependence(Explainer):
             each individual from the dataset. Otherwise, if set to `'both'`, then both the PD and the ICE are returned.
             Note that for the faster `method='recursion'` option the only compatible parameter value is
             `kind='average'`. To plot the ICE, consider using the more computation intensive `method='brute'`.
+        percentiles
+            Lower and upper percentiles used to create extreme values which can potential remove outliers in low
+            density regions. The values must be in [0, 1].
+        grid_resolution
+            Number of equidistant points to split the range of each target feature. Only applies if the number of
+            unique values of a target feature in the reference dataset `X` is less than the `grid_resolution` value.
+        grid_points
+            Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
+            monotonically increasing `numpy` arrays defining the grid points for numerical feature, and
+            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the reference
+            dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
+            it applies). For categorical features, the corresponding value in the `grid_points` can be
+            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
+            encodings. Note that the label encoding must match the ordering of the values provided in the
+            `categorical_names`.
 
         Returns
         -------
@@ -158,7 +169,8 @@ class PartialDependence(Explainer):
         self.feature_names = np.array(self.feature_names)
         self.categorical_names = {k: np.array(v) for k, v in self.categorical_names.items()}
 
-        # parameters sanity checks
+        # sanity checks
+        self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
         self._features_sanity_checks(features=features_list)
         response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,  # type: ignore
                                                                    response_method=response_method,
@@ -183,14 +195,15 @@ class PartialDependence(Explainer):
         for features in features_list:
             pds.append(
                 self._partial_dependence(
-                            estimator=self.predictor,
-                            X=X,
-                            features=features,
-                            response_method=response_method,
-                            percentiles=percentiles,
-                            grid_resolution=grid_resolution,
-                            method=method,
-                            kind=kind
+                    estimator=self.predictor,
+                    X=X,
+                    features=features,
+                    response_method=response_method,
+                    method=method,
+                    kind=kind,
+                    percentiles=percentiles,
+                    grid_resolution=grid_resolution,
+                    grid_points=grid_points
                 )
             )
 
@@ -206,6 +219,51 @@ class PartialDependence(Explainer):
                                        kind=kind,
                                        feature_names=feature_names,  # type: ignore
                                        pds=pds)
+
+    def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, np.ndarray]], n_features: int):
+        """
+        Grid points sanity checks.
+
+        Parameters
+        ----------
+        grid_points
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain`.
+        n_features
+            Number of features in the dataset.
+        """
+        if grid_points is None:
+            return
+
+        if not np.all(np.isin(list(grid_points.keys()),  np.arange(n_features))):
+            raise ValueError('The features provided in grid_points are not a subset of the dataset features.')
+
+        for f in grid_points:
+            if self._is_numerical(f):
+                grid_points[f] = np.sort(grid_points[f])
+
+            else:
+                grid_points[f] = np.unique(grid_points[f])
+                message = 'The grid points provided for the categorical feature {} are invalid. '\
+                          'For categorical features, the grid points must be a subset of the features '\
+                          'values defined in categorical_names. Received an unknown value of {}'
+
+                # convert to label encoding if the grid is provided as strings
+                if grid_points[f].dtype.type is np.str_:
+                    int_values = []
+
+                    for str_vals in grid_points[f]:
+                        index = np.where(str_vals == self.categorical_names[f])[0]
+                        if len(index) > 0:
+                            int_values.append(index[0])
+                        else:
+                            raise ValueError(message.format(f, str_vals))
+
+                    grid_points[f] = np.array(int_values)
+
+                mask = np.isin(grid_points[f], np.arange(len(self.categorical_names[f])))
+                if not np.all(mask):
+                    index = np.where(not mask)[0][0]
+                    raise ValueError(message.format(f, grid_points[f][index]))
 
     def _features_sanity_checks(self, features: Optional[List[Union[int, Tuple[int, int]]]]) -> None:
         """
@@ -320,16 +378,18 @@ class PartialDependence(Explainer):
                             X: np.ndarray,
                             features: Union[int, Tuple[int, int]],
                             response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
+                            method: Literal['auto', 'recursion', 'brute'] = 'auto',
+                            kind: Literal['average', 'individual', 'both'] = 'average',
                             percentiles: Tuple[float, float] = (0., 1.),
                             grid_resolution: int = 100,
-                            method: Literal['auto', 'recursion', 'brute'] = 'auto',
-                            kind: Literal['average', 'individual', 'both'] = 'average') -> Dict[str, np.ndarray]:
+                            grid_points: Optional[Dict[int, np.ndarray]] = None
+                            ) -> Dict[str, np.ndarray]:
         """
         Computes partial dependence for a feature or a pair of features.
 
         Parameters
         ----------
-        estimator, X, features, response_method, percentiles, grid_resolution, method, kind
+        estimator, X, features, response_method, method, kind, percentiles, grid_resolution, grid_points
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
 
         Returns
@@ -340,29 +400,39 @@ class PartialDependence(Explainer):
         if isinstance(features, numbers.Integral):
             features = (features, )
 
-        deciles, grid, values, features_indices = [], [], [], []
-        for f in features:  # type: ignore
+        if grid_points is None:
+            grid_points = {}
 
-            # check against the category map and raise a warning. Need to choose one or the other
+        deciles, values, features_indices = [], [], [],
+        for f in features:  # type: ignore
+            # check against the category map and raise a warning. Need to choose one or the other.
+            # Note that we are using the _safe_indexing procedure implement in sklearn to retrieve the column.
+            # This is because the _safe_indexing supports many data types such as sparse matrix representation,
+            # pandas dataframes etc. In case we would like to enhance alibi in the future to support other
+            # data types than np.ndarrays, this can be useful.
             f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
             X_f = _safe_indexing(X, f_indices, axis=1)
 
-            # get deciles
+            # get deciles for the current feature
             deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
 
-            # construct grid for feature f
-            grid_f, values_f = _grid_from_X(X_f,
-                                            percentiles=percentiles,
-                                            grid_resolution=grid_resolution if self._is_numerical(f) else np.inf)
+            if f not in grid_points:
+                # construct grid for feature f. Note that for categorical features we pass the
+                # grid resolution to be infinity because otherwise we risk to apply `linspace` to
+                # categorical values, which does not make sense.
+                _, values_f = _grid_from_X(X_f,
+                                           percentiles=percentiles,
+                                           grid_resolution=grid_resolution if self._is_numerical(f) else np.inf)
+            else:
+                values_f = [grid_points[f_indices[0]]]
 
             features_indices.append(f_indices)
             deciles.append(deciles_f)
-            grid.append(grid_f)
             values += values_f
 
         # covers also the case of a single feature, just to ensure it has the right shape
         features_indices = np.concatenate(features_indices, axis=0)
-        grid = cartesian(tuple([g.reshape(-1) for g in grid]))
+        grid = cartesian(tuple([v.reshape(-1) for v in values]))
 
         if method == "brute":
             averaged_predictions, predictions = _partial_dependence_brute(

@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from typing import Tuple, List
+from copy import deepcopy
 
 import pytest
 from pytest_lazyfixture import lazy_fixture
@@ -315,3 +316,85 @@ def test_classification_wrapper(lr_classifier, iris_data, response_method, kind,
                       response_method=response_method,
                       method='brute',
                       kind=kind)
+
+
+@pytest.mark.parametrize('use_int', [False, True])
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+def test_grid_points(adult_data, rf_classifier, use_int):
+    """ Checks whether the grid points provided are used for computing the partial dependecies. """
+    rf, _ = rf_classifier
+    rf_clone = deepcopy(rf)  # need to deepcopy as the rf_classifier fixture has module scope
+
+    def decorator(func):
+        def wrapper(X, *args, **kwargs):
+            X_ohe = adult_data['preprocessor'].transform(X)
+            return func(X_ohe, *args, **kwargs)
+        return wrapper
+
+    # decorate predict_proba such that it accepts label encodings and transforms it internally to ohe
+    rf_clone.predict_proba = decorator(rf_clone.predict_proba)
+
+    feature_names = adult_data['metadata']['feature_names']
+    categorical_names = adult_data['metadata']['category_map']
+    X_train, y_train = adult_data['X_train'], adult_data['y_train']
+
+    # construct random grid_points by choosing random values between min and max for each numerical feature,
+    # and sampling at random from the categorical names for each categorical feature.
+    grid_points = {}
+    for i in range(len(feature_names)):
+        if i not in categorical_names:
+            min_val, max_val = X_train[:, i].min(), X_train[:, i].max()
+            size = np.random.randint(low=1, high=len(np.unique(X_train[:, i])))
+            vals = np.random.uniform(min_val, max_val, size=size)
+        else:
+            size = np.random.randint(low=1, high=len(categorical_names[i]))
+            categorical_values = np.arange(len(categorical_names[i])) if use_int else categorical_names[i]
+            vals = np.random.choice(categorical_values, size=size, replace=False)
+
+        grid_points[i] = vals
+
+    # define explainer
+    explainer = PartialDependence(predictor=rf_clone,
+                                  feature_names=feature_names,
+                                  categorical_names=categorical_names)
+
+    # compute explanation for every feature using the grid_points
+    exp = explainer.explain(X=X_train[:100],
+                            features_list=None,
+                            response_method='predict_proba',
+                            kind='average',
+                            grid_points=grid_points)
+
+    for i in range(len(feature_names)):
+        np.testing.assert_allclose(exp.feature_values[i], grid_points[i])
+
+
+@pytest.mark.parametrize('use_int', [False, True])
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+def test_grid_points_error(adult_data, rf_classifier, use_int):
+    """ Checks if the sanity checks throw an error when the grid_points for a categorical feature are not a subset
+    of the feature values provided in categorical_names. """
+    feature_names = adult_data['metadata']['feature_names']
+    categorical_names = adult_data['metadata']['category_map']
+    X_train, y_train = adult_data['X_train'], adult_data['y_train']
+
+    # construct random grid_points by choosing random values between min and max for each numerical feature,
+    # and sampling at random from the categorical names for each categorical feature.
+    grid_points = {}
+    for i in range(len(feature_names)):
+        if i in categorical_names:
+            size = np.random.randint(low=1, high=len(categorical_names[i]))
+            categorical_values = np.arange(len(categorical_names[i])) if use_int else categorical_names[i]
+            grid_points[i] = np.random.choice(categorical_values, size=size, replace=False)
+
+            # append a wrong value
+            grid_points[i] = np.append(grid_points[i], len(categorical_values) if use_int else '[UNK]')
+
+    # define explainer
+    explainer = PartialDependence(predictor=lambda x: np.zeros(x.shape[0]),
+                                  feature_names=feature_names,
+                                  categorical_names=categorical_names)
+
+    # compute explanation for every feature using the grid_points
+    with pytest.raises(ValueError):
+        explainer._grid_points_sanity_checks(grid_points, n_features=X_train.shape[1])

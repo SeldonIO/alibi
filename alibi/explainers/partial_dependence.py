@@ -11,6 +11,7 @@ import numpy as np
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers.ale import get_quantiles
+from alibi.explainers.similarity.grad import get_options_string
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble._gb import BaseGradientBoosting
@@ -26,27 +27,22 @@ from sklearn.utils.validation import check_is_fitted
 logger = logging.getLogger(__name__)
 
 
-def get_options_string(enum: Type[Enum]) -> str:
-    """ Get the enums options seperated by pipe as a string. """
-    return f"""'{"' | '".join(enum)}'"""
-
-
 class ResponseMethod(str, Enum):
-    """ Enumeration of supported response methods. """
+    """ Enumeration of supported response_method. """
     AUTO = 'auto'
     PREDICT_PROBA = 'predict_proba'
     DECISION_FUNCTION = 'decision_function'
 
 
 class Method(str, Enum):
-    """ Enumeration of supported methods. """
+    """ Enumeration of supported method. """
     AUTO = 'auto'
     RECURSION = 'recursion'
     BRUTE = 'brute'
 
 
 class Kind(str, Enum):
-    """ Enumeration of supported kinds. """
+    """ Enumeration of supported kind. """
     AVERAGE = 'average'
     INDIVIDUAL = 'individual'
     BOTH = 'both'
@@ -1203,7 +1199,7 @@ class PDEstimatorWrapper:
             ``prediction_type='classification'``.
         """
         self.predictor = predictor
-        self._is_fitted = True
+        self.is_fitted_ = True  # to check if fitted, sklearn also looks at vars that end in _ and do not start with __
 
         if predictor_type in PredictorType.__members__.values():
             self._estimator_type = predictor_type
@@ -1236,7 +1232,7 @@ class PDEstimatorWrapper:
                                  f"Accepted predictor_type names are {get_options_string(PredictorType)}.")
 
     def __sklearn_is_fitted__(self):
-        return self._is_fitted
+        return self.is_fitted_
 
     def fit(self, *args, **kwargs):
         pass

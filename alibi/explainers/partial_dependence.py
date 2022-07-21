@@ -1,31 +1,27 @@
 import copy
+import logging
 import math
 import numbers
-import logging
+from enum import Enum
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Type,
+                    Union, no_type_check)
 
 import matplotlib.pyplot as plt
 import numpy as np
-
-from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union, Literal, no_type_check
-
-from sklearn.utils.validation import check_is_fitted
-from sklearn.base import is_classifier, is_regressor, BaseEstimator
-from sklearn.utils.extmath import cartesian
-from sklearn.tree import DecisionTreeRegressor
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.ale import get_quantiles
+from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble._gb import BaseGradientBoosting
-from sklearn.ensemble._hist_gradient_boosting.gradient_boosting import BaseHistGradientBoosting
-from sklearn.utils import _get_column_indices, _safe_indexing
+from sklearn.ensemble._hist_gradient_boosting.gradient_boosting import \
+    BaseHistGradientBoosting
 from sklearn.inspection._partial_dependence import (
-    _grid_from_X,
-    _partial_dependence_brute,
-    _partial_dependence_recursion
-)
-
-from alibi.explainers.ale import get_quantiles
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_PD, DEFAULT_DATA_PD
+    _grid_from_X, _partial_dependence_brute, _partial_dependence_recursion)
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.utils import _get_column_indices, _safe_indexing
+from sklearn.utils.extmath import cartesian
+from sklearn.utils.validation import check_is_fitted
 
 logger = logging.getLogger(__name__)
 
@@ -206,9 +202,9 @@ class PartialDependence(Explainer):
         # construct feature_names based on the feature_list. If feature_list is None, then initialize
         # feature_list with all single feature available in the dataset.
         if features_list:
-            feature_names = np.array([tuple([self.feature_names[f] for f in features])
-                                      if isinstance(features, tuple) else self.feature_names[features]
-                                      for features in features_list], dtype=object)  # type: ignore
+            feature_names = np.array([tuple([self.feature_names[f] for f in features]) # type: ignore
+                                      if isinstance(features, tuple) else self.feature_names[features]  # type: ignore
+                                      for features in features_list], dtype=object)
         else:
             feature_names = self.feature_names  # type: ignore
             features_list = list(range(n_features))

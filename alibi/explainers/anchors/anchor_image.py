@@ -482,7 +482,7 @@ class AnchorImage(Explainer):
             precision constraint cannot be satisfied due to the quantile-based discretisation of the numerical
             features. If that is the case, the best (i.e. highest coverage) non-eligible anchor is returned.
         delta
-            Significant threshold. `1 - delta` represents the confidence threshold for the anchor precision
+            Significance threshold. `1 - delta` represents the confidence threshold for the anchor precision
             (see `threshold`) and the selection of the best anchor candidate in each iteration (see `tau`).
         tau
             Multi-armed bandit parameter used to select candidate anchors in each iteration. The multi-armed bandit

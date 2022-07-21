@@ -794,8 +794,8 @@ class AnchorBaseBeam:
                            f'Now returning the best non-eligible result. The desired precision threshold might not be '
                            f'achieved due to the quantile-based discretisation of the numerical features. The '
                            f'resolution of the bins may be too large to find an anchor of required precision. '
-                           f'Note that higher resolution may or may not be easily achieved depending on the underling '
-                           f'numerical features distributions.')
+                           f'Consider increasing the number of bins in `disc_perc`, but note that for some '
+                           f'numerical distribution (e.g. skewed distribution) it may not help.')
             anchors = []
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])

@@ -3,8 +3,7 @@ import logging
 import math
 import numbers
 from enum import Enum
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Type,
-                    Union, no_type_check)
+from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union, no_type_check)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -66,7 +65,8 @@ class PartialDependence(Explainer):
         feature_names
             A list of feature names used for displaying results.
         categorical_names
-            Dictionary where keys are feature columns and values are the categories for the feature.
+            Dictionary where keys are feature columns and values are the categories for the feature. Necessary to
+            identify the categorical features in the dataset.
         target_names
             A list of target/output names used for displaying results.
         predictor_kw
@@ -110,42 +110,44 @@ class PartialDependence(Explainer):
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, np.ndarray]] = None) -> Explanation:
         """
-        Calculate the partial dependence for each feature with respect to the given target and the dataset `X`.
+        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        and the reference dataset `X`.
 
         Parameters
         ----------
         X
-            An `N x F` tabular dataset used to calculate partial dependence curves. This is typically the training
-            dataset or a representative sample.
+            An `N x F` reference tabular dataset used to calculate partial dependence curves. This is typically the
+            training dataset or a representative sample.
         features_list
             An optional list of features or pairs of features for which to calculate the partial dependence for.
-            If not provided, the partial dependence will be computed for all single features in the dataset.
+            If not provided, the partial dependence will be computed for every single features in the dataset.
         response_method
-            Specifies the prediction function to be used. For classifier it specifies whether to use the
+            Specifies the prediction function to be used. For a classifier it specifies whether to use the
             `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
             the `predict_proba` is tried first, and if not supported then it reverts to `decision_function`. Note
-            that if `method='recursion'`, the that the prediction function always uses `decision_function`.
+            that if `method='recursion'`, the prediction function always uses `decision_function`.
         method
             The method used to calculate the average predictions
 
-             - `'recursion'` - a faster alternative only supported by some tree-based model. For a classifier, the
+             - ``'recursion'`` - a faster alternative only supported by some tree-based model. For a classifier, the
              target response is always the decision function and NOT the predicted probabilities. Furthermore, since
-             the `'recursion'` method computes implicitly the average of the Individual Conditional Expectation (ICE)
-             by design, it is incompatible with ICE and the `kind` parameter must be set to `'average'`. Check the
+             the ``'recursion'`` method computes implicitly the average of the Individual Conditional Expectation (ICE)
+             by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``. Check the
              `sklearn documentation`_ for a list of supported tree-based classifiers.
 
             .. _sklearn documentation:
                 https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
 
-             - `'brute'` - supported for any black-box prediction model, but is more computationally intensive.
+             - ``'brute'`` - supported for any black-box prediction model, but is more computationally intensive.
 
-             - `'auto'` - uses `'recursion'` if the `predictor` supports it. Otherwise uses the `'brute'` method.
+             - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
         kind
-            If set to `'average'`, then only the partial dependence (PD) averaged across all samples from the dataset
-            is returned. If set to `individual`, then only the Individual Conditional Expectation (ICE) is returned for
-            each individual from the dataset. Otherwise, if set to `'both'`, then both the PD and the ICE are returned.
-            Note that for the faster `method='recursion'` option the only compatible parameter value is
-            `kind='average'`. To plot the ICE, consider using the more computation intensive `method='brute'`.
+            If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
+            is returned. If set to ``individual``, then only the Individual Conditional Expectation (ICE) is
+            returned for each individual from the dataset. Otherwise, if set to ``'both'``, then both the PD and
+            the ICE are returned. Note that for the faster ``method='recursion'`` option the only compatible parameter
+            value is ``kind='average'``. To plot the ICE, consider using the more computation intensive
+            ``method='brute'``.
         percentiles
             Lower and upper percentiles used to create extreme values which can potential remove outliers in low
             density regions. The values must be in [0, 1].
@@ -166,7 +168,7 @@ class PartialDependence(Explainer):
         Returns
         -------
         explanation
-            An `Explanation` object containing the data and the metadata of the calculated partial Dependece
+            An `Explanation` object containing the data and the metadata of the calculated partial dependece
             curves. See usage at `Partial dependence examples`_ for details
 
             .. _Partial dependence examples:
@@ -198,7 +200,7 @@ class PartialDependence(Explainer):
         # construct feature_names based on the feature_list. If feature_list is None, then initialize
         # feature_list with all single feature available in the dataset.
         if features_list:
-            feature_names = np.array([tuple([self.feature_names[f] for f in features]) # type: ignore
+            feature_names = np.array([tuple([self.feature_names[f] for f in features])  # type: ignore
                                       if isinstance(features, tuple) else self.feature_names[features]  # type: ignore
                                       for features in features_list], dtype=object)
         else:
@@ -263,7 +265,7 @@ class PartialDependence(Explainer):
                 grid_points[f] = np.unique(grid_points[f])
                 message = 'The grid points provided for the categorical feature {} are invalid. '\
                           'For categorical features, the grid points must be a subset of the features '\
-                          'values defined in categorical_names. Received an unknown value of {}'
+                          'values defined in categorical_names. Received an unknown value of {}.'
 
                 # convert to label encoding if the grid is provided as strings
                 if grid_points[f].dtype.type is np.str_:
@@ -309,8 +311,8 @@ class PartialDependence(Explainer):
         for f in features:
             if isinstance(f, tuple):
                 if len(f) != 2:
-                    raise ValueError(f'Current implementation of the Partial dependence supports only two features '
-                                     f'at a time when a tuple is passed. Received {len(f)} features with the '
+                    raise ValueError(f'Current implementation of the partial dependence supports a maximum of two '
+                                     f'features at a time when a tuple is passed. Received {len(f)} features with the '
                                      f'values {f}.')
 
                 check_feature(f[0])
@@ -425,7 +427,6 @@ class PartialDependence(Explainer):
 
         deciles, values, features_indices = [], [], [],
         for f in features:  # type: ignore
-            # check against the category map and raise a warning. Need to choose one or the other.
             # Note that we are using the _safe_indexing procedure implement in sklearn to retrieve the column.
             # This is because the _safe_indexing supports many data types such as sparse matrix representation,
             # pandas dataframes etc. In case we would like to enhance alibi in the future to support other
@@ -433,7 +434,7 @@ class PartialDependence(Explainer):
             f_indices = np.asarray(_get_column_indices(X, f), dtype=np.int32, order='C').ravel()
             X_f = _safe_indexing(X, f_indices, axis=1)
 
-            # get deciles for the current feature
+            # get deciles for the current feature if the feature is numerical
             deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
 
             if f not in grid_points:
@@ -473,7 +474,7 @@ class PartialDependence(Explainer):
             -1, *[val.shape[0] for val in values]
         )
 
-        # special case when dealing with a binary classifier that uses predict_proba - sklearn remove
+        # special case when dealing with a binary classifier that uses predict_proba. sklearn removes
         # the computation for the label 0 and only returns the predictions for label 1. To make it consistent with
         # the ALE, we re-add the predictions for label 0.
         n_outputs = averaged_predictions.shape[0]
@@ -620,7 +621,7 @@ def plot_pd(exp: Explanation,
             pd_cat_cat_kw: Optional[dict] = None,
             fig_kw: Optional[dict] = None) -> 'np.ndarray':
     """
-    Plot Partial dependence curves on matplotlib axes.
+    Plot partial dependence curves on matplotlib axes.
 
     Parameters
     ----------
@@ -628,47 +629,41 @@ def plot_pd(exp: Explanation,
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
     features_list
-        A list of features for which to plot the Partial dependence curves or ``'all'`` for all features.
-        Can be a integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
+        A list of features for which to plot the partial dependence curves or ``'all'`` for all features.
+        Can be an integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
     target_idx
-        Target index for which to plot the Partial dependence curves. Can be a mix of integers denoting target
+        Target index for which to plot the partial dependence (PD) curves. Can be a mix of integers denoting target
         index or strings denoting entries in `exp.target_names`.
     n_cols
         Number of columns to organize the resulting plot into.
     centered
-        Boolean flag to center numerical Individual Conditional Expectation curves.
+        Boolean flag to center the individual conditional expectation (ICE) curves.
     ax
         A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
     sharey
-        A parameter specifying whether the y-axis of the ALE curves should be on the same scale
+        A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence
-        for a numerical feature.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a numerical feature.
     ice_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the individual conditional
-        expectation for a numerical feature.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the ICE for a numerical feature.
     pd_cat_kw
-        Keyword arguments passed to the `seaborn bar` function when plotting the partial dependence for a
-        categorical feature.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a categorical feature.
     ice_cat_kw
-        Keyword arguments passed to the `seaborn stripplot` function when plotting the individual conditional
-        expectation for a categorical feature.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the ICE for a categorical feature.
     pd_num_num_kw
-        Keyword arguments passed to the `matplotlib contourf` function when plotting the partial dependence
-        for two numerical features.
+        Keyword arguments passed to the `matplotlib contourf` function when plotting the PD for two numerical features.
     pd_num_cat_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence for
-        a numerical and a categorical feature.
+        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a numerical and a
+        categorical feature.
     pd_cat_cat_kw
-        Keyword arguments passed to the `seaborn heatmap` functon when plotting the partial dependence for
-        two categorical features.
+        Keyword arguments passed to the `seaborn heatmap` functon when plotting the PD for two categorical features.
     fig_kw
         Keyword arguments passed to the `fig.set` function.
 
     Returns
     -------
-    An array of `matplotlib` axes with the resulting Partial dependence plots.
+    An array of `matplotlib` axes with the resulting partial dependence plots.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
@@ -689,7 +684,7 @@ def plot_pd(exp: Explanation,
     # corresponds to the number of subplots
     n_features = len(features_list)
 
-    # make axes
+    # create axes
     if ax is None:
         fig, ax = plt.subplots()
 
@@ -735,7 +730,7 @@ def plot_pd(exp: Explanation,
         feature_idx = np.where(exp.all_feature_names == feature)[0].item()
         return feature_idx in exp.all_categorical_names
 
-    # make plots
+    # create plots
     for features, ax_ravel in zip(features_list, axes_ravel):  # type: ignore
         # extract the feature names
         feature_names = exp.feature_names[features]
@@ -805,12 +800,6 @@ def _plot_one_pd_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    pd_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence
-        for a numerical feature.
-    ice_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the individual conditional
-        expectation for a numerical feature.
 
     Returns
     -------
@@ -882,16 +871,10 @@ def _plot_one_pd_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, pd_cat_kw, ice_cat_kw
+    exp, feature, target_idx, centered, pd_cat_kw, ice_cat_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    pd_cat_kw
-        Keyword arguments passed to the `seaborn bar` function when plotting the partial dependence for a
-        categorical feature.
-    ice_cat_kw
-        Keyword arguments passed to the `seaborn stripplot` function when plotting the individual conditional
-        expectation for a categorical feature.
 
     Returns
     -------
@@ -972,9 +955,6 @@ def _plot_two_pd_num_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    pd_num_num_kw
-        Keyword arguments passed to the `matplotlib contourf` function when plotting the partial dependence
-        for two numerical features.
 
     Returns
     -------
@@ -1038,9 +1018,6 @@ def _plot_two_pd_num_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    pd_num_cat_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the partial dependence for
-        a numerical and a categorical feature.
 
     Returns
     -------
@@ -1099,7 +1076,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
                          ax: 'plt.Axes' = None,
                          pd_cat_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
-    Plots two ways partial dependence curve for a numerical feature and a categorical feature.
+    Plots two ways partial dependence curve for two categorical features.
 
     Parameters
     ----------
@@ -1107,9 +1084,6 @@ def _plot_two_pd_cat_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
-    pd_cat_cat_kw
-        Keyword arguments passed to the `seaborn heatmap` functon when plotting the partial dependence for
-        two categorical features.
 
     Return
     ------

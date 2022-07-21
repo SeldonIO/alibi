@@ -186,13 +186,10 @@ class PartialDependence(Explainer):
         if self.categorical_names is None:
             self.categorical_names = {}
 
-        self.feature_names = np.array(self.feature_names)  # type: ignore
-        self.categorical_names = {k: np.array(v) for k, v in self.categorical_names.items()}  # type: ignore
-
         # sanity checks
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
         self._features_sanity_checks(features=features_list)
-        response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,  # type: ignore
+        response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,  # type: ignore[assignment]
                                                                    response_method=response_method,
                                                                    method=method,
                                                                    kind=kind)
@@ -200,11 +197,11 @@ class PartialDependence(Explainer):
         # construct feature_names based on the feature_list. If feature_list is None, then initialize
         # feature_list with all single feature available in the dataset.
         if features_list:
-            feature_names = np.array([tuple([self.feature_names[f] for f in features])  # type: ignore
-                                      if isinstance(features, tuple) else self.feature_names[features]  # type: ignore
-                                      for features in features_list], dtype=object)
+            feature_names = [tuple([self.feature_names[f] for f in features])
+                             if isinstance(features, tuple) else self.feature_names[features]
+                             for features in features_list]
         else:
-            feature_names = self.feature_names  # type: ignore
+            feature_names = self.feature_names  # type: ignore[assignment]
             features_list = list(range(n_features))
 
         # buffer of all partial dependencies
@@ -237,7 +234,7 @@ class PartialDependence(Explainer):
         return self._build_explanation(response_method=response_method,
                                        method=method,
                                        kind=kind,
-                                       feature_names=feature_names,  # type: ignore
+                                       feature_names=feature_names,  # type: ignore[arg-type]
                                        pds=pds)
 
     def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, np.ndarray]], n_features: int):
@@ -361,15 +358,15 @@ class PartialDependence(Explainer):
         if kind != Kind.AVERAGE:
             if method == Method.RECURSION:
                 raise ValueError(f"The '{Method.RECURSION.value}' method only applies when kind='average'.")
-            method = Method.BRUTE  # type: ignore
+            method = Method.BRUTE.value  # type: ignore
 
         if method == Method.AUTO:
             if isinstance(estimator, BaseGradientBoosting) and estimator.init is None:
-                method = Method.RECURSION
+                method = Method.RECURSION.value
             elif isinstance(estimator, (BaseHistGradientBoosting, DecisionTreeRegressor, RandomForestRegressor)):
-                method = Method.RECURSION
+                method = Method.RECURSION.value
             else:
-                method = Method.BRUTE
+                method = Method.BRUTE.value
 
         if method == Method.RECURSION:
             if not isinstance(estimator, (BaseGradientBoosting, BaseHistGradientBoosting, DecisionTreeRegressor,
@@ -387,7 +384,7 @@ class PartialDependence(Explainer):
                                  f"method: {supported_classes_recursion}. Try using method='{Method.BRUTE.value}'.")
 
             if response_method == ResponseMethod.AUTO:
-                response_method = ResponseMethod.DECISION_FUNCTION
+                response_method = ResponseMethod.DECISION_FUNCTION.value
 
             if response_method != ResponseMethod.DECISION_FUNCTION:
                 raise ValueError(f"With the '{method.RECURSION.value}' method, the response_method must be "
@@ -426,7 +423,7 @@ class PartialDependence(Explainer):
             grid_points = {}
 
         deciles, values, features_indices = [], [], [],
-        for f in features:  # type: ignore
+        for f in features:  # type: ignore[union-attr]
             # Note that we are using the _safe_indexing procedure implement in sklearn to retrieve the column.
             # This is because the _safe_indexing supports many data types such as sparse matrix representation,
             # pandas dataframes etc. In case we would like to enhance alibi in the future to support other
@@ -727,11 +724,11 @@ def plot_pd(exp: Explanation,
         fig = axes_ravel[0].figure
 
     def _is_categorical(feature):
-        feature_idx = np.where(exp.all_feature_names == feature)[0].item()
+        feature_idx = exp.all_feature_names.index(feature)
         return feature_idx in exp.all_categorical_names
 
     # create plots
-    for features, ax_ravel in zip(features_list, axes_ravel):  # type: ignore
+    for features, ax_ravel in zip(features_list, axes_ravel):
         # extract the feature names
         feature_names = exp.feature_names[features]
 
@@ -833,7 +830,7 @@ def _plot_one_pd_num(exp: Explanation,
         default_pd_num_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'tab:orange', 'label': 'average'}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
 
-        default_ice_graph_kw = {'alpha': 0.6, 'color': 'lightsteelblue', 'label': None}  # type: ignore
+        default_ice_graph_kw = {'alpha': 0.6, 'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # center pd values if necessary
@@ -890,10 +887,7 @@ def _plot_one_pd_cat(exp: Explanation,
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
-    def _get_feature_idx(feature):
-        return np.where(exp.all_feature_names == feature)[0].item()
-
-    feature_index = _get_feature_idx(feature_names)
+    feature_index = exp.all_feature_names.index(feature_names)
     labels = [exp.all_categorical_names[feature_index][i] for i in feature_values.astype(np.int32)]
 
     if exp.kind == Kind.AVERAGE:
@@ -1031,11 +1025,8 @@ def _plot_two_pd_num_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    def _get_feature_idx(feature):
-        return np.where(exp.all_feature_names == feature)[0].item()
-
     def _is_categorical(feature):
-        feature_idx = _get_feature_idx(feature)
+        feature_idx = exp.all_feature_names.index(feature)
         return feature_idx in exp.all_categorical_names
 
     # extract feature values and partial dependence values
@@ -1050,7 +1041,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
         pd_values = pd_values.T
 
     # define labels
-    cat_feature_index = _get_feature_idx(feature_names[1])
+    cat_feature_index = exp.all_feature_names.index(feature_names[1])
     labels = [exp.all_categorical_names[cat_feature_index][i] for i in feature_values[1].astype(np.int32)]
 
     # plot lines
@@ -1098,16 +1089,13 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     if exp.kind != Kind.AVERAGE:
         raise ValueError("Can only plot partial dependence for kind='average'.")
 
-    def _get_feature_idx(feature):
-        return np.where(exp.all_feature_names == feature)[0].item()
-
     feature_names = exp.feature_names[feature]
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx]
 
     # extract labels for each categorical features
-    feature0_index = _get_feature_idx(feature_names[0])
-    feature1_index = _get_feature_idx(feature_names[1])
+    feature0_index = exp.all_feature_names.index(feature_names[0])
+    feature1_index = exp.all_feature_names.index(feature_names[1])
     labels0 = [exp.all_categorical_names[feature0_index][i] for i in feature_values[0].astype(np.int32)]
     labels1 = [exp.all_categorical_names[feature1_index][i] for i in feature_values[1].astype(np.int32)]
 

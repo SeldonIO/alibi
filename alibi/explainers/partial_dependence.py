@@ -131,7 +131,7 @@ class PartialDependence(Explainer):
 
              - ``'recursion'`` - a faster alternative only supported by some tree-based model. For a classifier, the
              target response is always the decision function and NOT the predicted probabilities. Furthermore, since
-             the ``'recursion'`` method computes implicitly the average of the Individual Conditional Expectation (ICE)
+             the ``'recursion'`` method computes implicitly the average of the individual conditional expectation (ICE)
              by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``. Check the
              `sklearn documentation`_ for a list of supported tree-based classifiers.
 
@@ -143,7 +143,7 @@ class PartialDependence(Explainer):
              - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
         kind
             If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
-            is returned. If set to ``individual``, then only the Individual Conditional Expectation (ICE) is
+            is returned. If set to ``individual``, then only the individual conditional expectation (ICE) is
             returned for each individual from the dataset. Otherwise, if set to ``'both'``, then both the PD and
             the ICE are returned. Note that for the faster ``method='recursion'`` option the only compatible parameter
             value is ``kind='average'``. To plot the ICE, consider using the more computation intensive

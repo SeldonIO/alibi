@@ -607,7 +607,8 @@ def plot_pd(exp: Explanation,
             target_idx: int = 0,
             n_cols: int = 3,
             centered: bool = True,
-            ax: Union['plt.Axes', np.ndarray, None] = None,
+            levels: int = 8,
+            ax: Optional[Union['plt.Axes', np.ndarray]] = None,
             sharey: str = 'all',
             pd_num_kw: Optional[dict] = None,
             ice_num_kw: Optional[dict] = None,
@@ -635,6 +636,8 @@ def plot_pd(exp: Explanation,
         Number of columns to organize the resulting plot into.
     centered
         Boolean flag to center the individual conditional expectation (ICE) curves.
+    levels
+        Number of levels in the contour plot.
     ax
         A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
     sharey
@@ -740,6 +743,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_two_pd_num_num(exp=exp,
                                          feature=features,
                                          target_idx=target_idx,
+                                         levels=levels,
                                          ax=ax_ravel,
                                          pd_num_num_kw=pd_num_num_kw)
 
@@ -785,7 +789,7 @@ def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
-                     ax: 'plt.Axes' = None,
+                     ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
                      ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
     """
@@ -860,7 +864,7 @@ def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
-                     ax: 'plt.Axes' = None,
+                     ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
                      ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
@@ -938,7 +942,8 @@ def _plot_one_pd_cat(exp: Explanation,
 def _plot_two_pd_num_num(exp: Explanation,
                          feature: int,
                          target_idx: int,
-                         ax: 'plt.Axes' = None,
+                         levels: int = 8,
+                         ax: Optional['plt.Axes'] = None,
                          pd_num_num_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for two numerical features.
@@ -972,7 +977,7 @@ def _plot_two_pd_num_num(exp: Explanation,
 
     X, Y = np.meshgrid(feature_values[0], feature_values[1])
     Z = pd_values.T
-    Z_level = np.linspace(Z.min(), Z.max(), 8)
+    Z_level = np.linspace(Z.min(), Z.max(), levels)
 
     CS = ax.contour(X, Y, Z, levels=Z_level, linewidths=0.5, colors="k")
     ax.contourf(X, Y, Z, levels=Z_level, vmax=Z_level[-1], vmin=Z_level[0], **pd_num_num_kw)
@@ -1001,7 +1006,7 @@ def _plot_two_pd_num_num(exp: Explanation,
 def _plot_two_pd_num_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
-                         ax: 'plt.Axes' = None,
+                         ax: Optional['plt.Axes'] = None,
                          pd_num_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for a numerical feature and a categorical feature.
@@ -1064,7 +1069,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
 def _plot_two_pd_cat_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
-                         ax: 'plt.Axes' = None,
+                         ax: Optional['plt.Axes'] = None,
                          pd_cat_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots two ways partial dependence curve for two categorical features.

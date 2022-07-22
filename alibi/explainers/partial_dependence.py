@@ -73,17 +73,18 @@ class PartialDependence(Explainer):
             Predictor identifier arguments when the predictor is a callable prediction function. The following
             arguments must be provided:
 
-             - ``'predictor_type'`` : ``str`` - Type of the predictor. Available
-             values: ``'regressor'`` | ``'classifier'``.
+             - ``'predictor_type'`` : ``str`` - Type of the predictor. Availabl
+                values: ``'regressor'`` | ``'classifier'``.
 
              - ``'prediction_fn'`` : ``str`` - Name of the prediction function. Available value for
-             regression: ``'predict'``. Available values for
-             classification: ``'predict_proba'`` | ``'decision_function'``. The choice should be considered
-             in analogy with the `sklearn` estimators API and the `response_method` used in
-             :py:meth:`alibi.explainers.partial_dependence.explain`.
+                regression: ``'predict'``. Available values for
+                classification: ``'predict_proba'`` | ``'decision_function'``. The choice should be considered
+                in analogy with the `sklearn` estimators API and the `response_method` used in
+                :py:meth:`alibi.explainers.partial_dependence.explain`.
 
-            - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function.
-            Considered only for ``prediction_type='classification'``.
+             - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function.
+                Considered only for ``prediction_type='classification'``.
+
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
         self.feature_names = feature_names
@@ -130,17 +131,18 @@ class PartialDependence(Explainer):
             The method used to calculate the average predictions
 
              - ``'recursion'`` - a faster alternative only supported by some tree-based model. For a classifier, the
-             target response is always the decision function and NOT the predicted probabilities. Furthermore, since
-             the ``'recursion'`` method computes implicitly the average of the individual conditional expectation (ICE)
-             by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``. Check the
-             `sklearn documentation`_ for a list of supported tree-based classifiers.
+               target response is always the decision function and NOT the predicted probabilities. Furthermore, since
+               the ``'recursion'`` method computes implicitly the average of the individual conditional expectation
+               (ICE) by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``.
+               Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
 
-            .. _sklearn documentation:
+             .. _sklearn documentation:
                 https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
 
              - ``'brute'`` - supported for any black-box prediction model, but is more computationally intensive.
 
              - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
+
         kind
             If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
             is returned. If set to ``individual``, then only the individual conditional expectation (ICE) is
@@ -606,6 +608,7 @@ def plot_pd(exp: Explanation,
             features_list: Union[List[int], Literal['all']] = 'all',
             target_idx: int = 0,
             n_cols: int = 3,
+            n_ice: Union[str, int, List[int]] = 'all',
             centered: bool = True,
             levels: int = 8,
             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
@@ -617,7 +620,8 @@ def plot_pd(exp: Explanation,
             pd_num_num_kw: Optional[dict] = None,
             pd_num_cat_kw: Optional[dict] = None,
             pd_cat_cat_kw: Optional[dict] = None,
-            fig_kw: Optional[dict] = None) -> 'np.ndarray':
+            fig_kw: Optional[dict] = None,
+            seed: Optional[int] = None) -> 'np.ndarray':
     """
     Plot partial dependence curves on matplotlib axes.
 
@@ -634,6 +638,17 @@ def plot_pd(exp: Explanation,
         index or strings denoting entries in `exp.target_names`.
     n_cols
         Number of columns to organize the resulting plot into.
+    n_ice
+        Number of ICE plots to be displayed. Can be
+
+         - a string taking the value ``'all'`` to display the ICE curves for every instance in the reference dataset.
+
+         - an integer for which `n_ice` instances from the reference dataset will be sampled uniformly at random to
+           display their ICE curves.
+
+         - a list of integers, where each integer represents an index of an instance in the reference dataset to
+           display their ICE curves.
+
     centered
         Boolean flag to center the individual conditional expectation (ICE) curves.
     levels
@@ -660,6 +675,8 @@ def plot_pd(exp: Explanation,
         Keyword arguments passed to the `seaborn heatmap` functon when plotting the PD for two categorical features.
     fig_kw
         Keyword arguments passed to the `fig.set` function.
+    seed
+        Seed to be used for ICE sampling.
 
     Returns
     -------
@@ -767,20 +784,69 @@ def plot_pd(exp: Explanation,
                                      feature=features,
                                      target_idx=target_idx,
                                      centered=centered,
+                                     n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
-                                     ice_cat_kw=ice_cat_kw)
+                                     ice_cat_kw=ice_cat_kw,
+                                     seed=seed)
             else:
                 _ = _plot_one_pd_num(exp=exp,
                                      feature=features,
                                      target_idx=target_idx,
                                      centered=centered,
+                                     n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_num_kw=pd_num_kw,
-                                     ice_num_kw=ice_num_kw, )
+                                     ice_num_kw=ice_num_kw,
+                                     seed=seed)
 
     fig.set(**fig_kw)
     return axes
+
+
+def _sample_ice(ice_values: np.ndarray,
+                n_ice: Union[str, int, List[int]],
+                seed: Optional[int] = None) -> np.ndarray:
+    """
+    Samples ice_values based on the n_ice argument.
+
+    Parameters
+    ----------
+    ice_values
+        Array of ice_values of dimension (N, V), where N is the number of instances in the reference dataset,
+        and V is the number of features values where the PD is computed.
+    n_ice
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd`.
+    seed
+        Seed to be used for sampling.
+    """
+    np.random.seed(seed)
+
+    if n_ice == 'all':
+        return ice_values
+
+    _, N = ice_values.shape
+    if isinstance(n_ice, numbers.Integral):
+        if n_ice > N:  # type: ignore[operator]
+            n_ice = N
+            logger.warning('n_ice is greater than the number of instances in the reference dataset. '
+                           'Automatically setting n_ice to the number of instances in the reference dataset.')
+
+        if n_ice <= 0:  # type: ignore[operator]
+            raise ValueError('n_ice must be an integer grater than 0.')
+
+        indices = np.random.choice(a=N, size=n_ice, replace=False)
+        return ice_values[:, indices]
+
+    if isinstance(n_ice, list):
+        n_ice = np.unique(n_ice)  # type: ignore[assignment]
+        if not np.all(n_ice < N) or not np.all(n_ice >= 0):  # type: ignore[operator]
+            raise ValueError(f'Some indices in n_ice are out of bounds. Ensure that all indices are '
+                             f'greater or equal than 0 and less than {N}.')
+        return ice_values[:, n_ice]
+
+    raise ValueError(f"Unknown n_ice values. n_ice can be a string taking value 'all', "
+                     f"an integer, or a list of integers. Received {n_ice}.")
 
 
 # No type check due to the generic explanation object
@@ -789,15 +855,17 @@ def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
+                     n_ice: Union[str, int, List[int]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
-                     ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
+                     ice_num_kw: Optional[dict] = None,
+                     seed: Optional[int] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single numerical feature.
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, pd_num_kw, ice_num_kw
+    exp, feature, target_idx, centered, n_ice, pd_num_kw, ice_num_kw, seed
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
@@ -815,6 +883,9 @@ def _plot_one_pd_num(exp: Explanation,
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
+
+    # sample ice values for visualization purposes
+    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice, seed=seed)
 
     if exp.kind == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
@@ -864,15 +935,17 @@ def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
+                     n_ice: Union[str, int, List[str]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
-                     ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
+                     ice_cat_kw: Optional[dict] = None,
+                     seed: Optional[int] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single categorical feature.
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, pd_cat_kw, ice_cat_kw
+    exp, feature, target_idx, centered, n_ice, pd_cat_kw, ice_cat_kw, seed
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
@@ -890,6 +963,9 @@ def _plot_one_pd_cat(exp: Explanation,
     feature_values = exp.feature_values[feature]
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
+
+    # sample ice for visualization purposes
+    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice, seed=seed)
 
     feature_index = exp.all_feature_names.index(feature_names)
     labels = [exp.all_categorical_names[feature_index][i] for i in feature_values.astype(np.int32)]

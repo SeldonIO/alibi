@@ -7,7 +7,7 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from alibi.explainers import PartialDependence
-from alibi.explainers.partial_dependence import ResponseMethod, Kind, Method
+from alibi.explainers.partial_dependence import ResponseMethod, Kind, Method, _sample_ice
 
 from sklearn.utils import shuffle
 from sklearn.exceptions import NotFittedError
@@ -461,3 +461,35 @@ def test_binary_classifier_one_target(svc_classifier, binary_data):
     for pd, ice in zip(exp.pd_values, exp.ice_values):
         assert pd.shape[0] == 1
         assert ice.shape[0] == 1
+
+
+@pytest.mark.parametrize('n_ice', ['all', 'list', 'int'])
+@pytest.mark.parametrize('n_samples, n_values', [(100, 10)])
+def test_ice_sampling(n_ice, n_samples, n_values):
+    """ Checks if the ice sampling helper function works properly when the arguments are valid. """
+    ice_vals = np.random.randn(n_values, n_samples)
+
+    if n_ice == 'all':
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        np.testing.assert_allclose(ice_vals, ice_sampled_vals)
+
+    elif n_ice == 'list':
+        size = np.random.randint(1, n_samples)
+        # needs to be sorted because of the np.unique applied inside the _sample_ice
+        n_ice = np.sort(np.random.choice(n_samples, size=size, replace=False)).tolist()
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        np.testing.assert_allclose(ice_vals[:, n_ice], ice_sampled_vals)
+
+    else:
+        n_ice = np.random.randint(1, n_samples)
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        assert ice_sampled_vals.shape[1] == n_ice
+
+
+@pytest.mark.parametrize('n_ice', ['unknown', -10, [-1, 1, 2]])
+@pytest.mark.parametrize('n_samples, n_values', [(100, 10)])
+def test_ice_sampling_error(n_samples, n_values, n_ice):
+    """ Checks if the ice sampling helper function throws an error when the arguments are invalid. """
+    ice_vals = np.random.rand(n_values, n_samples)
+    with pytest.raises(ValueError):
+        _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)

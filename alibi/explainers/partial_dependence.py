@@ -107,7 +107,7 @@ class PartialDependence(Explainer):
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                 method: Literal['auto', 'recursion', 'brute'] = 'auto',
                 kind: Literal['average', 'individual', 'both'] = 'average',
-                percentiles: Tuple[float, float] = (0.05, 0.95),
+                percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, np.ndarray]] = None) -> Explanation:
         """

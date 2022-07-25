@@ -298,14 +298,14 @@ Default PartialDependence metadata.
 """
 
 DEFAULT_DATA_PD = {
-    "deciles_values": None,
+    "feature_deciles": None,
     "pd_values": None,
     "ice_values": None,
-    "feature_values": None,
+    "exp_feature_values": None,
+    "exp_feature_names": None,
     "feature_names": None,
-    "all_feature_names": None,
-    "all_categorical_names": None,
-    "all_target_names": None,
+    "categorical_names": None,
+    "target_names": None,
     "response_method": None,
     "method": None,
     "kind": None,

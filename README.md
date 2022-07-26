@@ -178,6 +178,7 @@ The following tables summarize the possible use cases for each method.
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
 |[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
+|[Partial Dependece](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB|global|✔|✔|✔| | |✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -222,74 +223,79 @@ These algorithms provide a **distilled** view of the dataset and help construct 
      [ImageNet](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_imagenet.html),
      [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_fashion_mnist.html)
 
-- Contrastive Explanation Method (CEM, [Dhurandhar et al., 2018](https://papers.nips.cc/paper/7340-explanations-based-on-the-missing-towards-contrastive-explanations-with-pertinent-negatives))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)
-  - Examples: [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_mnist.html),
-    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_iris.html)
+ - Contrastive Explanation Method (CEM, [Dhurandhar et al., 2018](https://papers.nips.cc/paper/7340-explanations-based-on-the-missing-towards-contrastive-explanations-with-pertinent-negatives))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)
+   - Examples: [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_mnist.html),
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cem_iris.html)
 
-- Counterfactual Explanations (extension of
-  [Wachter et al., 2017](https://arxiv.org/abs/1711.00399))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)
-  - Examples: 
-    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cf_mnist.html)
+ - Counterfactual Explanations (extension of
+   [Wachter et al., 2017](https://arxiv.org/abs/1711.00399))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)
+   - Examples: 
+     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cf_mnist.html)
 
-- Counterfactual Explanations Guided by Prototypes ([Van Looveren and Klaise, 2019](https://arxiv.org/abs/1907.02584))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
-  - Examples:
-    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html),
-    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
-    [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ohe.html),
-    [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ord.html)
+ - Counterfactual Explanations Guided by Prototypes ([Van Looveren and Klaise, 2019](https://arxiv.org/abs/1907.02584))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
+   - Examples:
+     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html),
+     [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
+     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ohe.html),
+     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ord.html)
 
-- Model-agnostic Counterfactual Explanations via RL([Samoilescu et al., 2021](https://arxiv.org/abs/2106.02597))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)
-  - Examples:
-    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfrl_mnist.html),
-    [Adult income](https://docs.seldon.io/projects/alibi/en/stable/examples/cfrl_adult.html)
+ - Model-agnostic Counterfactual Explanations via RL([Samoilescu et al., 2021](https://arxiv.org/abs/2106.02597))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)
+   - Examples:
+     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfrl_mnist.html),
+     [Adult income](https://docs.seldon.io/projects/alibi/en/stable/examples/cfrl_adult.html)
 
-- Integrated Gradients ([Sundararajan et al., 2017](https://arxiv.org/abs/1703.01365))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html),
-  - Examples:
-    [MNIST example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_mnist.html),
-    [Imagenet example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_imagenet.html),
-    [IMDB example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_imdb.html).
+ - Integrated Gradients ([Sundararajan et al., 2017](https://arxiv.org/abs/1703.01365))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html),
+   - Examples:
+     [MNIST example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_mnist.html),
+     [Imagenet example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_imagenet.html),
+     [IMDB example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_imdb.html).
 
-- Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)
-  - Examples:
-    [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_intro.html),
-    [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_lr.html),
-    [handling categorical variables](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_adult_lr.html)
+ - Kernel Shapley Additive Explanations ([Lundberg et al., 2017](https://papers.nips.cc/paper/7062-a-unified-approach-to-interpreting-model-predictions))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)
+   - Examples:
+     [SVM with continuous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_intro.html),
+     [multinomial logistic regression with continous data](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_wine_lr.html),
+     [handling categorical variables](https://docs.seldon.io/projects/alibi/en/stable/examples/kernel_shap_adult_lr.html)
     
-- Tree Shapley Additive Explanations ([Lundberg et al., 2020](https://www.nature.com/articles/s42256-019-0138-9))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)
-  - Examples:
-    [Interventional (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/interventional_tree_shap_adult_xgb.html),
-    [Path-dependent (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/path_dependent_tree_shap_adult_xgb.html)
+ - Tree Shapley Additive Explanations ([Lundberg et al., 2020](https://www.nature.com/articles/s42256-019-0138-9))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)
+   - Examples:
+     [Interventional (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/interventional_tree_shap_adult_xgb.html),
+     [Path-dependent (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/path_dependent_tree_shap_adult_xgb.html)
     
-- Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)
-  - Examples:
-    [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html),
-    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html)
+ - Partial Dependence ([J.H. Friedman, 2001](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)
+   - Examples:
+      [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
 
-- Linearity Measure
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/LinearityMeasure.html)
-  - Examples:
-    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_iris.html),
-    [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_fashion_mnist.html)
+ - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)
+   - Examples:
+     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html),
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/trustscore_mnist.html)
 
-- ProtoSelect
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)
-  - Examples:
-    [Adult Census & CIFAR10](https://docs.seldon.io/projects/alibi/en/latest/examples/protoselect_adult_cifar10.html)
+ - Linearity Measure
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/LinearityMeasure.html)
+   - Examples:
+     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_iris.html),
+     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/linearity_measure_fashion_mnist.html)
 
-- Similarity explanations
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)
-  - Examples:
-    [20 news groups dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_20ng.html),
-    [ImageNet dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_imagenet.html),
-    [MNIST dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_mnist.html)
+ - ProtoSelect
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/latest/methods/ProtoSelect.html)
+   - Examples:
+     [Adult Census & CIFAR10](https://docs.seldon.io/projects/alibi/en/latest/examples/protoselect_adult_cifar10.html)
+
+ - Similarity explanations
+   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)
+   - Examples:
+     [20 news groups dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_20ng.html),
+     [ImageNet dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_imagenet.html),
+     [MNIST dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/similarity_explanations_mnist.html)
 
 ## Citations
 If you use alibi in your research, please consider citing it.

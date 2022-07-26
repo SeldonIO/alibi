@@ -11,6 +11,7 @@
 ../methods/CFRL.ipynb
 ../methods/IntegratedGradients.ipynb
 ../methods/KernelSHAP.ipynb
+../methods/PartialDependence.ipynb
 ../methods/Similarity.ipynb
 ../methods/TreeSHAP.ipynb
 ```

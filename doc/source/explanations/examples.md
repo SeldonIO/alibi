@@ -69,6 +69,14 @@
 ../examples/*kernel_shap_*
 ```
 
+## Partial Dependence
+```{toctree}
+:glob: true
+:maxdepth: 1
+
+../examples/pdp_*
+```
+
 ## Similarity explanations
 ```{toctree}
 :glob: true

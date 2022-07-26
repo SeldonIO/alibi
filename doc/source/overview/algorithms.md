@@ -23,7 +23,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
 |[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
-
+|[PartialDependence](../methods/PartialDependence.ipynb)|BB|global|✔|✔|✔| | |✔|✔| |
 
 
 Key:
@@ -115,6 +115,11 @@ of the instances.
 [MNIST example](../examples/similarity_explanations_mnist.ipynb),
 [Imagenet example](../examples/similarity_explanations_imagenet.ipynb),
 [20 news groups example](../examples/similarity_explanations_20ng.ipynb).
+
+**Partial Dependence**: computes the marginal effect that one or multiple features have on the predicted outcome of a 
+model with respect to a dataset. Intended for use on tabular datasets, supporting numerical and categorical features.
+[Documentation](../methods/PartialDependence.ipynb),
+[Bike rental](../examples/pdp_regression_bike.ipynb).
 
 ## Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

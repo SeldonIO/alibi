@@ -23,7 +23,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
 |[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
-|[PartialDependence](../methods/PartialDependence.ipynb)|BB|global|✔|✔|✔| | |✔|✔| |
+|[PartialDependence](../methods/PartialDependence.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
 
 
 Key:
@@ -117,7 +117,8 @@ of the instances.
 [20 news groups example](../examples/similarity_explanations_20ng.ipynb).
 
 **Partial Dependence**: computes the marginal effect that one or multiple features have on the predicted outcome of a 
-model with respect to a dataset. Intended for use on tabular datasets, supporting numerical and categorical features.
+model with respect to a dataset. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
+supporting numerical and categorical features.
 [Documentation](../methods/PartialDependence.ipynb),
 [Bike rental](../examples/pdp_regression_bike.ipynb).
 

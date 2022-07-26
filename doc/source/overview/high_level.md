@@ -209,7 +209,7 @@ numerical features, we can always compute the ALE of the numerical ones.
 | Doesn't struggle with dependencies in the underlying features, unlike PD plots | ALE of categorical variables is not well-defined                                         |
 | ALE plots are fast                                                             |                                                                                          |
 
-(partial-dependence) = 
+(partial-dependence)= 
 
 #### Partial Dependence
 

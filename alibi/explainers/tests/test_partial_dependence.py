@@ -231,10 +231,10 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
     exp = explanier.explain(X=X_train, features_list=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
 
     # check that the values returned match the number of requested features
-    assert len(exp.exp_feature_names) == len(features)
+    assert len(exp.feature_names) == len(features)
     assert len(exp.pd_values) == len(features)
     assert len(exp.ice_values) == len(features)
-    assert len(exp.exp_feature_values) == len(features)
+    assert len(exp.feature_values) == len(features)
 
     for i, f in enumerate(features):
         if isinstance(f, Tuple):
@@ -245,37 +245,37 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
             assert len(exp.feature_deciles[i][1]) == 11
 
             # check feature_values
-            assert isinstance(exp.exp_feature_values[i], List)
-            assert len(exp.exp_feature_values[i]) == len(f)
-            assert len(exp.exp_feature_values[i][0]) == (len(np.unique(X_train[:, f[0]]))
-                                                         if grid_resolution == np.inf else grid_resolution)
-            assert len(exp.exp_feature_values[i][1]) == (len(np.unique(X_train[:, f[1]]))
-                                                         if grid_resolution == np.inf else grid_resolution)
+            assert isinstance(exp.feature_values[i], List)
+            assert len(exp.feature_values[i]) == len(f)
+            assert len(exp.feature_values[i][0]) == (len(np.unique(X_train[:, f[0]]))
+                                                     if grid_resolution == np.inf else grid_resolution)
+            assert len(exp.feature_values[i][1]) == (len(np.unique(X_train[:, f[1]]))
+                                                     if grid_resolution == np.inf else grid_resolution)
 
             # check pd_values
             assert exp.pd_values[i].shape == (num_targets,
-                                              len(exp.exp_feature_values[i][0]),
-                                              len(exp.exp_feature_values[i][1]))
+                                              len(exp.feature_values[i][0]),
+                                              len(exp.feature_values[i][1]))
 
             # check ice_values
             assert exp.ice_values[i].shape == (num_targets,
                                                num_instances,
-                                               len(exp.exp_feature_values[i][0]),
-                                               len(exp.exp_feature_values[i][1]))
+                                               len(exp.feature_values[i][0]),
+                                               len(exp.feature_values[i][1]))
 
         else:
             # check feature_deciles
             assert len(exp.feature_deciles[i]) == 11
 
-            # check exp_feature_values
-            assert len(exp.exp_feature_values[i]) == (len(np.unique(X_train[:, f]))
-                                                      if grid_resolution == np.inf else grid_resolution)
+            # check feature_values
+            assert len(exp.feature_values[i]) == (len(np.unique(X_train[:, f]))
+                                                  if grid_resolution == np.inf else grid_resolution)
 
             # check pd_values
-            assert exp.pd_values[i].shape == (num_targets, len(exp.exp_feature_values[i]))
+            assert exp.pd_values[i].shape == (num_targets, len(exp.feature_values[i]))
 
             # check ice_value
-            assert exp.ice_values[i].shape == (num_targets, num_instances, len(exp.exp_feature_values[i]))
+            assert exp.ice_values[i].shape == (num_targets, num_instances, len(exp.feature_values[i]))
 
 
 @pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
@@ -394,7 +394,7 @@ def test_grid_points(adult_data, rf_classifier, use_int):
                             grid_points=grid_points)
 
     for i in range(len(feature_names)):
-        np.testing.assert_allclose(exp.exp_feature_values[i], grid_points[i])
+        np.testing.assert_allclose(exp.feature_values[i], grid_points[i])
 
 
 @pytest.mark.parametrize('use_int', [False, True])

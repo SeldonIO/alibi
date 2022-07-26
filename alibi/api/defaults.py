@@ -301,14 +301,16 @@ DEFAULT_DATA_PD = {
     "feature_deciles": None,
     "pd_values": None,
     "ice_values": None,
-    "exp_feature_values": None,
-    "exp_feature_names": None,
+    "feature_values": None,
     "feature_names": None,
-    "categorical_names": None,
-    "target_names": None,
-    "response_method": None,
-    "method": None,
-    "kind": None,
+    "meta": {
+        "feature_names": None,
+        "categorical_names": None,
+        "target_names": None,
+        "response_method": None,
+        "method": None,
+        "kind": None,
+    }
 }  # type: dict
 """
 Default PartialDependence data.

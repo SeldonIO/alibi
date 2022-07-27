@@ -40,7 +40,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Anchor explanations for images</b>
             <br>
             <br>
-            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/anchor_image.png">
+            <img src="https://github.com/SeldonIO/alibi/raw/master/doc/source/_static/anchor_image.png">
         </a>
     </td>
     <td width="50%">
@@ -49,7 +49,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Integrated Gradients for text</b>
             <br>
             <br>
-            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/ig_text.png">
+            <img src="https://github.com/SeldonIO/alibi/raw/master/doc/source/_static/ig_text.png">
         </a>
     </td>
   </tr>
@@ -60,7 +60,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Counterfactual examples</b>
             <br>
             <br>
-            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/cf.png">
+            <img src="https://github.com/SeldonIO/alibi/raw/master/doc/source/_static/cf.png">
         </a>
     </td>
     <td width="50%">
@@ -69,7 +69,7 @@ If you're interested in outlier detection, concept drift or adversarial instance
             <b>Accumulated Local Effects</b>
             <br>
             <br>
-            <img src="https://github.com/SeldonIO/alibi/blob/master/doc/source/_static/ale.png">
+            <img src="https://github.com/SeldonIO/alibi/raw/master/doc/source/_static/ale.png">
         </a>
     </td>
   </tr>

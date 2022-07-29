@@ -73,4 +73,4 @@ jobs:
         # adding the `or` quantifier between the names and concatenating with the test name `test_notebook_execution`.
         run: |
           tests="test_notebook_execution[$(echo ${FILES} | sed 's|doc/source/examples/||g' | sed 's| | or |g')]" &&
-          pytest -suppress-no-test-exit-code --no-cov -rA --durations=0 -vv testing/test_notebooks.py -k "$tests"
+          pytest --suppress-no-test-exit-code --no-cov -rA --durations=0 -vv testing/test_notebooks.py -k "$tests"

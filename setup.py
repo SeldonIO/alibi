@@ -49,7 +49,7 @@ if __name__ == '__main__':
               'scikit-image>=0.14.2, !=0.17.1, <0.20',  # https://github.com/SeldonIO/alibi/issues/215
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <10.0',
-              'attrs>=19.2.0, <22.0.0',
+              'attrs>=19.2.0, <23.0.0',
               'scipy>=1.1.0, <2.0.0',
               'matplotlib>=3.0.0, <4.0.0',
               'typing-extensions>=3.7.4.3',

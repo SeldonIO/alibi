@@ -111,7 +111,8 @@ class ALE(Explainer):
             Features for which to calculate ALE.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
-            ALE estimation.
+            ALE estimation. Only relevant for adaptive grid points (i.e., features without an entry in the
+            `grid_points` dictionary).
         grid_points
             Custom grid points. Must be a `dict` where the keys are features indices and the values are
             monotonically increasing `numpy` arrays defining the grid points for each feature.
@@ -138,7 +139,7 @@ class ALE(Explainer):
 
          - Grid points outside the feature range. Consider the following example: `O O O X X O X O X O O`, \
         where 3 grid-points are smaller than the minimum value in `f`, and 2 grid-points are larger than the maximum \
-        value in `f`. The empty leading and ending bins ware removed. The grid-points considered
+        value in `f`. The empty leading and ending bins were removed. The grid-points considered
         will be: `O X X O X O X O`.
 
          - Grid points that do not cover the entire feature range. Consider the following example: \
@@ -408,7 +409,7 @@ def ale_num(
         Custom grid points. An `numpy` array defining the grid points for the given features.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
-        ALE estimation.
+        ALE estimation. Only relevant for adaptive grid points (i.e., feature for which ``feature_grid_points=None``).
     check_feature_resolution
         Refer to :class:`ALE` documentation.
     low_resolution_threshold

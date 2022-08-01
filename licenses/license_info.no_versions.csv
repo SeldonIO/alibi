@@ -60,6 +60,7 @@
 "packaging","Apache Software License; BSD License"
 "pandas","BSD License"
 "pathy","Apache Software License"
+"pkgutil-resolve-name","MIT License"
 "platformdirs","MIT License"
 "preshed","MIT License"
 "protobuf","3-Clause BSD License"

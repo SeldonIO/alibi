@@ -1,3 +1,4 @@
+import numbers
 import re
 import numpy as np
 from typing import Tuple, List
@@ -18,7 +19,7 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, \
 from sklearn.svm import SVR
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import train_test_split
-
+from sklearn.inspection import partial_dependence
 
 @pytest.fixture(scope='module')
 def binary_data():
@@ -350,12 +351,12 @@ def test_classification_wrapper(lr_classifier, iris_data, response_method, kind,
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
 def test_grid_points(adult_data, rf_classifier, use_int):
     """ Checks whether the grid points provided are used for computing the partial dependencies. """
-    rf, _ = rf_classifier
+    rf, preprocessor = rf_classifier
     rf_clone = deepcopy(rf)  # need to deepcopy as the rf_classifier fixture has module scope
 
     def decorator(func):
         def wrapper(X, *args, **kwargs):
-            X_ohe = adult_data['preprocessor'].transform(X)
+            X_ohe = preprocessor.transform(X)
             return func(X_ohe, *args, **kwargs)
         return wrapper
 
@@ -493,3 +494,86 @@ def test_ice_sampling_error(n_samples, n_values, n_ice):
     ice_vals = np.random.rand(n_values, n_samples)
     with pytest.raises(ValueError):
         _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+@pytest.mark.parametrize('features', [
+    [0], [1], [2],
+    [(0, 1)], [(0, 2)]
+])
+@pytest.mark.parametrize('params', [
+    {
+        'response_method': 'auto',
+        'percentiles': (0, 1),
+        'grid_resolution': 10,
+        'method': 'auto',
+        'kind': 'average'
+    }
+])
+def test_sklearn_numerical(rf_classifier, iris_data, features, params):
+    """ Checks alibi pd implementation against the sklearn implementation for numerical features."""
+    rf, _ = rf_classifier
+    X_train = iris_data['X_train']
+
+    # compute pd with alibi
+    explainer = PartialDependence(predictor=rf)
+    exp_alibi = explainer.explain(X=X_train, features_list=features, **params)
+
+    # compute pd with sklearn
+    exp_sklearn = partial_dependence(X=X_train, estimator=rf, features=features, **params)
+
+    assert np.allclose(exp_alibi.pd_values[0], exp_sklearn['average'])
+    if isinstance(features[0], numbers.Integral):
+        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+    else:
+        for i in range(len(exp_sklearn['values'])):
+            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('features', [
+    [1], [2], [4], [5],
+    [(1, 2)], [(2, 4)], [(4, 5)]
+])
+@pytest.mark.parametrize('params', [
+    {
+        'response_method': 'auto',
+        'percentiles': (0, 1),
+        'grid_resolution': np.inf,
+        'method': 'auto',
+        'kind': 'average'
+    }
+])
+def test_sklearn_categorical(rf_classifier, adult_data, features, params):
+    rf, preprocessor = rf_classifier
+    rf_clone = deepcopy(rf)  # need to deepcopy as the rf_classifier fixture has module scope
+
+    def decorator(func):
+        def wrapper(X, *args, **kwargs):
+            X_ohe = preprocessor.transform(X)
+            return func(X_ohe, *args, **kwargs)
+
+        return wrapper
+
+    rf_clone.predict_proba = decorator(rf_clone.predict_proba)
+    X_train = adult_data['X_train'][:100]
+
+    # compute sklearn explanation
+    exp_sklearn = partial_dependence(X=X_train, estimator=rf_clone, features=features, **params)
+
+    # update intentionally grid_resolution to check that alibi behaves correctly for categorical features
+    params.update(grid_resolution=100)
+
+    # compute alibi explanation
+    explainer = PartialDependence(predictor=rf_clone,
+                                  feature_names=adult_data['metadata']['feature_names'],
+                                  categorical_names=adult_data['metadata']['category_map'])
+    exp_alibi = explainer.explain(X=X_train, features_list=features, **params)
+
+    # compare explanations
+    assert np.allclose(exp_alibi.pd_values[0][1], exp_sklearn['average'])
+    if isinstance(features[0], numbers.Integral):
+        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+    else:
+        for i in range(len(exp_sklearn['values'])):
+            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])

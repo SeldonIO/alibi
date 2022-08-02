@@ -795,6 +795,11 @@ class AnchorTabular(Explainer, FitMixin):
 
             .. _AnchorTabular examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
+
+        Raises
+        ------
+        :py:class:`alibi.exceptions.NotFittedError`
+            If `fit` has not been called prior to calling `explain`.
         """
         if not self._fitted:
             msg = f"This {self.meta['name']} instance is not fitted yet. Call 'fit' with appropriate arguments first."

@@ -8,7 +8,8 @@ import numpy as np
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.exceptions import (PredictorCallError,
+from alibi.exceptions import (NotFittedError,
+                              PredictorCallError,
                               PredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
@@ -647,6 +648,8 @@ class AnchorTabular(Explainer, FitMixin):
         # update metadata
         self.meta['params'].update(seed=seed)
 
+        self._fitted = False
+
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,
             disc_perc: Tuple[Union[int, float], ...] = (25, 50, 75),
@@ -685,6 +688,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         # update metadata
         self.meta['params'].update(disc_perc=disc_perc)
+
+        self._fitted = True
 
         return self
 
@@ -791,6 +796,10 @@ class AnchorTabular(Explainer, FitMixin):
             .. _AnchorTabular examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
         """
+        if not self._fitted:
+            msg = f"This {self.meta['name']} instance is not fitted yet. Call 'fit' with appropriate arguments first."
+            raise NotFittedError(msg)
+
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
 

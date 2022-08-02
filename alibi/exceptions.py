@@ -42,6 +42,7 @@ class PredictorReturnTypeError(AlibiException, AlibiPredictorReturnTypeError):
     """
     pass
 
+
 class NotFittedError(AlibiException):
     """
     This exception is raised whenever a compulsory call to a `fit` method has not been carried out.

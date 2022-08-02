@@ -802,8 +802,7 @@ class AnchorTabular(Explainer, FitMixin):
             If `fit` has not been called prior to calling `explain`.
         """
         if not self._fitted:
-            msg = f"This {self.meta['name']} instance is not fitted yet. Call 'fit' with appropriate arguments first."
-            raise NotFittedError(msg)
+            raise NotFittedError(self.meta["name"])
 
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X

@@ -8,8 +8,8 @@ import numpy as np
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.exceptions import (PredictorCallError,
+                              PredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 from alibi.utils.wrappers import ArgmaxTransformer
@@ -610,9 +610,9 @@ class AnchorTabular(Explainer, FitMixin):
 
         Raises
         ------
-        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+        :py:class:`alibi.exceptions.PredictorCallError`
             If calling `predictor` fails at runtime.
-        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+        :py:class:`alibi.exceptions.PredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
@@ -984,11 +984,11 @@ class AnchorTabular(Explainer, FitMixin):
         except Exception as e:
             msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
                   f"Check that the parameter `feature_names` is correctly specified."
-            raise AlibiPredictorCallException(msg) from e
+            raise PredictorCallError(msg) from e
 
         if not isinstance(prediction, np.ndarray):
             msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
-            raise AlibiPredictorReturnTypeError(msg)
+            raise PredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor

@@ -139,7 +139,7 @@ class ALE(Explainer):
 
          - Grid points outside the feature range. Consider the following example: `O O O X X O X O X O O`, \
         where 3 grid-points are smaller than the minimum value in `f`, and 2 grid-points are larger than the maximum \
-        value in `f`. The empty leading and ending bins were removed. The grid-points considered
+        value in `f`. The empty leading and ending bins are removed. The grid-points considered
         will be: `O X X O X O X O`.
 
          - Grid points that do not cover the entire feature range. Consider the following example: \

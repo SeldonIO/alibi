@@ -111,7 +111,8 @@ class ALE(Explainer):
             Features for which to calculate ALE.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
-            ALE estimation.
+            ALE estimation. Only relevant for adaptive grid points (i.e., features without an entry in the
+            `grid_points` dictionary).
         grid_points
             Custom grid points. Must be a `dict` where the keys are features indices and the values are
             monotonically increasing `numpy` arrays defining the grid points for each feature.
@@ -138,8 +139,8 @@ class ALE(Explainer):
 
          - Grid points outside the feature range. Consider the following example: `O O O X X O X O X O O`, \
         where 3 grid-points are smaller than the minimum value in `f`, and 2 grid-points are larger than the maximum \
-        value in `f`. Grid-points outside the feature value range are clipped between the minimum and maximum \
-        values of `f`. The grid-points considered will be: `(O|X) X O X O (X|O)`.
+        value in `f`. The empty leading and ending bins are removed. The grid-points considered
+        will be: `O X X O X O X O`.
 
          - Grid points that do not cover the entire feature range. Consider the following example: \
         `X X O X X O X O X X X X X`. Two auxiliary grid-points are added which correspond the value of the minimum \
@@ -408,7 +409,7 @@ def ale_num(
         Custom grid points. An `numpy` array defining the grid points for the given features.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
-        ALE estimation.
+        ALE estimation. Only relevant for adaptive grid points (i.e., feature for which ``feature_grid_points=None``).
     check_feature_resolution
         Refer to :class:`ALE` documentation.
     low_resolution_threshold
@@ -445,12 +446,24 @@ def ale_num(
         fvals = np.sort(feature_grid_points)
 
         if min_val > fvals[0]:
-            logger.warning(f'Feature {feature} grid-points contain lower values than the minimum feature value. '
-                           'Automatically lower bound clipping the grid-points values.')
+            # select the greatest grid point that is less or equal to the minimum feature value
+            min_idx = np.where(fvals <= min_val)[0][-1]
+            min_val = fvals[min_idx]
+
+            if min_idx != 0:
+                logger.warning(f'The leading bins of feature {feature} defined by the grid-points do not contain '
+                               'any feature values. Automatically removing the empty leading bins to ensure that '
+                               'each bin contains at least one feature value.')
 
         if max_val < fvals[-1]:
-            logger.warning(f'Feature {feature} grid-points contain larger values than the maximum feature value. '
-                           'Automatically upper bound clipping the grid-points values.')
+            # select the smallest grid point that is larger or equal to the maximum feature value
+            max_idx = np.where(fvals >= max_val)[0][0]
+            max_val = fvals[max_idx]
+
+            if max_idx != len(fvals) - 1:
+                logger.warning(f'The ending bins of feature {feature} defined by the grid-points do not contain '
+                               'any feature values. Automatically removing the empty ending bins to ensure that '
+                               'each bin contains at least one feature value.')
 
         # clip the values and remove duplicates
         fvals = np.unique(np.clip(fvals, a_min=min_val, a_max=max_val))
@@ -469,13 +482,17 @@ def ale_num(
 
         # check how many feature values are in each bin
         indices = np.searchsorted(fvals, X[:, feature], side="left")
-        interval_n = np.bincount(indices)  # number of points in each interval
+        # put the smallest data point in the first interval
+        indices[indices == 0] = 1
+        # count the number of points in each interval without considering the first bin,
+        # because the first bin will contain always 0 (see line above)
+        interval_n = np.bincount(indices)[1:]
 
         if np.any(interval_n == 0):
-            fvals = np.delete(fvals, np.where(interval_n == 0)[0])
+            fvals = np.delete(fvals, np.where(interval_n == 0)[0] + 1)  # +1 because we don't consider the first bin
             logger.warning(f'Some bins of feature {feature} defined by the grid-points do not contain '
                            'any feature values. Automatically merging consecutive bins to ensure that '
-                           'each bin contains at least one value.')
+                           'each bin contains at least one feature value.')
 
     # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
     if len(fvals) == 1:

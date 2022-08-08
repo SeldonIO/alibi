@@ -41,3 +41,14 @@ class PredictorReturnTypeError(AlibiException, AlibiPredictorReturnTypeError):
     an unexpected or unsupported type.
     """
     pass
+
+
+class NotFittedError(AlibiException):
+    """
+    This exception is raised whenever a compulsory call to a `fit` method has not been carried out.
+    """
+
+    def __init__(self, object_name: str):
+        super().__init__(
+            f"This {object_name} instance is not fitted yet. Call 'fit' with appropriate arguments first."
+        )

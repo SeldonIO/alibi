@@ -4,6 +4,7 @@
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.7.1)
 
 ## Added
+- New `exceptions.NotFittedError` exception which is raised whenever a compulsory call to a `fit` method has not been carried out. Specifically, this is now raised in `AnchorTabular.explain` when `AnchorTabular.fit` has been skipped ([#732](https://github.com/SeldonIO/alibi/pull/732)).
 
 ## Fixed
 

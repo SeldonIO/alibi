@@ -1,5 +1,20 @@
 # Change Log
 
+## [v0.7.1](https://github.com/SeldonIO/alibi/tree/v0.7.1) (2022-XX-XX)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.7.1)
+
+## Added
+
+## Fixed
+
+## Changed
+- Renamed our custom exception classes to remove the verbose `Alibi*` prefix and standardised the `*Error` suffix. Concretely:
+  - `exceptions.AlibiPredictorCallException` is now `exceptions.PredictorCallError`
+  - `exceptions.AlibiPredictorReturnTypeError` is now `exceptions.PredictorReturnTypeError`. Backwards compatibility has been maintained by subclassing the new exception classes by the old ones, **but these will likely be removed in a future version** ([#733](https://github.com/SeldonIO/alibi/pull/733)).
+
+## Development
+
+
 ## [v0.7.0](https://github.com/SeldonIO/alibi/tree/v0.7.0) (2022-05-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.5...v0.7.0)
 

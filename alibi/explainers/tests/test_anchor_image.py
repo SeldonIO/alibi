@@ -5,7 +5,7 @@ import tensorflow as tf
 import torch
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
 from alibi.explainers.anchors.anchor_image import AnchorImage, AnchorImageSampler, scale_image
 
 
@@ -167,7 +167,7 @@ def test_anchor_image(predict_fn, models, mnist_data, images_background):
 @pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
 @pytest.mark.parametrize('models', [("mnist-cnn-pt1.9.1.pt",)], indirect=True)
 def test_anchor_image_fails_init_torch_float64(predict_fn, models):
-    with pytest.raises(AlibiPredictorCallException):
+    with pytest.raises(PredictorCallError):
         explainer = AnchorImage(predict_fn, image_shape=(28, 28, 1), dtype=np.float64)  # noqa: F841
 
 
@@ -187,7 +187,7 @@ def test_anchor_image_fails_init_bad_image_shape_predictor_call():
     """
     In this test `image_shape` is misspecified leading to an exception calling the `predictor`.
     """
-    with pytest.raises(AlibiPredictorCallException):
+    with pytest.raises(PredictorCallError):
         explainer = AnchorImage(bad_predictor, image_shape=(28, 28))  # noqa: F841
 
 
@@ -195,5 +195,5 @@ def test_anchor_image_fails_bad_predictor_return_type():
     """
     In this test `image_shape` is specified correctly, but the predictor returns the wrong type.
     """
-    with pytest.raises(AlibiPredictorReturnTypeError):
+    with pytest.raises(PredictorReturnTypeError):
         explainer = AnchorImage(bad_predictor, image_shape=(28, 28, 1))  # noqa: F841

@@ -4,7 +4,7 @@ flake8>=3.7.7, <6.0.0
 mypy~= 0.900
 types-requests>=2.25.0, <3.0.0
 # testing
-pytest>=5.3.5, <7.0.0
+pytest>=5.3.5, <8.0.0
 pytest-cov>=2.6.1, <4.0.0
 pytest-xdist>=1.28.0, <3.0.0 # for distributed testing, currently unused (see setup.cfg)
 pytest-lazy-fixture>=0.6.3, <0.7.0

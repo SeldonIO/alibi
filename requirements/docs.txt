@@ -8,7 +8,7 @@ sphinxcontrib-apidoc>=0.3.0, <0.4.0
 nbsphinx>=0.8.5, <0.9.0
 sphinx_design==0.2.0  # Pinning for now as sphinx_design is v.new and still in flux. 
 ipykernel>=5.1.0, <6.0.0 # required for executing notebooks via nbsphinx
-ipython>=7.2.0, <8.0.0 # required for executing notebooks nbsphinx
+ipython>=7.2.0, <9.0.0 # required for executing notebooks nbsphinx
 # dependencies required for imports to work and docs to render properly (as mocking doesn't work well)
 # these should be identical to the ones in `setup.py` or `dev.txt`
 shap>=0.40.0, <0.42.0 # https://github.com/SeldonIO/alibi/issues/333

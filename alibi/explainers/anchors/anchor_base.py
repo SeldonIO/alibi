@@ -165,7 +165,10 @@ class AnchorBaseBeam:
         -------
         Level used to update upper and lower precision bounds.
         """
-        # TODO: where do magic numbers come from?
+        # The following constants are defined and used in the paper introducing the KL-LUCB bandit algorithm
+        # (http://proceedings.mlr.press/v30/Kaufmann13.html). Specifically, Theorem 1 proves the lower bounds
+        # of these constants to ensure the algorithm is PAC with probability at least 1-delta. Also refer to
+        # section "5. Numerical experiments" where these values are used empirically.
         alpha = 1.1
         k = 405.5
         temp = np.log(k * n_features * (t ** alpha) / delta)

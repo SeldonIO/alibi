@@ -20,6 +20,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils import _get_column_indices, _safe_indexing
 from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_is_fitted
+from tqdm import tqdm
 
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explainer, Explanation
@@ -62,7 +63,8 @@ class PartialDependence(Explainer):
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None,
-                 predictor_kw: Optional[Dict[str, Any]] = None):
+                 predictor_kw: Optional[Dict[str, Any]] = None,
+                 verbose: bool = False):
         """
         Partial dependence for tabular datasets. Supports one feature or two feature interactions.
 
@@ -97,8 +99,11 @@ class PartialDependence(Explainer):
              - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function. \
              Considered only for ``prediction_type='classification'``.
 
+        verbose
+            Whether to print the progress of the explainer.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
+        self.verbose = verbose
         self.feature_names = feature_names
         self.categorical_names = categorical_names
         self.target_names = target_names
@@ -242,7 +247,7 @@ class PartialDependence(Explainer):
 
         # compute partial dependencies for every features.
         # TODO: implement parallel version - future work as it can be done for ALE too
-        for ifeatures in features:
+        for ifeatures in tqdm(features, disable=not self.verbose):
             pds.append(
                 self._partial_dependence(
                     estimator=self.predictor,

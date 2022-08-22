@@ -472,19 +472,19 @@ def test_ice_sampling(n_ice, n_samples, n_values):
     ice_vals = np.random.randn(n_values, n_samples)
 
     if n_ice == 'all':
-        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice)
         np.testing.assert_allclose(ice_vals, ice_sampled_vals)
 
     elif n_ice == 'list':
         size = np.random.randint(1, n_samples)
         # needs to be sorted because of the np.unique applied inside the _sample_ice
         n_ice = np.sort(np.random.choice(n_samples, size=size, replace=False)).tolist()
-        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice)
         np.testing.assert_allclose(ice_vals[:, n_ice], ice_sampled_vals)
 
     else:
         n_ice = np.random.randint(1, n_samples)
-        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        ice_sampled_vals = _sample_ice(ice_values=ice_vals, n_ice=n_ice)
         assert ice_sampled_vals.shape[1] == n_ice
 
 
@@ -494,7 +494,7 @@ def test_ice_sampling_error(n_samples, n_values, n_ice):
     """ Checks if the ice sampling helper function throws an error when the arguments are invalid. """
     ice_vals = np.random.rand(n_values, n_samples)
     with pytest.raises(ValueError):
-        _sample_ice(ice_values=ice_vals, n_ice=n_ice, seed=0)
+        _sample_ice(ice_values=ice_vals, n_ice=n_ice)
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)

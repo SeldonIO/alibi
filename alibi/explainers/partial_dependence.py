@@ -654,8 +654,7 @@ def plot_pd(exp: Explanation,
             pd_num_num_kw: Optional[dict] = None,
             pd_num_cat_kw: Optional[dict] = None,
             pd_cat_cat_kw: Optional[dict] = None,
-            fig_kw: Optional[dict] = None,
-            seed: Optional[int] = None) -> 'np.ndarray':
+            fig_kw: Optional[dict] = None) -> 'np.ndarray':
     """
     Plot partial dependence curves on matplotlib axes.
 
@@ -709,8 +708,6 @@ def plot_pd(exp: Explanation,
         Keyword arguments passed to the `seaborn heatmap` functon when plotting the PD for two categorical features.
     fig_kw
         Keyword arguments passed to the `fig.set` function.
-    seed
-        The seed to be used for ICE sampling.
 
     Returns
     -------
@@ -821,8 +818,7 @@ def plot_pd(exp: Explanation,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
-                                     ice_cat_kw=ice_cat_kw,
-                                     seed=seed)
+                                     ice_cat_kw=ice_cat_kw)
             else:
                 _ = _plot_one_pd_num(exp=exp,
                                      feature=ifeatures,
@@ -831,16 +827,13 @@ def plot_pd(exp: Explanation,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_num_kw=pd_num_kw,
-                                     ice_num_kw=ice_num_kw,
-                                     seed=seed)
+                                     ice_num_kw=ice_num_kw)
 
     fig.set(**fig_kw)
     return axes
 
 
-def _sample_ice(ice_values: np.ndarray,
-                n_ice: Union[str, int, List[int]],
-                seed: Optional[int] = None) -> np.ndarray:
+def _sample_ice(ice_values: np.ndarray, n_ice: Union[str, int, List[int]]) -> np.ndarray:
     """
     Samples ice_values based on the n_ice argument.
 
@@ -851,11 +844,7 @@ def _sample_ice(ice_values: np.ndarray,
         and V is the number of feature values where the PD is computed.
     n_ice
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd`.
-    seed
-        The seed to be used for sampling.
     """
-    np.random.seed(seed)
-
     if n_ice == 'all':
         return ice_values
 
@@ -892,14 +881,13 @@ def _plot_one_pd_num(exp: Explanation,
                      n_ice: Union[str, int, List[int]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
-                     ice_num_kw: Optional[dict] = None,
-                     seed: Optional[int] = None) -> 'plt.Axes':
+                     ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single numerical feature.
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, n_ice, pd_num_kw, ice_num_kw, seed
+    exp, feature, target_idx, centered, n_ice, pd_num_kw, ice_num_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
@@ -919,7 +907,7 @@ def _plot_one_pd_num(exp: Explanation,
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
     # sample ice values for visualization purposes
-    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice, seed=seed)
+    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
 
     if exp.meta['kind'] == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
@@ -972,14 +960,13 @@ def _plot_one_pd_cat(exp: Explanation,
                      n_ice: Union[str, int, List[str]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
-                     ice_cat_kw: Optional[dict] = None,
-                     seed: Optional[int] = None) -> 'plt.Axes':
+                     ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
     """
     Plots one way partial dependence curve for a single categorical feature.
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, n_ice, pd_cat_kw, ice_cat_kw, seed
+    exp, feature, target_idx, centered, n_ice, pd_cat_kw, ice_cat_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
@@ -999,7 +986,7 @@ def _plot_one_pd_cat(exp: Explanation,
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
     # sample ice for visualization purposes
-    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice, seed=seed)
+    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
 
     feature_index = exp.meta['feature_names'].index(feature_names)
     labels = [exp.meta['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]

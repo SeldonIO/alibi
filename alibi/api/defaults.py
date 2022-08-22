@@ -285,7 +285,7 @@ Default ProtoSelect data.
 """
 
 
-# ParatialDependence
+# PartialDependence
 DEFAULT_META_PD = {
     "name": None,
     "type": ["blackbox"],

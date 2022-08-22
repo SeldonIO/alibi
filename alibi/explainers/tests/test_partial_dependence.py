@@ -229,7 +229,7 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
     num_instances = len(X_train)
 
     explanier = PartialDependence(predictor=predictor)
-    exp = explanier.explain(X=X_train, features_list=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
+    exp = explanier.explain(X=X_train, features=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
 
     # check that the values returned match the number of requested features
     assert len(exp.feature_names) == len(features)
@@ -281,12 +281,12 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
 
 @pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
 @pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
-@pytest.mark.parametrize('feature_list', [
+@pytest.mark.parametrize('features', [
     [0, 1, 2],
     [(0, 1), (0, 2), (1, 2)],
     [0, 1, (0, 1)]
 ])
-def test_regression_wrapper(rf_regressor, boston_data, kind, feature_list):
+def test_regression_wrapper(rf_regressor, boston_data, kind, features):
     """ Test the black-box wrapper for a regression function. """
     rf, _ = rf_regressor
     predictor = rf.predict  # equivalent of black-box model
@@ -301,7 +301,7 @@ def test_regression_wrapper(rf_regressor, boston_data, kind, feature_list):
     # define explainer and compute explanation
     explainer = PartialDependence(predictor=predictor, predictor_kw=predictor_kw)
     explainer.explain(X=X_train,
-                      features_list=feature_list,
+                      features=features,
                       grid_resolution=10,
                       response_method='auto',
                       method='brute',
@@ -311,12 +311,12 @@ def test_regression_wrapper(rf_regressor, boston_data, kind, feature_list):
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
 @pytest.mark.parametrize('response_method', ['auto', 'predict_proba', 'decision_function'])
 @pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
-@pytest.mark.parametrize('feature_list', [
+@pytest.mark.parametrize('features', [
     [0, 1, 2],
     [(0, 1), (0, 2), (1, 2)],
     [0, 1, (0, 1)]
 ])
-def test_classification_wrapper(lr_classifier, iris_data, response_method, kind, feature_list):
+def test_classification_wrapper(lr_classifier, iris_data, response_method, kind, features):
     """ Test the black-box wrapper for a classification function. """
     X_train, y_train = iris_data['X_train'], iris_data['y_train']
     lr, _ = lr_classifier
@@ -340,7 +340,7 @@ def test_classification_wrapper(lr_classifier, iris_data, response_method, kind,
     # define explainer and compute explanation
     explainer = PartialDependence(predictor=predictor, predictor_kw=predictor_kw)
     explainer.explain(X=X_train,
-                      features_list=feature_list,
+                      features=features,
                       grid_resolution=10,
                       response_method=response_method,
                       method='brute',
@@ -389,7 +389,7 @@ def test_grid_points(adult_data, rf_classifier, use_int):
 
     # compute explanation for every feature using the grid_points
     exp = explainer.explain(X=X_train[:100],
-                            features_list=None,
+                            features=None,
                             response_method='predict_proba',
                             kind='average',
                             grid_points=grid_points)
@@ -517,7 +517,7 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
 
     # compute pd with alibi
     explainer = PartialDependence(predictor=rf)
-    exp_alibi = explainer.explain(X=X_train, features_list=features, **params)
+    exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compute pd with sklearn
     exp_sklearn = partial_dependence(X=X_train, estimator=rf, features=features, **params)
@@ -568,7 +568,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
     explainer = PartialDependence(predictor=rf_clone,
                                   feature_names=adult_data['metadata']['feature_names'],
                                   categorical_names=adult_data['metadata']['category_map'])
-    exp_alibi = explainer.explain(X=X_train, features_list=features, **params)
+    exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compare explanations
     assert np.allclose(exp_alibi.pd_values[0][1], exp_sklearn['average'])

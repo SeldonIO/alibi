@@ -93,7 +93,7 @@ def movie_sentiment_data():
 @pytest.fixture(scope='module')
 def svc_classifier(request):
     """
-    Trains a random forest classifier. Because it is scoped
+    Trains a support vector classifier. Because it is scoped
     at module level, the state of this  fixture should not be
     mutated during test - if you need to do so, please copy the
     objects returned.

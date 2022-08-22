@@ -2,15 +2,13 @@ import copy
 import logging
 import math
 import numbers
+import sys
 from enum import Enum
-from typing import (Any, Callable, Dict, List, Literal, Optional, Tuple, Union, no_type_check)
+from typing import (Any, Callable, Dict, List, Optional, Tuple, Union,
+                    no_type_check)
 
 import matplotlib.pyplot as plt
 import numpy as np
-from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.explainers.ale import get_quantiles
-from alibi.explainers.similarity.grad import get_options_string
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble._gb import BaseGradientBoosting
@@ -22,6 +20,17 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils import _get_column_indices, _safe_indexing
 from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_is_fitted
+
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.ale import get_quantiles
+from alibi.explainers.similarity.grad import get_options_string
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
+
 
 logger = logging.getLogger(__name__)
 
@@ -66,24 +75,27 @@ class PartialDependence(Explainer):
             A list of feature names used for displaying results.
         categorical_names
             Dictionary where keys are feature columns and values are the categories for the feature. Necessary to
-            identify the categorical features in the dataset.
+            identify the categorical features in the dataset. An example for `categorical_names` would be::
+
+                category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]}
+
         target_names
             A list of target/output names used for displaying results.
         predictor_kw
             Predictor identifier arguments when the predictor is a callable prediction function. The following
             arguments must be provided:
 
-             - ``'predictor_type'`` : ``str`` - Type of the predictor. Available
-                values: ``'regressor'`` | ``'classifier'``.
+             - ``'predictor_type'`` : ``str`` - Type of the predictor. \
+             Available values: ``'regressor'`` | ``'classifier'``.
 
-             - ``'prediction_fn'`` : ``str`` - Name of the prediction function. Available value for
-                regression: ``'predict'``. Available values for
-                classification: ``'predict_proba'`` | ``'decision_function'``. The choice should be considered
-                in analogy with the `sklearn` estimators API and the `response_method` used in
-                :py:meth:`alibi.explainers.partial_dependence.explain`.
+             - ``'prediction_fn'`` : ``str`` - Name of the prediction function. \
+             Available value for regression: ``'predict'``. \
+             Available values for classification: ``'predict_proba'`` | ``'decision_function'``. \
+             The choice should be considered in analogy with the `sklearn` estimators API and the `response_method` \
+             used in :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain`.
 
-             - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function.
-                Considered only for ``prediction_type='classification'``.
+             - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function. \
+             Considered only for ``prediction_type='classification'``.
 
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
@@ -103,9 +115,9 @@ class PartialDependence(Explainer):
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
-                features_list: Optional[List[Union[int, Tuple[int, int]]]] = None,
+                features: Optional[List[Union[int, Tuple[int, int]]]] = None,
                 response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
-                method: Literal['auto', 'recursion', 'brute'] = 'auto',
+                method: Literal['auto', 'brute', 'recursion'] = 'auto',
                 kind: Literal['average', 'individual', 'both'] = 'average',
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
@@ -117,48 +129,53 @@ class PartialDependence(Explainer):
         Parameters
         ----------
         X
-            An `N x F` reference tabular dataset used to calculate partial dependence curves. This is typically the
+            An `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
             training dataset or a representative sample.
-        features_list
-            An optional list of features or pairs of features for which to calculate the partial dependence for.
+        features
+            An optional list of features or pairs of features for which to calculate the partial dependence.
             If not provided, the partial dependence will be computed for every single features in the dataset.
+            Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+            ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
         response_method
             Specifies the prediction function to be used. For a classifier it specifies whether to use the
             `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
             the `predict_proba` is tried first, and if not supported then it reverts to `decision_function`. Note
             that if `method='recursion'`, the prediction function always uses `decision_function`.
         method
-            The method used to calculate the average predictions
+            The method used to calculate the partial dependence (i.e., the marginal effect one or two features have
+            on the outcome of the predictor):
 
-             - ``'recursion'`` - a faster alternative only supported by some tree-based model. For a classifier, the
-               target response is always the decision function and NOT the predicted probabilities. Furthermore, since
-               the ``'recursion'`` method computes implicitly the average of the individual conditional expectation
-               (ICE) by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``.
-               Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
+             - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
+
+             - ``'brute'`` - supported for any black-box prediction model, but is more computationally intensive.
+
+             - ``'recursion'`` - a faster alternative only supported by some tree-based models. For a classifier, the \
+             target response is always the decision function and NOT the predicted probabilities. Furthermore, since \
+             the ``'recursion'`` method computes implicitly the average of the individual conditional expectation \
+             (ICE) by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``. \
+             Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
 
              .. _sklearn documentation:
                 https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
 
-             - ``'brute'`` - supported for any black-box prediction model, but is more computationally intensive.
-
-             - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
-
         kind
             If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
-            is returned. If set to ``individual``, then only the individual conditional expectation (ICE) is
-            returned for each individual from the dataset. Otherwise, if set to ``'both'``, then both the PD and
+            is returned. If set to ``'individual'``, then only the individual conditional expectation (ICE) is
+            returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and
             the ICE are returned. Note that for the faster ``method='recursion'`` option the only compatible parameter
-            value is ``kind='average'``. To plot the ICE, consider using the more computation intensive
+            value is ``kind='average'``. To plot the ICE, consider using the more computationally intensive
             ``method='brute'``.
         percentiles
-            Lower and upper percentiles used to create extreme values which can potential remove outliers in low
-            density regions. The values must be in [0, 1].
+            Lower and upper percentiles used to limit the feature values to potentially remove outliers from
+            low-density regions. Note that for features with not many data points with large/low values, the
+            PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
+            with `grid_resolution`.
         grid_resolution
             Number of equidistant points to split the range of each target feature. Only applies if the number of
             unique values of a target feature in the reference dataset `X` is less than the `grid_resolution` value.
         grid_points
             Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
-            monotonically increasing `numpy` arrays defining the grid points for numerical feature, and
+            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
             a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
             then the grid will be constructed based on the unique target feature values available in the reference
             dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
@@ -190,33 +207,33 @@ class PartialDependence(Explainer):
 
         # sanity checks
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
-        self._features_sanity_checks(features=features_list)
+        self._features_sanity_checks(features=features)
         response_method, method, kind = self._params_sanity_checks(estimator=self.predictor,  # type: ignore[assignment]
                                                                    response_method=response_method,
                                                                    method=method,
                                                                    kind=kind)
 
-        # construct feature_names based on the feature_list. If feature_list is None, then initialize
-        # feature_list with all single feature available in the dataset.
-        if features_list:
+        # construct feature_names based on the `features`. If `features` is `None`, then initialize
+        # `features` with all single feature available in the dataset.
+        if features:
             feature_names = [tuple([self.feature_names[f] for f in features])
                              if isinstance(features, tuple) else self.feature_names[features]
-                             for features in features_list]
+                             for features in features]
         else:
             feature_names = self.feature_names  # type: ignore[assignment]
-            features_list = list(range(n_features))
+            features = list(range(n_features))
 
         # buffer of all partial dependencies
         pds = []
 
         # compute partial dependencies for every features.
         # TODO: implement parallel version - future work as it can be done for ALE too
-        for features in features_list:
+        for ifeatures in features:
             pds.append(
                 self._partial_dependence(
                     estimator=self.predictor,
                     X=X,
-                    features=features,
+                    features=ifeatures,
                     response_method=response_method,
                     method=method,
                     kind=kind,
@@ -409,8 +426,10 @@ class PartialDependence(Explainer):
 
         Parameters
         ----------
-        estimator, X, features, response_method, method, kind, percentiles, grid_resolution, grid_points
+        estimator, X, response_method, method, kind, percentiles, grid_resolution, grid_points
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+        features
+            A feature or pairs of features for which to calculate the partial dependence.
 
         Returns
         -------
@@ -606,7 +625,7 @@ class PartialDependence(Explainer):
 # No type check due to the generic explanation object
 @no_type_check
 def plot_pd(exp: Explanation,
-            features_list: Union[List[int], Literal['all']] = 'all',
+            features: Union[List[int], Literal['all']] = 'all',
             target_idx: int = 0,
             n_cols: int = 3,
             n_ice: Union[str, int, List[int]] = 'all',
@@ -631,7 +650,7 @@ def plot_pd(exp: Explanation,
     exp
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
-    features_list
+    features
         A list of features for which to plot the partial dependence curves or ``'all'`` for all features.
         Can be an integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
     target_idx
@@ -644,11 +663,11 @@ def plot_pd(exp: Explanation,
 
          - a string taking the value ``'all'`` to display the ICE curves for every instance in the reference dataset.
 
-         - an integer for which `n_ice` instances from the reference dataset will be sampled uniformly at random to
-           display their ICE curves.
+         - an integer for which `n_ice` instances from the reference dataset will be sampled uniformly at random to \
+         display their ICE curves.
 
-         - a list of integers, where each integer represents an index of an instance in the reference dataset to
-           display their ICE curves.
+         - a list of integers, where each integer represents an index of an instance in the reference dataset to \
+         display their ICE curves.
 
     centered
         Boolean flag to center the individual conditional expectation (ICE) curves.
@@ -677,7 +696,7 @@ def plot_pd(exp: Explanation,
     fig_kw
         Keyword arguments passed to the `fig.set` function.
     seed
-        Seed to be used for ICE sampling.
+        The seed to be used for ICE sampling.
 
     Returns
     -------
@@ -691,16 +710,16 @@ def plot_pd(exp: Explanation,
         fig_kw = {}
     fig_kw = {**default_fig_kw, **fig_kw}
 
-    if features_list == 'all':
-        features_list = range(0, len(exp.feature_names))
+    if features == 'all':
+        features = range(0, len(exp.feature_names))
     else:
-        for features in features_list:
-            if features > len(exp.feature_names):
-                raise ValueError(f'The feature_list indices must be less than the '
-                                 f'len(feature_names) = {len(exp.feature_names)}. Received {features}.')
+        for ifeatures in features:
+            if ifeatures > len(exp.feature_names):
+                raise ValueError(f'The `features` indices must be less than the '
+                                 f'len(feature_names) = {len(exp.feature_names)}. Received {ifeatures}.')
 
     # corresponds to the number of subplots
-    n_features = len(features_list)
+    n_features = len(features)
 
     # create axes
     if ax is None:
@@ -749,9 +768,9 @@ def plot_pd(exp: Explanation,
         return feature_idx in exp.meta['categorical_names']
 
     # create plots
-    for features, ax_ravel in zip(features_list, axes_ravel):
+    for ifeatures, ax_ravel in zip(features, axes_ravel):
         # extract the feature names
-        feature_names = exp.feature_names[features]
+        feature_names = exp.feature_names[ifeatures]
 
         # if it is tuple, then we need a 2D plot and address 4 cases: (num, num), (num, cat), (cat, num), (cat, cat)
         if isinstance(feature_names, tuple):
@@ -759,7 +778,7 @@ def plot_pd(exp: Explanation,
 
             if (not _is_categorical(f0)) and (not _is_categorical(f1)):
                 _ = _plot_two_pd_num_num(exp=exp,
-                                         feature=features,
+                                         feature=ifeatures,
                                          target_idx=target_idx,
                                          levels=levels,
                                          ax=ax_ravel,
@@ -767,14 +786,14 @@ def plot_pd(exp: Explanation,
 
             elif _is_categorical(f0) and _is_categorical(f1):
                 _ = _plot_two_pd_cat_cat(exp=exp,
-                                         feature=features,
+                                         feature=ifeatures,
                                          target_idx=target_idx,
                                          ax=ax_ravel,
                                          pd_cat_cat_kw=pd_cat_cat_kw)
 
             else:
                 _ = _plot_two_pd_num_cat(exp=exp,
-                                         feature=features,
+                                         feature=ifeatures,
                                          target_idx=target_idx,
                                          ax=ax_ravel,
                                          pd_num_cat_kw=pd_num_cat_kw)
@@ -782,7 +801,7 @@ def plot_pd(exp: Explanation,
         else:
             if _is_categorical(feature_names):
                 _ = _plot_one_pd_cat(exp=exp,
-                                     feature=features,
+                                     feature=ifeatures,
                                      target_idx=target_idx,
                                      centered=centered,
                                      n_ice=n_ice,
@@ -792,7 +811,7 @@ def plot_pd(exp: Explanation,
                                      seed=seed)
             else:
                 _ = _plot_one_pd_num(exp=exp,
-                                     feature=features,
+                                     feature=ifeatures,
                                      target_idx=target_idx,
                                      centered=centered,
                                      n_ice=n_ice,
@@ -819,7 +838,7 @@ def _sample_ice(ice_values: np.ndarray,
     n_ice
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd`.
     seed
-        Seed to be used for sampling.
+        The seed to be used for sampling.
     """
     np.random.seed(seed)
 

@@ -48,7 +48,7 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
 
     Parameters
     ----------
-    url_id
+    url_id: Index specifying which URL to use for downloading.
 
     Returns
     -------
@@ -67,44 +67,43 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
         logger.exception("Could not connect, URL may be out of service")
         raise
     tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
-    imagenet10 = {}
 
-    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'))  # type: ignore
-    str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))  # type: ignore
+    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'))  # type: ignore[arg-type]
+    str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))  # type: ignore[arg-type]
 
     # hack to load npy files from a tar archive
     # see https://github.com/numpy/numpy/issues/7989
     mean_channels_af = BytesIO()
-    mean_channels_af.write(tar.extractfile('imagenet10/mean_channels.npy').read())  # type: ignore
+    mean_channels_af.write(tar.extractfile('imagenet10/mean_channels.npy').read())  # type: ignore[union-attr]
     mean_channels_af.seek(0)
-    mean_channels = np.load(mean_channels_af)  # type: ignore
+    mean_channels = np.load(mean_channels_af)
 
     X_train_af = BytesIO()
-    X_train_af.write(tar.extractfile('imagenet10/trainset/X.npy').read())  # type: ignore
+    X_train_af.write(tar.extractfile('imagenet10/trainset/X.npy').read())  # type: ignore[union-attr]
     X_train_af.seek(0)
-    X_train = np.load(X_train_af)  # type: ignore
+    X_train = np.load(X_train_af)
 
     y_train_af = BytesIO()
-    y_train_af.write(tar.extractfile('imagenet10/trainset/y.npy').read())  # type: ignore
+    y_train_af.write(tar.extractfile('imagenet10/trainset/y.npy').read())  # type: ignore[union-attr]
     y_train_af.seek(0)
-    y_train = np.load(y_train_af)  # type: ignore
+    y_train = np.load(y_train_af)
 
     X_test_af = BytesIO()
-    X_test_af.write(tar.extractfile('imagenet10/testset/X.npy').read())  # type: ignore
+    X_test_af.write(tar.extractfile('imagenet10/testset/X.npy').read())  # type: ignore[union-attr]
     X_test_af.seek(0)
-    X_test = np.load(X_test_af)  # type: ignore
+    X_test = np.load(X_test_af)
 
     y_test_af = BytesIO()
-    y_test_af.write(tar.extractfile('imagenet10/testset/y.npy').read())  # type: ignore
+    y_test_af.write(tar.extractfile('imagenet10/testset/y.npy').read())  # type: ignore[union-attr]
     y_test_af.seek(0)
-    y_test = np.load(y_test_af)  # type: ignore
+    y_test = np.load(y_test_af)
 
     # buiding dataset dict
-    imagenet10['trainset'] = (X_train, y_train)
-    imagenet10['testset'] = (X_test, y_test)
-    imagenet10['int_to_str_labels'] = int_to_str_labels
-    imagenet10['str_to_int_labels'] = str_to_int_labels
-    imagenet10['mean_channels'] = mean_channels
+    imagenet10 = {'trainset': (X_train, y_train),
+                  'testset': (X_test, y_test),
+                  'int_to_str_labels': int_to_str_labels,
+                  'str_to_int_labels': str_to_int_labels,
+                  'mean_channels': mean_channels}
 
     return imagenet10
 

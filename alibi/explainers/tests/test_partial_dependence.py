@@ -21,11 +21,12 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.inspection import partial_dependence
 
+
 @pytest.fixture(scope='module')
 def binary_data():
-    n_samples, n_feautres, n_informative, n_classes = 200, 100, 30, 2
+    n_samples, n_features, n_informative, n_classes = 200, 100, 30, 2
     X, y = make_classification(n_samples=n_samples,
-                               n_features=n_feautres,
+                               n_features=n_features,
                                n_informative=n_informative,
                                n_classes=n_classes,
                                random_state=0)
@@ -228,8 +229,8 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
     num_targets = 1 if unique_labels == 2 else unique_labels
     num_instances = len(X_train)
 
-    explanier = PartialDependence(predictor=predictor)
-    exp = explanier.explain(X=X_train, features=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
+    explainer = PartialDependence(predictor=predictor)
+    exp = explainer.explain(X=X_train, features=features, grid_resolution=grid_resolution, kind=Kind.BOTH)
 
     # check that the values returned match the number of requested features
     assert len(exp.feature_names) == len(features)

@@ -121,7 +121,7 @@ class PartialDependence(Explainer):
                 kind: Literal['average', 'individual', 'both'] = 'average',
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
-                grid_points: Optional[Dict[int, np.ndarray]] = None) -> Explanation:
+                grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
         """
         Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
         and the reference dataset `X`.
@@ -172,7 +172,15 @@ class PartialDependence(Explainer):
             with `grid_resolution`.
         grid_resolution
             Number of equidistant points to split the range of each target feature. Only applies if the number of
-            unique values of a target feature in the reference dataset `X` is less than the `grid_resolution` value.
+            unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
+            For example, consider a case where a feature can take the following values:
+            ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
+            interested in evaluating the marginal effect at every single point as it can become computationally costly
+            (imagine hundreds/thousands of point) without providing any additional information for nearby points
+            (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
+            ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
+            insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
+            using the `percentiles` argument.
         grid_points
             Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
             monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
@@ -193,6 +201,12 @@ class PartialDependence(Explainer):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/PartialDependence.html
         """
+        self.meta['params'].update(response_method=response_method,
+                                   method=method,
+                                   kind=kind,
+                                   percentiles=percentiles,
+                                   grid_resolution=grid_resolution)
+
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')
         n_features = X.shape[1]
@@ -256,7 +270,7 @@ class PartialDependence(Explainer):
                                        feature_names=feature_names,  # type: ignore[arg-type]
                                        pds=pds)
 
-    def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, np.ndarray]], n_features: int):
+    def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, Union[List, np.ndarray]]], n_features: int):
         """
         Grid points sanity checks.
 
@@ -275,24 +289,24 @@ class PartialDependence(Explainer):
 
         for f in grid_points:
             if self._is_numerical(f):
-                grid_points[f] = np.sort(grid_points[f])
+                grid_points[f] = np.sort(grid_points[f])  # from this point onward, `grid_points[f]` is `np.ndarray`
 
             else:
-                grid_points[f] = np.unique(grid_points[f])
+                grid_points[f] = np.unique(grid_points[f])  # from this point onward, `grid_points[f]` is `np.ndarray`
                 message = "The grid points provided for the categorical feature {} are invalid. "\
                           "For categorical features, the grid points must be a subset of the features "\
-                          "values defined in categorical_names. Received an unknown value of '{}'."
+                          "values defined in `categorical_names`. Received an unknown value of '{}'."
 
                 # convert to label encoding if the grid is provided as strings
-                if grid_points[f].dtype.type is np.str_:
+                if grid_points[f].dtype.type is np.str_:  # type: ignore[union-attr]
                     int_values = []
 
-                    for str_vals in grid_points[f]:
+                    for str_val in grid_points[f]:
                         try:
                             # self.categorical_names cannot be empty because of the check in self._is_numerical
-                            index = self.categorical_names[f].index(str_vals)  # type: ignore[index]
+                            index = self.categorical_names[f].index(str_val)  # type: ignore[index]
                         except ValueError:
-                            raise ValueError(message.format(f, str_vals))
+                            raise ValueError(message.format(f, str_val))
                         int_values.append(index)
                     grid_points[f] = np.array(int_values)
 
@@ -321,7 +335,7 @@ class PartialDependence(Explainer):
                 raise ValueError(f'All feature entries must be less than len(feature_names)={len(self.feature_names)}. '
                                  f'Got a feature value of {f}.')
             if f < 0:
-                raise ValueError(f'All features entries must be greater or equal to 0. Got a feature value of {f}.')
+                raise ValueError(f'All feature entries must be greater or equal to 0. Got a feature value of {f}.')
 
         for f in features:
             if isinstance(f, tuple):
@@ -419,7 +433,7 @@ class PartialDependence(Explainer):
                             kind: Literal['average', 'individual', 'both'] = 'average',
                             percentiles: Tuple[float, float] = (0., 1.),
                             grid_resolution: int = 100,
-                            grid_points: Optional[Dict[int, np.ndarray]] = None
+                            grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None
                             ) -> Dict[str, np.ndarray]:
         """
         Computes partial dependence for a feature or a pair of features.
@@ -444,7 +458,7 @@ class PartialDependence(Explainer):
 
         deciles, values, features_indices = [], [], [],
         for f in features:  # type: ignore[union-attr]
-            # Note that we are using the _safe_indexing procedure implement in sklearn to retrieve the column.
+            # Note that we are using the _safe_indexing procedure implemented in sklearn to retrieve the column.
             # This is because the _safe_indexing supports many data types such as sparse matrix representation,
             # pandas dataframes etc. In case we would like to enhance alibi in the future to support other
             # data types than np.ndarrays, this can be useful.
@@ -468,7 +482,7 @@ class PartialDependence(Explainer):
             deciles.append(deciles_f)
             values += values_f
 
-        # covers also the case of a single feature, just to ensure it has the right shape
+        # perform cartesian product between feature values. Covers also the case of a single feature.
         features_indices = np.concatenate(features_indices, axis=0)
         grid = cartesian(tuple([v.reshape(-1) for v in values]))
 

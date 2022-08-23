@@ -220,7 +220,6 @@ class PartialDependence(Explainer):
         if self.categorical_names is None:
             self.categorical_names = {}
 
-
         # sanity checks
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
         self._features_sanity_checks(features=features)
@@ -275,9 +274,7 @@ class PartialDependence(Explainer):
             n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
 
-        return self._build_explanation(response_method=response_method,
-                                       method=method,
-                                       kind=kind,
+        return self._build_explanation(kind=kind,
                                        feature_names=feature_names,  # type: ignore[arg-type]
                                        pds=pds)
 
@@ -563,7 +560,7 @@ class PartialDependence(Explainer):
         -------
         ``True`` if the feature is categorical. ``False`` otherwise.
         """
-        return (self.categorical_names is not None) and (feature in self.categorical_names)
+        return feature in self.categorical_names
 
     def _is_numerical(self, feature):
         """
@@ -578,11 +575,9 @@ class PartialDependence(Explainer):
         -------
         ``True`` if the feature is numerical. ``False`` otherwise.
         """
-        return (self.categorical_names is None) or (feature not in self.categorical_names)
+        return feature not in self.categorical_names
 
     def _build_explanation(self,
-                           response_method: str,
-                           method: str,
                            kind: str,
                            feature_names: List[Union[int, Tuple[int, int]]],
                            pds: List[Dict[str, np.ndarray]]) -> Explanation:
@@ -591,7 +586,7 @@ class PartialDependence(Explainer):
 
         Parameters
         ----------
-        response_method, method, kind
+        kind
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
         feature_names
             List of feature of pairs of features for which the partial dependencies/individual conditional expectation
@@ -645,11 +640,11 @@ def plot_pd(exp: Explanation,
             features: Union[List[int], Literal['all']] = 'all',
             target: Union[str, int] = 0,
             n_cols: int = 3,
-            n_ice: Union[str, int, List[int]] = 'all',
+            n_ice: Union[Literal['all'], int, List[int]] = 'all',
             center: bool = True,
             levels: int = 8,
             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
-            sharey: str = 'all',
+            sharey: Optional[Literal['all', 'row']] = 'all',
             pd_num_kw: Optional[dict] = None,
             ice_num_kw: Optional[dict] = None,
             pd_cat_kw: Optional[dict] = None,
@@ -852,7 +847,7 @@ def plot_pd(exp: Explanation,
     return axes
 
 
-def _sample_ice(ice_values: np.ndarray, n_ice: Union[str, int, List[int]]) -> np.ndarray:
+def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[int]]) -> np.ndarray:
     """
     Samples ice_values based on the n_ice argument.
 
@@ -897,7 +892,7 @@ def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
-                     n_ice: Union[str, int, List[int]] = 'all',
+                     n_ice: Union[Literal['all'], int, List[int]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
                      ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -979,7 +974,7 @@ def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      centered: bool = True,
-                     n_ice: Union[str, int, List[str]] = 'all',
+                     n_ice: Union[Literal['all'], int, List[str]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
                      ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':

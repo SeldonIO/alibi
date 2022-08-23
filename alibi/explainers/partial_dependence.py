@@ -645,10 +645,10 @@ class PartialDependence(Explainer):
 @no_type_check
 def plot_pd(exp: Explanation,
             features: Union[List[int], Literal['all']] = 'all',
-            target_idx: int = 0,
+            target: Union[str, int] = 0,
             n_cols: int = 3,
             n_ice: Union[str, int, List[int]] = 'all',
-            centered: bool = True,
+            center: bool = True,
             levels: int = 8,
             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
             sharey: str = 'all',
@@ -669,11 +669,14 @@ def plot_pd(exp: Explanation,
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
     features
-        A list of features for which to plot the partial dependence curves or ``'all'`` for all features.
-        Can be an integers denoting feature index denoting entries in `exp.feature_names`. Defaults to ``'all'``.
-    target_idx
-        Target index for which to plot the partial dependence (PD) curves. Can be a mix of integers denoting target
-        index or strings denoting entries in `exp.meta['target_names']`.
+        A list of features entries in the `exp.feature_names` to plot the partial dependence curves for, or ``'all'``
+        to plot all the explained feature or pairs of features. This includes tuples of features. For example,
+        if ``exp.feature_names = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot the partial dependence
+        only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set ``features=[0, 2]``.
+        Defaults to ``'all'``.
+    target
+        The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
+        denoting target index or strings denoting entries in `exp.target_names`
     n_cols
         Number of columns to organize the resulting plot into.
     n_ice
@@ -687,7 +690,7 @@ def plot_pd(exp: Explanation,
          - a list of integers, where each integer represents an index of an instance in the reference dataset to \
          display their ICE curves.
 
-    centered
+    center
         Boolean flag to center the individual conditional expectation (ICE) curves.
     levels
         Number of levels in the contour plot.
@@ -733,6 +736,19 @@ def plot_pd(exp: Explanation,
             if ifeatures > len(exp.feature_names):
                 raise ValueError(f'The `features` indices must be less than the '
                                  f'len(feature_names) = {len(exp.feature_names)}. Received {ifeatures}.')
+
+    # set target index
+    if isinstance(target, str):
+        try:
+            target_idx = exp.meta['target_names'].index(target)
+        except ValueError:
+            raise ValueError(f"Unknown `target` name. Received {target}. "
+                             f"Available values are: {exp.meta['target_names']}.")
+    else:
+        target_idx = target
+        if target_idx >= len(exp.meta['target_names']):
+            raise IndexError(f"Target index out of range. Received {target_idx}. "
+                             f"The number of targets is {len(exp.meta['target_names'])}.")
 
     # corresponds to the number of subplots
     n_features = len(features)
@@ -819,7 +835,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_one_pd_cat(exp=exp,
                                      feature=ifeatures,
                                      target_idx=target_idx,
-                                     centered=centered,
+                                     centered=center,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
@@ -828,7 +844,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_one_pd_num(exp=exp,
                                      feature=ifeatures,
                                      target_idx=target_idx,
-                                     centered=centered,
+                                     centered=center,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_num_kw=pd_num_kw,
@@ -853,24 +869,24 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[str, int, List[int]]) -> np
     if n_ice == 'all':
         return ice_values
 
-    _, N = ice_values.shape
+    _, V = ice_values.shape
     if isinstance(n_ice, numbers.Integral):
-        if n_ice > N:  # type: ignore[operator]
-            n_ice = N
+        if n_ice > V:  # type: ignore[operator]
+            n_ice = V
             logger.warning('n_ice is greater than the number of instances in the reference dataset. '
                            'Automatically setting n_ice to the number of instances in the reference dataset.')
 
         if n_ice <= 0:  # type: ignore[operator]
             raise ValueError('n_ice must be an integer grater than 0.')
 
-        indices = np.random.choice(a=N, size=n_ice, replace=False)
+        indices = np.random.choice(a=V, size=n_ice, replace=False)
         return ice_values[:, indices]
 
     if isinstance(n_ice, list):
         n_ice = np.unique(n_ice)  # type: ignore[assignment]
-        if not np.all(n_ice < N) or not np.all(n_ice >= 0):  # type: ignore[operator]
+        if not np.all(n_ice < V) or not np.all(n_ice >= 0):  # type: ignore[operator]
             raise ValueError(f'Some indices in n_ice are out of bounds. Ensure that all indices are '
-                             f'greater or equal than 0 and less than {N}.')
+                             f'greater or equal than 0 and less than {V}.')
         return ice_values[:, n_ice]
 
     raise ValueError(f"Unknown n_ice values. n_ice can be a string taking value 'all', "
@@ -892,8 +908,11 @@ def _plot_one_pd_num(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, n_ice, pd_num_kw, ice_num_kw
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    exp, feature, centered, n_ice, pd_num_kw, ice_num_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    target_idx
+        The target index for which to plot the partial dependence (PD) curves. An integer
+        denoting target index in `exp.target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -971,8 +990,11 @@ def _plot_one_pd_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, centered, n_ice, pd_cat_kw, ice_cat_kw
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    exp, feature, centered, n_ice, pd_cat_kw, ice_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    target_idx
+        The target index for which to plot the partial dependence (PD) curves. An integer
+        denoting target index in `exp.target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1052,8 +1074,11 @@ def _plot_two_pd_num_num(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, pd_num_num_kw
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    exp, feature, pd_num_num_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    target_idx
+        The target index for which to plot the partial dependence (PD) curves. An integer
+        denoting target index in `exp.target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1115,8 +1140,11 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, pd_num_cat_kw
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    exp, feature, pd_num_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    target_idx
+        The target index for which to plot the partial dependence (PD) curves. An integer
+        denoting target index in `exp.target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1178,8 +1206,11 @@ def _plot_two_pd_cat_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, target_idx, pd_cat_cat_kw
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    exp, feature, pd_cat_cat_kw
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    target_idx
+        The target index for which to plot the partial dependence (PD) curves. An integer
+        denoting target index in `exp.target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 

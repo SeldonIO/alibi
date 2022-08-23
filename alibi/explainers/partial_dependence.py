@@ -206,11 +206,7 @@ class PartialDependence(Explainer):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/PartialDependence.html
         """
-        self.meta['params'].update(response_method=response_method,
-                                   method=method,
-                                   kind=kind,
-                                   percentiles=percentiles,
-                                   grid_resolution=grid_resolution)
+
 
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')
@@ -223,6 +219,7 @@ class PartialDependence(Explainer):
         # set categorical_names when the user did not provide the category mapping
         if self.categorical_names is None:
             self.categorical_names = {}
+
 
         # sanity checks
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
@@ -242,11 +239,20 @@ class PartialDependence(Explainer):
             feature_names = self.feature_names  # type: ignore[assignment]
             features = list(range(n_features))
 
-        # buffer of all partial dependencies
-        pds = []
+        # update meta params
+        self.meta['params'].update(response_method=response_method,
+                                   method=method,
+                                   kind=kind,
+                                   percentiles=percentiles,
+                                   grid_resolution=grid_resolution,
+                                   feature_names=self.feature_names,
+                                   categorical_names=self.categorical_names,
+                                   target_names=self.target_names)
 
         # compute partial dependencies for every features.
         # TODO: implement parallel version - future work as it can be done for ALE too
+        pds = []
+
         for ifeatures in tqdm(features, disable=not self.verbose):
             pds.append(
                 self._partial_dependence(
@@ -619,14 +625,6 @@ class PartialDependence(Explainer):
             pd_values=pd_values,
             feature_deciles=feature_deciles,
         )
-        data['meta'].update(
-            feature_names=self.feature_names,
-            categorical_names=self.categorical_names,
-            target_names=self.target_names,
-            response_method=response_method,
-            method=method,
-            kind=kind
-        )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
     def reset_predictor(self, predictor: Any) -> None:
@@ -740,15 +738,15 @@ def plot_pd(exp: Explanation,
     # set target index
     if isinstance(target, str):
         try:
-            target_idx = exp.meta['target_names'].index(target)
+            target_idx = exp.meta['params']['target_names'].index(target)
         except ValueError:
             raise ValueError(f"Unknown `target` name. Received {target}. "
-                             f"Available values are: {exp.meta['target_names']}.")
+                             f"Available values are: {exp.meta['params']['target_names']}.")
     else:
         target_idx = target
-        if target_idx >= len(exp.meta['target_names']):
+        if target_idx >= len(exp.meta['params']['target_names']):
             raise IndexError(f"Target index out of range. Received {target_idx}. "
-                             f"The number of targets is {len(exp.meta['target_names'])}.")
+                             f"The number of targets is {len(exp.meta['params']['target_names'])}.")
 
     # corresponds to the number of subplots
     n_features = len(features)
@@ -796,8 +794,8 @@ def plot_pd(exp: Explanation,
         fig = axes_ravel[0].figure
 
     def _is_categorical(feature):
-        feature_idx = exp.meta['feature_names'].index(feature)
-        return feature_idx in exp.meta['categorical_names']
+        feature_idx = exp.meta['params']['feature_names'].index(feature)
+        return feature_idx in exp.meta['params']['categorical_names']
 
     # create plots
     for ifeatures, ax_ravel in zip(features, axes_ravel):
@@ -933,12 +931,12 @@ def _plot_one_pd_num(exp: Explanation,
     # sample ice values for visualization purposes
     ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
 
-    if exp.meta['kind'] == Kind.AVERAGE:
+    if exp.meta['params']['kind'] == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
         ax.plot(feature_values, pd_values, **pd_num_kw)
 
-    elif exp.meta['kind'] == Kind.INDIVIDUAL:
+    elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
@@ -971,7 +969,7 @@ def _plot_one_pd_num(exp: Explanation,
     ax.vlines(exp.feature_deciles[feature][1:], 0, 0.05, transform=trans)
 
     ax.set_xlabel(exp.feature_names[feature])
-    ax.set_ylabel(exp.meta['target_names'][target_idx])
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     return ax
 
 
@@ -1015,15 +1013,15 @@ def _plot_one_pd_cat(exp: Explanation,
     # sample ice for visualization purposes
     ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
 
-    feature_index = exp.meta['feature_names'].index(feature_names)
-    labels = [exp.meta['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]
+    feature_index = exp.meta['params']['feature_names'].index(feature_names)
+    labels = [exp.meta['params']['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]
 
-    if exp.meta['kind'] == Kind.AVERAGE:
+    if exp.meta['params']['kind'] == Kind.AVERAGE:
         default_pd_graph_kw = {'markersize': 8, 'marker': 's', 'color': 'tab:blue'}
         pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
         ax.plot(labels, pd_values, **pd_cat_kw)
 
-    elif exp.meta['kind'] == Kind.INDIVIDUAL:
+    elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_cat_kw = {'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
 
@@ -1057,7 +1055,7 @@ def _plot_one_pd_cat(exp: Explanation,
 
     # set axis labels
     ax.set_xlabel(feature_names)
-    ax.set_ylabel(exp.meta['target_names'][target_idx])
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     return ax
 
 
@@ -1089,7 +1087,7 @@ def _plot_two_pd_num_num(exp: Explanation,
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
-    if exp.meta['kind'] != Kind.AVERAGE:
+    if exp.meta['params']['kind'] != Kind.AVERAGE:
         raise ValueError("Can only plot partial dependence for kind='average'.")
 
     if ax is None:
@@ -1154,15 +1152,15 @@ def _plot_two_pd_num_cat(exp: Explanation,
     """
     import matplotlib.pyplot as plt
 
-    if exp.meta['kind'] != Kind.AVERAGE:
+    if exp.meta['params']['kind'] != Kind.AVERAGE:
         raise ValueError("Can only plot partial dependence for kind='average'.")
 
     if ax is None:
         ax = plt.gca()
 
     def _is_categorical(feature):
-        feature_idx = exp.meta['feature_names'].index(feature)
-        return feature_idx in exp.meta['categorical_names']
+        feature_idx = exp.meta['params']['feature_names'].index(feature)
+        return feature_idx in exp.meta['params']['categorical_names']
 
     # extract feature values and partial dependence values
     feature_values = exp.feature_values[feature]
@@ -1176,8 +1174,8 @@ def _plot_two_pd_num_cat(exp: Explanation,
         pd_values = pd_values.T
 
     # define labels
-    cat_feature_index = exp.meta['feature_names'].index(feature_names[1])
-    labels = [exp.meta['categorical_names'][cat_feature_index][i] for i in feature_values[1].astype(np.int32)]
+    cat_feature_index = exp.meta['params']['feature_names'].index(feature_names[1])
+    labels = [exp.meta['params']['categorical_names'][cat_feature_index][i] for i in feature_values[1].astype(np.int32)]
 
     # plot lines
     default_pd_num_cat_kw = {'markersize': 2, 'marker': 'o'}
@@ -1189,7 +1187,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
         pd_num_cat_kw.update({'label': labels[i]})
         ax.plot(x, y, **pd_num_cat_kw)
 
-    ax.set_ylabel(exp.meta['target_names'][target_idx])
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     ax.set_xlabel(feature_names[0])
     ax.legend()
 
@@ -1224,7 +1222,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    if exp.meta['kind'] != Kind.AVERAGE:
+    if exp.meta['params']['kind'] != Kind.AVERAGE:
         raise ValueError("Can only plot partial dependence for kind='average'.")
 
     feature_names = exp.feature_names[feature]
@@ -1232,10 +1230,10 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     pd_values = exp.pd_values[feature][target_idx]
 
     # extract labels for each categorical features
-    feature0_index = exp.meta['feature_names'].index(feature_names[0])
-    feature1_index = exp.meta['feature_names'].index(feature_names[1])
-    labels0 = [exp.meta['categorical_names'][feature0_index][i] for i in feature_values[0].astype(np.int32)]
-    labels1 = [exp.meta['categorical_names'][feature1_index][i] for i in feature_values[1].astype(np.int32)]
+    feature0_index = exp.meta['params']['feature_names'].index(feature_names[0])
+    feature1_index = exp.meta['params']['feature_names'].index(feature_names[1])
+    labels0 = [exp.meta['params']['categorical_names'][feature0_index][i] for i in feature_values[0].astype(np.int32)]
+    labels1 = [exp.meta['params']['categorical_names'][feature1_index][i] for i in feature_values[1].astype(np.int32)]
 
     # plot heatmap
     default_pd_cat_cat_kw = {

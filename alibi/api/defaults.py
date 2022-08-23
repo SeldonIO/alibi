@@ -303,14 +303,6 @@ DEFAULT_DATA_PD = {
     "ice_values": None,
     "feature_values": None,
     "feature_names": None,
-    "meta": {
-        "feature_names": None,
-        "categorical_names": None,
-        "target_names": None,
-        "response_method": None,
-        "method": None,
-        "kind": None,
-    }
 }  # type: dict
 """
 Default PartialDependence data.

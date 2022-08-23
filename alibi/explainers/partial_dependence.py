@@ -1082,8 +1082,8 @@ def _plot_two_pd_num_num(exp: Explanation,
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
-    if exp.meta['params']['kind'] != Kind.AVERAGE:
-        raise ValueError("Can only plot partial dependence for kind='average'.")
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+        raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
     if ax is None:
         ax = plt.gca()
@@ -1147,8 +1147,8 @@ def _plot_two_pd_num_cat(exp: Explanation,
     """
     import matplotlib.pyplot as plt
 
-    if exp.meta['params']['kind'] != Kind.AVERAGE:
-        raise ValueError("Can only plot partial dependence for kind='average'.")
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+        raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
     if ax is None:
         ax = plt.gca()
@@ -1217,8 +1217,8 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    if exp.meta['params']['kind'] != Kind.AVERAGE:
-        raise ValueError("Can only plot partial dependence for kind='average'.")
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+        raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
     feature_names = exp.feature_names[feature]
     feature_values = exp.feature_values[feature]

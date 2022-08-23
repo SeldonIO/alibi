@@ -206,8 +206,6 @@ class PartialDependence(Explainer):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/PartialDependence.html
         """
-
-
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')
         n_features = X.shape[1]
@@ -546,21 +544,6 @@ class PartialDependence(Explainer):
                 'individual': predictions
             })
         return pd
-
-    def _is_categorical(self, feature) -> bool:
-        """
-        Checks if the given feature is categorical.
-
-        Parameters
-        ----------
-        feature
-            Feature to be checked.
-
-        Returns
-        -------
-        ``True`` if the feature is categorical. ``False`` otherwise.
-        """
-        return feature in self.categorical_names
 
     def _is_numerical(self, feature):
         """

@@ -204,7 +204,7 @@ class PartialDependence(Explainer):
             curves. See usage at `Partial dependence examples`_ for details
 
             .. _Partial dependence examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/PartialDependence.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
         """
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')

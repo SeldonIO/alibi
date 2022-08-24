@@ -48,7 +48,8 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
 
     Parameters
     ----------
-    url_id: Index specifying which URL to use for downloading.
+    url_id
+        Index specifying which URL to use for downloading.
 
     Returns
     -------

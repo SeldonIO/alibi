@@ -6,7 +6,7 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import NotFittedError, PredictorCallError, PredictorReturnTypeError
 from alibi.explainers import AnchorTabular, DistributedAnchorTabular
 from alibi.explainers.tests.utils import predict_fcn
 
@@ -322,11 +322,18 @@ def bad_predictor(x: np.ndarray) -> list:
     return list(x)
 
 
+def good_predictor(x: np.ndarray) -> np.ndarray:
+    """
+    A dummy predictor returning a vector of random binary target labels.
+    """
+    return np.random.randint(low=0, high=2, size=x.shape[0])
+
+
 def test_anchor_tabular_fails_init_bad_feature_names_predictor_call():
     """
     In this test `feature_names` is misspecified leading to an exception calling the `predictor`.
     """
-    with pytest.raises(AlibiPredictorCallException):
+    with pytest.raises(PredictorCallError):
         explainer = AnchorTabular(bad_predictor, feature_names=['f1', 'f2'])  # noqa: F841
 
 
@@ -334,5 +341,13 @@ def test_anchor_tabular_fails_bad_predictor_return_type():
     """
     In this test `feature_names` is specified correctly, but the predictor returns the wrong type.
     """
-    with pytest.raises(AlibiPredictorReturnTypeError):
+    with pytest.raises(PredictorReturnTypeError):
         explainer = AnchorTabular(bad_predictor, feature_names=['f1', 'f2', 'f3'])  # noqa: F841
+
+
+def test_anchor_tabular_explain_fails_not_fitted():
+    explainer = AnchorTabular(good_predictor, feature_names=['f1', 'f2'])
+    with pytest.raises(NotFittedError) as err:
+        explainer.explain(np.ones(2))
+    expected_msg = "This AnchorTabular instance is not fitted yet. Call 'fit' with appropriate arguments first."
+    assert str(err.value) == expected_msg

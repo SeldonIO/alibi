@@ -42,6 +42,9 @@ if platform.system() == 'Windows':
        'pdp_regression_bike.ipynb'
    })  # Exclude <your notebook> on Windows due to the use of wget
    EXCLUDE_NOTEBOOKS.add('similarity_explanations_20ng.ipynb')  # times out, likely due to the EmbeddingModel being slow
+   EXCLUDE_NOTEBOOKS.add('trustscore_mnist.ipynb')  # times out
+if platform.system() == 'Darwin':
+    EXCLUDE_NOTEBOOKS.add('trustscore_mnist.ipynb')  # times out
 EXECUTE_NOTEBOOKS = ALL_NOTEBOOKS - EXCLUDE_NOTEBOOKS
 
 @pytest.mark.timeout(600)

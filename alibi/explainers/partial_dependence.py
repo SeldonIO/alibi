@@ -181,7 +181,7 @@ class PartialDependence(Explainer):
             For example, consider a case where a feature can take the following values:
             ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
             interested in evaluating the marginal effect at every single point as it can become computationally costly
-            (assume hundreds/thousands of point) without providing any additional information for nearby points
+            (assume hundreds/thousands of points) without providing any additional information for nearby points
             (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
             ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
             insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled

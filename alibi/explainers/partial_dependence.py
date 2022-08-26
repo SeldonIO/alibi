@@ -93,8 +93,11 @@ class PartialDependence(Explainer):
              - ``'prediction_fn'`` : ``str`` - Name of the prediction function. \
              Available value for regression: ``'predict'``. \
              Available values for classification: ``'predict_proba'`` | ``'decision_function'``. \
-             The choice should be considered in analogy with the `sklearn` estimators API and the `response_method` \
-             used in :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain`.
+             The choice should be considered in analogy with the `sklearn` estimators API. If ``'predict_proba'``
+             is used, the `predictor` should output an array of size `N x C`, where `N` is the number of instances
+             to compute the prediction for and `C` is the number of classes. Note that this setting includes the
+             binary classifier problem where `C` should be 2 (i.e., two columns corresponding to the negative
+             and positive class).
 
              - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function. \
              Considered only for ``prediction_type='classification'``.
@@ -143,9 +146,12 @@ class PartialDependence(Explainer):
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
         response_method
             Specifies the prediction function to be used. For a classifier it specifies whether to use the
-            `predict_proba` or the `decision_function`. For a regressor, the parameter is ignored. If set to `auto`,
-            the `predict_proba` is tried first, and if not supported then it reverts to `decision_function`. Note
-            that if `method='recursion'`, the prediction function always uses `decision_function`.
+            `predict_proba` or the `decision_function` method. For a regressor, the parameter is ignored.
+            If set to ``'auto'``, the `predict_proba` is tried first, and if not supported then it reverts to
+            `decision_function`. If ``method='recursion'``, the prediction function always uses `decision_function`.
+            For a black-box model, the `response_method` should always be set to ``'auto'`` since the prediction
+            method is automatically inferred from the `predictor_kw` argument passed to
+            :py:meth:`alibi.explainers.partial_dependence.PartialDependence.__init__`.
         method
             The method used to calculate the partial dependence (i.e., the marginal effect one or two features have
             on the outcome of the predictor):

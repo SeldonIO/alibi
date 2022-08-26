@@ -683,26 +683,38 @@ def plot_pd(exp: Explanation,
         A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a numerical feature.
+        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a
+        numerical feature.
     ice_num_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the ICE for a numerical feature.
+        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the ICE for a
+        numerical feature.
     pd_cat_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a categorical feature.
+        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a
+        categorical feature.
     ice_cat_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the ICE for a categorical feature.
+        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the ICE for a
+        categorical feature.
     pd_num_num_kw
-        Keyword arguments passed to the `matplotlib contourf` function when plotting the PD for two numerical features.
+        Keyword arguments passed to the `matplotlib.pyplot.contourf` function when plotting the PD for two
+        numerical features.
     pd_num_cat_kw
-        Keyword arguments passed to the `matplotlib plot` function when plotting the PD for a numerical and a
+        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a numerical and a
         categorical feature.
     pd_cat_cat_kw
-        Keyword arguments passed to the `seaborn heatmap` functon when plotting the PD for two categorical features.
+        Keyword arguments passed to the :py:meth:`alibi.utils.visualization.heatmap` functon when plotting the PD for
+        two categorical features.
     fig_kw
-        Keyword arguments passed to the `fig.set` function.
+        Keyword arguments passed to the `matplotlib.figure.set`_ function.
+
+        .. _matplotlib.pyplot.plot:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html
+
+        .. _matplotlib.figure.set:
+            https://matplotlib.org/stable/api/figure_api.html
 
     Returns
     -------
-    An array of `matplotlib` axes with the resulting partial dependence plots.
+    An array of `plt.Axes` with the resulting partial dependence plots.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec
@@ -1202,7 +1214,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
-    import seaborn as sns
+    from alibi.utils.visualization import heatmap
 
     if ax is None:
         ax = plt.gca()
@@ -1223,13 +1235,14 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     # plot heatmap
     default_pd_cat_cat_kw = {
         'annot': True,
-        'fmt': '.2f',
-        'linewidths': .5,
+        'fmt': '{x:.2f}',
+        'linewidths': 1.5,
         'yticklabels': labels0,
-        'xticklabels': labels1
+        'xticklabels': labels1,
+        'aspect': 'auto'
     }
     pd_cat_cat_kw = default_pd_cat_cat_kw if pd_cat_cat_kw is None else {**default_pd_cat_cat_kw, **pd_cat_cat_kw}
-    sns.heatmap(pd_values, ax=ax, **pd_cat_cat_kw)
+    heatmap(pd_values, ax=ax, **pd_cat_cat_kw)
 
     # set ticks labels
     ax.set_xticklabels(labels1)
@@ -1319,15 +1332,3 @@ class PDEstimatorWrapper:
 
     def fit(self, *args, **kwargs):
         pass
-
-
-# 1. TODO: consider a better `explain` API for PD and ALE -- maybe in the future ...
-# 2. SOLVED: consider all one way as default for `explain -> features_list`. Check ALE -> solved
-# 3. SOLVED: add custom grid_points
-# 4. SOLVED : consider all values of a categorical features instead of using the unique values in the data?
-# This was solved by custom grid_points
-# 5. SOLVED: consider wrapping the black-box predictor inside init
-# 6. SOLVED: decide whether the ICE for categorical are useful? What stories does it tell. Don't show how the output
-# evolves for an individual. Line plot with markers might be a better option
-# 7. SOLVED: display for both targets in binary classification?
-# 8. TODO: OHE not supported for now, but do include decorator workaround in the example

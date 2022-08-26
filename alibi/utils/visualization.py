@@ -1,13 +1,16 @@
 import numpy as np
 import warnings
 from enum import Enum
+
+import matplotlib
 from matplotlib import pyplot as plt
 from matplotlib.pyplot import figure, axis
 from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from numpy import ndarray
-from typing import Union, Tuple
+from typing import Union, Tuple, List, Optional
 
 
 # the following code was borrowed from the captum library in
@@ -128,8 +131,10 @@ def visualize_image_attr(
 
          - ``'negative'`` - Displays only negative pixel attributions.
 
-         - ``'all'`` - Displays both positive and negative attribution values. This is not supported for
-         ``'masked_image'`` or ``'alpha_scaling'`` modes, since signed information cannot be represented in these modes.
+         - ``'all'`` - Displays both positive and negative attribution values. This is not supported for \
+         ``'masked_image'`` or ``'alpha_scaling'`` modes, since signed information cannot be represented \
+         in these modes.
+
     plt_fig_axis
         Tuple of `matplotlib.pyplot.figure` and `axis` on which to visualize. If ``None`` is provided, then a new
         figure and axis are created.
@@ -149,12 +154,12 @@ def visualize_image_attr(
         then a colormap axis is created and hidden. This is necessary for appropriate alignment when visualizing
         multiple plots, some with colorbars and some without.
     title
-        Title string for plot. If ``None``, no title is set.
+        The title for the plot. If ``None``, no title is set.
     fig_size
         Size of figure created.
     use_pyplot
         If ``True``, uses pyplot to create and show figure and displays the figure after creating. If ``False``,
-        uses `matplotlib` object oriented API and simply returns a figure object without showing.
+        uses `matplotlib` object-oriented API and simply returns a figure object without showing.
 
     Returns
     -------
@@ -271,3 +276,285 @@ def visualize_image_attr(
         plt.show()
 
     return plt_fig, plt_axis
+
+
+def _create_heatmap(data: np.ndarray,
+                    xticklabels: List[str],
+                    yticklabels: List[str],
+                    linewidths: float = 3,
+                    linecolor: str = 'w',
+                    cbar: bool = True,
+                    cbar_kws: Optional[dict] = None,
+                    cbar_ax: Optional['plt.Axes'] = None,
+                    cbar_label: str = "",
+                    ax: Optional['plt.Axes'] = None,
+                    **kwargs) -> 'plt.Axes':
+    """
+    Create a heatmap from a `numpy` array and two lists of labels. The code is adapted from `matplotlib tutorials`_.
+
+    .. _matplotlib tutorials:
+        https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html
+
+    Parameters
+    ----------
+    data
+        A 2D `numpy` array of shape `M x N`.
+    xticklabels
+        A list or array of length `N` with the labels for the columns.
+    yticklabels
+        A list or array of length `M` with the labels for the rows.
+    linewidths
+        Width of the lines that will divide each cell. Default 3.
+    linecolor
+        Color of the lines that will divide each cell. Default ``'w'``.
+    cbar
+        Boolean flag whether to draw a colorbar.
+    cbar_label
+        Optional label for the colorbar.
+    cbar_ax
+        Optional axes in which to draw the colorbar, otherwise take space from the main axes.
+    cbar_kws
+        An optional dictionary with arguments to `matplotlib.figure.Figure.colorbar`_.
+
+        .. _matplotlib.figure.Figure.colorbar:
+            https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.colorbar
+    ax
+        Optional `matplotlib.axes.Axes` instance to which the heatmap is plotted. If not provided, use current
+        axes or create a new one.
+    **kwargs
+        All other keyword arguments are passed to `matplotlib.axes.Axes.imshow`_.
+
+        .. _matplotlib.axes.Axes.imshow:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html
+    """
+    if cbar_kws is None:
+        cbar_kws = {}
+
+    if not ax:
+        ax = plt.gca()
+
+    # plot the heatmap
+    im = ax.imshow(data, **kwargs)
+
+    # create colorbar
+    if cbar:
+        if cbar_ax is None:
+            cbar_ax = ax
+        cbar_obj = ax.figure.colorbar(im, ax=cbar_ax, **cbar_kws)
+        cbar_obj.ax.set_ylabel(cbar_label, rotation=-90, va="bottom")
+
+    # show all ticks and label them with the respective list entries.
+    ax.set_xticks(np.arange(data.shape[1]), labels=xticklabels)
+    ax.set_yticks(np.arange(data.shape[0]), labels=yticklabels)
+
+    # let the horizontal axes labeling appear on top.
+    ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)
+
+    # rotate the tick labels and set their alignment.
+    plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
+
+    # turn spines off and create white grid.
+    ax.spines[:].set_visible(False)
+
+    ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
+    ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
+    ax.grid(which="minor", color=linecolor, linestyle='-', linewidth=linewidths)
+    ax.tick_params(which="minor", bottom=False, left=False)
+
+    return ax
+
+
+def _annotate_heatmap(im: matplotlib.image.AxesImage,
+                      data: Optional[np.ndarray] = None,
+                      fmt: Union[str, matplotlib.ticker.Formatter] = '{x:.2f}',
+                      textcolors: Tuple[str, str] = ('black', 'white'),
+                      threshold: Optional[float] = None,
+                      **kwargs):
+    """
+    A function to annotate a heatmap. The code is adapted from `matplotlib tutorials`_.
+
+    .. _matplotlib tutorials:
+        https://matplotlib.org/stable/gallery/images_contours_and_fields/image_annotated_heatmap.html
+
+    Parameters
+    ----------
+    im
+        The `matplotlib.image.AxesImage` to be labeled.
+    data
+        Optional 2D `numpy` array of shape `M x N` used to annotate the cells.  If ``None``, the image's data is used.
+    fmt
+        Format of the annotations inside the heatmap. This should either use the string format method,
+        e.g. ``"{x:.2f}"``, or be a `matplotlib.ticker.Formatter`. Default ``"{x:.2f}"``.
+    textcolors
+        A tuple of `matplotlib` colors. The first is used for values below a threshold, the second for those above.
+        Default ``('black', 'white')``.
+    threshold
+        Optional value in data units according to which the colors from `textcolors` are applied.
+        If ``None`` (the default) uses the middle of the colormap as separation.
+    **kwargs
+        All other keyword arguments are passed to `matplotlib.axes.Axes.text`_.
+
+        .. _matplotlib.axes.Axes.text:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html
+    """
+
+    if not isinstance(data, (list, np.ndarray)):
+        data = im.get_array()
+
+    # normalize the threshold to the images color range.
+    if threshold is not None:
+        threshold = im.norm(threshold)
+    else:
+        threshold = im.norm(np.max(data)) / 2.
+
+    # set default alignment to center, but allow it to be overwritten by textkw.
+    kw = dict(horizontalalignment="center", verticalalignment="center")
+    kw.update(kwargs)
+
+    # get the formatter in case a string is supplied
+    if isinstance(fmt, str):
+        fmt = matplotlib.ticker.StrMethodFormatter(fmt)
+
+    # loop over the data and create a `Text` for each "pixel".
+    # Change the text's color depending on the data.
+    texts = []
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
+            text = im.axes.text(j, i, fmt(data[i, j], None), **kw)
+            texts.append(text)
+
+    return texts
+
+
+def heatmap(data: np.ndarray,
+            xticklabels: List[str],
+            yticklabels: List[str],
+            vmin: Optional[float] = None,
+            vmax: Optional[float] = None,
+            cmap: Union[str, matplotlib.colors.Colormap] = 'magma',
+            robust: Optional[bool] = False,
+            annot: Optional[bool] = True,
+            linewidths: float = 3,
+            linecolor: str = 'w',
+            cbar: bool = True,
+            cbar_label: str = '',
+            cbar_ax: Optional['plt.Axes'] = None,
+            cbar_kws: Optional[dict] = None,
+            fmt: Union[str, matplotlib.ticker.Formatter] = '{x:.2f}',
+            textcolors: Tuple[str, str] = ('white', 'black'),
+            threshold: Optional[float] = None,
+            text_kws: Optional[dict] = None,
+            ax: Optional['plt.Axes'] = None,
+            **kwargs) -> 'plt.Axes':
+    """
+    Constructs a heatmap with annotation.
+
+    Parameters
+    ----------
+    data
+        A 2D `numpy` array of shape `M x N`.
+    yticklabels
+        A list or array of length `M` with the labels for the rows.
+    xticklabels
+        A list or array of length `N` with the labels for the columns.
+    vmin, vmax
+       When using scalar data and no explicit norm, `vmin` and `vmax` define the data range that the colormap covers.
+       By default, the colormap covers the complete value range of the supplied data. It is an error to use
+       `vmin/vmax` when norm is given. When using RGB(A) data, parameters `vmin/vmax` are ignored.
+    cmap
+        The Colormap instance or registered colormap name used to map scalar data to colors. This parameter is
+        ignored for RGB(A) data.
+    robust
+        If ``True`` and `vmin` or `vmax` are absent, the colormap range is computed with robust quantiles
+        instead of the extreme values. Uses `numpy.nanpercentile`_ with `q` values set to 2 and 98, respectively.
+
+        .. _numpy.nanpercentile:
+            https://numpy.org/doc/stable/reference/generated/numpy.nanpercentile.html
+
+    annot
+        Boolean flag whether to annotate the heatmap. Default ``True``.
+    linewidths
+        Width of the lines that will divide each cell. Default 3.
+    linecolor
+        Color of the lines that will divide each cell. Default ``"w"``.
+    cbar
+        Boolean flag whether to draw a colorbar.
+    cbar_label
+        Optional label for the colorbar.
+    cbar_ax
+        Optional axes in which to draw the colorbar, otherwise take space from the main axes.
+    cbar_kws
+        An optional dictionary with arguments to `matplotlib.figure.Figure.colorbar`_.
+
+        .. _matplotlib.figure.Figure.colorbar:
+            https://matplotlib.org/stable/api/figure_api.html#matplotlib.figure.Figure.colorbar
+
+    fmt
+        Format of the annotations inside the heatmap. This should either use the string format method,
+        e.g. ``"{x:.2f}"``, or be a `matplotlib.ticker.Formatter`_. Default ``"{x:.2f}"``.
+
+        .. _matplotlib.ticker.Formatter:
+            https://matplotlib.org/stable/api/ticker_api.html#matplotlib.ticker.Formatter
+
+    textcolors
+        A tuple of `matplotlib` colors. The first is used for values below a threshold,
+        the second for those above. Default ``("black", "white")``.
+    threshold
+        Optional value in data units according to which the colors from textcolors are
+        applied. If ``None`` (the default) uses the middle of the colormap as
+        separation.
+    text_kws
+        An optional dictionary with arguments to `matplotlib.axes.Axes.text`_.
+
+        .. _matplotlib.axes.Axes.text:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html
+
+    ax
+        Axes in which to draw the plot, otherwise use the currently-active axes.
+    kwargs
+        All other keyword arguments are passed to `matplotlib.axes.Axes.imshow`_.
+
+        .. _matplotlib.axes.Axes.imshow:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.imshow.html
+
+    Returns
+    -------
+    Axes object with the heatmap.
+    """
+
+    # get heatmap min value
+    if vmin is None:
+        vmin = np.nanpercentile(data, 2) if robust else np.nanmin(data)
+
+    # get heatmap max value
+    if vmax is None:
+        vmax = np.nanpercentile(data, 98) if robust else np.nanmax(data)
+
+    # create the heatmap
+    ax = _create_heatmap(data=data,
+                         yticklabels=yticklabels,
+                         xticklabels=xticklabels,
+                         ax=ax,
+                         vmin=vmin,
+                         vmax=vmax,
+                         cmap=cmap,
+                         linewidths=linewidths,
+                         linecolor=linecolor,
+                         cbar=cbar,
+                         cbar_kws=cbar_kws,
+                         cbar_ax=cbar_ax,
+                         cbar_label=cbar_label,
+                         **kwargs)
+
+    if annot:
+        if text_kws is None:
+            text_kws = {}
+
+        # annotate the heatmap
+        _annotate_heatmap(im=ax.get_images()[0],
+                          fmt=fmt,
+                          textcolors=textcolors,
+                          threshold=threshold,
+                          **text_kws)
+    return ax

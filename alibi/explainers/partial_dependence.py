@@ -667,7 +667,14 @@ def plot_pd(exp: Explanation,
          display their ICE curves.
 
     center
-        Boolean flag to center the individual conditional expectation (ICE) curves.
+        Boolean flag to center the individual conditional expectation (ICE) curves. As mentioned in
+        `Goldstein et al. (2014)`_, the heterogeneity in the model can be difficult to discern when the intercepts
+        of the ICE curves cover a wide range. Centering the ICE curves removes the level effects and helps
+        to visualise the heterogeneous effect.
+
+        .. _Goldstein et al. (2014):
+                https://arxiv.org/abs/1309.6392
+
     levels
         Number of levels in the contour plot.
     ax
@@ -811,7 +818,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_one_pd_cat(exp=exp,
                                      feature=ifeatures,
                                      target_idx=target_idx,
-                                     centered=center,
+                                     center=center,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
@@ -820,7 +827,7 @@ def plot_pd(exp: Explanation,
                 _ = _plot_one_pd_num(exp=exp,
                                      feature=ifeatures,
                                      target_idx=target_idx,
-                                     centered=center,
+                                     center=center,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_num_kw=pd_num_kw,
@@ -874,7 +881,7 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
 def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
-                     centered: bool = True,
+                     center: bool = True,
                      n_ice: Union[Literal['all'], int, List[int]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
@@ -884,7 +891,7 @@ def _plot_one_pd_num(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, centered, n_ice, pd_num_kw, ice_num_kw
+    exp, feature, center, n_ice, pd_num_kw, ice_num_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
@@ -919,7 +926,7 @@ def _plot_one_pd_num(exp: Explanation,
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # extract and center ice values if necessary
-        if centered:
+        if center:
             ice_values = ice_values - ice_values[0:1]
 
         ax.plot(feature_values, ice_values, **ice_num_kw)
@@ -931,11 +938,11 @@ def _plot_one_pd_num(exp: Explanation,
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
 
         # center pd values if necessary
-        if centered:
+        if center:
             pd_values = pd_values - pd_values[0]
 
         # center ice values if necessary
-        if centered:
+        if center:
             ice_values = ice_values - ice_values[0:1]
 
         ax.plot(feature_values, ice_values, **ice_num_kw)
@@ -956,7 +963,7 @@ def _plot_one_pd_num(exp: Explanation,
 def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
-                     centered: bool = True,
+                     center: bool = True,
                      n_ice: Union[Literal['all'], int, List[str]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
@@ -966,7 +973,7 @@ def _plot_one_pd_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, centered, n_ice, pd_cat_kw, ice_cat_kw
+    exp, feature, center, n_ice, pd_cat_kw, ice_cat_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
@@ -1004,7 +1011,7 @@ def _plot_one_pd_cat(exp: Explanation,
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
 
         # extract and center ice values if necessary
-        if centered:
+        if center:
             ice_values = ice_values - ice_values[0:1]
 
         ax.plot(labels, ice_values, **ice_cat_kw)
@@ -1017,11 +1024,11 @@ def _plot_one_pd_cat(exp: Explanation,
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
 
         # center pd values if necessary
-        if centered:
+        if center:
             pd_values = pd_values - pd_values[0]
 
         # center ice values if necessary
-        if centered:
+        if center:
             ice_values = ice_values - ice_values[0:1]
 
         ax.plot(labels, ice_values, **ice_cat_kw)

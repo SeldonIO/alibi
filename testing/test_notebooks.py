@@ -37,10 +37,7 @@ EXCLUDE_NOTEBOOKS = {
     'similarity_explanations_20ng.ipymb', # times out, likely due to the EmbeddingModel being slow
 }
 if platform.system() == 'Windows':
-   EXCLUDE_NOTEBOOKS.update({
-       'protoselect_adult_cifar10.ipynb',
-       'pdp_regression_bike.ipynb'
-   })  # Exclude <your notebook> on Windows due to the use of wget
+   EXCLUDE_NOTEBOOKS.add('protoselect_adult_cifar10.ipynb')  # Exclude <your notebook> on Windows due to the use of wget
    EXCLUDE_NOTEBOOKS.add('similarity_explanations_20ng.ipynb')  # times out, likely due to the EmbeddingModel being slow
    EXCLUDE_NOTEBOOKS.add('trustscore_mnist.ipynb')  # times out
 if platform.system() == 'Darwin':

@@ -93,7 +93,7 @@ def test_unknown_response_method(rf_classifier, response_method):
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor, response_method=response_method)
+        explainer._params_sanity_checks(response_method=response_method)
     assert re.search("response_method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
 
 
@@ -104,7 +104,7 @@ def test_estimator_response_method(rf_regressor, response_method):
     predictor, _ = rf_regressor
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor, response_method=response_method)
+        explainer._params_sanity_checks(response_method=response_method)
     assert re.search('is ignored for regressor', err.value.args[0].lower())
 
 
@@ -115,7 +115,7 @@ def test_unknown_method(rf_classifier, method):
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor, method=method)
+        explainer._params_sanity_checks(method=method)
     assert re.search("method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
 
 
@@ -127,7 +127,7 @@ def test_kind_method(rf_classifier, kind, method):
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor, kind=kind, method=method)
+        explainer._params_sanity_checks(kind=kind, method=method)
     assert re.search("when kind='average'", err.value.args[0].lower())
 
 
@@ -142,7 +142,7 @@ def test_method_auto_recursion(predictor, boston_data):
     predictor.fit(X_train, y_train)
 
     explainer = PartialDependence(predictor=predictor)
-    _, method, _ = explainer._params_sanity_checks(estimator=predictor, method=Method.AUTO.value)
+    _, method, _ = explainer._params_sanity_checks(method=Method.AUTO.value)
     assert method == Method.RECURSION
 
 
@@ -153,7 +153,7 @@ def test_method_auto_brute(predictor, boston_data):
     predictor.fit(X_train, y_train)
 
     explainer = PartialDependence(predictor=predictor)
-    _, method, _ = explainer._params_sanity_checks(estimator=predictor, method=Method.AUTO.value)
+    _, method, _ = explainer._params_sanity_checks(method=Method.AUTO.value)
     assert method == Method.BRUTE
 
 
@@ -163,7 +163,7 @@ def test_unsupported_method_recursion(rf_classifier):
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor, method=Method.RECURSION)
+        explainer._params_sanity_checks(method=Method.RECURSION)
     assert re.search("support the 'recursion'", err.value.args[0].lower())
 
 
@@ -175,8 +175,7 @@ def test_method_recursion_response_method_auto(predictor, boston_data):
     predictor.fit(X_train, y_train)
 
     explainer = PartialDependence(predictor=predictor)
-    response_method, _, _ = explainer._params_sanity_checks(estimator=predictor,
-                                                            method=Method.RECURSION,
+    response_method, _, _ = explainer._params_sanity_checks(method=Method.RECURSION,
                                                             response_method=ResponseMethod.AUTO)
     assert response_method == ResponseMethod.DECISION_FUNCTION
 
@@ -190,8 +189,7 @@ def test_method_recursion_response_method_predict_proba(predictor, iris_data):
 
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=predictor,
-                                        method=Method.RECURSION,
+        explainer._params_sanity_checks(method=Method.RECURSION,
                                         response_method=ResponseMethod.PREDICT_PROBA)
     assert re.search('the response_method must be', err.value.args[0].lower())
 
@@ -221,9 +219,8 @@ def test_num_features(rf_classifier, iris_data, features):
 def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution, features):
     """ Checks the correct shapes of the arrays contained in the explanation object for numerical features. """
     predictor, _ = rf_classifier
-    X_train, y_train = iris_data['X_train'], iris_data['y_train']
-    unique_labels = len(np.unique(y_train))
-    num_targets = 1 if unique_labels == 2 else unique_labels
+    X_train, y_train = iris_data['X_train'][:30], iris_data['y_train'][:30]
+    num_targets = len(np.unique(y_train))
     num_instances = len(X_train)
 
     explainer = PartialDependence(predictor=predictor)

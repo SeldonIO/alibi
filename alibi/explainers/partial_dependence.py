@@ -9,23 +9,21 @@ from typing import (Any, Callable, Dict, List, Optional, Tuple, Union,
 
 import matplotlib.pyplot as plt
 import numpy as np
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.ale import get_quantiles
+from alibi.explainers.similarity.grad import get_options_string
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble._gb import BaseGradientBoosting
 from sklearn.ensemble._hist_gradient_boosting.gradient_boosting import \
     BaseHistGradientBoosting
-from sklearn.inspection._partial_dependence import (
-    _grid_from_X, _partial_dependence_brute, _partial_dependence_recursion)
+from sklearn.inspection._partial_dependence import _grid_from_X
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils import _get_column_indices, _safe_indexing
 from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_is_fitted
 from tqdm import tqdm
-
-from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.explainers.ale import get_quantiles
-from alibi.explainers.similarity.grad import get_options_string
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -518,7 +516,7 @@ class PartialDependence(Explainer):
         grid = cartesian(tuple([v.reshape(-1) for v in values]))
 
         if method == "brute":
-            averaged_predictions, predictions = _partial_dependence_brute(
+            averaged_predictions, predictions = self._partial_dependence_brute(
                 estimator, grid, features_indices, X, response_method
             )
 
@@ -527,7 +525,7 @@ class PartialDependence(Explainer):
                 -1, X.shape[0], *[val.shape[0] for val in values]
             )
         else:
-            averaged_predictions = _partial_dependence_recursion(
+            averaged_predictions = self._partial_dependence_recursion(
                 estimator, grid, features_indices
             )
 
@@ -569,6 +567,129 @@ class PartialDependence(Explainer):
                 'individual': predictions
             })
         return pd
+
+    def _partial_dependence_recursion(self,
+                                      estimator: Union[BaseEstimator, 'PDEstimatorWrapper'],
+                                      grid: np.ndarray,
+                                      features: np.ndarray) -> np.ndarray:
+        """
+        Computes the partial dependence using the recursion method. Code borrwoed from:
+        https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
+
+        Parameters
+        --------
+        estimator
+            A `sklearn` estimator or a wrapped black-box model.
+        grid
+            Cartesian product between feature values. Covers also the case of a single feature.
+        features
+            Feature column indices.
+
+        Returns
+        -------
+        Partial dependence for the given features.
+        """
+        averaged_predictions = estimator._compute_partial_dependence_recursion(grid, features)
+        if averaged_predictions.ndim == 1:
+            # reshape to (1, n_points) for consistency with `_partial_dependence_brute`
+            averaged_predictions = averaged_predictions.reshape(1, -1)
+
+        return averaged_predictions
+
+    def _partial_dependence_brute(self,
+                                  estimator: Union[BaseEstimator, 'PDEstimatorWrapper'],
+                                  grid: np.ndarray,
+                                  features: np.ndarray,
+                                  X: np.ndarray,
+                                  response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto'
+                                  ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Computes the partial dependence using the brute method. Code borrowed from:
+        https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
+
+        Parameters
+        --------
+        estimator
+            A `sklearn` estimator or a wrapped black-box model.
+        grid
+            Cartesian product between feature values. Covers also the case of a single feature.
+        features
+            Feature column indices.
+        X, response_method
+             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+
+        Returns
+        -------
+        Partial dependence for the given features.
+        """
+        predictions = []
+        averaged_predictions = []
+
+        # define the prediction_method (predict, predict_proba, decision_function).
+        if is_regressor(estimator):
+            prediction_method = estimator.predict
+        else:
+            predict_proba = getattr(estimator, "predict_proba", None)
+            decision_function = getattr(estimator, "decision_function", None)
+
+            if response_method == "auto":
+                # try predict_proba, then decision_function if it doesn't exist
+                prediction_method = predict_proba or decision_function
+            else:
+                prediction_method = predict_proba if response_method == "predict_proba" else decision_function
+
+            if prediction_method is None:
+                if response_method == "auto":
+                    raise ValueError("The estimator has no `predict_proba` and no `decision_function` method.")
+                elif response_method == "predict_proba":
+                    raise ValueError("The estimator has no `predict_proba` method.")
+                else:
+                    raise ValueError("The estimator has no `decision_function` method.")
+
+        X_eval = X.copy()
+        for new_values in grid:
+            for i, variable in enumerate(features):
+                if hasattr(X_eval, "iloc"):  # leave this here for possible `DataFrame` support.
+                    X_eval.iloc[:, variable] = new_values[i]
+                else:
+                    X_eval[:, variable] = new_values[i]
+
+            try:
+                # Note: predictions is of shape
+                # (n_points,) for non-multioutput regressors
+                # (n_points, n_tasks) for multioutput regressors
+                # (n_points, 1) for the regressors in cross_decomposition (I think)
+                # (n_points, 2) for binary classification
+                # (n_points, n_classes) for multiclass classification
+                pred = prediction_method(X_eval)
+                predictions.append(pred)
+                # average over samples
+                averaged_predictions.append(np.mean(pred, axis=0))
+            except:
+                raise ValueError("'estimator' parameter must be a fitted estimator") from e
+
+        n_samples = X.shape[0]
+
+        # reshape to (n_targets, n_instances, n_points) where n_targets is:
+        # - 1 for non-multioutput regression and binary classification (shape is already correct in those cases)
+        # - n_tasks for multi-output regression
+        predictions = np.array(predictions).T
+        print(predictions.shape, predictions.reshape(n_samples, -1).shape, predictions.ndim)
+
+        if is_regressor(estimator) and predictions.ndim == 2:
+            print('here')
+            # non-multioutput regression, shape is (n_instances, n_points,)
+            predictions = predictions.reshape(n_samples, -1)
+
+        # reshape averaged_predictions to (n_targets, n_points) where n_targets is:
+        # - 1 for non-multioutput regression and binary classification (shape is already correct in those cases)
+        # - n_tasks for multi-output regression
+        averaged_predictions = np.array(averaged_predictions).T
+        if is_regressor(estimator) and averaged_predictions.ndim == 1:
+            # non-multioutput regression, shape is (n_points,)
+            averaged_predictions = averaged_predictions.reshape(1, -1)
+
+        return averaged_predictions, predictions
 
     def _is_numerical(self, feature):
         """

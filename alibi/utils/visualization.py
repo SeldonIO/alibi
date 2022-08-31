@@ -344,8 +344,10 @@ def _create_heatmap(data: np.ndarray,
         cbar_obj.ax.set_ylabel(cbar_label, rotation=-90, va="bottom")
 
     # show all ticks and label them with the respective list entries.
-    ax.set_xticks(np.arange(data.shape[1]), labels=xticklabels)
-    ax.set_yticks(np.arange(data.shape[0]), labels=yticklabels)
+    ax.set_xticks(np.arange(data.shape[1]))
+    ax.set_xticklabels(xticklabels)
+    ax.set_yticks(np.arange(data.shape[0]))
+    ax.set_yticklabels(yticklabels)
 
     # let the horizontal axes labeling appear on top.
     ax.tick_params(top=False, bottom=True, labeltop=False, labelbottom=True)

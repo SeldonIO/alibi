@@ -92,12 +92,18 @@ class PartialDependence(Explainer):
 
              - ``'prediction_fn'`` : ``str`` - Name of the prediction function. \
              Available value for regression: ``'predict'``. \
-             Available values for classification: ``'predict_proba'`` | ``'decision_function'``. \
-             The choice should be considered in analogy with the `sklearn` estimators API. If ``'predict_proba'``
-             is used, the `predictor` should output an array of size `N x C`, where `N` is the number of instances
-             to compute the prediction for and `C` is the number of classes. Note that this setting includes the
-             binary classifier problem where `C` should be 2 (i.e., two columns corresponding to the negative
-             and positive class).
+             Available values for classification: ``'predict_proba'`` | ``'decision_function'``.
+
+                - If the `predictor` outputs a probability distribution, then ``'predict_proba'`` should be used. \
+                In this case, the output should be an array of size `N x C`, where `N` is the number of instances \
+                to compute the prediction for and `C` is the number of classes. Note that this setting includes the \
+                binary classifier problem where `C` should be 2 (i.e., two columns corresponding to the negative \
+                and positive class).
+
+                - If the `predictor` outputs a decision score, then ``'decision_function'`` should be used. \
+                In this case, for multiclass classification, the output should be an array of size `N x C`, where \
+                `N` and `C` are described above. Note that for a binary classification problem, the output should be \
+                an array of size `N` (i.e., `(N, )`).
 
              - ``'num_classes'`` : ``Optional[int]`` - Number of classes predicted by the `predictor` function. \
              Considered only for ``prediction_type='classification'``.
@@ -120,6 +126,9 @@ class PartialDependence(Explainer):
         else:
             raise ValueError(f'Unknown predictor type. Received {type(predictor)}. Supported type are: '
                              f'sklearn.base.BaseEstimator | Callable[[np.ndarray], np.ndarray].')
+
+        # perform sanity checks on the predictor
+        self._model_sanity_checks(estimator=self.predictor)
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
@@ -282,6 +291,24 @@ class PartialDependence(Explainer):
                                        feature_names=feature_names,  # type: ignore[arg-type]
                                        pds=pds)
 
+
+    def _model_sanity_checks(self, estimator: Union[BaseEstimator, 'PDEstimatorWrapper']):
+        """
+        Model sanity checks.
+
+        Parameters
+        ----------
+        estimator
+            A `sklearn` estimator or a wrapped black-box model.
+        """
+        check_is_fitted(estimator)
+
+        if not (is_classifier(estimator) or is_regressor(estimator)):
+            raise ValueError('The predictor must be a fitted regressor or a fitted classifier.')
+
+        if is_classifier(estimator) and isinstance(estimator.classes_[0], np.ndarray):
+            raise ValueError('Multiclass-multioutput predictors are not supported.')
+
     def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, Union[List, np.ndarray]]], n_features: int):
         """
         Grid points sanity checks.
@@ -362,7 +389,7 @@ class PartialDependence(Explainer):
                 check_feature(f)
 
     def _params_sanity_checks(self,
-                              estimator: BaseEstimator,
+                              estimator: Union[BaseEstimator, 'PDEstimatorWrapper'],
                               response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
                               method: Literal['auto', 'recursion', 'brute'] = 'auto',
                               kind: Literal['average', 'individual', 'both'] = 'average'
@@ -372,7 +399,7 @@ class PartialDependence(Explainer):
         https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
 
         estimator
-            A `sklearn` estimator.
+            A `sklearn` estimator or a wrapped black-box model.
         response_method, method, kind
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
 
@@ -380,14 +407,6 @@ class PartialDependence(Explainer):
         -------
         Update parameters `(response_method, method, kind)`.
         """
-        check_is_fitted(estimator)
-
-        if not (is_classifier(estimator) or is_regressor(estimator)):
-            raise ValueError('The predictor must be a fitted regressor or a fitted classifier.')
-
-        if is_classifier(estimator) and isinstance(estimator.classes_[0], np.ndarray):
-            raise ValueError('Multiclass-multioutput predictors are not supported.')
-
         if response_method not in ResponseMethod.__members__.values():
             raise ValueError(f"response_method='{response_method}' is invalid. Accepted response_method "
                              f"names are {get_options_string(ResponseMethod)}.")
@@ -689,22 +708,22 @@ def plot_pd(exp: Explanation,
         A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
     pd_num_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a
         numerical feature.
     ice_num_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the ICE for a
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the ICE for a
         numerical feature.
     pd_cat_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a
         categorical feature.
     ice_cat_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the ICE for a
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the ICE for a
         categorical feature.
     pd_num_num_kw
-        Keyword arguments passed to the `matplotlib.pyplot.contourf` function when plotting the PD for two
+        Keyword arguments passed to the `matplotlib.pyplot.contourf`_ function when plotting the PD for two
         numerical features.
     pd_num_cat_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot` function when plotting the PD for a numerical and a
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function when plotting the PD for a numerical and a
         categorical feature.
     pd_cat_cat_kw
         Keyword arguments passed to the :py:meth:`alibi.utils.visualization.heatmap` functon when plotting the PD for
@@ -714,6 +733,9 @@ def plot_pd(exp: Explanation,
 
         .. _matplotlib.pyplot.plot:
             https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html
+
+        .. _matplotlib.pyplot.contourf:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contourf.html
 
         .. _matplotlib.figure.set:
             https://matplotlib.org/stable/api/figure_api.html

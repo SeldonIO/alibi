@@ -71,9 +71,8 @@ def multioutput_classifier(request):
 @pytest.mark.parametrize('predictor', [RandomForestClassifier()])
 def test_unfitted_estimator(predictor):
     """ Checks if raises error for unfitted model. """
-    explainer = PartialDependence(predictor=predictor)
     with pytest.raises(NotFittedError) as err:
-        explainer._params_sanity_checks(estimator=predictor)
+        PartialDependence(predictor=predictor)
     assert re.search('not fitted yet', err.value.args[0])
 
 
@@ -82,10 +81,8 @@ def test_multioutput_estimator(multioutput_classifier, multioutput_dataset):
     """ Check if raises error for multi-output model"""
     X_train, Y_train = multioutput_dataset['X_train'], multioutput_dataset['Y_train']
     multioutput_classifier.fit(X_train, Y_train)
-
-    explainer = PartialDependence(predictor=multioutput_classifier)
     with pytest.raises(ValueError) as err:
-        explainer._params_sanity_checks(estimator=multioutput_classifier)
+        PartialDependence(predictor=multioutput_classifier)
     assert re.search('multiclass-multioutput', err.value.args[0].lower())
 
 

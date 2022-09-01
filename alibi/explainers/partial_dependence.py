@@ -122,7 +122,7 @@ class PartialDependence(Explainer):
             `predict_proba` or the `decision_function` method. For a regressor, the parameter is ignored.
             If set to ``'auto'``, the `predict_proba` is tried first, and if not supported then it reverts to
             `decision_function`. If ``method='recursion'``, the prediction function always uses `decision_function`.
-            Ignored for black-box models.
+            Used for `sklearn` models.
         method
             The method used to calculate the partial dependence (i.e., the marginal effect one or two features have
             on the outcome of the predictor):
@@ -132,11 +132,11 @@ class PartialDependence(Explainer):
              - ``'brute'`` - supported for any `sklearn` and black-box prediction model, but is more \
              computationally intensive.
 
-             - ``'recursion'`` - a faster alternative only supported by some tree-based models. For a classifier, the \
-             target response is always the decision function and NOT the predicted probabilities. Furthermore, since \
-             the ``'recursion'`` method computes implicitly the average of the individual conditional expectation \
-             (ICE) by design, it is incompatible with ICE and the `kind` parameter must be set to ``'average'``. \
-             Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
+             - ``'recursion'`` - a faster alternative only supported by some tree-based `sklearn` models. For a \
+             classifier, the target response is always the decision function and NOT the predicted probabilities. \
+             Furthermore, since the ``'recursion'`` method computes implicitly the average of the individual \
+             conditional expectation (ICE) by design, it is incompatible with ICE and the `kind` parameter must \
+             be set to ``'average'``. Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
 
              .. _sklearn documentation:
                 https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
@@ -463,7 +463,7 @@ class PartialDependence(Explainer):
 
         deciles, values, features_indices = [], [], [],
         for f in features:  # type: ignore[union-attr]
-            # extract column
+            # extract column. TODO _safe_indexing in the future to support more input types.
             X_f = X[:, f]
             # get deciles for the current feature if the feature is numerical
             deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
@@ -474,8 +474,7 @@ class PartialDependence(Explainer):
                 # categorical values, which does not make sense.
                 values_f = self._grid_from_X(X=X_f.reshape(-1, 1),
                                              percentiles=percentiles,
-                                             grid_resolution=grid_resolution  # type: ignore[arg-type]
-                                             if self._is_numerical(f) else np.inf)
+                                             grid_resolution=grid_resolution if self._is_numerical(f) else np.inf)  # type: ignore[arg-type] # noqa: E501
             else:
                 values_f = [grid_points[f]]
 

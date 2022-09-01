@@ -302,7 +302,7 @@ def test_blackbox_regression(rf_regressor, boston_data, kind, features):
     [(0, 1), (0, 2), (1, 2)],
     [0, 1, (0, 1)]
 ])
-def test_balckbox_classification(lr_classifier, iris_data, kind, features):
+def test_blackbox_classification(lr_classifier, iris_data, kind, features):
     """ Test the black-box predictor for a classification function. """
     X_train, _ = iris_data['X_train'], iris_data['y_train']
     lr, _ = lr_classifier

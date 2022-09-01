@@ -67,8 +67,9 @@ class PartialDependence(Explainer):
         Parameters
         ----------
         predictor
-            A `sklearn` estimator or a prediction function which receives as input a `numpy` array and outputs a
-            `numpy` array.
+            A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F`
+            and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
+            instances, `F` is the number of features and `T` is the number of targets.
         feature_names
             A list of feature names used for displaying results.
         categorical_names
@@ -601,7 +602,7 @@ class PartialDependence(Explainer):
         averaged_predictions = []
 
         if isinstance(self.predictor, BaseEstimator):
-            # define the prediction_method (predict, predict_proba, decision_function).
+            # sklearn case. Define the prediction_method (predict, predict_proba, decision_function).
             if is_regressor(self.predictor):
                 prediction_method = self.predictor.predict
             else:
@@ -622,6 +623,7 @@ class PartialDependence(Explainer):
                     else:
                         raise ValueError("The predictor has no `decision_function` method.")
         else:
+            # black-box case
             prediction_method = self.predictor
 
         X_eval = X.copy()

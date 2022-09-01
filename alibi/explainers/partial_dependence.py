@@ -474,8 +474,8 @@ class PartialDependence(Explainer):
                 # categorical values, which does not make sense.
                 values_f = self._grid_from_X(X=X_f.reshape(-1, 1),
                                              percentiles=percentiles,
-                                             grid_resolution=grid_resolution
-                                             if self._is_numerical(f) else np.inf)  # type: ignore[arg-type]
+                                             grid_resolution=grid_resolution  # type: ignore[arg-type]
+                                             if self._is_numerical(f) else np.inf)
             else:
                 values_f = [grid_points[f]]
 
@@ -489,7 +489,7 @@ class PartialDependence(Explainer):
 
         if method == "brute":
             averaged_predictions, predictions = self._pd_brute(grid=grid,
-                                                               features=features_indices,
+                                                               features=features_indices,  # type: ignore[arg-type]
                                                                X=X,
                                                                response_method=response_method)
 

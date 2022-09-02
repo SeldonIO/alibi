@@ -89,18 +89,18 @@ def test_multioutput_estimator(multioutput_classifier, multioutput_dataset):
 @pytest.mark.parametrize('response_method', ['unknown'])
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_unknown_response_method(rf_classifier, response_method):
-    """ Checks if raises error for unknown response_method. """
+    """ Checks if raises error for unknown `response_method`. """
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(response_method=response_method)
-    assert re.search("response_method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
+    assert re.search("``response_method=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
 
 
 @pytest.mark.parametrize('response_method', [ResponseMethod.DECISION_FUNCTION, ResponseMethod.PREDICT_PROBA])
 @pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
 def test_estimator_response_method(rf_regressor, response_method):
-    """ Checks if raises error for a regressor with a response_method != 'auto'. """
+    """ Checks if raises error for a regressor with a ``response_method != 'auto'``. """
     predictor, _ = rf_regressor
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
@@ -116,19 +116,19 @@ def test_unknown_method(rf_classifier, method):
     explainer = PartialDependence(predictor)
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method=method)
-    assert re.search("method=\'\w+\' is invalid", err.value.args[0].lower())  # noqa: W605
+    assert re.search("``method=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
 
 
 @pytest.mark.parametrize('kind', [Kind.INDIVIDUAL, Kind.BOTH])
 @pytest.mark.parametrize('method', [Method.RECURSION])
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_kind_method(rf_classifier, kind, method):
-    """ Checks if raises error when method='recursion' and kind !='average'. """
+    """ Checks if raises error when ``method='recursion'`` and ``kind !='average'``. """
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor)
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(kind=kind, method=method)
-    assert re.search("when kind='average'", err.value.args[0].lower())
+    assert re.search("when ``kind='average'``", err.value.args[0].lower())
 
 
 @pytest.mark.parametrize('predictor', [
@@ -137,7 +137,7 @@ def test_kind_method(rf_classifier, kind, method):
     RandomForestRegressor(),
 ])
 def test_method_auto_recursion(predictor, boston_data):
-    """ Checks if the method='auto' falls to method='recursion' for some specific class of regressors. """
+    """ Checks if the ``method='auto'`` falls to ``method='recursion'`` for some specific class of regressors. """
     X_train, y_train = boston_data['X_train'], boston_data['y_train']
     predictor.fit(X_train, y_train)
 
@@ -148,7 +148,7 @@ def test_method_auto_recursion(predictor, boston_data):
 
 @pytest.mark.parametrize('predictor', [SVR()])
 def test_method_auto_brute(predictor, boston_data):
-    """ Checks if the method='auto' falls to method='brute' for some specific class of regressors. """
+    """ Checks if the ``method='auto'`` falls to ``method='brute'`` for some specific class of regressors. """
     X_train, y_train = boston_data['X_train'], boston_data['y_train']
     predictor.fit(X_train, y_train)
 
@@ -159,7 +159,7 @@ def test_method_auto_brute(predictor, boston_data):
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_unsupported_method_recursion(rf_classifier):
-    """ Checks if raises error when the method='recursion' for a classifier which does not support it. """
+    """ Checks if raises error when the ``method='recursion'`` for a classifier which does not support it. """
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor)
     with pytest.raises(ValueError) as err:
@@ -169,8 +169,8 @@ def test_unsupported_method_recursion(rf_classifier):
 
 @pytest.mark.parametrize('predictor', [DecisionTreeRegressor(), RandomForestRegressor()])
 def test_method_recursion_response_method_auto(predictor, boston_data):
-    """ Checks if the response method='auto' falls to method='decision_function' for a classifier which
-    supports method='recursion'. """
+    """ Checks if the response ``method='auto'`` falls to ``method='decision_function'`` for a classifier which
+    supports ``method='recursion'``. """
     X_train, y_train = boston_data['X_train'], boston_data['y_train']
     predictor.fit(X_train, y_train)
 
@@ -182,8 +182,8 @@ def test_method_recursion_response_method_auto(predictor, boston_data):
 
 @pytest.mark.parametrize('predictor', [GradientBoostingClassifier()])
 def test_method_recursion_response_method_predict_proba(predictor, iris_data):
-    """ Checks if raises error when method='recursion' for a classifier which supports it and when
-    the response_method='predict_proba'. """
+    """ Checks if raises error when ``method='recursion'`` for a classifier which supports it and when
+    the ``response_method='predict_proba'``. """
     X_train, y_train = iris_data['X_train'], iris_data['y_train']
     predictor.fit(X_train, y_train)
 
@@ -191,7 +191,7 @@ def test_method_recursion_response_method_predict_proba(predictor, iris_data):
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method=Method.RECURSION,
                                                 response_method=ResponseMethod.PREDICT_PROBA)
-    assert re.search('the response_method must be', err.value.args[0].lower())
+    assert re.search('the `response_method` must be', err.value.args[0].lower())
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -361,7 +361,7 @@ def test_grid_points(adult_data, rf_classifier, use_int):
 @pytest.mark.parametrize('use_int', [False, True])
 def test_grid_points_error(adult_data, use_int):
     """ Checks if the `_grid_points_sanity_checks` throw an error when the `grid_points` for a categorical feature
-    are not a subset of the feature values provided in categorical_names. """
+    are not a subset of the feature values provided in `categorical_names`. """
     feature_names = adult_data['metadata']['feature_names']
     categorical_names = adult_data['metadata']['category_map']
     X_train = adult_data['X_train']
@@ -391,8 +391,8 @@ def test_grid_points_error(adult_data, use_int):
 @pytest.mark.parametrize('response_method', ['predict_proba', 'auto'])
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('binary_data')], indirect=True)
 def test_binary_classifier_two_targets(lr_classifier, binary_data, response_method):
-    """ Checks that for a classifier which has `predict_proba`  for which the response_method
-    in ['predict_proba', 'auto'], the partial dependence has two targets. """
+    """ Checks that for a classifier which has `predict_proba`  for which the `response_method`
+    in ``['predict_proba', 'auto']``, the partial dependence has two targets. """
     lr, _ = lr_classifier
     X_train = binary_data['X_train']
 
@@ -406,7 +406,7 @@ def test_binary_classifier_two_targets(lr_classifier, binary_data, response_meth
 
 @pytest.mark.parametrize('svc_classifier', [lazy_fixture('binary_data')], indirect=True)
 def test_binary_classifier_one_target(svc_classifier, binary_data):
-    """ Checks that for a classifier which does not have `predict_proba` and for which the response_method='auto',
+    """ Checks that for a classifier which does not have `predict_proba` and for which the ``response_method='auto'``,
     the partial dependence has only one target. """
     svc, _ = svc_classifier
     X_train = binary_data['X_train']
@@ -576,7 +576,7 @@ def test_sklearn_recursion(predictor, binary_data, features, params):
     }
 ])
 def test_sklearn_blackbox(rf_classifier, adult_data, features, params):
-    """ Checks `alibi` pd blackbox implementation against the `sklearn` implementation. """
+    """ Checks `alibi` pd black-box implementation against the `sklearn` implementation. """
     rf, preprocessor = rf_classifier
     rf_pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('predictor', rf)])
     X_train = adult_data['X_train'][:100]

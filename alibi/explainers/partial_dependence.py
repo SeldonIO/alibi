@@ -986,8 +986,8 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
     Parameters
     ----------
     ice_values
-        Array of ice_values of dimension (N, V), where N is the number of instances in the reference dataset,
-        and V is the number of feature values where the PD is computed.
+        Array of ice_values of dimension `N x V`, where `N `is the number of instances in the reference dataset,
+        and `V` is the number of feature values where the PD is computed.
     n_ice
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd`.
     """
@@ -1016,6 +1016,46 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
 
     raise ValueError(f"Unknown `n_ice` values. `n_ice` can be a string taking value 'all', "
                      f"an integer, or a list of integers. Received {n_ice}.")
+
+
+def _process_pd_ice(exp: Explanation,
+                    pd_values: Optional[np.ndarray],
+                    ice_values: Optional[np.ndarray],
+                    n_ice: int,
+                    center: bool) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+    """
+    Process the `pd_values` and `ice_values` before plotting. Centers the plots if necessary and samples
+    the `ice_values` for visualization purposes.
+
+    Parameters
+    ----------
+    exp, n_ice, center
+        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    pd_values
+        Array of ice_values of dimension `V` (i.e. `(V, )`), where V is the number of feature values where
+        the PD is computed.
+    ice_values
+        Array of ice_values of dimension `N x V`, where `N` is the number of instances in the reference dataset,
+        and `V` is the number of feature values where the PD is computed.
+
+    Returns
+    -------
+    Tuple containing the processed `pd_values` and `ice_values`.
+    """
+    # pdp processing
+    if exp.meta['params']['kind'] in [Kind.AVERAGE, Kind.BOTH] and center:
+        pd_values = pd_values - pd_values[0]
+
+    # ice processing
+    if exp.meta['params']['kind'] in [Kind.INDIVIDUAL, Kind.BOTH]:
+        # sample ice values for visualization purposes
+        ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
+
+        # extract and center ice values if necessary
+        if center:
+            ice_values = ice_values - ice_values[0:1]
+
+    return pd_values, ice_values
 
 
 # No type check due to the generic explanation object
@@ -1055,8 +1095,12 @@ def _plot_one_pd_num(exp: Explanation,
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
-    # sample ice values for visualization purposes
-    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
+    # process `pd_values` and `ice_values`
+    pd_values, ice_values = _process_pd_ice(exp=exp,
+                                            pd_values=pd_values,
+                                            ice_values=ice_values,
+                                            n_ice=n_ice,
+                                            center=center)
 
     if exp.meta['params']['kind'] == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
@@ -1066,26 +1110,14 @@ def _plot_one_pd_num(exp: Explanation,
     elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
-
-        # extract and center ice values if necessary
-        if center:
-            ice_values = ice_values - ice_values[0:1]
-
         ax.plot(feature_values, ice_values, **ice_num_kw)
+
     else:
         default_pd_num_kw = {'linestyle': '--', 'linewidth': 2, 'color': 'tab:orange', 'label': 'average'}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
 
         default_ice_graph_kw = {'alpha': 0.6, 'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
-
-        # center pd values if necessary
-        if center:
-            pd_values = pd_values - pd_values[0]
-
-        # center ice values if necessary
-        if center:
-            ice_values = ice_values - ice_values[0:1]
 
         ax.plot(feature_values, ice_values, **ice_num_kw)
         ax.plot(feature_values, pd_values, **pd_num_kw)
@@ -1137,8 +1169,12 @@ def _plot_one_pd_cat(exp: Explanation,
     pd_values = exp.pd_values[feature][target_idx] if (exp.pd_values is not None) else None
     ice_values = exp.ice_values[feature][target_idx].T if (exp.ice_values is not None) else None
 
-    # sample ice for visualization purposes
-    ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
+    # process `pd_values` and `ice_values`
+    pd_values, ice_values = _process_pd_ice(exp=exp,
+                                            pd_values=pd_values,
+                                            ice_values=ice_values,
+                                            n_ice=n_ice,
+                                            center=center)
 
     feature_index = exp.meta['params']['feature_names'].index(feature_names)
     labels = [exp.meta['params']['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]
@@ -1151,11 +1187,6 @@ def _plot_one_pd_cat(exp: Explanation,
     elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_cat_kw = {'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
-
-        # extract and center ice values if necessary
-        if center:
-            ice_values = ice_values - ice_values[0:1]
-
         ax.plot(labels, ice_values, **ice_cat_kw)
 
     else:
@@ -1164,14 +1195,6 @@ def _plot_one_pd_cat(exp: Explanation,
 
         default_ice_cat_kw = {'alpha': 0.6, 'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
-
-        # center pd values if necessary
-        if center:
-            pd_values = pd_values - pd_values[0]
-
-        # center ice values if necessary
-        if center:
-            ice_values = ice_values - ice_values[0:1]
 
         ax.plot(labels, ice_values, **ice_cat_kw)
         ax.plot(labels, pd_values, **pd_cat_kw)

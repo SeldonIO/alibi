@@ -90,7 +90,7 @@ class PartialDependence(Explainer):
         self.target_names = target_names
         self.predictor = predictor
 
-        # perform sanity checks on the sklearn predictor
+        # perform sanity checks on the `sklearn` predictor
         if isinstance(predictor, BaseEstimator):
             self._sklearn_model_sanity_checks()
 
@@ -188,11 +188,11 @@ class PartialDependence(Explainer):
             raise ValueError('The array X must be 2-dimensional.')
         n_features = X.shape[1]
 
-        # set the features_names when the user did not provide the feature names
+        # set the `features_names` when the user did not provide the feature names
         if self.feature_names is None:
             self.feature_names = [f'f_{i}' for i in range(n_features)]
 
-        # set categorical_names when the user did not provide the category mapping
+        # set `categorical_names` when the user did not provide the category mapping
         if self.categorical_names is None:
             self.categorical_names = {}
 
@@ -201,7 +201,7 @@ class PartialDependence(Explainer):
         self._features_sanity_checks(features=features)
 
         if isinstance(self.predictor, BaseEstimator):
-            # sanity checks for sklearn models. Note that the response_method, method and kind can
+            # sanity checks for `sklearn` models. Note that the `response_method`, method and kind can
             # change in the function and that's why they are returned.
             response_method, method, kind = self._sklearn_params_sanity_checks(  # type: ignore[assignment]
                 response_method=response_method,
@@ -212,7 +212,7 @@ class PartialDependence(Explainer):
             # sanity checks for a black-box model
             PartialDependence._blackbox_params_sanity_checks(method=method)
 
-        # construct feature_names based on the `features`. If `features` is `None`, then initialize
+        # construct `feature_names` based on the `features`. If `features` is `None`, then initialize
         # `features` with all single feature available in the dataset.
         if features:
             feature_names = [tuple([self.feature_names[f] for f in features])
@@ -240,14 +240,14 @@ class PartialDependence(Explainer):
                 )
             )
 
-        # set the target_names when the user did not provide the target names
+        # set the `target_names` when the user did not provide the target names
         # we do it here to avoid checking model's type, prediction function etc
         if self.target_names is None:
             key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
             n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
 
-        # update meta params here because until this point we don't have the target_names
+        # update `meta['params']` here because until this point we don't have the `target_names`
         self.meta['params'].update(response_method=response_method,
                                    method=method,
                                    kind=kind,
@@ -286,7 +286,7 @@ class PartialDependence(Explainer):
             return
 
         if not np.all(np.isin(list(grid_points.keys()),  np.arange(n_features))):
-            raise ValueError('The features provided in grid_points are not a subset of the dataset features.')
+            raise ValueError('The features provided in `grid_points` are not a subset of the dataset features.')
 
         for f in grid_points:
             if self._is_numerical(f):
@@ -304,14 +304,14 @@ class PartialDependence(Explainer):
 
                     for str_val in grid_points[f]:
                         try:
-                            # self.categorical_names cannot be empty because of the check in self._is_numerical
+                            # `self.categorical_names` cannot be empty because of the check in `self._is_numerical`
                             index = self.categorical_names[f].index(str_val)  # type: ignore[index]
                         except ValueError:
                             raise ValueError(message.format(f, str_val))
                         int_values.append(index)
                     grid_points[f] = np.array(int_values)
 
-                # self.categorical_names cannot be empty because of the check in self._is numerical
+                # `self.categorical_names` cannot be empty because of the check in `self._is numerical`
                 mask = np.isin(grid_points[f], np.arange(len(self.categorical_names[f])))  # type: ignore[index]
                 if not np.all(mask):
                     index = np.where(not mask)[0][0]
@@ -333,8 +333,8 @@ class PartialDependence(Explainer):
             if not isinstance(f, numbers.Integral):
                 raise ValueError(f'All feature entries must be integers. Got a feature value of {type(f)} type.')
             if f >= len(self.feature_names):
-                raise ValueError(f'All feature entries must be less than len(feature_names)={len(self.feature_names)}. '
-                                 f'Got a feature value of {f}.')
+                raise ValueError(f'All feature entries must be less than '
+                                 f'``len(feature_names)={len(self.feature_names)}``. Got a feature value of {f}.')
             if f < 0:
                 raise ValueError(f'All feature entries must be greater or equal to 0. Got a feature value of {f}.')
 
@@ -383,19 +383,20 @@ class PartialDependence(Explainer):
         Update parameters `(response_method, method, kind)`.
         """
         if response_method not in ResponseMethod.__members__.values():
-            raise ValueError(f"response_method='{response_method}' is invalid. Accepted response_method "
-                             f"names are {get_options_string(ResponseMethod)}.")
+            raise ValueError(f"``response_method='{response_method}'`` is invalid. Accepted `response_method` "
+                             f"names are: {get_options_string(ResponseMethod)}.")
 
         if is_regressor(self.predictor) and response_method != ResponseMethod.AUTO:
-            raise ValueError(f"The response_method parameter is ignored for regressor and is "
+            raise ValueError(f"The `response_method` parameter is ignored for regressor and is "
                              f"automatically set to '{ResponseMethod.AUTO.value}'.")
 
         if method not in Method.__members__.values():
-            raise ValueError(f"method='{method}' is invalid. Accepted method names are {get_options_string(Method)}.")
+            raise ValueError(f"``method='{method}'`` is invalid. "
+                             f"Accepted method names are: {get_options_string(Method)}.")
 
         if kind != Kind.AVERAGE:
             if method == Method.RECURSION:
-                raise ValueError(f"The '{Method.RECURSION.value}' method only applies when kind='average'.")
+                raise ValueError(f"The '{Method.RECURSION.value}' method only applies when ``kind='average'``.")
             method = Method.BRUTE.value  # type: ignore
 
         if method == Method.AUTO:
@@ -425,8 +426,8 @@ class PartialDependence(Explainer):
                 response_method = ResponseMethod.DECISION_FUNCTION.value
 
             if response_method != ResponseMethod.DECISION_FUNCTION:
-                raise ValueError(f"With the '{method.RECURSION.value}' method, the response_method must be "
-                                 f"'{response_method.DECISION_FUNCTION.value}'. Got {response_method}.")
+                raise ValueError(f"With the '{method.RECURSION.value}' method, the `response_method` must be "
+                                 f"'{response_method.DECISION_FUNCTION.value}'. Got '{response_method}'.")
 
         return response_method, method, kind
 
@@ -492,18 +493,18 @@ class PartialDependence(Explainer):
                                                                X=X,
                                                                response_method=response_method)
 
-            # reshape predictions to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
+            # reshape `predictions` to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
             predictions = predictions.reshape(-1, X.shape[0], *[val.shape[0] for val in values])
         else:
             averaged_predictions = self.predictor._compute_partial_dependence_recursion(  # type: ignore[union-attr]
                 grid, features_indices
             )
 
-        # reshape averaged_predictions to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
+        # reshape `averaged_predictions` to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
         averaged_predictions = averaged_predictions.reshape(-1, *[val.shape[0] for val in values])
 
         # define feature values (i.e. grid values) and the corresponding deciles. Note that the deciles
-        # were computed on the raw (i.e. unprocessed) feature value as provided in the reference dataset X
+        # were computed on the raw (i.e. unprocessed) feature value as provided in the reference dataset `X`
         pd = {
             'values': values if len(values) > 1 else values[0],
             'deciles': deciles if len(deciles) > 1 else deciles[0],
@@ -601,7 +602,7 @@ class PartialDependence(Explainer):
         averaged_predictions = []
 
         if isinstance(self.predictor, BaseEstimator):
-            # sklearn case. Define the prediction_method (predict, predict_proba, decision_function).
+            # `sklearn` case. Define the `prediction_method` ('predict', 'predict_proba', 'decision_function').
             if is_regressor(self.predictor):
                 prediction_method = self.predictor.predict
             else:
@@ -834,7 +835,7 @@ def plot_pd(exp: Explanation,
         for ifeatures in features:
             if ifeatures > len(exp.feature_names):
                 raise ValueError(f'The `features` indices must be less than the '
-                                 f'len(feature_names) = {len(exp.feature_names)}. Received {ifeatures}.')
+                                 f'``len(feature_names) = {len(exp.feature_names)}``. Received {ifeatures}.')
 
     # set target index
     if isinstance(target, str):
@@ -955,7 +956,7 @@ def plot_pd(exp: Explanation,
 
 def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[int]]) -> np.ndarray:
     """
-    Samples ice_values based on the n_ice argument.
+    Samples `ice_values` based on the `n_ice` argument.
 
     Parameters
     ----------
@@ -972,11 +973,11 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
     if isinstance(n_ice, numbers.Integral):
         if n_ice > V:  # type: ignore[operator]
             n_ice = V
-            logger.warning('n_ice is greater than the number of instances in the reference dataset. '
-                           'Automatically setting n_ice to the number of instances in the reference dataset.')
+            logger.warning('`n_ice` is greater than the number of instances in the reference dataset. '
+                           'Automatically setting `n_ice` to the number of instances in the reference dataset.')
 
         if n_ice <= 0:  # type: ignore[operator]
-            raise ValueError('n_ice must be an integer grater than 0.')
+            raise ValueError('`n_ice` must be an integer grater than 0.')
 
         indices = np.random.choice(a=V, size=n_ice, replace=False)
         return ice_values[:, indices]
@@ -984,11 +985,11 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
     if isinstance(n_ice, list):
         n_ice = np.unique(n_ice)  # type: ignore[assignment]
         if not np.all(n_ice < V) or not np.all(n_ice >= 0):  # type: ignore[operator]
-            raise ValueError(f'Some indices in n_ice are out of bounds. Ensure that all indices are '
+            raise ValueError(f'Some indices in `n_ice` are out of bounds. Ensure that all indices are '
                              f'greater or equal than 0 and less than {V}.')
         return ice_values[:, n_ice]
 
-    raise ValueError(f"Unknown n_ice values. n_ice can be a string taking value 'all', "
+    raise ValueError(f"Unknown `n_ice` values. `n_ice` can be a string taking value 'all', "
                      f"an integer, or a list of integers. Received {n_ice}.")
 
 

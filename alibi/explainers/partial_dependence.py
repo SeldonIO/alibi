@@ -1017,7 +1017,7 @@ def _process_pd_ice(exp: Explanation,
     Tuple containing the processed `pd_values` and `ice_values`.
     """
     # pdp processing
-    if exp.meta['params']['kind'] in [Kind.AVERAGE, Kind.BOTH] and center:
+    if exp.meta['params']['kind'] == Kind.BOTH and center:
         pd_values = pd_values - pd_values[0]  # type: ignore[index]
 
     # ice processing
@@ -1025,9 +1025,9 @@ def _process_pd_ice(exp: Explanation,
         # sample ice values for visualization purposes
         ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)  # type: ignore[arg-type]
 
-        # extract and center ice values if necessary
+        # center ice values if necessary
         if center:
-            ice_values = ice_values - ice_values[0:1]
+            ice_values = ice_values - ice_values[0:1, :]
 
     return pd_values, ice_values
 

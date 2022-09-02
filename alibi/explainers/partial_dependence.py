@@ -190,12 +190,6 @@ class PartialDependence(Explainer):
 
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
-
-        Notes
-        -----
-        The feature deciles returned in the explanation object are computed for the feature values between the
-        minimum and maximum values obtained after removing the extreme values according to the `percentiles` or
-        limited by the custom `grid_points` values.
         """
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')
@@ -465,6 +459,9 @@ class PartialDependence(Explainer):
             # extract column. TODO _safe_indexing in the future to support more input types.
             X_f = X[:, f]
 
+            # get deciles for the current feature if the feature is numerical
+            deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
+
             if f not in grid_points:
                 # construct grid for feature f. Note that for categorical features we pass the
                 # grid resolution to be infinity because otherwise we risk to apply `linspace` to
@@ -476,14 +473,6 @@ class PartialDependence(Explainer):
                 )
             else:
                 values_f = [grid_points[f]]
-
-            # get deciles for the current feature if the feature is numerical. Note that we compute the deciles
-            # on the datapoint within the minimum and maximum values of the `values_f`. This is because the
-            # features values for which we compute the pd can be altered by the `percentiles` or the
-            # `grid_points` values.
-            min_val, max_val = np.min(values_f), np.max(values_f)
-            X_f = X_f[np.logical_and(min_val <= X_f, X_f <= max_val)]
-            deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
 
             features_indices.append(f)
             deciles.append(deciles_f)
@@ -813,12 +802,6 @@ def plot_pd(exp: Explanation,
     Returns
     -------
     An array of `plt.Axes` with the resulting partial dependence plots.
-
-    Notes
-    -----
-    The displayed feature deciles are computed for the feature values between the minimum and maximum values
-    obtained after removing the extreme values according to the `percentiles` or limited by the custom `grid_points`
-    values passed to the :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain`.
     """
     import matplotlib.pyplot as plt
     from matplotlib.gridspec import GridSpec

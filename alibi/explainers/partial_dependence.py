@@ -415,11 +415,11 @@ class PartialDependence(Explainer):
                     "DecisionTreeRegressor",
                     "RandomForestRegressor",
                 )
-                raise ValueError(f"Only the following estimators support the 'recursion' "
-                                 f"method: {supported_classes_recursion}. Try using method='{Method.BRUTE.value}'.")
+                raise ValueError(f"``method='recursion'`` is only supported by the following estimators: "
+                                 f"{supported_classes_recursion}. Try using method='{Method.BRUTE.value}'.")
 
             if self.response_method != ResponseMethod.DECISION_FUNCTION:
-                raise ValueError(f"With the '{Method.RECURSION.value}' method, the `response_method` must be "
+                raise ValueError(f"If ``method='{Method.RECURSION.value}'``, the `response_method` must be "
                                  f"'{ResponseMethod.DECISION_FUNCTION.value}'. Got '{self.response_method}'.")
 
         return method, kind

@@ -98,7 +98,7 @@ def test_unknown_response_method(rf_classifier, response_method):
     ResponseMethod.PREDICT_PROBA.value
 ])
 def test_estimator_response_method(rf_regressor, response_method):
-    """ Checks if raises error for a regressor with a ``response_method != 'auto'``. """
+    """ Checks if raises error for a regressor with a ``response_method!='auto'``. """
     predictor, _ = rf_regressor
     with pytest.raises(ValueError) as err:
         PartialDependence(predictor=predictor, response_method=response_method)
@@ -108,7 +108,7 @@ def test_estimator_response_method(rf_regressor, response_method):
 @pytest.mark.parametrize('method', ['unknown'])
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_unknown_method(rf_classifier, method):
-    """ Checks if raises error for unknown method. """
+    """ Checks if raises error for unknown `method`. """
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
     with pytest.raises(ValueError) as err:
@@ -116,11 +116,22 @@ def test_unknown_method(rf_classifier, method):
     assert re.search("``method=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
 
 
+@pytest.mark.parametrize('kind', ['unknown'])
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
+def test_unknown_kind(rf_classifier, kind):
+    """ Checks if raises error for unknown `kind`. """
+    predictor, _ = rf_classifier
+    explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
+    with pytest.raises(ValueError) as err:
+        explainer._sklearn_params_sanity_checks(kind=kind)
+    assert re.search("``kind=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
+
+
 @pytest.mark.parametrize('kind', [Kind.INDIVIDUAL, Kind.BOTH])
 @pytest.mark.parametrize('method', [Method.RECURSION])
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_kind_method(rf_classifier, kind, method):
-    """ Checks if raises error when ``method='recursion'`` and ``kind !='average'``. """
+    """ Checks if raises error when ``method='recursion'`` and ``kind!='average'``. """
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor, response_method='decision_function')
     with pytest.raises(ValueError) as err:
@@ -135,7 +146,7 @@ def test_unsupported_method_recursion(rf_classifier):
     explainer = PartialDependence(predictor=predictor, response_method='decision_function')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method=Method.RECURSION)
-    assert re.search("support the 'recursion'", err.value.args[0].lower())
+    assert re.search("``method='recursion'`` is only supported by", err.value.args[0].lower())
 
 
 @pytest.mark.parametrize('predictor', [GradientBoostingClassifier()])

@@ -1,16 +1,15 @@
-import numpy as np
 import warnings
 from enum import Enum
+from typing import List, Optional, Tuple, Union
 
 import matplotlib
+import numpy as np
 from matplotlib import pyplot as plt
-from matplotlib.pyplot import figure, axis
-from matplotlib.figure import Figure
 from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.figure import Figure
+from matplotlib.pyplot import axis, figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
 from numpy import ndarray
-from typing import Union, Tuple, List, Optional
 
 
 # the following code was borrowed from the captum library in

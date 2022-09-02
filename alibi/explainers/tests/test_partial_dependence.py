@@ -9,7 +9,7 @@ from alibi.explainers.partial_dependence import (Kind, Method, ResponseMethod,
                                                  _sample_ice)
 from pytest_lazyfixture import lazy_fixture
 from sklearn.datasets import make_classification
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.exceptions import NotFittedError
 from sklearn.inspection import partial_dependence
 from sklearn.model_selection import train_test_split

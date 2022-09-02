@@ -242,12 +242,20 @@ class PartialDependence(Explainer):
                 )
             )
 
+        # extract the number of targets that the PD/ICE was computed for
+        key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
+        n_targets = pds[0][key].shape[0]
+
         if self.target_names is None:
             # set the `target_names` when the user did not provide the target names
             # we do it here to avoid checking model's type, prediction function etc.
-            key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
-            n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
+
+        elif len(self.target_names) != n_targets:
+            logger.warning('The length of `target_names` does not match the number of predicted outputs. '
+                           'Ensure that the lengths match, otherwise a call to the `plot_pd` method might '
+                           'raise an error or produce undesired labeling.')
+
 
         # update `meta['params']` here because until this point we don't have the `target_names`
         self.meta['params'].update(response_method=self.response_method,
@@ -370,8 +378,8 @@ class PartialDependence(Explainer):
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
         """
         if method != Method.BRUTE:
-            raise ValueError(f"method='{method}' is invalid. For black-box models "
-                             f"the method must be {Method.BRUTE}.")
+            raise ValueError(f"For a black-box model, the ``method='{method}'`` is invalid. "
+                             f"The `method` value must be '{Method.BRUTE}'.")
 
     def _sklearn_params_sanity_checks(self,
                                       method: Literal['recursion', 'brute'] = 'brute',
@@ -400,7 +408,8 @@ class PartialDependence(Explainer):
 
         if kind != Kind.AVERAGE:
             if method == Method.RECURSION:
-                raise ValueError(f"The '{Method.RECURSION.value}' method only applies when ``kind='average'``.")
+                raise ValueError(f"If ``method='{Method.RECURSION}'``, then the `kind` value "
+                                 f"must be '{Kind.AVERAGE}'. Got '{kind}'.")
             method = Method.BRUTE.value  # type: ignore
 
         if method == Method.RECURSION:
@@ -416,11 +425,11 @@ class PartialDependence(Explainer):
                     "RandomForestRegressor",
                 )
                 raise ValueError(f"``method='recursion'`` is only supported by the following estimators: "
-                                 f"{supported_classes_recursion}. Try using method='{Method.BRUTE.value}'.")
+                                 f"{supported_classes_recursion}. Try using method='{Method.BRUTE}'.")
 
             if self.response_method != ResponseMethod.DECISION_FUNCTION:
-                raise ValueError(f"If ``method='{Method.RECURSION.value}'``, the `response_method` must be "
-                                 f"'{ResponseMethod.DECISION_FUNCTION.value}'. Got '{self.response_method}'.")
+                raise ValueError(f"If ``method='{Method.RECURSION}'``, then the `response_method` value must be "
+                                 f"'{ResponseMethod.DECISION_FUNCTION}'. Got '{self.response_method}'.")
 
         return method, kind
 

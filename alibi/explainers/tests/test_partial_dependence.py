@@ -136,7 +136,7 @@ def test_kind_method(rf_classifier, kind, method):
     explainer = PartialDependence(predictor, response_method='decision_function')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(kind=kind, method=method)
-    assert re.search("when ``kind='average'``", err.value.args[0].lower())
+    assert re.search("then the `kind` value must be ", err.value.args[0].lower())
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)
@@ -159,7 +159,7 @@ def test_method_recursion_response_method_predict_proba(predictor, iris_data):
     explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method='recursion')
-    assert re.search('the `response_method` must be', err.value.args[0].lower())
+    assert re.search('then the `response_method` value must be', err.value.args[0].lower())
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('iris_data')], indirect=True)

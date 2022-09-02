@@ -256,7 +256,6 @@ class PartialDependence(Explainer):
                            'Ensure that the lengths match, otherwise a call to the `plot_pd` method might '
                            'raise an error or produce undesired labeling.')
 
-
         # update `meta['params']` here because until this point we don't have the `target_names`
         self.meta['params'].update(response_method=self.response_method,
                                    method=method,

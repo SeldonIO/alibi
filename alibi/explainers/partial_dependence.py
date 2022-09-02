@@ -35,14 +35,12 @@ logger = logging.getLogger(__name__)
 
 class ResponseMethod(str, Enum):
     """ Enumeration of supported response_method. """
-    AUTO = 'auto'
     PREDICT_PROBA = 'predict_proba'
     DECISION_FUNCTION = 'decision_function'
 
 
 class Method(str, Enum):
     """ Enumeration of supported method. """
-    AUTO = 'auto'
     RECURSION = 'recursion'
     BRUTE = 'brute'
 
@@ -57,6 +55,7 @@ class Kind(str, Enum):
 class PartialDependence(Explainer):
     def __init__(self,
                  predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
+                 response_method: Optional[Literal['predict_proba', 'decision_function']] = None,
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None,
@@ -70,6 +69,11 @@ class PartialDependence(Explainer):
             A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F`
             and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
             instances, `F` is the number of features and `T` is the number of targets.
+        response_method
+            Specifies the prediction function to be used. For a classifier it specifies whether to use the
+            `predict_proba` or the `decision_function` method. For a regressor, the parameter is ignored.
+            If ``method='recursion'``, the prediction function must be set to `decision_function`.
+            Used for `sklearn` models.
         feature_names
             A list of feature names used for displaying results.
         categorical_names
@@ -98,6 +102,7 @@ class PartialDependence(Explainer):
         self.categorical_names = categorical_names
         self.target_names = target_names
         self.predictor = predictor
+        self.response_method = response_method
 
         # perform sanity checks on the `sklearn` predictor
         if isinstance(predictor, BaseEstimator):
@@ -106,8 +111,7 @@ class PartialDependence(Explainer):
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 features: Optional[List[Union[int, Tuple[int, int]]]] = None,
-                response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
-                method: Literal['auto', 'brute', 'recursion'] = 'auto',
+                method: Literal['brute', 'recursion'] = 'brute',
                 kind: Literal['average', 'individual', 'both'] = 'average',
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
@@ -126,17 +130,9 @@ class PartialDependence(Explainer):
             If not provided, the partial dependence will be computed for every single features in the dataset.
             Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
-        response_method
-            Specifies the prediction function to be used. For a classifier it specifies whether to use the
-            `predict_proba` or the `decision_function` method. For a regressor, the parameter is ignored.
-            If set to ``'auto'``, the `predict_proba` is tried first, and if not supported then it reverts to
-            `decision_function`. If ``method='recursion'``, the prediction function always uses `decision_function`.
-            Used for `sklearn` models.
         method
             The method used to calculate the partial dependence (i.e., the marginal effect one or two features have
             on the outcome of the predictor):
-
-             - ``'auto'`` - uses ``'recursion'`` if the `predictor` supports it. Otherwise, uses the ``'brute'`` method.
 
              - ``'brute'`` - supported for any `sklearn` and black-box prediction model, but is more \
              computationally intensive.
@@ -216,13 +212,9 @@ class PartialDependence(Explainer):
         self._features_sanity_checks(features=features)
 
         if isinstance(self.predictor, BaseEstimator):
-            # sanity checks for `sklearn` models. Note that the `response_method`, method and kind can
-            # change in the function and that's why they are returned.
-            response_method, method, kind = self._sklearn_params_sanity_checks(  # type: ignore[assignment]
-                response_method=response_method,
-                method=method,
-                kind=kind
-            )
+            # sanity checks for `sklearn` models. Note that the `method` can change in the function.
+            # That's why we returned them (`kind` is returned for consistency).
+            method, kind = self._sklearn_params_sanity_checks(method=method, kind=kind)  # type: ignore[assignment]
         else:
             # sanity checks for a black-box model
             PartialDependence._blackbox_params_sanity_checks(method=method)
@@ -246,7 +238,6 @@ class PartialDependence(Explainer):
                 self._partial_dependence(
                     X=X,
                     features=ifeatures,
-                    response_method=response_method,
                     method=method,
                     kind=kind,
                     percentiles=percentiles,
@@ -263,7 +254,7 @@ class PartialDependence(Explainer):
             self.target_names = [f'c_{i}' for i in range(n_targets)]
 
         # update `meta['params']` here because until this point we don't have the `target_names`
-        self.meta['params'].update(response_method=response_method,
+        self.meta['params'].update(response_method=self.response_method,
                                    method=method,
                                    kind=kind,
                                    percentiles=percentiles,
@@ -285,6 +276,13 @@ class PartialDependence(Explainer):
 
         if is_classifier(self.predictor) and isinstance(self.predictor.classes_[0], np.ndarray):
             raise ValueError('Multiclass-multioutput predictors are not supported.')
+
+        if (self.response_method is not None) and (self.response_method not in ResponseMethod.__members__.values()):
+            raise ValueError(f"``response_method='{self.response_method}'`` is invalid. Accepted `response_method` "
+                             f"values are ``None`` or {get_options_string(ResponseMethod)}.")
+
+        if is_regressor(self.predictor) and (self.response_method is not None):
+            raise ValueError(f"The `response_method` parameter must be ``None`` for regressor.")
 
     def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, Union[List, np.ndarray]]], n_features: int):
         """
@@ -366,7 +364,7 @@ class PartialDependence(Explainer):
                 check_feature(f)
 
     @staticmethod
-    def _blackbox_params_sanity_checks(method: Literal['auto', 'recursion', 'brute'] = 'auto') -> None:
+    def _blackbox_params_sanity_checks(method: Literal['recursion', 'brute'] = 'brute') -> None:
         """
         Parameters sanity checks for black-box models.
 
@@ -380,47 +378,34 @@ class PartialDependence(Explainer):
                              f"the method must be {Method.BRUTE}.")
 
     def _sklearn_params_sanity_checks(self,
-                                      response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
-                                      method: Literal['auto', 'recursion', 'brute'] = 'auto',
+                                      method: Literal['recursion', 'brute'] = 'brute',
                                       kind: Literal['average', 'individual', 'both'] = 'average'
-                                      ) -> Tuple[str, str, str]:
+                                      ) -> Tuple[str, str]:
         """
         Parameters sanity checks for `sklearn` models. Most of the code is borrowed from:
         https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
 
         Parameters
         ----------
-        response_method, method, kind
+        method, kind
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
 
         Returns
         -------
-        Update parameters `(response_method, method, kind)`.
+        Update parameters `(method, kind)`.
         """
-        if response_method not in ResponseMethod.__members__.values():
-            raise ValueError(f"``response_method='{response_method}'`` is invalid. Accepted `response_method` "
-                             f"names are: {get_options_string(ResponseMethod)}.")
-
-        if is_regressor(self.predictor) and response_method != ResponseMethod.AUTO:
-            raise ValueError(f"The `response_method` parameter is ignored for regressor and is "
-                             f"automatically set to '{ResponseMethod.AUTO.value}'.")
-
         if method not in Method.__members__.values():
             raise ValueError(f"``method='{method}'`` is invalid. "
-                             f"Accepted method names are: {get_options_string(Method)}.")
+                             f"Accepted `method` names are: {get_options_string(Method)}.")
+
+        if kind not in Kind.__members__.values():
+            raise ValueError(f"``kind='{kind}'`` is invalid. "
+                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
 
         if kind != Kind.AVERAGE:
             if method == Method.RECURSION:
                 raise ValueError(f"The '{Method.RECURSION.value}' method only applies when ``kind='average'``.")
             method = Method.BRUTE.value  # type: ignore
-
-        if method == Method.AUTO:
-            if isinstance(self.predictor, BaseGradientBoosting) and self.predictor.init is None:
-                method = Method.RECURSION.value
-            elif isinstance(self.predictor, (BaseHistGradientBoosting, DecisionTreeRegressor, RandomForestRegressor)):
-                method = Method.RECURSION.value
-            else:
-                method = Method.BRUTE.value
 
         if method == Method.RECURSION:
             if not isinstance(self.predictor, (BaseGradientBoosting, BaseHistGradientBoosting, DecisionTreeRegressor,
@@ -437,20 +422,16 @@ class PartialDependence(Explainer):
                 raise ValueError(f"Only the following estimators support the 'recursion' "
                                  f"method: {supported_classes_recursion}. Try using method='{Method.BRUTE.value}'.")
 
-            if response_method == ResponseMethod.AUTO:
-                response_method = ResponseMethod.DECISION_FUNCTION.value
+            if self.response_method != ResponseMethod.DECISION_FUNCTION:
+                raise ValueError(f"With the '{Method.RECURSION.value}' method, the `response_method` must be "
+                                 f"'{ResponseMethod.DECISION_FUNCTION.value}'. Got '{self.response_method}'.")
 
-            if response_method != ResponseMethod.DECISION_FUNCTION:
-                raise ValueError(f"With the '{method.RECURSION.value}' method, the `response_method` must be "
-                                 f"'{response_method.DECISION_FUNCTION.value}'. Got '{response_method}'.")
-
-        return response_method, method, kind
+        return method, kind
 
     def _partial_dependence(self,
                             X: np.ndarray,
                             features: Union[int, Tuple[int, int]],
-                            response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto',
-                            method: Literal['auto', 'recursion', 'brute'] = 'auto',
+                            method: Literal['recursion', 'brute'] = 'brute',
                             kind: Literal['average', 'individual', 'both'] = 'average',
                             percentiles: Tuple[float, float] = (0.05, 0.95),
                             grid_resolution: int = 100,
@@ -461,7 +442,7 @@ class PartialDependence(Explainer):
 
         Parameters
         ----------
-        X, response_method, method, kind, percentiles, grid_resolution, grid_points
+        X, method, kind, percentiles, grid_resolution, grid_points
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
         features
             A feature or pairs of features for which to calculate the partial dependence.
@@ -513,8 +494,7 @@ class PartialDependence(Explainer):
         if method == "brute":
             averaged_predictions, predictions = self._pd_brute(grid=grid,
                                                                features=features_indices,  # type: ignore[arg-type]
-                                                               X=X,
-                                                               response_method=response_method)
+                                                               X=X)
 
             # reshape `predictions` to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
             predictions = predictions.reshape(-1, X.shape[0], *[val.shape[0] for val in values])
@@ -601,9 +581,7 @@ class PartialDependence(Explainer):
     def _pd_brute(self,
                   grid: np.ndarray,
                   features: np.ndarray,
-                  X: np.ndarray,
-                  response_method: Literal['auto', 'predict_proba', 'decision_function'] = 'auto'
-                  ) -> Tuple[np.ndarray, np.ndarray]:
+                  X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
         Computes the partial dependence using the brute method. Code borrowed from:
         https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
@@ -614,7 +592,7 @@ class PartialDependence(Explainer):
             Cartesian product between feature values. Covers also the case of a single feature.
         features
             Feature column indices.
-        X, response_method
+        X
              See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
 
         Returns
@@ -631,20 +609,10 @@ class PartialDependence(Explainer):
             else:
                 predict_proba = getattr(self.predictor, "predict_proba", None)
                 decision_function = getattr(self.predictor, "decision_function", None)
-
-                if response_method == "auto":
-                    # try predict_proba, then decision_function if it doesn't exist
-                    prediction_method = predict_proba or decision_function
-                else:
-                    prediction_method = predict_proba if response_method == "predict_proba" else decision_function
+                prediction_method = predict_proba if self.response_method == "predict_proba" else decision_function
 
                 if prediction_method is None:
-                    if response_method == "auto":
-                        raise ValueError("The predictor has no `predict_proba` and no `decision_function` method.")
-                    elif response_method == "predict_proba":
-                        raise ValueError("The predictor has no `predict_proba` method.")
-                    else:
-                        raise ValueError("The predictor has no `decision_function` method.")
+                    raise ValueError(f"The predictor has no `{self.response_method}` method.")
         else:
             # black-box case
             prediction_method = self.predictor

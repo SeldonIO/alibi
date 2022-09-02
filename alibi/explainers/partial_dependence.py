@@ -247,11 +247,16 @@ class PartialDependence(Explainer):
             )
 
         # set the `target_names` when the user did not provide the target names
-        # we do it here to avoid checking model's type, prediction function etc
+        # we do it here to avoid checking model's type, prediction function etc.
+        key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
+        n_targets = pds[0][key].shape[0]
+
         if self.target_names is None:
-            key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
-            n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
+        elif len(self.target_names) != n_targets:
+            # check if we are in the binary classification case in which we have a single target name
+            # but two possible targets, one for the negative class and one for the positive class
+            self.target_names *= 2
 
         # update `meta['params']` here because until this point we don't have the `target_names`
         self.meta['params'].update(response_method=response_method,

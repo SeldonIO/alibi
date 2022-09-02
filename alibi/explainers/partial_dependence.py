@@ -143,6 +143,8 @@ class PartialDependence(Explainer):
              conditional expectation (ICE) by design, it is incompatible with ICE and the `kind` parameter must \
              be set to ``'average'``. Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
 
+            Default value ``'brute'``.
+
              .. _sklearn documentation:
                 https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
 
@@ -152,7 +154,7 @@ class PartialDependence(Explainer):
             returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and
             the ICE are returned. Note that for the faster ``method='recursion'`` option the only compatible parameter
             value is ``kind='average'``. To plot the ICE, consider using the more computationally intensive
-            ``method='brute'``.
+            ``method='brute'``. Default value ``'average'``.
         percentiles
             Lower and upper percentiles used to limit the feature values to potentially remove outliers from
             low-density regions. Note that for features with not many data points with large/low values, the
@@ -282,7 +284,7 @@ class PartialDependence(Explainer):
                              f"values are ``None`` or {get_options_string(ResponseMethod)}.")
 
         if is_regressor(self.predictor) and (self.response_method is not None):
-            raise ValueError(f"The `response_method` parameter must be ``None`` for regressor.")
+            raise ValueError("The `response_method` parameter must be ``None`` for regressor.")
 
     def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, Union[List, np.ndarray]]], n_features: int):
         """
@@ -717,7 +719,7 @@ def plot_pd(exp: Explanation,
             target: Union[str, int] = 0,
             n_cols: int = 3,
             n_ice: Union[Literal['all'], int, List[int]] = 'all',
-            center: bool = True,
+            center: bool = False,
             levels: int = 8,
             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
             sharey: Optional[Literal['all', 'row']] = 'all',
@@ -991,10 +993,10 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
 
 
 def _process_pd_ice(exp: Explanation,
-                    pd_values: Optional[np.ndarray],
-                    ice_values: Optional[np.ndarray],
-                    n_ice: int,
-                    center: bool) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
+                    pd_values: Optional[np.ndarray] = None,
+                    ice_values: Optional[np.ndarray] = None,
+                    n_ice: Union[Literal['all'], int, List[int]] = 'all',
+                    center: bool = False) -> Tuple[Optional[np.ndarray], Optional[np.ndarray]]:
     """
     Process the `pd_values` and `ice_values` before plotting. Centers the plots if necessary and samples
     the `ice_values` for visualization purposes.
@@ -1016,12 +1018,12 @@ def _process_pd_ice(exp: Explanation,
     """
     # pdp processing
     if exp.meta['params']['kind'] in [Kind.AVERAGE, Kind.BOTH] and center:
-        pd_values = pd_values - pd_values[0]
+        pd_values = pd_values - pd_values[0]  # type: ignore[index]
 
     # ice processing
     if exp.meta['params']['kind'] in [Kind.INDIVIDUAL, Kind.BOTH]:
         # sample ice values for visualization purposes
-        ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)
+        ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)  # type: ignore[arg-type]
 
         # extract and center ice values if necessary
         if center:
@@ -1035,7 +1037,7 @@ def _process_pd_ice(exp: Explanation,
 def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
-                     center: bool = True,
+                     center: bool = False,
                      n_ice: Union[Literal['all'], int, List[int]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
@@ -1109,7 +1111,7 @@ def _plot_one_pd_num(exp: Explanation,
 def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
-                     center: bool = True,
+                     center: bool = False,
                      n_ice: Union[Literal['all'], int, List[str]] = 'all',
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,

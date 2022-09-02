@@ -82,6 +82,15 @@ class PartialDependence(Explainer):
             A list of target/output names used for displaying results.
         verbose
             Whether to print the progress of the explainer.
+
+        Notes
+        -----
+        The length of the `target_names` should match the number of columns returned by a call to the `predictor`.
+        For example, in the case of a binary classifier, if the predictor outputs a decision score (i.e. uses
+        the `decision_function` method) which returns one column, then the length of the `target_names` should be one.
+        On the other hand, if the predictor outputs a prediction probability (i.e. uses the `predict_proba` method)
+        which returns two columns (one for the negative class and one for the positive class), then the length of
+        the `target_names` should be two.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
         self.verbose = verbose
@@ -246,17 +255,12 @@ class PartialDependence(Explainer):
                 )
             )
 
-        # set the `target_names` when the user did not provide the target names
-        # we do it here to avoid checking model's type, prediction function etc.
-        key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
-        n_targets = pds[0][key].shape[0]
-
         if self.target_names is None:
+            # set the `target_names` when the user did not provide the target names
+            # we do it here to avoid checking model's type, prediction function etc.
+            key = Kind.AVERAGE if kind in [Kind.AVERAGE, Kind.BOTH] else Kind.INDIVIDUAL
+            n_targets = pds[0][key].shape[0]
             self.target_names = [f'c_{i}' for i in range(n_targets)]
-        elif len(self.target_names) != n_targets:
-            # check if we are in the binary classification case in which we have a single target name
-            # but two possible targets, one for the negative class and one for the positive class
-            self.target_names *= 2
 
         # update `meta['params']` here because until this point we don't have the `target_names`
         self.meta['params'].update(response_method=response_method,

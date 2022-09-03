@@ -89,7 +89,7 @@ def test_unknown_kind(rf_classifier, kind):
     predictor, _ = rf_classifier
     explainer = PartialDependence(predictor=predictor.predict_proba,)
     with pytest.raises(ValueError) as err:
-        explainer._sanity_check(kind=kind)
+        explainer.explain(X=None, kind=kind)
     assert re.search("``kind=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
 
 

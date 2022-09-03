@@ -122,14 +122,13 @@ class PartialDependenceBase(Explainer):
             using the `percentiles` argument.
         grid_points
             Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
-            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
-            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
-            then the grid will be constructed based on the unique target feature values available in the reference
+            monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
+            categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the
             dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
             it applies). For categorical features, the corresponding value in the `grid_points` can be
-            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
-            encodings. Note that the label encoding must match the ordering of the values provided in the
-            `categorical_names`.
+            specified either as array of strings or array of integers corresponding the label encodings.
+            Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
 
         Returns
         -------
@@ -217,7 +216,7 @@ class PartialDependenceBase(Explainer):
         Parameters
         ----------
         grid_points
-            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain`.
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain`.
         n_features
             Number of features in the dataset.
         """
@@ -322,7 +321,7 @@ class PartialDependenceBase(Explainer):
             deciles_f = get_quantiles(X_f, num_quantiles=11) if self._is_numerical(f) else None
 
             if f not in grid_points:
-                # construct grid for feature f. Note that for categorical features we pass the
+                # construct grid for feature `f`. Note that for categorical features we pass the
                 # grid resolution to be infinity because otherwise we risk to apply `linspace` to
                 # categorical values, which does not make sense.
                 values_f = self._grid_from_X(
@@ -473,13 +472,12 @@ class PartialDependenceBase(Explainer):
         Parameters
         ----------
         kind
-            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain` method.
         feature_names
             List of feature of pairs of features for which the partial dependencies/individual conditional expectation
             were computed.
         pds
-            List of dictionary containing the partial dependencies/individual conditional expectation. For
-            more details see :py:meth:`alibi.explainers.partial_dependence.PartialDependence._partial_dependence`.
+            List of dictionary containing the partial dependencies/individual conditional expectation.
 
         Returns
         -------
@@ -550,6 +548,9 @@ class PartialDependence(PartialDependenceBase, ABC):
         which returns two columns (one for the negative class and one for the positive class), then the length of
         the `target_names` should be two.
         """
+        if not callable(predictor):
+            raise ValueError("The predictor must be a callable.")
+
         super().__init__(predictor=predictor,
                          feature_names=feature_names,
                          categorical_names=categorical_names,
@@ -601,14 +602,13 @@ class PartialDependence(PartialDependenceBase, ABC):
             using the `percentiles` argument.
         grid_points
             Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
-            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
-            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
-            then the grid will be constructed based on the unique target feature values available in the reference
+            monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
+            categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the
             dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
             it applies). For categorical features, the corresponding value in the `grid_points` can be
-            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
-            encodings. Note that the label encoding must match the ordering of the values provided in the
-            `categorical_names`.
+            specified either as array of strings or array of integers corresponding the label encodings.
+            Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
 
         Returns
         -------
@@ -619,19 +619,17 @@ class PartialDependence(PartialDependenceBase, ABC):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
         """
-        self._sanity_check(kind=kind)
+        # kind` param sanity check.
+        if kind not in Kind.__members__.values():
+            raise ValueError(f"``kind='{kind}'`` is invalid. "
+                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
+
         return super().explain(X=X,
                                features=features,
                                kind=kind,
                                percentiles=percentiles,
                                grid_resolution=grid_resolution,
                                grid_points=grid_points)
-
-    def _sanity_check(self, kind):
-        # kind` param sanity check.
-        if kind not in Kind.__members__.values():
-            raise ValueError(f"``kind='{kind}'`` is invalid. "
-                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
 
     def _compute_pd(self,
                     grid: np.ndarray,
@@ -791,14 +789,13 @@ class TreePartialDependence(PartialDependenceBase, ABC):
             using the `percentiles` argument.
         grid_points
             Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
-            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
-            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
-            then the grid will be constructed based on the unique target feature values available in the reference
+            monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
+            categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the
             dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
             it applies). For categorical features, the corresponding value in the `grid_points` can be
-            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
-            encodings. Note that the label encoding must match the ordering of the values provided in the
-            `categorical_names`.
+            specified either as array of strings or array of integers corresponding the label encodings.
+            Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
         """
         return super().explain(X=X,
                                features=features,

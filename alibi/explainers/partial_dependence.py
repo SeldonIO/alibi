@@ -35,12 +35,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-class Method(str, Enum):
-    """ Enumeration of supported method. """
-    RECURSION = 'recursion'
-    BRUTE = 'brute'
-
-
 class Kind(str, Enum):
     """ Enumeration of supported kind. """
     AVERAGE = 'average'
@@ -347,7 +341,7 @@ class PartialDependenceBase(Explainer):
         features_indices = np.array(features_indices, dtype=np.int32)  # type: ignore[assignment]
         grid = cartesian([v.reshape(-1) for v in values])
 
-        # compute the PD and ICE
+        # compute the PD and ICE - separate implementation for `PartialDependence` and `TreePartialDependence`
         averaged_predictions, predictions = self._compute_pd(grid=grid,
                                                              features=features_indices,  # type: ignore[arg-type]
                                                              X=X)
@@ -808,7 +802,7 @@ class TreePartialDependence(PartialDependenceBase, ABC):
         """
         return super().explain(X=X,
                                features=features,
-                               kind='average',  # only `'average'` is supported for `'recursion'` method.
+                               kind=Kind.AVERAGE.value,  # only `'average'` is supported for `'recursion'` method.
                                percentiles=percentiles,
                                grid_resolution=grid_resolution,
                                grid_points=grid_points)

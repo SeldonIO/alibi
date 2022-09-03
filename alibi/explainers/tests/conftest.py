@@ -7,7 +7,6 @@ import numpy as np
 
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.svm import SVC
 
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular

@@ -6,6 +6,7 @@ import sys
 from enum import Enum
 from typing import (Any, Callable, Dict, Iterable, List, Optional, Tuple,
                     Union, no_type_check)
+from abc import abstractmethod, ABC
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -33,12 +34,6 @@ else:
 logger = logging.getLogger(__name__)
 
 
-class ResponseMethod(str, Enum):
-    """ Enumeration of supported response_method. """
-    PREDICT_PROBA = 'predict_proba'
-    DECISION_FUNCTION = 'decision_function'
-
-
 class Method(str, Enum):
     """ Enumeration of supported method. """
     RECURSION = 'recursion'
@@ -52,16 +47,15 @@ class Kind(str, Enum):
     BOTH = 'both'
 
 
-class PartialDependence(Explainer):
+class PartialDependenceBase(Explainer):
     def __init__(self,
                  predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
-                 response_method: Optional[Literal['predict_proba', 'decision_function']] = None,
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None,
                  verbose: bool = False):
         """
-        Partial dependence for tabular datasets. Supports one feature or two feature interactions.
+        Base class of the partial dependence for tabular datasets. Supports multiple feature interactions.
 
         Parameters
         ----------
@@ -69,11 +63,6 @@ class PartialDependence(Explainer):
             A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F`
             and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
             instances, `F` is the number of features and `T` is the number of targets.
-        response_method
-            Specifies the prediction function to be used. For a classifier it specifies whether to use the
-            `predict_proba` or the `decision_function` method. For a regressor, the parameter is ignored.
-            If ``method='recursion'``, the prediction function must be set to `decision_function`.
-            Used for `sklearn` models.
         feature_names
             A list of feature names used for displaying results.
         categorical_names
@@ -86,32 +75,17 @@ class PartialDependence(Explainer):
             A list of target/output names used for displaying results.
         verbose
             Whether to print the progress of the explainer.
-
-        Notes
-        -----
-        The length of the `target_names` should match the number of columns returned by a call to the `predictor`.
-        For example, in the case of a binary classifier, if the predictor outputs a decision score (i.e. uses
-        the `decision_function` method) which returns one column, then the length of the `target_names` should be one.
-        On the other hand, if the predictor outputs a prediction probability (i.e. uses the `predict_proba` method)
-        which returns two columns (one for the negative class and one for the positive class), then the length of
-        the `target_names` should be two.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PD))
-        self.verbose = verbose
+        self.predictor = predictor
         self.feature_names = feature_names
         self.categorical_names = categorical_names
         self.target_names = target_names
-        self.predictor = predictor
-        self.response_method = response_method
-
-        # perform sanity checks on the `sklearn` predictor
-        if isinstance(predictor, BaseEstimator):
-            self._sklearn_model_sanity_checks()
+        self.verbose = verbose
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 features: Optional[List[Union[int, Tuple[int, int]]]] = None,
-                method: Literal['brute', 'recursion'] = 'brute',
                 kind: Literal['average', 'individual', 'both'] = 'average',
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
@@ -130,31 +104,11 @@ class PartialDependence(Explainer):
             If not provided, the partial dependence will be computed for every single features in the dataset.
             Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
-        method
-            The method used to calculate the partial dependence (i.e., the marginal effect one or two features have
-            on the outcome of the predictor):
-
-             - ``'brute'`` - supported for any `sklearn` and black-box prediction model, but is more \
-             computationally intensive.
-
-             - ``'recursion'`` - a faster alternative only supported by some tree-based `sklearn` models. For a \
-             classifier, the target response is always the decision function and NOT the predicted probabilities. \
-             Furthermore, since the ``'recursion'`` method computes implicitly the average of the individual \
-             conditional expectation (ICE) by design, it is incompatible with ICE and the `kind` parameter must \
-             be set to ``'average'``. Check the `sklearn documentation`_ for a list of supported tree-based classifiers.
-
-            Default value ``'brute'``.
-
-             .. _sklearn documentation:
-                https://scikit-learn.org/stable/modules/generated/sklearn.inspection.partial_dependence.html#sklearn.inspection.partial_dependence
-
         kind
             If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
             is returned. If set to ``'individual'``, then only the individual conditional expectation (ICE) is
             returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and
-            the ICE are returned. Note that for the faster ``method='recursion'`` option the only compatible parameter
-            value is ``kind='average'``. To plot the ICE, consider using the more computationally intensive
-            ``method='brute'``. Default value ``'average'``.
+            the ICE are returned.
         percentiles
             Lower and upper percentiles used to limit the feature values to potentially remove outliers from
             low-density regions. Note that for features with not many data points with large/low values, the
@@ -207,15 +161,7 @@ class PartialDependence(Explainer):
         self._grid_points_sanity_checks(grid_points=grid_points, n_features=n_features)
         self._features_sanity_checks(features=features)
 
-        if isinstance(self.predictor, BaseEstimator):
-            # sanity checks for `sklearn` models. Note that the `method` can change in the function.
-            # That's why we returned them (`kind` is returned for consistency).
-            method, kind = self._sklearn_params_sanity_checks(method=method, kind=kind)  # type: ignore[assignment]
-        else:
-            # sanity checks for a black-box model
-            PartialDependence._blackbox_params_sanity_checks(method=method)
-
-        # construct `feature_names` based on the `features`. If `features` is `None`, then initialize
+        # construct `feature_names` based on the `features`. If `features` is ``None``, then initialize
         # `features` with all single feature available in the dataset.
         if features:
             feature_names = [tuple([self.feature_names[f] for f in features])
@@ -234,7 +180,6 @@ class PartialDependence(Explainer):
                 self._partial_dependence(
                     X=X,
                     features=ifeatures,
-                    method=method,
                     kind=kind,
                     percentiles=percentiles,
                     grid_resolution=grid_resolution,
@@ -257,9 +202,7 @@ class PartialDependence(Explainer):
                            'raise an error or produce undesired labeling.')
 
         # update `meta['params']` here because until this point we don't have the `target_names`
-        self.meta['params'].update(response_method=self.response_method,
-                                   method=method,
-                                   kind=kind,
+        self.meta['params'].update(kind=kind,
                                    percentiles=percentiles,
                                    grid_resolution=grid_resolution,
                                    feature_names=self.feature_names,
@@ -269,23 +212,6 @@ class PartialDependence(Explainer):
         return self._build_explanation(kind=kind,
                                        feature_names=feature_names,  # type: ignore[arg-type]
                                        pds=pds)
-
-    def _sklearn_model_sanity_checks(self):
-        """ Model sanity checks. """
-        check_is_fitted(self.predictor)
-
-        if not (is_classifier(self.predictor) or is_regressor(self.predictor)):
-            raise ValueError('The predictor must be a fitted regressor or a fitted classifier.')
-
-        if is_classifier(self.predictor) and isinstance(self.predictor.classes_[0], np.ndarray):
-            raise ValueError('Multiclass-multioutput predictors are not supported.')
-
-        if (self.response_method is not None) and (self.response_method not in ResponseMethod.__members__.values()):
-            raise ValueError(f"``response_method='{self.response_method}'`` is invalid. Accepted `response_method` "
-                             f"values are ``None`` or {get_options_string(ResponseMethod)}.")
-
-        if is_regressor(self.predictor) and (self.response_method is not None):
-            raise ValueError("The `response_method` parameter must be ``None`` for regressor.")
 
     def _grid_points_sanity_checks(self, grid_points: Optional[Dict[int, Union[List, np.ndarray]]], n_features: int):
         """
@@ -354,88 +280,21 @@ class PartialDependence(Explainer):
             if f < 0:
                 raise ValueError(f'All feature entries must be greater or equal to 0. Got a feature value of {f}.')
 
-        for f in features:
-            if isinstance(f, tuple):
-                if len(f) != 2:
+        for feat in features:
+            if isinstance(feat, tuple):
+                if len(feat) != 2:
                     raise ValueError(f'Current implementation of the partial dependence supports a maximum of two '
-                                     f'features at a time when a tuple is passed. Received {len(f)} features with the '
-                                     f'values {f}.')
+                                     f'features at a time when a tuple is passed. Received {len(feat)} features '
+                                     f'with the values {feat}.')
 
-                check_feature(f[0])
-                check_feature(f[1])
+                check_feature(feat[0])
+                check_feature(feat[1])
             else:
-                check_feature(f)
-
-    @staticmethod
-    def _blackbox_params_sanity_checks(method: Literal['recursion', 'brute'] = 'brute') -> None:
-        """
-        Parameters sanity checks for black-box models.
-
-        Parameters
-        ----------
-        method
-            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
-        """
-        if method != Method.BRUTE:
-            raise ValueError(f"For a black-box model, the ``method='{method}'`` is invalid. "
-                             f"The `method` value must be '{Method.BRUTE}'.")
-
-    def _sklearn_params_sanity_checks(self,
-                                      method: Literal['recursion', 'brute'] = 'brute',
-                                      kind: Literal['average', 'individual', 'both'] = 'average'
-                                      ) -> Tuple[str, str]:
-        """
-        Parameters sanity checks for `sklearn` models. Most of the code is borrowed from:
-        https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
-
-        Parameters
-        ----------
-        method, kind
-            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
-
-        Returns
-        -------
-        Update parameters `(method, kind)`.
-        """
-        if method not in Method.__members__.values():
-            raise ValueError(f"``method='{method}'`` is invalid. "
-                             f"Accepted `method` names are: {get_options_string(Method)}.")
-
-        if kind not in Kind.__members__.values():
-            raise ValueError(f"``kind='{kind}'`` is invalid. "
-                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
-
-        if kind != Kind.AVERAGE:
-            if method == Method.RECURSION:
-                raise ValueError(f"If ``method='{Method.RECURSION}'``, then the `kind` value "
-                                 f"must be '{Kind.AVERAGE}'. Got '{kind}'.")
-            method = Method.BRUTE.value  # type: ignore
-
-        if method == Method.RECURSION:
-            if not isinstance(self.predictor, (BaseGradientBoosting, BaseHistGradientBoosting, DecisionTreeRegressor,
-                                               RandomForestRegressor)):
-                supported_classes_recursion = (
-                    "GradientBoostingClassifier",
-                    "GradientBoostingRegressor",
-                    "HistGradientBoostingClassifier",
-                    "HistGradientBoostingRegressor",
-                    "HistGradientBoostingRegressor",
-                    "DecisionTreeRegressor",
-                    "RandomForestRegressor",
-                )
-                raise ValueError(f"``method='recursion'`` is only supported by the following estimators: "
-                                 f"{supported_classes_recursion}. Try using method='{Method.BRUTE}'.")
-
-            if self.response_method != ResponseMethod.DECISION_FUNCTION:
-                raise ValueError(f"If ``method='{Method.RECURSION}'``, then the `response_method` value must be "
-                                 f"'{ResponseMethod.DECISION_FUNCTION}'. Got '{self.response_method}'.")
-
-        return method, kind
+                check_feature(feat)
 
     def _partial_dependence(self,
                             X: np.ndarray,
                             features: Union[int, Tuple[int, int]],
-                            method: Literal['recursion', 'brute'] = 'brute',
                             kind: Literal['average', 'individual', 'both'] = 'average',
                             percentiles: Tuple[float, float] = (0.05, 0.95),
                             grid_resolution: int = 100,
@@ -447,7 +306,7 @@ class PartialDependence(Explainer):
         Parameters
         ----------
         X, method, kind, percentiles, grid_resolution, grid_points
-            See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain` method.
         features
             A feature or pairs of features for which to calculate the partial dependence.
 
@@ -490,20 +349,17 @@ class PartialDependence(Explainer):
         features_indices = np.array(features_indices, dtype=np.int32)  # type: ignore[assignment]
         grid = cartesian([v.reshape(-1) for v in values])
 
-        if method == "brute":
-            averaged_predictions, predictions = self._pd_brute(grid=grid,
-                                                               features=features_indices,  # type: ignore[arg-type]
-                                                               X=X)
-
-            # reshape `predictions` to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
-            predictions = predictions.reshape(-1, X.shape[0], *[val.shape[0] for val in values])
-        else:
-            averaged_predictions = self.predictor._compute_partial_dependence_recursion(  # type: ignore[union-attr]
-                grid, features_indices
-            )
+        # compute the PD and ICE
+        averaged_predictions, predictions = self._compute_pd(grid=grid,
+                                                             features=features_indices,  # type: ignore[arg-type]
+                                                             X=X)
 
         # reshape `averaged_predictions` to (n_outputs, n_values_feature_0, n_values_feature_1, ...)
         averaged_predictions = averaged_predictions.reshape(-1, *[val.shape[0] for val in values])
+
+        if predictions is not None:
+            # reshape `predictions` to (n_outputs, n_instances, n_values_feature_0, n_values_feature_1, ...)
+            predictions = predictions.reshape(-1, X.shape[0], *[val.shape[0] for val in values])
 
         # define feature values (i.e. grid values) and the corresponding deciles. Note that the deciles
         # were computed on the raw (i.e. unprocessed) feature value as provided in the reference dataset `X`
@@ -522,6 +378,29 @@ class PartialDependence(Explainer):
                 'individual': predictions
             })
         return pd
+
+    @abstractmethod
+    def _compute_pd(self,
+                    grid: np.ndarray,
+                    features: np.ndarray,
+                    X: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Computes the PD and ICE.
+
+        Parameters
+        ----------
+        grid
+            Cartesian product between feature values. Covers also the case of a single feature.
+        features
+            Feature column indices.
+        X
+            See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain`.
+
+        Returns
+        -------
+        Tuple consisting of the PD and optionally the ICE.
+        """
+        raise NotImplementedError()
 
     def _grid_from_X(self, X: np.ndarray, percentiles: Tuple[float, float], grid_resolution: int):
         """
@@ -576,66 +455,6 @@ class PartialDependence(Explainer):
 
             values.append(axis)
         return values
-
-    def _pd_brute(self,
-                  grid: np.ndarray,
-                  features: np.ndarray,
-                  X: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Computes the partial dependence using the brute method. Code borrowed from:
-        https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
-
-        Parameters
-        --------
-        grid
-            Cartesian product between feature values. Covers also the case of a single feature.
-        features
-            Feature column indices.
-        X
-             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
-
-        Returns
-        -------
-        Partial dependence for the given features.
-        """
-        predictions = []
-        averaged_predictions = []
-
-        if isinstance(self.predictor, BaseEstimator):
-            # `sklearn` case. Define the `prediction_method` ('predict', 'predict_proba', 'decision_function').
-            if is_regressor(self.predictor):
-                prediction_method = self.predictor.predict
-            else:
-                predict_proba = getattr(self.predictor, "predict_proba", None)
-                decision_function = getattr(self.predictor, "decision_function", None)
-                prediction_method = predict_proba if self.response_method == "predict_proba" else decision_function
-
-                if prediction_method is None:
-                    raise ValueError(f"The predictor has no `{self.response_method}` method.")
-        else:
-            # black-box case
-            prediction_method = self.predictor
-
-        X_eval = X.copy()
-        for grid_values in grid:
-            X_eval[:, features] = grid_values
-
-            # Note: predictions is of shape
-            # (n_points,) for non-multioutput regressors
-            # (n_points, n_tasks) for multioutput regressors
-            # (n_points, 1) for the regressors in cross_decomposition (I think)
-            # (n_points, 2) for binary classification
-            # (n_points, n_classes) for multiclass classification
-            pred = prediction_method(X_eval)
-            predictions.append(pred)
-
-            # average over samples
-            averaged_predictions.append(np.mean(pred, axis=0))
-
-        # cast to `np.ndarray` and transpose
-        predictions = np.array(predictions).T  # type: ignore[assignment]
-        averaged_predictions = np.array(averaged_predictions).T  # type: ignore[assignment]
-        return averaged_predictions, predictions  # type: ignore[return-value]
 
     def _is_numerical(self, feature):
         """
@@ -697,16 +516,316 @@ class PartialDependence(Explainer):
         )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-    def reset_predictor(self, predictor: Any) -> None:
+
+class PartialDependence(PartialDependenceBase, ABC):
+    """ Black-box implementation of partial dependence for tabular datasets.
+    Supports multiple feature interactions. """
+
+    def __init__(self,
+                 predictor: Callable[[np.ndarray], np.ndarray],
+                 feature_names: Optional[List[str]] = None,
+                 categorical_names: Optional[Dict[int, List[str]]] = None,
+                 target_names: Optional[List[str]] = None,
+                 verbose: bool = False):
         """
-        Resets the predictor function
+        Initialize black-box model implementation of partial dependence.
 
         Parameters
         ----------
         predictor
-            New `sklearn` estimator.
+            A prediction function which receives as input a `numpy` array of size `N x F` and outputs a
+            `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
+            instances, `F` is the number of features and `T` is the number of targets.
+        feature_names
+            A list of feature names used for displaying results.
+        categorical_names
+            Dictionary where keys are feature columns and values are the categories for the feature. Necessary to
+            identify the categorical features in the dataset. An example for `categorical_names` would be::
+
+                category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]}
+
+        target_names
+            A list of target/output names used for displaying results.
+        verbose
+            Whether to print the progress of the explainer.
+
+        Notes
+        -----
+        The length of the `target_names` should match the number of columns returned by a call to the `predictor`.
+        For example, in the case of a binary classifier, if the predictor outputs a decision score (i.e. uses
+        the `decision_function` method) which returns one column, then the length of the `target_names` should be one.
+        On the other hand, if the predictor outputs a prediction probability (i.e. uses the `predict_proba` method)
+        which returns two columns (one for the negative class and one for the positive class), then the length of
+        the `target_names` should be two.
         """
-        self.predictor = predictor
+        super().__init__(predictor=predictor,
+                         feature_names=feature_names,
+                         categorical_names=categorical_names,
+                         target_names=target_names,
+                         verbose=verbose)
+
+    def explain(self,  # type: ignore[override]
+                X: np.ndarray,
+                features: Optional[List[Union[int, Tuple[int, int]]]] = None,
+                kind: Literal['average', 'individual', 'both'] = 'average',
+                percentiles: Tuple[float, float] = (0., 1.),
+                grid_resolution: int = 100,
+                grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
+
+        """
+        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        and the reference dataset `X`.
+
+        Parameters
+        ----------
+        X
+            A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
+            training dataset or a representative sample.
+        features
+            An optional list of features or pairs of features for which to calculate the partial dependence.
+            If not provided, the partial dependence will be computed for every single features in the dataset.
+            Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+            ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+        kind
+            If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset
+            is returned. If set to ``'individual'``, then only the individual conditional expectation (ICE) is
+            returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and
+            the ICE are returned.
+        percentiles
+            Lower and upper percentiles used to limit the feature values to potentially remove outliers from
+            low-density regions. Note that for features with not many data points with large/low values, the
+            PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
+            with `grid_resolution`.
+        grid_resolution
+            Number of equidistant points to split the range of each target feature. Only applies if the number of
+            unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
+            For example, consider a case where a feature can take the following values:
+            ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
+            interested in evaluating the marginal effect at every single point as it can become computationally costly
+            (assume hundreds/thousands of points) without providing any additional information for nearby points
+            (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
+            ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
+            insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
+            using the `percentiles` argument.
+        grid_points
+            Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
+            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
+            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the reference
+            dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
+            it applies). For categorical features, the corresponding value in the `grid_points` can be
+            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
+            encodings. Note that the label encoding must match the ordering of the values provided in the
+            `categorical_names`.
+
+        Returns
+        -------
+        explanation
+            An `Explanation` object containing the data and the metadata of the calculated partial dependence
+            curves. See usage at `Partial dependence examples`_ for details
+
+            .. _Partial dependence examples:
+                https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
+        """
+        return super().explain(X=X,
+                               features=features,
+                               kind=kind,
+                               percentiles=percentiles,
+                               grid_resolution=grid_resolution,
+                               grid_points=grid_points)
+
+    def _compute_pd(self,
+                    grid: np.ndarray,
+                    features: np.ndarray,
+                    X: np.ndarray) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Computes the partial dependence using the brute method. Code borrowed from:
+        https://github.com/scikit-learn/scikit-learn/blob/baf0ea25d/sklearn/inspection/_partial_dependence.py
+
+        Parameters
+        --------
+        grid
+            Cartesian product between feature values. Covers also the case of a single feature.
+        features
+            Feature column indices.
+        X
+             See :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+
+        Returns
+        -------
+        Partial dependence for the given features.
+        """
+        predictions = []
+        averaged_predictions = []
+        X_eval = X.copy()
+
+        for grid_values in grid:
+            X_eval[:, features] = grid_values
+
+            # Note: predictions is of shape
+            # (n_points,) for non-multioutput regressors
+            # (n_points, n_tasks) for multioutput regressors
+            # (n_points, 1) for the regressors in cross_decomposition (I think)
+            # (n_points, 2) for binary classification
+            # (n_points, n_classes) for multiclass classification
+            pred = self.predictor(X_eval)
+            predictions.append(pred)
+
+            # average over samples
+            averaged_predictions.append(np.mean(pred, axis=0))
+
+        # cast to `np.ndarray` and transpose
+        predictions = np.array(predictions).T  # type: ignore[assignment]
+        averaged_predictions = np.array(averaged_predictions).T  # type: ignore[assignment]
+        return averaged_predictions, predictions  # type: ignore[return-value]
+
+
+class TreePartialDependence(PartialDependenceBase, ABC):
+    """ Tree-based model `sklearn`  implementation of the partial dependence for tabular datasets.
+    Supports multiple feature interactions. This method is faster than the general black-box implementation
+    but is only supported by some tree-based estimators. The computation is based on a weighted tree traversal.
+    For more details on the computation, check the `sklearn documentation page`_.
+
+    .. _sklearn documentation page:
+            https://scikit-learn.org/stable/modules/partial_dependence.html#computation-methods
+    """
+    def __init__(self,
+                 predictor: BaseEstimator,
+                 feature_names: Optional[List[str]] = None,
+                 categorical_names: Optional[Dict[int, List[str]]] = None,
+                 target_names: Optional[List[str]] = None,
+                 verbose: bool = False):
+        """
+        Initialize tree-based model `sklearn` implementation of partial dependence.
+
+        Parameters
+        ----------
+        predictor
+            A tree-based `sklearn` estimator.
+        feature_names
+            A list of feature names used for displaying results.
+        categorical_names
+            Dictionary where keys are feature columns and values are the categories for the feature. Necessary to
+            identify the categorical features in the dataset. An example for `categorical_names` would be::
+
+                category_map = {0: ["married", "divorced"], 3: ["high school diploma", "master's degree"]}
+
+        target_names
+            A list of target/output names used for displaying results.
+        verbose
+            Whether to print the progress of the explainer.
+        """
+        super().__init__(predictor=predictor,
+                         feature_names=feature_names,
+                         categorical_names=categorical_names,
+                         target_names=target_names,
+                         verbose=verbose)
+
+        # perform sanity checks on the `sklearn` predictor
+        if isinstance(predictor, BaseEstimator):
+            self._sklearn_model_sanity_checks()
+
+    def _sklearn_model_sanity_checks(self):
+        """ Model sanity checks. """
+        check_is_fitted(self.predictor)
+
+        if not (is_classifier(self.predictor) or is_regressor(self.predictor)):
+            raise ValueError('The predictor must be a fitted regressor or a fitted classifier.')
+
+        if is_classifier(self.predictor) and isinstance(self.predictor.classes_[0], np.ndarray):
+            raise ValueError('Multiclass-multioutput predictors are not supported.')
+
+        if not isinstance(self.predictor, (BaseGradientBoosting,
+                                           BaseHistGradientBoosting,
+                                           DecisionTreeRegressor,
+                                           RandomForestRegressor)):
+            supported_classes_recursion = (
+                "GradientBoostingClassifier",
+                "GradientBoostingRegressor",
+                "HistGradientBoostingClassifier",
+                "HistGradientBoostingRegressor",
+                "HistGradientBoostingRegressor",
+                "DecisionTreeRegressor",
+                "RandomForestRegressor",
+            )
+            raise ValueError(f"``method='recursion'`` is only supported by the following estimators: "
+                             f"{supported_classes_recursion}. Try using method='{Method.BRUTE}'.")
+
+    def explain(self,  # type: ignore[override]
+                X: np.ndarray,
+                features: Optional[List[Union[int, Tuple[int, int]]]] = None,
+                percentiles: Tuple[float, float] = (0., 1.),
+                grid_resolution: int = 100,
+                grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
+        """
+        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        and the reference dataset `X`.
+
+        Parameters
+        ----------
+        X
+            A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
+            training dataset or a representative sample.
+        features
+            An optional list of features or pairs of features for which to calculate the partial dependence.
+            If not provided, the partial dependence will be computed for every single features in the dataset.
+            Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+            ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+        percentiles
+            Lower and upper percentiles used to limit the feature values to potentially remove outliers from
+            low-density regions. Note that for features with not many data points with large/low values, the
+            PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
+            with `grid_resolution`.
+        grid_resolution
+            Number of equidistant points to split the range of each target feature. Only applies if the number of
+            unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
+            For example, consider a case where a feature can take the following values:
+            ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
+            interested in evaluating the marginal effect at every single point as it can become computationally costly
+            (assume hundreds/thousands of points) without providing any additional information for nearby points
+            (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
+            ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
+            insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
+            using the `percentiles` argument.
+        grid_points
+            Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
+            monotonically increasing `numpy` arrays defining the grid points for a numerical feature, and
+            a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified,
+            then the grid will be constructed based on the unique target feature values available in the reference
+            dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
+            it applies). For categorical features, the corresponding value in the `grid_points` can be
+            specified either as `numpy` array of strings or `numpy` array of integers corresponding the label
+            encodings. Note that the label encoding must match the ordering of the values provided in the
+            `categorical_names`.
+        """
+        return super().explain(X=X,
+                               features=features,
+                               kind='average',  # only `'average'` is supported for `'recursion'` method.
+                               percentiles=percentiles,
+                               grid_resolution=grid_resolution,
+                               grid_points=grid_points)
+
+    def _compute_pd(self,
+                    grid: np.ndarray,
+                    features: np.ndarray,
+                    **kwargs) -> Tuple[np.ndarray, Optional[np.ndarray]]:
+        """
+        Computes the PD and ICE.
+
+        Parameters
+        ----------
+        grid
+            Cartesian product between feature values. Covers also the case of a single feature.
+        features
+            Feature column indices.
+        **kwargs
+            Other arguments. Not used.
+
+        Returns
+        -------
+        Tuple consisting of the PD and ``None``.
+        """
+        return self.predictor._compute_partial_dependence_recursion(grid, features), None
 
 
 # No type check due to the generic explanation object

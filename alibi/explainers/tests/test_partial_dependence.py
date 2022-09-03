@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from alibi.explainers import PartialDependence
+from alibi.explainers import PartialDependenceBase
 from alibi.explainers.partial_dependence import (Kind, Method, ResponseMethod,
                                                  _sample_ice)
 from pytest_lazyfixture import lazy_fixture
@@ -68,7 +68,7 @@ def multioutput_classifier(request):
 def test_unfitted_estimator(predictor):
     """ Checks if raises error for unfitted model. """
     with pytest.raises(NotFittedError) as err:
-        PartialDependence(predictor=predictor)
+        PartialDependenceBase(predictor=predictor)
     assert re.search('not fitted yet', err.value.args[0])
 
 
@@ -78,7 +78,7 @@ def test_multioutput_estimator(multioutput_classifier, multioutput_dataset):
     X_train, Y_train = multioutput_dataset['X_train'], multioutput_dataset['Y_train']
     multioutput_classifier.fit(X_train, Y_train)
     with pytest.raises(ValueError) as err:
-        PartialDependence(predictor=multioutput_classifier)
+        PartialDependenceBase(predictor=multioutput_classifier)
     assert re.search('multiclass-multioutput', err.value.args[0].lower())
 
 
@@ -88,7 +88,7 @@ def test_unknown_response_method(rf_classifier, response_method):
     """ Checks if raises error for unknown `response_method`. """
     predictor, _ = rf_classifier
     with pytest.raises(ValueError) as err:
-        PartialDependence(predictor=predictor, response_method=response_method)
+        PartialDependenceBase(predictor=predictor, response_method=response_method)
     assert re.search("``response_method=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
 
 
@@ -101,7 +101,7 @@ def test_estimator_response_method(rf_regressor, response_method):
     """ Checks if raises error for a regressor with a ``response_method!='auto'``. """
     predictor, _ = rf_regressor
     with pytest.raises(ValueError) as err:
-        PartialDependence(predictor=predictor, response_method=response_method)
+        PartialDependenceBase(predictor=predictor, response_method=response_method)
     assert re.search('The `response_method` parameter must be ``None`` for regressor.', err.value.args[0])
 
 
@@ -110,7 +110,7 @@ def test_estimator_response_method(rf_regressor, response_method):
 def test_unknown_method(rf_classifier, method):
     """ Checks if raises error for unknown `method`. """
     predictor, _ = rf_classifier
-    explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='predict_proba')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method=method)
     assert re.search("``method=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
@@ -121,7 +121,7 @@ def test_unknown_method(rf_classifier, method):
 def test_unknown_kind(rf_classifier, kind):
     """ Checks if raises error for unknown `kind`. """
     predictor, _ = rf_classifier
-    explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='predict_proba')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(kind=kind)
     assert re.search("``kind=\'\w+\'`` is invalid", err.value.args[0].lower())  # noqa: W605
@@ -133,7 +133,7 @@ def test_unknown_kind(rf_classifier, kind):
 def test_kind_method(rf_classifier, kind, method):
     """ Checks if raises error when ``method='recursion'`` and ``kind!='average'``. """
     predictor, _ = rf_classifier
-    explainer = PartialDependence(predictor, response_method='decision_function')
+    explainer = PartialDependenceBase(predictor, response_method='decision_function')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(kind=kind, method=method)
     assert re.search("then the `kind` value must be ", err.value.args[0].lower())
@@ -143,7 +143,7 @@ def test_kind_method(rf_classifier, kind, method):
 def test_unsupported_method_recursion(rf_classifier):
     """ Checks if raises error when the ``method='recursion'`` for a classifier which does not support it. """
     predictor, _ = rf_classifier
-    explainer = PartialDependence(predictor=predictor, response_method='decision_function')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='decision_function')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method=Method.RECURSION)
     assert re.search("``method='recursion'`` is only supported by", err.value.args[0].lower())
@@ -156,7 +156,7 @@ def test_method_recursion_response_method_predict_proba(predictor, iris_data):
     X_train, y_train = iris_data['X_train'], iris_data['y_train']
     predictor.fit(X_train, y_train)
 
-    explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='predict_proba')
     with pytest.raises(ValueError) as err:
         explainer._sklearn_params_sanity_checks(method='recursion')
     assert re.search('then the `response_method` value must be', err.value.args[0].lower())
@@ -173,9 +173,9 @@ def test_num_features(rf_classifier, iris_data, features):
     """ Checks if raises error when a requested partial dependence for a tuple containing more than two features or
     fewer than one. """
     predictor, _ = rf_classifier
-    explainer = PartialDependence(predictor=predictor,
-                                  response_method='predict_proba',
-                                  feature_names=list(range(iris_data['X_train'].shape[1])))
+    explainer = PartialDependenceBase(predictor=predictor,
+                                      response_method='predict_proba',
+                                      feature_names=list(range(iris_data['X_train'].shape[1])))
     with pytest.raises(ValueError):
         explainer._features_sanity_checks(features=features)
 
@@ -192,7 +192,7 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
     num_targets = len(np.unique(y_train))
     num_instances = len(X_train)
 
-    explainer = PartialDependence(predictor=predictor, response_method='predict_proba')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='predict_proba')
     exp = explainer.explain(X=X_train, features=features, grid_resolution=grid_resolution, kind='both')
 
     # check that the values returned match the number of requested features
@@ -256,7 +256,7 @@ def test_blackbox_regression(rf_regressor, boston_data, kind, features):
     X_train = boston_data['X_train']
 
     # define explainer and compute explanation
-    explainer = PartialDependence(predictor=rf.predict)
+    explainer = PartialDependenceBase(predictor=rf.predict)
     explainer.explain(X=X_train,
                       features=features,
                       grid_resolution=10,
@@ -277,7 +277,7 @@ def test_blackbox_classification(lr_classifier, iris_data, kind, features):
     lr, _ = lr_classifier
 
     # define explainer and compute explanation
-    explainer = PartialDependence(predictor=lr.predict_proba)
+    explainer = PartialDependenceBase(predictor=lr.predict_proba)
     explainer.explain(X=X_train,
                       features=features,
                       grid_resolution=10,
@@ -312,10 +312,10 @@ def test_grid_points(adult_data, rf_classifier, use_int):
         grid_points[i] = vals
 
     # define explainer
-    explainer = PartialDependence(predictor=rf_pipeline,
-                                  response_method='predict_proba',
-                                  feature_names=feature_names,
-                                  categorical_names=categorical_names)
+    explainer = PartialDependenceBase(predictor=rf_pipeline,
+                                      response_method='predict_proba',
+                                      feature_names=feature_names,
+                                      categorical_names=categorical_names)
 
     # compute explanation for every feature using the grid_points
     exp = explainer.explain(X=X_train[:100],
@@ -348,9 +348,9 @@ def test_grid_points_error(adult_data, use_int):
             grid_points[i] = np.append(grid_points[i], len(categorical_values) if use_int else '[UNK]')
 
     # define explainer
-    explainer = PartialDependence(predictor=lambda x: np.zeros(x.shape[0]),
-                                  feature_names=feature_names,
-                                  categorical_names=categorical_names)
+    explainer = PartialDependenceBase(predictor=lambda x: np.zeros(x.shape[0]),
+                                      feature_names=feature_names,
+                                      categorical_names=categorical_names)
 
     # compute explanation for every feature using the `grid_points`
     with pytest.raises(ValueError):
@@ -365,7 +365,7 @@ def test_binary_classifier_two_targets(lr_classifier, binary_data, response_meth
     lr, _ = lr_classifier
     X_train = binary_data['X_train']
 
-    explainer = PartialDependence(predictor=lr, response_method=response_method)
+    explainer = PartialDependenceBase(predictor=lr, response_method=response_method)
     exp = explainer.explain(X=X_train, method='brute', kind='both')
 
     for pd, ice in zip(exp.pd_values, exp.ice_values):
@@ -380,7 +380,7 @@ def test_binary_classifier_one_target(svc_classifier, binary_data):
     svc, _ = svc_classifier
     X_train = binary_data['X_train']
 
-    explainer = PartialDependence(predictor=svc)
+    explainer = PartialDependenceBase(predictor=svc)
     exp = explainer.explain(X=X_train, kind='both')
 
     for pd, ice in zip(exp.pd_values, exp.ice_values):
@@ -439,7 +439,7 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
     X_train = iris_data['X_train']
 
     # compute pd with `alibi`
-    explainer = PartialDependence(predictor=rf, response_method='predict_proba')
+    explainer = PartialDependenceBase(predictor=rf, response_method='predict_proba')
     exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compute pd with `sklearn`
@@ -479,10 +479,10 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
     params.update(grid_resolution=100)
 
     # compute alibi explanation
-    explainer = PartialDependence(predictor=rf_pipeline,
-                                  response_method='predict_proba',
-                                  feature_names=adult_data['metadata']['feature_names'],
-                                  categorical_names=adult_data['metadata']['category_map'])
+    explainer = PartialDependenceBase(predictor=rf_pipeline,
+                                      response_method='predict_proba',
+                                      feature_names=adult_data['metadata']['feature_names'],
+                                      categorical_names=adult_data['metadata']['category_map'])
     exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compare explanations
@@ -516,7 +516,7 @@ def test_sklearn_recursion(predictor, binary_data, features, params):
     exp_sklearn = partial_dependence(X=X_train, estimator=predictor, features=features, **params)
 
     # compute `alibi` explanation
-    explainer = PartialDependence(predictor=predictor, response_method='decision_function')
+    explainer = PartialDependenceBase(predictor=predictor, response_method='decision_function')
     exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compare explanations
@@ -551,10 +551,10 @@ def test_sklearn_blackbox(rf_classifier, adult_data, features, params):
     exp_sklearn = partial_dependence(X=X_train, estimator=rf_pipeline, features=features, **params)
 
     # compute alibi explanation
-    explainer = PartialDependence(predictor=rf_pipeline.predict_proba,
-                                  response_method='predict_proba',
-                                  feature_names=adult_data['metadata']['feature_names'],
-                                  categorical_names=adult_data['metadata']['category_map'])
+    explainer = PartialDependenceBase(predictor=rf_pipeline.predict_proba,
+                                      response_method='predict_proba',
+                                      feature_names=adult_data['metadata']['feature_names'],
+                                      categorical_names=adult_data['metadata']['category_map'])
     exp_alibi = explainer.explain(X=X_train, features=features, **params)
 
     # compare explanations

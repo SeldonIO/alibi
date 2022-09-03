@@ -3,16 +3,13 @@ import logging
 import math
 import numbers
 import sys
+from abc import ABC, abstractmethod
 from enum import Enum
-from typing import (Callable, Dict, Iterable, List, Optional, Tuple, Union, no_type_check)
-from abc import abstractmethod, ABC
+from typing import (Callable, Dict, Iterable, List, Optional, Tuple, Union,
+                    no_type_check)
 
 import matplotlib.pyplot as plt
 import numpy as np
-from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.explainers.ale import get_quantiles
-from alibi.explainers.similarity.grad import get_options_string
 from scipy.stats.mstats import mquantiles
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
@@ -23,6 +20,11 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.utils.extmath import cartesian
 from sklearn.utils.validation import check_is_fitted
 from tqdm import tqdm
+
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.ale import get_quantiles
+from alibi.explainers.similarity.grad import get_options_string
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -1458,6 +1460,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
+
     from alibi.utils.visualization import heatmap
 
     if ax is None:

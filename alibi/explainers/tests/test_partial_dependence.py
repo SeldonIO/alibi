@@ -4,8 +4,6 @@ from typing import List, Tuple
 
 import numpy as np
 import pytest
-from alibi.explainers import PartialDependence, TreePartialDependence
-from alibi.explainers.partial_dependence import _sample_ice
 from pytest_lazyfixture import lazy_fixture
 from sklearn.datasets import make_classification
 from sklearn.ensemble import GradientBoostingClassifier
@@ -15,6 +13,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.utils import shuffle
+
+from alibi.explainers import PartialDependence, TreePartialDependence
+from alibi.explainers.partial_dependence import _sample_ice
 
 
 @pytest.fixture(scope='module')

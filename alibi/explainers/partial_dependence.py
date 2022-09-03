@@ -4,8 +4,7 @@ import math
 import numbers
 import sys
 from enum import Enum
-from typing import (Any, Callable, Dict, Iterable, List, Optional, Tuple,
-                    Union, no_type_check)
+from typing import (Callable, Dict, Iterable, List, Optional, Tuple, Union, no_type_check)
 from abc import abstractmethod, ABC
 
 import matplotlib.pyplot as plt
@@ -147,6 +146,8 @@ class PartialDependenceBase(Explainer):
         """
         if X.ndim != 2:
             raise ValueError('The array X must be 2-dimensional.')
+
+        # extract number of features
         n_features = X.shape[1]
 
         # set the `features_names` when the user did not provide the feature names
@@ -280,17 +281,12 @@ class PartialDependenceBase(Explainer):
             if f < 0:
                 raise ValueError(f'All feature entries must be greater or equal to 0. Got a feature value of {f}.')
 
-        for feat in features:
-            if isinstance(feat, tuple):
-                if len(feat) != 2:
-                    raise ValueError(f'Current implementation of the partial dependence supports a maximum of two '
-                                     f'features at a time when a tuple is passed. Received {len(feat)} features '
-                                     f'with the values {feat}.')
+        for feats in features:
+            if not isinstance(feats, tuple):
+                feats = (feats, )  # type: ignore[assignment]
 
-                check_feature(feat[0])
-                check_feature(feat[1])
-            else:
-                check_feature(feat)
+            for f in feats:  # type: ignore[union-attr]
+                check_feature(f)
 
     def _partial_dependence(self,
                             X: np.ndarray,
@@ -627,12 +623,19 @@ class PartialDependence(PartialDependenceBase, ABC):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html
         """
+        self._sanity_check(kind=kind)
         return super().explain(X=X,
                                features=features,
                                kind=kind,
                                percentiles=percentiles,
                                grid_resolution=grid_resolution,
                                grid_points=grid_points)
+
+    def _sanity_check(self, kind):
+        # kind` param sanity check.
+        if kind not in Kind.__members__.values():
+            raise ValueError(f"``kind='{kind}'`` is invalid. "
+                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
 
     def _compute_pd(self,
                     grid: np.ndarray,
@@ -722,11 +725,14 @@ class TreePartialDependence(PartialDependenceBase, ABC):
                          verbose=verbose)
 
         # perform sanity checks on the `sklearn` predictor
-        if isinstance(predictor, BaseEstimator):
-            self._sklearn_model_sanity_checks()
+        self._sanity_check()
 
-    def _sklearn_model_sanity_checks(self):
+    def _sanity_check(self):
         """ Model sanity checks. """
+        if not isinstance(self.predictor, BaseEstimator):
+            raise ValueError('`TreePartialDependence` only supports `sklearn` models. '
+                             'Try using the `PartialDependence` black-box alternative.')
+
         check_is_fitted(self.predictor)
 
         if not (is_classifier(self.predictor) or is_regressor(self.predictor)):
@@ -748,8 +754,8 @@ class TreePartialDependence(PartialDependenceBase, ABC):
                 "DecisionTreeRegressor",
                 "RandomForestRegressor",
             )
-            raise ValueError(f"``method='recursion'`` is only supported by the following estimators: "
-                             f"{supported_classes_recursion}. Try using method='{Method.BRUTE}'.")
+            raise ValueError(f'`TreePartialDependence` only supports by the following estimators: '
+                             f'{supported_classes_recursion}. Try using the `PartialDependence` black-box alternative.')
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
@@ -805,12 +811,12 @@ class TreePartialDependence(PartialDependenceBase, ABC):
                                grid_resolution=grid_resolution,
                                grid_points=grid_points)
 
-    def _compute_pd(self,
+    def _compute_pd(self,  # type: ignore[override]
                     grid: np.ndarray,
                     features: np.ndarray,
                     **kwargs) -> Tuple[np.ndarray, Optional[np.ndarray]]:
         """
-        Computes the PD and ICE.
+        Computes the PD.
 
         Parameters
         ----------
@@ -825,7 +831,8 @@ class TreePartialDependence(PartialDependenceBase, ABC):
         -------
         Tuple consisting of the PD and ``None``.
         """
-        return self.predictor._compute_partial_dependence_recursion(grid, features), None
+        avg_preds = self.predictor._compute_partial_dependence_recursion(grid, features)  # type: ignore[union-attr]
+        return avg_preds, None
 
 
 # No type check due to the generic explanation object

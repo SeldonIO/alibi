@@ -681,7 +681,9 @@ class TreePartialDependence(PartialDependenceBase, ABC):
     """ Tree-based model `sklearn`  implementation of the partial dependence for tabular datasets.
     Supports multiple feature interactions. This method is faster than the general black-box implementation
     but is only supported by some tree-based estimators. The computation is based on a weighted tree traversal.
-    For more details on the computation, check the `sklearn documentation page`_.
+    For more details on the computation, check the `sklearn documentation page`_. The supported `sklearn`
+    models are: `GradientBoostingClassifier`, `GradientBoostingRegressor`, `HistGradientBoostingClassifier`,
+    `HistGradientBoostingRegressor`, `HistGradientBoostingRegressor`, `DecisionTreeRegressor`, `RandomForestRegressor`.
 
     .. _sklearn documentation page:
             https://scikit-learn.org/stable/modules/partial_dependence.html#computation-methods
@@ -711,6 +713,12 @@ class TreePartialDependence(PartialDependenceBase, ABC):
             A list of target/output names used for displaying results.
         verbose
             Whether to print the progress of the explainer.
+
+        Notes
+        -----
+        The length of the `target_names` should match the number of columns returned by a call to the
+        `predictor.decision_function`. In the case of a binary classifier, the decision score consists
+        of a single column. Thus, the length of the `target_names` should be one.
         """
         super().__init__(predictor=predictor,
                          feature_names=feature_names,

@@ -865,14 +865,14 @@ def plot_pd(exp: Explanation,
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
     features
-        A list of features entries in the `exp['data']['feature_names']` to plot the partial dependence curves for,
+        A list of features entries in the `exp.data['feature_names']` to plot the partial dependence curves for,
         or ``'all'`` to plot all the explained feature or pairs of features. This includes tuples of features.
-        For example, if ``exp['data]['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot
+        For example, if ``exp.data['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot
         the partial dependence only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set
         ``features=[0, 2]``. Defaults to ``'all'``.
     target
         The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
-        denoting target index or strings denoting entries in `exp['meta']['params']['target_names']`.
+        denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
     n_cols
         Number of columns to organize the resulting plot into.
     n_ice
@@ -950,26 +950,26 @@ def plot_pd(exp: Explanation,
     fig_kw = {**default_fig_kw, **fig_kw}
 
     if features == 'all':
-        features = range(0, len(exp['data']['feature_names']))
+        features = range(0, len(exp.data['feature_names']))
     else:
         for ifeatures in features:
-            if ifeatures > len(exp['data']['feature_names']):
+            if ifeatures > len(exp.data['feature_names']):
                 raise ValueError(f"The `features` indices must be less than the "
-                                 f"``len(feature_names) = {len(exp['data']['feature_names'])}``. "
+                                 f"``len(feature_names) = {len(exp.data['feature_names'])}``. "
                                  f"Received {ifeatures}.")
 
     # set target index
     if isinstance(target, str):
         try:
-            target_idx = exp['meta']['params']['target_names'].index(target)
+            target_idx = exp.meta['params']['target_names'].index(target)
         except ValueError:
             raise ValueError(f"Unknown `target` name. Received {target}. "
-                             f"Available values are: {exp['meta']['params']['target_names']}.")
+                             f"Available values are: {exp.meta['params']['target_names']}.")
     else:
         target_idx = target
-        if target_idx >= len(exp['meta']['params']['target_names']):
+        if target_idx >= len(exp.meta['params']['target_names']):
             raise IndexError(f"Target index out of range. Received {target_idx}. "
-                             f"The number of targets is {len(exp['meta']['params']['target_names'])}.")
+                             f"The number of targets is {len(exp.meta['params']['target_names'])}.")
 
     # corresponds to the number of subplots
     n_features = len(features)
@@ -977,6 +977,10 @@ def plot_pd(exp: Explanation,
     # create axes
     if ax is None:
         fig, ax = plt.subplots()
+
+    def _is_categorical(feature):
+        feature_idx = exp.meta['params']['feature_names'].index(feature)
+        return feature_idx in exp.meta['params']['categorical_names']
 
     if isinstance(ax, plt.Axes) and n_features != 1:
         ax.set_axis_off()  # treat passed axis as a canvas for subplots
@@ -991,9 +995,21 @@ def plot_pd(exp: Explanation,
         def _set_common_axes(start: int, stop: int, all_different: bool = False):
             """ Helper function to add subplots and share common y axes. """
             common_axes = None
+
+            def _share_common_axes(features: Union[str, Tuple[str, str]]):
+                if isinstance(features, tuple):
+                    # cat-cat plots do not share axis
+                    if _is_categorical(features[0]) and _is_categorical(features[1]):
+                        return False
+                    # num-num plots do not share axis
+                    if not _is_categorical(features[0]) and not _is_categorical(features[1]):
+                        return False
+                return True
+
             for i, spec in zip(range(start, stop), list(gs)[start:stop]):
-                if not isinstance(exp['data']['feature_names'][i], tuple) and (not all_different):
+                if _share_common_axes(exp.data['feature_names'][i]) and (not all_different):
                     axes_ravel[i] = fig.add_subplot(spec, sharey=common_axes)
+
                     if common_axes is None:
                         common_axes = axes_ravel[i]
                 else:
@@ -1016,42 +1032,39 @@ def plot_pd(exp: Explanation,
         axes_ravel = axes.ravel()
         fig = axes_ravel[0].figure
 
-    def _is_categorical(feature):
-        feature_idx = exp['meta']['params']['feature_names'].index(feature)
-        return feature_idx in exp['meta']['params']['categorical_names']
-
     # create plots
     one_way_axs = {}
 
     for i, (ifeatures, ax_ravel) in enumerate(zip(features, axes_ravel)):
         # extract the feature names
-        feature_names = exp['data']['feature_names'][ifeatures]
+        feature_names = exp.data['feature_names'][ifeatures]
 
         # if it is tuple, then we need a 2D plot and address 4 cases: (num, num), (num, cat), (cat, num), (cat, cat)
         if isinstance(feature_names, tuple):
             f0, f1 = feature_names
 
             if (not _is_categorical(f0)) and (not _is_categorical(f1)):
-                _ = _plot_two_pd_num_num(exp=exp,
-                                         feature=ifeatures,
-                                         target_idx=target_idx,
-                                         levels=levels,
-                                         ax=ax_ravel,
-                                         pd_num_num_kw=pd_num_num_kw)
+                ax, ax_pd_limits = _plot_two_pd_num_num(exp=exp,
+                                                        feature=ifeatures,
+                                                        target_idx=target_idx,
+                                                        levels=levels,
+                                                        ax=ax_ravel,
+                                                        pd_num_num_kw=pd_num_num_kw)
 
             elif _is_categorical(f0) and _is_categorical(f1):
-                _ = _plot_two_pd_cat_cat(exp=exp,
-                                         feature=ifeatures,
-                                         target_idx=target_idx,
-                                         ax=ax_ravel,
-                                         pd_cat_cat_kw=pd_cat_cat_kw)
+                ax, ax_pd_limits = _plot_two_pd_cat_cat(exp=exp,
+                                                        feature=ifeatures,
+                                                        target_idx=target_idx,
+                                                        ax=ax_ravel,
+                                                        pd_cat_cat_kw=pd_cat_cat_kw)
 
             else:
-                _ = _plot_two_pd_num_cat(exp=exp,
-                                         feature=ifeatures,
-                                         target_idx=target_idx,
-                                         ax=ax_ravel,
-                                         pd_num_cat_kw=pd_num_cat_kw)
+                ax, ax_pd_limits = _plot_two_pd_num_cat(exp=exp,
+                                                        feature=ifeatures,
+                                                        target_idx=target_idx,
+                                                        pd_limits=pd_limits,
+                                                        ax=ax_ravel,
+                                                        pd_num_cat_kw=pd_num_cat_kw)
 
         else:
             if _is_categorical(feature_names):
@@ -1075,7 +1088,8 @@ def plot_pd(exp: Explanation,
                                                     pd_num_kw=pd_num_kw,
                                                     ice_num_kw=ice_num_kw)
 
-            # group the `ax_ravel` that share the same y axes.
+        # group the `ax_ravel` that share the appropriate y axes.
+        if ax_pd_limits is not None:
             if sharey == 'all':
                 if one_way_axs.get('all', None) is None:
                     one_way_axs['all'] = []
@@ -1168,11 +1182,11 @@ def _process_pd_ice(exp: Explanation,
     Tuple containing the processed `pd_values` and `ice_values`.
     """
     # pdp processing
-    if exp['meta']['params']['kind'] == Kind.BOTH and center:
+    if exp.meta['params']['kind'] == Kind.BOTH and center:
         pd_values = pd_values - pd_values[0]  # type: ignore[index]
 
     # ice processing
-    if exp['meta']['params']['kind'] in [Kind.INDIVIDUAL, Kind.BOTH]:
+    if exp.meta['params']['kind'] in [Kind.INDIVIDUAL, Kind.BOTH]:
         # sample ice values for visualization purposes
         ice_values = _sample_ice(ice_values=ice_values, n_ice=n_ice)  # type: ignore[arg-type]
 
@@ -1184,6 +1198,7 @@ def _process_pd_ice(exp: Explanation,
 
 
 def _compute_pd_limits(exp: Explanation,
+                       kind: Literal['average', 'individual', 'both'] = 'average',
                        pd_values: Optional[np.ndarray] = None,
                        ice_values: Optional[np.ndarray] = None,
                        padding_proc: float = 0.1) -> Tuple[float, float]:
@@ -1194,6 +1209,8 @@ def _compute_pd_limits(exp: Explanation,
     ----------
     exp, pd_values, ice_values
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
+    kind
+        See :py:meth:`alibi.explainers.partial_dependence.explain` method.
     padding_proc
         Padding percentage.
 
@@ -1201,7 +1218,7 @@ def _compute_pd_limits(exp: Explanation,
     -------
     Tuple containing the minimum and maximum y-limits.
     """
-    values = pd_values if exp['meta']['params']['kind'] == Kind.AVERAGE else ice_values
+    values = pd_values if kind == Kind.AVERAGE else ice_values
     min_val, max_val = values.min(), values.max()  # type: ignore[union-attr]
     padding = padding_proc * (max_val - min_val)
     return min_val - padding, max_val + padding
@@ -1227,7 +1244,7 @@ def _plot_one_pd_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
-        denoting target index in `exp['meta']['params]['target_names']`
+        denoting target index in `exp.meta['params]['target_names']`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1241,9 +1258,9 @@ def _plot_one_pd_num(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    feature_values = exp['data']['feature_values'][feature]
-    pd_values = exp['data']['pd_values'][feature][target_idx] if (exp['data']['pd_values'] is not None) else None
-    ice_values = exp['data']['ice_values'][feature][target_idx].T if (exp['data']['ice_values'] is not None) else None
+    feature_values = exp.data['feature_values'][feature]
+    pd_values = exp.data['pd_values'][feature][target_idx] if (exp.data['pd_values'] is not None) else None
+    ice_values = exp.data['ice_values'][feature][target_idx].T if (exp.data['ice_values'] is not None) else None
 
     # process `pd_values` and `ice_values`
     pd_values, ice_values = _process_pd_ice(exp=exp,
@@ -1252,12 +1269,12 @@ def _plot_one_pd_num(exp: Explanation,
                                             n_ice=n_ice,
                                             center=center)
 
-    if exp['meta']['params']['kind'] == Kind.AVERAGE:
+    if exp.meta['params']['kind'] == Kind.AVERAGE:
         default_pd_num_kw = {'markersize': 2, 'marker': 'o', 'label': None}
         pd_num_kw = default_pd_num_kw if pd_num_kw is None else {**default_pd_num_kw, **pd_num_kw}
         ax.plot(feature_values, pd_values, **pd_num_kw)
 
-    elif exp['meta']['params']['kind'] == Kind.INDIVIDUAL:
+    elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_graph_kw = {'color': 'lightsteelblue', 'label': None}
         ice_num_kw = default_ice_graph_kw if ice_num_kw is None else {**default_ice_graph_kw, **ice_num_kw}
         ax.plot(feature_values, ice_values, **ice_num_kw)
@@ -1275,13 +1292,14 @@ def _plot_one_pd_num(exp: Explanation,
 
     # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.vlines(exp['data']['feature_deciles'][feature][1:-1], 0, 0.05, transform=trans)
+    ax.vlines(exp.data['feature_deciles'][feature][1:-1], 0, 0.05, transform=trans)
 
-    ax.set_xlabel(exp['data']['feature_names'][feature])
-    ax.set_ylabel(exp['meta']['params']['target_names'][target_idx])
+    ax.set_xlabel(exp.data['feature_names'][feature])
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
 
     if pd_limits is None:
         pd_limits = _compute_pd_limits(exp=exp,
+                                       kind=exp.meta['params']['kind'],
                                        pd_values=pd_values,
                                        ice_values=ice_values)
     return ax, pd_limits
@@ -1307,7 +1325,7 @@ def _plot_one_pd_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
-        denoting target index in `exp['meta']['params'].target_names`
+        denoting target index in `exp.meta['params'].target_names`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1320,10 +1338,10 @@ def _plot_one_pd_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    feature_names = exp['data']['feature_names'][feature]
-    feature_values = exp['data']['feature_values'][feature]
-    pd_values = exp['data']['pd_values'][feature][target_idx] if (exp['data']['pd_values'] is not None) else None
-    ice_values = exp['data']['ice_values'][feature][target_idx].T if (exp['data']['ice_values'] is not None) else None
+    feature_names = exp.data['feature_names'][feature]
+    feature_values = exp.data['feature_values'][feature]
+    pd_values = exp.data['pd_values'][feature][target_idx] if (exp.data['pd_values'] is not None) else None
+    ice_values = exp.data['ice_values'][feature][target_idx].T if (exp.data['ice_values'] is not None) else None
 
     # process `pd_values` and `ice_values`
     pd_values, ice_values = _process_pd_ice(exp=exp,
@@ -1332,15 +1350,15 @@ def _plot_one_pd_cat(exp: Explanation,
                                             n_ice=n_ice,
                                             center=center)
 
-    feature_index = exp['meta']['params']['feature_names'].index(feature_names)
-    labels = [exp['meta']['params']['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]
+    feature_index = exp.meta['params']['feature_names'].index(feature_names)
+    labels = [exp.meta['params']['categorical_names'][feature_index][i] for i in feature_values.astype(np.int32)]
 
-    if exp['meta']['params']['kind'] == Kind.AVERAGE:
+    if exp.meta['params']['kind'] == Kind.AVERAGE:
         default_pd_graph_kw = {'markersize': 8, 'marker': 's', 'color': 'tab:blue'}
         pd_cat_kw = default_pd_graph_kw if pd_cat_kw is None else {**default_pd_graph_kw, **pd_cat_kw}
         ax.plot(labels, pd_values, **pd_cat_kw)
 
-    elif exp['meta']['params']['kind'] == Kind.INDIVIDUAL:
+    elif exp.meta['params']['kind'] == Kind.INDIVIDUAL:
         default_ice_cat_kw = {'markersize': 4, 'marker': 's', 'color': 'lightsteelblue'}
         ice_cat_kw = default_ice_cat_kw if ice_cat_kw is None else {**default_ice_cat_kw, **ice_cat_kw}
         ax.plot(labels, ice_values, **ice_cat_kw)
@@ -1361,10 +1379,11 @@ def _plot_one_pd_cat(exp: Explanation,
 
     # set axis labels
     ax.set_xlabel(feature_names)
-    ax.set_ylabel(exp['meta']['params']['target_names'][target_idx])
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
 
     if pd_limits is None:
         pd_limits = _compute_pd_limits(exp=exp,
+                                       kind=exp.meta['params']['kind'],
                                        pd_values=pd_values,
                                        ice_values=ice_values)
     return ax, pd_limits
@@ -1377,7 +1396,7 @@ def _plot_two_pd_num_num(exp: Explanation,
                          target_idx: int,
                          levels: int = 8,
                          ax: Optional['plt.Axes'] = None,
-                         pd_num_num_kw: Optional[dict] = None) -> 'plt.Axes':
+                         pd_num_num_kw: Optional[dict] = None) -> Tuple['plt.Axes', Optional[Tuple[float, float]]]:
     """
     Plots two ways partial dependence curve for two numerical features.
 
@@ -1387,7 +1406,7 @@ def _plot_two_pd_num_num(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
-        denoting target index in `exp['meta']['params']['target_names']`
+        denoting target index in `exp.meta['params']['target_names']`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1398,7 +1417,7 @@ def _plot_two_pd_num_num(exp: Explanation,
     import matplotlib.pyplot as plt
     from matplotlib import transforms
 
-    if exp['meta']['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
         raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
     if ax is None:
@@ -1408,8 +1427,8 @@ def _plot_two_pd_num_num(exp: Explanation,
     default_pd_num_num_kw = {"alpha": 0.75}
     pd_num_num_kw = default_pd_num_num_kw if pd_num_num_kw is None else {**default_pd_num_num_kw, **pd_num_num_kw}
 
-    feature_values = exp['data']['feature_values'][feature]
-    pd_values = exp['data']['pd_values'][feature][target_idx]
+    feature_values = exp.data['feature_values'][feature]
+    pd_values = exp.data['pd_values'][feature][target_idx]
 
     X, Y = np.meshgrid(feature_values[0], feature_values[1])
     Z = pd_values.T
@@ -1424,17 +1443,17 @@ def _plot_two_pd_num_num(exp: Explanation,
 
     # the horizontal lines do not display (same for the sklearn)
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.vlines(exp['data']['feature_deciles'][feature][0][1:-1], 0, 0.05, transform=trans)
-    ax.hlines(exp['data']['feature_deciles'][feature][1][1:-1], 0, 0.05, transform=trans)
+    ax.vlines(exp.data['feature_deciles'][feature][0][1:-1], 0, 0.05, transform=trans)
+    ax.hlines(exp.data['feature_deciles'][feature][1][1:-1], 0, 0.05, transform=trans)
 
     # reset xlim and ylim since they are overwritten by hlines and vlines
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
 
     # set x & y labels
-    ax.set_xlabel(exp['data']['feature_names'][feature][0])
-    ax.set_ylabel(exp['data']['feature_names'][feature][1])
-    return ax
+    ax.set_xlabel(exp.data['feature_names'][feature][0])
+    ax.set_ylabel(exp.data['feature_names'][feature][1])
+    return ax, None
 
 
 # No type check due to the generic explanation object
@@ -1442,8 +1461,9 @@ def _plot_two_pd_num_num(exp: Explanation,
 def _plot_two_pd_num_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
+                         pd_limits: Optional[Tuple[float, float]] = None,
                          ax: Optional['plt.Axes'] = None,
-                         pd_num_cat_kw: Optional[dict] = None) -> 'plt.Axes':
+                         pd_num_cat_kw: Optional[dict] = None) -> Tuple['plt.Axes', Optional[Tuple[float, float]]]:
     """
     Plots two ways partial dependence curve for a numerical feature and a categorical feature.
 
@@ -1453,7 +1473,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
-        denoting target index in `exp['meta']['params']['target_names'].`
+        denoting target index in `exp.meta['params']['target_names'].`
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1462,31 +1482,32 @@ def _plot_two_pd_num_cat(exp: Explanation,
     `matplotlib` axes.
     """
     import matplotlib.pyplot as plt
+    from matplotlib import transforms
 
-    if exp['meta']['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
         raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
     if ax is None:
         ax = plt.gca()
 
     def _is_categorical(feature):
-        feature_idx = exp['meta']['params']['feature_names'].index(feature)
-        return feature_idx in exp['meta']['params']['categorical_names']
+        feature_idx = exp.meta['params']['feature_names'].index(feature)
+        return feature_idx in exp.meta['params']['categorical_names']
 
     # extract feature values and partial dependence values
-    feature_values = exp['data']['feature_values'][feature]
-    pd_values = exp['data']['pd_values'][feature][target_idx]
+    feature_values = exp.data['feature_values'][feature]
+    pd_values = exp.data['pd_values'][feature][target_idx]
 
     # find which feature is categorical and which one is numerical
-    feature_names = exp['data']['feature_names'][feature]
+    feature_names = exp.data['feature_names'][feature]
     if _is_categorical(feature_names[0]):
         feature_names = feature_names[::-1]
         feature_values = feature_values[::-1]
         pd_values = pd_values.T
 
     # define labels
-    cat_feature_index = exp['meta']['params']['feature_names'].index(feature_names[1])
-    labels = [exp['meta']['params']['categorical_names'][cat_feature_index][i]
+    cat_feature_index = exp.meta['params']['feature_names'].index(feature_names[1])
+    labels = [exp.meta['params']['categorical_names'][cat_feature_index][i]
               for i in feature_values[1].astype(np.int32)]
 
     # plot lines
@@ -1499,9 +1520,19 @@ def _plot_two_pd_num_cat(exp: Explanation,
         pd_num_cat_kw.update({'label': labels[i]})
         ax.plot(x, y, **pd_num_cat_kw)
 
-    ax.set_ylabel(exp['meta']['params']['target_names'][target_idx])
+    # add deciles markers to the bottom of the plot
+    trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
+    ax.vlines(exp.data['feature_deciles'][feature][1][1:-1], 0, 0.05, transform=trans)
+
+    ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     ax.set_xlabel(feature_names[0])
     ax.legend()
+
+    if pd_limits is None:
+        pd_limits = _compute_pd_limits(exp=exp,
+                                       kind=Kind.AVERAGE.value,
+                                       pd_values=pd_values)
+    return ax, pd_limits
 
 
 # No type check due to the generic explanation object
@@ -1510,7 +1541,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
                          feature: int,
                          target_idx: int,
                          ax: Optional['plt.Axes'] = None,
-                         pd_cat_cat_kw: Optional[dict] = None) -> 'plt.Axes':
+                         pd_cat_cat_kw: Optional[dict] = None) -> Tuple['plt.Axes', Optional[Tuple[float, float]]]:
     """
     Plots two ways partial dependence curve for two categorical features.
 
@@ -1520,7 +1551,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
-        denoting target index in `exp['meta']['params']['target_names']`.
+        denoting target index in `exp.meta['params']['target_names']`.
     ax
         Pre-existing axes for the plot. Otherwise, call `matplotlib.pyplot.gca()` internally.
 
@@ -1535,19 +1566,19 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     if ax is None:
         ax = plt.gca()
 
-    if exp['meta']['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
+    if exp.meta['params']['kind'] not in [Kind.AVERAGE, Kind.BOTH]:
         raise ValueError("Can only plot partial dependence for `kind` in `['average', 'both']`.")
 
-    feature_names = exp['data']['feature_names'][feature]
-    feature_values = exp['data']['feature_values'][feature]
-    pd_values = exp['data']['pd_values'][feature][target_idx]
+    feature_names = exp.data['feature_names'][feature]
+    feature_values = exp.data['feature_values'][feature]
+    pd_values = exp.data['pd_values'][feature][target_idx]
 
     # extract labels for each categorical features
-    feature0_index = exp['meta']['params']['feature_names'].index(feature_names[0])
-    feature1_index = exp['meta']['params']['feature_names'].index(feature_names[1])
-    labels0 = [exp['meta']['params']['categorical_names'][feature0_index][i]
+    feature0_index = exp.meta['params']['feature_names'].index(feature_names[0])
+    feature1_index = exp.meta['params']['feature_names'].index(feature_names[1])
+    labels0 = [exp.meta['params']['categorical_names'][feature0_index][i]
                for i in feature_values[0].astype(np.int32)]
-    labels1 = [exp['meta']['params']['categorical_names'][feature1_index][i]
+    labels1 = [exp.meta['params']['categorical_names'][feature1_index][i]
                for i in feature_values[1].astype(np.int32)]
 
     # plot heatmap
@@ -1567,6 +1598,6 @@ def _plot_two_pd_cat_cat(exp: Explanation,
     ax.set_yticklabels(labels0)
 
     # set axis labels
-    ax.set_xlabel(exp['data']['feature_names'][feature][1])
-    ax.set_ylabel(exp['data']['feature_names'][feature][0])
-    return ax
+    ax.set_xlabel(exp.data['feature_names'][feature][1])
+    ax.set_ylabel(exp.data['feature_names'][feature][0])
+    return ax, None

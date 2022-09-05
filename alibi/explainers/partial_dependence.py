@@ -42,7 +42,7 @@ class Kind(str, Enum):
     BOTH = 'both'
 
 
-class PartialDependenceBase(Explainer):
+class PartialDependenceBase(Explainer, ABC):
     def __init__(self,
                  predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
                  feature_names: Optional[List[str]] = None,
@@ -507,7 +507,7 @@ class PartialDependenceBase(Explainer):
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
 
-class PartialDependence(PartialDependenceBase, ABC):
+class PartialDependence(PartialDependenceBase):
     """ Black-box implementation of partial dependence for tabular datasets.
     Supports multiple feature interactions. """
 
@@ -677,7 +677,7 @@ class PartialDependence(PartialDependenceBase, ABC):
         return averaged_predictions, predictions  # type: ignore[return-value]
 
 
-class TreePartialDependence(PartialDependenceBase, ABC):
+class TreePartialDependence(PartialDependenceBase):
     """ Tree-based model `sklearn`  implementation of the partial dependence for tabular datasets.
     Supports multiple feature interactions. This method is faster than the general black-box implementation
     but is only supported by some tree-based estimators. The computation is based on a weighted tree traversal.

@@ -1109,6 +1109,7 @@ def plot_pd(exp: Explanation,
                 # if no axis are share, each `ax_ravel` will have its own group
                 one_way_axs[i] = [(ax, ax_pd_limits)]
 
+    # seems like this step is necessary because `vlines` messes up the display
     for ax_group in one_way_axs.values():
         min_val = min([ax_pd_lim[0] for _, ax_pd_lim in ax_group])
         max_val = max([ax_pd_lim[1] for _, ax_pd_lim in ax_group])
@@ -1496,6 +1497,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     # extract feature values and partial dependence values
     feature_values = exp.data['feature_values'][feature]
+    feature_deciles = exp.data['feature_deciles'][feature]
     pd_values = exp.data['pd_values'][feature][target_idx]
 
     # find which feature is categorical and which one is numerical
@@ -1503,6 +1505,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
     if _is_categorical(feature_names[0]):
         feature_names = feature_names[::-1]
         feature_values = feature_values[::-1]
+        feature_deciles = feature_deciles[::-1]
         pd_values = pd_values.T
 
     # define labels
@@ -1522,7 +1525,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.vlines(exp.data['feature_deciles'][feature][1][1:-1], 0, 0.05, transform=trans)
+    ax.vlines(feature_deciles[0][1:-1], 0, 0.05, transform=trans)
 
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     ax.set_xlabel(feature_names[0])

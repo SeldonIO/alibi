@@ -10,6 +10,7 @@ from typing import (Callable, Dict, Iterable, List, Optional, Tuple, Union,
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from scipy.stats.mstats import mquantiles
 from sklearn.base import BaseEstimator, is_classifier, is_regressor
 from sklearn.ensemble import RandomForestRegressor
@@ -842,8 +843,9 @@ def plot_pd(exp: Explanation,
             features: Union[List[int], Literal['all']] = 'all',
             target: Union[str, int] = 0,
             n_cols: int = 3,
-            n_ice: Union[Literal['all'], int, List[int]] = 'all',
+            n_ice: Union[Literal['all'], int, List[int]] = 100,
             center: bool = False,
+            pd_limits: Optional[Tuple[float, float]] = None,
             levels: int = 8,
             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
             sharey: Optional[Literal['all', 'row']] = 'all',
@@ -894,6 +896,8 @@ def plot_pd(exp: Explanation,
         .. _Goldstein et al. (2014):
                 https://arxiv.org/abs/1309.6392
 
+    pd_limits
+        Minimum and maximum y-limits for all the one-way PD plots. If ``None`` will be automatically inferred.
     levels
         Number of levels in the contour plot.
     ax
@@ -1053,6 +1057,7 @@ def plot_pd(exp: Explanation,
                                      feature=ifeatures,
                                      target_idx=target_idx,
                                      center=center,
+                                     pd_limits=pd_limits,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_cat_kw=pd_cat_kw,
@@ -1062,6 +1067,7 @@ def plot_pd(exp: Explanation,
                                      feature=ifeatures,
                                      target_idx=target_idx,
                                      center=center,
+                                     pd_limits=pd_limits,
                                      n_ice=n_ice,
                                      ax=ax_ravel,
                                      pd_num_kw=pd_num_kw,
@@ -1150,13 +1156,24 @@ def _process_pd_ice(exp: Explanation,
     return pd_values, ice_values
 
 
+def _infer_pd_limits(exp: Explanation,
+                    pd_values: Optional[np.ndarray] = None,
+                    ice_values: Optional[np.ndarray] = None,
+                    padding_proc: float = 0.1):
+
+    values = pd_values if exp.meta['params']['kind'] == Kind.AVERAGE else ice_values
+    min_val, max_val = values.min(), values.max()
+    padding = padding_proc * (max_val - min_val)
+    return min_val - padding, max_val + padding
+
 # No type check due to the generic explanation object
 @no_type_check
 def _plot_one_pd_num(exp: Explanation,
                      feature: int,
                      target_idx: int,
                      center: bool = False,
-                     n_ice: Union[Literal['all'], int, List[int]] = 'all',
+                     pd_limits: Optional[Tuple[float, float]] = None,
+                     n_ice: Union[Literal['all'], int, List[int]] = 100,
                      ax: Optional['plt.Axes'] = None,
                      pd_num_kw: Optional[dict] = None,
                      ice_num_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -1165,7 +1182,7 @@ def _plot_one_pd_num(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, center, n_ice, pd_num_kw, ice_num_kw
+    exp, feature, center, pd_limits, n_ice, pd_num_kw, ice_num_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
@@ -1219,6 +1236,11 @@ def _plot_one_pd_num(exp: Explanation,
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(exp.feature_deciles[feature][1:-1], 0, 0.05, transform=trans)
 
+    # set y limits
+    if pd_limits is None:
+        pd_limits = _infer_pd_limits(exp=exp, pd_values=pd_values, ice_values=ice_values)
+    ax.set_ylim(*pd_limits)
+
     ax.set_xlabel(exp.feature_names[feature])
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     return ax
@@ -1229,8 +1251,9 @@ def _plot_one_pd_num(exp: Explanation,
 def _plot_one_pd_cat(exp: Explanation,
                      feature: int,
                      target_idx: int,
+                     pd_limits: Optional[Tuple[float, float]] = None,
                      center: bool = False,
-                     n_ice: Union[Literal['all'], int, List[str]] = 'all',
+                     n_ice: Union[Literal['all'], int, List[str]] = 100,
                      ax: Optional['plt.Axes'] = None,
                      pd_cat_kw: Optional[dict] = None,
                      ice_cat_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -1239,7 +1262,7 @@ def _plot_one_pd_cat(exp: Explanation,
 
     Parameters
     ----------
-    exp, feature, center, n_ice, pd_cat_kw, ice_cat_kw
+    exp, feature, center, pd_limits, n_ice, pd_cat_kw, ice_cat_kw
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     target_idx
         The target index for which to plot the partial dependence (PD) curves. An integer
@@ -1294,6 +1317,11 @@ def _plot_one_pd_cat(exp: Explanation,
 
     # rotate xticks labels
     ax.tick_params(axis='x', rotation=90)
+
+    # set y limits
+    if pd_limits is None:
+        pd_limits = _infer_pd_limits(exp=exp, pd_values=pd_values, ice_values=ice_values)
+    ax.set_ylim(*pd_limits)
 
     # set axis labels
     ax.set_xlabel(feature_names)

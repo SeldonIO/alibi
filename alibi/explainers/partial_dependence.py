@@ -1217,7 +1217,7 @@ def _plot_one_pd_num(exp: Explanation,
 
     # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.vlines(exp.feature_deciles[feature][1:], 0, 0.05, transform=trans)
+    ax.vlines(exp.feature_deciles[feature][1:-1], 0, 0.05, transform=trans)
 
     ax.set_xlabel(exp.feature_names[feature])
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
@@ -1355,8 +1355,8 @@ def _plot_two_pd_num_num(exp: Explanation,
 
     # the horizontal lines do not display (same for the sklearn)
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
-    ax.vlines(exp.feature_deciles[feature][0][1:], 0, 0.05, transform=trans)
-    ax.hlines(exp.feature_deciles[feature][1][1:], 0, 0.05, transform=trans)
+    ax.vlines(exp.feature_deciles[feature][0][1:-1], 0, 0.05, transform=trans)
+    ax.hlines(exp.feature_deciles[feature][1][1:-1], 0, 0.05, transform=trans)
 
     # reset xlim and ylim since they are overwritten by hlines and vlines
     ax.set_xlim(xlim)

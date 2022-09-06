@@ -86,7 +86,7 @@ class PartialDependenceBase(Explainer, ABC):
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
         """
-        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
         and the reference dataset `X`.
 
         Parameters
@@ -95,7 +95,7 @@ class PartialDependenceBase(Explainer, ABC):
             A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
             training dataset or a representative sample.
         features
-            An optional list of features or pairs of features for which to calculate the partial dependence.
+            An optional list of features or tuples of features for which to calculate the partial dependence.
             If not provided, the partial dependence will be computed for every single features in the dataset.
             Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
@@ -262,7 +262,7 @@ class PartialDependenceBase(Explainer, ABC):
         Parameters
         ----------
         features
-            List of feature indices or pairs of feature indices to compute the partial dependence for.
+            List of feature indices or tuples of feature indices to compute the partial dependence for.
         """
         if features is None:
             return
@@ -292,19 +292,19 @@ class PartialDependenceBase(Explainer, ABC):
                             grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None
                             ) -> Dict[str, np.ndarray]:
         """
-        Computes partial dependence for a feature or a pair of features.
+        Computes partial dependence for a feature or a tuple of features.
 
         Parameters
         ----------
         X, method, kind, percentiles, grid_resolution, grid_points
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain` method.
         features
-            A feature or pairs of features for which to calculate the partial dependence.
+            A feature or tuples of features for which to calculate the partial dependence.
 
         Returns
         -------
         A dictionary containing the feature(s) values, feature(s) deciles, average and/or individual values
-        (i.e. partial dependence or individual conditional expectation) of the give (pair) of feature(s))
+        (i.e. partial dependence or individual conditional expectation) for the given (tuple of) feature(s))
         """
         if isinstance(features, numbers.Integral):
             features = (features, )
@@ -474,8 +474,8 @@ class PartialDependenceBase(Explainer, ABC):
         kind
             See :py:meth:`alibi.explainers.partial_dependence.PartialDependenceBase.explain` method.
         feature_names
-            List of feature of pairs of features for which the partial dependencies/individual conditional expectation
-            were computed.
+            List of feature or tuples of features for which the partial dependencies/individual conditional
+            expectation were computed.
         pds
             List of dictionary containing the partial dependencies/individual conditional expectation.
 
@@ -566,7 +566,7 @@ class PartialDependence(PartialDependenceBase):
                 grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
 
         """
-        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
         and the reference dataset `X`.
 
         Parameters
@@ -575,7 +575,7 @@ class PartialDependence(PartialDependenceBase):
             A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
             training dataset or a representative sample.
         features
-            An optional list of features or pairs of features for which to calculate the partial dependence.
+            An optional list of features or tuples of features for which to calculate the partial dependence.
             If not provided, the partial dependence will be computed for every single features in the dataset.
             Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
@@ -766,7 +766,7 @@ class TreePartialDependence(PartialDependenceBase):
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
         """
-        Calculates the partial dependence for each feature and/or pairs of features with respect to the all targets
+        Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
         and the reference dataset `X`.
 
         Parameters
@@ -775,7 +775,7 @@ class TreePartialDependence(PartialDependenceBase):
             A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
             training dataset or a representative sample.
         features
-            An optional list of features or pairs of features for which to calculate the partial dependence.
+            An optional list of features or tuples of features for which to calculate the partial dependence.
             If not provided, the partial dependence will be computed for every single features in the dataset.
             Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
             ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
@@ -866,7 +866,7 @@ def plot_pd(exp: Explanation,
         :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
     features
         A list of features entries in the `exp.data['feature_names']` to plot the partial dependence curves for,
-        or ``'all'`` to plot all the explained feature or pairs of features. This includes tuples of features.
+        or ``'all'`` to plot all the explained feature or tuples of features. This includes tuples of features.
         For example, if ``exp.data['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot
         the partial dependence only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set
         ``features=[0, 2]``. Defaults to ``'all'``.

@@ -58,8 +58,14 @@ mypy alibi
 ## Docstrings
 We adhere to the `numpy` style docstrings (https://numpydoc.readthedocs.io/en/stable/format.html)
 with the exception of ommiting argument types in docstrings in favour of type hints in function
-and class signatures. If you're using a `PyCharm`, you can configure this under
-`File -> Settings -> Tools -> Python Integrated Tools -> Docstrings`.
+and class signatures. If you use an IDE, you may be able to configure it to assist you with writing
+docstrings in the correct format. For `PyCharm`, you can configure this under
+`File -> Settings -> Tools -> Python Integrated Tools -> Docstrings`. For `Visual Studio Code`, you can obtain
+docstring generator extensions from the [VisualStudio Marketplace](https://marketplace.visualstudio.com/).
+
+When documenting Python classes, we adhere to the convention of including docstrings in their `__init__` method, 
+rather than as a class level docstring. Docstrings should only be included at the class-level if a class does
+not posess an `__init__` method, for example because it is a static class.
 
 #### Conventions
 

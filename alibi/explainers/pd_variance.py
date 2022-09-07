@@ -1,4 +1,5 @@
 import copy
+import logging
 import sys
 import numpy as np
 import pandas as pd
@@ -7,8 +8,11 @@ from typing import Callable, List, Optional, Dict, Union, Tuple
 
 from alibi.api.defaults import DEFAULT_META_PDVARIANCE, DEFAULT_DATA_PDVARIANCE
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.explainers.partial_dependence import Kind, PartialDependence
+from alibi.explainers.partial_dependence import Kind, PartialDependence, TreePartialDependence
+from sklearn.base import BaseEstimator
 
+
+logger = logging.getLogger(__name__)
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -17,10 +21,13 @@ else:
 
 
 class PartialDependenceVariance(Explainer):
-    """ Black-box implementation of the variance partial dependence feature importance for tabular datasets. """
+    """ Implementation of the variance partial dependence feature importance for tabular datasets. Supports
+     black-box models and the following `sklearn` tree-based models: `GradientBoostingClassifier`,
+     `GradientBoostingRegressor`, `HistGradientBoostingClassifier`, `HistGradientBoostingRegressor`,
+     `HistGradientBoostingRegressor`, `DecisionTreeRegressor`, `RandomForestRegressor`."""
 
     def __init__(self,
-                 predictor: Callable[[np.ndarray], np.ndarray],
+                 predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
                  feature_names: Optional[List[str]] = None,
                  categorical_names: Optional[Dict[int, List[str]]] = None,
                  target_names: Optional[List[str]] = None,
@@ -31,8 +38,8 @@ class PartialDependenceVariance(Explainer):
         Parameters
         ----------
         predictor
-            A prediction function which receives as input a `numpy` array of size `N x F` and outputs a
-            `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
+             A `sklearn` estimator or a prediction function which receives as input a `numpy` array of size `N x F`
+            and outputs a `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input
             instances, `F` is the number of features and `T` is the number of targets.
         feature_names
             A list of feature names used for displaying results.E
@@ -59,11 +66,12 @@ class PartialDependenceVariance(Explainer):
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PDVARIANCE))
 
         # initialize the pd explainer
-        self.pd_explainer = PartialDependence(predictor=predictor,
-                                              feature_names=feature_names,
-                                              categorical_names=categorical_names,
-                                              target_names=target_names,
-                                              verbose=verbose)
+        PartialDependenceClass = TreePartialDependence if isinstance(predictor, BaseEstimator) else PartialDependence
+        self.pd_explainer = PartialDependenceClass(predictor=predictor,
+                                                   feature_names=feature_names,
+                                                   categorical_names=categorical_names,
+                                                   target_names=target_names,
+                                                   verbose=verbose)
 
     def explain(self,
                 X: np.ndarray,
@@ -121,12 +129,19 @@ class PartialDependenceVariance(Explainer):
                 https://docs.seldon.io/projects/alibi/en/stable/methods/VariancePartialDependence.html
         """
         # compute partial dependence functions
-        pd_explanation = self.pd_explainer.explain(X=X,
-                                                   features=features,  # type: ignore[arg-type]
-                                                   kind=Kind.AVERAGE.value,
-                                                   percentiles=percentiles,
-                                                   grid_resolution=grid_resolution,
-                                                   grid_points=grid_points)
+        params = {
+            'X': X,
+            'features': features,
+            'percentiles': percentiles,
+            'grid_resolution': grid_resolution,
+            'grid_points': grid_points
+        }
+
+        if not isinstance(self.pd_explainer.predictor, BaseEstimator):
+            params.update({'kind': Kind.AVERAGE.value})  # type: ignore[dict-item]
+
+        # compute partial dependence for each feature
+        pd_explanation = self.pd_explainer.explain(**params)  # type: ignore[arg-type]
 
         # filter explained numerical and categorical features
         features = [pd_explanation.meta['params']['feature_names'].index(f)
@@ -173,7 +188,6 @@ class PartialDependenceVariance(Explainer):
         -------
         `Explanation` object.
         """
-
         data = copy.deepcopy(DEFAULT_DATA_PDVARIANCE)
         data.update(feature_deciles=pd_explanation.data['feature_deciles'],
                     pd_values=pd_explanation.data['pd_values'],
@@ -183,14 +197,11 @@ class PartialDependenceVariance(Explainer):
         return Explanation(meta=self.meta, data=data)
 
 
-class TreePartialDependenceVariance(Explainer):
-    pass
-
-
 def plot_feature_importance(exp: Explanation,
                             features: Union[List[int], Literal['all']] = 'all',
                             targets: Union[List[Union[str, int]], Literal['all']] = 'all',
                             ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                            sort: bool = True,
                             **kwargs) -> 'plt.Axes':
     """
     Horizontal bar plot for feature importance.
@@ -262,5 +273,14 @@ def plot_feature_importance(exp: Explanation,
 
     # create `pandas.DataFrame` for easy display
     data = exp.data['feature_importance'][target_indices].T[feature_indices]
+
+    if sort:
+        if len(target_indices) > 1:
+            logging.warning('Cannot sort features by importance when multiple targets are displayed on the same plot.')
+        else:
+            sorted_indices = np.argsort(data, axis=0).reshape(-1)
+            data = data[sorted_indices]
+            feature_names = [feature_names[i] for i in sorted_indices]
+
     df = pd.DataFrame(data=data, columns=target_names, index=feature_names)
     return df.plot.barh(ax=ax, **kwargs)

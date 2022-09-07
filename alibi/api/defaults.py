@@ -307,3 +307,28 @@ DEFAULT_DATA_PD = {
 """
 Default PartialDependence data.
 """
+
+
+# PartialDependenceVariance
+DEFAULT_META_PDVARIANCE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PartialDependenceVariance metadata.
+"""
+
+DEFAULT_DATA_PDVARIANCE = {
+    "feature_deciles": None,      # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    "pd_values": None,
+    "ice_values": None,           # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    "feature_values": None,       # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    "feature_names": None,
+    "feature_importance": None,
+}  # type: dict
+"""
+Default PartialDependence data.
+"""

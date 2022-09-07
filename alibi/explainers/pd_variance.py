@@ -1,8 +1,19 @@
+import copy
+import sys
 import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 from typing import Callable, List, Optional, Dict, Union, Tuple
 
-from alibi.api.interfaces import  Explainer, Explanation
-from alibi.explainers.partial_dependence import Kind, PartialDependence, TreePartialDependence
+from alibi.api.defaults import DEFAULT_META_PDVARIANCE, DEFAULT_DATA_PDVARIANCE
+from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers.partial_dependence import Kind, PartialDependence
+
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 
 class PartialDependenceVariance(Explainer):
@@ -45,22 +56,18 @@ class PartialDependenceVariance(Explainer):
         which returns two columns (one for the negative class and one for the positive class), then the length of
         the `target_names` should be two.
         """
-        self.predictor = predictor
-        self.feature_names = feature_names
-        self.categorical_names = categorical_names
-        self.target_names = target_names
-        self.verbose = verbose
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_PDVARIANCE))
 
         # initialize the pd explainer
-        self.pd_explainer = PartialDependence(predictor=self.predictor,
-                                              feature_names=self.feature_names,
-                                              categorical_names=self.categorical_names,
-                                              target_names=self.target_names,
-                                              verbose=self.verbose)
+        self.pd_explainer = PartialDependence(predictor=predictor,
+                                              feature_names=feature_names,
+                                              categorical_names=categorical_names,
+                                              target_names=target_names,
+                                              verbose=verbose)
 
     def explain(self,
                 X: np.ndarray,
-                features: Optional[List[Union[int, Tuple[int, int]]]] = None,
+                features: Optional[List[int]] = None,
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
@@ -115,26 +122,145 @@ class PartialDependenceVariance(Explainer):
         """
         # compute partial dependence functions
         pd_explanation = self.pd_explainer.explain(X=X,
-                                                   features=features,
+                                                   features=features,  # type: ignore[arg-type]
                                                    kind=Kind.AVERAGE.value,
                                                    percentiles=percentiles,
                                                    grid_resolution=grid_resolution,
                                                    grid_points=grid_points)
 
-        print(pd_explanation.meta)
-        print(pd_explanation.data)
+        # filter explained numerical and categorical features
+        features = [pd_explanation.meta['params']['feature_names'].index(f)
+                    for f in pd_explanation.data['feature_names']]
 
+        # compute feature importance
+        feature_importance = []
 
-        # filter explained numerical features
-        num_indices = [i for i, f in enumerate(features) if f not in self.categorical_names]
-        cat_indices = [i for i, f in enumerate(features) if f in self.categorical_names]
+        for pd_values, f in zip(pd_explanation.data['pd_values'], features):
+            # `pd_values` is a tensor of size `T x N`, where `T` is the number
+            # of targets and `N` is the number of feature values
 
-        self.meta = self.pd_explainer.meta
-        return self._build_explanation()
+            if f in self.pd_explainer.categorical_names:   # type: ignore[operator]
+                # compute feature importance for categorical features
+                ft_imp = (pd_values.max(axis=-1) - pd_values.min(axis=-1)) / 4
+            else:
+                # compute feature importance for numerical features
+                ft_imp = np.std(pd_values, axis=-1, ddof=1)
 
-    def _build_explanation(self) -> None:
-        return None
+            feature_importance.append(ft_imp.reshape(-1, 1))
+
+        # stack the feature importance such that the array has the shape `T x F`, where ``T` is the
+        # number of targets and `F` is the number of explained features
+        feature_importance = np.hstack(feature_importance)  # type: ignore[assignment]
+
+        # update meta and return built explanation
+        self.meta['params'].update(self.pd_explainer.meta['params'])
+        return self._build_explanation(pd_explanation=pd_explanation,
+                                       feature_importance=feature_importance)  # type: ignore[arg-type]
+
+    def _build_explanation(self, pd_explanation: Explanation, feature_importance: np.ndarray) -> Explanation:
+        """
+        Helper method to build `Explanation` object.
+
+        Parameters
+        ----------
+        pd_explanation
+            The `PartialDependence` explanation object.
+        feature_importance
+            Array of feature importance of size `T x F`, where `T` is the number of targets and `F` is the number
+            of features to be explained.
+
+        Returns
+        -------
+        `Explanation` object.
+        """
+
+        data = copy.deepcopy(DEFAULT_DATA_PDVARIANCE)
+        data.update(feature_deciles=pd_explanation.data['feature_deciles'],
+                    pd_values=pd_explanation.data['pd_values'],
+                    feature_values=pd_explanation.data['feature_values'],
+                    feature_names=pd_explanation.data['feature_names'],
+                    feature_importance=feature_importance)
+        return Explanation(meta=self.meta, data=data)
 
 
 class TreePartialDependenceVariance(Explainer):
     pass
+
+
+def plot_feature_importance(exp: Explanation,
+                            features: Union[List[int], Literal['all']] = 'all',
+                            targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+                            ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                            **kwargs) -> 'plt.Axes':
+    """
+    Horizontal bar plot for feature importance.
+
+    Parameters
+    ----------
+    exp
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.explainers.partial_dependence.PartialDependence.explain` method.
+    features
+        A list of features entries in the `exp.data['feature_names']` to plot the partial dependence curves for,
+        or ``'all'`` to plot all the explained feature or tuples of features. This includes tuples of features.
+        For example, if ``exp.data['feature_names'] = ['temp', 'hum', ('temp', 'windspeed')]`` and we want to plot
+        the partial dependence only for the ``'temp'`` and ``('temp', 'windspeed')``, then we would set
+        ``features=[0, 2]``. Defaults to ``'all'``.
+    targets
+        The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
+        denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
+    ax
+        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+    **kwargs
+        Keyword arguments passed to the `pandas.DataFrame.plot.barh`_ function.
+
+        .. _pandas.DataFrame.plot.barh:
+            https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.plot.barh.html
+
+    Returns
+    -------
+    `plt.Axes` with the resulting feature importance plot.
+    """
+
+    if features == 'all':
+        feature_indices = list(range(len(exp.data['feature_names'])))
+        feature_names = exp.data['feature_names']
+    else:
+        feature_indices, feature_names = features, []
+        for ifeatures in features:
+            if ifeatures > len(exp.data['feature_names']):
+                raise ValueError(f"The `features` indices must be less than the "
+                                 f"``len(feature_names) = {len(exp.data['feature_names'])}``. "
+                                 f"Received {ifeatures}.")
+            else:
+                feature_names.append(exp.data['feature_names'][ifeatures])
+
+    # set target indices
+    if targets == 'all':
+        target_indices = list(range(len(exp.meta['params']['target_names'])))
+        target_names = exp.meta['params']['target_names']
+    else:
+        target_indices, target_names = [], []
+
+        for target in targets:
+            if isinstance(target, str):
+                try:
+                    target_idx = exp.meta['params']['target_names'].index(target)
+                    target_name = target
+                except ValueError:
+                    raise ValueError(f"Unknown `target` name. Received {target}. "
+                                     f"Available values are: {exp.meta['params']['target_names']}.")
+            else:
+                try:
+                    target_idx = target
+                    target_name = exp.meta['params']['target_names'][target]
+                except ValueError:
+                    raise IndexError(f"Target index out of range. Received {target}. "
+                                     f"The number of targets is {len(exp.meta['params']['target_names'])}.")
+            target_indices.append(target_idx)
+            target_names.append(target_name)
+
+    # create `pandas.DataFrame` for easy display
+    data = exp.data['feature_importance'][target_indices].T[feature_indices]
+    df = pd.DataFrame(data=data, columns=target_names, index=feature_names)
+    return df.plot.barh(ax=ax, **kwargs)

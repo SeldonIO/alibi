@@ -16,7 +16,6 @@ from alibi.utils.data import Bunch
 
 logger = logging.getLogger(__name__)
 
-
 ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
               'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
               'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
@@ -69,7 +68,11 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
         raise
     tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
 
-    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'))  # type: ignore[arg-type]
+    def keystoint(x):
+        return {int(k): v for k, v in x}
+
+    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'),
+                                  object_pairs_hook=keystoint)  # type: ignore[arg-type]
     str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))  # type: ignore[arg-type]
 
     # hack to load npy files from a tar archive

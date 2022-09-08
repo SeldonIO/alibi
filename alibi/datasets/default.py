@@ -71,8 +71,8 @@ def fetch_imagenet_10(url_id: int = 0) -> Dict:
     def keystoint(x):
         return {int(k): v for k, v in x}
 
-    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'),
-                                  object_pairs_hook=keystoint)  # type: ignore[arg-type]
+    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'),  # type: ignore[arg-type]
+                                  object_pairs_hook=keystoint)
     str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))  # type: ignore[arg-type]
 
     # hack to load npy files from a tar archive

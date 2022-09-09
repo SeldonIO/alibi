@@ -1198,8 +1198,7 @@ def _process_pd_ice(exp: Explanation,
     return pd_values, ice_values
 
 
-def _compute_pd_limits(exp: Explanation,
-                       kind: Literal['average', 'individual', 'both'] = 'average',
+def _compute_pd_limits(kind: Literal['average', 'individual', 'both'] = 'average',
                        pd_values: Optional[np.ndarray] = None,
                        ice_values: Optional[np.ndarray] = None,
                        padding_proc: float = 0.1) -> Tuple[float, float]:
@@ -1208,7 +1207,7 @@ def _compute_pd_limits(exp: Explanation,
 
     Parameters
     ----------
-    exp, pd_values, ice_values
+    pd_values, ice_values
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
     kind
         See :py:meth:`alibi.explainers.partial_dependence.explain` method.
@@ -1251,7 +1250,7 @@ def _plot_one_pd_num(exp: Explanation,
 
     Returns
     -------
-    `matplotlib` axes.
+    `matplotlib` axes and a tuple containing the minimum and maximum y-limits.
     """
     import matplotlib.pyplot as plt
     from matplotlib import transforms
@@ -1299,8 +1298,7 @@ def _plot_one_pd_num(exp: Explanation,
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
 
     if pd_limits is None:
-        pd_limits = _compute_pd_limits(exp=exp,
-                                       kind=exp.meta['params']['kind'],
+        pd_limits = _compute_pd_limits(kind=exp.meta['params']['kind'],
                                        pd_values=pd_values,
                                        ice_values=ice_values)
     return ax, pd_limits
@@ -1332,7 +1330,7 @@ def _plot_one_pd_cat(exp: Explanation,
 
     Returns
     -------
-    `matplotlib` axes.
+    `matplotlib` axes and a tuple containing the minimum and maximum y-limits.
     """
     import matplotlib.pyplot as plt
 
@@ -1383,8 +1381,7 @@ def _plot_one_pd_cat(exp: Explanation,
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
 
     if pd_limits is None:
-        pd_limits = _compute_pd_limits(exp=exp,
-                                       kind=exp.meta['params']['kind'],
+        pd_limits = _compute_pd_limits(kind=exp.meta['params']['kind'],
                                        pd_values=pd_values,
                                        ice_values=ice_values)
     return ax, pd_limits
@@ -1413,7 +1410,7 @@ def _plot_two_pd_num_num(exp: Explanation,
 
     Returns
     -------
-    `matplotlib` axes.
+    `matplotlib` axes and ``None``.
     """
     import matplotlib.pyplot as plt
     from matplotlib import transforms
@@ -1480,7 +1477,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     Returns
     -------
-    `matplotlib` axes.
+    `matplotlib` axes and a tuple containing the minimum and maximum y-limits.
     """
     import matplotlib.pyplot as plt
     from matplotlib import transforms
@@ -1532,8 +1529,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
     ax.legend()
 
     if pd_limits is None:
-        pd_limits = _compute_pd_limits(exp=exp,
-                                       kind=Kind.AVERAGE.value,
+        pd_limits = _compute_pd_limits(kind=Kind.AVERAGE.value,
                                        pd_values=pd_values)
     return ax, pd_limits
 
@@ -1560,7 +1556,7 @@ def _plot_two_pd_cat_cat(exp: Explanation,
 
     Return
     ------
-    `matplotlib` axes.
+    `matplotlib` axes and ``None``.
     """
     import matplotlib.pyplot as plt
 

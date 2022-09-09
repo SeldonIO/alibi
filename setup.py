@@ -46,7 +46,7 @@ if __name__ == '__main__':
               'pandas>=0.23.3, <2.0.0',
               'scikit-learn>=0.22.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <4.0.0',
-              'scikit-image>=0.14.2, !=0.17.1, <0.20',  # https://github.com/SeldonIO/alibi/issues/215
+              'scikit-image>=0.17.2, <0.20',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <10.0',
               'attrs>=19.2.0, <23.0.0',

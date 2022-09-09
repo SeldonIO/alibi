@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SEGMENTATION_KWARGS = {
     'felzenszwalb': {},
     'quickshift': {},
-    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5, 'start_label': 0}
 }  # type: Dict[str, Dict]
 
 
@@ -67,7 +67,8 @@ class AnchorImageSampler:
         predictor
             A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
-            Function used to segment the images.
+            Function used to segment the images. The segmentation function is expected to return a segmentation mask
+            containing all integer values from `0` to `K-1`, where `K` is the number of image segments (superpixels).
         image
             Image to be explained.
         images_background
@@ -332,6 +333,8 @@ class AnchorImage(Explainer):
         segmentation_fn
             Any of the built in segmentation function strings: ``'felzenszwalb'``, ``'slic'`` or ``'quickshift'`` or
             a custom segmentation function (callable) which returns an image mask with labels for each superpixel.
+            The segmentation function is expected to return a segmentation mask containing all integer values
+            from `0` to `K-1`, where `K` is the number of image segments (superpixels).
             See http://scikit-image.org/docs/dev/api/skimage.segmentation.html for more info.
         segmentation_kwargs
             Keyword arguments for the built in segmentation functions.

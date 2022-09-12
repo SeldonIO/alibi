@@ -1442,6 +1442,7 @@ def _plot_two_pd_num_num(exp: Explanation,
     # the horizontal lines do not display (same for the sklearn)
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(exp.data['feature_deciles'][feature][0][1:-1], 0, 0.05, transform=trans)
+    trans = transforms.blended_transform_factory(ax.transAxes, ax.transData)
     ax.hlines(exp.data['feature_deciles'][feature][1][1:-1], 0, 0.05, transform=trans)
 
     # reset xlim and ylim since they are overwritten by hlines and vlines

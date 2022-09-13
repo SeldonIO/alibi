@@ -57,8 +57,9 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt -r testing/requirements.txt
           python -m pip install --upgrade --upgrade-strategy eager -e .
-          if [ "$RUNNER_OS" != "Windows" ]; then  
+          if [ "$RUNNER_OS" != "Windows" ] && [ ${{ matrix.python }} < '3.10' ]; then  
           # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
+          # Python 3.10 is not yet supported (https://github.com/ray-project/ray/blob/master/python/setup.py#L24) 
             python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
           fi
           python -m pip install --upgrade --upgrade-strategy eager -e .[shap,tensorflow]

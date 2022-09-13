@@ -328,6 +328,7 @@ DEFAULT_DATA_PDVARIANCE = {
     "feature_values": None,       # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
     "feature_names": None,
     "feature_importance": None,
+    "feature_interaction": None,
 }  # type: dict
 """
 Default PartialDependence data.

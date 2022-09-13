@@ -75,7 +75,8 @@ class PartialDependenceVariance(Explainer):
 
     def explain(self,
                 X: np.ndarray,
-                features: Optional[List[int]] = None,
+                features: Optional[Union[List[int], List[Tuple[int, int]]]] = None,
+                method: Literal['importance', 'interaction'] = 'importance',
                 percentiles: Tuple[float, float] = (0., 1.),
                 grid_resolution: int = 100,
                 grid_points: Optional[Dict[int, Union[List, np.ndarray]]] = None) -> Explanation:
@@ -89,10 +90,14 @@ class PartialDependenceVariance(Explainer):
             A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
             training dataset or a representative sample.
         features
-            An optional list of features or tuples of features for which to calculate the partial dependence.
-            If not provided, the partial dependence will be computed for every single features in the dataset.
-            Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
-            ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
+            A list of features for which to compute the feature importance or a list of feature pairs
+            for which to compute the feature interaction. Some example of `features` would be: ``[0, 1, 3]``,
+            ``[(0, 1), (0, 3), (1, 3)]``, where ``0``,``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`.
+            If not provided, the feature importance or the feature interaction will be computed for every
+            feature or for every combination of features, depending on the parameter `mode`.
+        method
+            Flag to specify whether to compute the feature importance or the feature interaction of the elements in
+            provided in `features`.
         percentiles
             Lower and upper percentiles used to limit the feature values to potentially remove outliers from
             low-density regions. Note that for features with not many data points with large/low values, the
@@ -128,6 +133,7 @@ class PartialDependenceVariance(Explainer):
             .. _Partial dependence examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/VariancePartialDependence.html
         """
+
         # compute partial dependence functions
         params = {
             'X': X,
@@ -143,57 +149,162 @@ class PartialDependenceVariance(Explainer):
         # compute partial dependence for each feature
         pd_explanation = self.pd_explainer.explain(**params)  # type: ignore[arg-type]
 
-        # filter explained numerical and categorical features
-        features = [pd_explanation.meta['params']['feature_names'].index(f)
-                    for f in pd_explanation.data['feature_names']]
-
-        # compute feature importance
-        feature_importance = []
-
-        for pd_values, f in zip(pd_explanation.data['pd_values'], features):
-            # `pd_values` is a tensor of size `T x N`, where `T` is the number
-            # of targets and `N` is the number of feature values
-
-            if f in self.pd_explainer.categorical_names:   # type: ignore[operator]
-                # compute feature importance for categorical features
-                ft_imp = (pd_values.max(axis=-1) - pd_values.min(axis=-1)) / 4
-            else:
-                # compute feature importance for numerical features
-                ft_imp = np.std(pd_values, axis=-1, ddof=1)
-
-            feature_importance.append(ft_imp.reshape(-1, 1))
-
-        # stack the feature importance such that the array has the shape `T x F`, where ``T` is the
-        # number of targets and `F` is the number of explained features
-        feature_importance = np.hstack(feature_importance)  # type: ignore[assignment]
+        if method == 'importance':
+            # compute feature importance
+            buffers = self._compute_feature_importance(pd_explanation=pd_explanation, features=features)
+        elif method == 'interaction':
+            # compute feature interaction
+            buffers = self._compute_feature_interaction(pd_explanation=pd_explanation, features=features)
+        else:
+            raise ValueError(f"Unknown mode. Received ``method={method}``. "
+                             f"Supported values: 'importance' | 'interaction'")
 
         # update meta and return built explanation
         self.meta['params'].update(self.pd_explainer.meta['params'])
-        return self._build_explanation(pd_explanation=pd_explanation,
-                                       feature_importance=feature_importance)  # type: ignore[arg-type]
+        self.meta['params'].update({'method': method})
+        return self._build_explanation(buffers=buffers)
 
-    def _build_explanation(self, pd_explanation: Explanation, feature_importance: np.ndarray) -> Explanation:
+    def _compute_pd_variance(self, features: List[int], pd_values: List[np.ndarray]) -> np.ndarray:
+        """
+        Computes the PD variance along the final axis for all the features.
+
+        Parameters
+        ----------
+        features
+            See :py:meth:`alibi.explainers.pd_variance.PartialDependenceVariance.explain`.
+        pd_values
+            List of PD values for each feature in `features`. Each PD value is an array with the shape
+            `T x N1 ... x Nk` where `T` is the number of targets and `Ni` is the number of feature values
+            along the `i` axis.
+
+        Returns
+        -------
+        An array of size `F x T x N1 x ... N(k-1)`, where `F` is the number of explained features, `T` is the number
+        of targets, and `Ni` is the number of feature values along the `i` axis.
+        """
+        feature_variance = []
+
+        for pd_values, f in zip(pd_values, features):
+            # `pd_values` is a tensor of size `T x N1 x ... Nk`, where `T` is the number
+            # of targets and `Ni` is the number of feature values along the axis `i`
+            ft_var = self._compute_pd_variance_cat(pd_values) if (f in self.pd_explainer.categorical_names) \
+                else self._compute_pd_variance_num(pd_values)
+            feature_variance.append(ft_var[None, ...])
+
+        # stack the feature importance such that the array has the shape `F x T x N1 ... N(k-1)`
+        return np.concatenate(feature_variance, axis=0)  # type: ignore[assignment]
+
+    def _compute_pd_variance_num(self, pd_values: np.ndarray) -> np.ndarray:
+        """
+        Computes the PD variance along the final axis for a numerical feature.
+
+        Parameters
+        ----------
+        pd_values
+            Array of partial dependence values for a numerical features of size `T x N1 x ... x Nk`, where `T` is the
+            number of targets and `Ni` is the number of feature values along the axis `i`.
+
+        Returns
+        -------
+        PD variance along the final axis for a numerical feature.
+        """
+        return np.std(pd_values, axis=-1, ddof=1, keepdims=False)
+
+    def _compute_pd_variance_cat(self, pd_values: np.ndarray) -> np.array:
+        """
+        Computes the PD variance along the final axis for a categorical feature.
+
+        Parameters
+        ----------
+        pd_values
+            Array of partial dependence values for a categorical feature of size `T x N1 x ... x Nk`, where `T` is the
+            number of targets and `Ni` is the number of feature values along the axis `i`.
+
+        Returns
+        -------
+        PD variance along the final axis for a categorical feature.
+        """
+        return (np.max(pd_values, axis=-1, keepdims=False) - np.min(pd_values, axis=-1, keepdims=False)) / 4
+
+    def _compute_feature_importance(self, pd_explanation: Explanation, features: List[int]):
+        return {
+            'feature_deciles': pd_explanation.data['feature_deciles'],
+            'pd_values': pd_explanation.data['pd_values'],
+            'feature_values': pd_explanation.data['feature_values'],
+            'feature_names': pd_explanation.data['feature_names'],
+            'feature_importance': self._compute_pd_variance(features=features,
+                                                            pd_values=pd_explanation.data['pd_values']).T,
+        }
+
+    def _compute_feature_interaction(self, features: List[Tuple[int, int]], pd_explanation: Explanation):
+        buffers = {
+            'feature_interaction': [],
+            'feature_deciles': [],
+            'pd_values': [],
+            'feature_values': [],
+            'feature_names': []
+        }
+
+        for i in range(len(features)):
+            # unpack explanation
+            feature_deciles = pd_explanation.data['feature_deciles'][i]
+            pd_values = pd_explanation.data['pd_values'][i]
+            feature_values = pd_explanation.data['feature_values'][i]
+            feature_names = pd_explanation.data['feature_names'][i]
+
+            # append data for the 2-way pdp
+            buffers['feature_deciles'].append(feature_deciles)
+            buffers['pd_values'].append(pd_values)
+            buffers['feature_values'].append(feature_values)
+            buffers['feature_names'].append(feature_names)
+
+            # compute variance when keeping f0 value constant and vary f1.
+            # Note that we remove the first axis here since we are dealing with only one feature
+            feature_interaction = []
+
+            for j in range(2):
+                tmp_pd_values = pd_values if j == 0 else pd_values.transpose(0, 2, 1)
+                cond_pd_values = self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[tmp_pd_values])[0]
+                buffers['feature_deciles'].append(feature_deciles[j])
+                buffers['pd_values'].append(cond_pd_values)
+                buffers['feature_values'].append(feature_values[j])
+                buffers['feature_names'].append(feature_names[j])
+                feature_interaction.append(
+                    self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[cond_pd_values])[0]
+                )
+
+            # compute the feature interaction as the average of the two
+            buffers['feature_interaction'].append(np.mean(feature_interaction, axis=0, keepdims=True))
+
+        # transform `feature_interaction` into an array of shape `T x F`, where `T` is the number of targets
+        # and `F` is the number of feature pairs.
+        buffers['feature_interaction'] = np.concatenate(buffers['feature_interaction'], axis=0).T
+        return buffers
+
+    def _build_explanation(self, buffers: dict) -> Explanation:
         """
         Helper method to build `Explanation` object.
 
         Parameters
         ----------
-        pd_explanation
-            The `PartialDependence` explanation object.
-        feature_importance
-            Array of feature importance of size `T x F`, where `T` is the number of targets and `F` is the number
-            of features to be explained.
+        buffers
+            TODO
 
         Returns
         -------
         `Explanation` object.
         """
         data = copy.deepcopy(DEFAULT_DATA_PDVARIANCE)
-        data.update(feature_deciles=pd_explanation.data['feature_deciles'],
-                    pd_values=pd_explanation.data['pd_values'],
-                    feature_values=pd_explanation.data['feature_values'],
-                    feature_names=pd_explanation.data['feature_names'],
-                    feature_importance=feature_importance)
+        data.update(feature_deciles=buffers['feature_deciles'],
+                    pd_values=buffers['pd_values'],
+                    feature_values=buffers['feature_values'],
+                    feature_names=buffers['feature_names'])
+
+        if self.meta['params']['method'] == 'importance':
+            data.update(feature_importance=buffers['feature_importance'])
+        else:
+            data.update(feature_interaction=buffers['feature_interaction'])
+
         return Explanation(meta=self.meta, data=data)
 
 

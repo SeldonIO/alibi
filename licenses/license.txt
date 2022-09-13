@@ -828,7 +828,7 @@ SOFTWARE.
 
 
 Werkzeug
-2.2.1
+2.2.2
 BSD License
 Copyright 2007 Pallets
 
@@ -1575,7 +1575,7 @@ SOFTWARE.
 
 
 blis
-0.7.8
+0.9.1
 BSD License
 NOTE: Portions of this project's code are copyrighted by
 
@@ -1675,7 +1675,7 @@ SOFTWARE.
 
 
 certifi
-2022.6.15
+2022.6.15.1
 Mozilla Public License 2.0 (MPL 2.0)
 This package contains a modified version of ca-bundle.crt:
 
@@ -1685,7 +1685,7 @@ Certificate data from Mozilla as of: Thu Nov  3 19:04:19 2011#
 This is a bundle of X.509 certificates of public Certificate Authorities
 (CA). These were automatically extracted from Mozilla's root certificates
 file (certdata.txt).  This file can be found in the mozilla source tree:
-http://mxr.mozilla.org/mozilla/source/security/nss/lib/ckfw/builtins/certdata.txt?raw=1#
+https://hg.mozilla.org/mozilla-central/file/tip/security/nss/lib/ckfw/builtins/certdata.txt
 It contains the certificates in PEM format and therefore
 can be directly used with curl / libcurl / php_curl, or with
 an Apache+mod_ssl webserver for SSL client authentication.
@@ -1701,7 +1701,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-2.1.0
+2.1.1
 MIT License
 MIT License
 
@@ -1759,7 +1759,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 cloudpickle
-2.1.0
+2.2.0
 BSD License
 This module was extracted from the `cloud` package, developed by
 PiCloud, Inc.
@@ -1793,6 +1793,32 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+confection
+0.0.1
+MIT License
+MIT License
+
+Copyright (c) 2019 ExplosionAI GmbH
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 
 contextvars
@@ -2106,7 +2132,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 distlib
-0.3.5
+0.3.6
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================
@@ -2395,7 +2421,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 filelock
-3.7.1
+3.8.0
 Public Domain
 This is free and unencumbered software released into the public domain.
 
@@ -2424,12 +2450,12 @@ For more information, please refer to <http://unlicense.org>
 
 
 flatbuffers
-1.12
+2.0.7
 Apache Software License
 UNKNOWN
 
 fonttools
-4.34.4
+4.37.1
 MIT License
 MIT License
 
@@ -2695,7 +2721,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.10.0
+2.11.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3596,7 +3622,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.8.1
+0.9.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3863,7 +3889,7 @@ THE SOFTWARE.
 
 
 imageio
-2.21.0
+2.21.3
 BSD License
 Copyright (c) 2014-2022, imageio developers
 All rights reserved.
@@ -4352,12 +4378,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 jsonschema
-4.9.1
+4.16.0
 MIT License
 UNKNOWN
 
 keras
-2.9.0
+2.10.0
 Apache Software License
 
                                  Apache License
@@ -4976,7 +5002,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.5.2
+3.5.3
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -5098,7 +5124,7 @@ Copyright (C) 2008-2011 INADA Naoki <songofacandy@gmail.com>
 
 
 murmurhash
-1.0.7
+1.0.8
 MIT License
 The MIT License (MIT)
 
@@ -5124,7 +5150,7 @@ THE SOFTWARE.
 
 
 networkx
-2.8.5
+2.8.6
 BSD License
 NetworkX is distributed with the 3-clause BSD license.
 
@@ -6110,7 +6136,7 @@ Public License instead of this License.  But first, please read
 
 
 oauthlib
-3.2.0
+3.2.1
 BSD License
 Copyright (c) 2019 The OAuthlib Community
 All rights reserved.
@@ -6177,7 +6203,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-1.4.3
+1.4.4
 BSD License
 BSD 3-Clause License
 
@@ -6504,7 +6530,7 @@ MIT License
 UNKNOWN
 
 preshed
-3.0.6
+3.0.7
 MIT License
 The MIT License (MIT)
 
@@ -6593,7 +6619,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-1.9.1
+1.9.2
 MIT License
 The MIT License (MIT)
 
@@ -6726,7 +6752,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The above BSD License Applies to all code, even that also covered by Apache 2.0.
 
 pytz
-2022.1
+2022.2.1
 MIT License
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
 
@@ -6755,7 +6781,7 @@ Apache 2.0
 UNKNOWN
 
 regex
-2022.7.25
+2022.9.13
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -7306,7 +7332,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.9.0
+1.9.1
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc. 2003-2022, SciPy Developers.
 All rights reserved.
@@ -8349,7 +8375,7 @@ THE SOFTWARE.
 
 
 spacy-legacy
-3.0.9
+3.0.10
 MIT License
 MIT License
 
@@ -8453,7 +8479,7 @@ THE SOFTWARE.
 
 
 tensorboard
-2.9.1
+2.10.0
 Apache Software License
 # TensorBoard License
 
@@ -9035,7 +9061,7 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.9.1
+2.10.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -9290,12 +9316,12 @@ or otherwise, the contributor releases their content to the
 license and copyright terms herein.
 
 tensorflow-estimator
-2.9.0
+2.10.0
 Apache Software License
 UNKNOWN
 
 tensorflow-io-gcs-filesystem
-0.26.0
+0.27.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -9501,32 +9527,12 @@ Apache Software License
 
 
 termcolor
-1.1.0
+2.0.1
 MIT License
-Copyright (c) 2008-2011 Volvox Development Team
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-
-
+UNKNOWN
 
 thinc
-8.1.0
+8.1.1
 MIT License
 The MIT License (MIT)
 
@@ -9580,7 +9586,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2022.8.3
+2022.8.12
 BSD License
 BSD 3-Clause License
 
@@ -10068,7 +10074,7 @@ Files: third_party/zstd
 
 
 tqdm
-4.64.0
+4.64.1
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -10122,7 +10128,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.21.1
+4.21.3
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -10615,7 +10621,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 urllib3
-1.26.11
+1.26.12
 MIT License
 MIT License
 
@@ -10641,7 +10647,7 @@ SOFTWARE.
 
 
 virtualenv
-20.16.3
+20.16.5
 MIT License
 Copyright (c) 2020-202x The virtualenv developers
 

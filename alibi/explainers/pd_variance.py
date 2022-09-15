@@ -151,9 +151,11 @@ class PartialDependenceVariance(Explainer):
         n_features = X.shape[1]
 
         # construct features if not provided based on the method
-        features = list(range(n_features))
-        if method == Method.INTERACTION:
-            features = list(combinations(features, 2))
+        if features is None:
+            features = list(range(n_features))
+
+            if method == Method.INTERACTION:
+                features = list(combinations(features, 2))
 
         # compute partial dependence functions
         params = {

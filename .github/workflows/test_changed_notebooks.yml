@@ -7,17 +7,17 @@ defaults:
     shell: bash  # To override PowerShell on Windows
 
 on:
+  # Trigger the workflow on push or PR to any branch
   push:
-    branches:
-      - master
     paths:
       - 'doc/source/examples/**/*.ipynb'
   pull_request:
-    branches:
-      - master
     paths:
       - 'doc/source/examples/**/*.ipynb'
+    # don't trigger for draft PRs
     types: [ opened, synchronize, reopened, ready_for_review ]
+  # Trigger the workflow on manual dispatch
+  workflow_dispatch:
 
 jobs:
   test_changed_notebooks:

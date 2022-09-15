@@ -104,9 +104,11 @@ class ProtoSelect(Summariser, FitMixin):
         self
             Reference to itself.
         """
-        if (y is not None) and (len(X) != len(y)):
-            raise ValueError('The number of data instances does not match the number of labels. '
-                             f'Got len(X)={len(X)} and len(y)={len(y)}.')
+        if y is not None:
+            y = y.flatten()
+            if len(X) != len(y):
+                raise ValueError('The number of data instances does not match the number of labels. '
+                                 f'Got len(X)={len(X)} and len(y)={len(y)}.')
 
         self.X = X
         # if the y is not provided, then consider that all elements belong to the same class. This means

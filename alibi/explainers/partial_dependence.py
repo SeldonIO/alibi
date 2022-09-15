@@ -991,37 +991,8 @@ def plot_pd(exp: Explanation,
         axes = np.empty((n_rows, n_cols), dtype=np.object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
-
-        def _set_common_axes(start: int, stop: int, all_different: bool = False):
-            """ Helper function to add subplots and share common y axes. """
-            common_axes = None
-
-            def _share_common_axes(features: Union[str, Tuple[str, str]]):
-                if isinstance(features, tuple):
-                    # cat-cat plots do not share axis
-                    if _is_categorical(features[0]) and _is_categorical(features[1]):
-                        return False
-                    # num-num plots do not share axis
-                    if not _is_categorical(features[0]) and not _is_categorical(features[1]):
-                        return False
-                return True
-
-            for i, spec in zip(range(start, stop), list(gs)[start:stop]):
-                if _share_common_axes(exp.data['feature_names'][i]) and (not all_different):
-                    axes_ravel[i] = fig.add_subplot(spec, sharey=common_axes)
-
-                    if common_axes is None:
-                        common_axes = axes_ravel[i]
-                else:
-                    axes_ravel[i] = fig.add_subplot(spec)
-
-        if sharey == 'all':
-            _set_common_axes(0, n_features)
-        elif sharey == 'row':
-            for i in range(n_rows):
-                _set_common_axes(i * n_cols, min((i + 1) * n_cols, n_features))
-        else:
-            _set_common_axes(0, n_features, all_different=True)
+        for i, spec in enumerate(list(gs)[:n_features]):
+            axes_ravel[i] = fig.add_subplot(spec)
 
     else:  # array-like
         if isinstance(ax, plt.Axes):
@@ -1109,10 +1080,12 @@ def plot_pd(exp: Explanation,
                 # if no axis are share, each `ax_ravel` will have its own group
                 one_way_axs[i] = [(ax, ax_pd_limits)]
 
-    # seems like this step is necessary because `vlines` messes up the display
+    #  share the y-axis for the axes within the same group and set the `ymin`, `ymax` values.
+    #  This step is necessary and applied here because `vlines` overwrites the `ylim`.
     for ax_group in one_way_axs.values():
         min_val = min([ax_pd_lim[0] for _, ax_pd_lim in ax_group])
         max_val = max([ax_pd_lim[1] for _, ax_pd_lim in ax_group])
+        ax_group[0][0].get_shared_y_axes().join(ax_group[0][0], *[ax[0] for ax in ax_group[1:]])
         ax_group[0][0].set_ylim(min_val, max_val)
 
     fig.set(**fig_kw)
@@ -1198,32 +1171,6 @@ def _process_pd_ice(exp: Explanation,
     return pd_values, ice_values
 
 
-def _compute_pd_limits(kind: Literal['average', 'individual', 'both'] = 'average',
-                       pd_values: Optional[np.ndarray] = None,
-                       ice_values: Optional[np.ndarray] = None,
-                       padding_proc: float = 0.1) -> Tuple[float, float]:
-    """
-    Computes the minimum and maximum y-limits for all the one-way PD plots
-
-    Parameters
-    ----------
-    pd_values, ice_values
-        See :py:meth:`alibi.explainers.partial_dependence.plot_pd` method.
-    kind
-        See :py:meth:`alibi.explainers.partial_dependence.explain` method.
-    padding_proc
-        Padding percentage.
-
-    Returns
-    -------
-    Tuple containing the minimum and maximum y-limits.
-    """
-    values = pd_values if kind == Kind.AVERAGE else ice_values
-    min_val, max_val = values.min(), values.max()  # type: ignore[union-attr]
-    padding = padding_proc * (max_val - min_val)
-    return min_val - padding, max_val + padding
-
-
 # No type check due to the generic explanation object
 @no_type_check
 def _plot_one_pd_num(exp: Explanation,
@@ -1290,18 +1237,16 @@ def _plot_one_pd_num(exp: Explanation,
         ax.plot(feature_values, pd_values, **pd_num_kw)
         ax.legend()
 
+    # save the `ylim` as they will be overwritten by `ax.vlines`
+    ylim = ax.get_ylim() if pd_limits is None else pd_limits
+
     # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(exp.data['feature_deciles'][feature][1:-1], 0, 0.05, transform=trans)
 
     ax.set_xlabel(exp.data['feature_names'][feature])
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
-
-    if pd_limits is None:
-        pd_limits = _compute_pd_limits(kind=exp.meta['params']['kind'],
-                                       pd_values=pd_values,
-                                       ice_values=ice_values)
-    return ax, pd_limits
+    return ax, ylim
 
 
 # No type check due to the generic explanation object
@@ -1373,18 +1318,16 @@ def _plot_one_pd_cat(exp: Explanation,
         ax.plot(labels, pd_values, **pd_cat_kw)
         ax.legend()
 
+    # save `ylim`
+    ylim = ax.get_ylim() if pd_limits is None else pd_limits
+
     # rotate xticks labels
     ax.tick_params(axis='x', rotation=90)
 
     # set axis labels
     ax.set_xlabel(feature_names)
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
-
-    if pd_limits is None:
-        pd_limits = _compute_pd_limits(kind=exp.meta['params']['kind'],
-                                       pd_values=pd_values,
-                                       ice_values=ice_values)
-    return ax, pd_limits
+    return ax, ylim
 
 
 # No type check due to the generic explanation object
@@ -1429,11 +1372,17 @@ def _plot_two_pd_num_num(exp: Explanation,
     pd_values = exp.data['pd_values'][feature][target_idx]
 
     X, Y = np.meshgrid(feature_values[0], feature_values[1])
-    Z = pd_values.T
-    Z_level = np.linspace(Z.min(), Z.max(), levels)
+    Z, Z_min, Z_max = pd_values.T, pd_values.min(), pd_values.max()
+
+    if Z_max > Z_min:
+        Z_level = np.linspace(Z_min, Z_max, levels)
+    else:
+        # this covers the case when `Z_min` equals `Z_max`, for which `Z_level` will be constant.
+        # Note that `ax.contourf` accepts only increasing `Z_levels`, otherwise it throws an error.
+        Z_level, Z_min, Z_max = None, None, None
 
     CS = ax.contour(X, Y, Z, levels=Z_level, linewidths=0.5, colors="k")
-    ax.contourf(X, Y, Z, levels=Z_level, vmax=Z_level[-1], vmin=Z_level[0], **pd_num_num_kw)
+    ax.contourf(X, Y, Z, levels=Z_level, vmax=Z_max, vmin=Z_min, **pd_num_num_kw)
     ax.clabel(CS, fmt="%2.2f", colors="k", fontsize=10, inline=True)
 
     # create the deciles line for the vertical & horizontal axis
@@ -1521,6 +1470,9 @@ def _plot_two_pd_num_cat(exp: Explanation,
         pd_num_cat_kw.update({'label': labels[i]})
         ax.plot(x, y, **pd_num_cat_kw)
 
+    # save `ylim` as they will be overwritten by `ax.vlines`
+    ylim = ax.get_ylim() if pd_limits is None else pd_limits
+
     # add deciles markers to the bottom of the plot
     trans = transforms.blended_transform_factory(ax.transData, ax.transAxes)
     ax.vlines(feature_deciles[0][1:-1], 0, 0.05, transform=trans)
@@ -1528,11 +1480,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
     ax.set_ylabel(exp.meta['params']['target_names'][target_idx])
     ax.set_xlabel(feature_names[0])
     ax.legend()
-
-    if pd_limits is None:
-        pd_limits = _compute_pd_limits(kind=Kind.AVERAGE.value,
-                                       pd_values=pd_values)
-    return ax, pd_limits
+    return ax, ylim
 
 
 # No type check due to the generic explanation object

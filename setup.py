@@ -10,7 +10,7 @@ def readme():
 exec(open('alibi/version.py').read())
 
 extras_require = {
-    'ray': ['ray>=0.8.7, <2.0.0'],
+    'ray': ['ray>=0.8.7, <3.0.0'],
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [
         'shap>=0.40.0, <0.42.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
@@ -19,7 +19,7 @@ extras_require = {
     'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.11.0'],
     'torch': ['torch>=1.9.0, <2.0.0'],
     'all': [
-        'ray>=0.8.7, <2.0.0',
+        'ray>=0.8.7, <3.0.0',
         'shap>=0.40.0, <0.42.0',
         'numba>=0.50.0, !=0.54.0, <0.56.0',
         'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.11.0',

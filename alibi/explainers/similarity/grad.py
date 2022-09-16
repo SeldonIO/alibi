@@ -14,19 +14,13 @@ from alibi.api.interfaces import Explanation
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import dot, cos, asym_dot
 from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
+from alibi.utils import _get_options_string
 from alibi.utils.frameworks import Framework
 from alibi.api.interfaces import Explainer
 
 if TYPE_CHECKING:
     import tensorflow
     import torch
-
-from typing import Type
-
-
-def get_options_string(enum: Type[Enum]) -> str:
-    """Get the enums options seperated by pipe as a string."""
-    return f"""'{"' | '".join(enum)}'"""
 
 
 class Task(str, Enum):
@@ -117,12 +111,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
         resolved_sim_fn = sim_fn_opts[sim_fn]
 
         if task not in Task.__members__.values():
-            raise ValueError(f"Unknown task {task}. Consider using: {get_options_string(Task)}.")
+            raise ValueError(f"Unknown task {task}. Consider using: {_get_options_string(Task)}.")
 
         self.task = task
 
         if backend not in Framework.__members__.values():
-            raise ValueError(f"Unknown backend {backend}. Consider using: {get_options_string(Framework)}.")
+            raise ValueError(f"Unknown backend {backend}. Consider using: {_get_options_string(Framework)}.")
 
         super().__init__(predictor, loss_fn, resolved_sim_fn, precompute_grads, Framework(backend), device=device,
                          meta=copy.deepcopy(DEFAULT_META_SIM), verbose=verbose)

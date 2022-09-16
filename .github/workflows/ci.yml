@@ -21,9 +21,9 @@ on:
   # Trigger the workflow on manual dispatch
   workflow_dispatch:
     inputs:
-      debug_enabled:
+      tmate_enabled:
         type: boolean
-        description: 'Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)'     
+        description: 'Enable tmate debugging?'
         required: false
         default: false
 
@@ -46,12 +46,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        with:
-          limit-access-to-actor: true
-
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
@@ -69,6 +63,12 @@ jobs:
           python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
           python -m pip freeze
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tmate_enabled }}
+        with:
+          limit-access-to-actor: true
 
       - name: Lint with flake8
         run: |

@@ -31,8 +31,9 @@ jobs:
         os: [ubuntu-latest]
         python-version: [ '3.7', '3.8', '3.9', '3.10.6' ]
         include: # Run macos and windows tests on only one python version
-          - os: windows-latest 
-            python-version:  '3.9.0'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
+          - os: windows-2022
+            node-version: 20220828.1
+            python-version:  '3.9.13'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest 
             python-version:  '3.10.6'
 
@@ -40,7 +41,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python ${{ g.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}

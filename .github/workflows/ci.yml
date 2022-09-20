@@ -68,7 +68,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest -m "not tf1" alibi/explainers/tests/test_anchor_text.py
+          pytest -m "not tf1" alibi/explainers/tests/test_anchor_text.py::test_lm_stopwords_punctuation
 
       - name: Upload coverage to Codecov
         if: ${{ success() }}

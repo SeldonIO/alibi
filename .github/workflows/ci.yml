@@ -31,7 +31,7 @@ jobs:
         os: [ubuntu-latest]
         python-version: [ '3.7', '3.8', '3.9', '3.10.6' ]
         include: # Run macos and windows tests on only one python version
-          - os: windows-c
+          - os: windows-latest
             python-version: '3.9.0'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest
             python-version:  '3.10.6'

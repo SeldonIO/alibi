@@ -31,16 +31,16 @@ jobs:
         os: [ubuntu-latest]
         python-version: [ '3.7', '3.8', '3.9', '3.10.6' ]
         include: # Run macos and windows tests on only one python version
-          - os: windows-latest
-            python-version: '3.9.0'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
-          - os: macos-latest
+          - os: windows-latest 
+            python-version:  '3.9.0'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
+          - os: macos-latest 
             python-version:  '3.10.6'
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Set up Python ${{ g.python-version }}
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
@@ -68,12 +68,13 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest -m "not tf1" alibi/explainers/tests/test_anchor_text.py
+          pytest -m tf1 alibi
+          pytest -m "not tf1" alibi
 
       - name: Upload coverage to Codecov
         if: ${{ success() }}
         run: |
-          codecov -F ${{ matrix.os }}-${{ matrix.python-version }}
+          codecov
 
       - name: Build Python package
         run: |

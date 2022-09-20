@@ -305,7 +305,8 @@ class PartialDependenceVariance(Explainer):
             'feature_deciles': [],
             'pd_values': [],
             'feature_values': [],
-            'feature_names': []
+            'feature_names': [],
+            'conditional_importance': []
         }
 
         for i in range(len(features)):
@@ -324,20 +325,26 @@ class PartialDependenceVariance(Explainer):
             # compute variance when keeping f0 value constant and vary f1.
             # Note that we remove the first axis here since we are dealing with only one feature
             feature_interaction = []
+            conditional_importance = []
 
             for j in range(2):
                 tmp_pd_values = pd_values if j == 0 else pd_values.transpose(0, 2, 1)
-                cond_pd_values = self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[tmp_pd_values])[0]
                 buffers['feature_deciles'].append(feature_deciles[j])
-                buffers['pd_values'].append(cond_pd_values)
                 buffers['feature_values'].append(feature_values[j])
                 buffers['feature_names'].append(feature_names[j])
+
+                # compute conditional importance plot
+                cond_imp = self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[tmp_pd_values])[0]
+                conditional_importance.append(cond_imp)
+
+                # compute feature interaction based on the conditional importance
                 feature_interaction.append(
-                    self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[cond_pd_values])[0]
+                    self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[cond_imp])[0]
                 )
 
             # compute the feature interaction as the average of the two
             buffers['feature_interaction'].append(np.mean(feature_interaction, axis=0, keepdims=True))
+            buffers['conditional_importance'].apppend(conditional_importance)
 
         # transform `feature_interaction` into an array of shape `T x F`, where `T` is the number of targets
         # and `F` is the number of feature pairs.
@@ -394,36 +401,10 @@ def _plot_hbar(exp_values: np.ndarray,
         A list of explanation feature names. Used as the y-axis labels.
     exp_target_names
         A list of explanation target names. Determines the number of plots (i.e., one for each target).
-    features
-        A list of features entries of feature_names` in the
-        :py:meth:`alibi.explainers.pd_variance.PartialDependence.explain`
-        to plot the partial dependence curves for, or ``'all'`` to plot all the explained feature or tuples of features.
-        This includes tuples of features. For example, if ``feature_names = ['temp', 'hum', 'windspeed']``
-        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
-        ``features=[0, 2]``. Defaults to ``'all'``.
-    targets
-        The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
-        denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
-    n_cols
-        Number of columns to organize the resulting plot into.
-    sort
-        Boolean flag whether to sort the values in descending order.
-    top_k
-        Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed.
+    features, targets, n_cols, sort, top_k, ax, bar_kw, fig_kw
+        See :py:meth:`alibi.explainers.pd_variance.plot_pd_variance`
     title
         The title of the bar plot.
-    ax
-        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
-    bar_kw
-        Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
-    fig_kw
-        Keyword arguments passed to the `matplotlib.figure.set`_ function.
-
-        .. _matplotlib.pyplot.barh`
-            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
-
-        .. _matplotlib.figure.set:
-            https://matplotlib.org/stable/api/figure_api.html
 
     Returns
     -------
@@ -530,98 +511,138 @@ def _plot_hbar(exp_values: np.ndarray,
     return axes
 
 
-def plot_feature_importance(exp: Explanation,
-                            features: Union[List[int], Literal['all']] = 'all',
-                            targets: Union[List[Union[str, int]], Literal['all']] = 'all',
-                            n_cols: int = 3,
-                            sort: bool = True,
-                            top_k: Optional[int] = None,
-                            ax: Optional[Union['plt.Axes', np.ndarray]] = None,
-                            bar_kw: Optional[dict] = None,
-                            fig_kw: Optional[dict] = None):
-    """
-    Horizontal bar plot for feature importance.
-
-    Parameters
-    ----------
-    exp
-        An `Explanation` object produced by a call to the
-        :py:meth:`alibi.explainers.pd_varianace.PartialDependenceVariance.explain` method.
-    features
-        A list of features entries of feature_names` in the
-        :py:meth:`alibi.explainers.pd_variance.PartialDependence.explain`
-        to plot the partial dependence curves for, or ``'all'`` to plot all the explained feature or tuples of features.
-        This includes tuples of features. For example, if ``feature_names = ['temp', 'hum', 'windspeed']``
-        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
-        ``features=[0, 2]``. Defaults to ``'all'``.
-    targets
-        The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
-        denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
-    n_cols
-        Number of columns to organize the resulting plot into.
-    sort
-        Boolean flag whether to sort the values in descending order.
-    top_k
-        Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed.
-    ax
-        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
-    bar_kw
-        Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
-    fig_kw
-        Keyword arguments passed to the `matplotlib.figure.set`_ function.
-
-        .. _matplotlib.pyplot.barh`
-            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
-
-        .. _matplotlib.figure.set:
-            https://matplotlib.org/stable/api/figure_api.html
-
-    Returns
-    -------
-    `plt.Axes` with the feature importance plot.
-    """
-    return _plot_hbar(exp_values=exp.data['feature_importance'],
-                      exp_feature_names=exp.data['feature_names'],
-                      exp_target_names=exp.meta['params']['target_names'],
-                      features=features,
-                      targets=targets,
-                      n_cols=n_cols,
-                      sort=sort,
-                      top_k=top_k,
-                      title='Feature importance',
-                      ax=ax,
-                      bar_kw=bar_kw,
-                      fig_kw=fig_kw)
-
-
-def plot_feature_interaction(exp: Explanation,
+def _plot_feature_importance(exp: Explanation,
                              features: Union[List[int], Literal['all']] = 'all',
                              targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+                             summarise: bool = True,
                              n_cols: int = 3,
                              sort: bool = True,
                              top_k: Optional[int] = None,
                              ax: Optional[Union['plt.Axes', np.ndarray]] = None,
                              bar_kw: Optional[dict] = None,
                              fig_kw: Optional[dict] = None):
+    """
+    Horizontal bar plot for feature importance.
+
+    Parameters
+    ----------
+    exp, features, targets, n_cols, summarise, sort, top_k, ax, bar_kw, fig_kw
+        See :py:meth:`alibi.explainers.pd_variance.plot_pd_variance`.
+
+    Returns
+    -------
+    `plt.Axes` with the feature importance plot.
+    """
+    if summarise:
+        return _plot_hbar(exp_values=exp.data['feature_importance'],
+                          exp_feature_names=exp.data['feature_names'],
+                          exp_target_names=exp.meta['params']['target_names'],
+                          features=features,
+                          targets=targets,
+                          n_cols=n_cols,
+                          sort=sort,
+                          top_k=top_k,
+                          title='Feature importance',
+                          ax=ax,
+                          bar_kw=bar_kw,
+                          fig_kw=fig_kw)
+
+    # construct pd explanation object to reuse `plot_pd` function
+    from alibi.api.defaults import DEFAULT_META_PD, DEFAULT_DATA_PD
+    meta = copy.deepcopy(DEFAULT_META_PD)
+    data = copy.deepcopy(DEFAULT_DATA_PD)
+    meta.update(exp.meta)
+    data.update(feature_names=exp.data['feature_names'],
+                feature_values=exp.data['feature_values'],
+                pd_values=exp.data['pd_values'],
+                feature_deciles=exp.data['feature_deciles'])
+    exp_pd = Explanation(meta=meta, data=data)
+
+    # plot the 1-way partial dependence
+    from alibi.explainers import plot_pd
+    plot_pd(exp=exp_pd,
+            features=features,
+            target=targets, # TODO: check that targets is a int or a string in this case
+            n_cols=n_cols,
+
+            )
+
+    raise NotImplementedError()
+
+
+def _plot_feature_interaction(exp: Explanation,
+                              features: Union[List[int], Literal['all']] = 'all',
+                              targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+                              summarise=True,
+                              n_cols: int = 3,
+                              sort: bool = True,
+                              top_k: Optional[int] = None,
+                              ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                              bar_kw: Optional[dict] = None,
+                              fig_kw: Optional[dict] = None):
 
     """
     Horizontal bar plot for feature interaction.
 
     Parameters
     ----------
+    exp, features, targets, n_cols, summarise, sort, top_k, ax, bar_kw, fig_kw
+        See :py:meth:`alibi.explainers.pd_variance.plot_pd_variance`.
+
+    Returns
+    -------
+    `plt.Axes` with the feature interaction plot.
+    """
+
+    if summarise:
+        feature_names = ['({}, {})'.format(*fs) for fs in exp.data['feature_names'] if isinstance(fs, tuple)]
+        return _plot_hbar(exp_values=exp.data['feature_interaction'],
+                          exp_feature_names=feature_names,
+                          exp_target_names=exp.meta['params']['target_names'],
+                          features=features,
+                          targets=targets,
+                          n_cols=n_cols,
+                          sort=sort,
+                          top_k=top_k,
+                          title='Feature interaction',
+                          ax=ax,
+                          bar_kw=bar_kw,
+                          fig_kw=fig_kw)
+
+    # TODO: plot the pd, conditional importance
+    raise NotImplementedError()
+
+
+def plot_pd_variance(exp: Explanation,
+                     features: Union[List[int], Literal['all']] = 'all',
+                     targets: Union[List[Union[str, int]], Literal['all'], Union[int, str]] = 'all',
+                     summarise: bool = True,
+                     n_cols: int = 3,
+                     sort: bool = True,
+                     top_k: Optional[int] = None,
+                     ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                     bar_kw: Optional[dict] = None,
+                     fig_kw: Optional[dict] = None):
+    """
+     Parameters
+    ----------
     exp
         An `Explanation` object produced by a call to the
         :py:meth:`alibi.explainers.pd_varianace.PartialDependenceVariance.explain` method.
     features
-        A list of features entries of feature_names` in the
-        :py:meth:`alibi.explainers.pd_variance.PartialDependence.explain`
-        to plot the partial dependence curves for, or ``'all'`` to plot all the explained feature or tuples of features.
-        This includes tuples of features. For example, if ``feature_names = ['temp', 'hum', 'windspeed']``
-        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
-        ``features=[0, 2]``. Defaults to ``'all'``.
+        A list of features entries provided in `feature_names` argument  to the
+        :py:meth:`alibi.explain.pd_variance.PartialDependeceVariance.explain` method, or
+        ``'all'`` to  plot all the explained features. For example, if  ``feature_names = ['temp', 'hum', 'windspeed']``
+         and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
+         ``features=[0, 2]``. Defaults to ``'all'``.
     targets
-        The target name or index for which to plot the partial dependence (PD) curves. Can be a mix of integers
-        denoting target index or strings denoting entries in `exp.meta['params']['target_names']`.
+        A target name/index, or a list of target names/indices, for which to plot the feature importance/interaction,
+        or ``'all'``. Can be a mix of integers denoting target index or strings denoting entries in
+        `exp.meta['params']['target_names']`. By default ``'all'`` to plot the importance for all features
+        or to plot all the feature interactions.
+    summarise
+        Whether to plot only the summary of the feature importance/interaction as a bar plot, or plot comprehensive
+        exposition including partial dependence plots and conditional importance plots.
     n_cols
         Number of columns to organize the resulting plot into.
     sort
@@ -645,16 +666,25 @@ def plot_feature_interaction(exp: Explanation,
     -------
     `plt.Axes` with the feature interaction plot.
     """
-    feature_names = ['({}, {})'.format(*fs) for fs in exp.data['feature_names'] if isinstance(fs, tuple)]
-    return _plot_hbar(exp_values=exp.data['feature_interaction'],
-                      exp_feature_names=feature_names,
-                      exp_target_names=exp.meta['params']['target_names'],
-                      features=features,
-                      targets=targets,
-                      n_cols=n_cols,
-                      sort=sort,
-                      top_k=top_k,
-                      title='Feature interaction',
-                      ax=ax,
-                      bar_kw=bar_kw,
-                      fig_kw=fig_kw)
+    if exp.meta['params']['method'] == Method.IMPORTANCE:
+        return _plot_feature_importance(exp=exp,
+                                        features=features,
+                                        targets=targets,
+                                        summarise=summarise,
+                                        n_cols=n_cols,
+                                        sort=sort,
+                                        top_k=top_k,
+                                        ax=ax,
+                                        bar_kw=bar_kw,
+                                        fig_kw=fig_kw)
+
+    return _plot_feature_interaction(exp=exp,
+                                     features=features,
+                                     targets=targets,
+                                     summarise=summarise,
+                                     n_cols=n_cols,
+                                     sort=sort,
+                                     top_k=top_k,
+                                     ax=ax,
+                                     bar_kw=bar_kw,
+                                     fig_kw=fig_kw)

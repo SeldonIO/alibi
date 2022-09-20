@@ -322,13 +322,13 @@ Default PartialDependenceVariance metadata.
 """
 
 DEFAULT_DATA_PDVARIANCE = {
-    "feature_deciles": None,      # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    "feature_deciles": None,
     "pd_values": None,
-    "ice_values": None,           # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
-    "feature_values": None,       # compatibility with :py:meth:`alibi.explainers.partial_dependence.plot_pd` method
+    "feature_values": None,
     "feature_names": None,
     "feature_importance": None,
     "feature_interaction": None,
+    "conditional_importance": None
 }  # type: dict
 """
 Default PartialDependence data.

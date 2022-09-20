@@ -35,6 +35,7 @@ def uncollect_if_test_explainer(**kwargs):
     return any([cond1, cond2])
 
 
+@pytest.mark.skip("This can take a while ...")
 @pytest.mark.uncollect_if(func=uncollect_if_test_explainer)
 @pytest.mark.parametrize('text, n_punctuation_marks, n_unique_words',
                          [('This is a good book.', 1, 6),

@@ -1,7 +1,8 @@
 import pytest
 
 from alibi.explainers.tests.test_simiarlity.conftest import get_flattened_model_parameters
-from alibi.explainers.similarity.grad import GradientSimilarity, Task, get_options_string
+from alibi.explainers.similarity.grad import GradientSimilarity, Task
+from alibi.utils import _get_options_string
 
 
 @pytest.mark.parametrize('random_cls_dataset', [({'shape': 10, 'size': 100})], indirect=True)
@@ -132,7 +133,7 @@ def test_method_task_error_messaging(linear_cls_model):
             task='not_classification'
         )
 
-    assert f"Unknown task not_classification. Consider using: {get_options_string(Task)}." in str(err.value)
+    assert f"Unknown task not_classification. Consider using: {_get_options_string(Task)}." in str(err.value)
 
     for task in ['classification', 'regression']:
         GradientSimilarity(

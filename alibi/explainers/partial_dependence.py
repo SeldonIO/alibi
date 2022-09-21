@@ -24,7 +24,7 @@ from tqdm import tqdm
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers.ale import get_quantiles
-from alibi.explainers.similarity.grad import get_options_string
+from alibi.utils import _get_options_string
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -622,7 +622,7 @@ class PartialDependence(PartialDependenceBase):
         # kind` param sanity check.
         if kind not in Kind.__members__.values():
             raise ValueError(f"``kind='{kind}'`` is invalid. "
-                             f"Accepted `kind` names are: {get_options_string(Kind)}.")
+                             f"Accepted `kind` names are: {_get_options_string(Kind)}.")
 
         return super().explain(X=X,
                                features=features,

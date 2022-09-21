@@ -44,7 +44,7 @@ if __name__ == '__main__':
           install_requires=[
               'numpy>=1.16.2, <2.0.0',
               'pandas>=0.23.3, <2.0.0',
-              'scikit-learn>=0.22.0, <2.0.0',
+              'scikit-learn>=1.0.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <4.0.0',
               'scikit-image>=0.17.2, <0.20',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',

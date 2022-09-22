@@ -104,9 +104,11 @@ class ProtoSelect(Summariser, FitMixin):
         self
             Reference to itself.
         """
-        if (y is not None) and (len(X) != len(y)):
-            raise ValueError('The number of data instances does not match the number of labels. '
-                             f'Got len(X)={len(X)} and len(y)={len(y)}.')
+        if y is not None:
+            y = y.flatten()
+            if len(X) != len(y):
+                raise ValueError('The number of data instances does not match the number of labels. '
+                                 f'Got len(X)={len(X)} and len(y)={len(y)}.')
 
         self.X = X
         # if the y is not provided, then consider that all elements belong to the same class. This means
@@ -402,7 +404,7 @@ def cv_protoselect_euclidean(trainset: Tuple[np.ndarray, np.ndarray],
         if quantiles is not None:
             if quantiles[0] > quantiles[1]:
                 raise ValueError('The quantile lower-bound is greater then the quantile upper-bound.')
-            quantiles = np.clip(quantiles, a_min=0, a_max=1)
+            quantiles = np.clip(quantiles, a_min=0, a_max=1)  # type: ignore[assignment]
             min_dist, max_dist = np.quantile(a=dist, q=np.array(quantiles))
         else:
             min_dist, max_dist = np.min(dist), np.max(dist)

@@ -1,20 +1,23 @@
 import copy
+import itertools
 import logging
 import math
 import numbers
 import sys
 from enum import Enum
-from itertools import combinations
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
-from alibi.api.defaults import DEFAULT_DATA_PDVARIANCE, DEFAULT_META_PDVARIANCE
+from sklearn.base import BaseEstimator
+
+from alibi.api.defaults import (DEFAULT_DATA_PD, DEFAULT_DATA_PDVARIANCE,
+                                DEFAULT_META_PD, DEFAULT_META_PDVARIANCE)
 from alibi.api.interfaces import Explainer, Explanation
+from alibi.explainers import plot_pd
 from alibi.explainers.partial_dependence import (Kind, PartialDependence,
                                                  TreePartialDependence)
 from alibi.explainers.similarity.grad import get_options_string
-from sklearn.base import BaseEstimator
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +158,7 @@ class PartialDependenceVariance(Explainer):
             features = list(range(n_features))
 
             if method == Method.INTERACTION:
-                features = list(combinations(features, 2))
+                features = list(itertools.combinations(features, 2))
 
         # compute partial dependence functions
         params = {
@@ -301,12 +304,13 @@ class PartialDependenceVariance(Explainer):
         Dictionary with all the keys necessary to build the explanation.
         """
         buffers: Dict[str, Any] = {
-            'feature_interaction': [],
             'feature_deciles': [],
             'pd_values': [],
             'feature_values': [],
             'feature_names': [],
-            'conditional_importance': []
+            'feature_interaction': [],
+            'conditional_importance': [],
+            'conditional_importance_values': [],
         }
 
         for i in range(len(features)):
@@ -324,27 +328,25 @@ class PartialDependenceVariance(Explainer):
 
             # compute variance when keeping f0 value constant and vary f1.
             # Note that we remove the first axis here since we are dealing with only one feature
-            feature_interaction = []
             conditional_importance = []
+            conditional_importance_values = []
 
             for j in range(2):
                 tmp_pd_values = pd_values if j == 0 else pd_values.transpose(0, 2, 1)
-                buffers['feature_deciles'].append(feature_deciles[j])
-                buffers['feature_values'].append(feature_values[j])
-                buffers['feature_names'].append(feature_names[j])
 
                 # compute conditional importance plot
-                cond_imp = self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[tmp_pd_values])[0]
-                conditional_importance.append(cond_imp)
+                cond_imp_vals = self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[tmp_pd_values])[0]
+                conditional_importance_values.append(cond_imp_vals)
 
                 # compute feature interaction based on the conditional importance
-                feature_interaction.append(
-                    self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[cond_imp])[0]
+                conditional_importance.append(
+                    self._compute_pd_variance(features=[features[i][1 - j]], pd_values=[cond_imp_vals])[0]
                 )
 
             # compute the feature interaction as the average of the two
-            buffers['feature_interaction'].append(np.mean(feature_interaction, axis=0, keepdims=True))
-            buffers['conditional_importance'].apppend(conditional_importance)
+            buffers['feature_interaction'].append(np.mean(conditional_importance, axis=0, keepdims=True))
+            buffers['conditional_importance'].append(conditional_importance)
+            buffers['conditional_importance_values'].append(conditional_importance_values)
 
         # transform `feature_interaction` into an array of shape `T x F`, where `T` is the number of targets
         # and `F` is the number of feature pairs.
@@ -373,7 +375,9 @@ class PartialDependenceVariance(Explainer):
         if self.meta['params']['method'] == Method.IMPORTANCE:
             data.update(feature_importance=buffers['feature_importance'])
         else:
-            data.update(feature_interaction=buffers['feature_interaction'])
+            data.update(feature_interaction=buffers['feature_interaction'],
+                        conditional_importance=buffers['conditional_importance'],
+                        conditional_importance_values=buffers['conditional_importance_values'])
 
         return Explanation(meta=self.meta, data=data)
 
@@ -381,8 +385,8 @@ class PartialDependenceVariance(Explainer):
 def _plot_hbar(exp_values: np.ndarray,
                exp_feature_names: List[str],
                exp_target_names: List[str],
-               features: Union[List[int], Literal['all']] = 'all',
-               targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+               features: List[int],
+               targets: List[Union[str, int]],
                n_cols: int = 3,
                sort: bool = True,
                top_k: Optional[int] = None,
@@ -418,88 +422,64 @@ def _plot_hbar(exp_values: np.ndarray,
 
     fig_kw = {**default_fig_kw, **fig_kw}
 
-    if features == 'all':
-        feature_indices = list(range(len(exp_feature_names)))
-        feature_names = exp_feature_names
-    else:
-        feature_indices, feature_names = features, []
-        for ifeatures in features:
-            if ifeatures > len(exp_feature_names):
-                raise ValueError(f"The `features` indices must be less than the "
-                                 f"``len(feature_names) = {len(exp_feature_names)}``. "
-                                 f"Received {ifeatures}.")
-            else:
-                feature_names.append(exp_feature_names[ifeatures])
+    # set feature indices
+    feature_indices, feature_names = features, []
+    for ifeatures in features:
+        feature_names.append(exp_feature_names[ifeatures])
 
     # set target indices
-    if targets == 'all':
-        target_indices = list(range(len(exp_target_names)))
-        target_names = exp_target_names
-    else:
-        target_indices, target_names = [], []
+    target_indices, target_names = [], []
+    for target in targets:
+        if isinstance(target, str):
+            target_idx = exp_target_names.index(target)
+            target_name = target
+        else:
+            target_idx = target
+            target_name = exp_target_names[target]
 
-        for target in targets:
-            if isinstance(target, str):
-                try:
-                    target_idx = exp_target_names.index(target)
-                    target_name = target
-                except ValueError:
-                    raise ValueError(f"Unknown `target` name. Received {target}. "
-                                     f"Available values are: {exp_target_names}.")
-            else:
-                try:
-                    target_idx = target
-                    target_name = exp_target_names[target]
-                except IndexError:
-                    raise IndexError(f"Target index out of range. Received {target}. "
-                                     f"The number of targets is {len(exp_target_names)}.")
-            target_indices.append(target_idx)
-            target_names.append(target_name)
+        target_indices.append(target_idx)
+        target_names.append(target_name)
 
     # create axes
     if ax is None:
         fig, ax = plt.subplots()
 
     # number of targets will correspond to the number of axis
-    n_trargets = len(target_names)
+    n_targets = len(target_names)
 
-    if isinstance(ax, plt.Axes) and n_trargets != 1:
+    if isinstance(ax, plt.Axes) and n_targets != 1:
         ax.set_axis_off()  # treat passed axis as a canvas for subplots
         fig = ax.figure
-        n_cols = min(n_cols, n_trargets)
-        n_rows = math.ceil(n_trargets / n_cols)
+        n_cols = min(n_cols, n_targets)
+        n_rows = math.ceil(n_targets / n_cols)
         axes = np.empty((n_rows, n_cols), dtype=np.object)   # type: ignore[attr-defined]
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 
-        for i, spec in enumerate(list(gs)[:n_trargets]):
+        for i, spec in enumerate(list(gs)[:n_targets]):
             axes_ravel[i] = fig.add_subplot(spec)
     else:
         if isinstance(ax, plt.Axes):
             ax = np.array(ax)
-        if ax.size < n_trargets:
-            raise ValueError(f"Expected ax to have {n_trargets} axes, got {ax.size}")
+        if ax.size < n_targets:
+            raise ValueError(f"Expected ax to have {n_targets} axes, got {ax.size}")
         axes = np.atleast_2d(ax)
         axes_ravel = axes.ravel()
         fig = axes_ravel[0].figure
 
     for i, (target_index, target_name, ax) in enumerate(zip(target_indices, target_names, axes_ravel)):
         width = exp_values[target_index][feature_indices]
-        y = np.arange(len(feature_indices))
         y_labels = feature_names
 
         if sort:
-            sorted_indices = np.argsort(width)[::-1]
-            if top_k is not None:
-                if top_k <= 0:
-                    raise ValueError('``top_k`` must be greater than 0.')
-                sorted_indices = sorted_indices[:top_k]
-                y = y[:top_k]
+            sorted_indices = np.argsort(width)[::-1][:top_k]
             width = width[sorted_indices]
             y_labels = [y_labels[j] for j in sorted_indices]
 
+        y = np.arange(len(width))
         default_bar_kw = {'align': 'center'}
         bar_kw = default_bar_kw if bar_kw is None else {**default_bar_kw, **bar_kw}
+
         ax.barh(y=y, width=width, **bar_kw)
         ax.set_yticks(y)
         ax.set_yticklabels(y_labels)
@@ -512,21 +492,24 @@ def _plot_hbar(exp_values: np.ndarray,
 
 
 def _plot_feature_importance(exp: Explanation,
-                             features: Union[List[int], Literal['all']] = 'all',
-                             targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+                             features: List[int],
+                             targets: List[Union[str, int]],
                              summarise: bool = True,
                              n_cols: int = 3,
                              sort: bool = True,
                              top_k: Optional[int] = None,
+                             plot_limits: Optional[Tuple[float, float]] = None,
                              ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                             sharey: Optional[Literal['all', 'row']] = 'all',
                              bar_kw: Optional[dict] = None,
+                             line_kw: Optional[dict] = None,
                              fig_kw: Optional[dict] = None):
     """
-    Horizontal bar plot for feature importance.
+    Feature importance plotting function.
 
     Parameters
     ----------
-    exp, features, targets, n_cols, summarise, sort, top_k, ax, bar_kw, fig_kw
+    exp, features, targets, summarise, n_cols,sort, top_k, plot_limits, ax, sharey, bar_kw, line_kw, fig_kw
         See :py:meth:`alibi.explainers.pd_variance.plot_pd_variance`.
 
     Returns
@@ -534,6 +517,7 @@ def _plot_feature_importance(exp: Explanation,
     `plt.Axes` with the feature importance plot.
     """
     if summarise:
+        # horizontal bar plot for feature importance.
         return _plot_hbar(exp_values=exp.data['feature_importance'],
                           exp_feature_names=exp.data['feature_names'],
                           exp_target_names=exp.meta['params']['target_names'],
@@ -547,27 +531,49 @@ def _plot_feature_importance(exp: Explanation,
                           bar_kw=bar_kw,
                           fig_kw=fig_kw)
 
+    # unpack explanation and redefine targets
+    target = targets[0]
+
+    feature_names = exp.data['feature_names']
+    feature_values = exp.data['feature_values']
+    feature_deciles = exp.data['feature_deciles']
+    pd_values = exp.data['pd_values']
+
+    target_idx = exp.meta['params']['target_names'].index(target) if isinstance(target, str) else target
+    feature_importance = exp.data['feature_importance'][target_idx][features]
+
+    if sort:
+        # get sorted indices
+        sorted_indices = np.argsort(feature_importance)[::-1]
+        features = [features[i] for i in sorted_indices][:top_k]
+        feature_importance = feature_importance[sorted_indices][:top_k]
+
     # construct pd explanation object to reuse `plot_pd` function
-    from alibi.api.defaults import DEFAULT_META_PD, DEFAULT_DATA_PD
     meta = copy.deepcopy(DEFAULT_META_PD)
     data = copy.deepcopy(DEFAULT_DATA_PD)
     meta.update(exp.meta)
-    data.update(feature_names=exp.data['feature_names'],
-                feature_values=exp.data['feature_values'],
-                pd_values=exp.data['pd_values'],
-                feature_deciles=exp.data['feature_deciles'])
+    data.update(feature_names=feature_names,
+                feature_values=feature_values,
+                pd_values=pd_values,
+                feature_deciles=feature_deciles)
     exp_pd = Explanation(meta=meta, data=data)
 
-    # plot the 1-way partial dependence
-    from alibi.explainers import plot_pd
-    plot_pd(exp=exp_pd,
-            features=features,
-            target=targets, # TODO: check that targets is a int or a string in this case
-            n_cols=n_cols,
+    # plot the partial dependence
+    axes = plot_pd(exp=exp_pd,
+                   features=features,
+                   target=target,
+                   n_cols=n_cols,
+                   pd_limits=plot_limits,
+                   ax=ax,
+                   sharey=sharey,
+                   pd_num_kw=line_kw,
+                   fig_kw=fig_kw)
 
-            )
+    for ax, ft_imp in zip(axes.flatten().tolist(), feature_importance):
+        ft_name = ax.get_xlabel()
+        ax.set_title('imp({}) = {:.3f}'.format(ft_name, ft_imp))
 
-    raise NotImplementedError()
+    return axes
 
 
 def _plot_feature_interaction(exp: Explanation,
@@ -577,8 +583,11 @@ def _plot_feature_interaction(exp: Explanation,
                               n_cols: int = 3,
                               sort: bool = True,
                               top_k: Optional[int] = None,
+                              plot_limits: Optional[Tuple[float, float]] = None,
                               ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                              sharey: Optional[Literal['all', 'row']] = 'all',
                               bar_kw: Optional[dict] = None,
+                              line_kw: Optional[dict] = None,
                               fig_kw: Optional[dict] = None):
 
     """
@@ -593,7 +602,6 @@ def _plot_feature_interaction(exp: Explanation,
     -------
     `plt.Axes` with the feature interaction plot.
     """
-
     if summarise:
         feature_names = ['({}, {})'.format(*fs) for fs in exp.data['feature_names'] if isinstance(fs, tuple)]
         return _plot_hbar(exp_values=exp.data['feature_interaction'],
@@ -609,19 +617,97 @@ def _plot_feature_interaction(exp: Explanation,
                           bar_kw=bar_kw,
                           fig_kw=fig_kw)
 
-    # TODO: plot the pd, conditional importance
-    raise NotImplementedError()
+    # unpack explanation
+    target = targets[0]
+
+    feature_names = exp.data['feature_names']
+    feature_values = exp.data['feature_values']
+    feature_deciles = exp.data['feature_deciles']
+    pd_values = exp.data['pd_values']
+
+    conditional_importance = exp.data['conditional_importance']
+    conditional_importance_values = exp.data['conditional_importance_values']
+
+    target_idx = exp.meta['params']['target_names'].index(target) if isinstance(target, str) else target
+    feature_interaction = exp.data['feature_interaction'][target_idx][features]
+
+    if sort:
+        sorted_indices = np.argsort(feature_interaction)[::-1]
+        features = [features[i] for i in sorted_indices][:top_k]
+        feature_interaction = feature_interaction[sorted_indices][:top_k]
+        conditional_importance = [conditional_importance[i] for i in sorted_indices][:top_k]
+
+    # merge `pd_values` and `conditional_importance`
+    merged_pd_values = [[pd, *cond_imp_vals] for pd, cond_imp_vals in zip(pd_values, conditional_importance_values)]
+    merged_pd_values = list(itertools.chain.from_iterable(merged_pd_values))
+
+    # construct `feature_names` for the `merged_pd_values`
+    merged_feature_names = [[ft_names, *ft_names] for ft_names in feature_names]
+    merged_feature_names = list(itertools.chain.from_iterable(merged_feature_names))
+
+    # construct `feature_values` for the `merged_pd_values`
+    merged_feature_values = [[ft_values, *ft_values] for ft_values in feature_values]
+    merged_feature_values = list(itertools.chain.from_iterable(merged_feature_values))
+
+    # construct `feature_deciles` for the `merged_pd_values`
+    merged_feature_deciles = [[ft_deciles, *ft_deciles] for ft_deciles in feature_deciles]
+    merged_feature_deciles = list(itertools.chain.from_iterable(merged_feature_deciles))
+
+    # construct `features` for the `merged_features`
+    step = 3  # because we have a 2-way pdp followed by two conditional feature importance
+    merged_features = [[step * ft, step * ft + 1, step * ft + 2] for ft in features]
+    merged_features = list(itertools.chain.from_iterable(merged_features))
+
+    # construct pd explanation object to reuse `plot_pd` function
+    meta = copy.deepcopy(DEFAULT_META_PD)
+    data = copy.deepcopy(DEFAULT_DATA_PD)
+    meta.update(exp.meta)
+    data.update(feature_names=merged_feature_names,
+                feature_values=merged_feature_values,
+                pd_values=merged_pd_values,
+                feature_deciles=merged_feature_deciles)
+    exp_pd = Explanation(meta=meta, data=data)
+
+    # plot the partial dependence
+    axes = plot_pd(exp=exp_pd,
+                   features=merged_features,
+                   target=target,
+                   n_cols=n_cols,
+                   pd_limits=plot_limits,
+                   ax=ax,
+                   sharey=sharey,
+                   pd_num_kw=line_kw,
+                   fig_kw=fig_kw)
+
+    for i in range(len(features)):
+        # set title for the 2-way pdp
+        ax = axes.flatten()[step * i]
+        ft_name1, ft_name2 = ax.get_xlabel(), ax.get_ylabel()
+        ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2, feature_interaction[i]))
+
+        # set title for the first conditional importance plot
+        ax = axes.flatten()[step * i + 1]
+        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][0].item()))
+
+        # set title for the second conditional importance plot
+        ax = axes.flatten()[step * i + 2]
+        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][1].item()))
+
+    return axes
 
 
 def plot_pd_variance(exp: Explanation,
                      features: Union[List[int], Literal['all']] = 'all',
-                     targets: Union[List[Union[str, int]], Literal['all'], Union[int, str]] = 'all',
+                     targets: Union[List[Union[str, int]], Literal['all'], ] = 'all',
                      summarise: bool = True,
                      n_cols: int = 3,
                      sort: bool = True,
                      top_k: Optional[int] = None,
+                     plot_limits: Optional[Tuple[float, float]] = None,
                      ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                     sharey: Optional[Literal['all', 'row']] = 'all',
                      bar_kw: Optional[dict] = None,
+                     line_kw: Optional[dict] = None,
                      fig_kw: Optional[dict] = None):
     """
      Parameters
@@ -649,8 +735,15 @@ def plot_pd_variance(exp: Explanation,
         Boolean flag whether to sort the values in descending order.
     top_k
         Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed.
+    plot_limits
+        Minimum and maximum y-limits for all the line plots. If ``None`` will be automatically inferred.
     ax
         A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+    sharey
+        A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
+        for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
+    line_kw
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function.
     bar_kw
         Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
     fig_kw
@@ -666,7 +759,45 @@ def plot_pd_variance(exp: Explanation,
     -------
     `plt.Axes` with the feature interaction plot.
     """
+    # sanity check for `top_k`
+    if sorted and (top_k is not None) and (top_k <= 0):
+        raise ValueError('``top_k`` must be greater than 0.')
+
+    # initialization for `targets`
+    if targets == 'all':
+        targets = exp.meta['params']['target_names']
+
+    # sanity check for targets
+    if not isinstance(targets, list):
+        raise ValueError('`targets` must be a list.')
+
+    # warning that plotting partial dependence and conditional importance works for a single target
+    if len(targets) > 1 and (not summarise):
+        logger.warning('`targets` should be a list containing a single element when ``summarise=False``.'
+                       'By default the first element in the list is considered.')
+
+    # initialization for `features`
+    if features == 'all':
+        features = list(range(len(exp.data['feature_names'])))
+
+    # sanity checks for `features`
+    for ifeatures in features:
+        if ifeatures > len(exp.data['feature_names']):
+            raise ValueError(f"The `features` indices must be less than the "
+                             f"``len(feature_names)={len(exp.data['feature_names'])}``. Received {ifeatures}.")
+
+    # sanity check for `targets`
+    for target in targets:
+        if isinstance(target, str) and (target not in exp.meta['params']['target_names']):
+            raise ValueError(f"Unknown `target` name. Received {target}. "
+                             f"Available values are: {exp.meta['params']['target_names']}.")
+
+        if isinstance(target, numbers.Integral) and (target > len(exp.meta['params']['target_names'])):
+            raise IndexError(f"Target index out of range. Received {target}. "
+                             f"The number of targets is {len(exp.meta['params']['target_names'])}.")
+
     if exp.meta['params']['method'] == Method.IMPORTANCE:
+        # plot feature importance
         return _plot_feature_importance(exp=exp,
                                         features=features,
                                         targets=targets,
@@ -674,10 +805,14 @@ def plot_pd_variance(exp: Explanation,
                                         n_cols=n_cols,
                                         sort=sort,
                                         top_k=top_k,
+                                        plot_limits=plot_limits,
                                         ax=ax,
+                                        sharey=sharey,
                                         bar_kw=bar_kw,
+                                        line_kw=line_kw,
                                         fig_kw=fig_kw)
 
+    # plot feature interaction
     return _plot_feature_interaction(exp=exp,
                                      features=features,
                                      targets=targets,
@@ -685,6 +820,9 @@ def plot_pd_variance(exp: Explanation,
                                      n_cols=n_cols,
                                      sort=sort,
                                      top_k=top_k,
+                                     plot_limits=plot_limits,
                                      ax=ax,
+                                     sharey=sharey,
                                      bar_kw=bar_kw,
+                                     line_kw=line_kw,
                                      fig_kw=fig_kw)

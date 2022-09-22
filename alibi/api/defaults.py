@@ -328,7 +328,8 @@ DEFAULT_DATA_PDVARIANCE = {
     "feature_names": None,
     "feature_importance": None,
     "feature_interaction": None,
-    "conditional_importance": None
+    "conditional_importance": None,
+    "conditional_importance_values": None
 }  # type: dict
 """
 Default PartialDependence data.

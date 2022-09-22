@@ -137,18 +137,15 @@ def test_explain(mock_ale_explainer, features, input_dim, batch_size, custom_gri
 @pytest.mark.parametrize('extrapolate_constant_min', (0.1, 1.0))
 @pytest.mark.parametrize('constant_value', (5.,))
 @pytest.mark.parametrize('feature', (1,))
-@pytest.mark.parametrize('custom_grid', (True, False))
 def test_constant_feature(extrapolate_constant, extrapolate_constant_perc, extrapolate_constant_min,
-                          constant_value, feature, custom_grid):
+                          constant_value, feature):
     X = np.random.normal(size=(100, 2))
     X[:, feature] = constant_value
     predict = lambda x: x.sum(axis=1)  # dummy predictor # noqa
-    feature_grid_points = np.random.normal((1, )) if custom_grid else None
 
     q, ale, ale0 = ale_num(predictor=predict,
                            X=X,
                            feature=feature,
-                           feature_grid_points=feature_grid_points,
                            extrapolate_constant=extrapolate_constant,
                            extrapolate_constant_perc=extrapolate_constant_perc,
                            extrapolate_constant_min=extrapolate_constant_min)
@@ -159,3 +156,59 @@ def test_constant_feature(extrapolate_constant, extrapolate_constant_perc, extra
         assert_allclose(q, np.array([constant_value]))
         assert_allclose(ale, np.array([[0.]]))
         assert_allclose(ale0, np.array([0.]))
+
+
+@pytest.mark.parametrize('num_bins', [1, 3, 5, 7, 15])
+@pytest.mark.parametrize('perc_bins', [0.1, 0.2, 0.5, 0.7, 0.9, 1.0])
+@pytest.mark.parametrize('size_data', [1, 5, 10, 50, 100])
+@pytest.mark.parametrize('outside_grid', [False, True])
+def test_grid_points_stress(num_bins, perc_bins, size_data, outside_grid):
+    np.random.seed(0)
+    eps = 1
+
+    # define the grid between [-10, 10] having `num_bins` bins
+    grid = np.unique(np.random.uniform(-10, 10, size=num_bins + 1))
+
+    # select specific bins to sample the data from grid defined above.
+    # the number of bins is controlled by the percentage of bins given by `perc_bins`
+    nbins = int(np.ceil(num_bins * perc_bins))
+    bins = np.sort(np.random.choice(num_bins, size=nbins, replace=False))
+
+    # generate data
+    X = []
+    selected_bins = []
+
+    for i in range(size_data):
+        # select a bin at random and mark it as selected
+        bin = np.random.choice(bins, size=1)
+        selected_bins.append(bin.item())
+
+        # define offset to ensure that the value is sampled within the bin
+        # (i.e. avoid edge cases where  the data might land on the grid point)
+        # the ALE implementation should work even in that case, only the process of constructing
+        # the expected values might require additional logic
+        offset = 0.1 * (grid[bin + 1] - grid[bin])
+        X.append(np.random.uniform(low=grid[bin] + offset, high=grid[bin + 1] - offset).item())
+
+    # add values outside the grid to test that the grid is extended
+    if outside_grid:
+        X = X + [grid[0] - eps, grid[-1] + eps]
+
+    # construct dataset, define dummy predictor, and get grid values used by ale
+    X = np.array(X).reshape(-1, 1)
+    predict = lambda x: x.sum(axis=1)  # noqa
+    q, _, _ = ale_num(predictor=predict, X=X, feature=0, feature_grid_points=grid)
+
+    # construct expected grid by merging selected bins
+    if outside_grid:
+        # add first and last bin corresponding to min and max value.
+        # This requires incrementing all the previous values by 1
+        selected_bins = np.array(selected_bins + [-1, num_bins]) + 1
+
+        # update grid point to include the min and max
+        grid = np.insert(grid, 0, grid[0] - eps)
+        grid = np.insert(grid, len(grid), grid[-1] + eps)
+
+    selected_bins = np.unique(selected_bins)
+    expected_q = np.array([grid[selected_bins[0]]] + [grid[b + 1] for b in selected_bins])
+    np.testing.assert_allclose(q, expected_q)

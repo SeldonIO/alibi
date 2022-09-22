@@ -20,6 +20,12 @@ on:
     - cron: '0 0 * * *'
   # Trigger the workflow on manual dispatch
   workflow_dispatch:
+    inputs:
+      tmate_enabled:
+        type: boolean
+        description: 'Enable tmate debugging?'
+        required: false
+        default: false
 
 jobs:
   build:
@@ -29,12 +35,12 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python-version: [ '3.7', '3.8', '3.9', '3.10' ]
+        python-version: [ '3.7', '3.8', '3.9', '3.10.6' ]
         include: # Run macos and windows tests on only one python version
           - os: windows-latest 
             python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python) 
           - os: macos-latest 
-            python-version:  '3.10'
+            python-version:  '3.10.6'
 
     steps:
       - name: Checkout code
@@ -50,14 +56,19 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
           python -m pip install --upgrade --upgrade-strategy eager -e .
-          if [ "$RUNNER_OS" != "Windows" ] && [ ${{ matrix.python }} < '3.10' ]; then  
+          if [ "$RUNNER_OS" != "Windows" ]; then  
           # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
-          # Python 3.10 is not yet supported (https://github.com/ray-project/ray/blob/master/python/setup.py#L24) 
             python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
           fi
           python -m pip install --upgrade --upgrade-strategy eager -e .[shap]
           python -m spacy download en_core_web_md
           python -m pip freeze
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tmate_enabled }}
+        with:
+          limit-access-to-actor: true
 
       - name: Lint with flake8
         run: |
@@ -75,7 +86,7 @@ jobs:
       - name: Upload coverage to Codecov
         if: ${{ success() }}
         run: |
-          codecov
+          codecov -F ${{ matrix.os }}-${{ matrix.python-version }}
 
       - name: Build Python package
         run: |
@@ -98,6 +109,7 @@ jobs:
       - name: Install dependencies
         run: |
           . $HOME/docs/bin/activate
+          python -m pip install --upgrade pip
           python -m pip install -r requirements/docs.txt
           python -m pip freeze
       - name: Build documentation to html

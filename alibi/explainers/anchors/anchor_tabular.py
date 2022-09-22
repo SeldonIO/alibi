@@ -8,8 +8,9 @@ import numpy as np
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.exceptions import (NotFittedError,
+                              PredictorCallError,
+                              PredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 from alibi.utils.wrappers import ArgmaxTransformer
@@ -289,6 +290,10 @@ class TabularSampler:
             [allowed_rows[feat] for feat in uniq_feat_ids],
             np.intersect1d),
         )
+        if partial_anchor_rows == []:
+            # edge case - if there are no rows at all then `partial_anchor_rows` is the empty list, but it should
+            # be a list of an empty array to not cause an error in calculating coverage (which will be 0)
+            partial_anchor_rows = [np.array([], dtype=int)]
         nb_partial_anchors = np.array([len(n_records) for n_records in
                                        reversed(partial_anchor_rows)])  # reverse required for np.searchsorted later
         coverage = nb_partial_anchors[0] / self.n_records  # since we sorted, the correct coverage is first not last
@@ -382,7 +387,14 @@ class TabularSampler:
         requested_samples = num_samples
         start, n_anchor_feats = 0, len(partial_anchor_rows)
         uniq_feat_ids = list(reversed(uniq_feat_ids))
-        start_idx = np.nonzero(nb_partial_anchors)[0][0]  # skip anchors with no samples in the database
+
+        try:
+            start_idx = np.nonzero(nb_partial_anchors)[0][0]  # skip anchors with no samples in the database
+        except IndexError:
+            # there are no samples in the database, need to break out of the function
+            # and go straight to treating unknown features
+            return
+
         end_idx = np.searchsorted(np.cumsum(nb_partial_anchors), num_samples)
 
         # replace partial anchors with partial anchors drawn from the training dataset
@@ -610,9 +622,9 @@ class AnchorTabular(Explainer, FitMixin):
 
         Raises
         ------
-        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+        :py:class:`alibi.exceptions.PredictorCallError`
             If calling `predictor` fails at runtime.
-        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+        :py:class:`alibi.exceptions.PredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
@@ -646,6 +658,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         # update metadata
         self.meta['params'].update(seed=seed)
+
+        self._fitted = False
 
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,
@@ -685,6 +699,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         # update metadata
         self.meta['params'].update(disc_perc=disc_perc)
+
+        self._fitted = True
 
         return self
 
@@ -790,7 +806,15 @@ class AnchorTabular(Explainer, FitMixin):
 
             .. _AnchorTabular examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
+
+        Raises
+        ------
+        :py:class:`alibi.exceptions.NotFittedError`
+            If `fit` has not been called prior to calling `explain`.
         """
+        if not self._fitted:
+            raise NotFittedError(self.meta["name"])
+
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
 
@@ -984,11 +1008,11 @@ class AnchorTabular(Explainer, FitMixin):
         except Exception as e:
             msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
                   f"Check that the parameter `feature_names` is correctly specified."
-            raise AlibiPredictorCallException(msg) from e
+            raise PredictorCallError(msg) from e
 
         if not isinstance(prediction, np.ndarray):
             msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
-            raise AlibiPredictorReturnTypeError(msg)
+            raise PredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor

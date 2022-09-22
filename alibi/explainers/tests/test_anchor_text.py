@@ -6,7 +6,7 @@ import numpy as np
 from typing import List
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
 from alibi.explainers import AnchorText
 from alibi.explainers.anchors.text_samplers import Neighbors, load_spacy_lexeme_prob
 from alibi.explainers.anchors.language_model_text_sampler import LanguageModelSampler
@@ -469,10 +469,10 @@ def bad_predictor_input_type(x: np.ndarray) -> np.ndarray:
 
 
 def test_anchor_text_fails_init_bad_predictor_input_type_call():
-    with pytest.raises(AlibiPredictorCallException):
+    with pytest.raises(PredictorCallError):
         explainer = AnchorText(bad_predictor_input_type)  # noqa: F841
 
 
 def test_anchor_text_fails_wrong_predictor_return_type():
-    with pytest.raises(AlibiPredictorReturnTypeError):
+    with pytest.raises(PredictorReturnTypeError):
         explainer = AnchorText(bad_predictor_return_type)  # noqa: F841

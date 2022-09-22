@@ -283,3 +283,27 @@ DEFAULT_DATA_PROTOSELECT = {"prototypes": None,
 """
 Default ProtoSelect data.
 """
+
+
+# PartialDependence
+DEFAULT_META_PD = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PartialDependence metadata.
+"""
+
+DEFAULT_DATA_PD = {
+    "feature_deciles": None,
+    "pd_values": None,
+    "ice_values": None,
+    "feature_values": None,
+    "feature_names": None,
+}  # type: dict
+"""
+Default PartialDependence data.
+"""

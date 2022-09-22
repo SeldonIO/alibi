@@ -8,8 +8,8 @@ from skimage.segmentation import felzenszwalb, quickshift, slic
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR_IMG, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.exceptions import (PredictorCallError,
+                              PredictorReturnTypeError)
 from alibi.utils.wrappers import ArgmaxTransformer
 
 from .anchor_base import AnchorBaseBeam
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SEGMENTATION_KWARGS = {
     'felzenszwalb': {},
     'quickshift': {},
-    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5, 'start_label': 0}
 }  # type: Dict[str, Dict]
 
 
@@ -67,7 +67,8 @@ class AnchorImageSampler:
         predictor
             A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
-            Function used to segment the images.
+            Function used to segment the images. The segmentation function is expected to return a segmentation mask
+            containing all integer values from `0` to `K-1`, where `K` is the number of image segments (superpixels).
         image
             Image to be explained.
         images_background
@@ -332,6 +333,8 @@ class AnchorImage(Explainer):
         segmentation_fn
             Any of the built in segmentation function strings: ``'felzenszwalb'``, ``'slic'`` or ``'quickshift'`` or
             a custom segmentation function (callable) which returns an image mask with labels for each superpixel.
+            The segmentation function is expected to return a segmentation mask containing all integer values
+            from `0` to `K-1`, where `K` is the number of image segments (superpixels).
             See http://scikit-image.org/docs/dev/api/skimage.segmentation.html for more info.
         segmentation_kwargs
             Keyword arguments for the built in segmentation functions.
@@ -342,9 +345,9 @@ class AnchorImage(Explainer):
 
         Raises
         ------
-        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+        :py:class:`alibi.exceptions.PredictorCallError`
             If calling `predictor` fails at runtime.
-        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+        :py:class:`alibi.exceptions.PredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
@@ -665,11 +668,11 @@ class AnchorImage(Explainer):
         except Exception as e:
             msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
                   f"Check that the parameter `image_shape` is correctly specified."
-            raise AlibiPredictorCallException(msg) from e
+            raise PredictorCallError(msg) from e
 
         if not isinstance(prediction, np.ndarray):
             msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
-            raise AlibiPredictorReturnTypeError(msg)
+            raise PredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor

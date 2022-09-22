@@ -6,7 +6,7 @@
 ### Added
 - **New feature** `PartialDependence` and `TreePartialDependence` explainers implementing partial dependence (PD) global explanations. Also included is a `plot_pd` utility function for flexible plotting of the resulting PD plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html), [#721](https://github.com/SeldonIO/alibi/pull/721)).
 - New `exceptions.NotFittedError` exception which is raised whenever a compulsory call to a `fit` method has not been carried out. Specifically, this is now raised in `AnchorTabular.explain` when `AnchorTabular.fit` has been skipped ([#732](https://github.com/SeldonIO/alibi/pull/732)).
-- Various improvements to docs and examples ([#695](https://github.com/SeldonIO/alibi/pull/695), [#701](https://github.com/SeldonIO/alibi/pull/701), [#698](https://github.com/SeldonIO/alibi/pull/698), [#703](https://github.com/SeldonIO/alibi/pull/703), [#717](https://github.com/SeldonIO/alibi/commit/b0df37cb4c9afdbab35458d93f81583db24acb3d), [#711](https://github.com/SeldonIO/alibi/commit/69713b5347f83cc8f377eb0c048cf7e56c5e0b13), [#750](https://github.com/SeldonIO/alibi/pull/750)).
+- Various improvements to docs and examples ([#695](https://github.com/SeldonIO/alibi/pull/695), [#701](https://github.com/SeldonIO/alibi/pull/701), [#698](https://github.com/SeldonIO/alibi/pull/698), [#703](https://github.com/SeldonIO/alibi/pull/703), [#717](https://github.com/SeldonIO/alibi/pull/717), [#711](https://github.com/SeldonIO/alibi/pull/711), [#750](https://github.com/SeldonIO/alibi/pull/750)).
 
 ### Fixed
 - Edge case in `AnchorTabular` where an error is raised during an `explain` call if the instance contains a categorical feature value not seen in the training data ([#742](https://github.com/SeldonIO/alibi/pull/742)).
@@ -42,7 +42,7 @@
 - Version of `ipykernel` bumped to `6.x` ([#431](https://github.com/SeldonIO/alibi/pull/572)).
 - Version of `ipython` bumped to `8.x` ([#572](https://github.com/SeldonIO/alibi/pull/572)).
 - Version of `pytest` bumped to `7.x` ([#591](https://github.com/SeldonIO/alibi/pull/591)).
-- Version of `sphinx-designed` bumped to `0.3.0` ([#739](https://github.com/SeldonIO/alibi/pull/739)).
+- Version of `sphinx-designe` bumped to `0.3.0` ([#739](https://github.com/SeldonIO/alibi/pull/739)).
 
 
 

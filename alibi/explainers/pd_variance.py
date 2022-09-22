@@ -17,7 +17,7 @@ from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers import plot_pd
 from alibi.explainers.partial_dependence import (Kind, PartialDependence,
                                                  TreePartialDependence)
-from alibi.explainers.similarity.grad import get_options_string
+from alibi.utils import _get_options_string
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +148,7 @@ class PartialDependenceVariance(Explainer):
         """
         if method not in Method.__members__.values():
             raise ValueError(f"Unknown mode. Received ``method={method}``. "
-                             f"Accepted `method` names are: {get_options_string(Method)}")
+                             f"Accepted `method` names are: {_get_options_string(Method)}")
 
         # get number of features
         n_features = X.shape[1]
@@ -577,8 +577,8 @@ def _plot_feature_importance(exp: Explanation,
 
 
 def _plot_feature_interaction(exp: Explanation,
-                              features: Union[List[int], Literal['all']] = 'all',
-                              targets: Union[List[Union[str, int]], Literal['all']] = 'all',
+                              features: List[int],
+                              targets: List[Union[str, int]],
                               summarise=True,
                               n_cols: int = 3,
                               sort: bool = True,
@@ -595,7 +595,7 @@ def _plot_feature_interaction(exp: Explanation,
 
     Parameters
     ----------
-    exp, features, targets, n_cols, summarise, sort, top_k, ax, bar_kw, fig_kw
+    exp, features, targets, summarise, n_cols, sort, top_k, plot_limits, ax, sharey, bar_kw, line_kw, fig_kw
         See :py:meth:`alibi.explainers.pd_variance.plot_pd_variance`.
 
     Returns
@@ -656,7 +656,7 @@ def _plot_feature_interaction(exp: Explanation,
     # construct `features` for the `merged_features`
     step = 3  # because we have a 2-way pdp followed by two conditional feature importance
     merged_features = [[step * ft, step * ft + 1, step * ft + 2] for ft in features]
-    merged_features = list(itertools.chain.from_iterable(merged_features))
+    merged_features = list(itertools.chain.from_iterable(merged_features))  # type: ignore[arg-type]
 
     # construct pd explanation object to reuse `plot_pd` function
     meta = copy.deepcopy(DEFAULT_META_PD)
@@ -710,7 +710,7 @@ def plot_pd_variance(exp: Explanation,
                      line_kw: Optional[dict] = None,
                      fig_kw: Optional[dict] = None):
     """
-     Parameters
+    Parameters
     ----------
     exp
         An `Explanation` object produced by a call to the
@@ -742,12 +742,15 @@ def plot_pd_variance(exp: Explanation,
     sharey
         A parameter specifying whether the y-axis of the PD and ICE curves should be on the same scale
         for several features. Possible values are: ``'all'`` | ``'row'`` | ``None``.
-    line_kw
-        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function.
     bar_kw
         Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
+    line_kw
+        Keyword arguments passed to the `matplotlib.pyplot.plot`_ function.
     fig_kw
         Keyword arguments passed to the `matplotlib.figure.set`_ function.
+
+        .. _matplotlib.pyplot.plot:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html
 
         .. _matplotlib.pyplot.barh`
             https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
@@ -792,7 +795,8 @@ def plot_pd_variance(exp: Explanation,
             raise ValueError(f"Unknown `target` name. Received {target}. "
                              f"Available values are: {exp.meta['params']['target_names']}.")
 
-        if isinstance(target, numbers.Integral) and (target > len(exp.meta['params']['target_names'])):
+        if isinstance(target, numbers.Integral) \
+                and (target > len(exp.meta['params']['target_names'])):  # type: ignore[operator]
             raise IndexError(f"Target index out of range. Received {target}. "
                              f"The number of targets is {len(exp.meta['params']['target_names'])}.")
 

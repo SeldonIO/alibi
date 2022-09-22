@@ -1,3 +1,5 @@
+import numbers
+
 import copy
 import logging
 import string
@@ -584,7 +586,7 @@ def _check_target(output_shape: Tuple,
 
     if target is not None:
 
-        if not (target.dtype == int):
+        if not isinstance(target.dtype, numbers.Integral):
             raise ValueError("Targets must be integers")
 
         if target.shape[0] != nb_samples:

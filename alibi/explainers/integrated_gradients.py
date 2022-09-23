@@ -586,7 +586,7 @@ def _check_target(output_shape: Tuple,
 
     if target is not None:
 
-        if not isinstance(target.dtype, numbers.Integral):
+        if not np.issubdtype(target.dtype, np.integer):
             raise ValueError("Targets must be integers")
 
         if target.shape[0] != nb_samples:

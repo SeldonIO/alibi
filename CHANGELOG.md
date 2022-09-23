@@ -6,7 +6,7 @@
 ### Added
 - **New feature** `PartialDependence` and `TreePartialDependence` explainers implementing partial dependence (PD) global explanations. Also included is a `plot_pd` utility function for flexible plotting of the resulting PD plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html), [#721](https://github.com/SeldonIO/alibi/pull/721)).
 - New `exceptions.NotFittedError` exception which is raised whenever a compulsory call to a `fit` method has not been carried out. Specifically, this is now raised in `AnchorTabular.explain` when `AnchorTabular.fit` has been skipped ([#732](https://github.com/SeldonIO/alibi/pull/732)).
-- Various improvements to docs and examples ([#695](https://github.com/SeldonIO/alibi/pull/695), [#701](https://github.com/SeldonIO/alibi/pull/701), [#698](https://github.com/SeldonIO/alibi/pull/698), [#703](https://github.com/SeldonIO/alibi/pull/703), [#717](https://github.com/SeldonIO/alibi/pull/717), [#711](https://github.com/SeldonIO/alibi/pull/711), [#750](https://github.com/SeldonIO/alibi/pull/750)).
+- Various improvements to docs and examples ([#695](https://github.com/SeldonIO/alibi/pull/695), [#701](https://github.com/SeldonIO/alibi/pull/701), [#698](https://github.com/SeldonIO/alibi/pull/698), [#703](https://github.com/SeldonIO/alibi/pull/703), [#717](https://github.com/SeldonIO/alibi/pull/717), [#711](https://github.com/SeldonIO/alibi/pull/711), [#750](https://github.com/SeldonIO/alibi/pull/750), [#784](https://github.com/SeldonIO/alibi/pull/784)).
 
 ### Fixed
 - Edge case in `AnchorTabular` where an error is raised during an `explain` call if the instance contains a categorical feature value not seen in the training data ([#742](https://github.com/SeldonIO/alibi/pull/742)).

@@ -17,6 +17,7 @@
   - `exceptions.AlibiPredictorCallException` is now `exceptions.PredictorCallError`
   - `exceptions.AlibiPredictorReturnTypeError` is now `exceptions.PredictorReturnTypeError`. Backwards compatibility has been maintained by subclassing the new exception classes by the old ones, **but these will likely be removed in a future version** ([#733](https://github.com/SeldonIO/alibi/pull/733)).
 - Warn users when `TreeShap` is used with more than 100 samples in the background dataset which is due to a limitation in the upstream `shap` package ([#710](https://github.com/SeldonIO/alibi/pull/710)).
+- Minimum version of `scikit-learn` bumped to `1.0.0` mainly due to upcoming deprecations ([#776](https://github.com/SeldonIO/alibi/pull/776)).
 - Minimum version of `scikit-image` bumped to `0.17.2` to fix a possible bug when using the `slic` segmentation function with `AnchorImage` ([#753](https://github.com/SeldonIO/alibi/pull/753)).
 - Maximum supported version of `attrs` bumped to `22.x` ([#727](https://github.com/SeldonIO/alibi/pull/727)).
 - Maximum supported version of `tensorflow` bumped to `2.10.x` ([#745](https://github.com/SeldonIO/alibi/pull/745)).

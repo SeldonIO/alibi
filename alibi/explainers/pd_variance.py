@@ -569,9 +569,12 @@ def _plot_feature_importance(exp: Explanation,
                    pd_num_kw=line_kw,
                    fig_kw=fig_kw)
 
-    for ax, ft_imp in zip(axes.flatten().tolist(), feature_importance):
-        ft_name = ax.get_xlabel()
-        ax.set_title('imp({}) = {:.3f}'.format(ft_name, ft_imp))
+    # add title to each plot with the feature importance
+    axes_flatten = axes.flatten()
+    for i in range(len(features)):
+        ft_name = feature_names[features[i]]
+        ft_imp = feature_importance[i]
+        axes_flatten[i].set_title('imp({}) = {:.3f}'.format(ft_name, ft_imp))
 
     return axes
 
@@ -679,19 +682,21 @@ def _plot_feature_interaction(exp: Explanation,
                    pd_num_kw=line_kw,
                    fig_kw=fig_kw)
 
+    # add title to each plot with the feature importance
+    axes_flatten = axes.flatten()
     for i in range(len(features)):
         # set title for the 2-way pdp
-        ax = axes.flatten()[step * i]
-        ft_name1, ft_name2 = ax.get_xlabel(), ax.get_ylabel()
+        ax = axes_flatten[step * i]
+        ft_name1, ft_name2 = feature_names[features[i]]
         ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2, feature_interaction[i]))
 
         # set title for the first conditional importance plot
         ax = axes.flatten()[step * i + 1]
-        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0].item()))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0].item()))
 
         # set title for the second conditional importance plot
         ax = axes.flatten()[step * i + 2]
-        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1].item()))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1].item()))
 
     return axes
 

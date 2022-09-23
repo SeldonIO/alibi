@@ -43,7 +43,8 @@
 - Version of `ipykernel` bumped to `6.x` ([#431](https://github.com/SeldonIO/alibi/pull/572)).
 - Version of `ipython` bumped to `8.x` ([#572](https://github.com/SeldonIO/alibi/pull/572)).
 - Version of `pytest` bumped to `7.x` ([#591](https://github.com/SeldonIO/alibi/pull/591)).
-- Version of `sphinx-designe` bumped to `0.3.0` ([#739](https://github.com/SeldonIO/alibi/pull/739)).
+- Version of `sphinx-design` bumped to `0.3.0` ([#739](https://github.com/SeldonIO/alibi/pull/739)).
+- Version of `nbconvert` bumped to `7.x` ([#738](https://github.com/SeldonIO/alibi/pull/738)).
 
 
 

@@ -687,11 +687,11 @@ def _plot_feature_interaction(exp: Explanation,
 
         # set title for the first conditional importance plot
         ax = axes.flatten()[step * i + 1]
-        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][0].item()))
+        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0].item()))
 
         # set title for the second conditional importance plot
         ax = axes.flatten()[step * i + 2]
-        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][1].item()))
+        ax.set_title('Std[imp({}|{})] = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1].item()))
 
     return axes
 

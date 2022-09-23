@@ -1,7 +1,7 @@
 # Change Log
 
-## [v0.7.1](https://github.com/SeldonIO/alibi/tree/v0.7.1) (2022-XX-XX)
-[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.7.1)
+## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-23)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.8.0)
 
 ### Added
 - **New feature** `PartialDependence` and `TreePartialDependence` explainers implementing partial dependence (PD) global explanations. Also included is a `plot_pd` utility function for flexible plotting of the resulting PD plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html), [#721](https://github.com/SeldonIO/alibi/pull/721)).

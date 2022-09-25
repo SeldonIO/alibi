@@ -56,8 +56,7 @@ class AE(Model):
             Reconstruction of the input tensor.
         """
         z = self.encoder(x)
-        x_hat = self.decoder(z)
-        return x_hat
+        return self.decoder(z)
 
 
 class HeAE(AE):

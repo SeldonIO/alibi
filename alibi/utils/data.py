@@ -25,8 +25,8 @@ class Bunch(dict):
     def __getattr__(self, key):
         try:
             return self[key]
-        except KeyError:
-            raise AttributeError(key)
+        except KeyError as exc:
+            raise AttributeError(key) from exc
 
 
 def gen_category_map(data: Union[pd.DataFrame, np.ndarray],

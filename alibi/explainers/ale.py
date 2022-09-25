@@ -276,8 +276,7 @@ def get_quantiles(values: np.ndarray, num_quantiles: int = 11, interpolation='li
 
     """
     percentiles = np.linspace(0, 100, num=num_quantiles)
-    quantiles = np.percentile(values, percentiles, axis=0, interpolation=interpolation)  # type: ignore[call-overload]
-    return quantiles
+    return np.percentile(values, percentiles, axis=0, interpolation=interpolation)
 
 
 def bisect_fun(fun: Callable, target: float, lo: int, hi: int) -> int:
@@ -496,12 +495,10 @@ def ale_num(
 
     # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
     if len(fvals) == 1:
-        if extrapolate_constant:
-            delta = max(fvals * extrapolate_constant_perc / 100, extrapolate_constant_min)
-            fvals = np.hstack((fvals - delta, fvals + delta))
-        else:
-            # ALE is 0 at a constant feature value
+        if not extrapolate_constant:
             return fvals, np.array([[0.]]), np.array([0.])
+        delta = max(fvals * extrapolate_constant_perc / 100, extrapolate_constant_min)
+        fvals = np.hstack((fvals - delta, fvals + delta))
 
     # find which interval each observation falls into
     indices = np.searchsorted(fvals, X[:, feature], side="left")
@@ -612,26 +609,26 @@ def plot_ale(exp: Explanation,
     fig_kw = {**default_fig_kw, **fig_kw}
 
     if features == 'all':
-        features = range(0, len(exp.feature_names))
+        features = range(len(exp.feature_names))
     else:
         for ix, f in enumerate(features):
             if isinstance(f, str):
                 try:
                     f = np.argwhere(exp.feature_names == f).item()
-                except ValueError:
-                    raise ValueError(f"Feature name {f} does not exist.")
+                except ValueError as exc:
+                    raise ValueError(f"Feature name {f} does not exist.") from exc
             features[ix] = f
     n_features = len(features)
 
     if targets == 'all':
-        targets = range(0, len(exp.target_names))
+        targets = range(len(exp.target_names))
     else:
         for ix, t in enumerate(targets):
             if isinstance(t, str):
                 try:
                     t = np.argwhere(exp.target_names == t).item()
-                except ValueError:
-                    raise ValueError(f"Target name {t} does not exist.")
+                except ValueError as exc:
+                    raise ValueError(f"Target name {t} does not exist.") from exc
             targets[ix] = t
 
     # make axes
@@ -724,9 +721,7 @@ def _plot_one_ale_num(exp: Explanation,
     ax.set_xlabel(exp.feature_names[feature])
     ax.set_ylabel('ALE')
 
-    if legend:
-        # if no explicit labels passed, just use target names
-        if line_kw['label'] is None:
-            ax.legend(lines, exp.target_names[targets])
+    if legend and line_kw['label'] is None:
+        ax.legend(lines, exp.target_names[targets])
 
     return ax

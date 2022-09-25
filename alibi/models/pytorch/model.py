@@ -53,8 +53,8 @@ class Model(nn.Module):
                 raise ValueError("The number of loss weights differs from the number of losses")
 
             self.loss = []
-            for i, partial_loss in enumerate(loss):
-                self.loss.append(LossContainer(partial_loss, name=f"output_{i+1}_loss"))
+            self.loss.extend(LossContainer(partial_loss, name=f"output_{i+1}_loss") for i, partial_loss in enumerate(loss))
+
         else:
             self.loss = LossContainer(loss, name="loss")
 
@@ -88,7 +88,7 @@ class Model(nn.Module):
             if len(y_pred) != len(self.loss):
                 raise ValueError("Number of model's heads differs from the number of losses.")
 
-            if len(self.loss_weights) != 0 and (len(self.loss_weights) != len(self.loss)):
+            if len(self.loss_weights) not in [0, len(self.loss)]:
                 raise ValueError("Number of loss weights should be equal to the number of losses.")
         else:
             # check that the prediction is not a list
@@ -127,15 +127,15 @@ class Model(nn.Module):
             assert isinstance(y_true, list)
 
             loss = torch.tensor(0.).to(self.device)   # necessary for mypy otherwise use `type: ignore`
-            results = dict()
+            results = {}
 
             for i, partial_loss in enumerate(self.loss):
                 weight = self.loss_weights[i] if len(self.loss_weights) else 1.
                 loss += weight * partial_loss(y_pred[i], y_true[i])
-                results.update({key: weight * val for key, val in partial_loss.result().items()})
+                results |= {key: weight * val for key, val in partial_loss.result().items()}
 
             # compute total loss
-            results.update({"loss": sum(results.values())})
+            results["loss"] = sum(results.values())
         else:
             assert isinstance(y_pred, torch.Tensor)
             assert isinstance(y_true, torch.Tensor)
@@ -158,7 +158,7 @@ class Model(nn.Module):
         y_true
             True labels.
         """
-        results = dict()
+        results = {}
 
         if isinstance(self.metrics, dict):
             for name in self.metrics:
@@ -166,8 +166,9 @@ class Model(nn.Module):
                 self.metrics[name].compute_metric(y_pred=y_pred[i], y_true=y_true[i])
 
                 # add output prefix in front of the results
-                result = {name + "_" + key: val for key, val in self.metrics[name].result().items()}
-                results.update(result)
+                result = {f"{name}_{key}": val for key, val in self.metrics[name].result().items()}
+
+                results |= result
 
         else:  # this is just for one head
             assert isinstance(y_pred, torch.Tensor)
@@ -331,10 +332,7 @@ class Model(nn.Module):
         -------
         String representation of the metrics.
         """
-        str_losses = ''
-        for key in metrics:
-            str_losses += "%s: %.4f\t" % (key, metrics[key])
-        return str_losses
+        return ''.join("%s: %.4f\t" % (key, value) for key, value in metrics.items())
 
     def _reset_loss(self):
         """

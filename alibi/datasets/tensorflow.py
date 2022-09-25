@@ -23,14 +23,14 @@ def fetch_fashion_mnist(return_X_y: bool = False
     is returned. Otherwise an array with data points and an array of labels is returned.
     """
 
-    target_names = {
-        0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
-        5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',
-    }
-
     data, labels = keras.datasets.fashion_mnist.load_data()[0]
 
     if return_X_y:
         return data, labels
+
+    target_names = {
+        0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
+        5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',
+    }
 
     return Bunch(data=data, target=labels, target_names=target_names)

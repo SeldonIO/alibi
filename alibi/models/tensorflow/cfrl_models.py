@@ -241,5 +241,4 @@ class ADULTDecoder(keras.Model):
         numerical features if they exist, and the rest of the elements correspond to each categorical feature.
         """
         x = tf.nn.relu(self.fc1(x))
-        xs = [fc(x) for fc in self.fcs]
-        return xs
+        return [fc(x) for fc in self.fcs]

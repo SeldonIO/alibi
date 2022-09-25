@@ -94,7 +94,7 @@ class Base:
         """
 
         if params:
-            for key in data_dict.keys():
+            for key in data_dict:
                 self.meta['params'].update([(key, data_dict[key])])
         else:
             self.meta.update(data_dict)

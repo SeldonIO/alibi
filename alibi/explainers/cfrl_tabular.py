@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     import tensorflow
     import torch
 
-
 if has_pytorch:
     # import pytorch backend
     from alibi.explainers.backends.pytorch import cfrl_tabular as pytorch_tabular_backend
@@ -190,8 +189,9 @@ class CounterfactualRLTabular(CounterfactualRL):
         # Set dataset specific arguments.
         self.params["category_map"] = category_map
         self.params["feature_names"] = feature_names
-        self.params["ranges"] = ranges if (ranges is not None) else dict()
-        self.params["immutable_features"] = immutable_features if (immutable_features is not None) else list()
+        self.params["ranges"] = ranges if (ranges is not None) else {}
+        self.params["immutable_features"] = immutable_features if immutable_features is not None else []
+
         self.params["weight_num"] = weight_num
         self.params["weight_cat"] = weight_cat
 
@@ -359,10 +359,10 @@ class CounterfactualRLTabular(CounterfactualRL):
         # Define conditional vector if an empty list. This is equivalent of no conditioning, but the conditional
         # vector was used during training.
         if len(C) == 0:
-            C = [dict()]
+            C = [{}]
 
         # Check the number of conditions.
-        if len(C) != 1 and len(C) != X.shape[0]:
+        if len(C) not in [1, X.shape[0]]:
             raise ValueError("The number of conditions should be 1 or equals the number of samples in X.")
 
         # If only one condition is passed.
@@ -372,13 +372,10 @@ class CounterfactualRLTabular(CounterfactualRL):
                                                       stats=self.params["stats"])
         else:
             # If multiple conditions were passed.
-            C_vecs = []
-
-            for i in range(len(C)):
-                # Generate conditional vector for each instance. Note that this depends on the input instance.
-                C_vecs.append(self.params["conditional_vector"](X=np.atleast_2d(X[i]),
-                                                                condition=C[i],
-                                                                stats=self.params["stats"]))
+            C_vecs = [
+                self.params["conditional_vector"](X=np.atleast_2d(X[i]), condition=C[i], stats=self.params["stats"])
+                for i in range(len(C))
+                ]
 
             # Concatenate all conditional vectors.
             C_vec = np.concatenate(C_vecs, axis=0)

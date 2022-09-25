@@ -155,14 +155,12 @@ class LanguageModel(abc.ABC):
             # The second condition is necessary for models like Roberta.
             # If the second condition is not included, it can select words like: `word,` instead of `word`
             if (not self.is_subword_prefix(tokenized_text[end_idx])) or \
-                    self.is_punctuation(tokenized_text[end_idx], punctuation):
+                        self.is_punctuation(tokenized_text[end_idx], punctuation):
                 break
 
             end_idx += 1
 
-        # convert the tokens into a string
-        word = self.tokenizer.convert_tokens_to_string(tokenized_text[start_idx:end_idx])
-        return word
+        return self.tokenizer.convert_tokens_to_string(tokenized_text[start_idx:end_idx])
 
     def is_stop_word(self,
                      tokenized_text: List[str],
@@ -221,7 +219,7 @@ class LanguageModel(abc.ABC):
         if string_rep.startswith(self.SUBWORD_PREFIX):
             string_rep = string_rep.replace(self.SUBWORD_PREFIX, '', 1)
 
-        return any([c in punctuation for c in string_rep]) if len(string_rep) else False
+        return any(c in punctuation for c in string_rep) if len(string_rep) else False
 
     @property
     @abc.abstractmethod
@@ -262,7 +260,7 @@ class LanguageModel(abc.ABC):
         Tuple consisting of the head, tail and their corresponding list of tokens.
         """
         text = text.strip()
-        if len(text) == 0:
+        if not text:
             raise ValueError("The text is empty.")
 
         # data = `This is not a wordy sentence` -> tokens = [this, is, not, a, word, ##y, sentence, .]
@@ -321,7 +319,7 @@ class LanguageModel(abc.ABC):
 
         for i in range(n_minibatch):
             istart, istop = i * batch_size, min((i + 1) * batch_size, n)
-            x_batch = dict()
+            x_batch = {}
 
             if 'input_ids' in x.keys():
                 x_batch['input_ids'] = x['input_ids'][istart:istop]

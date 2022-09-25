@@ -21,14 +21,10 @@ def ohe_to_ord_shape(shape: tuple, cat_vars: Dict[int, int], is_ohe: bool = Fals
     -------
     Tuple with shape of instance with ordinal encoding of categorical variables.
     """
-    if not is_ohe:
-        return shape
-    else:
-        n_cols_ohe = 0
-        for _, v in cat_vars.items():
-            n_cols_ohe += v - 1
+    if is_ohe:
+        n_cols_ohe = sum(v - 1 for v in cat_vars.values())
         shape = (shape[0],) + (shape[-1] - n_cols_ohe,)
-        return shape
+    return shape
 
 
 def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
@@ -52,10 +48,7 @@ def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
     for k, v in dist.items():
         cat_col = X[:, k].copy()
         cat_col = np.array([v[int(cat_col[i])] for i in range(rng)])
-        if type(X) == np.matrix:
-            X[:, k] = cat_col.reshape(-1, 1)
-        else:
-            X[:, k] = cat_col
+        X[:, k] = cat_col.reshape(-1, 1) if type(X) == np.matrix else cat_col
     return X.astype(np.float32)
 
 

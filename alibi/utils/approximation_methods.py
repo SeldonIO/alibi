@@ -43,7 +43,7 @@ def approximation_parameters(
         return riemann_builders(method=Riemann[method.split("_")[-1]])
     if method == "gausslegendre":
         return gauss_legendre_builders()
-    raise ValueError("Invalid integral approximation method name: {}".format(method))
+    raise ValueError(f"Invalid integral approximation method name: {method}")
 
 
 def riemann_builders(

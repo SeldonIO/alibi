@@ -281,16 +281,14 @@ def batch(X: np.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -
         logger.warning("Batching function received sparse matrix input. Converting to dense matrix first...")
         X = X.toarray()
 
-    if batch_size:
-        n_batches = n_records // batch_size
-        if n_records % batch_size != 0:
-            n_batches += 1
-        slices = [batch_size * i for i in range(1, n_batches)]
-        batches = np.array_split(X, slices)
-    else:
-        batches = np.array_split(X, n_batches)
+    if not batch_size:
+        return np.array_split(X, n_batches)
 
-    return batches
+    n_batches = n_records // batch_size
+    if n_records % batch_size != 0:
+        n_batches += 1
+    slices = [batch_size * i for i in range(1, n_batches)]
+    return np.array_split(X, slices)
 
 
 def default_target_fcn(actor: Any, instances: tuple, kwargs: Optional[Dict] = None):
@@ -363,9 +361,7 @@ def _array_list_concatenator(minibatch_results: List[List[np.ndarray]]) -> List[
     """
     n_classes = len(minibatch_results[0])
     to_concatenate = [list(zip(*minibatch_results))[idx] for idx in range(n_classes)]
-    concatenated = [np.concatenate(arrays, axis=0) for arrays in to_concatenate]
-
-    return concatenated
+    return [np.concatenate(arrays, axis=0) for arrays in to_concatenate]
 
 
 def invert_permutation(p: list) -> np.ndarray:
@@ -407,11 +403,9 @@ def order_result(unordered_result: Generator[Tuple[int, Any], None, None]) -> Li
     This should not be used if one wants to take advantage of the results being returned as they are calculated.
     """
 
-    result_order, results = list(zip(*[(idx, res) for idx, res in unordered_result]))
+    result_order, results = list(zip(*list(unordered_result)))
     orig_order = invert_permutation(list(result_order))
-    ordered_result = [results[idx] for idx in orig_order]
-
-    return ordered_result
+    return [results[idx] for idx in orig_order]
 
 
 class ResourceError(Exception):
@@ -595,8 +589,7 @@ class DistributedExplainer:
         workers = [handle.remote(*explainer_init_args, **explainer_init_kwargs) for handle in handles]
         return ray.util.ActorPool(workers)
 
-    def get_explanation(self, X: np.ndarray, **kwargs) -> \
-            Union[Generator[Tuple[int, Any], None, None], List[Any], Any]:
+    def get_explanation(self, X: np.ndarray, **kwargs) -> Union[Generator[Tuple[int, Any], None, None], List[Any], Any]:
         """
         Performs distributed explanations of instances in `X`.
 
@@ -634,11 +627,8 @@ class DistributedExplainer:
 
         # blocking, submit order
         explanations = self.pool.map(self.target_fcn, batched_instances)
-        results = [minibatch_explanation for minibatch_explanation in explanations]
-
-        if self.concatenate_results:
-            return self.concatenate(results)
-        return results
+        results = list(explanations)
+        return self.concatenate(results) if self.concatenate_results else results
 
 
 class PoolCollection:
@@ -689,9 +679,8 @@ class PoolCollection:
             )
         # we can allow users to experiment with CPU fractions if only 1 CPU available per pool
         actor_cpu_fraction = distributed_opts.get('actor_cpu_fraction', 1.0)
-        if cpus_per_pool == 1:
-            if actor_cpu_fraction is not None:
-                cpus_per_pool /= actor_cpu_fraction
+        if cpus_per_pool == 1 and actor_cpu_fraction is not None:
+            cpus_per_pool /= actor_cpu_fraction
 
         if not ray.is_initialized():
             logger.info(f"Initialising ray on {distributed_opts['n_cpus']} CPUs")

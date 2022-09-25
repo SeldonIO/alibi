@@ -66,7 +66,7 @@ def load_explainer(path: Union[str, os.PathLike], predictor) -> 'Explainer':
     name = meta['name']
     try:
         # get the explainer specific load function
-        load_fn = getattr(thismodule, '_load_' + name)
+        load_fn = getattr(thismodule, f'_load_{name}')
     except AttributeError:
         load_fn = _simple_load
     return load_fn(path, predictor, meta)
@@ -99,7 +99,7 @@ def save_explainer(explainer: 'Explainer', path: Union[str, os.PathLike]) -> Non
 
     try:
         # get explainer specific save function
-        save_fn = getattr(thismodule, '_save_' + name)
+        save_fn = getattr(thismodule, f'_save_{name}')
     except AttributeError:
         # no explainer specific functionality required, just set predictor to `None` and dump
         save_fn = _simple_save
@@ -124,11 +124,7 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
 def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
-    if layer_num == 0:
-        layer = None
-    else:
-        layer = predictor.layers[layer_num]
-
+    layer = None if layer_num == 0 else predictor.layers[layer_num]
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
     explainer.reset_predictor(predictor)
@@ -257,12 +253,14 @@ def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.Pa
     encoder = explainer.params["encoder"]
     decoder = explainer.params["decoder"]
     backend.save_model(path=Path(path, "encoder" + ext), model=explainer.params["encoder"])
-    backend.save_model(path=Path(path, "decoder" + ext), model=explainer.params["decoder"])
+    backend.save_model(path=Path(path, f"decoder{ext}"), model=explainer.params["decoder"])
+
 
     # save actor
     actor = explainer.params["actor"]
     optimizer_actor = explainer.params["optimizer_actor"]  # TODO: save the actor optimizer?
-    backend.save_model(path=Path(path, "actor" + ext), model=explainer.params["actor"])
+    backend.save_model(path=Path(path, f"actor{ext}"), model=explainer.params["actor"])
+
 
     # save critic
     critic = explainer.params["critic"]
@@ -311,12 +309,14 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
     ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
     # load the encoder and decoder (autoencoder components)
-    explainer.params["encoder"] = explainer.backend.load_model(Path(path, "encoder" + ext))
-    explainer.params["decoder"] = explainer.backend.load_model(Path(path, "decoder" + ext))
+    explainer.params["encoder"] = explainer.backend.load_model(Path(path, f"encoder{ext}"))
+    explainer.params["decoder"] = explainer.backend.load_model(Path(path, f"decoder{ext}"))
+
 
     # load the actor and critic
-    explainer.params["actor"] = explainer.backend.load_model(Path(path, "actor" + ext))
-    explainer.params["critic"] = explainer.backend.load_model(Path(path, "critic" + ext))
+    explainer.params["actor"] = explainer.backend.load_model(Path(path, f"actor{ext}"))
+    explainer.params["critic"] = explainer.backend.load_model(Path(path, f"critic{ext}"))
+
 
     # reset predictor
     explainer.reset_predictor(predictor)

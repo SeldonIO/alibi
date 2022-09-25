@@ -52,8 +52,7 @@ class AE(keras.Model):
         """
 
         z = self.encoder(x, **kwargs)
-        x_hat = self.decoder(z, **kwargs)
-        return x_hat
+        return self.decoder(z, **kwargs)
 
 
 class HeAE(AE):

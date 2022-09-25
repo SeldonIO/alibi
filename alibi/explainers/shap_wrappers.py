@@ -70,13 +70,12 @@ def rank_by_importance(shap_values: List[np.ndarray],
         shap_values = [np.atleast_2d(arr) for arr in shap_values]
 
     if not feature_names:
-        feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
-    else:
-        if len(feature_names) != shap_values[0].shape[1]:
-            msg = "The feature names provided do not match the number of shap values estimated. " \
-                  "Received {} feature names but estimated {} shap values!"
-            logger.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
-            feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
+        feature_names = [f'feature_{i}' for i in range(shap_values[0].shape[1])]
+    elif len(feature_names) != shap_values[0].shape[1]:
+        msg = "The feature names provided do not match the number of shap values estimated. " \
+              "Received {} feature names but estimated {} shap values!"
+        logger.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
+        feature_names = [f'feature_{i}' for i in range(shap_values[0].shape[1])]
 
     importances = {}  # type: Dict[str, Dict[str, Union[np.ndarray, List[str]]]]
     avg_mag = []  # type: List
@@ -142,7 +141,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     if start_idx is None or enc_feat_dim is None:
         raise ValueError("Both the start indices or the encoding dimension need to be specified!")
 
-    if not len(enc_feat_dim) == len(start_idx):
+    if len(enc_feat_dim) != len(start_idx):
         raise ValueError("The lengths of the sequences of start indices and encodings must be equal!")
 
     n_encoded_levels = sum(enc_feat_dim)
@@ -343,8 +342,8 @@ class KernelShap(Explainer, FitMixin):
 
         self.link = link
         self.predictor = predictor
-        self.feature_names = feature_names if feature_names else []
-        self.categorical_names = categorical_names if categorical_names else {}
+        self.feature_names = feature_names or []
+        self.categorical_names = categorical_names or {}
         self.task = task
         self.seed = seed
         self._update_metadata({"task": self.task})
@@ -368,7 +367,7 @@ class KernelShap(Explainer, FitMixin):
         if distributed_opts:
             self.distributed_opts.update(distributed_opts)
         self.distributed_opts['algorithm'] = 'kernel_shap'
-        self.distribute = True if self.distributed_opts['n_cpus'] else False
+        self.distribute = bool(self.distributed_opts['n_cpus'])
 
     def _check_inputs(self,
                       background_data: Union[shap_utils.Data, pd.DataFrame, np.ndarray, sparse.spmatrix],
@@ -537,13 +536,13 @@ class KernelShap(Explainer, FitMixin):
         # if the input is sparse, we assume there are categorical variables and use random sampling, not kmeans
         if self.use_groups or self.categorical_names or isinstance(background_data, sparse.spmatrix):
             return shap.sample(background_data, nsamples=n_background_samples)
-        else:
-            logger.info(
+        logger.info(
                 "When summarising with kmeans, the samples are weighted in proportion to their "
                 "cluster occurrence frequency. Please specify a different weighting of the samples "
                 "through the by passing a weights of len=n_background_samples to the constructor!"
             )
-            return shap.kmeans(background_data, n_background_samples)
+        return shap.kmeans(background_data, n_background_samples)
+
 
     @methdispatch
     def _get_data(self,
@@ -557,7 +556,7 @@ class KernelShap(Explainer, FitMixin):
         case. Otherwise, the original data is returned and handled internally by the shap library.
         """
 
-        raise TypeError("Type {} is not supported for background data!".format(type(background_data)))
+        raise TypeError(f"Type {type(background_data)} is not supported for background data!")
 
     @_get_data.register(shap_utils.Data)
     def _(self, background_data, *args, **kwargs) -> shap_utils.Data:
@@ -634,25 +633,10 @@ class KernelShap(Explainer, FitMixin):
 
         _, groups, weights = args
         new_args = (groups, weights) if weights is not None else (groups,)
-        if self.use_groups:
-            logger.info("Group names are specified by column headers, group_names will be ignored!")
-            keep_index = kwargs.get("keep_index", False)
-            if keep_index:
-                return shap_utils.DenseDataWithIndex(
-                    background_data.values,
-                    list(background_data.columns),
-                    background_data.index.values,
-                    background_data.index.name,
-                    *new_args,
-                )
-            else:
-                return shap_utils.DenseData(
-                    background_data.values,
-                    list(background_data.columns),
-                    *new_args,
-                )
-        else:
+        if not self.use_groups:
             return background_data
+        logger.info("Group names are specified by column headers, group_names will be ignored!")
+        return shap_utils.DenseDataWithIndex(background_data.values, list(background_data.columns), background_data.index.values, background_data.index.name, *new_args,) if (keep_index := kwargs.get("keep_index", False)) else shap_utils.DenseData(background_data.values, list(background_data.columns), *new_args,)
 
     @_get_data.register(pd.core.frame.Series)  # type: ignore
     def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, pd.core.frame.Series]:
@@ -728,17 +712,15 @@ class KernelShap(Explainer, FitMixin):
 
         if summarise_background:
             if isinstance(summarise_background, str):
-                if not isinstance(background_data, shap_utils.Data):
-                    n_samples = background_data.shape[0]
-                else:
-                    n_samples = background_data.data.shape[0]
+                n_samples = background_data.data.shape[0] if isinstance(background_data, shap_utils.Data) else background_data.shape[0]
+
                 n_background_samples = min(n_samples, KERNEL_SHAP_BACKGROUND_THRESHOLD)
             background_data = self._summarise_background(background_data, n_background_samples)
 
         # check user inputs to provide warnings if input is incorrect
         self._check_inputs(background_data, group_names, groups, weights)
         if self.create_group_names and groups:
-            group_names = ['group_{}'.format(i) for i in range(len(groups))]
+            group_names = [f'group_{i}' for i in range(len(groups))]
         # disable grouping or data weights if inputs are not correct
         if self.ignore_weights:
             weights = None
@@ -839,11 +821,10 @@ class KernelShap(Explainer, FitMixin):
                 "Called explain on an unfitted object! Please fit the explainer using the .fit method first!"
             )
 
-        if self.distribute:
-            if isinstance(X, sparse.spmatrix) or isinstance(X, pd.DataFrame):
-                raise TypeError(
-                    "Incorrect type for `X` due to distributed context. Cast `X` to np.ndarray."
-                )
+        if self.distribute and isinstance(X, sparse.spmatrix) or isinstance(X, pd.DataFrame):
+            raise TypeError(
+                "Incorrect type for `X` due to distributed context. Cast `X` to np.ndarray."
+            )
 
         # convert data to dense format if sparse
         if self.use_groups and isinstance(X, sparse.spmatrix):
@@ -862,7 +843,7 @@ class KernelShap(Explainer, FitMixin):
         #  else than a list of objects (because it's a generic class). An API update is necessary in order to seamlessly
         #  deal with this. Ignoring with the assumption that this feature is WIP and will not be used for now
         #  (aka, return_generator=True is not passed to the DistributedExplainer)
-        explanation = self._build_explanation(
+        return self._build_explanation(
             X,
             shap_values,  # type: ignore
             expected_value,
@@ -870,8 +851,6 @@ class KernelShap(Explainer, FitMixin):
             cat_vars_start_idx=cat_vars_start_idx,
             cat_vars_enc_dim=cat_vars_enc_dim,
         )
-
-        return explanation
 
     def _build_explanation(self,
                            X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
@@ -912,13 +891,11 @@ class KernelShap(Explainer, FitMixin):
 
         cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Sequence[int]
         cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Sequence[int]
-        summarise_result = kwargs.get('summarise_result', False)  # type: bool
-        if summarise_result:
+        if summarise_result := kwargs.get('summarise_result', False):
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
-            summarised_shap = []
-            for shap_array in shap_values:
-                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
+            summarised_shap = [sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim) for shap_array in shap_values]
+
             shap_values = summarised_shap
 
         raw_predictions = self._explainer.linkfv(self.predictor(X))
@@ -929,11 +906,7 @@ class KernelShap(Explainer, FitMixin):
             argmax_pred = []  # type: ignore
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
-        if isinstance(X, sparse.spmatrix):
-            X = X.toarray()
-        else:
-            X = np.array(X)
-
+        X = X.toarray() if isinstance(X, sparse.spmatrix) else np.array(X)
         # output explanation dictionary
         data = copy.deepcopy(DEFAULT_DATA_KERNEL_SHAP)
         data.update(
@@ -1090,8 +1063,8 @@ class TreeShap(Explainer, FitMixin):
             logger.warning(f"Unrecognised model output {model_output}. Defaulting to model_output='raw'")
             self.model_output = 'raw'
         self.predictor = predictor
-        self.feature_names = feature_names if feature_names else []
-        self.categorical_names = categorical_names if categorical_names else {}
+        self.feature_names = feature_names or []
+        self.categorical_names = categorical_names or {}
         self.task = task
         self.seed = seed
 
@@ -1151,12 +1124,11 @@ class TreeShap(Explainer, FitMixin):
                             background_data,
                             TREE_SHAP_BACKGROUND_WARNING_THRESHOLD,
                         )
-                else:
-                    if n_samples > n_background_samples:
-                        background_data = self._summarise_background(
-                            background_data,
-                            n_background_samples
-                        )
+                elif n_samples > n_background_samples:
+                    background_data = self._summarise_background(
+                        background_data,
+                        n_background_samples
+                    )
             else:
                 self._check_inputs(background_data)
 
@@ -1343,15 +1315,10 @@ class TreeShap(Explainer, FitMixin):
         if isinstance(expected_value, float):
             expected_value = [expected_value]
 
-        self._update_metadata(
-            {'interactions': self.interactions,
-             'explain_loss': True if y is not None else False,
-             'approximate': self.approximate,
-             },
-            params=True
-        )
+        self._update_metadata({'interactions': self.interactions, 'explain_loss': y is not None, 'approximate': self.approximate}, params=True)
 
-        explanation = self._build_explanation(
+
+        return self._build_explanation(
             X,
             shap_output,
             expected_value,
@@ -1360,8 +1327,6 @@ class TreeShap(Explainer, FitMixin):
             cat_vars_start_idx=cat_vars_start_idx,
             cat_vars_enc_dim=cat_vars_enc_dim,
         )
-
-        return explanation
 
     def _xgboost_interactions(self, X: Union[np.ndarray, pd.DataFrame]) -> Union[np.ndarray, List[np.ndarray]]:
         """
@@ -1374,9 +1339,7 @@ class TreeShap(Explainer, FitMixin):
         import xgboost
 
         dexplain = xgboost.DMatrix(X, feature_names=self.predictor.feature_names)
-        shap_output = self._explainer.shap_interaction_values(dexplain, tree_limit=self.tree_limit)
-
-        return shap_output
+        return self._explainer.shap_interaction_values(dexplain, tree_limit=self.tree_limit)
 
     def _check_interactions(self, approximate: bool,
                             background_data: Union[np.ndarray, pd.DataFrame, None],
@@ -1463,15 +1426,12 @@ class TreeShap(Explainer, FitMixin):
                     "with the option `model_output='log_loss' passed to the constructor, call  "
                     "fit(background_data=my_data) and then explain with the default arguments."
                 )
-        # check model output data is compatible with background data setting
-        else:
-            if background_data is None:
-                if model_output != 'raw':
-                    raise NotImplementedError(
-                        f"Without a background dataset, only raw output can be explained currently. "
-                        f"To explain output {model_output}, select a background dataset, re-instanstiate the "
-                        f"explainer with the desired model output option and then call fit(background_data=my_data)!"
-                    )
+        elif background_data is None and model_output != 'raw':
+            raise NotImplementedError(
+                f"Without a background dataset, only raw output can be explained currently. "
+                f"To explain output {model_output}, select a background dataset, re-instanstiate the "
+                f"explainer with the desired model output option and then call fit(background_data=my_data)!"
+            )
 
     def _build_explanation(self,
                            X: Union[np.ndarray, pd.DataFrame, 'catboost.Pool'],
@@ -1529,16 +1489,12 @@ class TreeShap(Explainer, FitMixin):
         if summarise_result:
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
-            summarised_shap = []
-            for shap_array in shap_values:
-                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))  # type: ignore
+            summarised_shap = [sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim) for shap_array in shap_values]
+
             shap_values = summarised_shap
             if shap_interaction_values[0].size != 0:
-                summarised_shap_interactions = []
-                for shap_array in shap_interaction_values:
-                    summarised_shap_interactions.append(
-                        sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim)
-                    )
+                summarised_shap_interactions = [sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim) for shap_array in shap_interaction_values]
+
                 shap_interaction_values = summarised_shap_interactions
 
         # NB: Can't get the raw prediction from model when model_output = 'log_loss` as shap library does
@@ -1556,16 +1512,15 @@ class TreeShap(Explainer, FitMixin):
 
         # predicted class
         argmax_pred = []  # type: Any
-        if self.task != 'regression':
-            if not isinstance(raw_predictions, list):
-                if self.scalar_output:
-                    if self.model_output == 'raw':
-                        probas = expit(raw_predictions)
-                    else:
-                        probas = raw_predictions
-                    argmax_pred = (probas > 0.5).astype(int)
+        if self.task != 'regression' and not isinstance(raw_predictions, list):
+            if self.scalar_output:
+                if self.model_output == 'raw':
+                    probas = expit(raw_predictions)
                 else:
-                    argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
+                    probas = raw_predictions
+                argmax_pred = (probas > 0.5).astype(int)
+            else:
+                argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
 
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)  # type: ignore
 

@@ -27,7 +27,7 @@ def _linear_superposition(alphas, vecs, shape):
     Linear tensor superposition.
     """
     input_str = string.ascii_lowercase[2: 2 + len(shape)]
-    einstr = 'a,ba{}->b{}'.format(input_str, input_str)
+    einstr = f'a,ba{input_str}->b{input_str}'
     return np.einsum(einstr, alphas, vecs)
 
 
@@ -65,14 +65,12 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
     elif model_type == 'regressor':
         outs = predict_fn(X_samples)
         outs_shape = outs.shape[1:]
-        if len(outs.shape) == 1:
-            outs = outs.reshape(ss + (1,))  # shape=(nb_instances, nb_samples, 1)
-        else:  # if regression on multiple targets
-            outs = outs.reshape(ss + outs_shape)  # shape=(nb_instances, nb_samples, nb_targets)
+        outs = outs.reshape(ss + (1,)) if len(outs.shape) == 1 else outs.reshape(ss + outs_shape)
+
     else:
         raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     t_f = time() - t_0
-    logger.debug('predict time {}'.format(t_f))
+    logger.debug(f'predict time {t_f}')
 
     if len(outs_shape) == 0:
         sum_out = np.matmul(alphas, outs)
@@ -84,23 +82,19 @@ def _calculate_global_linearity(predict_fn: Callable, input_shape: Tuple, X_samp
 
     if model_type == 'classifier':
         out_sum = np.log(predict_fn(summ) + 1e-10)
-        out_sum_shape = out_sum.shape[1:]
     elif model_type == 'regressor':
         out_sum = predict_fn(summ)
         out_sum_shape = out_sum.shape[1:]
-        if len(out_sum.shape) == 1:
-            out_sum = out_sum.reshape((ss[0],) + (1,))
-        else:
-            out_sum = out_sum.reshape((ss[0],) + out_sum_shape)
+        out_sum = out_sum.reshape((ss[0],) + (1,)) if len(out_sum.shape) == 1 else out_sum.reshape(
+            (ss[0],) + out_sum_shape)
+
     else:
         raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
     diff = out_sum - sum_out
-    linearity_score = norm(diff.reshape(diff.shape[0], -1), axis=1)
-
-    return linearity_score
+    return norm(diff.reshape(diff.shape[0], -1), axis=1)
 
 
 def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_shape: Tuple, X_samples: np.ndarray,
@@ -169,19 +163,15 @@ def _calculate_pairwise_linearity(predict_fn: Callable, x: np.ndarray, input_sha
     elif model_type == 'regressor':
         out_sum = predict_fn(summ.reshape((summ.shape[0] * summ.shape[1],) + summ.shape[2:]))
         out_sum_shape = out_sum.shape[1:]
-        if len(out_sum.shape) == 1:
-            out_sum = out_sum.reshape(ss + (1,))
-        else:
-            out_sum = out_sum.reshape(ss + out_sum_shape)
+        out_sum = out_sum.reshape(ss + (1,)) if len(out_sum.shape) == 1 else out_sum.reshape(ss + out_sum_shape)
+
     else:
         raise ValueError("Passed 'model_type' not supported. Supported model types: 'classifier', 'regressor'")
     logger.debug(out_sum.shape)
     logger.debug(sum_out.shape)
 
     diff = out_sum - sum_out
-    linearity_score = norm(diff.reshape(diff.shape[0], diff.shape[1], -1), axis=2).mean(axis=1)
-
-    return linearity_score
+    return norm(diff.reshape(diff.shape[0], diff.shape[1], -1), axis=2).mean(axis=1)
 
 
 def _sample_knn(x: np.ndarray, X_train: np.ndarray, nb_samples: int = 10) -> np.ndarray:
@@ -245,9 +235,7 @@ def _sample_grid(x: np.ndarray, feature_range: np.ndarray, epsilon: float = 0.04
     dim = x.shape[1]  # number of features
 
     size = np.round(epsilon * res).astype(int)
-    if size <= 2:
-        size = 2
-
+    size = max(size, 2)
     deltas = (np.abs(feature_range[:, 1] - feature_range[:, 0]) / float(res))  # shape=(nb_features)
 
     rnd_sign = 2 * (np.random.randint(2, size=(nb_instances, nb_samples, dim))) - 1
@@ -255,9 +243,7 @@ def _sample_grid(x: np.ndarray, feature_range: np.ndarray, epsilon: float = 0.04
     rnd = rnd_sign * rnd  # shape=(nb_instances, nb_samples, nb_features)
 
     vprime = rnd * deltas
-    X_sampled = x.reshape(x.shape[0], 1, x.shape[1]) + vprime  # shape=(nb_instances, nb_samples, nb_features)
-
-    return X_sampled
+    return x.reshape(x.shape[0], 1, x.shape[1]) + vprime  # shape=(nb_instances, nb_samples, nb_features)
 
 
 def _linearity_measure(predict_fn: Callable,

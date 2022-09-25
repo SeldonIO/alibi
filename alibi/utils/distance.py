@@ -120,7 +120,7 @@ def abdm(X: np.ndarray,
         cat_vars[col] = len(np.unique(X[:, col]))
 
     # combine dict for categorical with binned features
-    cat_vars_combined = {**cat_vars, **cat_vars_bin}
+    cat_vars_combined = cat_vars | cat_vars_bin
 
     d_pair = {}  # type: Dict
     X_cat_eq = {}  # type: Dict
@@ -221,15 +221,15 @@ def multidim_scaling(d_pair: dict,
         d_max = d_max_k if d_max_k > d_max else d_max
 
     d_abs_scaled = {}
-    new_feature_range = tuple([f.copy() for f in feature_range])
+    new_feature_range = tuple(f.copy() for f in feature_range)
     for k, v in d_abs.items():
         if standardize_cat_vars:  # scale numerical values for the category
             d_scaled = (v - v.mean()) / (v.std() + 1e-12)
         else:  # scale by overall min and max
             try:
                 rng = (feature_range[0][0, k], feature_range[1][0, k])
-            except TypeError:
-                raise TypeError('Feature-wise min and max ranges need to be specified.')
+            except TypeError as e:
+                raise TypeError('Feature-wise min and max ranges need to be specified.') from e
             d_scaled = (v - d_min) / (d_max - d_min) * (rng[1] - rng[0]) + rng[0]
             if center:  # center the numerical feature values between the min and max feature range
                 d_scaled -= .5 * (d_scaled.max() + d_scaled.min())
@@ -319,5 +319,5 @@ def batch_compute_kernel_matrix(x: Union[list, np.ndarray],
                 y_batch = preprocess_fn(y_batch)
             k_ijs.append(kernel(x_batch, y_batch))  # type: ignore
         k_is.append(np.concatenate(k_ijs, axis=1))
-    k_mat = np.concatenate(k_is, axis=0)
-    return k_mat
+
+    return np.concatenate(k_is, axis=0)

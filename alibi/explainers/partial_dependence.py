@@ -244,8 +244,8 @@ class PartialDependenceBase(Explainer, ABC):
                         try:
                             # `self.categorical_names` cannot be empty because of the check in `self._is_numerical`
                             index = self.categorical_names[f].index(str_val)  # type: ignore[index]
-                        except ValueError:
-                            raise ValueError(message.format(f, str_val))
+                        except ValueError as exc:
+                            raise ValueError(message.format(f, str_val)) from exc
                         int_values.append(index)
                     grid_points[f] = np.array(int_values)
 
@@ -360,14 +360,12 @@ class PartialDependenceBase(Explainer, ABC):
         }
 
         if kind == Kind.AVERAGE:
-            pd.update({'average': averaged_predictions})
+            pd['average'] = averaged_predictions
         elif kind == Kind.INDIVIDUAL:
-            pd.update({'individual': predictions})
+            pd['individual'] = predictions
         else:
-            pd.update({
-                'average': averaged_predictions,
-                'individual': predictions
-            })
+            pd |= {'average': averaged_predictions, 'individual': predictions}
+
         return pd
 
     @abstractmethod
@@ -417,7 +415,7 @@ class PartialDependenceBase(Explainer, ABC):
         if not isinstance(percentiles, Iterable) or len(percentiles) != 2:
             raise ValueError("`percentiles` must be a sequence of 2 elements.")
 
-        if not all(0 <= x <= 1 for x in percentiles):  # type: ignore[attr-defined]
+        if any((0 <= x <= 1 for x in percentiles)):  # type: ignore[attr-defined]
             raise ValueError("`percentiles` values must be in [0, 1].")
 
         if percentiles[0] >= percentiles[1]:  # type: ignore[index]
@@ -950,7 +948,7 @@ def plot_pd(exp: Explanation,
     fig_kw = {**default_fig_kw, **fig_kw}
 
     if features == 'all':
-        features = range(0, len(exp.data['feature_names']))
+        features = range(len(exp.data['feature_names']))
     else:
         for ifeatures in features:
             if ifeatures > len(exp.data['feature_names']):
@@ -1083,7 +1081,7 @@ def plot_pd(exp: Explanation,
     #  share the y-axis for the axes within the same group and set the `ymin`, `ymax` values.
     #  This step is necessary and applied here because `vlines` overwrites the `ylim`.
     for ax_group in one_way_axs.values():
-        min_val = min([ax_pd_lim[0] for _, ax_pd_lim in ax_group])
+        min_val = min(ax_pd_lim[0] for _, ax_pd_lim in ax_group)
         max_val = max([ax_pd_lim[1] for _, ax_pd_lim in ax_group])
         ax_group[0][0].get_shared_y_axes().join(ax_group[0][0], *[ax[0] for ax in ax_group[1:]])
         ax_group[0][0].set_ylim(min_val, max_val)
@@ -1467,7 +1465,7 @@ def _plot_two_pd_num_cat(exp: Explanation,
 
     for i in range(pd_values.shape[1]):
         x, y = feature_values[0], pd_values[:, i]
-        pd_num_cat_kw.update({'label': labels[i]})
+        pd_num_cat_kw['label'] = labels[i]
         ax.plot(x, y, **pd_num_cat_kw)
 
     # save `ylim` as they will be overwritten by `ax.vlines`

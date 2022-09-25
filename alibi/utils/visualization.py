@@ -173,21 +173,19 @@ def visualize_image_attr(
     # Create plot if figure, axis not provided
     if plt_fig_axis is not None:
         plt_fig, plt_axis = plt_fig_axis
+    elif use_pyplot:
+        plt_fig, plt_axis = plt.subplots(figsize=fig_size)
     else:
-        if use_pyplot:
-            plt_fig, plt_axis = plt.subplots(figsize=fig_size)
-        else:
-            plt_fig = Figure(figsize=fig_size)
-            plt_axis = plt_fig.subplots()
+        plt_fig = Figure(figsize=fig_size)
+        plt_axis = plt_fig.subplots()
 
-    if original_image is not None:
-        if np.max(original_image) <= 1.0:
-            original_image = _prepare_image(original_image * 255)
-    else:
+    if original_image is None:
         assert (
                 ImageVisualizationMethod[method] == ImageVisualizationMethod.heat_map
         ), "Original Image must be provided for any visualization other than heatmap."
 
+    elif np.max(original_image) <= 1.0:
+        original_image = _prepare_image(original_image * 255)
     # Remove ticks and tick labels from plot.
     plt_axis.xaxis.set_ticks_position("none")
     plt_axis.yaxis.set_ticks_position("none")

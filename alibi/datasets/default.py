@@ -213,8 +213,7 @@ def fetch_movie_sentiment(return_X_y: bool = False, url_id: int = 0) -> Union[Bu
     return Bunch(data=data, target=labels, target_names=target_names)
 
 
-def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, url_id: int = 0) -> \
-        Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
+def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, url_id: int = 0) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
     """
     Downloads and pre-processes 'adult' dataset.
     More info: http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/
@@ -325,9 +324,9 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
 
     # only return data values
     data = data.values
-    target_names = ['<=50K', '>50K']
-
     if return_X_y:
         return data, labels
+
+    target_names = ['<=50K', '>50K']
 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)

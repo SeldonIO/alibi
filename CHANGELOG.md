@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-23)
+## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-26)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.8.0)
 
 ### Added

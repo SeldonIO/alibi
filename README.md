@@ -178,7 +178,7 @@ The following tables summarize the possible use cases for each method.
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
 |[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
-|[Partial Dependece](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

@@ -46,7 +46,7 @@ if __name__ == '__main__':
               'pandas>=0.23.3, <2.0.0',
               'scikit-learn>=1.0.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <4.0.0',
-              'blis<0.8.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
+              'blis<0.10.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
               'scikit-image>=0.17.2, <0.20',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <10.0',

@@ -35,9 +35,9 @@ class Method(str, Enum):
 
 class PartialDependenceVariance(Explainer):
     """ Implementation of the variance partial dependence feature importance for tabular datasets. Supports
-     black-box models and the following `sklearn` tree-based models: `GradientBoostingClassifier`,
-     `GradientBoostingRegressor`, `HistGradientBoostingClassifier`, `HistGradientBoostingRegressor`,
-     `HistGradientBoostingRegressor`, `DecisionTreeRegressor`, `RandomForestRegressor`."""
+    black-box models and the following `sklearn` tree-based models: `GradientBoostingClassifier`,
+    `GradientBoostingRegressor`, `HistGradientBoostingClassifier`, `HistGradientBoostingRegressor`,
+    `HistGradientBoostingRegressor`, `DecisionTreeRegressor`, `RandomForestRegressor`."""
 
     def __init__(self,
                  predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
@@ -687,7 +687,7 @@ def _plot_feature_interaction(exp: Explanation,
     for i in range(len(features)):
         # set title for the 2-way pdp
         ax = axes_flatten[step * i]
-        ft_name1, ft_name2 = feature_names[features[i]]
+        (ft_name1, ft_name2) = feature_names[features[i]]  # type: Tuple[str, str]  # type: ignore[misc]
         ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2, feature_interaction[i]))
 
         # set title for the first conditional importance plot
@@ -715,17 +715,19 @@ def plot_pd_variance(exp: Explanation,
                      line_kw: Optional[dict] = None,
                      fig_kw: Optional[dict] = None):
     """
+    Plot feature importance and feature interaction based on partial dependence curves on matplotlib axes.
+
     Parameters
     ----------
     exp
         An `Explanation` object produced by a call to the
-        :py:meth:`alibi.explainers.pd_varianace.PartialDependenceVariance.explain` method.
+        :py:meth:`alibi.explainers.pd_variance.PartialDependenceVariance.explain` method.
     features
         A list of features entries provided in `feature_names` argument  to the
-        :py:meth:`alibi.explain.pd_variance.PartialDependeceVariance.explain` method, or
+        :py:meth:`alibi.explainers.pd_variance.PartialDependenceVariance.explain` method, or
         ``'all'`` to  plot all the explained features. For example, if  ``feature_names = ['temp', 'hum', 'windspeed']``
-         and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
-         ``features=[0, 2]``. Defaults to ``'all'``.
+        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
+        ``features=[0, 2]``. Defaults to ``'all'``.
     targets
         A target name/index, or a list of target names/indices, for which to plot the feature importance/interaction,
         or ``'all'``. Can be a mix of integers denoting target index or strings denoting entries in
@@ -754,11 +756,11 @@ def plot_pd_variance(exp: Explanation,
     fig_kw
         Keyword arguments passed to the `matplotlib.figure.set`_ function.
 
+        .. _matplotlib.pyplot.barh:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
+
         .. _matplotlib.pyplot.plot:
             https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.plot.html
-
-        .. _matplotlib.pyplot.barh`
-            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
 
         .. _matplotlib.figure.set:
             https://matplotlib.org/stable/api/figure_api.html

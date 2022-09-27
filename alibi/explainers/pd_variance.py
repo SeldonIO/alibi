@@ -147,7 +147,7 @@ class PartialDependenceVariance(Explainer):
                 https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html
         """
         if method not in Method.__members__.values():
-            raise ValueError(f"Unknown mode. Received ``method={method}``. "
+            raise ValueError(f"Unknown method. Received ``method={method}``. "
                              f"Accepted `method` names are: {_get_options_string(Method)}")
 
         # get number of features

@@ -19,11 +19,20 @@ err_msg_template = Template((
 ))
 
 
-# Map from specific missing dependency to the name of the optional dependency bucket
+"""Mapping used to ensure correct pip install message is generated if a missing optional dependency is detected. This
+dict is used to control two behaviours:
+    1. When we import objects from missing dependencies we check that any `ModuleNotFoundError` or `ImportError`
+    corresponds to a missing optional dependency by checking the name of the missing dependency is in `ERROR_TYPES`. We
+    then map this name to the corresponding optional dependency bucket that will resolve the issue.
+    2. Some optional dependencies have multiple names such as `torch` and `pytorch`, instead of enforcing a single
+    naming convention across the whole code base we instead use `ERROR_TYPES` to capture both cases. This is done right
+    before the pip install message is issued as this is the most robust place to capture these differences.
+"""
 ERROR_TYPES = {
     'ray': 'ray',
     'tensorflow': 'tensorflow',
     'torch': 'torch',
+    'pytorch': 'torch',
     'shap': 'shap',
     'numba': 'shap'
 }

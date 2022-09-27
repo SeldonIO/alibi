@@ -24,6 +24,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
 |[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
 |[PartialDependence](../methods/PartialDependence.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[PartialDependenceVariance](../methods/PartialDependenceVariance.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
 
 
 Key:
@@ -121,6 +122,14 @@ model with respect to a dataset. Intended for use on tabular datasets, black-box
 supporting numerical and categorical features.
 [Documentation](../methods/PartialDependence.ipynb),
 [Bike rental](../examples/pdp_regression_bike.ipynb).
+
+**Partial Dependence Variance**: computes the global feature importance or the feature interaction of a pair of features. 
+The the feature importance and the feature interactions are summarized in a single positive number given by the variance 
+within the Partial Dependence function. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
+supporting numerical and categorical features.
+[Documentation](../methods/PartialDependenceVariance.ipynb) 
+[Friedman’s regression problem](../examples/pd_variance_regression_friedman.ipynb)
+
 
 ## Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

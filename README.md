@@ -179,6 +179,7 @@ The following tables summarize the possible use cases for each method.
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
 |[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
 |[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[Partial Dependence Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -272,6 +273,11 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)
   - Examples:
     [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
+
+- Partial Dependence Variance([https://arxiv.org/abs/1805.04755])
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)
+  - Examples:
+    [Friedman’s regression problem](https://docs.seldon.io/projects/alibi/en/stable/examples/pd_variance_regression_friedman.html)
     
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)

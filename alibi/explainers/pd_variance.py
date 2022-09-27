@@ -107,9 +107,9 @@ class PartialDependenceVariance(Explainer):
             for which to compute the feature interaction. Some example of `features` would be: ``[0, 1, 3]``,
             ``[(0, 1), (0, 3), (1, 3)]``, where ``0``,``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`.
             If not provided, the feature importance or the feature interaction will be computed for every
-            feature or for every combination of features, depending on the parameter `mode`.
+            feature or for every combination of feature pairs, depending on the parameter `method`.
         method
-            Flag to specify whether to compute the feature importance or the feature interaction of the elements in
+            Flag to specify whether to compute the feature importance or the feature interaction of the elements
             provided in `features`. Supported values: ``'importance'`` | ``'interaction'``.
         percentiles
             Lower and upper percentiles used to limit the feature values to potentially remove outliers from

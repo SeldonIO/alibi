@@ -34,10 +34,15 @@ class Method(str, Enum):
 
 
 class PartialDependenceVariance(Explainer):
-    """ Implementation of the variance partial dependence feature importance for tabular datasets. Supports
-    black-box models and the following `sklearn` tree-based models: `GradientBoostingClassifier`,
-    `GradientBoostingRegressor`, `HistGradientBoostingClassifier`, `HistGradientBoostingRegressor`,
-    `HistGradientBoostingRegressor`, `DecisionTreeRegressor`, `RandomForestRegressor`."""
+    """ Implementation of the partial dependence(PD) variance feature importance and feature interaction for
+    tabular datasets. The method measure the importance feature importance as the variance within the PD function.
+    Similar, the potential feature interaction is measured by computing the variance within the two-way PD function
+    by holding one variable constant and letting the other vary. Supports black-box models and the following `sklearn`
+    tree-based models: `GradientBoostingClassifier`, `GradientBoostingRegressor`, `HistGradientBoostingClassifier`,
+    `HistGradientBoostingRegressor`, `HistGradientBoostingRegressor`, `DecisionTreeRegressor`,
+    `RandomForestRegressor`.
+
+    For details of the method see the original paper: https://arxiv.org/abs/1805.04755 ."""
 
     def __init__(self,
                  predictor: Union[BaseEstimator, Callable[[np.ndarray], np.ndarray]],
@@ -46,7 +51,7 @@ class PartialDependenceVariance(Explainer):
                  target_names: Optional[List[str]] = None,
                  verbose: bool = False):
         """
-        Initialize black-box model implementation for the variance partial dependence feature importance.
+        Initialize black-box/tree-based model implementation for the partial dependence variance feature importance.
 
         Parameters
         ----------
@@ -181,7 +186,7 @@ class PartialDependenceVariance(Explainer):
             # compute feature importance
             buffers = self._compute_feature_importance(pd_explanation=pd_explanation, features=features)
         else:
-            if not all([isinstance(fs, tuple) and len(fs) for fs in features]):
+            if not all([isinstance(fs, tuple) and len(fs) == 2 for fs in features]):
                 raise ValueError(f"For ``method='{Method.INTERACTION.value}'`` all features must be "
                                  f"tuples of length 2.")
             # compute feature interaction
@@ -247,6 +252,8 @@ class PartialDependenceVariance(Explainer):
     def _compute_pd_variance_cat(pd_values: np.ndarray) -> np.ndarray:
         """
         Computes the PD variance along the final axis for a categorical feature.
+        Reference to range statistic divided by 4 estimation:
+        https://en.wikipedia.org/wiki/Standard_deviation#Bounds_on_standard_deviation
 
         Parameters
         ----------

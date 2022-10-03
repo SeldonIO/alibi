@@ -307,3 +307,24 @@ DEFAULT_DATA_PD = {
 """
 Default PartialDependence data.
 """
+
+
+# PermutationImportance
+DEFAULT_META_PERMUTATION_IMPORTANCE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PermutationImportance metadata.
+"""
+
+DEFAULT_DATA_PERMUTATION_IMPORTANCE = {
+
+}
+"""
+Default PermutationImportance data.
+"""
+

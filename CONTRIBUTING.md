@@ -167,7 +167,36 @@ We use `sphinx` for building documentation. You can call `make build_docs` from 
 the docs will be built under `doc/_build/html`. Detail information about documentation can be found [here](doc/README.md).
 
 ## CI
-All PRs triger a CI job to run linting, type checking, tests, and build docs. The CI script is located [here](https://github.com/SeldonIO/alibi/blob/master/.github/workflows/ci.yml) and should be considered the source of truth for running the various development commands.
+All PRs triger a CI job to run linting, type checking, tests, and build docs. The CI script is located [here](https://github.com/SeldonIO/alibi/blob/master/.github/workflows/ci.yml) and should be considered the source of truth for running the various development commands. The status of each Github Action can be viewed on the [actions page](https://github.com/SeldonIO/alibi/actions).
+
+### Debugging via CI
+
+For various reasons, CI runs might occasionally fail. They can often be debugged locally, but sometimes it is helpful
+to debug them in the exact enviroment seen during CI. For this purpose, there is the facilty to ssh directly into
+the CI Guthub Action runner.
+
+#### Instructions
+
+1. Go to the "CI" workflows section on the Alibi GitHub Actions page.
+
+2. Click on "Run Workflow", and select the "Enable tmate debugging" toggle.
+
+3. Select the workflow once it starts, and then select the build of interest (e.g. `ubuntu-latest, 3.10`).
+
+4. Once the workflow reaches the `Setup tmate session` step, click on the toggle to expand it.
+
+5. Copy and paste the `ssh` command that is being printed to your terminal e.g. `ssh TaHAR65KFbjbSdrkwxNz996TL@nyc1.tmate.io`.
+
+6. Run the ssh command locally. Assuming your ssh keys are properly set up for github, you should now be inside the GutHub Action runner.
+
+7. The tmate session is opened after the Python and pip installs are completed, so you should be ready to run `alibi` and debug as required. 
+
+#### Additional notes 
+
+- If the registered public SSH key is not your default private SSH key, you will need to specify the path manually, like so: ssh -i <path-to-key> <tmate-connection-string>.
+- Once you have finished debugging, you can continue the workflow (i.e. let the full build CI run) by running `touch continue` whilst in the root directory (`~/work/alibi/alibi`). This will close the tmate session.
+- This new capability is currently temperamental on the `MacOS` build due to [this issue](https://github.com/mxschmitt/action-tmate/issues/69). If the MacOS build fails all the builds are failed. If this happens, it is 
+recommended to retrigger only the workflow build of interest e.g. `ubuntu-latest, 3.10`, and then follow the instructions above from step 3.
 
 ## Optional Dependencies
 

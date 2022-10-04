@@ -34,11 +34,35 @@ class Kind(str, Enum):
 
 
 class PermutationImportance(Explainer):
+    """ Implementation of the permutation feature importance for tabular dataset. The method measure the importance
+    of a feature as the relative increase in the loss function when the feature values are permuted. Supports
+    black-box models.
+
+    For details of the method see the papers:
+    https://link.springer.com/article/10.1023/A:1010933404324
+    https://arxiv.org/abs/1801.01489
+    """
+
     def __init__(self,
                  predictor: Callable[[np.array], np.array],
                  feature_names: Optional[List[str]] = None,
                  verbose: bool = False):
+        """
+        Initialize the permutation feature importance.
 
+        Parameters
+        ----------
+        predictor
+            A prediction function which receives as input a `numpy` array of size `N x F`, and outputs a
+            `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances,
+            `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
+            compatible with the loss functions provided in the
+            :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
+        feature_names
+            A list of feature names used for displaying results.
+        verbose
+            Whether to print the progress of the explainer.
+        """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE))
         self.predictor = predictor
         self.feature_names = feature_names
@@ -56,8 +80,59 @@ class PermutationImportance(Explainer):
                 method: Literal["estimate", "exact"] = "estimate",
                 kind: Literal["ratio", "difference"] = "ratio",
                 n_repeats: int = 50,
-                sample_weight: Optional[np.ndarray] = None):
+                sample_weight: Optional[np.ndarray] = None) -> Explanation:
+        """
+        Computes the permutation feature importance for each feature with respect to the give loss functions and
+        the dataset `(X, y)`.
 
+        Parameters
+        ----------
+        X
+            A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
+            test dataset.
+        y
+            A `N` (i.e. `(N, )`) ground-truth labels array corresponding the input feature `X`.
+        loss_fns
+            A loss function or a dictionary of loss functions having as keys the name of the loss functions and as
+            values the loss functions. Note that the `predictor` output must be compatible with every loss functions.
+            Every loss function is expected to receive the following arguments:
+
+             - `y_true` : ``np.ndarray`` -  a `numpy` array of ground-truth labels.
+
+             - `y_pred` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to the output of
+             the model
+
+             - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
+
+        features
+            A list of feature for which to compute the feature importance for. An example would be: ``[0, 1, 3]``,
+            where ``0``, ``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`. If not provide, the feature
+            importance will be computed for every single feature in the dataset.
+        method
+            The method to be used to compute the feature importance. If set to``'switch'``, a "switch" operation is
+            performed across all observed pairs, by excluding pairings that are actually observed in the original
+            dataset. This operation is quadratic in the number of samples (`N x (N - 1)` samples) and thus can be
+            computationally intensive. If set to ``'divide'``, the dataset will be divided in half and the first
+            half's values of the remaining ground-truth labels and the rest of the feature is matched with the
+            second half's values of the permuted features, and the other way around. This method is computationally
+            lighter and provides estimate error bars given by the standard deviation.
+        kind
+            Whether to report the importance as the error ratio or the error difference. Available values are:
+            ``'ratio'` | ``'difference'``.
+        n_repeats
+            Number of times to permute the features. Considered only when ``method='divide'``.
+        sample_weight
+            Optional weight for each sample instance.
+
+        Returns
+        -------
+        explanation
+            An `Explanation` object containing the data and the metadata of the calculated permutation feature
+            importance. See usage at `Permutation importance examples`_ for details
+
+            .. _Permutation feature importance examples:
+                https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html
+        """
         n_features = X.shape[1]
 
         if callable(loss_fns):
@@ -118,8 +193,27 @@ class PermutationImportance(Explainer):
                       y_true: np.ndarray,
                       y_pred: np.ndarray,
                       loss_fn: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                      sample_weight: Optional[np.ndarray]):
+                      sample_weight: Optional[np.ndarray]) -> float:
+        """
+        Helper function to compute the loss. It also checks if the loss function expects the arguments `y_true`,
+        `y_pred`, and optionally `sample_weight`.
 
+        Parameters
+        ----------
+        y_true
+            Ground truth targets.
+        y_pred
+            Predicted outcome as returned by the classifier.
+        loss_fn
+            Loss function to be used. Note that the loss function must be compatible with the `y_true`, `y_pred`, and
+            optionally with `sample_weight`.
+        sample_weight
+            Weight of each sample instance.
+
+        Returns
+        -------
+        Loss value.
+        """
         # get scoring function arguments
         args = inspect.getfullargspec(loss_fn).args
 
@@ -152,33 +246,62 @@ class PermutationImportance(Explainer):
                                         feature: int,
                                         loss_orig: Dict[str, float]):
 
+        """
+        Helper function to compute the permutation importance for a given feature.
+
+        Parameters
+        ----------
+        X, y, loss_fns, method, kind, n_repeats, sample_weight
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.#
+        feature
+            The feature to compute the importance for.
+        loss_orig
+            Original loss value when the features are left intact. The loss is computed on the original datasets.
+
+        Returns
+        --------
+        A dictionary having as keys the loss name and as key the feature importance associated with the loss.
+        """
         if method == Method.EXACT:
             # computation of the exact statistic which is quadratic in the number of samples
             return self._compute_exact(X=X,
                                        y=y,
-                                       feature=feature,
                                        loss_fns=loss_fns,
                                        kind=kind,
                                        sample_weight=sample_weight,
+                                       feature=feature,
                                        loss_orig=loss_orig)
         # sample approximation
         return self._compute_estimate(X=X,
                                       y=y,
-                                      feature=feature,
                                       loss_fns=loss_fns,
                                       kind=kind,
                                       n_repeats=n_repeats,
                                       sample_weight=sample_weight,
+                                      feature=feature,
                                       loss_orig=loss_orig)
 
     def _compute_exact(self,
                        X: np.ndarray,
                        y: np.ndarray,
-                       feature: int,
                        loss_fns: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray],
                        kind: str,
                        sample_weight: Optional[np.ndarray],
+                       feature: int,
                        loss_orig: Dict[str, float]):
+        """
+        Helper function to compute the `switch` estimate of the permutation feature importance.
+
+        Parameters
+        ----------
+        X, y, loss_fns, kind, sample_weight, feature, loss_orig
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
+
+        Returns
+        -------
+        A dictionary having as keys the loss name and as key the feature importance associated with the loss.
+        """
+
         y_pred = []
         weights = [] if sample_weight else None
         loss_permuted = {}
@@ -209,19 +332,30 @@ class PermutationImportance(Explainer):
         return {loss_name: self._compute_importance(
             loss_orig=loss_orig[loss_name],
             loss_permuted=loss_permuted[loss_name],
-            kind=kind
-        ) for loss_name in loss_fns}
+            kind=kind) for loss_name in loss_fns
+        }
 
     def _compute_estimate(self,
                           X: np.ndarray,
                           y: np.ndarray,
-                          feature: int,
                           loss_fns: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray],
                           kind: str,
                           n_repeats: int,
                           sample_weight: Optional[np.ndarray],
+                          feature: int,
                           loss_orig: Dict[str, float]):
+        """
+        Helper function to compute the `divide` estimate of the permutation feature importance.
 
+        Parameters
+        ----------
+        X, y, loss_fns, kind, sample_weight, feature, loss_orig
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
+
+        Returns
+        -------
+        A dictionary having as keys the loss name and as key the feature importance associated with the loss.
+        """
         N = len(X)
         start, middle, end = 0, N // 2, N if N % 2 == 0 else N - 1
         fh, sh = np.s_[start:middle], np.s_[middle:end]
@@ -272,6 +406,21 @@ class PermutationImportance(Explainer):
         return feature_importance
 
     def _compute_importance(self, loss_orig: float, loss_permuted: float, kind):
+        """
+        Helper function to compute the feature importance as the error ratio or the error difference
+        based on the `kind` parameter.
+
+        Parameters
+        ----------
+        loss_orig
+            TODO
+        loss_permuted
+            TODO
+
+        Returns
+        -------
+        TODO
+        """
         return loss_permuted / loss_orig if kind == Kind.RATIO else loss_permuted - loss_orig
 
 

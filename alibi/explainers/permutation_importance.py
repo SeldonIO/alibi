@@ -1,14 +1,17 @@
+import numbers
 import sys
 import copy
 import logging
 
 import inspect
 import numpy as np
+import math
 from enum import Enum
-from alibi.api.interfaces import Explainer
+from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_PERMUTATION_IMPORTANCE, DEFAULT_DATA_PERMUTATION_IMPORTANCE
 from typing import Callable, Optional, Union, List, Dict
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -57,6 +60,9 @@ class PermutationImportance(Explainer):
 
         n_features = X.shape[1]
 
+        if callable(loss_fns):
+            loss_fns = {loss_fns.__name__: loss_fns}
+
         # set the `features_names` when the user did not provide the feature names
         if self.feature_names is None:
             self.feature_names = [f'f_{i}' for i in range(n_features)]
@@ -78,13 +84,12 @@ class PermutationImportance(Explainer):
                                                       loss_fn=loss_fn,
                                                       sample_weight=sample_weight)
 
-
         # compute permutation feature importance for every feature
         # TODO: implement parallel version - future work as it can be done for ALE too
-        perm_importance = []
+        individual_feature_importance = []
 
         for ifeature in tqdm(features, disable=not self.verbose):
-            perm_importance.append(
+            individual_feature_importance.append(
                 self._compute_permutation_importance(
                     X=X,
                     y=y,
@@ -97,7 +102,17 @@ class PermutationImportance(Explainer):
                     loss_orig=loss_orig,
                 )
             )
-        return perm_importance
+
+        # update meta data params
+        self.meta['params'].update(feature_names=feature_names,
+                                   method=method,
+                                   kind=kind,
+                                   n_repeats=n_repeats,
+                                   sample_weight=sample_weight)
+
+        # build and return the explanation object
+        return self._build_explanation(feature_names=feature_names,
+                                       individual_feature_importance=individual_feature_importance)
 
     def _compute_loss(self,
                       y_true: np.ndarray,
@@ -118,7 +133,7 @@ class PermutationImportance(Explainer):
             # some scores might not support `sample_weight` such as:
             # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html#sklearn.metrics.max_error
             if sample_weight is not None:
-                logger.warning(f"The loss function '{loss_name}' does not support argument `sample_weight`. "
+                logger.warning(f"The loss function '{loss_fn.__name__}' does not support argument `sample_weight`. "
                                f"Calling the method without `sample_weight`.")
 
             return loss_fn(y_true=y_true, y_pred=y_pred)
@@ -238,7 +253,7 @@ class PermutationImportance(Explainer):
                                        loss_fn=loss_fn)
                 )
 
-        importance = {}
+        feature_importance = {}
 
         for loss_name in loss_fns:
             importance_values = [
@@ -246,16 +261,169 @@ class PermutationImportance(Explainer):
                     loss_orig=loss_orig[loss_name],
                     loss_permuted=loss_permuted_value,
                     kind=kind,
-                ) for loss_permuted_value in loss_permuted[loss_name]]
+                ) for loss_permuted_value in loss_permuted[loss_name]
+            ]
 
-            importance[loss_name] = {
+            feature_importance[loss_name] = {
                 "mean": np.mean(importance_values),
                 "std": np.std(importance_values)
             }
 
-        return importance
+        return feature_importance
 
     def _compute_importance(self, loss_orig: float, loss_permuted: float, kind):
         return loss_permuted / loss_orig if kind == Kind.RATIO else loss_permuted - loss_orig
 
 
+    def _build_explanation(self,
+                           feature_names: List[str],
+                           individual_feature_importance: List[
+                               Union[
+                                   Dict[str, float],
+                                   Dict[str, Dict[str, float]]
+                               ]
+                           ]) -> Explanation:
+
+        # list of loss names
+        loss_names = list(individual_feature_importance[0].keys())
+
+        # list of lists of features importance, one list per target
+        feature_importance = []
+        for loss_name in loss_names:
+            feature_importance.append([])
+            for i in range(len(feature_names)):
+                feature_importance[-1].append(individual_feature_importance[i][loss_name])
+
+        data = copy.deepcopy(DEFAULT_DATA_PERMUTATION_IMPORTANCE)
+        data.update(
+            feature_names=feature_names,
+            loss_names=loss_names,
+            feature_importance=feature_importance,
+        )
+
+        return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def reset_predictor(self, predictor: Callable) -> None:
+        """
+        Resets the predictor function.
+
+        Parameters
+        ----------
+        predictor
+            New predictor function.
+        """
+        self.predictor = predictor
+
+
+def plot_permutation_importance(exp: Explanation,
+                                features: Union[List[int], Literal['all']] = 'all',
+                                loss_names: Union[List[Union[str, int]], Literal['all']] = 'all',
+                                n_cols: int = 3,
+                                sort: bool = True,
+                                top_k: bool = 10,
+                                ax: Optional[Union['plt.Axes', np.ndarray]] = None,
+                                bar_kw: Optional[dict] = None,
+                                fig_kw: Optional[dict] = None) -> 'plt.Axes':
+
+    from matplotlib.gridspec import GridSpec
+
+    # define figure arguments
+    default_fig_kw = {'tight_layout': 'tight'}
+    if fig_kw is None:
+        fig_kw = {}
+
+    fig_kw = {**default_fig_kw, **fig_kw}
+
+    # initialize `features` and `loss_names` if set to ``'all'``
+    n_features = len(exp.data['feature_names'])
+    n_loss_names = len(exp.data['loss_names'])
+
+    if features == 'all':
+        features = list(range(n_features))
+
+    if loss_names == 'all':
+        loss_names = exp.data['loss_names']
+
+    # `features` sanity checks
+    for ifeature in features:
+        if ifeature >= len(exp.data['feature_names']):
+            raise ValueError(f"The `features` indices must be les thant the "
+                             f"``len(feature_names) = {n_features}``. Received {ifeature}.")
+
+    # construct vector of feature names to display importance for
+    feature_names = [exp.data['feature_names'][i] for i in features]
+
+    # `loss_names` sanity checks
+    for i, iloss_name in enumerate(loss_names):
+            if isinstance(iloss_name, str) and (iloss_name not in exp.data['loss_names']):
+                raise ValueError(f"Unknown `loss_name`. Received {iloss_name}. "
+                                 f"Available values are: {exp.data['loss_names']}.")
+
+            if isinstance(iloss_name, numbers.Integral):
+                if iloss_name >= n_loss_names:
+                    raise IndexError(f"Loss name index out of range. Received {iloss_name}. "
+                                     f"The number of `loss_names` is {n_loss_names}")
+
+                # convert index to string
+                loss_names[i] = exp.data['loss_names'][i]
+
+    if ax is None:
+        fix, ax = plt.subplots()
+
+    if isinstance(ax, plt.Axes) and n_loss_names != 1:
+        ax.set_axis_off()  # treat passed axis as a canvas for subplots
+        fig = ax.figure
+        n_cols = min(n_cols, n_loss_names)
+        n_rows = math.ceil(n_loss_names / n_cols)
+
+        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes_ravel = axes.ravel()
+        gs = GridSpec(n_rows, n_cols)
+
+        for i, spec in zip(range(n_loss_names), gs):
+            axes_ravel[i] = fig.add_subplot(spec)
+
+    else:  # array-like
+        if isinstance(ax, plt.Axes):
+            ax = np.array(ax)
+
+        if ax.size < n_loss_names:
+            raise ValueError(f"Expected ax to have {n_loss_names} axes, got {ax.size}")
+
+        axes = np.atleast_2d(ax)
+        axes_ravel = axes.ravel()
+        fig = axes_ravel[0].figure
+
+    for i in range(len(axes_ravel)):
+        ax = axes_ravel[i]
+        loss_name = loss_names[i]
+
+        # define bar plot data
+        y_labels = feature_names
+
+        if exp.meta['params']['method'] == Method.EXACT:
+            width = [exp.data['feature_importance'][i][j] for j in features]
+            xerr = None
+        else:
+            width = [exp.data['feature_importance'][i][j]['mean'] for j in features]
+            xerr = [exp.data['feature_importance'][i][j]['std'] for j in features]
+
+        if sort:
+            sorted_indices = np.argsort(width)[::-1][:top_k]
+            width = [width[j] for j in sorted_indices]
+            xerr = [xerr[j] for j in sorted_indices]
+            y_labels = [y_labels[j] for j in sorted_indices]
+
+        y = np.arange(len(width))
+        default_bar_kw = {'align': 'center'}
+        bar_kw = default_bar_kw if bar_kw is None else {**default_bar_kw, **bar_kw}
+
+        ax.barh(y=y, width=width, xerr=xerr, **bar_kw)
+        ax.set_yticks(y)
+        ax.set_yticklabels(y_labels)
+        ax.invert_yaxis()  # labels read top-to-bottom
+        ax.set_xlabel('Permutation feature importance')
+        ax.set_title(loss_name)
+
+    fig.set(**fig_kw)
+    return axes

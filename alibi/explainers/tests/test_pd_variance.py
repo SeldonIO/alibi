@@ -2,6 +2,7 @@ import re
 
 import numpy as np
 import pytest
+from pytest_lazyfixture import lazy_fixture
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 
@@ -106,3 +107,161 @@ def test_linear_regression(num_features):
     expected_order = np.argsort(np.abs(w))
     order = np.argsort(exp.data['feature_importance'][0])
     assert np.all(expected_order == order)
+
+
+@pytest.fixture(scope='module')
+def pd_pdv_explainers(request, adult_data):
+    """ Initialize `PartialDependence` and `PartialDependenceVariance` explainers. """
+    clf, preprocessor = request.param
+    feature_names = adult_data['metadata']['feature_names']
+    categorical_names = adult_data['metadata']['category_map']
+
+    # define predictor function with a single output to be used
+    def predictor(x):
+        return clf.predict_proba(preprocessor.transform(x))[:, 1:]
+
+    # compute manually the feature importance using the `PartialDependence` explainer
+    pd_explainer = PartialDependence(predictor=predictor,
+                                     feature_names=feature_names,
+                                     categorical_names=categorical_names)
+
+    # compute feature importance using the `PartialDependenceVariance` explainer.
+    pdv_explainer = PartialDependenceVariance(predictor=predictor,
+                                              feature_names=feature_names,
+                                              categorical_names=categorical_names)
+    return pd_explainer, pdv_explainer
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('pd_pdv_explainers', [lazy_fixture('rf_classifier')], indirect=True)
+@pytest.mark.parametrize('features', [[0, 8, 9]])
+def test_importance_num(rf_classifier, pd_pdv_explainers, features, adult_data):
+    """ Test the computation of the feature importance for a numerical feature. """
+    X_train = adult_data['X_train'][:100]
+    pd_explainer, pdv_explainer = pd_pdv_explainers
+
+    # compute feature importance using the `PartialDependenceVariance` explainer.
+    pdv_exp = pdv_explainer.explain(X=X_train, features=features)
+    pdv_ft_imp = pdv_exp.data['feature_importance'][0]
+
+    # compute manually the feature importance using the `PartialDependence` explainer.
+    pd_exp = pd_explainer.explain(X=X_train, features=features)
+    pd_ft_imp = np.array([np.std(pd[0], ddof=1, axis=-1) for pd in pd_exp.data['pd_values']])
+    np.testing.assert_allclose(pdv_ft_imp, pd_ft_imp)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('pd_pdv_explainers', [lazy_fixture('rf_classifier')], indirect=True)
+@pytest.mark.parametrize('features', [[1, 2, 3, 4]])
+def test_importance_cat(rf_classifier, pd_pdv_explainers, features, adult_data):
+    """ Test the computation of the feature importance for a categorical feature. """
+    X_train = adult_data['X_train'][:100]
+    pd_explainer, pdv_explainer = pd_pdv_explainers
+
+    # compute feature importance using the `PartialDependenceVariance` explainer
+    pdv_exp = pdv_explainer.explain(X=X_train, features=features)
+    pdv_ft_imp = pdv_exp.data['feature_importance'][0]
+
+    # compute manually the feature importance using the `PartialDependence` explainer
+    pd_exp = pd_explainer.explain(X=X_train, features=features)
+    pd_ft_imp = np.array([(np.max(pd[0], axis=-1) - np.min(pd[0], axis=-1)) / 4 for pd in pd_exp.data['pd_values']])
+    np.testing.assert_allclose(pdv_ft_imp, pd_ft_imp)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('pd_pdv_explainers', [lazy_fixture('rf_classifier')], indirect=True)
+@pytest.mark.parametrize('features', [[(0, 8), (0, 9), (8, 9)]])
+def test_interaction_num_num(rf_classifier, pd_pdv_explainers, features, adult_data):
+    """ Test the computation of the feature interaction for two numerical features. """
+    X_train = adult_data['X_train'][:100]
+    pd_explainer, pdv_explainers = pd_pdv_explainers
+
+    # compute feature interaction using the `PartialDependenceVariance` explainer
+    pdv_exp = pdv_explainers.explain(X=X_train, method='interaction', features=features, grid_resolution=20)
+    pdv_ft_inter = pdv_exp.data['feature_interaction'][0]
+
+    # compute manually the feature interaction using the `PartialDependence` explainer
+    pd_exp = pd_explainer.explain(X=X_train, features=features, grid_resolution=20)
+    pd_ft_inter = []
+
+    for pd in pd_exp.data['pd_values']:
+        cond_imp1 = np.std(pd[0], ddof=1, axis=-1)
+        inter1 = np.std(cond_imp1, ddof=1, axis=-1)
+
+        cond_imp2 = np.std(pd[0].T, ddof=1, axis=-1)
+        inter2 = np.std(cond_imp2, ddof=1, axis=-1)
+
+        pd_ft_inter.append(np.mean([inter1, inter2]))
+
+    pd_ft_inter = np.array(pd_ft_inter)
+    np.testing.assert_allclose(pdv_ft_inter, pd_ft_inter)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('pd_pdv_explainers', [lazy_fixture('rf_classifier')], indirect=True)
+@pytest.mark.parametrize('features', [[(1, 2), (1, 3), (1, 4), (2, 3), (2, 4)]])
+def test_interaction_cat_cat(rf_classifier, pd_pdv_explainers, features, adult_data):
+    """ Test the computation of the feature interaction for two categorical features. """
+    X_train = adult_data['X_train'][:100]
+    pd_explainer, pdv_explainer = pd_pdv_explainers
+
+    # compute feature interaction using the `PartialDependenceVariance` explainer
+    pdv_exp = pdv_explainer.explain(X=X_train, method='interaction', features=features)
+    pdv_ft_inter = pdv_exp.data['feature_interaction'][0]
+
+    # compute manually the feature interaction using the `PartialDependence` explainer
+    pd_exp = pd_explainer.explain(X=X_train, features=features)
+    pd_ft_inter = []
+
+    for pd in pd_exp.data['pd_values']:
+        cond_imp1 = (np.max(pd[0], axis=-1) - np.min(pd[0], axis=-1)) / 4
+        inter1 = (np.max(cond_imp1, axis=-1) - np.min(cond_imp1, axis=-1)) / 4
+
+        cond_imp2 = (np.max(pd[0].T, axis=-1) - np.min(pd[0].T, axis=-1)) / 4
+        inter2 = (np.max(cond_imp2, axis=-1) - np.min(cond_imp2, axis=-1)) / 4
+
+        pd_ft_inter.append(np.mean([inter1, inter2]))
+
+    pd_ft_inter = np.array(pd_ft_inter)
+    np.testing.assert_allclose(pdv_ft_inter, pd_ft_inter)
+
+
+@pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
+@pytest.mark.parametrize('pd_pdv_explainers', [lazy_fixture('rf_classifier')], indirect=True)
+@pytest.mark.parametrize('features', [[(0, 1), (1, 0), (8, 2), (2, 8), (3, 9), (9, 3)]])
+def test_interaction_num_cat(rf_classifier, pd_pdv_explainers, features, adult_data):
+    """ Test the computation of the feature interaction for a numerical and a categorical feature. """
+    X_train = adult_data['X_train'][:100]
+    category_map = adult_data['metadata']['category_map']
+    pd_explainer, pdv_explainer = pd_pdv_explainers
+
+    # compute feature interaction using the `PartialDependenceVariance` explainer
+    pdv_exp = pdv_explainer.explain(X=X_train, method='interaction', features=features, grid_resolution=20)
+    pdv_ft_inter = pdv_exp.data['feature_interaction'][0]
+
+    # compute manually the feature interaction using the `PartialDependence` explainer
+    pd_exp = pd_explainer.explain(X=X_train, features=features, grid_resolution=20)
+    pd_ft_inter = []
+
+    for fts, pd in zip(features, pd_exp.data['pd_values']):
+        first_ft, second_ft = fts
+
+        if second_ft in category_map:
+            cond_imp1 = (np.max(pd[0], axis=-1) - np.min(pd[0], axis=-1)) / 4
+            imp1 = np.std(cond_imp1, ddof=1, axis=-1)
+
+            cond_imp2 = np.std(pd[0].T, ddof=1, axis=-1)
+            imp2 = (np.max(cond_imp2, axis=-1) - np.min(cond_imp2, axis=-1)) / 4
+
+            pd_ft_inter.append(np.mean([imp1, imp2]))
+        else:
+            cond_imp1 = np.std(pd[0], ddof=1, axis=-1)
+            imp1 = (np.max(cond_imp1, axis=-1) - np.min(cond_imp1, axis=-1)) / 4
+
+            cond_imp2 = (np.max(pd[0].T, axis=-1) - np.min(pd[0].T, axis=-1)) / 4
+            imp2 = np.std(cond_imp2, ddof=1, axis=-1)
+
+            pd_ft_inter.append(np.mean([imp1, imp2]))
+
+    pd_ft_inter = np.array(pd_ft_inter)
+    np.testing.assert_allclose(pdv_ft_inter, pd_ft_inter)

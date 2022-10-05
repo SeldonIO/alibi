@@ -4,7 +4,7 @@
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.x.x)
 
 ### Added
-- **New feature** `PartialDependenceVariance` explainers implementing partial dependence variance global explanations. Also included is a `plot_pd_variance` utility function for flexible plotting of the resulting PD variance plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html), [#758](https://github.com/SeldonIO/alibi/pull/758)).
+- **New feature** `PartialDependenceVariance` explainer implementing partial dependence variance global explanations. Also included is a `plot_pd_variance` utility function for flexible plotting of the resulting PD variance plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html), [#758](https://github.com/SeldonIO/alibi/pull/758)).
 
 
 ## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-26)

@@ -193,9 +193,12 @@ class PartialDependenceVariance(Explainer):
             buffers = self._compute_feature_interaction(pd_explanation=pd_explanation,
                                                         features=features)  # type: ignore[arg-type]
 
-        # update meta and return built explanation
+        # update `meta['params'] with the `pd_explainer.meta['params'], remove 'kind', and include 'method'
         self.meta['params'].update(self.pd_explainer.meta['params'])
+        self.meta['params'].pop('kind')
         self.meta['params'].update({'method': method})
+
+        # build and return the explanation object
         return self._build_explanation(buffers=buffers)
 
     def _compute_pd_variance(self, features: List[int], pd_values: List[np.ndarray]) -> np.ndarray:
@@ -559,6 +562,7 @@ def _plot_feature_importance(exp: Explanation,
     meta = copy.deepcopy(DEFAULT_META_PD)
     data = copy.deepcopy(DEFAULT_DATA_PD)
     meta.update(exp.meta)
+    meta['params']['kind'] = 'average'
     data.update(feature_names=feature_names,
                 feature_values=feature_values,
                 pd_values=pd_values,
@@ -672,6 +676,7 @@ def _plot_feature_interaction(exp: Explanation,
     meta = copy.deepcopy(DEFAULT_META_PD)
     data = copy.deepcopy(DEFAULT_DATA_PD)
     meta.update(exp.meta)
+    meta['params']['kind'] = 'average'
     data.update(feature_names=merged_feature_names,
                 feature_values=merged_feature_values,
                 pd_values=merged_pd_values,

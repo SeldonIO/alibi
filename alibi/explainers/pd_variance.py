@@ -791,7 +791,7 @@ def plot_pd_variance(exp: Explanation,
     `plt.Axes` with the feature interaction plot.
     """
     # sanity check for `top_k`
-    if sorted and (top_k is not None) and (top_k <= 0):
+    if sort and (top_k is not None) and (top_k <= 0):
         raise ValueError('``top_k`` must be greater than 0.')
 
     # initialization for `targets`

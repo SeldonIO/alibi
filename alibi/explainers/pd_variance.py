@@ -5,7 +5,6 @@ import math
 import numbers
 import sys
 from enum import Enum
-from tqdm import tqdm
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
@@ -83,7 +82,6 @@ class PartialDependenceVariance(Explainer):
         the `target_names` should be two.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_PDVARIANCE))
-        self.verbose = verbose
 
         # initialize the pd explainer
         PartialDependenceClass = TreePartialDependence if isinstance(predictor, BaseEstimator) else PartialDependence
@@ -91,7 +89,7 @@ class PartialDependenceVariance(Explainer):
                                                    feature_names=feature_names,
                                                    categorical_names=categorical_names,
                                                    target_names=target_names,
-                                                   verbose=self.verbose)
+                                                   verbose=verbose)
 
     def explain(self,
                 X: np.ndarray,
@@ -203,10 +201,7 @@ class PartialDependenceVariance(Explainer):
         # build and return the explanation object
         return self._build_explanation(buffers=buffers)
 
-    def _compute_pd_variance(self,
-                             features: List[int],
-                             pd_values: List[np.ndarray],
-                             verbose: bool = False) -> np.ndarray:
+    def _compute_pd_variance(self, features: List[int], pd_values: List[np.ndarray]) -> np.ndarray:
         """
         Computes the PD variance along the final axis for all the features.
 
@@ -218,9 +213,6 @@ class PartialDependenceVariance(Explainer):
             List of length `F` containing the PD values for each feature in `features`. Each PD value is an array
             with the shape `T x N1 ... x Nk` where `T` is the number of targets and `Ni` is the number of feature
             values along the `i` axis.
-        verbose
-            Whether to display the progress bar.
-
 
         Returns
         -------
@@ -229,7 +221,7 @@ class PartialDependenceVariance(Explainer):
         """
         feature_variance = []
 
-        for pdv, f in tqdm(zip(pd_values, features), total=len(pd_values), disable=not verbose):
+        for pdv, f in zip(pd_values, features):
             # `pdv` is a tensor of size `T x N1 x ... Nk`, where `T` is the number
             # of targets and `Ni` is the number of feature values along the axis `i`
             if f in self.pd_explainer.categorical_names:  # type: ignore[operator]
@@ -301,8 +293,7 @@ class PartialDependenceVariance(Explainer):
             'feature_values': pd_explanation.data['feature_values'],
             'feature_names': pd_explanation.data['feature_names'],
             'feature_importance': self._compute_pd_variance(features=features,
-                                                            pd_values=pd_explanation.data['pd_values'],
-                                                            verbose=self.verbose).T,
+                                                            pd_values=pd_explanation.data['pd_values']).T,
         }
 
     def _compute_feature_interaction(self,
@@ -332,7 +323,7 @@ class PartialDependenceVariance(Explainer):
             'conditional_importance_values': [],
         }
 
-        for i in tqdm(range(len(features)), disable=not self.verbose):
+        for i in range(len(features)):
             # unpack explanation
             feature_deciles = pd_explanation.data['feature_deciles'][i]
             pd_values = pd_explanation.data['pd_values'][i]

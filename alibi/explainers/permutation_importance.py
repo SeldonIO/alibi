@@ -405,7 +405,8 @@ class PermutationImportance(Explainer):
 
         return feature_importance
 
-    def _compute_importance(self, loss_orig: float, loss_permuted: float, kind):
+    @staticmethod
+    def _compute_importance(loss_orig: float, loss_permuted: float, kind):
         """
         Helper function to compute the feature importance as the error ratio or the error difference
         based on the `kind` parameter.
@@ -413,16 +414,17 @@ class PermutationImportance(Explainer):
         Parameters
         ----------
         loss_orig
-            TODO
+            Loss value when the feature values are left intact.
         loss_permuted
-            TODO
+            Loss value when the feature value are permuted.
+        kind
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
 
         Returns
         -------
-        TODO
+        Importance score.
         """
         return loss_permuted / loss_orig if kind == Kind.RATIO else loss_permuted - loss_orig
-
 
     def _build_explanation(self,
                            feature_names: List[str],
@@ -432,6 +434,24 @@ class PermutationImportance(Explainer):
                                    Dict[str, Dict[str, float]]
                                ]
                            ]) -> Explanation:
+        """
+        Helper method to build `Explanation` object.
+
+        Parameters
+        ----------
+        feature_names
+            List of names of the explained features.
+        individual_feature_importance
+            List of dictionary having as keys the name of the loss function and as values the feature importance
+            when ``kind='exact'`` or a dictionary containing the mean and the standard deviation when
+            ``kind='estimate'``.
+
+        Returns
+        -------
+        `Explanation` object.
+
+        """
+        print(feature_names)
 
         # list of loss names
         loss_names = list(individual_feature_importance[0].keys())
@@ -473,6 +493,45 @@ def plot_permutation_importance(exp: Explanation,
                                 ax: Optional[Union['plt.Axes', np.ndarray]] = None,
                                 bar_kw: Optional[dict] = None,
                                 fig_kw: Optional[dict] = None) -> 'plt.Axes':
+    """
+    Plot permutation feature importance on `matplotlib` axes.
+
+    Parameters
+    ----------
+    exp
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain` method.
+    features
+        A list of features entries provided in `feature_names` argument  to the
+        :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain` method, or
+        ``'all'`` to  plot all the explained features. For example, if  ``feature_names = ['temp', 'hum', 'windspeed']``
+        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
+        ``features=[0, 2]``. Defaults to ``'all'``.
+    loss_names
+
+    n_cols
+        Number of columns to organize the resulting plot into.
+    sort
+        Boolean flag whether to sort the values in descending order.
+    top_k
+        Number of top k values to be displayed if the ``sort=True``. If not provided, then all values will be displayed.
+    ax
+        A `matplotlib` axes object or a `numpy` array of `matplotlib` axes to plot on.
+    bar_kw
+        Keyword arguments passed to the `matplotlib.pyplot.barh`_ function.
+    fig_kw
+        Keyword arguments passed to the `matplotlib.figure.set`_ function.
+
+        .. _matplotlib.pyplot.barh:
+            https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.barh.html
+
+        .. _matplotlib.figure.set:
+            https://matplotlib.org/stable/api/figure_api.html
+
+    Returns
+    --------
+    `plt.Axes` with the feature importance plot.
+    """
 
     from matplotlib.gridspec import GridSpec
 

@@ -727,7 +727,7 @@ def plot_pd_variance(exp: Explanation,
                      line_kw: Optional[dict] = None,
                      fig_kw: Optional[dict] = None):
     """
-    Plot feature importance and feature interaction based on partial dependence curves on matplotlib axes.
+    Plot feature importance and feature interaction based on partial dependence curves on `matplotlib` axes.
 
     Parameters
     ----------
@@ -779,7 +779,7 @@ def plot_pd_variance(exp: Explanation,
 
     Returns
     -------
-    `plt.Axes` with the feature interaction plot.
+    `plt.Axes` with the summary/detailed exposition plot of the feature importance or feature interaction.
     """
     # sanity check for `top_k`
     if sort and (top_k is not None) and (top_k <= 0):

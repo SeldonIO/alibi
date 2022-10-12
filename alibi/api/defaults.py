@@ -322,9 +322,10 @@ Default PermutationImportance metadata.
 """
 
 DEFAULT_DATA_PERMUTATION_IMPORTANCE = {
-
-}
+    "feature_names": None,
+    "loss_names": None,
+    "feature_importance": None,
+}  # type: dict
 """
 Default PermutationImportance data.
 """
-

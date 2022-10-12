@@ -9,7 +9,7 @@ import math
 from enum import Enum
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_PERMUTATION_IMPORTANCE, DEFAULT_DATA_PERMUTATION_IMPORTANCE
-from typing import Callable, Optional, Union, List, Dict
+from typing import Callable, Optional, Union, List, Dict, no_type_check
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -39,12 +39,13 @@ class PermutationImportance(Explainer):
     black-box models.
 
     For details of the method see the papers:
-    https://link.springer.com/article/10.1023/A:1010933404324
-    https://arxiv.org/abs/1801.01489
+
+     - https://link.springer.com/article/10.1023/A:1010933404324
+     - https://arxiv.org/abs/1801.01489
     """
 
     def __init__(self,
-                 predictor: Callable[[np.array], np.array],
+                 predictor: Callable[[np.ndarray], np.ndarray],
                  feature_names: Optional[List[str]] = None,
                  verbose: bool = False):
         """
@@ -68,14 +69,13 @@ class PermutationImportance(Explainer):
         self.feature_names = feature_names
         self.verbose = verbose
 
-    def explain(self,
+    def explain(self,  # type: ignore[override]
                 X: np.ndarray,
                 y: np.ndarray,
-                loss_fns: Union
-                    [
-                      Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                      Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
-                    ],
+                loss_fns: Union[
+                    Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
+                    Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
+                ],
                 features: Optional[List[int]] = None,
                 method: Literal["estimate", "exact"] = "estimate",
                 kind: Literal["ratio", "difference"] = "ratio",
@@ -109,7 +109,7 @@ class PermutationImportance(Explainer):
             where ``0``, ``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`. If not provide, the feature
             importance will be computed for every single feature in the dataset.
         method
-            The method to be used to compute the feature importance. If set to``'switch'``, a "switch" operation is
+            The method to be used to compute the feature importance. If set to ``'switch'``, a "switch" operation is
             performed across all observed pairs, by excluding pairings that are actually observed in the original
             dataset. This operation is quadratic in the number of samples (`N x (N - 1)` samples) and thus can be
             computationally intensive. If set to ``'divide'``, the dataset will be divided in half and the first
@@ -118,9 +118,9 @@ class PermutationImportance(Explainer):
             lighter and provides estimate error bars given by the standard deviation.
         kind
             Whether to report the importance as the error ratio or the error difference. Available values are:
-            ``'ratio'` | ``'difference'``.
+            ``'ratio'`` | ``'difference'``.
         n_repeats
-            Number of times to permute the features. Considered only when ``method='divide'``.
+            Number of times to permute the features. Considered only when ``method='estimate'``.
         sample_weight
             Optional weight for each sample instance.
 
@@ -128,7 +128,7 @@ class PermutationImportance(Explainer):
         -------
         explanation
             An `Explanation` object containing the data and the metadata of the calculated permutation feature
-            importance. See usage at `Permutation importance examples`_ for details
+            importance. See usage at `Permutation feature importance examples`_ for details
 
             .. _Permutation feature importance examples:
                 https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html
@@ -230,15 +230,18 @@ class PermutationImportance(Explainer):
                 logger.warning(f"The loss function '{loss_fn.__name__}' does not support argument `sample_weight`. "
                                f"Calling the method without `sample_weight`.")
 
-            return loss_fn(y_true=y_true, y_pred=y_pred)
+            return loss_fn(y_true=y_true, y_pred=y_pred)  # type: ignore[call-arg]
 
         # call scoring function with all parameters.
-        return loss_fn(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)
+        return loss_fn(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)  # type: ignore[call-arg]
 
     def _compute_permutation_importance(self,
                                         X: np.ndarray,
                                         y: np.ndarray,
-                                        loss_fns: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray],
+                                        loss_fns: Dict[
+                                            str,
+                                            Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
+                                        ],
                                         method: Literal["estimate", "exact"],
                                         kind: Literal["difference", "ratio"],
                                         n_repeats: int,
@@ -284,7 +287,10 @@ class PermutationImportance(Explainer):
     def _compute_exact(self,
                        X: np.ndarray,
                        y: np.ndarray,
-                       loss_fns: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray],
+                       loss_fns: Dict[
+                            str,
+                            Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
+                       ],
                        kind: str,
                        sample_weight: Optional[np.ndarray],
                        feature: int,
@@ -303,7 +309,7 @@ class PermutationImportance(Explainer):
         """
 
         y_pred = []
-        weights = [] if sample_weight else None
+        weights: Optional[List[np.ndarray]] = [] if sample_weight else None
         loss_permuted = {}
 
         for i in range(len(X)):
@@ -316,29 +322,38 @@ class PermutationImportance(Explainer):
 
             # create sample weights if necessary
             if sample_weight is not None:
-                weights.append(np.full(shape=(len(X_tmp),), fill_value=sample_weight[i]))
+                weights.append(np.full(shape=(len(X_tmp),), fill_value=sample_weight[i]))  # type: ignore[union-attr]
 
         # concatenate all predictions and construct ground-truth array. At this point, the `y_pre` vector
         # should contain `N x (N - 1)` predictions, where `N` is the number of samples in `X`.
         y_pred = np.concatenate(y_pred, axis=0)
         y_true = np.tile(y.reshape(-1, 1), reps=(1, len(X) - 1)).reshape(-1)
 
+        if weights is not None:
+            weights = np.concatenate(weights, axis=0)
+
         for loss_name, loss_fn in loss_fns.items():
             loss_permuted[loss_name] = self._compute_loss(y_true=y_true,
-                                                          y_pred=y_pred,
-                                                          sample_weight=weights,
+                                                          y_pred=y_pred,  # type: ignore[arg-type]
+                                                          sample_weight=weights,  # type: ignore[arg-type]
                                                           loss_fn=loss_fn)
 
-        return {loss_name: self._compute_importance(
-            loss_orig=loss_orig[loss_name],
-            loss_permuted=loss_permuted[loss_name],
-            kind=kind) for loss_name in loss_fns
+        return {
+            loss_name:
+                PermutationImportance._compute_importance(
+                    loss_orig=loss_orig[loss_name],
+                    loss_permuted=loss_permuted[loss_name],
+                    kind=kind
+                ) for loss_name in loss_fns
         }
 
     def _compute_estimate(self,
                           X: np.ndarray,
                           y: np.ndarray,
-                          loss_fns: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], np.ndarray],
+                          loss_fns: Dict[
+                              str,
+                              Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
+                          ],
                           kind: str,
                           n_repeats: int,
                           sample_weight: Optional[np.ndarray],
@@ -359,7 +374,7 @@ class PermutationImportance(Explainer):
         N = len(X)
         start, middle, end = 0, N // 2, N if N % 2 == 0 else N - 1
         fh, sh = np.s_[start:middle], np.s_[middle:end]
-        loss_permuted = {loss_name: [] for loss_name in loss_fns}
+        loss_permuted: Dict[str, List[float]] = {loss_name: [] for loss_name in loss_fns}
 
         for i in range(n_repeats):
             # get random permutation. Note that this includes also the last element
@@ -391,7 +406,7 @@ class PermutationImportance(Explainer):
 
         for loss_name in loss_fns:
             importance_values = [
-                self._compute_importance(
+                PermutationImportance._compute_importance(
                     loss_orig=loss_orig[loss_name],
                     loss_permuted=loss_permuted_value,
                     kind=kind,
@@ -442,24 +457,24 @@ class PermutationImportance(Explainer):
         feature_names
             List of names of the explained features.
         individual_feature_importance
-            List of dictionary having as keys the name of the loss function and as values the feature importance
-            when ``kind='exact'`` or a dictionary containing the mean and the standard deviation when
-            ``kind='estimate'``.
+            List of dictionary having as keys the name of the loss function and as values the feature
+            importance when ``kind='exact'`` or a dictionary containing the mean and the standard deviation
+            when``kind='estimate'``.
 
         Returns
         -------
         `Explanation` object.
 
         """
-        print(feature_names)
-
         # list of loss names
         loss_names = list(individual_feature_importance[0].keys())
 
-        # list of lists of features importance, one list per target
-        feature_importance = []
+        # list of lists of features importance, one list per loss function
+        feature_importance: List[List[Union[float, Dict[str, float]]]] = []
+
         for loss_name in loss_names:
             feature_importance.append([])
+
             for i in range(len(feature_names)):
                 feature_importance[-1].append(individual_feature_importance[i][loss_name])
 
@@ -484,12 +499,14 @@ class PermutationImportance(Explainer):
         self.predictor = predictor
 
 
+# No type check due to the generic explanation object
+@no_type_check
 def plot_permutation_importance(exp: Explanation,
                                 features: Union[List[int], Literal['all']] = 'all',
                                 loss_names: Union[List[Union[str, int]], Literal['all']] = 'all',
                                 n_cols: int = 3,
                                 sort: bool = True,
-                                top_k: bool = 10,
+                                top_k: int = 10,
                                 ax: Optional[Union['plt.Axes', np.ndarray]] = None,
                                 bar_kw: Optional[dict] = None,
                                 fig_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -532,7 +549,6 @@ def plot_permutation_importance(exp: Explanation,
     --------
     `plt.Axes` with the feature importance plot.
     """
-
     from matplotlib.gridspec import GridSpec
 
     # define figure arguments
@@ -563,17 +579,17 @@ def plot_permutation_importance(exp: Explanation,
 
     # `loss_names` sanity checks
     for i, iloss_name in enumerate(loss_names):
-            if isinstance(iloss_name, str) and (iloss_name not in exp.data['loss_names']):
-                raise ValueError(f"Unknown `loss_name`. Received {iloss_name}. "
-                                 f"Available values are: {exp.data['loss_names']}.")
+        if isinstance(iloss_name, str) and (iloss_name not in exp.data['loss_names']):
+            raise ValueError(f"Unknown `loss_name`. Received {iloss_name}. "
+                             f"Available values are: {exp.data['loss_names']}.")
 
-            if isinstance(iloss_name, numbers.Integral):
-                if iloss_name >= n_loss_names:
-                    raise IndexError(f"Loss name index out of range. Received {iloss_name}. "
-                                     f"The number of `loss_names` is {n_loss_names}")
+        if isinstance(iloss_name, numbers.Integral):
+            if iloss_name >= n_loss_names:
+                raise IndexError(f"Loss name index out of range. Received {iloss_name}. "
+                                 f"The number of `loss_names` is {n_loss_names}")
 
-                # convert index to string
-                loss_names[i] = exp.data['loss_names'][i]
+            # convert index to string
+            loss_names[i] = exp.data['loss_names'][i]
 
     if ax is None:
         fix, ax = plt.subplots()
@@ -619,8 +635,10 @@ def plot_permutation_importance(exp: Explanation,
         if sort:
             sorted_indices = np.argsort(width)[::-1][:top_k]
             width = [width[j] for j in sorted_indices]
-            xerr = [xerr[j] for j in sorted_indices]
             y_labels = [y_labels[j] for j in sorted_indices]
+
+            if exp.meta['params']['method'] == Method.ESTIMATE:
+                xerr = [xerr[j] for j in sorted_indices]
 
         y = np.arange(len(width))
         default_bar_kw = {'align': 'center'}

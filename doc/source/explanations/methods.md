@@ -12,6 +12,7 @@
 ../methods/IntegratedGradients.ipynb
 ../methods/KernelSHAP.ipynb
 ../methods/PartialDependence.ipynb
+../methods/PermutationImportance.ipynb
 ../methods/Similarity.ipynb
 ../methods/TreeSHAP.ipynb
 ```

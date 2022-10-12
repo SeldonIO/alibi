@@ -9,7 +9,7 @@ import math
 from enum import Enum
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.api.defaults import DEFAULT_META_PERMUTATION_IMPORTANCE, DEFAULT_DATA_PERMUTATION_IMPORTANCE
-from typing import Callable, Optional, Union, List, Dict, no_type_check
+from typing import Callable, Optional, Union, List, Dict, no_type_check, Tuple
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
@@ -76,7 +76,7 @@ class PermutationImportance(Explainer):
                     Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                     Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                 ],
-                features: Optional[List[int]] = None,
+                features: Optional[List[Union[int, Tuple[int, ...]]]] = None,
                 method: Literal["estimate", "exact"] = "estimate",
                 kind: Literal["ratio", "difference"] = "ratio",
                 n_repeats: int = 50,
@@ -105,9 +105,10 @@ class PermutationImportance(Explainer):
              - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
 
         features
-            A list of feature for which to compute the feature importance for. An example would be: ``[0, 1, 3]``,
-            where ``0``, ``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`. If not provide, the feature
-            importance will be computed for every single feature in the dataset.
+            An optional list of features or tuples of features for which to calculate the partial dependence.
+            If not provided, the partial dependence will be computed for every single features in the dataset.
+            Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where
+            ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
         method
             The method to be used to compute the feature importance. If set to ``'switch'``, a "switch" operation is
             performed across all observed pairs, by excluding pairings that are actually observed in the original
@@ -145,9 +146,11 @@ class PermutationImportance(Explainer):
         # construct `feature_names` based on the `features`. If `features` is ``None``, then initialize
         # `features` with all single feature available in the dataset.
         if features:
-            feature_names = [self.feature_names[f] for f in features]
+            feature_names = [tuple([self.feature_names[f] for f in features])
+                             if isinstance(features, tuple) else self.feature_names[features]
+                             for features in features]
         else:
-            feature_names = self.feature_names
+            feature_names = self.feature_names  # type: ignore[assignment]
             features = list(range(n_features))
 
         # compute the base score
@@ -163,7 +166,7 @@ class PermutationImportance(Explainer):
         # TODO: implement parallel version - future work as it can be done for ALE too
         individual_feature_importance = []
 
-        for ifeature in tqdm(features, disable=not self.verbose):
+        for ifeatures in tqdm(features, disable=not self.verbose):
             individual_feature_importance.append(
                 self._compute_permutation_importance(
                     X=X,
@@ -173,7 +176,7 @@ class PermutationImportance(Explainer):
                     kind=kind,
                     n_repeats=n_repeats,
                     sample_weight=sample_weight,
-                    feature=ifeature,
+                    features=ifeatures,
                     loss_orig=loss_orig,
                 )
             )
@@ -186,7 +189,7 @@ class PermutationImportance(Explainer):
                                    sample_weight=sample_weight)
 
         # build and return the explanation object
-        return self._build_explanation(feature_names=feature_names,
+        return self._build_explanation(feature_names=feature_names,  # type: ignore[arg-type]
                                        individual_feature_importance=individual_feature_importance)
 
     def _compute_loss(self,
@@ -246,7 +249,7 @@ class PermutationImportance(Explainer):
                                         kind: Literal["difference", "ratio"],
                                         n_repeats: int,
                                         sample_weight: Optional[np.ndarray],
-                                        feature: int,
+                                        features: Union[int, Tuple[int, ...]],
                                         loss_orig: Dict[str, float]):
 
         """
@@ -256,7 +259,7 @@ class PermutationImportance(Explainer):
         ----------
         X, y, loss_fns, method, kind, n_repeats, sample_weight
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.#
-        feature
+        features
             The feature to compute the importance for.
         loss_orig
             Original loss value when the features are left intact. The loss is computed on the original datasets.
@@ -272,7 +275,7 @@ class PermutationImportance(Explainer):
                                        loss_fns=loss_fns,
                                        kind=kind,
                                        sample_weight=sample_weight,
-                                       feature=feature,
+                                       features=features,
                                        loss_orig=loss_orig)
         # sample approximation
         return self._compute_estimate(X=X,
@@ -281,7 +284,7 @@ class PermutationImportance(Explainer):
                                       kind=kind,
                                       n_repeats=n_repeats,
                                       sample_weight=sample_weight,
-                                      feature=feature,
+                                      features=features,
                                       loss_orig=loss_orig)
 
     def _compute_exact(self,
@@ -293,14 +296,14 @@ class PermutationImportance(Explainer):
                        ],
                        kind: str,
                        sample_weight: Optional[np.ndarray],
-                       feature: int,
+                       features: Union[int, Tuple[int, ...]],
                        loss_orig: Dict[str, float]):
         """
         Helper function to compute the `switch` estimate of the permutation feature importance.
 
         Parameters
         ----------
-        X, y, loss_fns, kind, sample_weight, feature, loss_orig
+        X, y, loss_fns, kind, sample_weight, features, loss_orig
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
 
         Returns
@@ -315,7 +318,7 @@ class PermutationImportance(Explainer):
         for i in range(len(X)):
             # create dataset
             X_tmp = np.tile(X[i:i+1], reps=(len(X) - 1, 1))
-            X_tmp[:, feature] = np.delete(arr=X[:, feature], obj=i, axis=0)
+            X_tmp[:, features] = np.delete(arr=X[:, features], obj=i, axis=0)
 
             # compute predictions
             y_pred.append(self.predictor(X_tmp))
@@ -357,14 +360,14 @@ class PermutationImportance(Explainer):
                           kind: str,
                           n_repeats: int,
                           sample_weight: Optional[np.ndarray],
-                          feature: int,
+                          features: Union[int, Tuple[int, ...]],
                           loss_orig: Dict[str, float]):
         """
         Helper function to compute the `divide` estimate of the permutation feature importance.
 
         Parameters
         ----------
-        X, y, loss_fns, kind, sample_weight, feature, loss_orig
+        X, y, loss_fns, kind, sample_weight, features, loss_orig
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
 
         Returns
@@ -385,9 +388,9 @@ class PermutationImportance(Explainer):
             sample_weight_tmp = None if (sample_weight is None) else sample_weight[shuffled_indices].copy()
 
             # permute values from the first half into the second half and the other way around
-            fvals_tmp = X_tmp[fh, feature].copy()
-            X_tmp[fh, feature] = X_tmp[sh, feature]
-            X_tmp[sh, feature] = fvals_tmp
+            fvals_tmp = X_tmp[fh, features].copy()
+            X_tmp[fh, features] = X_tmp[sh, features]
+            X_tmp[sh, features] = fvals_tmp
 
             # compute scores
             y_pred = self.predictor(X_tmp[:end])
@@ -442,7 +445,7 @@ class PermutationImportance(Explainer):
         return loss_permuted / loss_orig if kind == Kind.RATIO else loss_permuted - loss_orig
 
     def _build_explanation(self,
-                           feature_names: List[str],
+                           feature_names: List[Union[str, Tuple[str, ...]]],
                            individual_feature_importance: List[
                                Union[
                                    Dict[str, float],
@@ -624,6 +627,7 @@ def plot_permutation_importance(exp: Explanation,
 
         # define bar plot data
         y_labels = feature_names
+        y_labels = ['(' + ', '.join(y_label) + ')' if isinstance(y_label, tuple) else y_label for y_label in y_labels]
 
         if exp.meta['params']['method'] == Method.EXACT:
             width = [exp.data['feature_importance'][i][j] for j in features]

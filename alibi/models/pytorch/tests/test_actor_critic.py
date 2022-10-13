@@ -1,5 +1,5 @@
-import torch
 import pytest
+import torch
 from alibi.models.pytorch.actor_critic import Actor, Critic
 
 

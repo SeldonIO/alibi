@@ -1,5 +1,4 @@
 import os
-import re
 import tempfile
 from typing import List
 
@@ -10,7 +9,6 @@ import torch.nn as nn
 import torch.optim as optim
 from alibi.models.pytorch.metrics import AccuracyMetric, LossContainer
 from alibi.models.pytorch.model import Model
-from pytest_lazyfixture import lazy_fixture
 from torch.utils.data import DataLoader, TensorDataset
 
 
@@ -137,7 +135,7 @@ def test_compile_unimodal(unimodal_model):
 def test_compile_multimodal(multimodal_model):
     """ Test compile function when multiple loss functions are passed. """
     assert isinstance(multimodal_model.loss, list)
-    assert all([isinstance(l, LossContainer) for l in multimodal_model.loss])
+    assert all([isinstance(x, LossContainer) for x in multimodal_model.loss])
 
 
 @pytest.mark.parametrize('multimodal_model', [
@@ -152,7 +150,7 @@ def test_compile_multimodal_mismatch(multimodal_model):
     with pytest.raises(ValueError) as err:
         multimodal_model.compile(optimizer=optimizer_class(multimodal_model.parameters()),
                                  loss=loss_fns,
-                                 loss_weights=[0.5])
+                                 loss_weights=loss_weights[:1])
 
     assert 'The number of loss weights differs from the number of losses' in str(err.value)
 

@@ -53,8 +53,3 @@ def test_accuracy_metric(num_batches):
     acc_metric.reset()
     assert np.isclose(acc_metric.total, 0)
     assert np.isclose(acc_metric.count, 0)
-
-
-
-
-

@@ -5,13 +5,12 @@ from typing import List
 
 import numpy as np
 import pytest
-from pytest_lazyfixture import lazy_fixture
-
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from alibi.models.pytorch.metrics import AccuracyMetric, LossContainer
 from alibi.models.pytorch.model import Model
+from pytest_lazyfixture import lazy_fixture
 from torch.utils.data import DataLoader, TensorDataset
 
 

@@ -8,7 +8,6 @@ from alibi.models.pytorch.autoencoder import HeAE
 def test_heae_output(input_dim, latent_dim):
     """ Tests whether an error is raised if the output of the `HeAE` is not a list."""
     x = torch.randn(1, input_dim)
-
     encoder = nn.Sequential(
         nn.Linear(input_dim, latent_dim),
         nn.ReLU()
@@ -19,4 +18,4 @@ def test_heae_output(input_dim, latent_dim):
     with pytest.raises(ValueError) as err:
         heae(x)
 
-    assert "The output of HeAE should be list." == err.value.args[0]
+    assert 'The output of HeAE should be list.' in str(err.value)

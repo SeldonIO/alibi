@@ -8,8 +8,8 @@ from alibi.models.pytorch.metrics import AccuracyMetric, LossContainer
 @pytest.mark.parametrize("num_batches", [5, 10])
 def test_loss_container(num_batches):
     """ Test `LossContainer` wrapper for classification task. """
-    loss = nn.CrossEntropyLoss(reduction="mean")
-    loss_container = LossContainer(loss=loss, name="CrossEntropyLoss")
+    loss = nn.CrossEntropyLoss(reduction='mean')
+    loss_container = LossContainer(loss=loss, name='CrossEntropyLoss')
     cumulated_loss_val, counts = 0, 0
 
     for i in range(num_batches):
@@ -32,7 +32,7 @@ def test_loss_container(num_batches):
     assert np.isclose(loss_container.count, 0)
 
 
-@pytest.mark.parametrize("num_batches", [5, 10])
+@pytest.mark.parametrize('num_batches', [5, 10])
 def test_accuracy_metric(num_batches):
     """ Test accuracy metric for different reductions procedures. """
     acc_metric = AccuracyMetric()

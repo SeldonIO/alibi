@@ -17,33 +17,11 @@ class UnimodalModel(Model):
     """ Simple uni-modal output model. """
 
     def __init__(self, input_dim: int, output_dim: int):
-        """
-        Initializer.
-
-        Parameters
-        ----------
-        input_dim
-            Input dimension.
-        output_dim
-            Output dimension.
-        """
         super().__init__()
         self.fc1 = nn.Linear(input_dim, output_dim)
         self.to(self.device)
 
     def forward(self, x: torch.Tensor):
-        """
-        Forward pass
-
-        Parameters
-        ----------
-        x
-            Input tensor.
-
-        Returns
-        -------
-        Prediction tensor.
-        """
         return self.fc1(x)
 
 
@@ -51,33 +29,11 @@ class MultimodalModel(Model):
     """ Simple multi-modal output model. """
 
     def __init__(self, input_dim: int, output_dims: List[int]):
-        """
-        Initializer.
-
-        Parameters
-        ----------
-        input_dim
-            Input dimension.
-        output_dims
-            List of output dimensions for each modality.
-        """
         super().__init__()
         self.fcs = nn.ModuleList([nn.Linear(input_dim, dim) for dim in output_dims])
         self.to(self.device)
 
     def forward(self, x: torch.Tensor):
-        """
-        Forward pass.
-
-        Parameters
-        ----------
-        x
-            Input tensor.
-
-        Returns
-        -------
-        List of prediction tensors.
-        """
         return [fc(x) for fc in self.fcs]
 
 
@@ -120,7 +76,7 @@ def test_compile_multimodal_mismatch(multimodal_model):
                                  loss=[nn.BCELoss(), nn.MSELoss()],
                                  loss_weights=[0.5],
                                  metrics=[AccuracyMetric()])
-    assert re.search('The number of loss weights differs from the number of losses', err.value.args[0])
+    assert 'The number of loss weights differs from the number of losses' in str(err.value)
 
 
 @pytest.mark.parametrize('multimodal_model', [{'input_dim': 10, 'output_dims': [5, 3]}], indirect=True)
@@ -135,7 +91,7 @@ def test_validate_prediction_labels1(multimodal_model):
     y_true = [torch.randn(5, 5), torch.randn(5, 3)]
     with pytest.raises(ValueError) as err:
         multimodal_model.validate_prediction_labels(y_pred=y_pred, y_true=y_true)
-    assert re.search('The prediction should be a list since list of losses have been passed.', err.value.args[0])
+    assert 'The prediction should be a list since list of losses have been passed.' in str(err.value)
 
 
 @pytest.mark.parametrize('multimodal_model', [{'input_dim': 10, 'output_dims': [5, 3]}], indirect=True)
@@ -149,7 +105,7 @@ def test_validate_prediction_labels2(multimodal_model):
     y_true = torch.randn(5, 5)
     with pytest.raises(ValueError) as err:
         multimodal_model.validate_prediction_labels(y_pred=y_pred, y_true=y_true)
-    assert re.search('The label should be a list since list of losses have been passed.', err.value.args[0])
+    assert 'The label should be a list since list of losses have been passed.' in str(err.value)
 
 
 @pytest.mark.parametrize('multimodal_model', [{'input_dim': 10, 'output_dims': [5, 3]}], indirect=True)
@@ -164,7 +120,7 @@ def test_validate_prediction_labels3(multimodal_model):
     y_true = [torch.randn(5, 5)]
     with pytest.raises(ValueError) as err:
         multimodal_model.validate_prediction_labels(y_pred=y_pred, y_true=y_true)
-    assert re.search('Number of predictions differs from the number of labels.', err.value.args[0])
+    assert 'Number of predictions differs from the number of labels.' in str(err.value)
 
 
 @pytest.mark.parametrize('unimodal_model', [{'input_dim': 10, 'output_dim': 10}], indirect=True)
@@ -177,8 +133,7 @@ def test_validate_prediction_labels4(unimodal_model):
     y_true = torch.randn(5, 5)
     with pytest.raises(ValueError) as err:
         unimodal_model.validate_prediction_labels(y_pred=y_pred, y_true=y_true)
-    assert re.search('The prediction is a list and should be a tensor since only one loss has been passed',
-                     err.value.args[0])
+    assert 'The prediction is a list and should be a tensor since only one loss has been passed' in str(err.value)
 
 
 @pytest.mark.parametrize('unimodal_model', [{'input_dim': 10, 'output_dim': 10}], indirect=True)

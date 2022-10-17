@@ -1,5 +1,7 @@
+import contextlib
 import os
 import tempfile
+from copy import deepcopy
 from typing import List
 
 import numpy as np
@@ -7,9 +9,10 @@ import pytest
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
 from alibi.models.pytorch.metrics import AccuracyMetric, LossContainer
 from alibi.models.pytorch.model import Model
-from torch.utils.data import DataLoader, TensorDataset
 
 
 class UnimodalModel(Model):
@@ -17,7 +20,7 @@ class UnimodalModel(Model):
 
     def __init__(self, input_dim: int, output_dim: int):
         super().__init__()
-        self.fc1 = nn.Linear(input_dim, output_dim)
+        self.fc1 = nn.Linear(input_dim, output_dim, bias=False)
         self.to(self.device)
 
     def forward(self, x: torch.Tensor):
@@ -29,11 +32,20 @@ class MultimodalModel(Model):
 
     def __init__(self, input_dim: int, output_dims: List[int]):
         super().__init__()
-        self.fcs = nn.ModuleList([nn.Linear(input_dim, dim) for dim in output_dims])
+        self.fcs = nn.ModuleList([nn.Linear(input_dim, dim, bias=False) for dim in output_dims])
         self.to(self.device)
 
     def forward(self, x: torch.Tensor):
         return [fc(x) for fc in self.fcs]
+
+
+@contextlib.contextmanager
+def reset_model(model: Model):
+    model._reset_loss()
+    model._reset_metrics()
+    yield
+    model._reset_loss()
+    model._reset_metrics()
 
 
 n_instances = 10
@@ -44,6 +56,7 @@ output_dims = [5, 5]
 loss_fn = nn.CrossEntropyLoss(reduction='mean')
 loss_fns = [nn.CrossEntropyLoss(reduction='mean'), nn.CrossEntropyLoss(reduction='mean')]
 loss_weights = [0.3, 0.4]
+lr = 1e-3
 
 metric = [AccuracyMetric()]
 metrics = {
@@ -51,17 +64,19 @@ metrics = {
     'output_2': AccuracyMetric(),
 }
 
-optimizer_class = optim.Adam
+optimizer_class = optim.SGD
 
 
 @pytest.fixture(scope='module')
-def dataset():
+def dataset(request):
+    task = request.param
     return {
         'input': torch.randn(n_instances, input_dim),
         'output': {
             'unimodal': {
                 'y_pred': torch.randn(n_instances, output_dim),
-                'y_true': torch.randint(low=0, high=output_dim, size=(n_instances, ))
+                'y_true': torch.randint(low=0, high=output_dim, size=(n_instances, )) if task == 'classification'
+                else torch.randn(n_instances, output_dim)
             },
             'multimodal': {
                 'y_pred': [
@@ -69,8 +84,10 @@ def dataset():
                     torch.randn(n_instances, output_dims[1])
                 ],
                 'y_true': [
-                    torch.randint(low=0, high=output_dims[0], size=(n_instances, )),
-                    torch.randint(low=0, high=output_dims[1], size=(n_instances, ))
+                    torch.randint(low=0, high=output_dims[0], size=(n_instances, )) if task == 'classification'
+                    else torch.randn(n_instances, output_dim),
+                    torch.randint(low=0, high=output_dims[1], size=(n_instances, )) if task == 'classification'
+                    else torch.randn(n_instances, output_dim)
                 ]
             }
         }
@@ -84,7 +101,7 @@ def unimodal_model(request):
                           output_dim=request.param['output_dim'])
 
     if request.param.get('compile', False):
-        model.compile(optimizer=request.param['optimizer'](model.parameters()),
+        model.compile(optimizer=request.param['optimizer'](model.parameters(), lr=lr),
                       loss=request.param['loss'],
                       metrics=request.param.get('metrics', None))
 
@@ -98,7 +115,7 @@ def multimodal_model(request):
                             output_dims=request.param['output_dims'])
 
     if request.param.get('compile', False):
-        model.compile(optimizer=request.param['optimizer'](model.parameters()),
+        model.compile(optimizer=request.param['optimizer'](model.parameters(), lr=lr),
                       loss=request.param['loss'],
                       loss_weights=request.param['loss_weights'],
                       metrics=request.param.get('metrics', None))
@@ -148,13 +165,14 @@ def test_compile_multimodal_mismatch(multimodal_model):
     """ Test compile function raises and error when multiple loss functions are passed but the number \
     of loss weights does not match the number of loss functions. """
     with pytest.raises(ValueError) as err:
-        multimodal_model.compile(optimizer=optimizer_class(multimodal_model.parameters()),
+        multimodal_model.compile(optimizer=optimizer_class(multimodal_model.parameters(), lr=lr),
                                  loss=loss_fns,
                                  loss_weights=loss_weights[:1])
 
     assert 'The number of loss weights differs from the number of losses' in str(err.value)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -177,6 +195,7 @@ def test_validate_prediction_labels1(multimodal_model, dataset):
     assert 'The prediction should be a list since list of losses have been passed.' in str(err.value)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -199,6 +218,7 @@ def test_validate_prediction_labels2(multimodal_model, dataset):
     assert 'The label should be a list since list of losses have been passed.' in str(err.value)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -221,6 +241,7 @@ def test_validate_prediction_labels3(multimodal_model, dataset):
     assert 'Number of predictions differs from the number of labels.' in str(err.value)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -242,6 +263,7 @@ def test_validate_prediction_labels4(unimodal_model, dataset):
     assert 'The prediction is a list and should be a tensor since only one loss has been passed' in str(err.value)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -256,11 +278,14 @@ def test_compute_loss_unimodal(unimodal_model, dataset):
     y_true = dataset['output']['unimodal']['y_true']
     y_pred = dataset['output']['unimodal']['y_pred']
 
-    loss_val, _ = unimodal_model.compute_loss(y_pred=y_pred, y_true=y_true)
+    with reset_model(unimodal_model):
+        loss_val, _ = unimodal_model.compute_loss(y_pred=y_pred, y_true=y_true)
+
     expected_loss_val = loss_fn(input=y_pred, target=y_true).item()
     assert np.allclose(loss_val, expected_loss_val)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -276,13 +301,16 @@ def test_compute_loss_multimodal(multimodal_model, dataset):
     y_pred = dataset['output']['multimodal']['y_pred']
     y_true = dataset['output']['multimodal']['y_true']
 
-    loss_val, _ = multimodal_model.compute_loss(y_pred=y_pred, y_true=y_true)
+    with reset_model(multimodal_model):
+        loss_val, _ = multimodal_model.compute_loss(y_pred=y_pred, y_true=y_true)
+
     expected_loss0_val = loss_fns[0](input=y_pred[0], target=y_true[0]).item()
     expected_loss1_val = loss_fns[1](input=y_pred[1], target=y_true[1]).item()
     expected_loss_val = loss_weights[0] * expected_loss0_val + loss_weights[1] * expected_loss1_val
     assert np.allclose(loss_val, expected_loss_val)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -298,11 +326,14 @@ def test_compute_metrics_unimodal(unimodal_model, dataset):
     y_pred = dataset['output']['unimodal']['y_pred']
     y_true = dataset['output']['unimodal']['y_true']
 
+    with reset_model(unimodal_model):
+        result = unimodal_model.compute_metrics(y_pred=y_pred, y_true=y_true)
+
     expected_acc = torch.mean((y_true == torch.argmax(y_pred, dim=-1)).float()).item()
-    result = unimodal_model.compute_metrics(y_pred=y_pred, y_true=y_true)
     assert np.allclose(expected_acc, result['accuracy'])
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -319,42 +350,56 @@ def test_compute_metrics_multimodal(multimodal_model, dataset):
     y_pred = dataset['output']['multimodal']['y_pred']
     y_true = dataset['output']['multimodal']['y_true']
 
+    with reset_model(multimodal_model):
+        results = multimodal_model.compute_metrics(y_pred=y_pred, y_true=y_true)
+
     expected_acc1 = torch.mean((y_true[0] == torch.argmax(y_pred[0], dim=-1)).float()).item()
     expected_acc2 = torch.mean((y_true[1] == torch.argmax(y_pred[1], dim=-1)).float()).item()
-    results = multimodal_model.compute_metrics(y_pred=y_pred, y_true=y_true)
     assert np.isclose(expected_acc1, results['output_1_accuracy'])
     assert np.isclose(expected_acc2, results['output_2_accuracy'])
 
 
+@pytest.mark.parametrize('dataset', ['regression'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
         'optimizer': optimizer_class,
-        'loss': loss_fn,
-        'metrics': metric
+        'loss': nn.MSELoss(reduction='mean'),
     }
 ], indirect=True)
-def test_train_step(unimodal_model, dataset, mocker):
+def test_train_step(unimodal_model, dataset):
     """ Test if the train step return the appropriate statistics. """
+    # copy the model `state_dict` as it will be modified by the `train_step`. Not really necessary now,
+    # but to avoid any errors in the future if it is the case.
+    state_dict_cpy = deepcopy(unimodal_model.state_dict())
+
     x = dataset['input']
     y_true = dataset['output']['unimodal']['y_true']
 
-    mocker.patch('alibi.models.pytorch.model.nn.Module.train')
-    mocker.patch('alibi.models.pytorch.model.Model.validate_prediction_labels')
-    mocker.patch('alibi.models.pytorch.model.Model.forward')
-    mocker.patch('alibi.models.pytorch.model.Model.compute_loss', return_value=[torch.tensor(0.), {'loss': 0.}])
-    mocker.patch('alibi.models.pytorch.model.optim.Adam.zero_grad')
-    mocker.patch('alibi.models.pytorch.model.torch.Tensor.backward')
-    mocker.patch('alibi.models.pytorch.model.optim.Adam.step')
-    mocker.patch('alibi.models.pytorch.model.Model.compute_metrics', return_value={'accuracy': 1.})
+    # compute the loss manually
+    w = unimodal_model.fc1.weight.clone()
+    diff = y_true - x @ w.T
+    expected_loss = (torch.trace(diff @ diff.T) / (n_instances * output_dim)).item()
 
-    results = unimodal_model.train_step(x, y_true)
-    assert np.isclose(results['loss'], 0.)
-    assert np.isclose(results['accuracy'], 1.)
+    # compute the gradients manually
+    grad = -2 * (diff.T @ x) / (n_instances * output_dim)
+    new_w = w - lr * grad
+
+    # perform training step
+    with reset_model(unimodal_model):
+        results = unimodal_model.train_step(x, y_true)
+
+    # check if the loss and the updated weights match the manually computed ones
+    assert np.isclose(results['loss'], expected_loss)
+    assert torch.allclose(unimodal_model.fc1.weight, new_w)
+
+    # restore old `state_dict`
+    unimodal_model.load_state_dict(state_dict_cpy)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -365,22 +410,36 @@ def test_train_step(unimodal_model, dataset, mocker):
         'metrics': metric,
     }
 ], indirect=True)
-def test_test_step(unimodal_model, dataset, mocker):
+def test_test_step(unimodal_model, dataset):
     """ Test if the test step return the expected statistics. """
     x = dataset['input']
     y_true = dataset['output']['unimodal']['y_true']
 
-    mocker.patch('alibi.models.pytorch.model.nn.Module.eval')
-    mocker.patch('alibi.models.pytorch.model.nn.Module.forward')
-    mocker.patch('alibi.models.pytorch.model.Model.validate_prediction_labels')
-    mocker.patch('alibi.models.pytorch.model.Model.compute_loss', return_value=[torch.tensor(0.), {'loss': 0.}])
-    mocker.patch('alibi.models.pytorch.model.Model.compute_metrics', return_value={'accuracy': 1.})
+    # reset gradients
+    unimodal_model.optimizer.zero_grad()
 
-    results = unimodal_model.test_step(x, y_true)
-    assert np.allclose(results['loss'], 0)
-    assert np.allclose(results['accuracy'], 1)
+    # perform test step
+    with reset_model(unimodal_model):
+        results = unimodal_model.test_step(x, y_true)
+
+    # check if gradients are not computed
+    for param in unimodal_model.parameters():
+        assert (param.grad is None) or (torch.allclose(param, torch.zeros_like(param)))
+
+    # compute prediction
+    unimodal_model.eval()
+    with torch.no_grad(), reset_model(unimodal_model):
+        y_pred = unimodal_model(x)
+
+    expected_loss_val = loss_fn(y_pred, y_true).item()
+    expected_accuracy_val = torch.mean((torch.argmax(y_pred, dim=-1) == y_true).float()).item()
+    assert np.allclose(results['loss'], expected_loss_val)
+    assert np.allclose(results['accuracy'], expected_accuracy_val)
 
 
+@pytest.mark.parametrize('epochs', [1, 2, 4, 10])
+@pytest.mark.parametrize('batch_size', [1, 2, 4, 8, n_instances])
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -391,19 +450,27 @@ def test_test_step(unimodal_model, dataset, mocker):
         'metrics': metric,
     }
 ], indirect=True)
-def test_fit(unimodal_model, dataset, mocker):
+def test_fit(unimodal_model, dataset, batch_size, epochs, mocker):
     """ Test if the fit function returns the expected statistics. """
     x = dataset['input']
     y = dataset['output']['unimodal']['y_true']
     dataset = TensorDataset(x, y)
-    dataloader = DataLoader(dataset, batch_size=len(x))
+    dataloader = DataLoader(dataset, batch_size=batch_size)
 
-    mocker.patch('alibi.models.pytorch.model.Model.train_step', return_value={'loss': 0., 'accuracy': 1.})
-    metrics_val = unimodal_model.fit(trainloader=dataloader, epochs=1)
+    m = mocker.patch('alibi.models.pytorch.model.Model.train_step', return_value={'loss': 0., 'accuracy': 1.})
+    # no need to reset the loss and the metrics since the `train_step` is mocked
+    metrics_val = unimodal_model.fit(trainloader=dataloader, epochs=epochs)
+
+    num_batches = (n_instances // batch_size) + ((n_instances % batch_size) > 0)
+    num_calls = num_batches * epochs
+
+    assert m.call_count == num_calls
     assert np.allclose(metrics_val['loss'], 0.)
     assert np.allclose(metrics_val['accuracy'], 1.)
 
 
+@pytest.mark.parametrize('batch_size', [1, 2, 4, 8, n_instances])
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -414,15 +481,19 @@ def test_fit(unimodal_model, dataset, mocker):
         'metrics': metric,
     }
 ], indirect=True)
-def test_evaluate(unimodal_model, dataset, mocker):
+def test_evaluate(unimodal_model, dataset, batch_size, mocker):
     """ Test if the fit function returns the expected statistics. """
     x = dataset['input']
     y = dataset['output']['unimodal']['y_true']
     dataset = TensorDataset(x, y)
-    dataloader = DataLoader(dataset, batch_size=len(x))
+    dataloader = DataLoader(dataset, batch_size=batch_size)
 
-    mocker.patch('alibi.models.pytorch.model.Model.test_step', return_value={'loss': 0, 'accuracy': 1.})
+    m = mocker.patch('alibi.models.pytorch.model.Model.test_step', return_value={'loss': 0, 'accuracy': 1.})
+    # no need to reset the loss and the metrics since the `test_step` is mocked
     metrics_val = unimodal_model.evaluate(testloader=dataloader)
+    num_calls = (n_instances // batch_size) + ((n_instances % batch_size) > 0)
+
+    assert m.call_count == num_calls
     assert np.allclose(metrics_val['loss'], 0)
     assert np.allclose(metrics_val['accuracy'], 1)
 
@@ -435,6 +506,7 @@ def test_metrics_to_str():
     assert expected_metrics_str == metric_str
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -455,6 +527,7 @@ def test_reset_loss_unimodal(unimodal_model, dataset):
     assert np.isclose(unimodal_model.loss.count, 0)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -480,6 +553,7 @@ def test_reset_loss_multimodal(multimodal_model, dataset):
         assert np.isclose(multimodal_model.loss[i].count, 0)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('unimodal_model', [
     {
         'input_dim': input_dim,
@@ -501,6 +575,7 @@ def test_reset_metrics_unimodal(unimodal_model, dataset):
     assert np.isclose(unimodal_model.metrics[0].count, 0)
 
 
+@pytest.mark.parametrize('dataset', ['classification'], indirect=True)
 @pytest.mark.parametrize('multimodal_model', [
     {
         'input_dim': input_dim,
@@ -531,8 +606,8 @@ def test_reset_metrics_multimodal(multimodal_model, dataset):
 
 def test_saving():
     """ Test saving functionality. """
-    model1 = UnimodalModel(input_dim=5, output_dim=5)
-    model2 = UnimodalModel(input_dim=5, output_dim=5)
+    model1 = UnimodalModel(input_dim=input_dim, output_dim=output_dim)
+    model2 = UnimodalModel(input_dim=input_dim, output_dim=output_dim)
 
     with tempfile.TemporaryDirectory() as temp_dir:
         path = os.path.join(temp_dir, 'weights.pt')

@@ -1,18 +1,21 @@
+import copy
+import inspect
+import logging
+import math
 import numbers
 import sys
-import copy
-import logging
-
-import inspect
-import numpy as np
-import math
-from enum import Enum
-from alibi.api.interfaces import Explainer, Explanation
-from alibi.api.defaults import DEFAULT_META_PERMUTATION_IMPORTANCE, DEFAULT_DATA_PERMUTATION_IMPORTANCE
-from typing import Callable, Optional, Union, List, Dict, no_type_check, Tuple
-from tqdm import tqdm
-import matplotlib.pyplot as plt
 from collections import defaultdict
+from enum import Enum
+from typing import (Any, Callable, Dict, List, Optional, Tuple, Union,
+                    no_type_check)
+
+import matplotlib.pyplot as plt
+import numpy as np
+from tqdm import tqdm
+
+from alibi.api.defaults import (DEFAULT_DATA_PERMUTATION_IMPORTANCE,
+                                DEFAULT_META_PERMUTATION_IMPORTANCE)
+from alibi.api.interfaces import Explainer, Explanation
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -174,24 +177,20 @@ class PermutationImportance(Explainer):
             feature_names = self.feature_names  # type: ignore[assignment]
             features = list(range(n_features))
 
-        # base metric buffers
-        loss_orig = {}
-        score_orig = {}
+        # unaltered model predictions
         y_pred = self.predictor(X)
 
         # compute base loss
-        for loss_name, loss_fn in loss_fns.items():
-            loss_orig[loss_name] = self._compute_metric(y_true=y,
-                                                        y_pred=y_pred,
-                                                        metric_fn=loss_fn,
-                                                        sample_weight=sample_weight)
+        loss_orig = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+                                                           y_true=y,
+                                                           y_pred=y_pred,
+                                                           sample_weight=sample_weight)
 
         # compute base score
-        for score_name, score_fn in score_fns.items():
-            score_orig[score_name] = self._compute_metric(y_true=y,
-                                                          y_pred=y_pred,
-                                                          metric_fn=score_fn,
-                                                          sample_weight=sample_weight)
+        score_orig = PermutationImportance._compute_metrics(metric_fns=score_fns,
+                                                            y_true=y,
+                                                            y_pred=y_pred,
+                                                            sample_weight=sample_weight)
 
         # compute permutation feature importance for every feature
         # TODO: implement parallel version - future work as it can be done for ALE too
@@ -225,30 +224,67 @@ class PermutationImportance(Explainer):
         return self._build_explanation(feature_names=feature_names,  # type: ignore[arg-type]
                                        individual_feature_importance=individual_feature_importance)
 
-    def _compute_metric(self,
-                        y_true: np.ndarray,
-                        y_pred: np.ndarray,
-                        metric_fn: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                        sample_weight: Optional[np.ndarray]) -> float:
+    @staticmethod
+    def _compute_metrics(metric_fns: Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]],
+                         y_true: np.ndarray,
+                         y_pred: np.ndarray,
+                         sample_weight: Optional[np.ndarray] = None,
+                         metrics: Optional[Dict[str, List[float]]] = None):
         """
-        Helper function to compute the loss. It also checks if the loss function expects the
-        arguments `y_true`, `y_pred`, and optionally `sample_weight`.
+        Helper function to compute multiple metrics.
 
         Parameters
         ----------
+        metric_fns
+            A dictionary of metric functions having as keys the name of the metric functions and as
+            values the metric functions.
         y_true
             Ground truth targets.
         y_pred
             Predicted outcome as returned by the classifier.
-        metric_fn
-            Metric function to be used. Note that the loss function must be compatible with the
-            `y_true`, `y_pred`, and optionally with `sample_weight`.
         sample_weight
             Weight of each sample instance.
+        metrics
+            An optional dictionary of metrics, having as keys the name of the metric and as value the evaluation of
+            the metric.
 
         Returns
         -------
-        Loss value.
+        Updated `metrics` dictionary.
+        """
+        if metrics is None:
+            metrics = defaultdict(list)
+
+        # compute base metric
+        for metric_name, metric_fn in metric_fns.items():
+            metrics[metric_name].append(
+                PermutationImportance._compute_metric(metric_fn=metric_fn,
+                                                      y_true=y_true,
+                                                      y_pred=y_pred,
+                                                      sample_weight=sample_weight)
+            )
+        return metrics
+
+    @staticmethod
+    def _compute_metric(metric_fn: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
+                        y_true: np.ndarray,
+                        y_pred: np.ndarray,
+                        sample_weight: Optional[np.ndarray] = None) -> float:
+        """
+        Helper function to compute a metric. It also checks if the metric function expects the
+        arguments `y_true`, `y_pred`, and optionally `sample_weight`.
+
+        Parameters
+        ----------
+        metric_fn
+            Metric function to be used. Note that the loss function must be compatible with the
+            `y_true`, `y_pred`, and optionally with `sample_weight`.
+        y_true, y_pred, sample_weight
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_metrics`.
+
+        Returns
+        -------
+        Metric value.
         """
         # get scoring function arguments
         args = inspect.getfullargspec(metric_fn).args
@@ -306,7 +342,7 @@ class PermutationImportance(Explainer):
 
         Returns
         --------
-        A dictionary having as keys the loss name and as key the feature importance associated with the loss.
+        A dictionary having as keys the metric name and as key the feature importance associated with the metric.
         """
         if method == Method.EXACT:
             # computation of the exact statistic which is quadratic in the number of samples
@@ -362,8 +398,6 @@ class PermutationImportance(Explainer):
         """
         y_pred = []
         weights: Optional[List[np.ndarray]] = [] if sample_weight else None
-        loss_permuted = {}
-        score_permuted = {}
 
         for i in range(len(X)):
             # create dataset
@@ -385,37 +419,33 @@ class PermutationImportance(Explainer):
         if weights is not None:
             weights = np.concatenate(weights, axis=0)
 
-        for loss_name, loss_fn in loss_fns.items():
-            loss_permuted[loss_name] = self._compute_metric(y_true=y_true,
-                                                            y_pred=y_pred,  # type: ignore[arg-type]
-                                                            sample_weight=weights,  # type: ignore[arg-type]
-                                                            metric_fn=loss_fn)
+        # compute loss values for the altered dataset
+        loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+                                                               y_true=y_true,
+                                                               y_pred=y_pred,  # type: ignore[arg-type]
+                                                               sample_weight=weights)  # type: ignore[arg-type]
 
-        for score_name, score_fn in score_fns.items():
-            score_permuted[score_name] = self._compute_metric(y_true=y_true,
-                                                              y_pred=y_pred,
-                                                              sample_weight=weights,
-                                                              metric_fn=score_fn)
+        # compute score values for the altered dataset
+        score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
+                                                                y_true=y_true,
+                                                                y_pred=y_pred,  # type: ignore[arg-type]
+                                                                sample_weight=weights)  # type: ignore[arg-type]
 
-        feature_importance = {}
+        # compute feature importance for the loss functions
+        loss_feature_importance = PermutationImportance._compute_importances(metrics_fns=loss_fns,
+                                                                             metrics_orig=loss_orig,
+                                                                             metrics_permuted=loss_permuted,
+                                                                             kind=kind,
+                                                                             lower_is_better=True)
 
-        for loss_name in loss_fns:
-            feature_importance[loss_name] = PermutationImportance._compute_importance(
-                metric_orig=loss_orig[loss_name],
-                metric_permuted=loss_permuted[loss_name],
-                kind=kind,
-                lower_is_better=True,
-            )
+        # compute feature importance for the score functions
+        score_feature_importance = PermutationImportance._compute_importances(metrics_fns=score_fns,
+                                                                              metrics_orig=score_orig,
+                                                                              metrics_permuted=score_permuted,
+                                                                              kind=kind,
+                                                                              lower_is_better=False)
 
-        for score_name in score_fns:
-            feature_importance[score_name] = PermutationImportance._compute_importance(
-                metric_orig=score_orig[score_name],
-                metric_permuted=score_permuted[score_name],
-                kind=kind,
-                lower_is_better=False
-            )
-
-        return feature_importance
+        return {**loss_feature_importance, **score_feature_importance}
 
     def _compute_estimate(self,
                           X: np.ndarray,
@@ -471,61 +501,99 @@ class PermutationImportance(Explainer):
             y_true = y_tmp[:end]
             weights = None if (sample_weight_tmp is None) else sample_weight_tmp[:end]
 
-            for loss_name, loss_fn in loss_fns.items():
-                loss_permuted[loss_name].append(
-                    self._compute_metric(y_true=y_true,
-                                         y_pred=y_pred,
-                                         sample_weight=weights,
-                                         metric_fn=loss_fn)
-                )
+            # compute loss values for the altered dataset
+            loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+                                                                   y_true=y_true,
+                                                                   y_pred=y_pred,
+                                                                   sample_weight=weights,
+                                                                   metrics=loss_permuted)
 
-            for score_name, score_fn in score_fns.items():
-                score_permuted[score_name].append(
-                    self._compute_metric(y_true=y_true,
-                                         y_pred=y_pred,
-                                         sample_weight=weights,
-                                         metric_fn=score_fn)
-                )
+            # compute score values for the altered dataset
+            score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
+                                                                    y_true=y_true,
+                                                                    y_pred=y_pred,
+                                                                    sample_weight=weights,
+                                                                    metrics=score_permuted)
 
+        # compute feature importance for the loss functions
+        loss_feature_importance = PermutationImportance._compute_importances(metrics_fns=loss_fns,
+                                                                             metrics_orig=loss_orig,
+                                                                             metrics_permuted=loss_permuted,
+                                                                             kind=kind,
+                                                                             lower_is_better=True)
+
+        # compute feature importance for the score functions
+        score_feature_importance = PermutationImportance._compute_importances(metrics_fns=score_fns,
+                                                                              metrics_orig=score_orig,
+                                                                              metrics_permuted=score_permuted,
+                                                                              kind=kind,
+                                                                              lower_is_better=False)
+
+        return {**loss_feature_importance, **score_feature_importance}
+
+    @staticmethod
+    def _compute_importances(metrics_fns: Dict[
+                                str,
+                                Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
+                             ],
+                             metrics_orig: Dict[str, float],
+                             metrics_permuted: Dict[str, List[float]],
+                             kind: str,
+                             lower_is_better: bool) -> Dict[str, Any]:
+        """
+        Helper function to compute the feature importance as the metric ration or the metric difference
+        based on the `kind` parameter and the `lower_is_better` flag for multiple metric functions.
+
+        Parameters
+        ----------
+        metrics_fns
+            A dictionary of metric functions having as keys the name of the metric function and as
+            values the metric function.
+        metrics_orig
+            A dictionary having as keys the name of the metric and as values a metric values when the
+            feature values are left intact.
+        metrics_permuted
+            A dictionary having as keys the name of the metric and as values a list of metric values when
+            the feature values are permuted.
+        kind
+            Metric value when the feature values are left intact.
+        lower_is_better
+            Whether lower metric value is better.
+
+        Returns
+        -------
+        A dictionary having as keys the name of the metric and as values the feature importance or a dictionary
+        containing the mean and the standard deviation of the feature importance and the samples used to
+        compute the two statistics.
+        """
         feature_importance = {}
 
-        for loss_name in loss_fns:
+        for metric_name in metrics_fns:
             importance_values = [
                 PermutationImportance._compute_importance(
-                    metric_orig=loss_orig[loss_name],
-                    metric_permuted=loss_permuted_value,
+                    metric_orig=metrics_orig[metric_name],
+                    metric_permuted=metric_permuted_value,
                     kind=kind,
-                    lower_is_better=True
-                ) for loss_permuted_value in loss_permuted[loss_name]
+                    lower_is_better=lower_is_better
+                ) for metric_permuted_value in metrics_permuted[metric_name]
             ]
 
-            feature_importance[loss_name] = {
-                "mean": np.mean(importance_values),
-                "std": np.std(importance_values)
-            }
-
-        for score_name in score_fns:
-            importance_values = [
-                PermutationImportance._compute_importance(
-                    metric_orig=score_orig[score_name],
-                    metric_permuted=score_permuted_value,
-                    kind=kind,
-                    lower_is_better=False
-                ) for score_permuted_value in score_permuted[score_name]
-            ]
-
-            feature_importance[score_name] = {
-                "mean": np.mean(importance_values),
-                "std": np.std(importance_values)
-            }
+            if len(importance_values) > 1:
+                feature_importance[metric_name] = {
+                    "mean": np.mean(importance_values),
+                    "std": np.std(importance_values),
+                    "samples": np.array(importance_values),
+                }
+            else:
+                feature_importance[metric_name] = importance_values[0].item()
 
         return feature_importance
 
     @staticmethod
     def _compute_importance(metric_orig: float, metric_permuted: float, kind: str, lower_is_better: bool):
         """
-        Helper function to compute the feature importance as the error ratio or the error difference
-        based on the `kind` parameter.
+        Helper function to compute the feature importance as the metric ratio or the metric difference
+        based on the `kind` parameter and `lower_is_better` flag.
 
         Parameters
         ----------
@@ -536,7 +604,7 @@ class PermutationImportance(Explainer):
         kind
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
         lower_is_better
-            Whether lower metric value is better.
+            See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_importances.
 
         Returns
         -------

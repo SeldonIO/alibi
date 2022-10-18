@@ -11,8 +11,10 @@ from typing import (Any, Callable, Dict, List, Optional, Tuple, Union,
 
 import matplotlib.pyplot as plt
 import numpy as np
+import sklearn.metrics
 from tqdm import tqdm
 
+import alibi.utils.metrics
 from alibi.api.defaults import (DEFAULT_DATA_PERMUTATION_IMPORTANCE,
                                 DEFAULT_META_PERMUTATION_IMPORTANCE)
 from alibi.api.interfaces import Explainer, Explanation
@@ -35,6 +37,56 @@ class Kind(str, Enum):
     """ Enumeration of supported kind. """
     DIFFERENCE = 'difference'
     RATIO = 'ratio'
+
+
+METRIC_FNS = {
+    "loss": {
+        # regression
+        "mean_absolute_error": sklearn.metrics.mean_absolute_error,
+        "mean_squared_error": sklearn.metrics.mean_squared_error,
+    },
+    "score": {
+        # classification
+        "accuracy_score": alibi.utils.metrics.accuracy_score,
+        "f1_score": alibi.utils.metrics.f1_score,
+        "roc_auc_score": alibi.utils.metrics.roc_auc_score,
+
+        # regression
+        "r2_score": sklearn.metrics.r2_score
+    }
+}
+"""
+Dictionary of supported string specified metrics
+
+    - Loss functions
+        - ``'mean_absolute_error`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
+        for documentation.
+
+        - ``'mean_squared_error'`` - Mean squared error regression loss. See `sklearn.metrics.mean_squared_error`_ \
+        for documentation.
+
+            .. _sklearn.metrics.mean_absolute_error:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
+
+            .. _sklearn.metrics.mean_squared_error:
+               https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
+
+    - Score functions
+        - ``'accuracy_score'`` - Accuracy classification score. \
+         See :py:meth:`alibi.utils.metrics.accuracy_score` for documentation.
+
+        - ``'f1_score'`` - F1 score. See :py:meth:`alibi.utils.metrics.f1_score` for documentation.
+
+        - ``'roc_auc_score'`` - Area Under the Receiver Operating Characteristic Curve (ROC AUC) score. \
+        See :py:meth:`alibi.utils.metrics.roc_auc_score` for documentation.
+
+        - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
+        See `sklearn.metrics.r2_score`_ for documentation.
+
+            .. _sklearn.metrics.r2_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html#sklearn.metrics.r2_score
+
+"""
 
 
 class PermutationImportance(Explainer):
@@ -78,12 +130,16 @@ class PermutationImportance(Explainer):
                 y: np.ndarray,
                 loss_fns: Optional[
                     Union[
+                        str,
+                        List[str],
                         Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                         Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                     ]
                 ] = None,
                 score_fns: Optional[
                     Union[
+                        str,
+                        List[str],
                         Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                         Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                     ]
@@ -156,17 +212,9 @@ class PermutationImportance(Explainer):
         if (loss_fns is None) and (score_fns is None):
             raise ValueError('At least one loss function or a score function must be provided.')
 
-        # initialize loss functions dictionary
-        if loss_fns is None:
-            loss_fns = {}
-        elif callable(loss_fns):
-            loss_fns = {'loss': loss_fns}
-
-        # initialize score functions dictionary
-        if score_fns is None:
-            score_fns = {}
-        elif callable(score_fns):
-            score_fns = {'score': score_fns}
+        # initialize loss and score functions
+        loss_fns = self._init_metrics(metric_fns=loss_fns, type='loss')
+        score_fns = self._init_metrics(metric_fns=score_fns, type='score')
 
         # set the `features_names` when the user did not provide the feature names
         if self.feature_names is None:
@@ -228,6 +276,57 @@ class PermutationImportance(Explainer):
         # build and return the explanation object
         return self._build_explanation(feature_names=feature_names,  # type: ignore[arg-type]
                                        individual_feature_importance=individual_feature_importance)
+
+    def _init_metrics(self,
+                      metric_fns: Optional[
+                          Union[
+                              str,
+                              List[str],
+                              Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
+                              Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
+                          ]
+                      ],
+                      type: Literal['loss', 'score']
+                      ) -> Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]:
+        """
+        Helper function to initialize the loss and score functions.
+
+        Parameters
+        ----------
+        metric_fns
+            See `loss_fns` or `score_fns` as defined in
+            :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
+        type
+            Metric function type. Supported types: ``'loss'`` | ``'score'``.
+
+        Returns
+        -------
+        Initialized loss and score functions.
+        """
+        if metric_fns is None:
+            return {}
+
+        if callable(metric_fns):
+            return {type: metric_fns}
+
+        if isinstance(metric_fns, str):
+            metric_fns = [metric_fns]
+
+        if isinstance(metric_fns, list):
+            dict_metric_fns = {}
+
+            for metric_fn in metric_fns:
+                if not isinstance(metric_fn, str):
+                    raise ValueError(f'The {type} inside {type}_fns must be of type `str`.')
+
+                if metric_fn not in METRIC_FNS[type]:
+                    raise ValueError(f'Unknown {type} name. Received {metric_fn}. '
+                                     f'Supported values are: {list(METRIC_FNS[type].keys())}')
+
+                dict_metric_fns[metric_fn] = METRIC_FNS[type][metric_fn]
+            return dict_metric_fns
+
+        return metric_fns
 
     @staticmethod
     def _compute_metrics(metric_fns: Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]],
@@ -803,7 +902,7 @@ def plot_permutation_importance(exp: Explanation,
         axes_ravel = axes.ravel()
         fig = axes_ravel[0].figure
 
-    for i in range(len(axes_ravel)):
+    for i in range(n_metric_names):
         ax = axes_ravel[i]
         metric_name = metric_names[i]
 

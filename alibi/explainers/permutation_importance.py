@@ -47,12 +47,12 @@ METRIC_FNS = {
     },
     "score": {
         # classification
-        "accuracy_score": alibi.utils.metrics.accuracy_score,
-        "f1_score": alibi.utils.metrics.f1_score,
-        "roc_auc_score": alibi.utils.metrics.roc_auc_score,
+        "accuracy": sklearn.metrics.accuracy_score,
+        "f1": sklearn.metrics.f1_score,
+        "roc_auc": sklearn.metrics.roc_auc_score,
 
         # regression
-        "r2_score": sklearn.metrics.r2_score
+        "r2": sklearn.metrics.r2_score
     }
 }
 """
@@ -231,18 +231,18 @@ class PermutationImportance(Explainer):
             features = list(range(n_features))
 
         # unaltered model predictions
-        y_pred = self.predictor(X)
+        y_hat = self.predictor(X)
 
         # compute original loss
         loss_orig = PermutationImportance._compute_metrics(metric_fns=loss_fns,
-                                                           y_true=y,
-                                                           y_pred=y_pred,
+                                                           y=y,
+                                                           y_hat=y_hat,
                                                            sample_weight=sample_weight)
 
         # compute original score
         score_orig = PermutationImportance._compute_metrics(metric_fns=score_fns,
-                                                            y_true=y,
-                                                            y_pred=y_pred,
+                                                            y=y,
+                                                            y_hat=y_hat,
                                                             sample_weight=sample_weight)
 
         # compute permutation feature importance for every feature
@@ -330,8 +330,8 @@ class PermutationImportance(Explainer):
 
     @staticmethod
     def _compute_metrics(metric_fns: Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]],
-                         y_true: np.ndarray,
-                         y_pred: np.ndarray,
+                         y: np.ndarray,
+                         y_hat: np.ndarray,
                          sample_weight: Optional[np.ndarray] = None,
                          metrics: Optional[Dict[str, List[float]]] = None):
         """
@@ -342,9 +342,9 @@ class PermutationImportance(Explainer):
         metric_fns
             A dictionary of metric functions having as keys the names of the metric functions and as
             values the metric functions.
-        y_true
+        y
             Ground truth targets.
-        y_pred
+        y_hat
             Predicted outcome as returned by the classifier.
         sample_weight
             Weight of each sample instance.
@@ -363,8 +363,8 @@ class PermutationImportance(Explainer):
             metrics[metric_name].append(
                 PermutationImportance._compute_metric(
                     metric_fn=metric_fn,
-                    y_true=y_true,
-                    y_pred=y_pred,
+                    y=y,
+                    y_hat=y_hat,
                     sample_weight=sample_weight
                 )
             )
@@ -372,19 +372,19 @@ class PermutationImportance(Explainer):
 
     @staticmethod
     def _compute_metric(metric_fn: Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                        y_true: np.ndarray,
-                        y_pred: np.ndarray,
+                        y: np.ndarray,
+                        y_hat: np.ndarray,
                         sample_weight: Optional[np.ndarray] = None) -> float:
         """
         Helper function to compute a metric. It also checks if the metric function contains in its signature the
-        arguments `y_true`, `y_pred`, and optionally `sample_weight`.
+        arguments `y_true`, `y_pred` or `y_score`, and optionally `sample_weight`.
 
         Parameters
         ----------
         metric_fn
             Metric function to be used. Note that the loss/score function must be compatible with the
             `y_true`, `y_pred`, and optionally with `sample_weight`.
-        y_true, y_pred, sample_weight
+        y, y_hat, sample_weight
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_metrics`.
 
         Returns
@@ -396,8 +396,13 @@ class PermutationImportance(Explainer):
         if 'y_true' not in args:
             raise ValueError('The `scoring` function must have the argument `y_true` in its definition.')
 
-        if 'y_pred' not in args:
-            raise ValueError('The `scoring` function must have the argument `y_pred` in its definition.')
+        if ('y_pred' not in args) and ('y_score' not in args):
+            raise ValueError('The `scoring` function must have the argument `y_pred` or `y_score` in its definition.')
+
+        kwargs = {
+            'y_true': y,
+            'y_pred' if 'y_pred' in args else 'y_score': y_hat
+        }
 
         if 'sample_weight' not in args:
             # some metrics might not support `sample_weight` such as:
@@ -406,10 +411,11 @@ class PermutationImportance(Explainer):
                 logger.warning(f"The loss function '{metric_fn.__name__}' does not support argument `sample_weight`. "
                                f"Calling the method without `sample_weight`.")
 
-            return metric_fn(y_true=y_true, y_pred=y_pred)  # type: ignore[call-arg]
+        else:
+            # include `sample_weight` int the `kwargs` if the metric supports it
+            kwargs['sample_weight'] = sample_weight
 
-        # call metric function with all parameters.
-        return metric_fn(y_true=y_true, y_pred=y_pred, sample_weight=sample_weight)  # type: ignore[call-arg]
+        return metric_fn(**kwargs)
 
     def _compute_permutation_importance(self,
                                         X: np.ndarray,
@@ -502,7 +508,7 @@ class PermutationImportance(Explainer):
         A dictionary having as keys the metric names and as values the permutation feature importance associated
         with the corresponding metrics.
         """
-        y_pred = []
+        y_hat = []
         weights: Optional[List[np.ndarray]] = [] if sample_weight else None
 
         for i in range(len(X)):
@@ -511,7 +517,7 @@ class PermutationImportance(Explainer):
             X_tmp[:, features] = np.delete(arr=X[:, features], obj=i, axis=0)
 
             # compute predictions
-            y_pred.append(self.predictor(X_tmp))
+            y_hat.append(self.predictor(X_tmp))
 
             # create sample weights if necessary
             if sample_weight is not None:
@@ -519,22 +525,22 @@ class PermutationImportance(Explainer):
 
         # concatenate all predictions and construct ground-truth array. At this point, the `y_pre` vector
         # should contain `N x (N - 1)` predictions, where `N` is the number of samples in `X`.
-        y_pred = np.concatenate(y_pred, axis=0)
-        y_true = np.tile(y.reshape(-1, 1), reps=(1, len(X) - 1)).reshape(-1)
+        y_hat = np.concatenate(y_hat, axis=0)
+        y = np.tile(y.reshape(-1, 1), reps=(1, len(X) - 1)).reshape(-1)
 
         if weights is not None:
             weights = np.concatenate(weights, axis=0)
 
         # compute loss values for the altered dataset
         loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
-                                                               y_true=y_true,
-                                                               y_pred=y_pred,  # type: ignore[arg-type]
+                                                               y=y,
+                                                               y_hat=y_hat,  # type: ignore[arg-type]
                                                                sample_weight=weights)  # type: ignore[arg-type]
 
         # compute score values for the altered dataset
         score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
-                                                                y_true=y_true,
-                                                                y_pred=y_pred,  # type: ignore[arg-type]
+                                                                y=y,
+                                                                y_hat=y_hat,  # type: ignore[arg-type]
                                                                 sample_weight=weights)  # type: ignore[arg-type]
 
         # compute feature importance for the loss functions
@@ -596,30 +602,30 @@ class PermutationImportance(Explainer):
             shuffled_indices = np.random.permutation(len(X))
 
             # shuffle the dataset
-            X_tmp, y_tmp = X[shuffled_indices].copy(), y[shuffled_indices].copy()
-            sample_weight_tmp = None if (sample_weight is None) else sample_weight[shuffled_indices].copy()
+            X_tmp, y_tmp = X[shuffled_indices], y[shuffled_indices]
+            sample_weight_tmp = None if (sample_weight is None) else sample_weight[shuffled_indices]
 
             # permute values from the first half into the second half and the other way around
-            fvals_tmp = X_tmp[fh, features].copy()
+            fvals_tmp = X_tmp[fh, features]
             X_tmp[fh, features] = X_tmp[sh, features]
             X_tmp[sh, features] = fvals_tmp
 
             # compute scores
-            y_pred = self.predictor(X_tmp[:end])
-            y_true = y_tmp[:end]
+            y_tmp_hat = self.predictor(X_tmp[:end])
+            y_tmp = y_tmp[:end]
             weights = None if (sample_weight_tmp is None) else sample_weight_tmp[:end]
 
             # compute loss values for the altered dataset
             loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
-                                                                   y_true=y_true,
-                                                                   y_pred=y_pred,
+                                                                   y=y_tmp,
+                                                                   y_hat=y_tmp_hat,
                                                                    sample_weight=weights,
                                                                    metrics=loss_permuted)
 
             # compute score values for the altered dataset
             score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
-                                                                    y_true=y_true,
-                                                                    y_pred=y_pred,
+                                                                    y=y_tmp,
+                                                                    y_hat=y_tmp_hat,
                                                                     sample_weight=weights,
                                                                     metrics=score_permuted)
 

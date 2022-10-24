@@ -14,7 +14,6 @@ import numpy as np
 import sklearn.metrics
 from tqdm import tqdm
 
-import alibi.utils.metrics
 from alibi.api.defaults import (DEFAULT_DATA_PERMUTATION_IMPORTANCE,
                                 DEFAULT_META_PERMUTATION_IMPORTANCE)
 from alibi.api.interfaces import Explainer, Explanation
@@ -48,6 +47,8 @@ METRIC_FNS = {
     "score": {
         # classification
         "accuracy": sklearn.metrics.accuracy_score,
+        "precision": sklearn.metrics.precision_score,
+        "recall": sklearn.metrics.recall_score,
         "f1": sklearn.metrics.f1_score,
         "roc_auc": sklearn.metrics.roc_auc_score,
 
@@ -72,17 +73,32 @@ Dictionary of supported string specified metrics
                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
 
     - Score functions
-        - ``'accuracy_score'`` - Accuracy classification score. \
-         See :py:meth:`alibi.utils.metrics.accuracy_score` for documentation.
+        - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score` for documentation.
+         
+        - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score` for documentation.
+        
+        - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score` for documentation.
 
-        - ``'f1_score'`` - F1 score. See :py:meth:`alibi.utils.metrics.f1_score` for documentation.
+        - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score` for documentation.
 
         - ``'roc_auc_score'`` - Area Under the Receiver Operating Characteristic Curve (ROC AUC) score. \
         See :py:meth:`alibi.utils.metrics.roc_auc_score` for documentation.
 
         - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
         See `sklearn.metrics.r2_score`_ for documentation.
-
+            
+            .. _sklearn.metrics.accuracy_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html#sklearn.metrics.accuracy_score
+                
+            .. _sklearn.metrics.precision_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score
+            
+            .. _sklearn.metrics.recall_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score
+            
+            .. _sklearn.metrics.f1_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
+            
             .. _sklearn.metrics.r2_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html#sklearn.metrics.r2_score
 

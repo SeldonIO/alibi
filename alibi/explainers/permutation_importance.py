@@ -74,9 +74,9 @@ Dictionary of supported string specified metrics
 
     - Score functions
         - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score` for documentation.
-         
+
         - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score` for documentation.
-        
+
         - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score` for documentation.
 
         - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score` for documentation.
@@ -86,19 +86,19 @@ Dictionary of supported string specified metrics
 
         - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
         See `sklearn.metrics.r2_score`_ for documentation.
-            
+
             .. _sklearn.metrics.accuracy_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html#sklearn.metrics.accuracy_score
-                
+
             .. _sklearn.metrics.precision_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score
-            
+
             .. _sklearn.metrics.recall_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score
-            
+
             .. _sklearn.metrics.f1_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
-            
+
             .. _sklearn.metrics.r2_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html#sklearn.metrics.r2_score
 
@@ -415,7 +415,7 @@ class PermutationImportance(Explainer):
         if ('y_pred' not in args) and ('y_score' not in args):
             raise ValueError('The `scoring` function must have the argument `y_pred` or `y_score` in its definition.')
 
-        kwargs = {
+        kwargs: Dict[str, Optional[np.ndarray]] = {
             'y_true': y,
             'y_pred' if 'y_pred' in args else 'y_score': y_hat
         }
@@ -431,7 +431,7 @@ class PermutationImportance(Explainer):
             # include `sample_weight` int the `kwargs` if the metric supports it
             kwargs['sample_weight'] = sample_weight
 
-        return metric_fn(**kwargs)
+        return metric_fn(**kwargs)  # type: ignore [call-arg]
 
     def _compute_permutation_importance(self,
                                         X: np.ndarray,

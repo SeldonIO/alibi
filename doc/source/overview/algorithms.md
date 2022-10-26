@@ -11,20 +11,21 @@ only requirement is to have access to a prediction function (which could be an A
 
 The following table summarizes the capabilities of the current algorithms:
 
-|Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Dist.|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
-|[ALE](../methods/ALE.ipynb)|BB|global|✔|✔|✔| | | |✔| |
-|[Partial Dependence](../methods/PartialDependence.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[PD Variance](../methods/PartialDependenceVariance.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[Anchors](../methods/Anchors.ipynb)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
-|[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
-|[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
-|[Prototype Counterfactuals](../methods/CFProto.ipynb)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
-|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
-|[Integrated Gradients](../methods/IntegratedGradients.ipynb)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
-|[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
-|[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
-|[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
+| Method                                                                                       |Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train/Test|Dist.|
+|:---------------------------------------------------------------------------------------------|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:------------|:---:|
+| [ALE](../methods/ALE.ipynb)                                                                  |BB|global|✔|✔|✔| | | | ✔           | |
+| [Partial Dependence](../methods/PartialDependence.ipynb)                                     |BB WB|global|✔|✔|✔| | |✔| ✔           | |
+| [PD Variance](../methods/PartialDependenceVariance.ipynb)                                    |BB WB|global|✔|✔|✔| | |✔| ✔           | |
+| [Permutation Importance](../methods/PermutationImportance.ipynb)                             |BB|global|✔|✔|✔| | |✔| ✔           | |
+| [Anchors](../methods/Anchors.ipynb)                                                          |BB|local|✔| |✔|✔|✔|✔| For Tabular | |
+| [CEM](../methods/CEM.ipynb)                                                                  |BB* TF/Keras|local|✔| |✔| |✔| | Optional    | |
+| [Counterfactuals](../methods/CF.ipynb)                                                       |BB* TF/Keras|local|✔| |✔| |✔| | No          | |
+| [Prototype Counterfactuals](../methods/CFProto.ipynb)                                        |BB* TF/Keras|local|✔| |✔| |✔|✔| Optional    | |
+| [Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html) |BB|local|✔| |✔| |✔|✔| ✔           | |
+| [Integrated Gradients](../methods/IntegratedGradients.ipynb)                                 |TF/Keras|local|✔|✔|✔|✔|✔|✔| Optional    | |
+| [Kernel SHAP](../methods/KernelSHAP.ipynb)                                                   |BB|local  global|✔|✔|✔| | |✔| ✔           |✔|
+| [Tree SHAP](../methods/TreeSHAP.ipynb)                                                       |WB|local  global|✔|✔|✔| | |✔| Optional    | | |
+| [Similarity explanations](../methods/Similarity.ipynb)                                       |WB|local|✔|✔|✔|✔|✔|✔| ✔           | | |
 
 
 
@@ -51,11 +52,17 @@ supporting numerical and categorical features.
 [Bike rental](../examples/pdp_regression_bike.ipynb).
 
 **Partial Dependence Variance**: computes the global feature importance or the feature interaction of a pair of features. 
-The the feature importance and the feature interactions are summarized in a single positive number given by the variance 
+The feature importance and the feature interactions are summarized in a single positive number given by the variance 
 within the Partial Dependence function. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
 supporting numerical and categorical features.
 [Documentation](../methods/PartialDependenceVariance.ipynb),
 [Friedman’s regression problem](../examples/pd_variance_regression_friedman.ipynb).
+
+**Permutation Importance**: computes the global feature importance. The computation of the feature importance is based 
+on the degree of model performance degradation when the feature values within a feature column are permuted. Intended
+for use on tabular dataset, black-box models, supporting numerical and categorical features.
+[Documentation](../methods/PermutationImportance.ipynb),
+[Who's Going to Leave Next?](../examples/permutation_importance_classification_leave.ipynb).
  
 **Anchor Explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),

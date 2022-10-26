@@ -157,10 +157,14 @@ alibi.explainers.__all__
 'Counterfactual', 
 'CounterfactualProto', 
 'CounterfactualRL', 
-'CounterfactualRLTabular', 
+'CounterfactualRLTabular',
+'plot_ale',
 'PartialDependence',
-'plot_ale', 
+'TreePartialDependence',
 'plot_pd',
+'PartialDependenceVariance',
+'plot_pd_variance',
+'PermutationImportance',
 'IntegratedGradients', 
 'KernelShap', 
 'TreeShap',
@@ -200,6 +204,8 @@ For detailed information on the methods:
     * [Linearity Measure](../methods/LinearityMeasure.ipynb)
     * [ProtoSelect](../methods/ProtoSelect.ipynb)
     * [PartialDependence](../methods/PartialDependence.ipynb)
+    * [PD Variance](../methods/PartialDependenceVariance.ipynb)
+    * [Permutation Importance](../methods/PermutationImportance.ipynb)
     * [TreeShap](../methods/TreeSHAP.ipynb)
     * [Trust Scores](../methods/TrustScores.ipynb)
     * [Similarity explanations](../methods/Similarity.ipynb)

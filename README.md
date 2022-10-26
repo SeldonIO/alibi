@@ -170,7 +170,8 @@ The following tables summarize the possible use cases for each method.
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
 |[ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
 |[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[Partial Dependence Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[PD Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[Permutation Importance](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html)                             |BB|global|✔|✔|✔| | |✔| ✔           | |
 |[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
 |[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
@@ -224,6 +225,11 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)
   - Examples:
     [Friedman’s regression problem](https://docs.seldon.io/projects/alibi/en/stable/examples/pd_variance_regression_friedman.html)
+
+- Permutation Importance([https://arxiv.org/abs/1801.01489])
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html)
+  - Examples:
+    [Who's Going to Leave Next?](https://docs.seldon.io/projects/alibi/en/stable/examples/permutation_importance_classification_leave.html)
 
 - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)

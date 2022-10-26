@@ -953,7 +953,7 @@ def plot_pd(exp: Explanation,
         features = range(0, len(exp.data['feature_names']))
     else:
         for ifeatures in features:
-            if ifeatures > len(exp.data['feature_names']):
+            if ifeatures >= len(exp.data['feature_names']):
                 raise ValueError(f"The `features` indices must be less than the "
                                  f"``len(feature_names) = {len(exp.data['feature_names'])}``. "
                                  f"Received {ifeatures}.")

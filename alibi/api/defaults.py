@@ -284,7 +284,6 @@ DEFAULT_DATA_PROTOSELECT = {"prototypes": None,
 Default ProtoSelect data.
 """
 
-
 # PartialDependence
 DEFAULT_META_PD = {
     "name": None,
@@ -308,6 +307,31 @@ DEFAULT_DATA_PD = {
 Default PartialDependence data.
 """
 
+# PartialDependenceVariance
+DEFAULT_META_PDVARIANCE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PartialDependenceVariance metadata.
+"""
+
+DEFAULT_DATA_PDVARIANCE = {
+    "feature_deciles": None,
+    "pd_values": None,
+    "feature_values": None,
+    "feature_names": None,
+    "feature_importance": None,
+    "feature_interaction": None,
+    "conditional_importance": None,
+    "conditional_importance_values": None
+}  # type: dict
+"""
+Default PartialDependenceVariance data.
+"""
 
 # PermutationImportance
 DEFAULT_META_PERMUTATION_IMPORTANCE = {

@@ -169,6 +169,8 @@ The following tables summarize the possible use cases for each method.
 |Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|Distributed|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
 |[ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
+|[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[Partial Dependence Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
 |[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
 |[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
@@ -178,7 +180,6 @@ The following tables summarize the possible use cases for each method.
 |[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
 |[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
-|[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -208,20 +209,30 @@ These algorithms provide a **distilled** view of the dataset and help construct 
 
 
 ## References and Examples
- - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
-   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)
-   - Examples:
-     [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_regression_boston.html),
-     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_classification.html)
+- Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)
+  - Examples:
+    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_regression_boston.html),
+    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_classification.html)
 
- - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
-   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)
-   - Examples:
-     [income prediction](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_adult.html),
-     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_iris.html),
-     [movie sentiment classification](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html),
-     [ImageNet](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_imagenet.html),
-     [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_fashion_mnist.html)
+- Partial Dependence ([J.H. Friedman, 2001](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)
+  - Examples:
+    [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
+
+- Partial Dependence Variance([https://arxiv.org/abs/1805.04755])
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)
+  - Examples:
+    [Friedman’s regression problem](https://docs.seldon.io/projects/alibi/en/stable/examples/pd_variance_regression_friedman.html)
+
+- Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)
+  - Examples:
+    [income prediction](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_adult.html),
+    [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_tabular_iris.html),
+    [movie sentiment classification](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html),
+    [ImageNet](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_imagenet.html),
+    [fashion MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_image_fashion_mnist.html)
 
 - Contrastive Explanation Method (CEM, [Dhurandhar et al., 2018](https://papers.nips.cc/paper/7340-explanations-based-on-the-missing-towards-contrastive-explanations-with-pertinent-negatives))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)
@@ -267,11 +278,6 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - Examples:
     [Interventional (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/interventional_tree_shap_adult_xgb.html),
     [Path-dependent (adult income, xgboost)](https://docs.seldon.io/projects/alibi/en/stable/examples/path_dependent_tree_shap_adult_xgb.html)
-
-- Partial Dependence ([J.H. Friedman, 2001](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full))
-  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)
-  - Examples:
-    [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
     
 - Trust Scores ([Jiang et al., 2018](https://arxiv.org/abs/1805.11783))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/TrustScores.html)

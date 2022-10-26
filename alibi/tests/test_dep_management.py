@@ -20,8 +20,6 @@ Notes:
 from types import ModuleType
 from collections import defaultdict
 
-import pytest
-
 
 def check_correct_dependencies(
         module: ModuleType,
@@ -45,12 +43,16 @@ def check_correct_dependencies(
         item = getattr(module, item_name)
         if not isinstance(item, ModuleType):
             pass_contexts = dependencies[item_name]  # type: ignore
-            if opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all':
-                with pytest.raises(AttributeError):
-                    item.test  # type: ignore # noqa
-            else:
-                with pytest.raises(ImportError):
-                    item.test  # type: ignore # noqa
+            try:
+                item.test  # type: ignore # noqa
+            except AttributeError:
+                assert opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all', \
+                    (f'{item_name} was imported instead of an instance of MissingDependency. '
+                     f'Are your sure {item} is dependent on {opt_dep}?')
+            except ImportError:
+                assert opt_dep not in pass_contexts and 'default' not in pass_contexts and opt_dep != 'all', \
+                    (f'{item_name} has been imported as an instance of MissingDependency. '
+                     f'Are you sure the dependency buckets, {pass_contexts} are correct?')
 
 
 def test_explainer_dependencies(opt_dep):

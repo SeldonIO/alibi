@@ -14,6 +14,8 @@ The following table summarizes the capabilities of the current algorithms:
 |Method|Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train|Dist.|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
 |[ALE](../methods/ALE.ipynb)|BB|global|✔|✔|✔| | | |✔| |
+|[Partial Dependence](../methods/PartialDependence.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
+|[PD Variance](../methods/PartialDependenceVariance.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
 |[Anchors](../methods/Anchors.ipynb)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
 |[CEM](../methods/CEM.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
 |[Counterfactuals](../methods/CF.ipynb)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
@@ -23,7 +25,7 @@ The following table summarizes the capabilities of the current algorithms:
 |[Kernel SHAP](../methods/KernelSHAP.ipynb)|BB|local  global|✔|✔|✔| | |✔|✔|✔|
 |[Tree SHAP](../methods/TreeSHAP.ipynb)|WB|local  global|✔|✔|✔| | |✔|Optional| | |
 |[Similarity explanations](../methods/Similarity.ipynb)|WB|local|✔|✔|✔|✔|✔|✔|✔| | |
-|[PartialDependence](../methods/PartialDependence.ipynb)|BB WB|global|✔|✔|✔| | |✔|✔| |
+
 
 
 Key:
@@ -41,6 +43,19 @@ Key:
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
 [Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.ipynb),
 [classification example](../examples/ale_classification.ipynb).
+
+**Partial Dependence**: computes the marginal effect that one or multiple features have on the predicted outcome of a 
+model with respect to a dataset. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
+supporting numerical and categorical features.
+[Documentation](../methods/PartialDependence.ipynb),
+[Bike rental](../examples/pdp_regression_bike.ipynb).
+
+**Partial Dependence Variance**: computes the global feature importance or the feature interaction of a pair of features. 
+The the feature importance and the feature interactions are summarized in a single positive number given by the variance 
+within the Partial Dependence function. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
+supporting numerical and categorical features.
+[Documentation](../methods/PartialDependenceVariance.ipynb),
+[Friedman’s regression problem](../examples/pd_variance_regression_friedman.ipynb).
  
 **Anchor Explanations**: produce an "anchor" - a small subset of features and their ranges that will
 almost always result in the same model prediction. [Documentation](../methods/Anchors.ipynb),
@@ -116,11 +131,6 @@ of the instances.
 [Imagenet example](../examples/similarity_explanations_imagenet.ipynb),
 [20 news groups example](../examples/similarity_explanations_20ng.ipynb).
 
-**Partial Dependence**: computes the marginal effect that one or multiple features have on the predicted outcome of a 
-model with respect to a dataset. Intended for use on tabular datasets, black-box and white-box (scikit-learn) models, 
-supporting numerical and categorical features.
-[Documentation](../methods/PartialDependence.ipynb),
-[Bike rental](../examples/pdp_regression_bike.ipynb).
 
 ## Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

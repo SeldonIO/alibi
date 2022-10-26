@@ -77,6 +77,14 @@
 ../examples/pdp_*
 ```
 
+## Partial Dependence Variance
+```{toctree}
+:glob: true
+:maxdepth: 1
+
+../examples/pd_variance*
+```
+
 ## Permutation Importance
 ```{toctree}
 :glob: true

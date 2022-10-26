@@ -73,16 +73,16 @@ Dictionary of supported string specified metrics
                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
 
     - Score functions
-        - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score` for documentation.
+        - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score`_ for documentation.
 
-        - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score` for documentation.
+        - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score`_ for documentation.
 
-        - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score` for documentation.
+        - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score`_ for documentation.
 
-        - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score` for documentation.
+        - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score`_ for documentation.
 
         - ``'roc_auc_score'`` - Area Under the Receiver Operating Characteristic Curve (ROC AUC) score. \
-        See :py:meth:`alibi.utils.metrics.roc_auc_score` for documentation.
+        See `sklearn.metrics.roc_auc_score`_ for documentation.
 
         - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
         See `sklearn.metrics.r2_score`_ for documentation.
@@ -99,8 +99,11 @@ Dictionary of supported string specified metrics
             .. _sklearn.metrics.f1_score:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
 
+            .. _sklearn.metrics.roc_auc_score:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html
+
             .. _sklearn.metrics.r2_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html#sklearn.metrics.r2_score
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
 
 """
 

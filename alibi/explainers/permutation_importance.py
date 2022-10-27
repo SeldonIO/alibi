@@ -150,7 +150,6 @@ class PermutationImportance(Explainer):
             `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
             compatible with the loss functions provided in the
             :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
-
         loss_fns
             A loss function or a dictionary of loss functions having as keys the names of the loss functions and as
             values the loss functions. Lower values are better. Note that the `predictor` output must be compatible
@@ -158,8 +157,8 @@ class PermutationImportance(Explainer):
 
              - `y_true` : ``np.ndarray`` -  a `numpy` array of ground-truth labels.
 
-             - `y_pred` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to the output of
-             the model
+             - `y_pred` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to the output of \
+             the model.
 
              - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
 

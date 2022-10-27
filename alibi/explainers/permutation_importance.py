@@ -409,20 +409,21 @@ class PermutationImportance(Explainer):
         -------
         Evaluation of the metric.
         """
-        args = inspect.getfullargspec(metric_fn).args
+        args = inspect.getfullargspec(metric_fn)
+        str_args = args.args + args.kwonlyargs
 
-        if 'y_true' not in args:
+        if 'y_true' not in str_args:
             raise ValueError('The `scoring` function must have the argument `y_true` in its definition.')
 
-        if ('y_pred' not in args) and ('y_score' not in args):
+        if ('y_pred' not in str_args) and ('y_score' not in str_args):
             raise ValueError('The `scoring` function must have the argument `y_pred` or `y_score` in its definition.')
 
         kwargs: Dict[str, Optional[np.ndarray]] = {
             'y_true': y,
-            'y_pred' if 'y_pred' in args else 'y_score': y_hat
+            'y_pred' if 'y_pred' in str_args else 'y_score': y_hat
         }
 
-        if 'sample_weight' not in args:
+        if 'sample_weight' not in str_args:
             # some metrics might not support `sample_weight` such as:
             # https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html#sklearn.metrics.max_error
             if sample_weight is not None:

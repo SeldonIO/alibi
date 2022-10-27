@@ -498,7 +498,7 @@ class PermutationImportance(Explainer):
 
         Parameters
         ----------
-        X, y, loss_fns, score_fns, kind, sample_weight, features, loss_orig, score_orig
+        X, y, kind, sample_weight, features, loss_orig, score_orig
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
 
         Returns

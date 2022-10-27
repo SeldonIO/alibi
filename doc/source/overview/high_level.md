@@ -239,6 +239,7 @@ distribution.
 (partial-dependence-variance)= 
 
 #### Partial Dependence Variance
+
 | Explainer                                                  | Scope  | Model types                         | Task types                 | Data types                       | Use                                                                                    | Resources                                                                                    |
 |------------------------------------------------------------|--------|-------------------------------------|----------------------------|----------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
 | [Partial Dependence Variance](partial-dependence-variance) | Global | Black-box, White-box (scikit-learn) | Classification, Regression | Tabular (numerical, categorical)  | What are the most important features globally? How much do features interact globally?| [docs](../methods/PartialDependenceVariance.ipynb), [paper](https://arxiv.org/abs/1805.04755)|

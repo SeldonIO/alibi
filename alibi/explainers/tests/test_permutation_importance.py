@@ -220,3 +220,46 @@ def test_compute_importances_estimate_difference(lower_is_better):
         assert np.allclose(mean, feature_importance[mn]['mean'])
         assert np.allclose(std, feature_importance[mn]['std'])
         assert np.allclose(samples, feature_importance[mn]['samples'])
+
+
+def test_compute_exact(mocker):
+    """ Test if the exact computation generates the `N x (N - 1)` instances. """
+    X = np.array([
+        [0, 2],
+        [1, 4],
+        [2, 6],
+    ])
+    y = np.array([0, 1, 2])
+    y_hat = np.array([0, 1, 2])
+
+    # X_expected = np.array([
+    #     [1, 2],
+    #     [2, 2],
+    #     [0, 4],
+    #     [2, 4],
+    #     [0, 6],
+    #     [1, 6]
+    # ])
+
+    y_expected = np.array([0, 0, 1, 1, 2, 2])
+    y_hat_expected = np.array([1, 2, 0, 2, 0, 1])  # first column in X_expected
+
+    def predict_fn(x):
+        return x[:, 0]
+
+    score_fns = {'accuracy': accuracy_score}
+    score_orig = {"accuracy": accuracy_score(y_true=y, y_pred=y_hat)}
+    pfi = PermutationImportance(predictor=predict_fn, score_fns=score_fns)
+
+    mock = mocker.patch.object(PermutationImportance, '_compute_metrics', wraps=pfi._compute_metrics)
+    feature_importances = pfi._compute_exact(X=X,
+                                             y=y,
+                                             kind='difference',
+                                             sample_weight=None,
+                                             features=0,
+                                             loss_orig={},
+                                             score_orig=score_orig)
+
+    assert np.allclose(y_expected, mock.call_args.kwargs['y'])
+    assert np.allclose(y_hat_expected, mock.call_args.kwargs['y_hat'])
+    assert np.isclose(feature_importances['accuracy'], 1)

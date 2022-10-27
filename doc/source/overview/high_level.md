@@ -240,9 +240,9 @@ distribution.
 
 #### Partial Dependence Variance
 
-| Explainer                                                  | Scope  | Model types                         | Task types                 | Data types                       | Use                                                                                    | Resources                                                                                    |
-|------------------------------------------------------------|--------|-------------------------------------|----------------------------|----------------------------------|----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
-| [Partial Dependence Variance](partial-dependence-variance) | Global | Black-box, White-box (scikit-learn) | Classification, Regression | Tabular (numerical, categorical)  | What are the most important features globally? How much do features interact globally?| [docs](../methods/PartialDependenceVariance.ipynb), [paper](https://arxiv.org/abs/1805.04755)|
+| Explainer                                                  | Scope  | Model types                         | Task types                 | Data types                       | Use                                                                                     | Resources                                                                                    |
+|------------------------------------------------------------|--------|-------------------------------------|----------------------------|----------------------------------|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| [Partial Dependence Variance](partial-dependence-variance) | Global | Black-box, White-box (scikit-learn) | Classification, Regression | Tabular (numerical, categorical) | What are the most important features globally? How much do features interact globally?  | [docs](../methods/PartialDependenceVariance.ipynb), [paper](https://arxiv.org/abs/1805.04755)|
 
 
 Alibi provides [partial dependence variance](../methods/PartialDependenceVariance.ipynb) as a way to measure globally 
@@ -250,22 +250,22 @@ the feature importance and the strength of the feature interactions between pair
 based on the partial dependence, the practitioner should be aware that the method inherits its main limitations 
 (see discussion above). 
 
-| Pros                                                                                                                                            | Cons                                                                                                                 |
-|-------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
-| Intuitive motivation for the computation of the feature importance                                                                              | The feature importance captures only the main effect and ignores possible feature interaction                        |  
-| Very general as it is a black-box algorithm                                                                                                     | Can fail to detect feature interaction even though those exist                                                       |
-| Fast computation in general. Even faster implementation for scikit-learn tree-based models                                                      |                                                                                                                      |
-| Offers standardized procedure to quantify the feature importance (i.e., contrasts with internal feauture importance for some tree-based model)  |                                                                                                                      |
-| Offers support for both numerical and categorical features                                                                                      |                                                                                                                      |
-| Can quantify the strength of potential interaction effects                                                                                      |                                                                                                                      |
+| Pros                                                                                                                                           | Cons                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Intuitive motivation for the computation of the feature importance                                                                             | The feature importance captures only the main effect and ignores possible feature interaction                        |  
+| Very general as it is a black-box algorithm                                                                                                    | Can fail to detect feature interaction even though those exist                                                       |
+| Fast computation in general. Even faster implementation for scikit-learn tree-based models                                                     |                                                                                                                      |
+| Offers standardized procedure to quantify the feature importance (i.e., contrasts with internal feature importance for some tree-based model)  |                                                                                                                      |
+| Offers support for both numerical and categorical features                                                                                     |                                                                                                                      |
+| Can quantify the strength of potential interaction effects                                                                                     |                                                                                                                      |
 
 
 (permutation-importance)=
 
 #### Permutation Importance
-| Explainer                                                                                     | Scope  | Model types | Task types                 | Data types                       | Use                                              | Resources                                                                                 |
-|-----------------------------------------------------------------------------------------------|--------|-------------|----------------------------|----------------------------------|--------------------------------------------------|-------------------------------------------------------------------------------------------|
-| [Permutation Importance](permutation-importance)                                              | Global | Black-box   | Classification, Regression | Tabular (numerical, categorical)  | Which are the most important features globally? | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
+| Explainer                                                                                     | Scope  | Model types | Task types                 | Data types                       | Use                                               | Resources                                                                                 |
+|-----------------------------------------------------------------------------------------------|--------|-------------|----------------------------|----------------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------|
+| [Permutation Importance](permutation-importance)                                              | Global | Black-box   | Classification, Regression | Tabular (numerical, categorical) | Which are the most important features globally?   | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
 
 
 Alibi provides [permutation importance](../methods/PermutationImportance.ipynb) as a way to measure globally the 
@@ -279,7 +279,7 @@ the importance of correlated features can be split between them.
 | A nice and simple interpretation - the feature importance is the increase/decrease in the model loss/score when a feature is noise.   | Need the ground truth labels                                |  
 | Very general as it is a black-box algorithm                                                                                           | Can be biased towards unrealistic data instances            |
 | The feature importance takes into account all the feature interactions                                                                | The importance metric is related to the loss/score function |
-| Does not require retraining the model                                                                                                 |                                   
+| Does not require retraining the model                                                                                                 |                                                             |
 
 
 ### 2. Local Necessary Features

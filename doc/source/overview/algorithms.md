@@ -11,21 +11,21 @@ only requirement is to have access to a prediction function (which could be an A
 
 The following table summarizes the capabilities of the current algorithms:
 
-| Method                                                                                       |Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data|Train/Test|Dist.|
-|:---------------------------------------------------------------------------------------------|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:------------|:---:|
-| [ALE](../methods/ALE.ipynb)                                                                  |BB|global|✔|✔|✔| | | | ✔           | |
-| [Partial Dependence](../methods/PartialDependence.ipynb)                                     |BB WB|global|✔|✔|✔| | |✔| ✔           | |
-| [PD Variance](../methods/PartialDependenceVariance.ipynb)                                    |BB WB|global|✔|✔|✔| | |✔| ✔           | |
-| [Permutation Importance](../methods/PermutationImportance.ipynb)                             |BB|global|✔|✔|✔| | |✔| ✔           | |
-| [Anchors](../methods/Anchors.ipynb)                                                          |BB|local|✔| |✔|✔|✔|✔| For Tabular | |
-| [CEM](../methods/CEM.ipynb)                                                                  |BB* TF/Keras|local|✔| |✔| |✔| | Optional    | |
-| [Counterfactuals](../methods/CF.ipynb)                                                       |BB* TF/Keras|local|✔| |✔| |✔| | No          | |
-| [Prototype Counterfactuals](../methods/CFProto.ipynb)                                        |BB* TF/Keras|local|✔| |✔| |✔|✔| Optional    | |
-| [Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html) |BB|local|✔| |✔| |✔|✔| ✔           | |
-| [Integrated Gradients](../methods/IntegratedGradients.ipynb)                                 |TF/Keras|local|✔|✔|✔|✔|✔|✔| Optional    | |
-| [Kernel SHAP](../methods/KernelSHAP.ipynb)                                                   |BB|local  global|✔|✔|✔| | |✔| ✔           |✔|
-| [Tree SHAP](../methods/TreeSHAP.ipynb)                                                       |WB|local  global|✔|✔|✔| | |✔| Optional    | | |
-| [Similarity explanations](../methods/Similarity.ipynb)                                       |WB|local|✔|✔|✔|✔|✔|✔| ✔           | | |
+| Method                                                                                       |Models|Exp. types|Classification|Regression|Tabular|Text|Image|Cat. data| Train or test |Dist.|
+|:---------------------------------------------------------------------------------------------|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:--------------|:---:|
+| [ALE](../methods/ALE.ipynb)                                                                  |BB|global|✔|✔|✔| | | | ✔             | |
+| [Partial Dependence](../methods/PartialDependence.ipynb)                                     |BB WB|global|✔|✔|✔| | |✔| ✔             | |
+| [PD Variance](../methods/PartialDependenceVariance.ipynb)                                    |BB WB|global|✔|✔|✔| | |✔| ✔             | |
+| [Permutation Importance](../methods/PermutationImportance.ipynb)                             |BB|global|✔|✔|✔| | |✔| ✔             | |
+| [Anchors](../methods/Anchors.ipynb)                                                          |BB|local|✔| |✔|✔|✔|✔| For Tabular   | |
+| [CEM](../methods/CEM.ipynb)                                                                  |BB* TF/Keras|local|✔| |✔| |✔| | Optional      | |
+| [Counterfactuals](../methods/CF.ipynb)                                                       |BB* TF/Keras|local|✔| |✔| |✔| | No            | |
+| [Prototype Counterfactuals](../methods/CFProto.ipynb)                                        |BB* TF/Keras|local|✔| |✔| |✔|✔| Optional      | |
+| [Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html) |BB|local|✔| |✔| |✔|✔| ✔             | |
+| [Integrated Gradients](../methods/IntegratedGradients.ipynb)                                 |TF/Keras|local|✔|✔|✔|✔|✔|✔| Optional      | |
+| [Kernel SHAP](../methods/KernelSHAP.ipynb)                                                   |BB|local  global|✔|✔|✔| | |✔| ✔             |✔|
+| [Tree SHAP](../methods/TreeSHAP.ipynb)                                                       |WB|local  global|✔|✔|✔| | |✔| Optional      | | |
+| [Similarity explanations](../methods/Similarity.ipynb)                                       |WB|local|✔|✔|✔|✔|✔|✔| ✔             | | |
 
 
 

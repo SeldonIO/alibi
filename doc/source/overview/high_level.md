@@ -263,9 +263,10 @@ based on the partial dependence, the practitioner should be aware that the metho
 (permutation-importance)=
 
 #### Permutation Importance
-| Explainer                                                                                     | Scope  | Model types | Task types                 | Data types                       | Use                                               | Resources                                                                                 |
-|-----------------------------------------------------------------------------------------------|--------|-------------|----------------------------|----------------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------|
-| [Permutation Importance](permutation-importance)                                              | Global | Black-box   | Classification, Regression | Tabular (numerical, categorical) | Which are the most important features globally?   | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
+
+| Explainer                                         | Scope  | Model types | Task types                 | Data types                       | Use                                               | Resources                                                                                 |
+|---------------------------------------------------|--------|-------------|----------------------------|----------------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------|
+| [Permutation Importance](permutation-importance)  | Global | Black-box   | Classification, Regression | Tabular (numerical, categorical) | Which are the most important features globally?   | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
 
 
 Alibi provides [permutation importance](../methods/PermutationImportance.ipynb) as a way to measure globally the 

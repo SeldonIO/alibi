@@ -678,7 +678,7 @@ class PermutationImportance(Explainer):
                     "samples": np.array(importance_values),
                 }
             else:
-                feature_importance[metric_name] = importance_values[0].item()
+                feature_importance[metric_name] = importance_values[0]
 
         return feature_importance
 

@@ -121,6 +121,22 @@ class PermutationImportance(Explainer):
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
+                 loss_fns: Optional[
+                     Union[
+                         str,
+                         List[str],
+                         Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
+                         Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
+                     ]
+                 ] = None,
+                 score_fns: Optional[
+                     Union[
+                         str,
+                         List[str],
+                         Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
+                         Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
+                     ]
+                 ] = None,
                  feature_names: Optional[List[str]] = None,
                  verbose: bool = False):
         """
@@ -134,51 +150,7 @@ class PermutationImportance(Explainer):
             `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
             compatible with the loss functions provided in the
             :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
-        feature_names
-            A list of feature names used for displaying results.
-        verbose
-            Whether to print the progress of the explainer.
-        """
-        super().__init__(meta=copy.deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE))
-        self.predictor = predictor
-        self.feature_names = feature_names
-        self.verbose = verbose
 
-    def explain(self,  # type: ignore[override]
-                X: np.ndarray,
-                y: np.ndarray,
-                loss_fns: Optional[
-                    Union[
-                        str,
-                        List[str],
-                        Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                        Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
-                    ]
-                ] = None,
-                score_fns: Optional[
-                    Union[
-                        str,
-                        List[str],
-                        Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
-                        Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
-                    ]
-                ] = None,
-                features: Optional[List[Union[int, Tuple[int, ...]]]] = None,
-                method: Literal["estimate", "exact"] = "estimate",
-                kind: Literal["ratio", "difference"] = "ratio",
-                n_repeats: int = 50,
-                sample_weight: Optional[np.ndarray] = None) -> Explanation:
-        """
-        Computes the permutation feature importance for each feature with respect to the given loss or score
-        functions and the dataset `(X, y)`.
-
-        Parameters
-        ----------
-        X
-            A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
-            test dataset.
-        y
-            A `N` (i.e. `(N, )`) ground-truth labels array corresponding the input feature `X`.
         loss_fns
             A loss function or a dictionary of loss functions having as keys the names of the loss functions and as
             values the loss functions. Lower values are better. Note that the `predictor` output must be compatible
@@ -196,6 +168,42 @@ class PermutationImportance(Explainer):
             values the score functions. Higher values are better. As with the `loss_fns`, the `predictor` output
             must be compatible with every score function and the score function must have the same signature
             presented in the `loss_fns` parameter description.
+        feature_names
+            A list of feature names used for displaying results.
+        verbose
+            Whether to print the progress of the explainer.
+        """
+        super().__init__(meta=copy.deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE))
+        self.predictor = predictor
+        self.feature_names = feature_names
+        self.verbose = verbose
+
+        if (loss_fns is None) and (score_fns is None):
+            raise ValueError('At least one loss function or a score function must be provided.')
+
+            # initialize loss and score functions
+        self.loss_fns = PermutationImportance._init_metrics(metric_fns=loss_fns, type='loss')
+        self.score_fns = PermutationImportance._init_metrics(metric_fns=score_fns, type='score')
+
+    def explain(self,  # type: ignore[override]
+                X: np.ndarray,
+                y: np.ndarray,
+                features: Optional[List[Union[int, Tuple[int, ...]]]] = None,
+                method: Literal["estimate", "exact"] = "estimate",
+                kind: Literal["ratio", "difference"] = "ratio",
+                n_repeats: int = 50,
+                sample_weight: Optional[np.ndarray] = None) -> Explanation:
+        """
+        Computes the permutation feature importance for each feature with respect to the given loss or score
+        functions and the dataset `(X, y)`.
+
+        Parameters
+        ----------
+        X
+            A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
+            test dataset.
+        y
+            A `N` (i.e. `(N, )`) ground-truth labels array corresponding the input feature `X`.
         features
             An optional list of features or tuples of features for which to compute the permutation feature
             importance. If not provided, the permutation feature importance will be computed for every single features
@@ -228,13 +236,6 @@ class PermutationImportance(Explainer):
         """
         n_features = X.shape[1]
 
-        if (loss_fns is None) and (score_fns is None):
-            raise ValueError('At least one loss function or a score function must be provided.')
-
-        # initialize loss and score functions
-        loss_fns = self._init_metrics(metric_fns=loss_fns, type='loss')
-        score_fns = self._init_metrics(metric_fns=score_fns, type='score')
-
         # set the `features_names` when the user did not provide the feature names
         if self.feature_names is None:
             self.feature_names = [f'f_{i}' for i in range(n_features)]
@@ -253,13 +254,13 @@ class PermutationImportance(Explainer):
         y_hat = self.predictor(X)
 
         # compute original loss
-        loss_orig = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+        loss_orig = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
                                                            y=y,
                                                            y_hat=y_hat,
                                                            sample_weight=sample_weight)
 
         # compute original score
-        score_orig = PermutationImportance._compute_metrics(metric_fns=score_fns,
+        score_orig = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
                                                             y=y,
                                                             y_hat=y_hat,
                                                             sample_weight=sample_weight)
@@ -273,8 +274,6 @@ class PermutationImportance(Explainer):
                 self._compute_permutation_importance(
                     X=X,
                     y=y,
-                    loss_fns=loss_fns,
-                    score_fns=score_fns,
                     method=method,
                     kind=kind,
                     n_repeats=n_repeats,
@@ -296,8 +295,8 @@ class PermutationImportance(Explainer):
         return self._build_explanation(feature_names=feature_names,  # type: ignore[arg-type]
                                        individual_feature_importance=individual_feature_importance)
 
-    def _init_metrics(self,
-                      metric_fns: Optional[
+    @staticmethod
+    def _init_metrics(metric_fns: Optional[
                           Union[
                               str,
                               List[str],
@@ -439,14 +438,6 @@ class PermutationImportance(Explainer):
     def _compute_permutation_importance(self,
                                         X: np.ndarray,
                                         y: np.ndarray,
-                                        loss_fns: Dict[
-                                            str,
-                                            Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                                        ],
-                                        score_fns: Dict[
-                                            str,
-                                            Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                                        ],
                                         method: Literal["estimate", "exact"],
                                         kind: Literal["difference", "ratio"],
                                         n_repeats: int,
@@ -460,7 +451,7 @@ class PermutationImportance(Explainer):
 
         Parameters
         ----------
-        X, y, loss_fns, score_fns, method, kind, n_repeats, sample_weight
+        X, y, method, kind, n_repeats, sample_weight
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.#
         features
             The feature or the tuple of features to compute the permutation feature importance for.
@@ -478,8 +469,6 @@ class PermutationImportance(Explainer):
             # computation of the exact statistic which is quadratic in the number of samples
             return self._compute_exact(X=X,
                                        y=y,
-                                       loss_fns=loss_fns,
-                                       score_fns=score_fns,
                                        kind=kind,
                                        sample_weight=sample_weight,
                                        features=features,
@@ -489,8 +478,6 @@ class PermutationImportance(Explainer):
         # sample approximation
         return self._compute_estimate(X=X,
                                       y=y,
-                                      loss_fns=loss_fns,
-                                      score_fns=score_fns,
                                       kind=kind,
                                       n_repeats=n_repeats,
                                       sample_weight=sample_weight,
@@ -501,14 +488,6 @@ class PermutationImportance(Explainer):
     def _compute_exact(self,
                        X: np.ndarray,
                        y: np.ndarray,
-                       loss_fns: Dict[
-                            str,
-                            Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                       ],
-                       score_fns: Dict[
-                           str,
-                           Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                       ],
                        kind: str,
                        sample_weight: Optional[np.ndarray],
                        features: Union[int, Tuple[int, ...]],
@@ -551,27 +530,25 @@ class PermutationImportance(Explainer):
             weights = np.concatenate(weights, axis=0)
 
         # compute loss values for the altered dataset
-        loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+        loss_permuted = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
                                                                y=y,
                                                                y_hat=y_hat,  # type: ignore[arg-type]
                                                                sample_weight=weights)  # type: ignore[arg-type]
 
         # compute score values for the altered dataset
-        score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
+        score_permuted = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
                                                                 y=y,
                                                                 y_hat=y_hat,  # type: ignore[arg-type]
                                                                 sample_weight=weights)  # type: ignore[arg-type]
 
         # compute feature importance for the loss functions
-        loss_feature_importance = PermutationImportance._compute_importances(metric_fns=loss_fns,
-                                                                             metric_orig=loss_orig,
+        loss_feature_importance = PermutationImportance._compute_importances(metric_orig=loss_orig,
                                                                              metric_permuted=loss_permuted,
                                                                              kind=kind,
                                                                              lower_is_better=True)
 
         # compute feature importance for the score functions
-        score_feature_importance = PermutationImportance._compute_importances(metric_fns=score_fns,
-                                                                              metric_orig=score_orig,
+        score_feature_importance = PermutationImportance._compute_importances(metric_orig=score_orig,
                                                                               metric_permuted=score_permuted,
                                                                               kind=kind,
                                                                               lower_is_better=False)
@@ -581,14 +558,6 @@ class PermutationImportance(Explainer):
     def _compute_estimate(self,
                           X: np.ndarray,
                           y: np.ndarray,
-                          loss_fns: Dict[
-                              str,
-                              Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                          ],
-                          score_fns: Dict[
-                              str,
-                              Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                          ],
                           kind: str,
                           n_repeats: int,
                           sample_weight: Optional[np.ndarray],
@@ -601,7 +570,7 @@ class PermutationImportance(Explainer):
 
         Parameters
         ----------
-        X, y, loss_fns, score_fns, kind, sample_weight, features, loss_orig, score_orig
+        X, y, kind, sample_weight, features, loss_orig, score_orig
             See :py:meth:`alibi.explainers.permutation_importance.PermutationImportance._compute_permutation_importance`.  # noqa
 
         Returns
@@ -635,29 +604,27 @@ class PermutationImportance(Explainer):
             weights = None if (sample_weight_tmp is None) else sample_weight_tmp[:end]
 
             # compute loss values for the altered dataset
-            loss_permuted = PermutationImportance._compute_metrics(metric_fns=loss_fns,
+            loss_permuted = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
                                                                    y=y_tmp,
                                                                    y_hat=y_tmp_hat,
                                                                    sample_weight=weights,
                                                                    metrics=loss_permuted)
 
             # compute score values for the altered dataset
-            score_permuted = PermutationImportance._compute_metrics(metric_fns=score_fns,
+            score_permuted = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
                                                                     y=y_tmp,
                                                                     y_hat=y_tmp_hat,
                                                                     sample_weight=weights,
                                                                     metrics=score_permuted)
 
         # compute feature importance for the loss functions
-        loss_feature_importance = PermutationImportance._compute_importances(metric_fns=loss_fns,
-                                                                             metric_orig=loss_orig,
+        loss_feature_importance = PermutationImportance._compute_importances(metric_orig=loss_orig,
                                                                              metric_permuted=loss_permuted,
                                                                              kind=kind,
                                                                              lower_is_better=True)
 
         # compute feature importance for the score functions
-        score_feature_importance = PermutationImportance._compute_importances(metric_fns=score_fns,
-                                                                              metric_orig=score_orig,
+        score_feature_importance = PermutationImportance._compute_importances(metric_orig=score_orig,
                                                                               metric_permuted=score_permuted,
                                                                               kind=kind,
                                                                               lower_is_better=False)
@@ -665,11 +632,7 @@ class PermutationImportance(Explainer):
         return {**loss_feature_importance, **score_feature_importance}
 
     @staticmethod
-    def _compute_importances(metric_fns: Dict[
-                                str,
-                                Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]
-                             ],
-                             metric_orig: Dict[str, float],
+    def _compute_importances(metric_orig: Dict[str, float],
                              metric_permuted: Dict[str, List[float]],
                              kind: str,
                              lower_is_better: bool) -> Dict[str, Any]:
@@ -679,9 +642,6 @@ class PermutationImportance(Explainer):
 
         Parameters
         ----------
-        metric_fns
-            A dictionary of metric functions having as keys the names of the metric functions and as
-            values the metric functions.
         metric_orig
             A dictionary having as keys the names of the metric functions and as values the metric evaluations when
             the feature values are left intact.
@@ -701,7 +661,7 @@ class PermutationImportance(Explainer):
         """
         feature_importance = {}
 
-        for metric_name in metric_fns:
+        for metric_name in metric_orig:
             importance_values = [
                 PermutationImportance._compute_importance(
                     metric_orig=metric_orig[metric_name],

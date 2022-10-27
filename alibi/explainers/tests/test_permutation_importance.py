@@ -109,7 +109,7 @@ def test_compute_metrics():
 
 @pytest.mark.parametrize('lower_is_better', [True, False])
 def test_compute_importances_exact_ratio(lower_is_better):
-    """ Test if the computation of importance scores for multiple metrics is correct for `method='exact'`
+    """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
     and `kind='ratio'`. """
     metric_orig = {
         'metric_1': np.random.uniform(1, 2),
@@ -125,18 +125,19 @@ def test_compute_importances_exact_ratio(lower_is_better):
                                                                      metric_permuted=metric_permuted,
                                                                      kind='ratio',
                                                                      lower_is_better=lower_is_better)
-    expected_feature_importances = {mn: metric_permuted[mn][0] / metric_orig[mn] for mn in metric_orig}
 
-    if not lower_is_better:
-        expected_feature_importances = {k: 1/v for k, v in expected_feature_importances.items()}
+    for mn in metric_orig:
+        expected_importance = metric_permuted[mn][0] / metric_orig[mn]
 
-    for mn in feature_importances:
-        assert np.allclose(expected_feature_importances[mn], feature_importances[mn])
+        if not lower_is_better:
+            expected_importance = 1. / expected_importance
+
+        assert np.isclose(expected_importance, feature_importances[mn])
 
 
 @pytest.mark.parametrize('lower_is_better', [True, False])
 def test_compute_importances_exact_difference(lower_is_better):
-    """ Test if the computation of importance scores for multiple metrics is correct for `method='exact`
+    """ Test if the computation of importance scores for multiple metrics is correct when `method='exact`
     and `kind='difference'`. """
     metric_orig = {
         'metric_1': np.random.uniform(1, 2),
@@ -154,7 +155,68 @@ def test_compute_importances_exact_difference(lower_is_better):
                                                                      lower_is_better=lower_is_better)
 
     sign = 1 if lower_is_better else -1
-    expected_feature_importances = {mn: sign * (metric_permuted[mn][0] - metric_orig[mn]) for mn in metric_orig}
+    for mn in metric_orig:
+        expected_importance = sign * (metric_permuted[mn][0] - metric_orig[mn])
+        assert np.isclose(expected_importance, feature_importances[mn])
 
-    for mn in feature_importances:
-        assert np.allclose(expected_feature_importances[mn], feature_importances[mn])
+
+@pytest.mark.parametrize('lower_is_better', [True, False])
+def test_compute_importances_estimate_ratio(lower_is_better):
+    """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
+    and `kind='ratio'.` """
+    metric_orig = {
+        'metric_1': np.random.uniform(1, 2),
+        'metric_2': np.random.uniform(1, 2),
+    }
+
+    metric_permuted = {
+        'metric_1': np.random.uniform(1, 2, size=(4, )).tolist(),
+        'metric_2': np.random.uniform(1, 2, size=(4, )).tolist()
+    }
+
+    feature_importances = PermutationImportance._compute_importances(metric_orig=metric_orig,
+                                                                     metric_permuted=metric_permuted,
+                                                                     kind='ratio',
+                                                                     lower_is_better=lower_is_better)
+
+    for mn in metric_orig:
+        samples = np.array([mp / metric_orig[mn] for mp in metric_permuted[mn]])
+
+        if not lower_is_better:
+            samples = 1 / samples
+
+        mean, std = samples.mean(), samples.std()
+        assert np.allclose(mean, feature_importances[mn]['mean'])
+        assert np.allclose(std, feature_importances[mn]['std'])
+        assert np.allclose(samples, feature_importances[mn]['samples'])
+
+
+@pytest.mark.parametrize('lower_is_better', [True, False])
+def test_compute_importances_estimate_difference(lower_is_better):
+    """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
+    and `kind='difference'`. """
+    metric_orig = {
+        'metric_1': np.random.uniform(1, 2),
+        'metric_2': np.random.uniform(1, 2),
+    }
+
+    metric_permuted = {
+        'metric_1': np.random.uniform(1, 2, size=(4, )).tolist(),
+        'metric_2': np.random.uniform(1, 2, size=(4, )).tolist(),
+    }
+
+    feature_importance = PermutationImportance._compute_importances(metric_orig=metric_orig,
+                                                                    metric_permuted=metric_permuted,
+                                                                    kind='difference',
+                                                                    lower_is_better=lower_is_better)
+
+    for mn in metric_orig:
+        samples = np.array([mp - metric_orig[mn] for mp in metric_permuted[mn]])
+
+        if not lower_is_better:
+            samples = -samples
+
+        mean, std = samples.mean(), samples.std()
+        assert np.allclose(mean, feature_importance[mn]['mean'])
+        assert np.allclose(std, feature_importance[mn]['std'])
+        assert np.allclose(samples, feature_importance[mn]['samples'])

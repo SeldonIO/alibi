@@ -594,7 +594,7 @@ class PermutationImportance(Explainer):
             sample_weight_tmp = None if (sample_weight is None) else sample_weight[shuffled_indices]
 
             # permute values from the first half into the second half and the other way around
-            fvals_tmp = X_tmp[fh, features]
+            fvals_tmp = X_tmp[fh, features].copy()
             X_tmp[fh, features] = X_tmp[sh, features]
             X_tmp[sh, features] = fvals_tmp
 

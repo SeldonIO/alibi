@@ -166,7 +166,7 @@ from method to method so we encourage the reader to become familiar with the
 The following tables summarize the possible use cases for each method.
 
 ### Model Explanations
-|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|Distributed|
+|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train or test set required|Distributed|
 |:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
 |[ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
 |[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |

@@ -443,8 +443,8 @@ class PermutationImportance(Explainer):
                                         n_repeats: int,
                                         sample_weight: Optional[np.ndarray],
                                         features: Union[int, Tuple[int, ...]],
-                                        loss_orig: Dict[str, float],
-                                        score_orig: Dict[str, float]) -> Dict[str, Any]:
+                                        loss_orig: Dict[str, List[float]],
+                                        score_orig: Dict[str, List[float]]) -> Dict[str, Any]:
 
         """
         Helper function to compute the permutation feature importance for a given feature or tuple of features.
@@ -491,8 +491,8 @@ class PermutationImportance(Explainer):
                        kind: str,
                        sample_weight: Optional[np.ndarray],
                        features: Union[int, Tuple[int, ...]],
-                       loss_orig: Dict[str, float],
-                       score_orig: Dict[str, float]):
+                       loss_orig: Dict[str, List[float]],
+                       score_orig: Dict[str, List[float]]):
         """
         Helper function to compute the "exact" value of the permutation feature importance.
 
@@ -562,8 +562,8 @@ class PermutationImportance(Explainer):
                           n_repeats: int,
                           sample_weight: Optional[np.ndarray],
                           features: Union[int, Tuple[int, ...]],
-                          loss_orig: Dict[str, float],
-                          score_orig: Dict[str, float]):
+                          loss_orig: Dict[str, List[float]],
+                          score_orig: Dict[str, List[float]]):
         """
         Helper function to compute the "estimate" mean, standard deviation and sample values of the permutation
         feature importance.

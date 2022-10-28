@@ -112,8 +112,8 @@ def test_compute_importances_exact_ratio(lower_is_better):
     """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
     and `kind='ratio'`. """
     metric_orig = {
-        'metric_1': np.random.uniform(1, 2),
-        'metric_2': np.random.uniform(1, 2),
+        'metric_1': [np.random.uniform(1, 2)],
+        'metric_2': [np.random.uniform(1, 2)],
     }
 
     metric_permuted = {
@@ -127,7 +127,7 @@ def test_compute_importances_exact_ratio(lower_is_better):
                                                                      lower_is_better=lower_is_better)
 
     for mn in metric_orig:
-        expected_importance = metric_permuted[mn][0] / metric_orig[mn]
+        expected_importance = metric_permuted[mn][0] / metric_orig[mn][0]
 
         if not lower_is_better:
             expected_importance = 1. / expected_importance
@@ -140,8 +140,8 @@ def test_compute_importances_exact_difference(lower_is_better):
     """ Test if the computation of importance scores for multiple metrics is correct when `method='exact`
     and `kind='difference'`. """
     metric_orig = {
-        'metric_1': np.random.uniform(1, 2),
-        'metric_2': np.random.uniform(1, 2)
+        'metric_1': [np.random.uniform(1, 2)],
+        'metric_2': [np.random.uniform(1, 2)]
     }
 
     metric_permuted = {
@@ -156,7 +156,7 @@ def test_compute_importances_exact_difference(lower_is_better):
 
     sign = 1 if lower_is_better else -1
     for mn in metric_orig:
-        expected_importance = sign * (metric_permuted[mn][0] - metric_orig[mn])
+        expected_importance = sign * (metric_permuted[mn][0] - metric_orig[mn][0])
         assert np.isclose(expected_importance, feature_importances[mn])
 
 
@@ -165,8 +165,8 @@ def test_compute_importances_estimate_ratio(lower_is_better):
     """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
     and `kind='ratio'.` """
     metric_orig = {
-        'metric_1': np.random.uniform(1, 2),
-        'metric_2': np.random.uniform(1, 2),
+        'metric_1': [np.random.uniform(1, 2)],
+        'metric_2': [np.random.uniform(1, 2)],
     }
 
     metric_permuted = {
@@ -180,7 +180,7 @@ def test_compute_importances_estimate_ratio(lower_is_better):
                                                                      lower_is_better=lower_is_better)
 
     for mn in metric_orig:
-        samples = np.array([mp / metric_orig[mn] for mp in metric_permuted[mn]])
+        samples = np.array([mp / metric_orig[mn][0] for mp in metric_permuted[mn]])
 
         if not lower_is_better:
             samples = 1 / samples
@@ -196,8 +196,8 @@ def test_compute_importances_estimate_difference(lower_is_better):
     """ Test if the computation of importance scores for multiple metrics is correct when `method='exact'`
     and `kind='difference'`. """
     metric_orig = {
-        'metric_1': np.random.uniform(1, 2),
-        'metric_2': np.random.uniform(1, 2),
+        'metric_1': [np.random.uniform(1, 2)],
+        'metric_2': [np.random.uniform(1, 2)],
     }
 
     metric_permuted = {
@@ -211,7 +211,7 @@ def test_compute_importances_estimate_difference(lower_is_better):
                                                                     lower_is_better=lower_is_better)
 
     for mn in metric_orig:
-        samples = np.array([mp - metric_orig[mn] for mp in metric_permuted[mn]])
+        samples = np.array([mp - metric_orig[mn][0] for mp in metric_permuted[mn]])
 
         if not lower_is_better:
             samples = -samples
@@ -223,11 +223,11 @@ def test_compute_importances_estimate_difference(lower_is_better):
 
 
 def test_compute_exact(mocker):
-    """ Test if the exact computation generates the `N x (N - 1)` instances. """
+    """ Test if the exact computation generates the expected `N x (N - 1)` instances. """
     X = np.array([
-        [0, 2],
+        [0, 3],
         [1, 4],
-        [2, 6],
+        [2, 5],
     ])
     y = np.array([0, 1, 2])
     y_hat = np.array([0, 1, 2])
@@ -244,12 +244,10 @@ def test_compute_exact(mocker):
     y_expected = np.array([0, 0, 1, 1, 2, 2])
     y_hat_expected = np.array([1, 2, 0, 2, 0, 1])  # first column in X_expected
 
-    def predict_fn(x):
-        return x[:, 0]
-
     score_fns = {'accuracy': accuracy_score}
-    score_orig = {"accuracy": accuracy_score(y_true=y, y_pred=y_hat)}
-    pfi = PermutationImportance(predictor=predict_fn, score_fns=score_fns)
+    score_orig = {"accuracy": [accuracy_score(y_true=y, y_pred=y_hat)]}
+    pfi = PermutationImportance(predictor=lambda x: x[:, 0],
+                                score_fns=score_fns)
 
     mock = mocker.patch.object(PermutationImportance, '_compute_metrics', wraps=pfi._compute_metrics)
     feature_importances = pfi._compute_exact(X=X,
@@ -263,3 +261,80 @@ def test_compute_exact(mocker):
     assert np.allclose(y_expected, mock.call_args.kwargs['y'])
     assert np.allclose(y_hat_expected, mock.call_args.kwargs['y_hat'])
     assert np.isclose(feature_importances['accuracy'], 1)
+
+
+@pytest.mark.parametrize('n_repeats', [3, 4, 5])
+def test_compute_estimate(n_repeats, mocker):
+    """ Test if the estimate computation generates the expected samples and if the construction of the
+     sample is correct. """
+    X = np.array([
+        [1, 6],
+        [2, 7],
+        [3, 8],
+        [4, 9],
+        [5, 10]
+    ])
+    y = np.array([1, 2, 3, 4, 5])
+    pfi = PermutationImportance(predictor=lambda x: x[:, 0],
+                                score_fns={'accuracy': accuracy_score})
+
+    mock = mocker.patch.object(PermutationImportance, '_compute_metrics', wraps=pfi._compute_metrics)
+    feature_importances = pfi._compute_estimate(X=X,
+                                                y=y,
+                                                kind='difference',
+                                                n_repeats=n_repeats,
+                                                sample_weight=None,
+                                                features=0,
+                                                loss_orig={},
+                                                score_orig={'accuracy': [1.]})
+
+    for call_args in mock.call_args_list:
+        y_call, y_hat_call = call_args.kwargs['y'], call_args.kwargs['y_hat']
+        assert len(y_call) == len(y_hat_call)
+        assert len(y_call) % 2 == 0
+
+        start, middle, end = 0, len(y_call) // 2, len(y_call)
+        fh, sh = np.s_[start:middle], np.s_[middle:end]
+        assert np.allclose(y_call[fh], y_hat_call[sh])
+        assert np.allclose(y_call[sh], y_hat_call[fh])
+        assert np.all(np.isin(y_call, y))
+
+    assert mock.call_count == 2 * n_repeats
+    assert np.isclose(feature_importances['accuracy']['mean'], 1)
+    assert np.isclose(feature_importances['accuracy']['std'], 0)
+    assert len(feature_importances['accuracy']['samples']) == n_repeats
+    assert np.allclose(feature_importances['accuracy']['samples'], 1)
+
+
+@pytest.mark.parametrize('target_col', [0, 1, 2, 3, 4, 5])
+@pytest.mark.parametrize('method', ['exact', 'estimate'])
+@pytest.mark.parametrize('kind', ['difference'])
+def test_explain_exact(target_col, method, kind):
+    """ Integration test to check correctness. """
+    X = np.arange(90).reshape(9, 10).T
+    y = np.arange(10) + 10 * target_col
+
+    pfi = PermutationImportance(predictor=lambda x: x[:, target_col], score_fns=["accuracy"])
+    exp = pfi.explain(X=X, y=y, method=method, kind=kind)
+
+    if method == 'exact':
+        feature_importance = exp.data['feature_importance'][0]
+        best_idx = np.argmax(feature_importance)
+
+        assert best_idx == target_col
+        assert np.isclose(feature_importance[best_idx], 1.)
+        assert np.allclose(np.delete(feature_importance, best_idx), 0)
+
+    else:
+        feature_importance = exp.data['feature_importance'][0]
+        mean = [fi['mean'] for fi in feature_importance]
+        std = [fi['std'] for fi in feature_importance]
+        samples = [fi['samples'] for fi in feature_importance]
+
+        best_idx = np.argmax(mean)
+        assert best_idx == target_col
+        assert np.isclose(mean[best_idx], 1)
+        assert np.allclose(np.delete(mean, best_idx), 0)
+        assert np.allclose(std, 0)
+        assert np.allclose(samples[best_idx], 1)
+        assert np.all(np.allclose(s, 0) for s in np.delete(samples, best_idx))

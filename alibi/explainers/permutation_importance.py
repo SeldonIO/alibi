@@ -632,7 +632,7 @@ class PermutationImportance(Explainer):
         return {**loss_feature_importance, **score_feature_importance}
 
     @staticmethod
-    def _compute_importances(metric_orig: Dict[str, float],
+    def _compute_importances(metric_orig: Dict[str, List[float]],
                              metric_permuted: Dict[str, List[float]],
                              kind: str,
                              lower_is_better: bool) -> Dict[str, Any]:
@@ -644,7 +644,7 @@ class PermutationImportance(Explainer):
         ----------
         metric_orig
             A dictionary having as keys the names of the metric functions and as values the metric evaluations when
-            the feature values are left intact.
+            the feature values are left intact. The values are lists with a single element.
         metric_permuted
             A dictionary having as keys the names of the metric functions and as values a list of metric evaluations
             when the feature values are permuted.
@@ -664,7 +664,7 @@ class PermutationImportance(Explainer):
         for metric_name in metric_orig:
             importance_values = [
                 PermutationImportance._compute_importance(
-                    metric_orig=metric_orig[metric_name],
+                    metric_orig=metric_orig[metric_name][0],  # a list with just one element
                     metric_permuted=metric_permuted_value,
                     kind=kind,
                     lower_is_better=lower_is_better

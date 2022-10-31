@@ -5,6 +5,21 @@ from sklearn.metrics import accuracy_score, f1_score, max_error
 from alibi.explainers import PermutationImportance
 
 
+@pytest.fixture(scope='module')
+def dataset():
+    return {
+        'classification': {
+            'y_true': np.random.randint(0, 2, size=(100, )),
+            'y_pred': np.random.randint(0, 2, size=(100, )),
+        },
+        'regression': {
+            'y_true': np.random.randn(100),
+            'y_pred': np.random.randn(100),
+        },
+        'sample_weight': np.random.rand(100)
+    }
+
+
 def test_provided_metrics():
     """ Test if the initialization raises an error when neither the loss and the score functions are provided. """
     with pytest.raises(ValueError) as err:
@@ -30,11 +45,11 @@ def test_init_metrics_unknown():
     assert re.search("Unknown .+ name.", str(err.value))
 
 
-def test_compute_metric_unsupported_sample_weight(caplog):
+def test_compute_metric_unsupported_sample_weight(dataset, caplog):
     """ Test if a warning message is displayed when the metric does not support sample weight. """
-    y_true = np.random.randn(100)
-    y_pred = np.random.randn(100)
-    sample_weight = np.random.rand(100)
+    y_true = dataset['regression']['y_true']
+    y_pred = dataset['regression']['y_pred']
+    sample_weight = dataset['sample_weight']
 
     metric = PermutationImportance._compute_metric(metric_fn=max_error,
                                                    y=y_true,
@@ -49,11 +64,11 @@ def test_compute_metric_unsupported_sample_weight(caplog):
 
 
 @pytest.mark.parametrize('use_sample_weight', [True, False])
-def test_compute_metric(use_sample_weight):
+def test_compute_metric(use_sample_weight, dataset):
     """ Test if the computation of the metric is correct. """
-    y_true = np.random.randint(0, 2, size=(100, ))
-    y_pred = np.random.randint(0, 2, size=(100, ))
-    sample_weight = np.random.rand(100)
+    y_true = dataset['classification']['y_true']
+    y_pred = dataset['classification']['y_pred']
+    sample_weight = dataset['sample_weight']
 
     weighted_metric = PermutationImportance._compute_metric(metric_fn=accuracy_score,
                                                             y=y_true,
@@ -80,11 +95,12 @@ def test_compute_metric_error():
     assert "The `scoring` function must have the argument `y_pred` or `y_score` in its definition." in str(err2.value)
 
 
-def test_compute_metrics():
+def test_compute_metrics(dataset):
     """ Test if the computation of multiple metrics is correct. """
-    y_true = np.random.randint(0, 2, size=(100, ))
-    y_pred = np.random.randint(0, 2, size=(100, ))
-    sample_weight = np.random.rand(100)
+    y_true = dataset['classification']['y_true']
+    y_pred = dataset['classification']['y_pred']
+    sample_weight = dataset['sample_weight']
+
     metrics_fns = {
         'accuracy': accuracy_score,
         'f1': f1_score,
@@ -232,15 +248,14 @@ def test_compute_exact(mocker):
     y = np.array([0, 1, 2])
     y_hat = np.array([0, 1, 2])
 
-    # X_expected = np.array([
-    #     [1, 2],
-    #     [2, 2],
-    #     [0, 4],
-    #     [2, 4],
-    #     [0, 6],
-    #     [1, 6]
-    # ])
-
+    X_expected = np.array([
+        [1, 3],
+        [2, 3],
+        [0, 4],
+        [2, 4],
+        [0, 5],
+        [1, 5],
+    ])
     y_expected = np.array([0, 0, 1, 1, 2, 2])
     y_hat_expected = np.array([1, 2, 0, 2, 0, 1])  # first column in X_expected
 
@@ -249,7 +264,8 @@ def test_compute_exact(mocker):
     pfi = PermutationImportance(predictor=lambda x: x[:, 0],
                                 score_fns=score_fns)
 
-    mock = mocker.patch.object(PermutationImportance, '_compute_metrics', wraps=pfi._compute_metrics)
+    mock_pred = mocker.patch.object(pfi, 'predictor', wraps=pfi.predictor)
+    mock_metrics = mocker.patch.object(PermutationImportance, '_compute_metrics', wraps=pfi._compute_metrics)
     feature_importances = pfi._compute_exact(X=X,
                                              y=y,
                                              kind='difference',
@@ -258,8 +274,12 @@ def test_compute_exact(mocker):
                                              loss_orig={},
                                              score_orig=score_orig)
 
-    assert np.allclose(y_expected, mock.call_args.kwargs['y'])
-    assert np.allclose(y_hat_expected, mock.call_args.kwargs['y_hat'])
+    X_full = np.concatenate([args_pred[0] for args_pred, _ in mock_pred.call_args_list])
+    assert np.allclose(X_full, X_expected)
+
+    _, kwargs_metrics = mock_metrics.call_args
+    assert np.allclose(y_expected, kwargs_metrics['y'])
+    assert np.allclose(y_hat_expected, kwargs_metrics['y_hat'])
     assert np.isclose(feature_importances['accuracy'], 1)
 
 
@@ -288,8 +308,8 @@ def test_compute_estimate(n_repeats, mocker):
                                                 loss_orig={},
                                                 score_orig={'accuracy': [1.]})
 
-    for call_args in mock.call_args_list:
-        y_call, y_hat_call = call_args.kwargs['y'], call_args.kwargs['y_hat']
+    for _, kwargs in mock.call_args_list:
+        y_call, y_hat_call = kwargs['y'], kwargs['y_hat']
         assert len(y_call) == len(y_hat_call)
         assert len(y_call) % 2 == 0
 

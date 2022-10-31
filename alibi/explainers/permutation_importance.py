@@ -69,7 +69,7 @@ Dictionary of supported string specified metrics
     - Loss functions
         - ``'max_error'`` - Maximum residual error. See `sklearn.metrics.max_error`_ for documentation.
 
-        - ``'mean_absolute_error`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
+        - ``'mean_absolute_error'`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
         for documentation.
 
         - ``'mean_squared_error'`` - Mean squared error regression loss. See `sklearn.metrics.mean_squared_error`_ \
@@ -180,23 +180,22 @@ class PermutationImportance(Explainer):
             A prediction function which receives as input a `numpy` array of size `N x F`, and outputs a
             `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances,
             `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
-            compatible with the loss functions provided in the
-            :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
+            compatible with the loss and score functions provide in `loss_fns` and `score_fns`.
         loss_fns
             A loss function or a dictionary of loss functions having as keys the names of the loss functions and as
-            values the loss functions. Lower values are better. Note that the `predictor` output must be compatible
-            with every loss function. Every loss function is expected to receive the following arguments:
+            values the loss functions (i.e., lower values are better). Note that the `predictor` output must be
+            compatible with every loss function. Every loss function is expected to receive the following arguments:
 
              - `y_true` : ``np.ndarray`` -  a `numpy` array of ground-truth labels.
 
-             - `y_pred` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to the output of \
-             the model.
+             - `y_pred` | `y_score` : ``np.ndarray`` - a `numpy` array of model predictions. This corresponds to \
+             the output of the model.
 
              - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
 
         score_fns
             A score function or a dictionary of score functions having as keys the names of the score functions and as
-            values the score functions. Higher values are better. As with the `loss_fns`, the `predictor` output
+            values the score functions (i.e, higher values are better). As with the `loss_fns`, the `predictor` output
             must be compatible with every score function and the score function must have the same signature
             presented in the `loss_fns` parameter description.
         feature_names
@@ -212,9 +211,9 @@ class PermutationImportance(Explainer):
         if (loss_fns is None) and (score_fns is None):
             raise ValueError('At least one loss function or a score function must be provided.')
 
-            # initialize loss and score functions
-        self.loss_fns = PermutationImportance._init_metrics(metric_fns=loss_fns, type='loss')
-        self.score_fns = PermutationImportance._init_metrics(metric_fns=score_fns, type='score')
+        # initialize loss and score functions
+        self.loss_fns = PermutationImportance._init_metrics(metric_fns=loss_fns, metric_type='loss')
+        self.score_fns = PermutationImportance._init_metrics(metric_fns=score_fns, metric_type='score')
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
@@ -335,7 +334,7 @@ class PermutationImportance(Explainer):
                               Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                           ]
                       ],
-                      type: Literal['loss', 'score']
+                      metric_type: Literal['loss', 'score']
                       ) -> Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]:
         """
         Helper function to initialize the loss and score functions.
@@ -345,7 +344,7 @@ class PermutationImportance(Explainer):
         metric_fns
             See `loss_fns` or `score_fns` as defined in
             :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain`.
-        type
+        metric_type
             Metric function type. Supported types: ``'loss'`` | ``'score'``.
 
         Returns
@@ -356,7 +355,7 @@ class PermutationImportance(Explainer):
             return {}
 
         if callable(metric_fns):
-            return {type: metric_fns}
+            return {metric_type: metric_fns}
 
         if isinstance(metric_fns, str):
             metric_fns = [metric_fns]
@@ -366,13 +365,13 @@ class PermutationImportance(Explainer):
 
             for metric_fn in metric_fns:
                 if not isinstance(metric_fn, str):
-                    raise ValueError(f'The {type} inside {type}_fns must be of type `str`.')
+                    raise ValueError(f'The {metric_type} inside {metric_type}_fns must be of type `str`.')
 
-                if metric_fn not in METRIC_FNS[type]:
-                    raise ValueError(f'Unknown {type} name. Received {metric_fn}. '
-                                     f'Supported values are: {list(METRIC_FNS[type].keys())}')
+                if metric_fn not in METRIC_FNS[metric_type]:
+                    raise ValueError(f'Unknown {metric_type} name. Received {metric_fn}. '
+                                     f'Supported values are: {list(METRIC_FNS[metric_type].keys())}')
 
-                dict_metric_fns[metric_fn] = METRIC_FNS[type][metric_fn]
+                dict_metric_fns[metric_fn] = METRIC_FNS[metric_type][metric_fn]
             return dict_metric_fns
 
         return metric_fns
@@ -553,7 +552,7 @@ class PermutationImportance(Explainer):
             if sample_weight is not None:
                 weights.append(np.full(shape=(len(X_tmp),), fill_value=sample_weight[i]))  # type: ignore[union-attr]
 
-        # concatenate all predictions and construct ground-truth array. At this point, the `y_pre` vector
+        # concatenate all predictions and construct ground-truth array. At this point, the `y_hat` vector
         # should contain `N x (N - 1)` predictions, where `N` is the number of samples in `X`.
         y_hat = np.concatenate(y_hat, axis=0)
         y = np.tile(y.reshape(-1, 1), reps=(1, len(X) - 1)).reshape(-1)
@@ -805,7 +804,7 @@ def plot_permutation_importance(exp: Explanation,
                                 metric_names: Union[List[Union[str, int]], Literal['all']] = 'all',
                                 n_cols: int = 3,
                                 sort: bool = True,
-                                top_k: int = 10,
+                                top_k: Optional[int] = None,
                                 ax: Optional[Union['plt.Axes', np.ndarray]] = None,
                                 bar_kw: Optional[dict] = None,
                                 fig_kw: Optional[dict] = None) -> 'plt.Axes':
@@ -820,9 +819,13 @@ def plot_permutation_importance(exp: Explanation,
     features
         A list of feature entries provided in `feature_names` argument  to the
         :py:meth:`alibi.explainers.permutation_importance.PermutationImportance.explain` method, or
-        ``'all'`` to  plot all the explained features. For example, if  ``feature_names = ['temp', 'hum', 'windspeed']``
-        and we want to plot the values only for the ``'temp'`` and ``'windspeed'``, then we would set
-        ``features=[0, 2]``. Defaults to ``'all'``.
+        ``'all'`` to  plot all the explained features. For example, consider that the
+        ``feature_names = ['temp', 'hum', 'windspeed', 'season']``. If we set `features=None` in the `explain` method,
+        meaning that all the feature were explained, and we want to plot only the values  for the ``'temp'`` and
+        ``'windspeed'``, then we would set ``features=[0, 2]``. Otherwise, if we set `features=[1, 2, 3]` in the
+        explain method, meaning that we explained ``['hum', 'windspeed', 'season']``, and we want to plot the values
+        only for ``['windspeed', 'season']``, then we would set ``features=[1, 2]`` (i.e., their index in the
+        `features` list passed to the `explain` method). Defaults to ``'all'``.
     metric_names
         A list of metric entries in the `exp.data['metrics']` to plot the permutation feature importance for,
         or ``'all'`` to plot the permutation feature importance for all metrics (i.e., loss and score functions).

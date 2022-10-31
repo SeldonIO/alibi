@@ -41,8 +41,15 @@ class Kind(str, Enum):
 METRIC_FNS = {
     "loss": {
         # regression
+        "max_error": sklearn.metrics.max_error,
         "mean_absolute_error": sklearn.metrics.mean_absolute_error,
         "mean_squared_error": sklearn.metrics.mean_squared_error,
+        "mean_squared_log_error": sklearn.metrics.mean_squared_log_error,
+        "median_absolute_error": sklearn.metrics.median_absolute_error,
+        "mean_absolute_percentage_error": sklearn.metrics.mean_absolute_percentage_error,
+
+        # classification
+        "log_loss": sklearn.metrics.log_loss,
     },
     "score": {
         # classification
@@ -60,17 +67,40 @@ METRIC_FNS = {
 Dictionary of supported string specified metrics
 
     - Loss functions
+        - ``'max_error'`` - Maximum residual error. See `sklearn.metrics.max_error`_ for documentation.
+
         - ``'mean_absolute_error`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
         for documentation.
 
         - ``'mean_squared_error'`` - Mean squared error regression loss. See `sklearn.metrics.mean_squared_error`_ \
         for documentation.
 
+        - ``'mean_squared_log_error'`` - Mean squared logarithmic error regression loss. \
+        See `sklearn.metrics.mean_squared_log_error`_ for documentation.
+
+        - ``'median_absolute_error'`` - Median absolute error regression loss. \
+        See `sklearn.metrics.median_absolute_error`_ for documentation.
+
+        - ``'mean_absolute_percentage_error'`` - Mean absolute percentage error (MAPE) regression loss. \
+        See `sklearn.metrics.mean_absolute_percentage_error`_ for documentation.
+
+            .. _sklearn.metrics.max_error:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html#sklearn.metrics.max_error
+
             .. _sklearn.metrics.mean_absolute_error:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
 
             .. _sklearn.metrics.mean_squared_error:
                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
+
+            .. _sklearn.metrics.mean_squared_log_error:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html#sklearn.metrics.mean_squared_log_error
+
+            .. _sklearn.metrics.median_absolute_error:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.median_absolute_error.html#sklearn.metrics.median_absolute_error
+
+            .. _sklearn.metrics.mean_absolute_percentage_error:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
 
     - Score functions
         - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score`_ for documentation.
@@ -116,7 +146,9 @@ class PermutationImportance(Explainer):
     For details of the method see the papers:
 
      - https://link.springer.com/article/10.1023/A:1010933404324
+
      - https://arxiv.org/abs/1801.01489
+
     """
 
     def __init__(self,
@@ -202,7 +234,7 @@ class PermutationImportance(Explainer):
             A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
             test dataset.
         y
-            A `N` (i.e. `(N, )`) ground-truth labels array corresponding the input feature `X`.
+            Ground-truth labels array  of size `N` (i.e. `(N, )`) corresponding the input feature `X`.
         features
             An optional list of features or tuples of features for which to compute the permutation feature
             importance. If not provided, the permutation feature importance will be computed for every single features

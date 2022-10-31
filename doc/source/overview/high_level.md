@@ -271,8 +271,8 @@ based on the partial dependence, the practitioner should be aware that the metho
 
 Alibi provides [permutation importance](../methods/PermutationImportance.ipynb) as a way to measure globally the 
 feature importance. The computation of the feature importance is based on the degree of model performance degradation 
-when the feature values within a feature column are permuted. Because of that, a practitioner should be aware that
-the importance of correlated features can be split between them.
+when the feature values within a feature column are permuted. One important behavior that a practitioner should be 
+aware of is that the importance of correlated features can be split between them.
 
 
 | Pros                                                                                                                                  | Cons                                                        |

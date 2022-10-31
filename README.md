@@ -221,12 +221,12 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - Examples:
     [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
 
-- Partial Dependence Variance([https://arxiv.org/abs/1805.04755])
+- Partial Dependence Variance([Greenwell et al., 2018](https://arxiv.org/abs/1805.04755))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)
   - Examples:
     [Friedman’s regression problem](https://docs.seldon.io/projects/alibi/en/stable/examples/pd_variance_regression_friedman.html)
 
-- Permutation Importance([https://arxiv.org/abs/1801.01489])
+- Permutation Importance([Breiman, 2001](https://link.springer.com/article/10.1023/A:1010933404324); [Fisher et al., 2018](https://arxiv.org/abs/1801.01489))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html)
   - Examples:
     [Who's Going to Leave Next?](https://docs.seldon.io/projects/alibi/en/stable/examples/permutation_importance_classification_leave.html)

@@ -51,7 +51,7 @@ class _PytorchBackend:
         loss.backward()
         model.train(initial_model_state)
         return np.concatenate([_PytorchBackend.to_numpy(param.grad).reshape(-1)
-                               for param in model.parameters()])
+                               for param in model.parameters() if param.grad])
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> torch.Tensor:

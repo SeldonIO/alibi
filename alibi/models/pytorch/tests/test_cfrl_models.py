@@ -9,9 +9,9 @@ from alibi.models.pytorch.cfrl_models import (ADULTDecoder, ADULTEncoder,
 @pytest.mark.parametrize('output_dim', [10, 20])
 def test_mnist_classifier(output_dim):
     """ Tests whether the `MNISTClassifier` has a deterministic output when is in the
-     evaluation model and if the output shape matches the expectation. """
+     evaluation mode and if the output shape matches the expectation. """
     x = torch.randn(1, 1, 28, 28)
-    model = MNISTClassifier(output_dim=output_dim).cpu()
+    model = MNISTClassifier(output_dim=output_dim)
 
     model.eval()
     output1 = model(x)
@@ -25,9 +25,9 @@ def test_mnist_autoencoder(latent_dim):
     """ Tests whether the latent representation is in [-1, 1] and has the
     expected shape, and the composition of the encoder and decoder modules. """
     x = torch.randn(1, 1, 28, 28)
-    enc = MNISTEncoder(latent_dim=latent_dim).cpu()
-    dec = MNISTDecoder(latent_dim=latent_dim).cpu()
-    ae = AE(encoder=enc, decoder=dec).cpu()
+    enc = MNISTEncoder(latent_dim=latent_dim)
+    dec = MNISTDecoder(latent_dim=latent_dim)
+    ae = AE(encoder=enc, decoder=dec)
 
     z = enc(x)
     assert z.shape[-1] == latent_dim
@@ -46,7 +46,7 @@ def test_adult_encoder(input_dim, hidden_dim, latent_dim):
     """ Tests whether the latent representation is [-1, 1] and has the expected shape,
     and if the fully connected hidden layers have the expected shapes."""
     x = torch.randn(1, input_dim)
-    model = ADULTEncoder(hidden_dim=hidden_dim, latent_dim=latent_dim).cpu()
+    model = ADULTEncoder(hidden_dim=hidden_dim, latent_dim=latent_dim)
 
     z = model(x)
     assert z.shape[-1] == latent_dim
@@ -70,7 +70,7 @@ def test_adult_decoder(input_dim, hidden_dim, output_dims):
     head has the expected shape, and if the fully connected hidden layer have the
     expected shapes. """
     z = torch.randn(1, input_dim)
-    model = ADULTDecoder(hidden_dim=hidden_dim, output_dims=output_dims).cpu()
+    model = ADULTDecoder(hidden_dim=hidden_dim, output_dims=output_dims)
 
     x_hat = model(z)
     assert len(x_hat) == len(output_dims)
@@ -94,9 +94,9 @@ def test_adult_autoencoder(input_dim, hidden_dim, latent_dim, output_dims):
     """ Tests heterogeneous autoencoder composition. """
     x = torch.randn(1, input_dim)
 
-    enc = ADULTEncoder(hidden_dim=hidden_dim, latent_dim=latent_dim).cpu()
-    dec = ADULTDecoder(hidden_dim=hidden_dim, output_dims=output_dims).cpu()
-    ae = HeAE(encoder=enc, decoder=dec).cpu()
+    enc = ADULTEncoder(hidden_dim=hidden_dim, latent_dim=latent_dim)
+    dec = ADULTDecoder(hidden_dim=hidden_dim, output_dims=output_dims)
+    ae = HeAE(encoder=enc, decoder=dec)
 
     x_hat1 = ae(x)
     x_hat2 = dec(enc(x))

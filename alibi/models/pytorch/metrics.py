@@ -113,7 +113,7 @@ class Metric(ABC):
 
     def result(self) -> Dict[str, float]:
         """
-        Computes the result according the reduction procedure.
+        Computes the result according to the reduction procedure.
 
         Returns
         -------

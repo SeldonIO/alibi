@@ -13,7 +13,7 @@ def test_heae_output(input_dim, latent_dim):
         nn.ReLU()
     )
     decoder = nn.Linear(latent_dim, input_dim)
-    heae = HeAE(encoder=encoder, decoder=decoder).cpu()
+    heae = HeAE(encoder=encoder, decoder=decoder)
 
     with pytest.raises(ValueError) as err:
         heae(x)

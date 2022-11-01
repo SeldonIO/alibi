@@ -162,7 +162,7 @@ def test_compile_multimodal(multimodal_model):
     }
 ], indirect=True)
 def test_compile_multimodal_mismatch(multimodal_model):
-    """ Test compile function raises and error when multiple loss functions are passed but the number \
+    """ Test compile function raises an error when multiple loss functions are passed but the number \
     of loss weights does not match the number of loss functions. """
     with pytest.raises(ValueError) as err:
         multimodal_model.compile(optimizer=optimizer_class(multimodal_model.parameters(), lr=lr),
@@ -604,15 +604,14 @@ def test_reset_metrics_multimodal(multimodal_model, dataset):
         assert np.isclose(multimodal_model.metrics[key].count, 0)
 
 
-def test_saving():
+def test_saving(tmp_path):
     """ Test saving functionality. """
     model1 = UnimodalModel(input_dim=input_dim, output_dim=output_dim)
     model2 = UnimodalModel(input_dim=input_dim, output_dim=output_dim)
 
-    with tempfile.TemporaryDirectory() as temp_dir:
-        path = os.path.join(temp_dir, 'weights.pt')
-        model1.save_weights(path)
-        model2.load_weights(path)
+    path = tmp_path / 'weights.pt'
+    model1.save_weights(path)
+    model2.load_weights(path)
 
     for params1, params2 in zip(model1.parameters(), model2.parameters()):
         assert torch.allclose(params1, params2)

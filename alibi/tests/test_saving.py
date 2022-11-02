@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -341,7 +340,6 @@ def test_save_AnchorImage(ai_explainer, mnist_predictor):
         assert exp0.meta == exp1.meta
 
 
-@pytest.mark.skipif(sys.platform.startswith("win"), reason="Test fails intermittently on windows platform")
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize('atext_explainer', [lazy_fixture('atext_explainer_nlp'), lazy_fixture('atext_explainer_lm')])
 def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):

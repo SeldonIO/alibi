@@ -1,6 +1,7 @@
 import pytest
+import numpy as np
 from requests import RequestException
-from alibi.datasets import fetch_adult, fetch_movie_sentiment, load_cats
+from alibi.datasets import fetch_adult, fetch_movie_sentiment, load_cats, fetch_imagenet_10
 
 # TODO use mocking instead of relying on external services
 
@@ -63,3 +64,52 @@ def test_cats(return_X_y, target_size):
         y = data.target
     assert len(X) == len(y)
     assert X.shape[1:] == target_size + (3,)  # 3 channels
+
+
+@pytest.mark.parametrize('target_size', [(224, 224)])
+@pytest.mark.parametrize('num_classes', [10])
+def test_imagenet_10(target_size, num_classes):
+    try:
+        data = fetch_imagenet_10()
+    except RequestException:
+        pytest.skip('ImageNet10 dataset URL down.')
+
+    assert isinstance(data, dict)
+
+    # check if the expected keys exist in the dict
+    keys = ['trainset', 'testset', 'int_to_str_labels', 'str_to_int_labels', 'mean_channels']
+    assert all([key in data for key in keys])
+
+    # check the types of the values in the dict
+    assert isinstance(data['trainset'], tuple)
+    assert isinstance(data['testset'], tuple)
+    assert isinstance(data['int_to_str_labels'], dict)
+    assert isinstance(data['str_to_int_labels'], dict)
+    assert isinstance(data['mean_channels'], np.ndarray)
+
+    assert len(data['trainset']) == 2
+    assert len(data['testset']) == 2
+
+    X_train, y_train = data['trainset']
+    X_test, y_test = data['testset']
+
+    # check dataset size
+    assert len(X_train) == len(y_train)
+    assert len(X_test) == len(y_test)
+
+    # check input shape
+    assert X_train.shape[1:] == target_size + (3, )
+    assert X_test.shape[1:] == target_size + (3, )
+
+    # check labels
+    train_class_indices = np.unique(y_train)
+    test_class_indices = np.unique(y_test)
+    assert len(train_class_indices) == num_classes
+    assert len(test_class_indices) == num_classes
+
+    class_names = {'stingray', 'trilobite', 'centipede', 'slug', 'snail', 'Rhodesian ridgeback',
+                   'beagle', 'golden retriever', 'sea lion', 'espresso'}
+    train_class_names = set([data['int_to_str_labels'][i] for i in train_class_indices])
+    test_class_names = set([data['int_to_str_labels'][i] for i in test_class_indices])
+    assert train_class_names == class_names
+    assert test_class_names == class_names

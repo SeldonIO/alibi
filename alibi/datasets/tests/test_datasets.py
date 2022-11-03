@@ -1,7 +1,9 @@
-import pytest
 import numpy as np
+import pytest
+from alibi.datasets import (fetch_adult, fetch_fashion_mnist,
+                            fetch_imagenet_10, fetch_movie_sentiment,
+                            load_cats)
 from requests import RequestException
-from alibi.datasets import fetch_adult, fetch_movie_sentiment, load_cats, fetch_imagenet_10
 
 # TODO use mocking instead of relying on external services
 
@@ -113,3 +115,30 @@ def test_imagenet_10(target_size, num_classes):
     test_class_names = set([data['int_to_str_labels'][i] for i in test_class_indices])
     assert train_class_names == class_names
     assert test_class_names == class_names
+
+
+FASHION_MNIST_DIM = 3
+FASHION_MNIST_FEATURES = 784
+FASHION_MNIST_CLASSES = 10
+
+
+@pytest.mark.parametrize('return_X_y', [True, False])
+def test_fashion_mnist(return_X_y):
+
+    try:
+        data = fetch_fashion_mnist(return_X_y=return_X_y)
+    except RequestException:
+        pytest.skip('Fashion MNIST dataset URL down')
+
+    if return_X_y:
+        assert len(data) == 2
+        X, y = data
+    else:
+        assert len(data) == 3
+        X = data.data
+        y = data.target
+
+    assert X.ndim == FASHION_MNIST_DIM
+    assert X.reshape(X.shape[0], -1).shape[1] == FASHION_MNIST_FEATURES
+    assert len(X) == len(y)
+    assert len(set(y)) == FASHION_MNIST_CLASSES

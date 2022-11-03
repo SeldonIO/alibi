@@ -91,6 +91,7 @@ def test_imagenet_10(target_size, num_classes):
 
     assert len(data['trainset']) == 2
     assert len(data['testset']) == 2
+    assert data['mean_channels'].shape[-1] == 3
 
     X_train, y_train = data['trainset']
     X_test, y_test = data['testset']

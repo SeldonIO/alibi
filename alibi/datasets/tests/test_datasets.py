@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from alibi.datasets import (fetch_adult, fetch_fashion_mnist,
+from alibi.datasets import (fetch_adult, fetch_fashion_mnist, fetch_imagenet,
                             fetch_imagenet_10, fetch_movie_sentiment,
                             load_cats)
 from requests import RequestException
@@ -115,6 +115,12 @@ def test_imagenet_10(target_size, num_classes):
     test_class_names = set([data['int_to_str_labels'][i] for i in test_class_indices])
     assert train_class_names == class_names
     assert test_class_names == class_names
+
+
+def test_imagenet():
+    with pytest.warns() as warn:
+        fetch_imagenet()
+    assert 'The Imagenet API is no longer publicly available' in str(warn[0].message)
 
 
 FASHION_MNIST_DIM = 3

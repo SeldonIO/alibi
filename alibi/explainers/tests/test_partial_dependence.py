@@ -1,7 +1,9 @@
 import numbers
 import re
+from copy import deepcopy
 from typing import List, Tuple
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 from pytest_lazyfixture import lazy_fixture
@@ -14,8 +16,10 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.utils import shuffle
 
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence
-from alibi.explainers.partial_dependence import _sample_ice
+from alibi.explainers.partial_dependence import _plot_one_pd_num, _sample_ice
 
 
 @pytest.fixture(scope='module')
@@ -485,3 +489,176 @@ def test_sklearn_blackbox(rf_classifier, adult_data, features, params):
     else:
         for i in range(len(exp_sklearn['values'])):
             assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+
+
+@pytest.fixture(scope='function')
+def explanation():
+    meta = deepcopy(DEFAULT_META_PD)
+    data = deepcopy(DEFAULT_DATA_PD)
+
+    meta.update(params={
+        'kind': 'both',
+        'percentiles': (0.0, 1.0),
+        'grid_resolution': 2,
+        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3'],
+        'categorical_names': {2: [0, 1, 2], 3: [0, 1, 2, 3, 4]},
+        'target_names': ['c_1', 'c_2']
+    })
+
+    data['data'] = {
+        'feature_deciles': [
+            np.array(
+                [-2.81421645, -2.48586831, -2.15752016, -1.82917201, -1.50082386, -1.17247572, -0.84412757, -0.51577942,
+                 -0.18743127, 0.14091688, 0.46926502]),
+            np.array(
+                [-2.06038767, -1.93617523, -1.81196279, -1.68775035, -1.56353791, -1.43932547, -1.31511303, -1.19090059,
+                 -1.06668815, -0.94247571, -0.81826327]),
+            None,
+            None,
+            [
+                np.array([-2.81421645, -2.48586831, -2.15752016, -1.82917201, -1.50082386, -1.17247572, -0.84412757,
+                          -0.51577942, -0.18743127, 0.14091688, 0.46926502]),
+                np.array([-2.06038767, -1.93617523, -1.81196279, -1.68775035, -1.56353791, -1.43932547, -1.31511303,
+                          -1.19090059, -1.06668815, -0.94247571, -0.81826327])
+            ],
+            [
+                np.array([-2.06038767, -1.93617523, -1.81196279, -1.68775035, -1.56353791, -1.43932547, -1.31511303,
+                          -1.19090059, -1.06668815, -0.94247571, -0.81826327]),
+                None
+            ],
+            [
+                None,
+                np.array([-2.06038767, -1.93617523, -1.81196279, -1.68775035, -1.56353791, -1.43932547, -1.31511303,
+                          -1.19090059, -1.06668815, -0.94247571, -0.81826327])
+            ],
+            [
+                None,
+                None
+            ]
+        ],
+        'pd_values': [
+            np.array([[0.12900344, 0.02424783]]),
+            np.array([[0.00189171, 0.15135956]]),
+            np.array([[0.12759941]]),
+            np.array([[0.12759941]]),
+            np.array([[[0.00329574, 0.25471114], [0.00048768, 0.04800799]]]),
+            np.array([[[0.00189171], [0.15135956]]]),
+            np.array([[[0.00189171, 0.15135956]]]),
+            np.array([[[0.12759941]]])
+        ],
+        'ice_values': [
+            np.array([[[0.00329574, 0.00048768], [0.25471114, 0.04800799]]]),
+            np.array([[[0.00048768, 0.04800799], [0.00329574, 0.25471114]]]),
+            np.array([[[0.00048768], [0.25471114]]]),
+            np.array([[[0.00048768], [0.25471114]]]),
+            np.array([[[[0.00329574, 0.25471114], [0.00048768, 0.04800799]],
+                       [[0.00329574, 0.25471114], [0.00048768, 0.04800799]]]]),
+            np.array([[[[0.00048768], [0.04800799]], [[0.00329574], [0.25471114]]]]),
+            np.array([[[[0.00048768, 0.04800799]], [[0.00329574, 0.25471114]]]]),
+            np.array([[[[0.00048768]], [[0.25471114]]]])
+        ],
+        'feature_values': [
+            np.array([-2.81421645, 0.46926502]),
+            np.array([-2.06038767, -0.81826327]),
+            np.array([1.]),
+            np.array([3.]),
+            [
+                np.array([-2.81421645, 0.46926502]),
+                np.array([-2.06038767, -0.81826327])
+            ],
+            [
+                np.array([-2.06038767, -0.81826327]),
+                np.array([1.])
+            ],
+            [
+                np.array([1.]),
+                np.array([-2.06038767, -0.81826327])
+            ],
+            [
+                np.array([1.]),
+                np.array([3.])
+            ]
+        ],
+        'feature_names': [
+            'f_0', 'f_1', 'f_2', 'f_3',
+            ('f_0', 'f_1'), ('f_1', 'f_2'), ('f_2', 'f_1'), ('f_2', 'f_3')
+        ]
+    }
+    return Explanation(meta=meta, data=data)
+
+
+def test__plot_one_pd_num_average(explanation):
+    """ Test the `_plot_one_pd_num` function for ``kind='average'``. """
+    feature, target_idx = 0, 0
+    explanation.meta['params']['kind'] = 'average'
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_num(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             ax=ax)
+
+    x, y = ax.lines[0].get_xydata().T
+    assert np.allclose(x, explanation.data['feature_values'][feature])
+    assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])
+
+    segments = ax.collections[0].get_segments()
+    deciles = np.array([segment[0, 0] for segment in segments])
+    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+
+
+def test__plot_one_pd_num_individual(explanation):
+    """ Test the `_plot_one_pd_num` function for ``kind='individual'``. """
+    feature, target_idx, n_ice = 0, 0, 2
+    explanation.meta['params']['kind'] = 'individual'
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_num(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             n_ice=n_ice,
+                             ax=ax)
+
+    for i in range(n_ice):
+        x, y = ax.lines[i].get_xydata().T
+        assert np.allclose(x, explanation.data['feature_values'][feature])
+        assert np.allclose(y, explanation.data['ice_values'][feature][target_idx][i])
+
+    segments = ax.collections[0].get_segments()
+    deciles = np.array([segment[0, 0] for segment in segments])
+    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+
+
+def test__plot_one_pd_num_both(explanation):
+    """ Test the `_plot_one_pd_num` function for ``kind='both'``. """
+    feature, target_idx, n_ice = 0, 0, 2
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_num(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             n_ice=n_ice,
+                             ax=ax)
+
+    x1, y1 = ax.lines[0].get_xydata().T  # ice 1
+    x2, y2 = ax.lines[1].get_xydata().T  # ice
+    x3, y3 = ax.lines[2].get_xydata().T  # pd
+
+    assert np.allclose(x1, explanation.data['feature_values'][feature])
+    assert np.allclose(x2, explanation.data['feature_values'][feature])
+    assert np.allclose(x3, explanation.data['feature_values'][feature])
+    assert np.allclose(y3, explanation.data['pd_values'][feature][target_idx])
+
+    # sorting is necessary as it seems that the order in the `ax.lines` for ice is arbitrary
+    y = np.vstack([y1, y2])
+    y = y[np.argsort(y[:, 1])]
+    expected_ice = explanation.data['ice_values'][feature][target_idx]
+    expected_ice = expected_ice[np.argsort(expected_ice[:, 1])]
+    assert np.allclose(y, expected_ice)
+
+    segments = ax.collections[0].get_segments()
+    deciles = np.array([segment[0, 0] for segment in segments])
+    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])

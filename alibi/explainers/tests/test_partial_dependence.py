@@ -785,6 +785,15 @@ def test__plot_two_pd_num_cat(feature, explanation):
     num_idx = 0 if num_feat == feat0 else 1
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][num_idx][1:-1])
 
+    pd_values = explanation.data['pd_values'][feature][target_idx]
+    if num_idx == 0:
+        pd_values = pd_values.T
+
+    for i in range(1, len(explanation.data['feature_values'][feature][cat_idx]) + 1):
+        x, y = ax.lines[i].get_xydata().T
+        assert np.allclose(x, explanation.data['feature_values'][feature][num_idx])
+        assert np.allclose(y, pd_values[i - 1])
+
 
 def test__plot_two_pd_cat_cat(explanation):
     """ Test the `_plot_two_pd_cat_cat` function. """
@@ -795,6 +804,8 @@ def test__plot_two_pd_cat_cat(explanation):
                                  feature=feature,
                                  target_idx=target_idx,
                                  ax=ax)
+
+    assert np.allclose(ax.images[0].get_array().data, explanation.data['pd_values'][feature])
 
     xlabel = ax.get_xlabel()
     ylabel = ax.get_ylabel()
@@ -815,3 +826,4 @@ def test__plot_two_pd_cat_cat(explanation):
                              explanation.data['feature_values'][feature][0]]
     assert np.allclose(expected_x_ticklabels, x_ticklabels)
     assert np.allclose(expected_y_ticklabels, y_ticklables)
+

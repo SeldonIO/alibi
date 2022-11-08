@@ -587,7 +587,6 @@ def explanation():
     return Explanation(meta=meta, data=data)
 
 
-# TODO: check the x axis label
 def test__plot_one_pd_num_average(explanation):
     """ Test the `_plot_one_pd_num` function for ``kind='average'``. """
     feature, target_idx = 0, 0
@@ -607,6 +606,7 @@ def test__plot_one_pd_num_average(explanation):
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
 
 def test__plot_one_pd_num_individual(explanation):
@@ -630,6 +630,7 @@ def test__plot_one_pd_num_individual(explanation):
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
 
 def test__plot_one_pd_num_both(explanation):
@@ -653,7 +654,7 @@ def test__plot_one_pd_num_both(explanation):
     assert np.allclose(x3, explanation.data['feature_values'][feature])
     assert np.allclose(y3, explanation.data['pd_values'][feature][target_idx])
 
-    # sorting is necessary as it seems that the order in the `ax.lines` for ice is arbitrary
+    # sorting is necessary as it seems that the order in the `ax.lines` for ice changes
     y = np.vstack([y1, y2])
     y = y[np.argsort(y[:, 1])]
     expected_ice = explanation.data['ice_values'][feature][target_idx]
@@ -663,6 +664,7 @@ def test__plot_one_pd_num_both(explanation):
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
 
 def test__plot_one_pd_cat_average(explanation):

@@ -1,4 +1,5 @@
 import re
+from copy import deepcopy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -222,8 +223,8 @@ def test_grid_points_stress(num_bins, perc_bins, size_data, outside_grid):
 
 @pytest.fixture(scope='module')
 def explanation():
-    meta = DEFAULT_META_ALE
-    data = DEFAULT_DATA_ALE
+    meta = deepcopy(DEFAULT_META_ALE)
+    data = deepcopy(DEFAULT_DATA_ALE)
 
     params = {
         'check_feature_resolution': True,

@@ -19,7 +19,10 @@ from sklearn.utils import shuffle
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence
-from alibi.explainers.partial_dependence import _plot_one_pd_num, _plot_one_pd_cat, _sample_ice
+from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
+                                                 _plot_one_pd_num,
+                                                 _plot_two_pd_num_num,
+                                                 _sample_ice)
 
 
 @pytest.fixture(scope='module')
@@ -635,7 +638,7 @@ def test__plot_one_pd_num_individual(explanation):
 
 def test__plot_one_pd_num_both(explanation):
     """ Test the `_plot_one_pd_num` function for ``kind='both'``. """
-    feature, target_idx, n_ice = 0, 0, 2
+    feature, target_idx = 0, 0
 
     _, ax = plt.subplots()
     ax, _ = _plot_one_pd_num(exp=explanation,
@@ -718,3 +721,29 @@ def test__plot_one_pd_cat_both(explanation):
     x, y = ax.lines[2].get_xydata().T  # pd
     assert np.allclose(x, explanation.data['feature_values'][feature])
     assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])
+
+
+def test__plot_two_pd_num_num(explanation):
+    """ Test the `_plot_two_pd_num_num` function. """
+    feature, target_idx = 4, 0
+    explanation.meta['params']['kind'] = 'average'
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_two_pd_num_num(exp=explanation,
+                                 feature=feature,
+                                 target_idx=target_idx,
+                                 ax=ax)
+
+    assert np.allclose(ax.get_xlim(), explanation.data['feature_values'][feature][0])
+    assert np.allclose(ax.get_ylim(), explanation.data['feature_values'][feature][1])
+
+    xsegments = ax.collections[-2].get_segments()
+    xdeciles = np.array([xsegment[0, 0] for xsegment in xsegments])
+    assert np.allclose(xdeciles, explanation.data['feature_deciles'][feature][0][1:-1])
+
+    ysegments = ax.collections[-1].get_segments()
+    ydeciles = np.array([ysegment[0, 1] for ysegment in ysegments])
+    assert np.allclose(ydeciles, explanation.data['feature_deciles'][feature][1][1:-1])
+
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature][0]
+    assert ax.get_ylabel() == explanation.data['feature_names'][feature][1]

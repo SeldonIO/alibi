@@ -132,51 +132,51 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
                             kind='both')
 
     # check that the values returned match the number of requested features
-    assert len(exp.feature_names) == len(features)
-    assert len(exp.pd_values) == len(features)
-    assert len(exp.ice_values) == len(features)
-    assert len(exp.feature_values) == len(features)
+    assert len(exp.data['feature_names']) == len(features)
+    assert len(exp.data['pd_values']) == len(features)
+    assert len(exp.data['ice_values']) == len(features)
+    assert len(exp.data['feature_values']) == len(features)
 
     for i, f in enumerate(features):
         if isinstance(f, Tuple):
             # check deciles
-            assert isinstance(exp.feature_deciles[i], List)
-            assert len(exp.feature_deciles[i]) == len(f)
-            assert len(exp.feature_deciles[i][0]) == 11
-            assert len(exp.feature_deciles[i][1]) == 11
+            assert isinstance(exp.data['feature_deciles'][i], List)
+            assert len(exp.data['feature_deciles'][i]) == len(f)
+            assert len(exp.data['feature_deciles'][i][0]) == 11
+            assert len(exp.data['feature_deciles'][i][1]) == 11
 
             # check feature_values
-            assert isinstance(exp.feature_values[i], List)
-            assert len(exp.feature_values[i]) == len(f)
-            assert len(exp.feature_values[i][0]) == (len(np.unique(X_train[:, f[0]]))
+            assert isinstance(exp.data['feature_values'][i], List)
+            assert len(exp.data['feature_values'][i]) == len(f)
+            assert len(exp.data['feature_values'][i][0]) == (len(np.unique(X_train[:, f[0]]))
                                                      if grid_resolution == np.inf else grid_resolution)
-            assert len(exp.feature_values[i][1]) == (len(np.unique(X_train[:, f[1]]))
+            assert len(exp.data['feature_values'][i][1]) == (len(np.unique(X_train[:, f[1]]))
                                                      if grid_resolution == np.inf else grid_resolution)
 
             # check pd_values
-            assert exp.pd_values[i].shape == (num_targets,
-                                              len(exp.feature_values[i][0]),
-                                              len(exp.feature_values[i][1]))
+            assert exp.data['pd_values'][i].shape == (num_targets,
+                                                      len(exp.data['feature_values'][i][0]),
+                                                      len(exp.data['feature_values'][i][1]))
 
             # check ice_values
-            assert exp.ice_values[i].shape == (num_targets,
-                                               num_instances,
-                                               len(exp.feature_values[i][0]),
-                                               len(exp.feature_values[i][1]))
+            assert exp.data['ice_values'][i].shape == (num_targets,
+                                                       num_instances,
+                                                       len(exp.data['feature_values'][i][0]),
+                                                       len(exp.data['feature_values'][i][1]))
 
         else:
             # check feature_deciles
-            assert len(exp.feature_deciles[i]) == 11
+            assert len(exp.data['feature_deciles'][i]) == 11
 
             # check feature_values
-            assert len(exp.feature_values[i]) == (len(np.unique(X_train[:, f]))
-                                                  if grid_resolution == np.inf else grid_resolution)
+            assert len(exp.data['feature_values'][i]) == (len(np.unique(X_train[:, f])) if grid_resolution == np.inf
+                                                          else grid_resolution)
 
             # check pd_values
-            assert exp.pd_values[i].shape == (num_targets, len(exp.feature_values[i]))
+            assert exp.data['pd_values'][i].shape == (num_targets, len(exp.data['feature_values'][i]))
 
             # check ice_value
-            assert exp.ice_values[i].shape == (num_targets, num_instances, len(exp.feature_values[i]))
+            assert exp.data['ice_values'][i].shape == (num_targets, num_instances, len(exp.data['feature_values'][i]))
 
 
 @pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
@@ -257,7 +257,7 @@ def test_grid_points(adult_data, rf_classifier, use_int):
                             grid_points=grid_points)
 
     for i in range(len(feature_names)):
-        np.testing.assert_allclose(exp.feature_values[i], grid_points[i])
+        np.testing.assert_allclose(exp.data['feature_values'][i], grid_points[i])
 
 
 @pytest.mark.parametrize('use_int', [False, True])
@@ -351,12 +351,12 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
     # compute pd with `sklearn`
     exp_sklearn = partial_dependence(X=X_train, estimator=rf, features=features, **params)
 
-    assert np.allclose(exp_alibi.pd_values[0], exp_sklearn['average'])
+    assert np.allclose(exp_alibi.data['pd_values'][0], exp_sklearn['average'])
     if isinstance(features[0], numbers.Integral):
-        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
     else:
         for i in range(len(exp_sklearn['values'])):
-            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['values'][i])
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
@@ -400,12 +400,12 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
                                   grid_resolution=params['grid_resolution'])
 
     # compare explanations
-    assert np.allclose(exp_alibi.pd_values[0][1], exp_sklearn['average'])
+    assert np.allclose(exp_alibi.data['pd_values'][0][1], exp_sklearn['average'])
     if isinstance(features[0], numbers.Integral):
-        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
     else:
         for i in range(len(exp_sklearn['values'])):
-            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['values'][i])
 
 
 @pytest.mark.parametrize('predictor', [GradientBoostingClassifier()])
@@ -440,12 +440,12 @@ def test_sklearn_recursion(predictor, binary_data, features, params):
                                   grid_resolution=params['grid_resolution'])
 
     # compare explanations
-    assert np.allclose(exp_alibi.pd_values[0], exp_sklearn['average'])
+    assert np.allclose(exp_alibi.data['pd_values'][0], exp_sklearn['average'])
     if isinstance(features[0], numbers.Integral):
-        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
     else:
         for i in range(len(exp_sklearn['values'])):
-            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['values'][i])
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
@@ -486,14 +486,14 @@ def test_sklearn_blackbox(rf_classifier, adult_data, features, params):
                                   grid_resolution=params['grid_resolution'])
 
     # compare explanations
-    assert np.allclose(exp_alibi.pd_values[0][1], exp_sklearn['average'])
-    assert np.allclose(exp_alibi.ice_values[0][1], exp_sklearn['individual'])
+    assert np.allclose(exp_alibi.data['pd_values'][0][1], exp_sklearn['average'])
+    assert np.allclose(exp_alibi.data['ice_values'][0][1], exp_sklearn['individual'])
 
     if isinstance(features[0], numbers.Integral):
-        assert np.allclose(exp_alibi.feature_values[0], exp_sklearn['values'][0])
+        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
     else:
         for i in range(len(exp_sklearn['values'])):
-            assert np.allclose(exp_alibi.feature_values[0][i], exp_sklearn['values'][i])
+            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['values'][i])
 
 
 @pytest.fixture(scope='function')

@@ -21,6 +21,7 @@ from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence
 from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
                                                  _plot_one_pd_num,
+                                                 _plot_two_pd_num_cat,
                                                  _plot_two_pd_num_num,
                                                  _sample_ice)
 
@@ -747,3 +748,38 @@ def test__plot_two_pd_num_num(explanation):
 
     assert ax.get_xlabel() == explanation.data['feature_names'][feature][0]
     assert ax.get_ylabel() == explanation.data['feature_names'][feature][1]
+
+
+@pytest.mark.parametrize('feature', [5, 6])
+def test__plot_two_pd_num_cat(feature, explanation):
+    """ Test the `__plot_two_pd_num_cat` function. """
+    target_idx = 0
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_two_pd_num_cat(exp=explanation,
+                                 feature=feature,
+                                 target_idx=target_idx,
+                                 ax=ax)
+
+    feat0, feat1 = explanation.data['feature_names'][feature]
+    feature_names = explanation.meta['params']['feature_names']
+    categorical_names = explanation.meta['params']['categorical_names']
+
+    num_feat = feat0 if feature_names.index(feat0) not in categorical_names else feat1
+    cat_feat = feat0 if feature_names.index(feat0) in categorical_names else feat1
+
+    legend = ax.get_legend()
+    legend_title = legend.get_texts()[0].get_text()
+    legend_entries = sorted([int(entry.get_text()) for entry in legend.get_texts()[1:]])
+
+    cat_idx = 0 if cat_feat == feat0 else 1
+    cat_values = sorted([int(val) for val in explanation.data['feature_values'][feature][cat_idx]])
+
+    assert ax.get_xlabel() == num_feat
+    assert legend_title == cat_feat
+    assert legend_entries == cat_values
+
+    segments = ax.collections[0].get_segments()
+    deciles = np.array([segment[0, 0] for segment in segments])
+    num_idx = 0 if num_feat == feat0 else 1
+    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][num_idx][1:-1])

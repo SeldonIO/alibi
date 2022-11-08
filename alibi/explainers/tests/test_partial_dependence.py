@@ -611,7 +611,7 @@ def test__plot_one_pd_num_average(explanation):
 
 def test__plot_one_pd_num_individual(explanation):
     """ Test the `_plot_one_pd_num` function for ``kind='individual'``. """
-    feature, target_idx, n_ice = 0, 0, 2
+    feature, target_idx = 0, 0
     explanation.meta['params']['kind'] = 'individual'
 
     _, ax = plt.subplots()
@@ -619,10 +619,10 @@ def test__plot_one_pd_num_individual(explanation):
                              feature=feature,
                              target_idx=target_idx,
                              center=False,
-                             n_ice=n_ice,
+                             n_ice='all',
                              ax=ax)
 
-    for i in range(n_ice):
+    for i in range(2):
         x, y = ax.lines[i].get_xydata().T
         assert np.allclose(x, explanation.data['feature_values'][feature])
         assert np.allclose(y, explanation.data['ice_values'][feature][target_idx][i])
@@ -642,24 +642,17 @@ def test__plot_one_pd_num_both(explanation):
                              feature=feature,
                              target_idx=target_idx,
                              center=False,
-                             n_ice=n_ice,
+                             n_ice='all',
                              ax=ax)
 
-    x1, y1 = ax.lines[0].get_xydata().T  # ice 1
-    x2, y2 = ax.lines[1].get_xydata().T  # ice
-    x3, y3 = ax.lines[2].get_xydata().T  # pd
+    for i in range(2):
+        x, y = ax.lines[i].get_xydata().T  # ice
+        assert np.allclose(x, explanation.data['feature_values'][feature])
+        assert np.allclose(y, explanation.data['ice_values'][feature][target_idx][i])
 
-    assert np.allclose(x1, explanation.data['feature_values'][feature])
-    assert np.allclose(x2, explanation.data['feature_values'][feature])
-    assert np.allclose(x3, explanation.data['feature_values'][feature])
-    assert np.allclose(y3, explanation.data['pd_values'][feature][target_idx])
-
-    # sorting is necessary as it seems that the order in the `ax.lines` for ice changes
-    y = np.vstack([y1, y2])
-    y = y[np.argsort(y[:, 1])]
-    expected_ice = explanation.data['ice_values'][feature][target_idx]
-    expected_ice = expected_ice[np.argsort(expected_ice[:, 1])]
-    assert np.allclose(y, expected_ice)
+    x, y = ax.lines[2].get_xydata().T  # pd
+    assert np.allclose(x, explanation.data['feature_values'][feature])
+    assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])
 
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
@@ -683,3 +676,45 @@ def test__plot_one_pd_cat_average(explanation):
     assert np.allclose(x, explanation.data['feature_values'][feature])
     assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])
     assert ax.get_xlabel() == explanation.data['feature_names'][feature]
+
+
+def test__plot_one_pd_cat_individual(explanation):
+    """ Test the `_plot_one_pd_cat` for ``kind='individual'``. """
+    feature, target_idx = 2, 0
+    explanation.meta['params']['kind'] = 'individual'
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_cat(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             n_ice='all',
+                             ax=ax)
+
+    for i in range(2):
+        x, y = ax.lines[i].get_xydata().T
+        assert np.allclose(x, explanation.data['feature_values'][feature])
+        assert np.allclose(y, explanation.data['ice_values'][feature][target_idx][i])
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature]
+
+
+def test__plot_one_pd_cat_both(explanation):
+    """ Test the `_plot_one_pd_cat` function for ``kind='both'``. """
+    feature, target_idx = 2, 0
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_cat(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             n_ice='all',
+                             ax=ax)
+
+    for i in range(2):
+        x, y = ax.lines[i].get_xydata().T  # ice
+        assert np.allclose(x, explanation.data['feature_values'][feature])
+        assert np.allclose(y, explanation.data['ice_values'][feature][target_idx][i])
+
+    x, y = ax.lines[2].get_xydata().T  # pd
+    assert np.allclose(x, explanation.data['feature_values'][feature])
+    assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])

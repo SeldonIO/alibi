@@ -21,6 +21,7 @@ from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence
 from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
                                                  _plot_one_pd_num,
+                                                 _plot_two_pd_cat_cat,
                                                  _plot_two_pd_num_cat,
                                                  _plot_two_pd_num_num,
                                                  _sample_ice)
@@ -783,3 +784,34 @@ def test__plot_two_pd_num_cat(feature, explanation):
     deciles = np.array([segment[0, 0] for segment in segments])
     num_idx = 0 if num_feat == feat0 else 1
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][num_idx][1:-1])
+
+
+def test__plot_two_pd_cat_cat(explanation):
+    """ Test the `_plot_two_pd_cat_cat` function. """
+    feature, target_idx = 7, 0
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_two_pd_cat_cat(exp=explanation,
+                                 feature=feature,
+                                 target_idx=target_idx,
+                                 ax=ax)
+
+    xlabel = ax.get_xlabel()
+    ylabel = ax.get_ylabel()
+    assert xlabel == explanation.data['feature_names'][feature][1]
+    assert ylabel == explanation.data['feature_names'][feature][0]
+
+    x_ticklabels = [int(tl.get_text()) for tl in ax.get_xticklabels()]
+    y_ticklables = [int(tl.get_text()) for tl in ax.get_yticklabels()]
+
+    feature_names = explanation.meta['params']['feature_names']
+    categorical_names = explanation.meta['params']['categorical_names']
+    cat_idx0 = feature_names.index(explanation.data['feature_names'][feature][0])
+    cat_idx1 = feature_names.index(explanation.data['feature_names'][feature][1])
+
+    expected_x_ticklabels = [categorical_names[cat_idx1][int(val)] for val in
+                             explanation.data['feature_values'][feature][1]]
+    expected_y_ticklabels = [categorical_names[cat_idx0][int(val)] for val in
+                             explanation.data['feature_values'][feature][0]]
+    assert np.allclose(expected_x_ticklabels, x_ticklabels)
+    assert np.allclose(expected_y_ticklabels, y_ticklables)

@@ -56,12 +56,11 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt -r testing/requirements.txt
-          python -m pip install --upgrade --upgrade-strategy eager -e .
+          python -m pip install --upgrade --upgrade-strategy eager .[shap,tensorflow]
           if [ "$RUNNER_OS" != "Windows" ]; then  
           # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
-            python -m pip install --upgrade --upgrade-strategy eager -e .[ray]
+            python -m pip install --upgrade --upgrade-strategy eager .[shap,tensorflow,ray]
           fi
-          python -m pip install --upgrade --upgrade-strategy eager -e .[shap,tensorflow]
           python -m spacy download en_core_web_md
           python -m pip freeze
 

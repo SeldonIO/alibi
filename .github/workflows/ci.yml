@@ -58,7 +58,7 @@ jobs:
           python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap]
           if [ "$RUNNER_OS" != "Windows" ]; then  
           # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
-            python -m pip install --upgrade --upgrade-strategy only-if-needed .[ray]
+            python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap,ray]  # include other deps so that they are taking into account during ray install
           fi
           python -m spacy download en_core_web_md
           python -m pip freeze

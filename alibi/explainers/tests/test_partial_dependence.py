@@ -19,7 +19,7 @@ from sklearn.utils import shuffle
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence
-from alibi.explainers.partial_dependence import _plot_one_pd_num, _sample_ice
+from alibi.explainers.partial_dependence import _plot_one_pd_num, _plot_one_pd_cat, _sample_ice
 
 
 @pytest.fixture(scope='module')
@@ -587,6 +587,7 @@ def explanation():
     return Explanation(meta=meta, data=data)
 
 
+# TODO: check the x axis label
 def test__plot_one_pd_num_average(explanation):
     """ Test the `_plot_one_pd_num` function for ``kind='average'``. """
     feature, target_idx = 0, 0
@@ -662,3 +663,21 @@ def test__plot_one_pd_num_both(explanation):
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
     assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
+
+
+def test__plot_one_pd_cat_average(explanation):
+    """ Test the `_plot_one_pd_cat` for ``kind='average'``. """
+    feature, target_idx = 2, 0
+    explanation.meta['params']['kind'] = 'average'
+
+    _, ax = plt.subplots()
+    ax, _ = _plot_one_pd_cat(exp=explanation,
+                             feature=feature,
+                             target_idx=target_idx,
+                             center=False,
+                             ax=ax)
+
+    x, y = ax.lines[0].get_xydata().T
+    assert np.allclose(x, explanation.data['feature_values'][feature])
+    assert np.allclose(y, explanation.data['pd_values'][feature][target_idx])
+    assert ax.get_xlabel() == explanation.data['feature_names'][feature]

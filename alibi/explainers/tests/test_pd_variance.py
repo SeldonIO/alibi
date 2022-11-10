@@ -8,6 +8,7 @@ from sklearn.linear_model import LinearRegression
 
 from alibi.explainers import (PartialDependence, PartialDependenceVariance,
                               TreePartialDependence)
+from alibi.api.defaults import DEFAULT_META_PDVARIANCE, DEFAULT_DATA_PDVARIANCE
 
 
 @pytest.mark.parametrize('predictor', [LinearRegression(), GradientBoostingRegressor()])
@@ -265,3 +266,45 @@ def test_interaction_num_cat(rf_classifier, pd_pdv_explainers, features, adult_d
 
     pd_ft_inter = np.array(pd_ft_inter)
     np.testing.assert_allclose(pdv_ft_inter, pd_ft_inter)
+
+
+@pytest.fixture(scope='module')
+def explanation_importance():
+    meta = deepcopy(DEFAULT_META_PDVARIANCE)
+    data = deepcopy(DEFAULT_DATA_PDVARIANCE)
+    meta['params'] = {
+        'percentiles': (0.0, 1.0),
+        'grid_resolution': 4,
+        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3'],
+        'categorical_names': {
+            2: [0, 1, 2, 3, 4],
+            3: [0, 1, 2, 3, 4, 5, 6]
+        },
+        'target_names': ['c_0', 'c_1'],
+        'method': 'importance',
+    }
+    data['feature_deciles'] = [
+        np.array([-2.319, -2.032, -1.744, -1.456, -1.169, -0.881, -0.593, -0.305, -0.018, 0.269, 0.557]),
+        np.array([0.080, 0.217, 0.354, 0.491, 0.628, 0.765, 0.902, 1.039, 1.175, 1.312, 1.449]),
+        None,
+        None
+    ]
+    data['pd_values'] = [
+        np.array([[-98.144, 105.232], [-181.330, 75.769], [-81.942, 20.868]]),
+        np.array([[-55.346, 62.434], [-76.017, -29.543], [-31.394, -29.679]]),
+        np.array([[3.543, 3.543], [-52.780, -52.780], [-30.537, -30.537]]),
+        np.array([[3.543, 3.543], [-52.780, -52.780], [-30.537, -30.537]])
+    ]
+    data['feature_values'] = [
+        np.array([-2.319, 0.557]),
+        np.array([0.080, 1.449]),
+        np.array([1., 4.]),
+        np.array([3., 4.])
+    ]
+    data['feature_names'] = ['f_0', 'f_1', 'f_2', 'f_3']
+    data['feature_importance'] = np.array([
+        [143.809, 83.283, 0., 0.],
+        [181.973, 32.615, 0., 0.],
+        [72.698, 1.212, 0., 0.]
+    ])
+    return Explanation(meta=meta, data=data)

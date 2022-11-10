@@ -308,3 +308,93 @@ def explanation_importance():
         [72.698, 1.212, 0., 0.]
     ])
     return Explanation(meta=meta, data=data)
+
+
+@pytest.fixture(scope='module')
+def explanation_interaction():
+    meta = deepcopy(DEFAULT_META_PDVARIANCE)
+    data = deepcopy(DEFAULT_DATA_PDVARIANCE)
+
+    meta['params'] = {
+        'percentiles': (0.0, 1.0),
+        'grid_resolution': 4,
+        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3'],
+        'categorical_names': {
+            2: [0, 1, 2, 3, 4],
+            3: [0, 1, 2, 3, 4, 5, 6]
+        },
+        'target_names': ['c_0', 'c_1'],
+        'method': 'interaction'
+    }
+    data['feature_deciles'] = [
+        [
+            np.array([-2.319, -2.032, -1.744, -1.456, -1.169, -0.881, -0.593, -0.305, -0.018, 0.269, 0.557]),
+            np.array([0.080, 0.217, 0.354, 0.491, 0.628, 0.765, 0.902, 1.039, 1.175, 1.312, 1.449])
+        ],
+        [
+            np.array([0.080, 0.217, 0.354, 0.491, 0.628, 0.765, 0.902, 1.039, 1.175, 1.312, 1.449]),
+            None
+        ],
+        [
+            None,
+            None
+        ]
+    ]
+    data['pd_values'] = [
+        np.array([
+            [[-157.035, -39.254], [46.342, 164.122]],
+            [[-204.567, -158.093], [52.533, 99.006]],
+            [[-82.799, -81.085], [20.010, 21.725]]
+        ]),
+        np.array([
+            [[-55.346, -55.346], [62.434, 62.434]],
+            [[-76.017, -76.017], [-29.543, -29.543]],
+            [[-31.394, -31.394], [-29.679, -29.679]]
+        ]),
+        np.array([
+            [[3.543, 3.543], [3.543, 3.543]],
+            [[-52.780, -52.780], [-52.780, -52.780]],
+            [[-30.537, -30.537], [-30.537, -30.537]]
+        ])
+    ]
+    data['feature_values'] = [
+        [
+            np.array([-2.319, 0.557]),
+            np.array([0.080, 1.449])
+        ],
+        [
+            np.array([0.080, 1.449]),
+            np.array([1., 4.])
+        ],
+        [
+            np.array([1., 4.]),
+            np.array([0., 4.])
+        ]
+    ]
+    data['feature_names'] = [('f_0', 'f_1'), ('f_1', 'f_2'), ('f_2', 'f_3')]
+    data['feature_importance'] = None
+    data['feature_interaction'] = np.array([
+        [0., 0., 0.],
+        [0., 0., 0.],
+        [0., 0., 0.]
+    ])
+    data['conditional_importance'] = [
+        [np.array([0., 0., 0.]), np.array([0., 0., 0.])],
+        [np.array([0, 0, 0]), np.array([0, 0, 0])],
+        [np.array([0, 0, 0]), np.array([0, 0, 0])]
+    ]
+    data['conditional_importance_values'] = [
+        [
+            np.array([[83.283, 83.283], [32.861, 32.861], [1.212, 1.212]]),
+            np.array([[143.809, 143.809], [181.797, 181.797], [72.698, 72.698]])
+        ],
+        [
+            np.array([[0., 0.], [0., 0.], [0., 0.]]),
+            np.array([[83.283, 83.283], [32.861, 32.861], [1.212, 1.212]])
+        ],
+        [
+            np.array([[0., 0.], [0., 0.], [0., 0.]]),
+            np.array([[0., 0.], [0., 0.], [0., 0.0]])
+        ]
+    ]
+    return Explanation(meta=meta, data=data)

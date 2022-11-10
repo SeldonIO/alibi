@@ -1,21 +1,12 @@
 import re
+import sys
 from copy import deepcopy
-from typing import List, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-from pytest_lazyfixture import lazy_fixture
-from sklearn.datasets import make_classification
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.exceptions import NotFittedError
-from sklearn.inspection import partial_dependence
-from sklearn.model_selection import train_test_split
-from sklearn.multioutput import MultiOutputClassifier
-from sklearn.pipeline import Pipeline
-from sklearn.utils import shuffle
-
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explanation
 from alibi.explainers import PartialDependence, TreePartialDependence, plot_pd
@@ -25,6 +16,21 @@ from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
                                                  _plot_two_pd_num_cat,
                                                  _plot_two_pd_num_num,
                                                  _process_pd_ice, _sample_ice)
+from pytest_lazyfixture import lazy_fixture
+from sklearn.base import BaseEstimator
+from sklearn.datasets import make_classification
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.exceptions import NotFittedError
+from sklearn.inspection import partial_dependence
+from sklearn.model_selection import train_test_split
+from sklearn.multioutput import MultiOutputClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.utils import Bunch, shuffle
+
+if sys.version_info >= (3, 8):
+    from typing import Literal
+else:
+    from typing_extensions import Literal
 
 
 @pytest.fixture(scope='module')
@@ -290,7 +296,7 @@ def test_grid_points_error(adult_data, use_int):
         explainer._grid_points_sanity_checks(grid_points, n_features=X_train.shape[1])
 
 
-def compare_feature_values(exp_alibi, exp_sklearn):
+def compare_feature_values(exp_alibi: Explanation, exp_sklearn: Bunch):
     """ Compares feature values of `alibi` explanation and `sklearn` explanation. """
     if isinstance(exp_alibi.data['feature_names'][0], tuple):
         for i in range(len(exp_sklearn['values'])):
@@ -299,8 +305,14 @@ def compare_feature_values(exp_alibi, exp_sklearn):
         assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
 
 
-def get_alibi_pd_explanation(predictor, X, features, kind, percentiles, grid_resolution,
-                             feature_names=None, categorical_names=None):
+def get_alibi_pd_explanation(predictor: BaseEstimator,
+                             X: np.ndarray,
+                             features: List[Union[int, Tuple[int, int]]],
+                             kind: Literal['average', 'individual', 'both'],
+                             percentiles: Tuple[float, float],
+                             grid_resolution: int,
+                             feature_names: Optional[List[str]] = None,
+                             categorical_names: Optional[Dict[int, List[str]]] = None):
     """ Computes `alibi` pd explanation. """
     explainer = PartialDependence(predictor=predictor,
                                   feature_names=feature_names,
@@ -313,8 +325,13 @@ def get_alibi_pd_explanation(predictor, X, features, kind, percentiles, grid_res
                              grid_resolution=grid_resolution)
 
 
-def get_alibi_tree_pd_explanationo(predictor, X, features, percentiles, grid_resolution,
-                                   feature_names=None, categorical_names=None):
+def get_alibi_tree_pd_explanation(predictor: BaseEstimator,
+                                  X: np.ndarray,
+                                  features:  List[Union[int, Tuple[int, int]]],
+                                  percentiles: Tuple[float, float],
+                                  grid_resolution: int,
+                                  feature_names: Optional[List[str]] = None,
+                                  categorical_names: Optional[Dict[int, List[str]]] = None):
     """ Computes `alibi` tree pd explanation. """
     # compute `alibi` explanation
     explainer = TreePartialDependence(predictor=predictor,
@@ -431,11 +448,11 @@ def test_sklearn_recursion(predictor, binary_data, features, params):
                                      **params)
 
     # compute `alibi` explanation
-    exp_alibi = get_alibi_tree_pd_explanationo(predictor=predictor,
-                                               X=X_train,
-                                               features=features,
-                                               percentiles=params['percentiles'],
-                                               grid_resolution=params['grid_resolution'])
+    exp_alibi = get_alibi_tree_pd_explanation(predictor=predictor,
+                                              X=X_train,
+                                              features=features,
+                                              percentiles=params['percentiles'],
+                                              grid_resolution=params['grid_resolution'])
 
     # compare explanations
     compare_feature_values(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
@@ -571,7 +588,7 @@ def explanation():
     return Explanation(meta=meta, data=data)
 
 
-def x_deciles_assertion(explanation: Explanation, feature: int, ax: 'plt.Axes'):
+def assert_x_deciles(explanation: Explanation, feature: int, ax: 'plt.Axes'):
     """ Checks the deciles on the x-axis. """
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
@@ -579,33 +596,36 @@ def x_deciles_assertion(explanation: Explanation, feature: int, ax: 'plt.Axes'):
     assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
 
-def pd_values_assertion(feature_values: np.ndarray, pd_values: np.ndarray, line: plt.Line2D):
+def assert_pd_values(feature_values: np.ndarray, pd_values: np.ndarray, line: plt.Line2D):
+    """ Checks if the plotted pd values are correct. """
     x, y = line.get_xydata().T
     assert np.allclose(x, feature_values)
     assert np.allclose(y, pd_values)
 
 
-def ice_values_assertion(feature_values: np.ndarray, ice_values: np.ndarray, lines: List[plt.Line2D]):
+def assert_ice_values(feature_values: np.ndarray, ice_values: np.ndarray, lines: List[plt.Line2D]):
+    """ Checks if the plotted ice values are correct. """
     for ice_vals, line in zip(ice_values, lines):
         x, y = line.get_xydata().T
         assert np.allclose(x, feature_values)
         assert np.allclose(y, ice_vals)
 
 
-def pd_ice_values_assertion(feature: int, target_idx: int, kind: str, explanation: Explanation, ax: plt.Axes):
+def assert_pd_ice_values(feature: int, target_idx: int, kind: str, explanation: Explanation, ax: plt.Axes):
+    """ Checks if both the plotted pd and ice values are correct. """
     if kind in ['average', 'both']:
         # check the pd values
         line = ax.lines[0] if kind == 'average' else ax.lines[2]
-        pd_values_assertion(feature_values=explanation.data['feature_values'][feature],
-                            pd_values=explanation.data['pd_values'][feature][target_idx],
-                            line=line)
+        assert_pd_values(feature_values=explanation.data['feature_values'][feature],
+                         pd_values=explanation.data['pd_values'][feature][target_idx],
+                         line=line)
 
     if kind in ['individual', 'both']:
         # check the ice values
         lines = ax.lines if kind == 'individual' else ax.lines[:2]
-        ice_values_assertion(feature_values=explanation.data['feature_values'][feature],
-                             ice_values=explanation.data['ice_values'][feature][target_idx],
-                             lines=lines)
+        assert_ice_values(feature_values=explanation.data['feature_values'][feature],
+                          ice_values=explanation.data['ice_values'][feature][target_idx],
+                          lines=lines)
 
 
 @pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
@@ -624,14 +644,14 @@ def test__plot_one_pd_num(kind, explanation):
     assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
     # check deciles on the x-axis
-    x_deciles_assertion(explanation=explanation, feature=feature, ax=ax)
+    assert_x_deciles(explanation=explanation, feature=feature, ax=ax)
 
     # check pd and ice values
-    pd_ice_values_assertion(feature=feature,
-                            target_idx=target_idx,
-                            kind=kind,
-                            explanation=explanation,
-                            ax=ax)
+    assert_pd_ice_values(feature=feature,
+                         target_idx=target_idx,
+                         kind=kind,
+                         explanation=explanation,
+                         ax=ax)
 
 
 @pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
@@ -650,11 +670,11 @@ def test__plot_one_pd_cat(kind, explanation):
     assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
     # check pd and ice values
-    pd_ice_values_assertion(feature=feature,
-                            target_idx=target_idx,
-                            kind=kind,
-                            explanation=explanation,
-                            ax=ax)
+    assert_pd_ice_values(feature=feature,
+                         target_idx=target_idx,
+                         kind=kind,
+                         explanation=explanation,
+                         ax=ax)
 
 
 def test__plot_two_pd_num_num(explanation):
@@ -671,6 +691,7 @@ def test__plot_two_pd_num_num(explanation):
     assert np.allclose(ax.get_xlim(), explanation.data['feature_values'][feature][0])
     assert np.allclose(ax.get_ylim(), explanation.data['feature_values'][feature][1])
 
+    # TODO: replace code below
     xsegments = ax.collections[-2].get_segments()
     xdeciles = np.array([xsegment[0, 0] for xsegment in xsegments])
     assert np.allclose(xdeciles, explanation.data['feature_deciles'][feature][0][1:-1])
@@ -712,6 +733,7 @@ def test__plot_two_pd_num_cat(feature, explanation):
     assert legend_title == cat_feat
     assert legend_entries == cat_values
 
+    # TODO: replace code below
     segments = ax.collections[0].get_segments()
     deciles = np.array([segment[0, 0] for segment in segments])
     num_idx = 0 if num_feat == feat0 else 1
@@ -761,6 +783,7 @@ def test__plot_two_pd_cat_cat(explanation):
 
 
 def mock_private_plt_function(mocker):
+    """ Mocks private specialized plotting functions. """
     mocker.patch('alibi.explainers.partial_dependence._plot_one_pd_num', return_value=(None, None))
     mocker.patch('alibi.explainers.partial_dependence._plot_one_pd_cat', return_value=(None, None))
     mocker.patch('alibi.explainers.partial_dependence._plot_two_pd_num_num', return_value=(None, None))
@@ -849,7 +872,7 @@ def test_plot_pd_sharey_none(n_cols, explanation):
 
 @pytest.mark.parametrize('n_ice', ['all', 'list', 'int'])
 def test_ice_sampling(n_ice):
-    """ Checks if the ice sampling helper function works properly when the arguments are valid. """
+    """ Test if the ice sampling helper function works properly when the arguments are valid. """
     n_samples, n_values = 100, 10
     ice_vals = np.random.randn(n_values, n_samples)
 

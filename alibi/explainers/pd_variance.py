@@ -559,10 +559,9 @@ def _plot_feature_importance(exp: Explanation,
         feature_importance = feature_importance[sorted_indices][:top_k]
 
     # construct pd explanation object to reuse `plot_pd` function
-    meta = copy.deepcopy(DEFAULT_META_PD)
-    data = copy.deepcopy(DEFAULT_DATA_PD)
-    meta.update(exp.meta)
+    meta = copy.deepcopy(exp.meta)
     meta['params']['kind'] = 'average'
+    data = copy.deepcopy(DEFAULT_DATA_PD)
     data.update(feature_names=feature_names,
                 feature_values=feature_values,
                 pd_values=pd_values,
@@ -673,10 +672,9 @@ def _plot_feature_interaction(exp: Explanation,
     merged_features = list(itertools.chain.from_iterable(merged_features))  # type: ignore[arg-type]
 
     # construct pd explanation object to reuse `plot_pd` function
-    meta = copy.deepcopy(DEFAULT_META_PD)
-    data = copy.deepcopy(DEFAULT_DATA_PD)
-    meta.update(exp.meta)
+    meta = copy.deepcopy(exp.meta)
     meta['params']['kind'] = 'average'
+    data = copy.deepcopy(DEFAULT_DATA_PD)
     data.update(feature_names=merged_feature_names,
                 feature_values=merged_feature_values,
                 pd_values=merged_pd_values,
@@ -704,11 +702,11 @@ def _plot_feature_interaction(exp: Explanation,
 
         # set title for the first conditional importance plot
         ax = axes.flatten()[step * i + 1]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0].item()))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0][target_idx]))
 
         # set title for the second conditional importance plot
         ax = axes.flatten()[step * i + 2]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1].item()))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1][target_idx]))
 
     return axes
 

@@ -7,15 +7,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
-from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
-from alibi.api.interfaces import Explanation
-from alibi.explainers import PartialDependence, TreePartialDependence, plot_pd
-from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
-                                                 _plot_one_pd_num,
-                                                 _plot_two_pd_cat_cat,
-                                                 _plot_two_pd_num_cat,
-                                                 _plot_two_pd_num_num,
-                                                 _process_pd_ice, _sample_ice)
 from pytest_lazyfixture import lazy_fixture
 from sklearn.base import BaseEstimator
 from sklearn.datasets import make_classification
@@ -26,6 +17,16 @@ from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.utils import Bunch, shuffle
+
+from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
+from alibi.api.interfaces import Explanation
+from alibi.explainers import PartialDependence, TreePartialDependence, plot_pd
+from alibi.explainers.partial_dependence import (_plot_one_pd_cat,
+                                                 _plot_one_pd_num,
+                                                 _plot_two_pd_cat_cat,
+                                                 _plot_two_pd_num_cat,
+                                                 _plot_two_pd_num_num,
+                                                 _process_pd_ice, _sample_ice)
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -588,12 +589,18 @@ def explanation():
     return Explanation(meta=meta, data=data)
 
 
-def assert_x_deciles(explanation: Explanation, feature: int, ax: 'plt.Axes'):
+def assert_deciles(xsegments: Optional[List[np.ndarray]] = None,
+                   expected_xdeciles: Optional[np.ndarray] = None,
+                   ysegments: Optional[List[np.ndarray]] = None,
+                   expected_ydeciles: Optional[np.ndarray] = None):
     """ Checks the deciles on the x-axis. """
-    segments = ax.collections[0].get_segments()
-    deciles = np.array([segment[0, 0] for segment in segments])
-    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][1:-1])
-    assert ax.get_xlabel() == explanation.data['feature_names'][feature]
+    if (xsegments is not None) and (expected_xdeciles is not None):
+        xdeciles = np.array([segment[0, 0] for segment in xsegments])
+        assert np.allclose(xdeciles, expected_xdeciles[1:-1])
+
+    if (ysegments is not None) and (expected_ydeciles is not None):
+        ydeciles = np.array([segment[0, 1] for segment in ysegments])
+        assert np.allclose(ydeciles, expected_ydeciles[1:-1])
 
 
 def assert_pd_values(feature_values: np.ndarray, pd_values: np.ndarray, line: plt.Line2D):
@@ -644,7 +651,8 @@ def test__plot_one_pd_num(kind, explanation):
     assert ax.get_xlabel() == explanation.data['feature_names'][feature]
 
     # check deciles on the x-axis
-    assert_x_deciles(explanation=explanation, feature=feature, ax=ax)
+    assert_deciles(xsegments=ax.collections[0].get_segments(),
+                   expected_xdeciles=explanation.data['feature_deciles'][feature])
 
     # check pd and ice values
     assert_pd_ice_values(feature=feature,
@@ -691,14 +699,10 @@ def test__plot_two_pd_num_num(explanation):
     assert np.allclose(ax.get_xlim(), explanation.data['feature_values'][feature][0])
     assert np.allclose(ax.get_ylim(), explanation.data['feature_values'][feature][1])
 
-    # TODO: replace code below
-    xsegments = ax.collections[-2].get_segments()
-    xdeciles = np.array([xsegment[0, 0] for xsegment in xsegments])
-    assert np.allclose(xdeciles, explanation.data['feature_deciles'][feature][0][1:-1])
-
-    ysegments = ax.collections[-1].get_segments()
-    ydeciles = np.array([ysegment[0, 1] for ysegment in ysegments])
-    assert np.allclose(ydeciles, explanation.data['feature_deciles'][feature][1][1:-1])
+    assert_deciles(xsegments=ax.collections[-2].get_segments(),
+                   expected_xdeciles=explanation.data['feature_deciles'][feature][0],
+                   ysegments=ax.collections[-1].get_segments(),
+                   expected_ydeciles=explanation.data['feature_deciles'][feature][1])
 
     assert ax.get_xlabel() == explanation.data['feature_names'][feature][0]
     assert ax.get_ylabel() == explanation.data['feature_names'][feature][1]
@@ -733,11 +737,9 @@ def test__plot_two_pd_num_cat(feature, explanation):
     assert legend_title == cat_feat
     assert legend_entries == cat_values
 
-    # TODO: replace code below
-    segments = ax.collections[0].get_segments()
-    deciles = np.array([segment[0, 0] for segment in segments])
     num_idx = 0 if num_feat == feat0 else 1
-    assert np.allclose(deciles, explanation.data['feature_deciles'][feature][num_idx][1:-1])
+    assert_deciles(xsegments=ax.collections[0].get_segments(),
+                   expected_xdeciles=explanation.data['feature_deciles'][feature][num_idx])
 
     pd_values = explanation.data['pd_values'][feature][target_idx]
     if num_idx == 0:

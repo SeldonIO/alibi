@@ -13,7 +13,9 @@ from alibi.api.defaults import DEFAULT_DATA_PDVARIANCE, DEFAULT_META_PDVARIANCE
 from alibi.api.interfaces import Explanation
 from alibi.explainers import (PartialDependence, PartialDependenceVariance,
                               TreePartialDependence)
-from alibi.explainers.pd_variance import _plot_hbar, _plot_feature_importance, _plot_feature_interaction
+from alibi.explainers.pd_variance import (_plot_feature_importance,
+                                          _plot_feature_interaction,
+                                          _plot_hbar, plot_pd_variance)
 
 
 @pytest.mark.parametrize('predictor', [LinearRegression(), GradientBoostingRegressor()])
@@ -538,7 +540,7 @@ def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp)
         expected_cond_import1 = expected_cond_import1[sorted_idx][:top_k]
 
     interaction = [extract_number(axes[i].get_title()) for i in range(0, len(axes), 3)if axes[i] is not None]
-    cond_import0 = [extract_number(axes[i].get_title()) for i in range(1, len(axes),3) if axes[i] is not None]
+    cond_import0 = [extract_number(axes[i].get_title()) for i in range(1, len(axes), 3) if axes[i] is not None]
     cond_import1 = [extract_number(axes[i].get_title()) for i in range(2, len(axes), 3) if axes[i] is not None]
 
     assert np.allclose(interaction, expected_interaction)
@@ -555,4 +557,78 @@ def test__plot_feature_interaction_summarise(exp, mocker):
                               features=features,
                               targets=targets,
                               summarise=True)
+    m.assert_called_once()
+
+
+def test_plot_pd_variance_top_k_error():
+    """ Test if an error is raised when ``sorted='True'`` and ``top_k < 0``. """
+    with pytest.raises(ValueError) as err:
+        plot_pd_variance(exp=None, sort=True, top_k=-1)
+    assert "``top_k`` must be greater than 0." == str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_targets_all(exp, mocker):
+    """ Test if all the targets are considered when ``targets='all'``. """
+    m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
+    plot_pd_variance(exp=exp, targets='all')
+    args, kwargs = m.call_args
+    assert kwargs['targets'] == exp.meta['params']['target_names']
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_targets_type(exp):
+    """ Test if an error is raised if `targets` is not of type `list`. """
+    with pytest.raises(ValueError) as err:
+        plot_pd_variance(exp=exp, targets=0)
+    assert '`targets` must be a list.' == str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_warning(exp, mocker, caplog):
+    """ Tests if a warning is raise when the ``summarise=False`` and the length of `targets` is > 1. """
+    mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
+    plot_pd_variance(exp=exp, targets=[0, 1], summarise=False)
+    assert "`targets` should be a list containing a single element" in caplog.records[0].message
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_features_all(exp, mocker):
+    m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
+    plot_pd_variance(exp=exp, features='all')
+    args, kwargs = m.call_args
+    assert kwargs['features'] == np.arange(len(exp.data['feature_names'])).tolist()
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_targets_unknown(exp):
+    """ Test if an error is raised when the ``targets`` contains an unknown values. """
+    with pytest.raises(ValueError) as err:
+        plot_pd_variance(exp=exp, targets=['unknown'])
+    assert "Unknown `target` name." in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_targets_oor(exp):
+    """ Test if an error is raised when the ``targets`` contains out of range values. """
+    with pytest.raises(IndexError) as err:
+        plot_pd_variance(exp=exp, targets=[5])
+    assert "Target index out of range." in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test_plot_pd_variance_importance(exp, mocker):
+    """ Test if `_plot_feature_importance` is called within the `plot_pd_variance` if an importance explanation
+    is provided. """
+    m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
+    plot_pd_variance(exp=exp)
+    m.assert_called_once()
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
+def test_plot_pd_variance_interaction(exp, mocker):
+    """ Test if `_plot_feature_interaction` is called within the `plot_pd_variance` if an interaction explanation
+    is provided. """
+    m = mocker.patch('alibi.explainers.pd_variance._plot_feature_interaction', return_value=None)
+    plot_pd_variance(exp=exp)
     m.assert_called_once()

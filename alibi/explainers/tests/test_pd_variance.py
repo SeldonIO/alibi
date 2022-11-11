@@ -13,7 +13,7 @@ from alibi.api.defaults import DEFAULT_DATA_PDVARIANCE, DEFAULT_META_PDVARIANCE
 from alibi.api.interfaces import Explanation
 from alibi.explainers import (PartialDependence, PartialDependenceVariance,
                               TreePartialDependence)
-from alibi.explainers.pd_variance import _plot_hbar
+from alibi.explainers.pd_variance import _plot_hbar, _plot_feature_importance, _plot_feature_interaction
 
 
 @pytest.mark.parametrize('predictor', [LinearRegression(), GradientBoostingRegressor()])
@@ -444,3 +444,115 @@ def test__plot_hbar_ax(exp):
                    ax=ax)
 
     assert 'Expected ax to have' in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+@pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
+@pytest.mark.parametrize('target', [0, 1])
+@pytest.mark.parametrize('features', [[0, 2], [0, 1, 2], [0, 1, 2, 3]])
+def test__plot_hbar_values(sort, top_k, target, features, exp):
+    """ Test if the plotted values, labels and titles are correct on the bar plot. """
+    ax = _plot_hbar(exp_values=exp.data['feature_importance'],
+                    exp_feature_names=exp.data['feature_names'],
+                    exp_target_names=exp.meta['params']['target_names'],
+                    targets=[target],
+                    features=features,
+                    sort=sort,
+                    top_k=top_k).ravel()
+
+    datavalues = ax[0].containers[0].datavalues
+    expected_datavalues = np.array([exp.data['feature_importance'][target][ft] for ft in features])
+
+    feature_names = [txt.get_text() for txt in ax[0].get_yticklabels()]
+    expected_feature_names = [exp.data['feature_names'][ft] for ft in features]
+
+    if sort:
+        sorted_idx = np.argsort(expected_datavalues)[::-1][:top_k]
+        expected_datavalues = expected_datavalues[sorted_idx]
+        expected_feature_names = [expected_feature_names[i] for i in sorted_idx]
+
+    assert np.allclose(datavalues, expected_datavalues)
+    assert feature_names == expected_feature_names
+    assert ax[0].get_title() == exp.meta['params']['target_names'][target]
+
+
+def extract_number(x: str):
+    """ Helper function to extract number from a string. """
+    return float(re.findall('[0-9]+.[0-9]+', x)[0])
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+@pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
+@pytest.mark.parametrize('features', [[0, 2], [0, 1, 2], [0, 1, 2, 3]])
+@pytest.mark.parametrize('targets', [[0]])
+def test__plot_feature_importance_detailed(sort, top_k, features, targets, exp):
+    """ Tests if the `_plot_feature_importance` returns the correct plots when ``summarise='False'``. """
+    axes = _plot_feature_importance(exp=exp,
+                                    features=features,
+                                    targets=targets,
+                                    summarise=False,
+                                    sort=sort,
+                                    top_k=top_k).ravel()
+
+    expected_importance = np.array([exp.data['feature_importance'][targets[0]][ft] for ft in features])
+    if sort:
+        sorted_idx = np.argsort(expected_importance)[::-1]
+        expected_importance = expected_importance[sorted_idx][:top_k]
+
+    importance = np.array([extract_number(ax.get_title()) for ax in axes if ax is not None])
+    assert np.allclose(importance, expected_importance, atol=1e-2)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test__plot_feature_importance_summarise(exp, mocker):
+    """ Test if the `_plot_feature_importance` calls `_plot_hbar` once. """
+    features, targets = [0, 1, 2], [0]
+    m = mocker.patch('alibi.explainers.pd_variance._plot_hbar')
+    _plot_feature_importance(exp=exp,
+                             features=features,
+                             targets=targets,
+                             summarise=True)
+    m.assert_called_once()
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
+@pytest.mark.parametrize('features', [[0], [0, 1], [0, 1, 2]])
+@pytest.mark.parametrize('targets', [[0]])
+@pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
+def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp):
+    axes = _plot_feature_interaction(exp=exp,
+                                     features=features,
+                                     targets=targets,
+                                     summarise=False,
+                                     sort=sort,
+                                     top_k=top_k).ravel()
+
+    expected_interaction = np.array([exp.data['feature_interaction'][targets[0]][ft] for ft in features])
+    expected_cond_import0 = np.array([exp.data['conditional_importance'][targets[0]][0][ft] for ft in features])
+    expected_cond_import1 = np.array([exp.data['conditional_importance'][targets[0]][1][ft] for ft in features])
+
+    if sort:
+        sorted_idx = np.argsort(expected_interaction)[::-1]
+        expected_interaction = expected_interaction[sorted_idx][:top_k]
+        expected_cond_import0 = expected_cond_import0[sorted_idx][:top_k]
+        expected_cond_import1 = expected_cond_import1[sorted_idx][:top_k]
+
+    interaction = [extract_number(axes[i].get_title()) for i in range(0, len(axes), 3)if axes[i] is not None]
+    cond_import0 = [extract_number(axes[i].get_title()) for i in range(1, len(axes),3) if axes[i] is not None]
+    cond_import1 = [extract_number(axes[i].get_title()) for i in range(2, len(axes), 3) if axes[i] is not None]
+
+    assert np.allclose(interaction, expected_interaction)
+    assert np.allclose(cond_import0, expected_cond_import0)
+    assert np.allclose(cond_import1, expected_cond_import1)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
+def test__plot_feature_interaction_summarise(exp, mocker):
+    """ Test if the `_plot_feature_interaction` callse `_plot_hbar` once. """
+    features, targets = [0, 1], [0]
+    m = mocker.patch('alibi.explainers.pd_variance._plot_hbar')
+    _plot_feature_interaction(exp=exp,
+                              features=features,
+                              targets=targets,
+                              summarise=True)
+    m.assert_called_once()

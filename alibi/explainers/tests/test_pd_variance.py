@@ -1,6 +1,7 @@
 import re
 from copy import deepcopy
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import pytest
@@ -406,24 +407,40 @@ def explanation_interaction():
 
 @pytest.mark.parametrize('n_axes', [4, 5, 6, 7])
 @pytest.mark.parametrize('n_cols', [2, 3, 4])
-def test__plot_hbar_n_cols(n_axes, n_cols, explanation_importance):
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test__plot_hbar_n_cols(n_axes, n_cols, exp):
     """ Test if the number of axes columns matches the expectation. """
     n_rows = n_axes // n_cols + (n_axes % n_cols != 0)
-
-    exp_values = explanation_importance.data['feature_importance']
-    exp_feature_names = explanation_importance.data['feature_names']
-    exp_target_names = explanation_importance.meta['params']['target_names']
-
-    targets = np.random.choice(len(exp_target_names), size=n_axes, replace=True)
-    features = np.arange(len(explanation_importance.meta['params']['feature_names'])).tolist()
+    targets = np.random.choice(len(exp.meta['params']['target_names'],), size=n_axes, replace=True)
+    features = np.arange(len(exp.meta['params']['feature_names'])).tolist()
 
     # create the horizontal bar plot
-    ax = _plot_hbar(exp_values=exp_values,
-                    exp_feature_names=exp_feature_names,
-                    exp_target_names=exp_target_names,
+    ax = _plot_hbar(exp_values=exp.data['feature_importance'],
+                    exp_feature_names=exp.data['feature_names'],
+                    exp_target_names=exp.meta['params']['target_names'],
                     features=features,
                     targets=targets,
                     n_cols=n_cols)
 
     assert ax.shape == (n_rows, n_cols)
     assert np.sum(~pd.isna(ax.ravel())) == n_axes
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
+def test__plot_hbar_ax(exp):
+    """ Test if an error is raised when the number of provided axes is less than the number of targets
+    to plot the horizontal bar for. """
+    n_targets = 7
+    targets = np.random.choice(len(exp.meta['params']['target_names']), size=n_targets, replace=True)
+    features = np.arange(len(exp.meta['params']['feature_names'])).tolist()
+    _, ax = plt.subplots(nrows=2, ncols=2)
+
+    with pytest.raises(ValueError) as err:
+        _plot_hbar(exp_values=exp.data['feature_importance'],
+                   exp_feature_names=exp.data['feature_names'],
+                   exp_target_names=exp.meta['params']['target_names'],
+                   features=features,
+                   targets=targets,
+                   ax=ax)
+
+    assert 'Expected ax to have' in str(err.value)

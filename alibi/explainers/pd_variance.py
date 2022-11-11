@@ -11,8 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from alibi.api.defaults import (DEFAULT_DATA_PD, DEFAULT_DATA_PDVARIANCE,
-                                DEFAULT_META_PD, DEFAULT_META_PDVARIANCE)
+from alibi.api.defaults import (DEFAULT_DATA_PD, DEFAULT_DATA_PDVARIANCE, DEFAULT_META_PDVARIANCE)
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers import plot_pd
 from alibi.explainers.partial_dependence import (Kind, PartialDependence,

@@ -1,14 +1,18 @@
 import re
+from copy import deepcopy
 
 import numpy as np
+import pandas as pd
 import pytest
 from pytest_lazyfixture import lazy_fixture
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 
+from alibi.api.defaults import DEFAULT_DATA_PDVARIANCE, DEFAULT_META_PDVARIANCE
+from alibi.api.interfaces import Explanation
 from alibi.explainers import (PartialDependence, PartialDependenceVariance,
                               TreePartialDependence)
-from alibi.api.defaults import DEFAULT_META_PDVARIANCE, DEFAULT_DATA_PDVARIANCE
+from alibi.explainers.pd_variance import _plot_hbar
 
 
 @pytest.mark.parametrize('predictor', [LinearRegression(), GradientBoostingRegressor()])
@@ -185,11 +189,11 @@ def test_interaction_num_num(rf_classifier, pd_pdv_explainers, features, adult_d
     pd_exp = pd_explainer.explain(X=X_train, features=features, grid_resolution=20)
     pd_ft_inter = []
 
-    for pd in pd_exp.data['pd_values']:
-        cond_imp1 = np.std(pd[0], ddof=1, axis=-1)
+    for pd_vals in pd_exp.data['pd_values']:
+        cond_imp1 = np.std(pd_vals[0], ddof=1, axis=-1)
         inter1 = np.std(cond_imp1, ddof=1, axis=-1)
 
-        cond_imp2 = np.std(pd[0].T, ddof=1, axis=-1)
+        cond_imp2 = np.std(pd_vals[0].T, ddof=1, axis=-1)
         inter2 = np.std(cond_imp2, ddof=1, axis=-1)
 
         pd_ft_inter.append(np.mean([inter1, inter2]))
@@ -214,11 +218,11 @@ def test_interaction_cat_cat(rf_classifier, pd_pdv_explainers, features, adult_d
     pd_exp = pd_explainer.explain(X=X_train, features=features)
     pd_ft_inter = []
 
-    for pd in pd_exp.data['pd_values']:
-        cond_imp1 = (np.max(pd[0], axis=-1) - np.min(pd[0], axis=-1)) / 4
+    for pd_vals in pd_exp.data['pd_values']:
+        cond_imp1 = (np.max(pd_vals[0], axis=-1) - np.min(pd_vals[0], axis=-1)) / 4
         inter1 = (np.max(cond_imp1, axis=-1) - np.min(cond_imp1, axis=-1)) / 4
 
-        cond_imp2 = (np.max(pd[0].T, axis=-1) - np.min(pd[0].T, axis=-1)) / 4
+        cond_imp2 = (np.max(pd_vals[0].T, axis=-1) - np.min(pd_vals[0].T, axis=-1)) / 4
         inter2 = (np.max(cond_imp2, axis=-1) - np.min(cond_imp2, axis=-1)) / 4
 
         pd_ft_inter.append(np.mean([inter1, inter2]))
@@ -244,22 +248,22 @@ def test_interaction_num_cat(rf_classifier, pd_pdv_explainers, features, adult_d
     pd_exp = pd_explainer.explain(X=X_train, features=features, grid_resolution=20)
     pd_ft_inter = []
 
-    for fts, pd in zip(features, pd_exp.data['pd_values']):
+    for fts, pd_vals in zip(features, pd_exp.data['pd_values']):
         first_ft, second_ft = fts
 
         if second_ft in category_map:
-            cond_imp1 = (np.max(pd[0], axis=-1) - np.min(pd[0], axis=-1)) / 4
+            cond_imp1 = (np.max(pd_vals[0], axis=-1) - np.min(pd_vals[0], axis=-1)) / 4
             imp1 = np.std(cond_imp1, ddof=1, axis=-1)
 
-            cond_imp2 = np.std(pd[0].T, ddof=1, axis=-1)
+            cond_imp2 = np.std(pd_vals[0].T, ddof=1, axis=-1)
             imp2 = (np.max(cond_imp2, axis=-1) - np.min(cond_imp2, axis=-1)) / 4
 
             pd_ft_inter.append(np.mean([imp1, imp2]))
         else:
-            cond_imp1 = np.std(pd[0], ddof=1, axis=-1)
+            cond_imp1 = np.std(pd_vals[0], ddof=1, axis=-1)
             imp1 = (np.max(cond_imp1, axis=-1) - np.min(cond_imp1, axis=-1)) / 4
 
-            cond_imp2 = (np.max(pd[0].T, axis=-1) - np.min(pd[0].T, axis=-1)) / 4
+            cond_imp2 = (np.max(pd_vals[0].T, axis=-1) - np.min(pd_vals[0].T, axis=-1)) / 4
             imp2 = np.std(cond_imp2, ddof=1, axis=-1)
 
             pd_ft_inter.append(np.mean([imp1, imp2]))
@@ -398,3 +402,28 @@ def explanation_interaction():
         ]
     ]
     return Explanation(meta=meta, data=data)
+
+
+@pytest.mark.parametrize('n_axes', [4, 5, 6, 7])
+@pytest.mark.parametrize('n_cols', [2, 3, 4])
+def test__plot_hbar_n_cols(n_axes, n_cols, explanation_importance):
+    """ Test if the number of axes columns matches the expectation. """
+    n_rows = n_axes // n_cols + (n_axes % n_cols != 0)
+
+    exp_values = explanation_importance.data['feature_importance']
+    exp_feature_names = explanation_importance.data['feature_names']
+    exp_target_names = explanation_importance.meta['params']['target_names']
+
+    targets = np.random.choice(len(exp_target_names), size=n_axes, replace=True)
+    features = np.arange(len(explanation_importance.meta['params']['feature_names'])).tolist()
+
+    # create the horizontal bar plot
+    ax = _plot_hbar(exp_values=exp_values,
+                    exp_feature_names=exp_feature_names,
+                    exp_target_names=exp_target_names,
+                    features=features,
+                    targets=targets,
+                    n_cols=n_cols)
+
+    assert ax.shape == (n_rows, n_cols)
+    assert np.sum(~pd.isna(ax.ravel())) == n_axes

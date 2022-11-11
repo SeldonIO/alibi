@@ -355,13 +355,13 @@ def explanation_interaction():
         ]),
         np.array([
             [[-55.346, -55.346], [62.434, 62.434]],
-            [[-76.017, -76.017], [-29.543, -29.543]],
-            [[-31.394, -31.394], [-29.679, -29.679]]
+            [[-76.017, -51.231], [-12.543, -29.543]],
+            [[-31.394, -67.631], [-29.679, -4.852]]
         ]),
         np.array([
-            [[3.543, 3.543], [3.543, 3.543]],
-            [[-52.780, -52.780], [-52.780, -52.780]],
-            [[-30.537, -30.537], [-30.537, -30.537]]
+            [[3.543, 5.143], [6.123, 12.755]],
+            [[-52.214, -1.523], [-27.732, -43.564]],
+            [[-13.537, -35.537], [-5.123, -30.537]]
         ])
     ]
     data['feature_values'] = [
@@ -381,27 +381,27 @@ def explanation_interaction():
     data['feature_names'] = [('f_0', 'f_1'), ('f_1', 'f_2'), ('f_2', 'f_3')]
     data['feature_importance'] = None
     data['feature_interaction'] = np.array([
-        [0., 0., 0.],
-        [0., 0., 0.],
-        [0., 0., 0.]
+        [1., 3., 2.],
+        [5., 1., 4.],
+        [1., 3., 2.]
     ])
     data['conditional_importance'] = [
-        [np.array([0., 0., 0.]), np.array([0., 0., 0.])],
-        [np.array([0, 0, 0]), np.array([0, 0, 0])],
-        [np.array([0, 0, 0]), np.array([0, 0, 0])]
+        [np.array([1., 5., 4.]), np.array([2., 3., 1.])],
+        [np.array([7., 2., 1.]), np.array([3., 2., 1.])],
+        [np.array([6., 3., 3.]), np.array([4., 1., 5.])]
     ]
     data['conditional_importance_values'] = [
         [
-            np.array([[83.283, 83.283], [32.861, 32.861], [1.212, 1.212]]),
-            np.array([[143.809, 143.809], [181.797, 181.797], [72.698, 72.698]])
+            np.array([[43.879, 24.657], [91.827, 32.861], [29.467, 1.212]]),
+            np.array([[59.551, 143.809], [181.797, 29.227], [91.411, 72.698]])
         ],
         [
-            np.array([[0., 0.], [0., 0.], [0., 0.]]),
-            np.array([[83.283, 83.283], [32.861, 32.861], [1.212, 1.212]])
+            np.array([[72.121, 32.357], [21.731, 13.441], [53.137, 89.321]]),
+            np.array([[83.283, 70.373], [32.861, 34.186], [29.601, 30.791]])
         ],
         [
-            np.array([[0., 0.], [0., 0.], [0., 0.]]),
-            np.array([[0., 0.], [0., 0.], [0., 0.0]])
+            np.array([[19.919, 10.809], [14.462, 50.703], [70.373, 35.073]]),
+            np.array([[65.962, 18.605], [11.311, 14.507], [21.231, 24.657]])
         ]
     ]
     return Explanation(meta=meta, data=data)
@@ -530,8 +530,8 @@ def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp)
                                      top_k=top_k).ravel()
 
     expected_interaction = np.array([exp.data['feature_interaction'][targets[0]][ft] for ft in features])
-    expected_cond_import0 = np.array([exp.data['conditional_importance'][targets[0]][0][ft] for ft in features])
-    expected_cond_import1 = np.array([exp.data['conditional_importance'][targets[0]][1][ft] for ft in features])
+    expected_cond_import0 = np.array([exp.data['conditional_importance'][ft][0][targets[0]] for ft in features])
+    expected_cond_import1 = np.array([exp.data['conditional_importance'][ft][1][targets[0]] for ft in features])
 
     if sort:
         sorted_idx = np.argsort(expected_interaction)[::-1]

@@ -383,8 +383,7 @@ class PermutationImportance(Explainer):
     def _compute_metrics(metric_fns: Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]],
                          y: np.ndarray,
                          y_hat: np.ndarray,
-                         sample_weight: Optional[np.ndarray] = None,
-                         metrics: Optional[Dict[str, List[float]]] = None) -> Dict[str, List[float]]:
+                         sample_weight: Optional[np.ndarray] = None) -> Dict[str, List[float]]:
         """
         Helper function to compute multiple metrics.
 
@@ -399,17 +398,12 @@ class PermutationImportance(Explainer):
             Predicted outcome as returned by the classifier.
         sample_weight
             Weight of each sample instance.
-        metrics
-            An optional dictionary of metrics, having as keys the name of the metrics and as value the evaluation of
-            the metrics. If provided, the function `_compute_metric` has a side effect and updates the `metrics`
-            dictionary.
 
         Returns
         -------
         Dictionary having as keys the metric names and as values the evaluation of the metrics.
         """
-        if metrics is None:
-            metrics = defaultdict(list)
+        metrics = defaultdict(list)
 
         for metric_name, metric_fn in metric_fns.items():
             metrics[metric_name].append(
@@ -639,18 +633,22 @@ class PermutationImportance(Explainer):
             weights = None if (sample_weight_tmp is None) else sample_weight_tmp[:end]
 
             # compute loss values for the altered dataset
-            loss_permuted = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
-                                                                   y=y_tmp,
-                                                                   y_hat=y_tmp_hat,
-                                                                   sample_weight=weights,
-                                                                   metrics=loss_permuted)
+            tmp_loss_permuted = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
+                                                                       y=y_tmp,
+                                                                       y_hat=y_tmp_hat,
+                                                                       sample_weight=weights)
+
+            for loss_name in tmp_loss_permuted:
+                loss_permuted[loss_name] += tmp_loss_permuted[loss_name]
 
             # compute score values for the altered dataset
-            score_permuted = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
-                                                                    y=y_tmp,
-                                                                    y_hat=y_tmp_hat,
-                                                                    sample_weight=weights,
-                                                                    metrics=score_permuted)
+            tmp_score_permuted = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
+                                                                        y=y_tmp,
+                                                                        y_hat=y_tmp_hat,
+                                                                        sample_weight=weights)
+
+            for score_name in tmp_score_permuted:
+                score_permuted[score_name] += tmp_score_permuted[score_name]
 
         # compute feature importance for the loss functions
         loss_feature_importance = PermutationImportance._compute_importances(metric_orig=loss_orig,

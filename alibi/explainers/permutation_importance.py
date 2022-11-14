@@ -182,7 +182,7 @@ class PermutationImportance(Explainer):
             `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
             compatible with the loss and score functions provided in `loss_fns` and `score_fns`.
         loss_fns
-            A literal or a list of literals or a loss function or a dictionary of loss functions having as keys the
+            A literal, or a list of literals, or a loss function, or a dictionary of loss functions having as keys the
             names of the loss functions and as values the loss functions (i.e., lower values are better). The available
             literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`. Note that the
             `predictor` output must be compatible with every loss function. Every loss function is expected to receive
@@ -196,7 +196,7 @@ class PermutationImportance(Explainer):
              - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
 
         score_fns
-            A literal or a list or literals or a score function or a dictionary of score functions having as keys the
+            A literal, or a list or literals, or a score function, or a dictionary of score functions having as keys the
             names of the score functions and as values the score functions (i.e, higher values are better). The
             available literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`.
             As with the `loss_fns`, the `predictor` output must be compatible with every score function and the score

@@ -153,7 +153,7 @@ class PermutationImportance(Explainer):
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
-                 loss_fns: Optional[  # type: ignore[misc]
+                 loss_fns: Optional[  # type: ignore[misc, valid-type]
                      Union[
                          Literal[tuple(METRIC_FNS["loss"].keys())],
                          List[Literal[tuple(METRIC_FNS["loss"].keys())]],
@@ -161,7 +161,7 @@ class PermutationImportance(Explainer):
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
                  ] = None,
-                 score_fns: Optional[  # type: ignore[misc]
+                 score_fns: Optional[  # type: ignore[misc, valid-type]
                      Union[
                          Literal[tuple(METRIC_FNS["score"].keys())],
                          List[Literal[tuple(METRIC_FNS["score"].keys())]],

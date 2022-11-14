@@ -139,7 +139,7 @@ Dictionary of supported string specified metrics
 
 
 class PermutationImportance(Explainer):
-    """ Implementation of the permutation feature importance for tabular dataset. The method measure the importance
+    """ Implementation of the permutation feature importance for tabular datasets. The method measure the importance
     of a feature as the relative increase/decrease in the loss/score function when the feature values are permuted.
     Supports black-box models.
 
@@ -155,16 +155,16 @@ class PermutationImportance(Explainer):
                  predictor: Callable[[np.ndarray], np.ndarray],
                  loss_fns: Optional[
                      Union[
-                         str,
-                         List[str],
+                         Literal[tuple(METRIC_FNS["loss"].keys())],
+                         List[Literal[tuple(METRIC_FNS["loss"].keys())]],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
                  ] = None,
                  score_fns: Optional[
                      Union[
-                         str,
-                         List[str],
+                         Literal[tuple(METRIC_FNS["score"].keys())],
+                         List[Literal[tuple(METRIC_FNS["score"].keys())]],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
@@ -180,11 +180,13 @@ class PermutationImportance(Explainer):
             A prediction function which receives as input a `numpy` array of size `N x F`, and outputs a
             `numpy` array of size `N` (i.e. `(N, )`) or `N x T`, where `N` is the number of input instances,
             `F` is the number of features, and `T` is the number of targets. Note that the output shape must be
-            compatible with the loss and score functions provide in `loss_fns` and `score_fns`.
+            compatible with the loss and score functions provided in `loss_fns` and `score_fns`.
         loss_fns
-            A loss function or a dictionary of loss functions having as keys the names of the loss functions and as
-            values the loss functions (i.e., lower values are better). Note that the `predictor` output must be
-            compatible with every loss function. Every loss function is expected to receive the following arguments:
+            A literal or a list of literals or a loss function or a dictionary of loss functions having as keys the
+            names of the loss functions and as values the loss functions (i.e., lower values are better). The available
+            literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`. Note that the
+            `predictor` output must be compatible with every loss function. Every loss function is expected to receive
+            the following arguments:
 
              - `y_true` : ``np.ndarray`` -  a `numpy` array of ground-truth labels.
 
@@ -194,10 +196,11 @@ class PermutationImportance(Explainer):
              - `sample_weight`: ``Optional[np.ndarray]`` - a `numpy` array of sample weights.
 
         score_fns
-            A score function or a dictionary of score functions having as keys the names of the score functions and as
-            values the score functions (i.e, higher values are better). As with the `loss_fns`, the `predictor` output
-            must be compatible with every score function and the score function must have the same signature
-            presented in the `loss_fns` parameter description.
+            A literal or a list or literals or a score function or a dictionary of score functions having as keys the
+            names of the score functions and as values the score functions (i.e, higher values are better). The
+            available literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`.
+            As with the `loss_fns`, the `predictor` output must be compatible with every score function and the score
+            function must have the same signature presented in the `loss_fns` parameter description.
         feature_names
             A list of feature names used for displaying results.
         verbose
@@ -398,7 +401,8 @@ class PermutationImportance(Explainer):
             Weight of each sample instance.
         metrics
             An optional dictionary of metrics, having as keys the name of the metrics and as value the evaluation of
-            the metrics.
+            the metrics. If provided, the function `_compute_metric` has a side effect and updates the `metrics`
+            dictionary.
 
         Returns
         -------

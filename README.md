@@ -166,21 +166,21 @@ from method to method so we encourage the reader to become familiar with the
 The following tables summarize the possible use cases for each method.
 
 ### Model Explanations
-|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train or test set required|Distributed|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
-|[ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
-|[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[PD Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[Permutation Importance](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html)                             |BB|global|✔|✔|✔| | |✔| ✔           | |
-|[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
-|[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
-|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
-|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
-|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
-|[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
-|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
-|[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
+| Method                                                                                                       |    Models    |     Explanations      | Classification | Regression | Tabular | Text | Images | Categorical features | Train set required | Distributed |
+|:-------------------------------------------------------------------------------------------------------------|:------------:|:---------------------:|:--------------:|:----------:|:-------:|:----:|:------:|:--------------------:|:------------------:|:-----------:|
+| [ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)                                      |      BB      |        global         |       ✔        |     ✔      |    ✔    |      |        |                      |                    |             |
+| [Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)         |    BB WB     |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [PD Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)        |    BB WB     |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [Permutation Importance](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html) |      BB      |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)                              |      BB      |         local         |       ✔        |            |    ✔    |  ✔   |   ✔    |          ✔           |    For Tabular     |             |
+| [CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)                                      | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |                      |      Optional      |             |
+| [Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)                           | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |                      |         No         |             |
+| [Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)            | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |          ✔           |      Optional      |             |
+| [Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)                 |      BB      |         local         |       ✔        |            |    ✔    |      |   ✔    |          ✔           |         ✔          |             |
+| [Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)     |   TF/Keras   |         local         |       ✔        |     ✔      |    ✔    |  ✔   |   ✔    |          ✔           |      Optional      |             |
+| [Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)                       |      BB      | local <br></br>global |       ✔        |     ✔      |    ✔    |      |        |          ✔           |         ✔          |      ✔      |
+| [Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)                           |      WB      | local <br></br>global |       ✔        |     ✔      |    ✔    |      |        |          ✔           |      Optional      |             |
+| [Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)           |      WB      |         local         |       ✔        |     ✔      |    ✔    |  ✔   |   ✔    |          ✔           |         ✔          |             |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a

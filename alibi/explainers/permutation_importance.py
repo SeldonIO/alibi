@@ -153,7 +153,7 @@ class PermutationImportance(Explainer):
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
-                 loss_fns: Optional[
+                 loss_fns: Optional[  # type: ignore[misc]
                      Union[
                          Literal[tuple(METRIC_FNS["loss"].keys())],
                          List[Literal[tuple(METRIC_FNS["loss"].keys())]],
@@ -161,7 +161,7 @@ class PermutationImportance(Explainer):
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
                  ] = None,
-                 score_fns: Optional[
+                 score_fns: Optional[  # type: ignore[misc]
                      Union[
                          Literal[tuple(METRIC_FNS["score"].keys())],
                          List[Literal[tuple(METRIC_FNS["score"].keys())]],
@@ -384,7 +384,7 @@ class PermutationImportance(Explainer):
                          y: np.ndarray,
                          y_hat: np.ndarray,
                          sample_weight: Optional[np.ndarray] = None,
-                         metrics: Optional[Dict[str, List[float]]] = None):
+                         metrics: Optional[Dict[str, List[float]]] = None) -> Dict[str, List[float]]:
         """
         Helper function to compute multiple metrics.
 
@@ -527,7 +527,7 @@ class PermutationImportance(Explainer):
                        sample_weight: Optional[np.ndarray],
                        features: Union[int, Tuple[int, ...]],
                        loss_orig: Dict[str, List[float]],
-                       score_orig: Dict[str, List[float]]):
+                       score_orig: Dict[str, List[float]]) -> Dict[str, Any]:
         """
         Helper function to compute the "exact" value of the permutation feature importance.
 
@@ -598,7 +598,7 @@ class PermutationImportance(Explainer):
                           sample_weight: Optional[np.ndarray],
                           features: Union[int, Tuple[int, ...]],
                           loss_orig: Dict[str, List[float]],
-                          score_orig: Dict[str, List[float]]):
+                          score_orig: Dict[str, List[float]]) -> Dict[str, Any]:
         """
         Helper function to compute the "estimate" mean, standard deviation and sample values of the permutation
         feature importance.
@@ -713,12 +713,12 @@ class PermutationImportance(Explainer):
                     "samples": np.array(importance_values),
                 }
             else:
-                feature_importance[metric_name] = importance_values[0]
+                feature_importance[metric_name] = importance_values[0]  # type: ignore
 
         return feature_importance
 
     @staticmethod
-    def _compute_importance(metric_orig: float, metric_permuted: float, kind: str, lower_is_better: bool):
+    def _compute_importance(metric_orig: float, metric_permuted: float, kind: str, lower_is_better: bool) -> float:
         """
         Helper function to compute the feature importance as the metric ratio or the metric difference
         based on the `kind` parameter and `lower_is_better` flag.

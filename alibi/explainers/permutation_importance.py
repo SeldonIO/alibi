@@ -41,11 +41,9 @@ class Kind(str, Enum):
 METRIC_FNS = {
     "loss": {
         # regression
-        "max_error": sklearn.metrics.max_error,
         "mean_absolute_error": sklearn.metrics.mean_absolute_error,
         "mean_squared_error": sklearn.metrics.mean_squared_error,
         "mean_squared_log_error": sklearn.metrics.mean_squared_log_error,
-        "median_absolute_error": sklearn.metrics.median_absolute_error,
         "mean_absolute_percentage_error": sklearn.metrics.mean_absolute_percentage_error,
 
         # classification
@@ -67,7 +65,6 @@ METRIC_FNS = {
 Dictionary of supported string specified metrics
 
     - Loss functions
-        - ``'max_error'`` - Maximum residual error. See `sklearn.metrics.max_error`_ for documentation.
 
         - ``'mean_absolute_error'`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
         for documentation.
@@ -78,14 +75,11 @@ Dictionary of supported string specified metrics
         - ``'mean_squared_log_error'`` - Mean squared logarithmic error regression loss. \
         See `sklearn.metrics.mean_squared_log_error`_ for documentation.
 
-        - ``'median_absolute_error'`` - Median absolute error regression loss. \
-        See `sklearn.metrics.median_absolute_error`_ for documentation.
-
         - ``'mean_absolute_percentage_error'`` - Mean absolute percentage error (MAPE) regression loss. \
         See `sklearn.metrics.mean_absolute_percentage_error`_ for documentation.
 
-            .. _sklearn.metrics.max_error:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.max_error.html#sklearn.metrics.max_error
+        - ``'log_loss'`` - Log loss, aka logistic loss or cross-entropy loss. \
+        See `sklearn.metrics.log_loss`_ for documentation.
 
             .. _sklearn.metrics.mean_absolute_error:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
@@ -96,11 +90,11 @@ Dictionary of supported string specified metrics
             .. _sklearn.metrics.mean_squared_log_error:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html#sklearn.metrics.mean_squared_log_error
 
-            .. _sklearn.metrics.median_absolute_error:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.median_absolute_error.html#sklearn.metrics.median_absolute_error
-
             .. _sklearn.metrics.mean_absolute_percentage_error:
                 https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
+
+            .. _sklearn.metrics.log_loss:
+                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html#sklearn.metrics.log_loss
 
     - Score functions
         - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score`_ for documentation.

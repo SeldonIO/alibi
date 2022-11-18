@@ -88,6 +88,7 @@ class Model(nn.Module):
             if len(y_pred) != len(self.loss):
                 raise ValueError("Number of model's heads differs from the number of losses.")
 
+            # TODO: remove this case since is already considered
             if len(self.loss_weights) != 0 and (len(self.loss_weights) != len(self.loss)):
                 raise ValueError("Number of loss weights should be equal to the number of losses.")
         else:

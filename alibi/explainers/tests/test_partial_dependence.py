@@ -297,7 +297,7 @@ def test_grid_points_error(adult_data, use_int):
         explainer._grid_points_sanity_checks(grid_points, n_features=X_train.shape[1])
 
 
-def compare_feature_values(exp_alibi: Explanation, exp_sklearn: Bunch):
+def assert_feature_values_equal(exp_alibi: Explanation, exp_sklearn: Bunch):
     """ Compares feature values of `alibi` explanation and `sklearn` explanation. """
     if isinstance(exp_alibi.data['feature_names'][0], tuple):
         for i in range(len(exp_sklearn['values'])):
@@ -376,7 +376,7 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
 
     # compare explanations
     assert np.allclose(exp_alibi.data['pd_values'][0], exp_sklearn['average'])
-    compare_feature_values(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
+    assert_feature_values_equal(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
@@ -421,7 +421,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
 
     # compare explanations
     assert np.allclose(exp_alibi.data['pd_values'][0][1], exp_sklearn['average'])
-    compare_feature_values(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
+    assert_feature_values_equal(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
 
 
 @pytest.mark.parametrize('predictor', [GradientBoostingClassifier()])
@@ -456,7 +456,7 @@ def test_sklearn_recursion(predictor, binary_data, features, params):
                                               grid_resolution=params['grid_resolution'])
 
     # compare explanations
-    compare_feature_values(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
+    assert_feature_values_equal(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
 
 
 @pytest.mark.parametrize('rf_classifier', [lazy_fixture('adult_data')], indirect=True)
@@ -499,16 +499,17 @@ def test_sklearn_blackbox(rf_classifier, adult_data, features, params):
     # compare explanations
     assert np.allclose(exp_alibi.data['ice_values'][0][1], exp_sklearn['individual'])
     assert np.allclose(exp_alibi.data['pd_values'][0][1], exp_sklearn['average'])
-    compare_feature_values(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
+    assert_feature_values_equal(exp_alibi=exp_alibi, exp_sklearn=exp_sklearn)
 
 
-@pytest.fixture(scope='function')
-def explanation():
+@pytest.fixture(scope='module')
+def explanation(request):
     meta = deepcopy(DEFAULT_META_PD)
     data = deepcopy(DEFAULT_DATA_PD)
+    kind = request.param
 
     meta.update(params={
-        'kind': 'both',
+        'kind': kind,
         'percentiles': (0.0, 1.0),
         'grid_resolution': 2,
         'feature_names': ['f_0', 'f_1', 'f_2', 'f_3'],
@@ -635,10 +636,9 @@ def assert_pd_ice_values(feature: int, target_idx: int, kind: str, explanation: 
                           lines=lines)
 
 
-@pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
-def test__plot_one_pd_num(kind, explanation):
+@pytest.mark.parametrize('explanation', ['average', 'individual', 'both'], indirect=True)
+def test__plot_one_pd_num(explanation):
     feature, target_idx = 0, 0
-    explanation.meta['params']['kind'] = kind
 
     _, ax = plt.subplots()
     ax, _ = _plot_one_pd_num(exp=explanation,
@@ -657,15 +657,14 @@ def test__plot_one_pd_num(kind, explanation):
     # check pd and ice values
     assert_pd_ice_values(feature=feature,
                          target_idx=target_idx,
-                         kind=kind,
+                         kind=explanation.meta['params']['kind'],
                          explanation=explanation,
                          ax=ax)
 
 
-@pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
-def test__plot_one_pd_cat(kind, explanation):
+@pytest.mark.parametrize('explanation', ['average', 'individual', 'both'], indirect=True)
+def test__plot_one_pd_cat(explanation):
     feature, target_idx = 2, 0
-    explanation.meta['params']['kind'] = kind
 
     _, ax = plt.subplots()
     ax, _ = _plot_one_pd_cat(exp=explanation,
@@ -680,15 +679,15 @@ def test__plot_one_pd_cat(kind, explanation):
     # check pd and ice values
     assert_pd_ice_values(feature=feature,
                          target_idx=target_idx,
-                         kind=kind,
+                         kind=explanation.meta['params']['kind'],
                          explanation=explanation,
                          ax=ax)
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test__plot_two_pd_num_num(explanation):
     """ Test the `_plot_two_pd_num_num` function. """
     feature, target_idx = 4, 0
-    explanation.meta['params']['kind'] = 'average'
 
     _, ax = plt.subplots()
     ax, _ = _plot_two_pd_num_num(exp=explanation,
@@ -709,6 +708,7 @@ def test__plot_two_pd_num_num(explanation):
 
 
 @pytest.mark.parametrize('feature', [5, 6])
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test__plot_two_pd_num_cat(feature, explanation):
     """ Test the `__plot_two_pd_num_cat` function. """
     target_idx = 0
@@ -751,6 +751,7 @@ def test__plot_two_pd_num_cat(feature, explanation):
         assert np.allclose(y, pd_values[i - 1])
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test__plot_two_pd_cat_cat(explanation):
     """ Test the `_plot_two_pd_cat_cat` function. """
     feature, target_idx = 7, 0
@@ -793,6 +794,7 @@ def mock_private_plt_function(mocker):
     mocker.patch('alibi.explainers.partial_dependence._plot_two_pd_cat_cat', return_value=(None, None))
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_all_features(explanation, mocker):
     """ Test if a PD is plotted for each explained feature. """
     mock_private_plt_function(mocker)
@@ -800,6 +802,7 @@ def test_plot_pd_all_features(explanation, mocker):
     assert np.sum(~pd.isna(ax)) == len(explanation.data['feature_names'])
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_oor_feature(explanation):
     """ Test if an error is raised when the feature index is out of range. """
     with pytest.raises(IndexError) as err:
@@ -807,6 +810,7 @@ def test_plot_pd_oor_feature(explanation):
     assert "The `features` indices must be less than the" in str(err.value)
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_unknown_target(explanation):
     """ Test if an error is raised for an unknown target name. """
     with pytest.raises(ValueError) as err:
@@ -814,6 +818,7 @@ def test_plot_pd_unknown_target(explanation):
     assert "Unknown `target` name" in str(err.value)
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_oor_target(explanation):
     """ Test if an error is raised when the target index is out of range. """
     with pytest.raises(IndexError) as err:
@@ -822,6 +827,7 @@ def test_plot_pd_oor_target(explanation):
 
 
 @pytest.mark.parametrize('n_cols', [2, 3, 4, 5])
+@pytest.mark.parametrize('explanation',  ['average'], indirect=True)
 def test_plot_pd_n_cols(n_cols, explanation, mocker):
     """ Test if the number figure columns matches the expected one. """
     mock_private_plt_function(mocker)
@@ -829,6 +835,7 @@ def test_plot_pd_n_cols(n_cols, explanation, mocker):
     assert ax.shape[-1] == n_cols
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_ax(explanation):
     """ Test if an error is raised if the number of provided axes is less that the number of features to plot
     the PD for. """
@@ -838,20 +845,20 @@ def test_plot_pd_ax(explanation):
     assert "Expected ax to have" in str(err.value)
 
 
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_sharey_all(explanation):
     """ Test if all axes have the same y limits when ``sharey='all'``. """
-    explanation.meta['params']['kind'] = 'average'
     axes = plot_pd(exp=explanation, features=[0, 1, 2, 3], n_cols=1, sharey='all')
     assert len(set([ax.get_ylim() for ax in axes.ravel()])) == 1
 
 
 @pytest.mark.parametrize('n_cols', [1, 2])
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_sharey_row(n_cols, explanation):
     """ Test if all axes on the same rows have the same y limits and axes on different rows have different y limits
     when ``sharey='row'``. """
     features = [0, 1, 2]
     n_rows = len(features) // n_cols + (len(features) % n_cols != 0)
-    explanation.meta['params']['kind'] = 'average'
     axes = plot_pd(exp=explanation, features=features, n_cols=n_cols, sharey='row')
     ylims = []
 
@@ -864,10 +871,10 @@ def test_plot_pd_sharey_row(n_cols, explanation):
 
 
 @pytest.mark.parametrize('n_cols', [1, 2, 3])
+@pytest.mark.parametrize('explanation', ['average'], indirect=True)
 def test_plot_pd_sharey_none(n_cols, explanation):
     """Test if all axes have different y limits when ``sharey=None``. """
     features = [0, 1, 2]
-    explanation.meta['params']['kind'] = 'average'
     axes = plot_pd(exp=explanation, features=features, n_cols=n_cols, sharey=None)
     assert len(set([ax.get_ylim() for ax in axes.ravel() if ax is not None])) == len(features)
 
@@ -895,6 +902,7 @@ def test_ice_sampling(n_ice):
         assert ice_sampled_vals.shape[1] == n_ice
 
 
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__sample_ice_warning(explanation, caplog):
     """ Test if the sampling function logs a warning when the number of ices is greater that the number
     of instances in the reference dataset and if it returns all ices"""
@@ -905,6 +913,7 @@ def test__sample_ice_warning(explanation, caplog):
     assert np.allclose(ice_values, sampled_ice_values)
 
 
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__sample_ice_error_negative(explanation):
     """ Test if an error is raise when `n_ice` is negative. """
     n_samples, n_values = 10, 5
@@ -915,6 +924,7 @@ def test__sample_ice_error_negative(explanation):
 
 
 @pytest.mark.parametrize('n_ice', [1, 2, 4, 8])
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__sample_ice_error_sample(n_ice, explanation):
     """ Test if the number of sampled ice matches the expectation. """
     n_samples, n_values = 10, 5
@@ -924,6 +934,7 @@ def test__sample_ice_error_sample(n_ice, explanation):
 
 
 @pytest.mark.parametrize('n_ice', [[-1, 0, 1], [0, 1, 11]])
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__sample_ice_error_oor(n_ice, explanation):
     """ Test if an error is raised when the ice indices are out of bounds. """
     n_samples, n_values = 10, 5
@@ -933,6 +944,7 @@ def test__sample_ice_error_oor(n_ice, explanation):
     assert "Some indices in `n_ice` are out of bounds." in str(err.value)
 
 
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__sample_ice_error_type(explanation):
     """ Test if an error is raise if the `n_ice` is an unknown type. """
     n_samples, n_values = 10, 5
@@ -942,6 +954,7 @@ def test__sample_ice_error_type(explanation):
     assert "Unknown `n_ice` values." in str(err.value)
 
 
+@pytest.mark.parametrize('explanation', ['both'], indirect=True)
 def test__process_pd_ice(explanation):
     """ Test the `center` option for the pd and ice. """
     n_samples, n_values = 10, 5

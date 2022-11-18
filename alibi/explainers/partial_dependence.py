@@ -954,7 +954,7 @@ def plot_pd(exp: Explanation,
     else:
         for ifeatures in features:
             if ifeatures >= len(exp.data['feature_names']):
-                raise ValueError(f"The `features` indices must be less than the "
+                raise IndexError(f"The `features` indices must be less than the "
                                  f"``len(feature_names) = {len(exp.data['feature_names'])}``. "
                                  f"Received {ifeatures}.")
 
@@ -1099,32 +1099,32 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
     Parameters
     ----------
     ice_values
-        Array of ice_values of dimension `N x V`, where `N `is the number of instances in the reference dataset,
-        and `V` is the number of feature values where the PD is computed.
+        Array of ice_values of dimension `V x N`, where `V` is the number of feature values where the PD is computed,
+        and `N` is the number of instances in the reference dataset.
     n_ice
         See :py:meth:`alibi.explainers.partial_dependence.plot_pd`.
     """
     if n_ice == 'all':
         return ice_values
 
-    _, V = ice_values.shape
+    _, N = ice_values.shape
     if isinstance(n_ice, numbers.Integral):
-        if n_ice > V:  # type: ignore[operator]
-            n_ice = V
+        if n_ice >= N:  # type: ignore[operator]
             logger.warning('`n_ice` is greater than the number of instances in the reference dataset. '
                            'Automatically setting `n_ice` to the number of instances in the reference dataset.')
+            return ice_values
 
         if n_ice <= 0:  # type: ignore[operator]
             raise ValueError('`n_ice` must be an integer grater than 0.')
 
-        indices = np.random.choice(a=V, size=n_ice, replace=False)
+        indices = np.random.choice(a=N, size=n_ice, replace=False)
         return ice_values[:, indices]
 
     if isinstance(n_ice, list):
         n_ice = np.unique(n_ice)  # type: ignore[assignment]
-        if not np.all(n_ice < V) or not np.all(n_ice >= 0):  # type: ignore[operator]
+        if not np.all(n_ice < N) or not np.all(n_ice >= 0):  # type: ignore[operator]
             raise ValueError(f'Some indices in `n_ice` are out of bounds. Ensure that all indices are '
-                             f'greater or equal than 0 and less than {V}.')
+                             f'greater or equal than 0 and less than {N}.')
         return ice_values[:, n_ice]
 
     raise ValueError(f"Unknown `n_ice` values. `n_ice` can be a string taking value 'all', "
@@ -1148,8 +1148,8 @@ def _process_pd_ice(exp: Explanation,
         Array of ice_values of dimension `V` (i.e. `(V, )`), where V is the number of feature values where
         the PD is computed.
     ice_values
-        Array of ice_values of dimension `N x V`, where `N` is the number of instances in the reference dataset,
-        and `V` is the number of feature values where the PD is computed.
+        Array of ice_values of dimension `V x N`, where `V` is the number of feature values where the PD is computed,
+        and `N` is the number of instances in the reference dataset.
 
     Returns
     -------

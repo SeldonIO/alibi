@@ -276,7 +276,8 @@ def test_interaction_num_cat(rf_classifier, pd_pdv_explainers, features, adult_d
 
 
 @pytest.fixture(scope='module')
-def explanation_importance():
+def exp_importance():
+    """ Creates importance explanation object. """
     meta = deepcopy(DEFAULT_META_PDVARIANCE)
     data = deepcopy(DEFAULT_DATA_PDVARIANCE)
     meta['params'] = {
@@ -318,7 +319,8 @@ def explanation_importance():
 
 
 @pytest.fixture(scope='module')
-def explanation_interaction():
+def exp_interaction():
+    """ Creates interaction explanation object. """
     meta = deepcopy(DEFAULT_META_PDVARIANCE)
     data = deepcopy(DEFAULT_DATA_PDVARIANCE)
 
@@ -409,17 +411,16 @@ def explanation_interaction():
 
 @pytest.mark.parametrize('n_axes', [4, 5, 6, 7])
 @pytest.mark.parametrize('n_cols', [2, 3, 4])
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test__plot_hbar_n_cols(n_axes, n_cols, exp):
+def test__plot_hbar_n_cols(n_axes, n_cols, exp_importance):
     """ Test if the number of axes columns matches the expectation. """
     n_rows = n_axes // n_cols + (n_axes % n_cols != 0)
-    targets = np.random.choice(len(exp.meta['params']['target_names'],), size=n_axes, replace=True)
-    features = np.arange(len(exp.meta['params']['feature_names'])).tolist()
+    targets = np.random.choice(len(exp_importance.meta['params']['target_names'],), size=n_axes, replace=True)
+    features = np.arange(len(exp_importance.meta['params']['feature_names'])).tolist()
 
     # create the horizontal bar plot
-    ax = _plot_hbar(exp_values=exp.data['feature_importance'],
-                    exp_feature_names=exp.data['feature_names'],
-                    exp_target_names=exp.meta['params']['target_names'],
+    ax = _plot_hbar(exp_values=exp_importance.data['feature_importance'],
+                    exp_feature_names=exp_importance.data['feature_names'],
+                    exp_target_names=exp_importance.meta['params']['target_names'],
                     features=features,
                     targets=targets,
                     n_cols=n_cols)
@@ -428,19 +429,18 @@ def test__plot_hbar_n_cols(n_axes, n_cols, exp):
     assert np.sum(~pd.isna(ax.ravel())) == n_axes
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test__plot_hbar_ax(exp):
+def test__plot_hbar_ax(exp_importance):
     """ Test if an error is raised when the number of provided axes is less than the number of targets
     to plot the horizontal bar for. """
     n_targets = 7
-    targets = np.random.choice(len(exp.meta['params']['target_names']), size=n_targets, replace=True)
-    features = np.arange(len(exp.meta['params']['feature_names'])).tolist()
+    targets = np.random.choice(len(exp_importance.meta['params']['target_names']), size=n_targets, replace=True)
+    features = np.arange(len(exp_importance.meta['params']['feature_names'])).tolist()
     _, ax = plt.subplots(nrows=2, ncols=2)
 
     with pytest.raises(ValueError) as err:
-        _plot_hbar(exp_values=exp.data['feature_importance'],
-                   exp_feature_names=exp.data['feature_names'],
-                   exp_target_names=exp.meta['params']['target_names'],
+        _plot_hbar(exp_values=exp_importance.data['feature_importance'],
+                   exp_feature_names=exp_importance.data['feature_names'],
+                   exp_target_names=exp_importance.meta['params']['target_names'],
                    features=features,
                    targets=targets,
                    ax=ax)
@@ -448,25 +448,24 @@ def test__plot_hbar_ax(exp):
     assert 'Expected ax to have' in str(err.value)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
 @pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
 @pytest.mark.parametrize('target', [0, 1])
 @pytest.mark.parametrize('features', [[0, 2], [0, 1, 2], [0, 1, 2, 3]])
-def test__plot_hbar_values(sort, top_k, target, features, exp):
+def test__plot_hbar_values(sort, top_k, target, features, exp_importance):
     """ Test if the plotted values, labels and titles are correct on the bar plot. """
-    ax = _plot_hbar(exp_values=exp.data['feature_importance'],
-                    exp_feature_names=exp.data['feature_names'],
-                    exp_target_names=exp.meta['params']['target_names'],
+    ax = _plot_hbar(exp_values=exp_importance.data['feature_importance'],
+                    exp_feature_names=exp_importance.data['feature_names'],
+                    exp_target_names=exp_importance.meta['params']['target_names'],
                     targets=[target],
                     features=features,
                     sort=sort,
                     top_k=top_k).ravel()
 
     datavalues = ax[0].containers[0].datavalues
-    expected_datavalues = np.array([exp.data['feature_importance'][target][ft] for ft in features])
+    expected_datavalues = np.array([exp_importance.data['feature_importance'][target][ft] for ft in features])
 
     feature_names = [txt.get_text() for txt in ax[0].get_yticklabels()]
-    expected_feature_names = [exp.data['feature_names'][ft] for ft in features]
+    expected_feature_names = [exp_importance.data['feature_names'][ft] for ft in features]
 
     if sort:
         sorted_idx = np.argsort(expected_datavalues)[::-1][:top_k]
@@ -475,7 +474,7 @@ def test__plot_hbar_values(sort, top_k, target, features, exp):
 
     assert np.allclose(datavalues, expected_datavalues)
     assert feature_names == expected_feature_names
-    assert ax[0].get_title() == exp.meta['params']['target_names'][target]
+    assert ax[0].get_title() == exp_importance.meta['params']['target_names'][target]
 
 
 def extract_number(x: str):
@@ -483,20 +482,19 @@ def extract_number(x: str):
     return float(re.findall('[0-9]+.[0-9]+', x)[0])
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
 @pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
 @pytest.mark.parametrize('features', [[0, 2], [0, 1, 2], [0, 1, 2, 3]])
 @pytest.mark.parametrize('targets', [[0]])
-def test__plot_feature_importance_detailed(sort, top_k, features, targets, exp):
+def test__plot_feature_importance_detailed(sort, top_k, features, targets, exp_importance):
     """ Tests if the `_plot_feature_importance` returns the correct plots when ``summarise='False'``. """
-    axes = _plot_feature_importance(exp=exp,
+    axes = _plot_feature_importance(exp=exp_importance,
                                     features=features,
                                     targets=targets,
                                     summarise=False,
                                     sort=sort,
                                     top_k=top_k).ravel()
 
-    expected_importance = np.array([exp.data['feature_importance'][targets[0]][ft] for ft in features])
+    expected_importance = np.array([exp_importance.data['feature_importance'][targets[0]][ft] for ft in features])
     if sort:
         sorted_idx = np.argsort(expected_importance)[::-1]
         expected_importance = expected_importance[sorted_idx][:top_k]
@@ -505,33 +503,37 @@ def test__plot_feature_importance_detailed(sort, top_k, features, targets, exp):
     assert np.allclose(importance, expected_importance, atol=1e-2)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test__plot_feature_importance_summarise(exp, mocker):
+def test__plot_feature_importance_summarise(exp_importance, mocker):
     """ Test if the `_plot_feature_importance` calls `_plot_hbar` once. """
     features, targets = [0, 1, 2], [0]
     m = mocker.patch('alibi.explainers.pd_variance._plot_hbar')
-    _plot_feature_importance(exp=exp,
+    _plot_feature_importance(exp=exp_importance,
                              features=features,
                              targets=targets,
                              summarise=True)
     m.assert_called_once()
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
 @pytest.mark.parametrize('features', [[0], [0, 1], [0, 1, 2]])
 @pytest.mark.parametrize('targets', [[0]])
 @pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 3)])
-def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp):
-    axes = _plot_feature_interaction(exp=exp,
+def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp_interaction):
+    axes = _plot_feature_interaction(exp=exp_interaction,
                                      features=features,
                                      targets=targets,
                                      summarise=False,
                                      sort=sort,
                                      top_k=top_k).ravel()
 
-    expected_interaction = np.array([exp.data['feature_interaction'][targets[0]][ft] for ft in features])
-    expected_cond_import0 = np.array([exp.data['conditional_importance'][ft][0][targets[0]] for ft in features])
-    expected_cond_import1 = np.array([exp.data['conditional_importance'][ft][1][targets[0]] for ft in features])
+    expected_interaction = np.array([
+        exp_interaction.data['feature_interaction'][targets[0]][ft] for ft in features
+    ])
+    expected_cond_import0 = np.array([
+        exp_interaction.data['conditional_importance'][ft][0][targets[0]] for ft in features
+    ])
+    expected_cond_import1 = np.array([
+        exp_interaction.data['conditional_importance'][ft][1][targets[0]] for ft in features
+    ])
 
     if sort:
         sorted_idx = np.argsort(expected_interaction)[::-1]
@@ -548,12 +550,11 @@ def test__plot_feature_interaction_detailed(features, targets, sort, top_k, exp)
     assert np.allclose(cond_import1, expected_cond_import1)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
-def test__plot_feature_interaction_summarise(exp, mocker):
-    """ Test if the `_plot_feature_interaction` callse `_plot_hbar` once. """
+def test__plot_feature_interaction_summarise(exp_interaction, mocker):
+    """ Test if the `_plot_feature_interaction` calls `_plot_hbar` once. """
     features, targets = [0, 1], [0]
     m = mocker.patch('alibi.explainers.pd_variance._plot_hbar')
-    _plot_feature_interaction(exp=exp,
+    _plot_feature_interaction(exp=exp_interaction,
                               features=features,
                               targets=targets,
                               summarise=True)
@@ -567,68 +568,60 @@ def test_plot_pd_variance_top_k_error():
     assert "``top_k`` must be greater than 0." == str(err.value)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_targets_all(exp, mocker):
+def test_plot_pd_variance_targets_all(exp_importance, mocker):
     """ Test if all the targets are considered when ``targets='all'``. """
     m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
-    plot_pd_variance(exp=exp, targets='all')
+    plot_pd_variance(exp=exp_importance, targets='all')
     args, kwargs = m.call_args
-    assert kwargs['targets'] == exp.meta['params']['target_names']
+    assert kwargs['targets'] == exp_importance.meta['params']['target_names']
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_targets_type(exp):
+def test_plot_pd_variance_targets_type(exp_importance):
     """ Test if an error is raised if `targets` is not of type `list`. """
     with pytest.raises(ValueError) as err:
-        plot_pd_variance(exp=exp, targets=0)
+        plot_pd_variance(exp=exp_importance, targets=0)
     assert '`targets` must be a list.' == str(err.value)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_warning(exp, mocker, caplog):
+def test_plot_pd_variance_warning(exp_importance, mocker, caplog):
     """ Tests if a warning is raise when the ``summarise=False`` and the length of `targets` is > 1. """
     mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
-    plot_pd_variance(exp=exp, targets=[0, 1], summarise=False)
+    plot_pd_variance(exp=exp_importance, targets=[0, 1], summarise=False)
     assert "`targets` should be a list containing a single element" in caplog.records[0].message
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_features_all(exp, mocker):
+def test_plot_pd_variance_features_all(exp_importance, mocker):
     m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
-    plot_pd_variance(exp=exp, features='all')
+    plot_pd_variance(exp=exp_importance, features='all')
     args, kwargs = m.call_args
-    assert kwargs['features'] == np.arange(len(exp.data['feature_names'])).tolist()
+    assert kwargs['features'] == np.arange(len(exp_importance.data['feature_names'])).tolist()
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_targets_unknown(exp):
+def test_plot_pd_variance_targets_unknown(exp_importance):
     """ Test if an error is raised when the ``targets`` contains an unknown values. """
     with pytest.raises(ValueError) as err:
-        plot_pd_variance(exp=exp, targets=['unknown'])
+        plot_pd_variance(exp=exp_importance, targets=['unknown'])
     assert "Unknown `target` name." in str(err.value)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_targets_oor(exp):
+def test_plot_pd_variance_targets_oor(exp_importance):
     """ Test if an error is raised when the ``targets`` contains out of range values. """
     with pytest.raises(IndexError) as err:
-        plot_pd_variance(exp=exp, targets=[5])
+        plot_pd_variance(exp=exp_importance, targets=[5])
     assert "Target index out of range." in str(err.value)
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_importance')])
-def test_plot_pd_variance_importance(exp, mocker):
+def test_plot_pd_variance_importance(exp_importance, mocker):
     """ Test if `_plot_feature_importance` is called within the `plot_pd_variance` if an importance explanation
     is provided. """
     m = mocker.patch('alibi.explainers.pd_variance._plot_feature_importance', return_value=None)
-    plot_pd_variance(exp=exp)
+    plot_pd_variance(exp=exp_importance)
     m.assert_called_once()
 
 
-@pytest.mark.parametrize('exp', [lazy_fixture('explanation_interaction')])
-def test_plot_pd_variance_interaction(exp, mocker):
+def test_plot_pd_variance_interaction(exp_interaction, mocker):
     """ Test if `_plot_feature_interaction` is called within the `plot_pd_variance` if an interaction explanation
     is provided. """
     m = mocker.patch('alibi.explainers.pd_variance._plot_feature_interaction', return_value=None)
-    plot_pd_variance(exp=exp)
+    plot_pd_variance(exp=exp_interaction)
     m.assert_called_once()

@@ -45,14 +45,6 @@ loss_fns = [nn.CrossEntropyLoss(reduction='mean'), nn.CrossEntropyLoss(reduction
 loss_weights = [0.3, 0.4]
 lr = 1e-3
 
-metric = [AccuracyMetric()]
-metrics = {
-    'output_1': AccuracyMetric(),
-    'output_2': AccuracyMetric(),
-}
-
-optimizer_class = optim.SGD
-
 
 @pytest.fixture(scope='module')
 def dataset(request):
@@ -115,7 +107,7 @@ def multimodal_model(request):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
     }
 ], indirect=True)
@@ -129,7 +121,7 @@ def test_compile_unimodal(unimodal_model):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights,
     }
@@ -150,7 +142,7 @@ def test_compile_multimodal_mismatch(multimodal_model):
     """ Test compile function raises an error when multiple loss functions are passed but the number \
     of loss weights does not match the number of loss functions. """
     with pytest.raises(ValueError) as err:
-        multimodal_model.compile(optimizer=optimizer_class(multimodal_model.parameters(), lr=lr),
+        multimodal_model.compile(optimizer=optim.SGD(multimodal_model.parameters(), lr=lr),
                                  loss=loss_fns,
                                  loss_weights=loss_weights[:1])
 
@@ -163,7 +155,7 @@ def test_compile_multimodal_mismatch(multimodal_model):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights
     }
@@ -186,7 +178,7 @@ def test_validate_prediction_labels1(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights,
     }
@@ -209,7 +201,7 @@ def test_validate_prediction_labels2(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights
     }
@@ -232,7 +224,7 @@ def test_validate_prediction_labels3(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
     }
 ], indirect=True)
@@ -254,7 +246,7 @@ def test_validate_prediction_labels4(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
     }
 ], indirect=True)
@@ -274,7 +266,7 @@ def test_compute_loss_unimodal(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights,
     }
@@ -297,7 +289,7 @@ def test_compute_loss_multimodal(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
         'metrics': [AccuracyMetric()]
     }
@@ -318,7 +310,7 @@ def test_compute_metrics_unimodal(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights,
         'metrics': {
@@ -345,7 +337,7 @@ def test_compute_metrics_multimodal(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': nn.MSELoss(reduction='mean'),
     }
 ], indirect=True)
@@ -377,7 +369,7 @@ def test_train_step(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
         'metrics': [AccuracyMetric()],
     }
@@ -416,7 +408,7 @@ def test_test_step(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
         'metrics': [AccuracyMetric()],
     }
@@ -447,7 +439,7 @@ def test_fit(unimodal_model, dataset, batch_size, epochs, mocker):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
         'metrics': [AccuracyMetric()],
     }
@@ -483,7 +475,7 @@ def test_metrics_to_str():
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
     }
 ], indirect=True)
@@ -504,7 +496,7 @@ def test_reset_loss_unimodal(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fns,
         'loss_weights': loss_weights,
     }
@@ -530,9 +522,9 @@ def test_reset_loss_multimodal(multimodal_model, dataset):
         'input_dim': input_dim,
         'output_dim': output_dim,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
-        'metrics': metric,
+        'metrics': [AccuracyMetric()],
     }
 ], indirect=True)
 def test_reset_metrics_unimodal(unimodal_model, dataset):
@@ -552,10 +544,13 @@ def test_reset_metrics_unimodal(unimodal_model, dataset):
         'input_dim': input_dim,
         'output_dims': output_dims,
         'compile': True,
-        'optimizer': optimizer_class,
+        'optimizer': optim.SGD,
         'loss': loss_fn,
         'loss_weights': loss_weights,
-        'metrics': metrics,
+        'metrics': {
+            'output_1': AccuracyMetric(),
+            'output_2': AccuracyMetric(),
+        }
     }
 ], indirect=True)
 def test_reset_metrics_multimodal(multimodal_model, dataset):

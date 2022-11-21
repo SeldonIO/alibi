@@ -270,11 +270,13 @@ class PermutationImportance(Explainer):
             the first half containing the ground-truth labels the rest of the features (i.e. features that are left
             intact) is matched with the values of the second half of the permuted features, and the other way around.
             This method is computationally lighter and provides estimate error bars given by the standard deviation.
+            Note that for some specific loss and score functions, the estimate does not converge to the exact metric
+            value.
         kind
             Whether to report the importance as the loss/score ratio or the loss/score difference.
             Available values are: ``'ratio'`` | ``'difference'``.
         n_repeats
-            Number of times to permute the features. Considered only when ``method='estimate'``.
+            Number of times to permute the feature values. Considered only when ``method='estimate'``.
         sample_weight
             Optional weight for each sample instance.
 

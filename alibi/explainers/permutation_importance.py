@@ -82,7 +82,7 @@ Dictionary of supported string specified loss functions
             https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html#sklearn.metrics.log_loss
 """
 
-LossFnsValues = Literal[
+LossFnName = Literal[
     # regression
     "mean_absolute_error",
     "mean_squared_error",
@@ -141,7 +141,7 @@ Dictionary of supported string specified score functions
             https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
 """
 
-ScoreFnsValues = Literal[
+ScoreFnName = Literal[
     # classification
     "accuracy",
     "precision",
@@ -154,8 +154,8 @@ ScoreFnsValues = Literal[
 ]
 
 
-assert set(get_args(LossFnsValues)) == set(LOSS_FNS.keys())
-assert set(get_args(ScoreFnsValues)) == set(SCORE_FNS.keys())
+assert set(get_args(LossFnName)) == set(LOSS_FNS.keys())
+assert set(get_args(ScoreFnName)) == set(SCORE_FNS.keys())
 
 
 class PermutationImportance(Explainer):
@@ -175,16 +175,16 @@ class PermutationImportance(Explainer):
                  predictor: Callable[[np.ndarray], np.ndarray],
                  loss_fns: Optional[
                      Union[
-                         LossFnsValues,
-                         List[LossFnsValues],
+                         LossFnName,
+                         List[LossFnName],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
                  ] = None,
                  score_fns: Optional[
                      Union[
-                         ScoreFnsValues,
-                         List[ScoreFnsValues],
+                         ScoreFnName,
+                         List[ScoreFnName],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]

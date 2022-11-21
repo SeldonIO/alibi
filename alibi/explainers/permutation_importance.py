@@ -19,9 +19,9 @@ from alibi.api.defaults import (DEFAULT_DATA_PERMUTATION_IMPORTANCE,
 from alibi.api.interfaces import Explainer, Explanation
 
 if sys.version_info >= (3, 8):
-    from typing import Literal
+    from typing import Literal, get_args
 else:
-    from typing_extensions import Literal
+    from typing_extensions import Literal, get_args
 
 logger = logging.getLogger(__name__)
 
@@ -38,98 +38,124 @@ class Kind(str, Enum):
     RATIO = 'ratio'
 
 
-METRIC_FNS = {
-    "loss": {
-        # regression
-        "mean_absolute_error": sklearn.metrics.mean_absolute_error,
-        "mean_squared_error": sklearn.metrics.mean_squared_error,
-        "mean_squared_log_error": sklearn.metrics.mean_squared_log_error,
-        "mean_absolute_percentage_error": sklearn.metrics.mean_absolute_percentage_error,
+LOSS_FNS = {
+    # regression
+    "mean_absolute_error": sklearn.metrics.mean_absolute_error,
+    "mean_squared_error": sklearn.metrics.mean_squared_error,
+    "mean_squared_log_error": sklearn.metrics.mean_squared_log_error,
+    "mean_absolute_percentage_error": sklearn.metrics.mean_absolute_percentage_error,
 
-        # classification
-        "log_loss": sklearn.metrics.log_loss,
-    },
-    "score": {
-        # classification
-        "accuracy": sklearn.metrics.accuracy_score,
-        "precision": sklearn.metrics.precision_score,
-        "recall": sklearn.metrics.recall_score,
-        "f1": sklearn.metrics.f1_score,
-        "roc_auc": sklearn.metrics.roc_auc_score,
-
-        # regression
-        "r2": sklearn.metrics.r2_score
-    }
+    # classification
+    "log_loss": sklearn.metrics.log_loss,
 }
 """
-Dictionary of supported string specified metrics
+Dictionary of supported string specified loss functions
 
-    - Loss functions
+    - ``'mean_absolute_error'`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
+    for documentation.
 
-        - ``'mean_absolute_error'`` - Mean absolute error regression loss. See `sklearn.metrics.mean_absolute_error`_ \
-        for documentation.
+    - ``'mean_squared_error'`` - Mean squared error regression loss. See `sklearn.metrics.mean_squared_error`_ \
+    for documentation.
 
-        - ``'mean_squared_error'`` - Mean squared error regression loss. See `sklearn.metrics.mean_squared_error`_ \
-        for documentation.
+    - ``'mean_squared_log_error'`` - Mean squared logarithmic error regression loss. \
+    See `sklearn.metrics.mean_squared_log_error`_ for documentation.
 
-        - ``'mean_squared_log_error'`` - Mean squared logarithmic error regression loss. \
-        See `sklearn.metrics.mean_squared_log_error`_ for documentation.
+    - ``'mean_absolute_percentage_error'`` - Mean absolute percentage error (MAPE) regression loss. \
+    See `sklearn.metrics.mean_absolute_percentage_error`_ for documentation.
 
-        - ``'mean_absolute_percentage_error'`` - Mean absolute percentage error (MAPE) regression loss. \
-        See `sklearn.metrics.mean_absolute_percentage_error`_ for documentation.
+    - ``'log_loss'`` - Log loss, aka logistic loss or cross-entropy loss. \
+    See `sklearn.metrics.log_loss`_ for documentation.
 
-        - ``'log_loss'`` - Log loss, aka logistic loss or cross-entropy loss. \
-        See `sklearn.metrics.log_loss`_ for documentation.
+        .. _sklearn.metrics.mean_absolute_error:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
 
-            .. _sklearn.metrics.mean_absolute_error:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_error.html#sklearn.metrics.mean_absolute_error
+        .. _sklearn.metrics.mean_squared_error:
+           https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
 
-            .. _sklearn.metrics.mean_squared_error:
-               https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_error.html#sklearn.metrics.mean_squared_error
+        .. _sklearn.metrics.mean_squared_log_error:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html#sklearn.metrics.mean_squared_log_error
 
-            .. _sklearn.metrics.mean_squared_log_error:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html#sklearn.metrics.mean_squared_log_error
+        .. _sklearn.metrics.mean_absolute_percentage_error:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
 
-            .. _sklearn.metrics.mean_absolute_percentage_error:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html#sklearn.metrics.mean_absolute_percentage_error
-
-            .. _sklearn.metrics.log_loss:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html#sklearn.metrics.log_loss
-
-    - Score functions
-        - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score`_ for documentation.
-
-        - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score`_ for documentation.
-
-        - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score`_ for documentation.
-
-        - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score`_ for documentation.
-
-        - ``'roc_auc_score'`` - Area Under the Receiver Operating Characteristic Curve (ROC AUC) score. \
-        See `sklearn.metrics.roc_auc_score`_ for documentation.
-
-        - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
-        See `sklearn.metrics.r2_score`_ for documentation.
-
-            .. _sklearn.metrics.accuracy_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html#sklearn.metrics.accuracy_score
-
-            .. _sklearn.metrics.precision_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score
-
-            .. _sklearn.metrics.recall_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score
-
-            .. _sklearn.metrics.f1_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
-
-            .. _sklearn.metrics.roc_auc_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html
-
-            .. _sklearn.metrics.r2_score:
-                https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
-
+        .. _sklearn.metrics.log_loss:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.log_loss.html#sklearn.metrics.log_loss
 """
+
+LossFnsValues = Literal[
+    # regression
+    "mean_absolute_error",
+    "mean_squared_error",
+    "mean_squared_log_error",
+    "mean_absolute_percentage_error",
+
+    # classification
+    "log_loss"
+]
+
+
+SCORE_FNS = {
+    # classification
+    "accuracy": sklearn.metrics.accuracy_score,
+    "precision": sklearn.metrics.precision_score,
+    "recall": sklearn.metrics.recall_score,
+    "f1": sklearn.metrics.f1_score,
+    "roc_auc": sklearn.metrics.roc_auc_score,
+
+    # regression
+    "r2": sklearn.metrics.r2_score
+}
+"""
+Dictionary of supported string specified score functions
+
+    - ``'accuracy'`` - Accuracy classification score. See `sklearn.metrics.accuracy_score`_ for documentation.
+
+    - ``'precision'`` - Precision score. See `sklearn.metrics.precision_score`_ for documentation.
+
+    - ``'recall'`` - Recall score. See `sklearn.metrics.recall_score`_ for documentation.
+
+    - ``'f1_score'`` - F1 score. See `sklearn.metrics.f1_score`_ for documentation.
+
+    - ``'roc_auc_score'`` - Area Under the Receiver Operating Characteristic Curve (ROC AUC) score. \
+    See `sklearn.metrics.roc_auc_score`_ for documentation.
+
+    - ``'r2_score'`` - :math:`R^2` (coefficient of determination) regression score. \
+    See `sklearn.metrics.r2_score`_ for documentation.
+
+        .. _sklearn.metrics.accuracy_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.accuracy_score.html#sklearn.metrics.accuracy_score
+
+        .. _sklearn.metrics.precision_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.precision_score.html#sklearn.metrics.precision_score
+
+        .. _sklearn.metrics.recall_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.recall_score.html#sklearn.metrics.recall_score
+
+        .. _sklearn.metrics.f1_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.f1_score.html#sklearn.metrics.f1_score
+
+        .. _sklearn.metrics.roc_auc_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.roc_auc_score.html
+
+        .. _sklearn.metrics.r2_score:
+            https://scikit-learn.org/stable/modules/generated/sklearn.metrics.r2_score.html
+"""
+
+ScoreFnsValues = Literal[
+    # classification
+    "accuracy",
+    "precision",
+    "recall",
+    "f1",
+    "roc_auc",
+
+    # regression
+    "r2"
+]
+
+
+assert set(get_args(LossFnsValues)) == set(LOSS_FNS.keys())
+assert set(get_args(ScoreFnsValues)) == set(SCORE_FNS.keys())
 
 
 class PermutationImportance(Explainer):
@@ -147,18 +173,18 @@ class PermutationImportance(Explainer):
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
-                 loss_fns: Optional[  # type: ignore[misc, valid-type]
+                 loss_fns: Optional[
                      Union[
-                         Literal[tuple(METRIC_FNS["loss"].keys())],
-                         List[Literal[tuple(METRIC_FNS["loss"].keys())]],
+                         LossFnsValues,
+                         List[LossFnsValues],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
                  ] = None,
-                 score_fns: Optional[  # type: ignore[misc, valid-type]
+                 score_fns: Optional[
                      Union[
-                         Literal[tuple(METRIC_FNS["score"].keys())],
-                         List[Literal[tuple(METRIC_FNS["score"].keys())]],
+                         ScoreFnsValues,
+                         List[ScoreFnsValues],
                          Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float],
                          Dict[str, Callable[[np.ndarray, np.ndarray, Optional[np.ndarray]], float]]
                      ]
@@ -178,7 +204,7 @@ class PermutationImportance(Explainer):
         loss_fns
             A literal, or a list of literals, or a loss function, or a dictionary of loss functions having as keys the
             names of the loss functions and as values the loss functions (i.e., lower values are better). The available
-            literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`. Note that the
+            literal values are described in :py:data:`alibi.explainers.permutation_importance.LOSS_FNS`. Note that the
             `predictor` output must be compatible with every loss function. Every loss function is expected to receive
             the following arguments:
 
@@ -192,7 +218,7 @@ class PermutationImportance(Explainer):
         score_fns
             A literal, or a list or literals, or a score function, or a dictionary of score functions having as keys the
             names of the score functions and as values the score functions (i.e, higher values are better). The
-            available literal values are described in :py:data:`alibi.explainers.permutation_importance.METRIC_FNS`.
+            available literal values are described in :py:data:`alibi.explainers.permutation_importance.SCORE_FNS`.
             As with the `loss_fns`, the `predictor` output must be compatible with every score function and the score
             function must have the same signature presented in the `loss_fns` parameter description.
         feature_names
@@ -209,8 +235,8 @@ class PermutationImportance(Explainer):
             raise ValueError('At least one loss function or a score function must be provided.')
 
         # initialize loss and score functions
-        self.loss_fns = PermutationImportance._init_metrics(metric_fns=loss_fns, metric_type='loss')
-        self.score_fns = PermutationImportance._init_metrics(metric_fns=score_fns, metric_type='score')
+        self.loss_fns = PermutationImportance._init_metrics(metric_fns=loss_fns, metric_type='loss')  # type: ignore[arg-type] # noqa
+        self.score_fns = PermutationImportance._init_metrics(metric_fns=score_fns, metric_type='score')  # type: ignore[arg-type] # noqa
 
     def explain(self,  # type: ignore[override]
                 X: np.ndarray,
@@ -355,20 +381,21 @@ class PermutationImportance(Explainer):
             return {metric_type: metric_fns}
 
         if isinstance(metric_fns, str):
-            metric_fns = [metric_fns]
+            metric_fns = [metric_fns]  # type: ignore[assignment]
 
         if isinstance(metric_fns, list):
             dict_metric_fns = {}
+            METRIC_FNS = LOSS_FNS if metric_type == 'loss' else SCORE_FNS
 
             for metric_fn in metric_fns:
                 if not isinstance(metric_fn, str):
                     raise ValueError(f'The {metric_type} inside {metric_type}_fns must be of type `str`.')
 
-                if metric_fn not in METRIC_FNS[metric_type]:
+                if metric_fn not in METRIC_FNS:
                     raise ValueError(f'Unknown {metric_type} name. Received {metric_fn}. '
-                                     f'Supported values are: {list(METRIC_FNS[metric_type].keys())}')
+                                     f'Supported values are: {list(METRIC_FNS.keys())}')
 
-                dict_metric_fns[metric_fn] = METRIC_FNS[metric_type][metric_fn]
+                dict_metric_fns[metric_fn] = METRIC_FNS[metric_fn]
             return dict_metric_fns
 
         return metric_fns

@@ -558,16 +558,20 @@ class PermutationImportance(Explainer):
         A dictionary having as keys the metric names and as values the permutation feature importance associated
         with the corresponding metrics.
         """
-        y_hat = []
+        y_perm, y_perm_hat = [], []
         weights: Optional[List[np.ndarray]] = [] if sample_weight else None
 
         for i in range(len(X)):
-            # create dataset
-            X_tmp = np.tile(X[i:i+1], reps=(len(X) - 1, 1))
+            # create input features dataset
+            X_tmp = np.tile(X[i:i+1], reps=(len(X) - 1, ) + (1, ) * (len(X.shape) - 1))
             X_tmp[:, features] = np.delete(arr=X[:, features], obj=i, axis=0)
 
+            # create ground-truth labels
+            y_tmp = np.tile(y[i:i+1], reps=(len(y) - 1, ) + (1, ) * (len(y.shape) - 1))
+
             # compute predictions
-            y_hat.append(self.predictor(X_tmp))
+            y_perm_hat.append(self.predictor(X_tmp))
+            y_perm.append(y_tmp)
 
             # create sample weights if necessary
             if sample_weight is not None:
@@ -575,22 +579,22 @@ class PermutationImportance(Explainer):
 
         # concatenate all predictions and construct ground-truth array. At this point, the `y_hat` vector
         # should contain `N x (N - 1)` predictions, where `N` is the number of samples in `X`.
-        y_hat = np.concatenate(y_hat, axis=0)
-        y = np.tile(y.reshape(-1, 1), reps=(1, len(X) - 1)).reshape(-1)
+        y_perm_hat = np.concatenate(y_perm_hat, axis=0)
+        y_perm = np.concatenate(y_perm, axis=0)
 
         if weights is not None:
             weights = np.concatenate(weights, axis=0)
 
         # compute loss values for the altered dataset
         loss_permuted = PermutationImportance._compute_metrics(metric_fns=self.loss_fns,
-                                                               y=y,
-                                                               y_hat=y_hat,  # type: ignore[arg-type]
+                                                               y=y_perm,  # type: ignore[arg-type]
+                                                               y_hat=y_perm_hat,  # type: ignore[arg-type]
                                                                sample_weight=weights)  # type: ignore[arg-type]
 
         # compute score values for the altered dataset
         score_permuted = PermutationImportance._compute_metrics(metric_fns=self.score_fns,
-                                                                y=y,
-                                                                y_hat=y_hat,  # type: ignore[arg-type]
+                                                                y=y_perm,  # type: ignore[arg-type]
+                                                                y_hat=y_perm_hat,  # type: ignore[arg-type]
                                                                 sample_weight=weights)  # type: ignore[arg-type]
 
         # compute feature importance for the loss functions

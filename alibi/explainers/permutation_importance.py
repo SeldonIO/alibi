@@ -5,6 +5,7 @@ import math
 import numbers
 import sys
 from collections import defaultdict
+from copy import deepcopy
 from enum import Enum
 from typing import (Any, Callable, Dict, List, Optional, Tuple, Union,
                     no_type_check)
@@ -891,21 +892,16 @@ def plot_permutation_importance(exp: Explanation,
 
     fig_kw = {**default_fig_kw, **fig_kw}
 
-    # initialize `features` and `metric_names` if set to ``'all'``
-    n_features = len(exp.data['feature_names'])
-    n_metric_names = len(exp.data['metric_names'])
-
     if features == 'all':
-        features = list(range(n_features))
+        features = list(range(len(exp.data['feature_names'])))
 
-    if metric_names == 'all':
-        metric_names = exp.data['metric_names']
+    metric_names = deepcopy(exp.data['metric_names'] if metric_names == 'all' else metric_names)
 
     # `features` sanity checks
     for ifeature in features:
         if ifeature >= len(exp.data['feature_names']):
-            raise ValueError(f"The `features` indices must be les thant the "
-                             f"``len(feature_names) = {n_features}``. Received {ifeature}.")
+            raise IndexError(f"The `features` indices must be les than the "
+                             f"``len(feature_names) = {len(exp.data['feature_names'])}``. Received {ifeature}.")
 
     # construct vector of feature names to display importance for
     feature_names = [exp.data['feature_names'][i] for i in features]
@@ -913,19 +909,22 @@ def plot_permutation_importance(exp: Explanation,
     # `metric_names` sanity checks
     for i, imetric_name in enumerate(metric_names):
         if isinstance(imetric_name, str) and (imetric_name not in exp.data['metric_names']):
-            raise ValueError(f"Unknown `metric_name`. Received {imetric_name}. "
+            raise ValueError(f"Unknown metric name. Received {imetric_name}. "
                              f"Available values are: {exp.data['metric_names']}.")
 
         if isinstance(imetric_name, numbers.Integral):
-            if imetric_name >= n_metric_names:
-                raise IndexError(f"Loss name index out of range. Received {imetric_name}. "
-                                 f"The number of `metric_names` is {n_metric_names}")
+            if imetric_name >= len(exp.data['metric_names']):
+                raise IndexError(f"Metric name index out of range. Received {imetric_name}. "
+                                 f"The number of `metric_names` is {len(exp.data['metric_names'])}")
 
             # convert index to string
-            metric_names[i] = exp.data['metric_names'][i]
+            metric_names[i] = exp.data['metric_names'][imetric_name]
 
     if ax is None:
         fix, ax = plt.subplots()
+
+    # number of metrics will correspond to the number of axis
+    n_metric_names = len(metric_names)
 
     if isinstance(ax, plt.Axes) and n_metric_names != 1:
         ax.set_axis_off()  # treat passed axis as a canvas for subplots
@@ -953,18 +952,18 @@ def plot_permutation_importance(exp: Explanation,
 
     for i in range(n_metric_names):
         ax = axes_ravel[i]
-        metric_name = metric_names[i]
+        metric_idx = exp.data['metric_names'].index(metric_names[i])
 
         # define bar plot data
         y_labels = feature_names
         y_labels = ['(' + ', '.join(y_label) + ')' if isinstance(y_label, tuple) else y_label for y_label in y_labels]
 
         if exp.meta['params']['method'] == Method.EXACT:
-            width = [exp.data['feature_importance'][i][j] for j in features]
+            width = [exp.data['feature_importance'][metric_idx][j] for j in features]
             xerr = None
         else:
-            width = [exp.data['feature_importance'][i][j]['mean'] for j in features]
-            xerr = [exp.data['feature_importance'][i][j]['std'] for j in features]
+            width = [exp.data['feature_importance'][metric_idx][j]['mean'] for j in features]
+            xerr = [exp.data['feature_importance'][metric_idx][j]['std'] for j in features]
 
         if sort:
             sorted_indices = np.argsort(width)[::-1][:top_k]
@@ -983,7 +982,7 @@ def plot_permutation_importance(exp: Explanation,
         ax.set_yticklabels(y_labels)
         ax.invert_yaxis()  # labels read top-to-bottom
         ax.set_xlabel('Permutation feature importance')
-        ax.set_title(metric_name)
+        ax.set_title(metric_names[i])
 
     fig.set(**fig_kw)
     return axes

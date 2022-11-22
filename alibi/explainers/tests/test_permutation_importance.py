@@ -1,11 +1,16 @@
-import pytest
-import numpy as np
 import re
 from copy import deepcopy
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pytest
+from pytest_lazyfixture import lazy_fixture
 from sklearn.metrics import accuracy_score, f1_score, max_error
-from alibi.explainers import PermutationImportance
-from alibi.api.defaults import DEFAULT_DATA_PERMUTATION_IMPORTANCE, DEFAULT_META_PERMUTATION_IMPORTANCE
+
+from alibi.api.defaults import (DEFAULT_DATA_PERMUTATION_IMPORTANCE,
+                                DEFAULT_META_PERMUTATION_IMPORTANCE)
 from alibi.api.interfaces import Explanation
+from alibi.explainers import PermutationImportance, plot_permutation_importance
 
 
 @pytest.fixture(scope='module')
@@ -363,76 +368,209 @@ def test_explain_exact(target_col, method, kind):
         assert np.all(np.allclose(s, 0) for s in np.delete(samples, best_idx))
 
 
-@pytest.mark.parametrize(scope='module')
+@pytest.fixture(scope='module')
 def exp_estimate():
     """ Creates an estimate explanation object. """
     meta = deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE)
     data = deepcopy(DEFAULT_DATA_PERMUTATION_IMPORTANCE)
 
     meta['params'] = {
-        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3', 'f_4'],
+        'feature_names': ['f_0', 'f_2', 'f_4'],
         'method': 'estimate',
         'kind': 'ratio',
         'n_repeats': 3,
         'sample_weight': None
     }
 
-    data['feature_names'] = ['f_0', 'f_1', 'f_2', 'f_3', 'f_4']
-    data['metric_names'] = ['mean_squared_error', 'r2']
+    data['feature_names'] = ['f_0', 'f_2', 'f_4']
+    data['metric_names'] = ['mean_squared_error', 'mean_absolute_error', 'r2']
     data['feature_importance'] = [
         [
             {
-                'mean': 2627.7020753147444,
-                'std': 189.98543297814754,
-                'samples': np.array([2399.30309907, 2864.44595479, 2619.35717209])
+                'mean': 2627.702,
+                'std': 189.985,
+                'samples': np.array([2399.303, 2864.445, 2619.357])
             },
             {
-                'mean': 6498.30597804514,
-                'std': 59.17398341745254,
-                'samples': np.array([6556.77836619, 6417.22313183, 6520.91643612])
+                'mean': 4661.244,
+                'std': 161.543,
+                'samples': np.array([4530.869, 4563.963, 4888.901])
             },
             {
-                'mean': 4661.244602056071,
-                'std': 161.5436722136323,
-                'samples': np.array([4530.86912025, 4563.96323096, 4888.90145497])
-            },
-            {
-                'mean': 4145.135786714857,
-                'std': 169.73902462704973,
-                'samples': np.array([4188.86758501, 4327.67794046, 3918.86183468])
-            },
-            {
-                'mean': 2012.6449475018023,
-                'std': 214.76697746725412,
-                'samples': np.array([2312.33568238, 1905.53574144, 1820.06341869])
+                'mean': 2012.644,
+                'std': 214.766,
+                'samples': np.array([2312.335, 1905.535, 1820.063])
             }
         ],
         [
             {
-                'mean': 0.21918964311146039,
-                'std': 0.015847625818032934,
-                'samples': np.array([0.20013775, 0.23893762, 0.21849355])
+                'mean': 37.519,
+                'std': 2.382,
+                'samples': np.array([39.548, 34.174, 38.834])
             },
             {
-                'mean': 0.5987452930913449,
-                'std': 0.005452212340318848,
-                'samples': np.array([0.60413286, 0.59127443, 0.60082859])
+                'mean': 61.574,
+                'std': 5.984,
+                'samples': np.array([61.956, 68.705, 54.061])
             },
             {
-                'mean': 0.4039364432966774,
-                'std': 0.013999131554322721,
-                'samples': np.array([0.3926383 , 0.39550619, 0.42366484])
+                'mean': 47.815,
+                'std': 2.525,
+                'samples': np.array([50.765, 48.082, 44.597])
+            }
+        ],
+        [
+            {
+                'mean': 0.219,
+                'std': 0.015,
+                'samples': np.array([0.200, 0.238, 0.218])
             },
             {
-                'mean': 0.410974315435433,
-                'std': 0.016828973292588836,
-                'samples': np.array([0.41531016, 0.42907267, 0.38854012])
+                'mean': 0.403,
+                'std': 0.013,
+                'samples': np.array([0.392, 0.395, 0.423])
             },
             {
-                'mean': 0.1771056257746353,
-                'std': 0.018898733225290235,
-                'samples': np.array([0.20347735, 0.1676804 , 0.16015913])
+                'mean': 0.177,
+                'std': 0.018,
+                'samples': np.array([0.203, 0.167, 0.160])
             }
         ]
     ]
     return Explanation(meta=meta, data=data)
+
+
+@pytest.fixture(scope='module')
+def exp_exact():
+    """ Creates an exact explanation object. """
+    meta = deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE)
+    data = deepcopy(DEFAULT_DATA_PERMUTATION_IMPORTANCE)
+
+    meta['params'] = {
+        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3', 'f_4'],
+        'method': 'exact',
+        'kind': 'difference',
+        'n_repeats': 50,
+        'sample_weight': None
+    }
+
+    data['feature_names'] = ['f_0', 'f_2', 'f_4']
+    data['metric_names'] = ['mean_squared_error', 'mean_absolute_error', 'r2']
+    data['feature_importance'] = [
+        [3088.364, 7939.829, 4702.336],
+        [35.848, 63.491, 50.199],
+        [0.212, 0.539, 0.415]
+    ]
+    return Explanation(meta=meta, data=data)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_features_all(exp):
+    """ Test if all the features are plotted if `features='all'`. """
+    axes = plot_permutation_importance(exp=exp, features='all').ravel()
+    feature_names = set(exp.data['feature_names'])
+
+    for ax in axes:
+        yticklabels = set([txt.get_text() for txt in ax.get_yticklabels()])
+        assert feature_names == yticklabels
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_metric_names_all(exp):
+    """ Test if all the metrics are plotted if `metric_names='all'`. """
+    axes = plot_permutation_importance(exp=exp, metric_names='all').ravel()
+    assert len(axes) == len(exp.data['metric_names'])
+
+    titles = [ax.get_title() for ax in axes]
+    assert titles == exp.data['metric_names']
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_feature_index_oor(exp):
+    """ Test if an error is raised when the feature index is out of range. """
+    feature_idx = len(exp.data['feature_names'])
+    with pytest.raises(IndexError) as err:
+        plot_permutation_importance(exp=exp, features=[feature_idx])
+    assert "The `features` indices must be les than the ``len(feature_names)" in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_metric_name_unknown(exp):
+    """ Test if an error is raised when the metric name is unknown. """
+    metric_name = 'unknown'
+    with pytest.raises(ValueError) as err:
+        plot_permutation_importance(exp=exp, metric_names=[metric_name])
+    assert "Unknown metric name." in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_metric_index_oor(exp):
+    """ Test if an error is raised when the metric index is out of range. """
+    metric_idx = len(exp.data['metric_names'])
+    with pytest.raises(IndexError) as err:
+        plot_permutation_importance(exp=exp, metric_names=[metric_idx])
+    assert "Metric name index out of range." in str(err.value)
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+@pytest.mark.parametrize('n_cols', [1, 2, 3])
+def test_plot_pi_n_cols(exp, n_cols):
+    """ Test if the number of figure columns matches the expected one. """
+    ax = plot_permutation_importance(exp=exp, n_cols=n_cols)
+    assert ax.shape[-1] == n_cols
+
+
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])
+def test_plot_pi_ax(exp):
+    """ Test if an error is raised when the number of axes provided is less than the number
+    of targets to be plotted. """
+    num_metrics = len(exp.data['metric_names']) - 1
+    _, ax = plt.subplots(nrows=1, ncols=num_metrics)
+
+    with pytest.raises(ValueError) as err:
+        plot_permutation_importance(exp=exp, ax=ax)
+    assert "Expected ax to have" in str(err.value)
+
+
+@pytest.mark.parametrize('sort, top_k', [(False, None), (True, 1), (True, 2), (True, 3)])
+@pytest.mark.parametrize('metric_names', [[0], [1], [0, 2, 1]])
+@pytest.mark.parametrize('features', [[0], [1], [0, 2], [2, 0, 1]])
+@pytest.mark.parametrize('exp', [lazy_fixture('exp_estimate')])
+def test_plot_pi_hbar_values(sort, top_k, metric_names, features, exp):
+    """ Test if the horizontal bar plot displays the correct values for an exact explanation. """
+    axes = plot_permutation_importance(exp=exp,
+                                       features=features,
+                                       metric_names=metric_names,
+                                       sort=sort,
+                                       top_k=top_k).ravel()
+
+    method = exp.meta['params']['method']
+
+    for ax, metric in zip(axes, metric_names):
+        if method == 'exact':
+            datavalues = ax.containers[0].datavalues
+            expected_datavalues = np.array([exp.data['feature_importance'][metric][ft] for ft in features])
+        else:
+            datavalues = ax.containers[1].datavalues
+            segments = ax.containers[0].get_children()[0].get_segments()
+            stdevs = np.array([(seg[1, 0] - seg[0, 0]) / 2 for seg in segments])
+            expected_datavalues = np.array([exp.data['feature_importance'][metric][ft]['mean'] for ft in features])
+            expected_stdevs = np.array([exp.data['feature_importance'][metric][ft]['std'] for ft in features])
+
+        feature_names = [txt.get_text() for txt in ax.get_yticklabels()]
+        expected_feature_names = [exp.data['feature_names'][ft] for ft in features]
+
+        if sort:
+            sorted_idx = np.argsort(expected_datavalues)[::-1][:top_k]
+            expected_datavalues = expected_datavalues[sorted_idx]
+            expected_feature_names = [expected_feature_names[i] for i in sorted_idx]
+
+            if method == 'estimate':
+                expected_stdevs = expected_stdevs[sorted_idx]
+
+        assert np.allclose(datavalues, expected_datavalues)
+        assert feature_names == expected_feature_names
+        assert ax.get_title() == exp.data['metric_names'][metric]
+
+        if method == 'estimate':
+            assert np.allclose(stdevs, expected_stdevs)

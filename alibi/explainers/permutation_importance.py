@@ -563,11 +563,13 @@ class PermutationImportance(Explainer):
         weights: Optional[List[np.ndarray]] = [] if sample_weight else None
 
         for i in range(len(X)):
-            # create input features dataset
+            # create input features dataset: (1, F1, F2, ...) -> (N - 1, F1, F2, ... )
+            # where N is the number of instances in the dataset and Fi is the dimension in the axis i.
             X_tmp = np.tile(X[i:i+1], reps=(len(X) - 1, ) + (1, ) * (len(X.shape) - 1))
             X_tmp[:, features] = np.delete(arr=X[:, features], obj=i, axis=0)
 
-            # create ground-truth labels
+            # create ground-truth labels: (1, C1, C2, ...) -> (N - 1, C1, C2, ... )
+            # where N is the number of instances in the dataset and Ci is the dimension in the axis i.
             y_tmp = np.tile(y[i:i+1], reps=(len(y) - 1, ) + (1, ) * (len(y.shape) - 1))
 
             # compute predictions

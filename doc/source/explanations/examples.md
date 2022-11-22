@@ -85,6 +85,14 @@
 ../examples/pd_variance*
 ```
 
+## Permutation Importance
+```{toctree}
+:glob: true
+:maxdepth: 1
+
+../examples/permutation_*
+```
+
 ## Similarity explanations
 ```{toctree}
 :glob: true

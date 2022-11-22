@@ -166,20 +166,21 @@ from method to method so we encourage the reader to become familiar with the
 The following tables summarize the possible use cases for each method.
 
 ### Model Explanations
-|Method|Models|Explanations|Classification|Regression|Tabular|Text|Images|Categorical features|Train set required|Distributed|
-|:---|:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---|:---:|
-|[ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)|BB|global|✔|✔|✔| | | |✔| |
-|[Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[Partial Dependence Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)|BB WB|global|✔|✔|✔| | |✔|✔| |
-|[Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)|BB|local|✔| |✔|✔|✔|✔|For Tabular| |
-|[CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)|BB* TF/Keras|local|✔| |✔| |✔| |Optional| |
-|[Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)|BB* TF/Keras|local|✔| |✔| |✔| |No| |
-|[Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)|BB* TF/Keras|local|✔| |✔| |✔|✔|Optional| |
-|[Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)|BB|local|✔| |✔| |✔|✔|✔| |
-|[Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)|TF/Keras|local|✔|✔|✔|✔|✔|✔|Optional| |
-|[Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)|BB|local <br></br>global|✔|✔|✔| | |✔|✔|✔|
-|[Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)|WB|local <br></br>global|✔|✔|✔| | |✔|Optional| | 
-|[Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)|WB|local|✔|✔|✔|✔|✔|✔|✔| |
+| Method                                                                                                       |    Models    |     Explanations      | Classification | Regression | Tabular | Text | Images | Categorical features | Train set required | Distributed |
+|:-------------------------------------------------------------------------------------------------------------|:------------:|:---------------------:|:--------------:|:----------:|:-------:|:----:|:------:|:--------------------:|:------------------:|:-----------:|
+| [ALE](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)                                      |      BB      |        global         |       ✔        |     ✔      |    ✔    |      |        |                      |                    |             |
+| [Partial Dependence](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html)         |    BB WB     |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [PD Variance](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)        |    BB WB     |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [Permutation Importance](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html) |      BB      |        global         |       ✔        |     ✔      |    ✔    |      |        |          ✔           |                    |             |
+| [Anchors](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)                              |      BB      |         local         |       ✔        |            |    ✔    |  ✔   |   ✔    |          ✔           |    For Tabular     |             |
+| [CEM](https://docs.seldon.io/projects/alibi/en/stable/methods/CEM.html)                                      | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |                      |      Optional      |             |
+| [Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CF.html)                           | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |                      |         No         |             |
+| [Prototype Counterfactuals](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)            | BB* TF/Keras |         local         |       ✔        |            |    ✔    |      |   ✔    |          ✔           |      Optional      |             |
+| [Counterfactuals with RL](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html)                 |      BB      |         local         |       ✔        |            |    ✔    |      |   ✔    |          ✔           |         ✔          |             |
+| [Integrated Gradients](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html)     |   TF/Keras   |         local         |       ✔        |     ✔      |    ✔    |  ✔   |   ✔    |          ✔           |      Optional      |             |
+| [Kernel SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html)                       |      BB      | local <br></br>global |       ✔        |     ✔      |    ✔    |      |        |          ✔           |         ✔          |      ✔      |
+| [Tree SHAP](https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html)                           |      WB      | local <br></br>global |       ✔        |     ✔      |    ✔    |      |        |          ✔           |      Optional      |             |
+| [Similarity explanations](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)           |      WB      |         local         |       ✔        |     ✔      |    ✔    |  ✔   |   ✔    |          ✔           |         ✔          |             |
 
 ### Model Confidence
 These algorithms provide **instance-specific** scores measuring the model confidence for making a
@@ -220,10 +221,15 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - Examples:
     [Bike rental](https://docs.seldon.io/projects/alibi/en/stable/examples/pdp_regression_bike.html)
 
-- Partial Dependence Variance([https://arxiv.org/abs/1805.04755])
+- Partial Dependence Variance([Greenwell et al., 2018](https://arxiv.org/abs/1805.04755))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html)
   - Examples:
     [Friedman’s regression problem](https://docs.seldon.io/projects/alibi/en/stable/examples/pd_variance_regression_friedman.html)
+
+- Permutation Importance([Breiman, 2001](https://link.springer.com/article/10.1023/A:1010933404324); [Fisher et al., 2018](https://arxiv.org/abs/1801.01489))
+  - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html)
+  - Examples:
+    [Who's Going to Leave Next?](https://docs.seldon.io/projects/alibi/en/stable/examples/permutation_importance_classification_leave.html)
 
 - Anchor explanations ([Ribeiro et al., 2018](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html)

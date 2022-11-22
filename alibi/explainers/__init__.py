@@ -11,6 +11,7 @@ from alibi.explainers.cfrl_base import CounterfactualRL
 from alibi.explainers.cfrl_tabular import CounterfactualRLTabular
 from alibi.explainers.partial_dependence import PartialDependence, TreePartialDependence, plot_pd
 from alibi.explainers.pd_variance import PartialDependenceVariance, plot_pd_variance
+from alibi.explainers.permutation_importance import PermutationImportance, plot_permutation_importance
 from alibi.explainers.similarity.grad import GradientSimilarity
 
 
@@ -52,9 +53,11 @@ __all__ = [
     "plot_ale",
     "PartialDependence",
     "TreePartialDependence",
-    "plot_pd",
     "PartialDependenceVariance",
+    "PermutationImportance",
+    "plot_pd",
     "plot_pd_variance",
+    "plot_permutation_importance",
     "IntegratedGradients",
     "KernelShap",
     "TreeShap",

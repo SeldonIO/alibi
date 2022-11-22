@@ -1,8 +1,11 @@
 import pytest
 import numpy as np
 import re
+from copy import deepcopy
 from sklearn.metrics import accuracy_score, f1_score, max_error
 from alibi.explainers import PermutationImportance
+from alibi.api.defaults import DEFAULT_DATA_PERMUTATION_IMPORTANCE, DEFAULT_META_PERMUTATION_IMPORTANCE
+from alibi.api.interfaces import Explanation
 
 
 @pytest.fixture(scope='module')
@@ -358,3 +361,78 @@ def test_explain_exact(target_col, method, kind):
         assert np.allclose(std, 0)
         assert np.allclose(samples[best_idx], 1)
         assert np.all(np.allclose(s, 0) for s in np.delete(samples, best_idx))
+
+
+@pytest.mark.parametrize(scope='module')
+def exp_estimate():
+    """ Creates an estimate explanation object. """
+    meta = deepcopy(DEFAULT_META_PERMUTATION_IMPORTANCE)
+    data = deepcopy(DEFAULT_DATA_PERMUTATION_IMPORTANCE)
+
+    meta['params'] = {
+        'feature_names': ['f_0', 'f_1', 'f_2', 'f_3', 'f_4'],
+        'method': 'estimate',
+        'kind': 'ratio',
+        'n_repeats': 3,
+        'sample_weight': None
+    }
+
+    data['feature_names'] = ['f_0', 'f_1', 'f_2', 'f_3', 'f_4']
+    data['metric_names'] = ['mean_squared_error', 'r2']
+    data['feature_importance'] = [
+        [
+            {
+                'mean': 2627.7020753147444,
+                'std': 189.98543297814754,
+                'samples': np.array([2399.30309907, 2864.44595479, 2619.35717209])
+            },
+            {
+                'mean': 6498.30597804514,
+                'std': 59.17398341745254,
+                'samples': np.array([6556.77836619, 6417.22313183, 6520.91643612])
+            },
+            {
+                'mean': 4661.244602056071,
+                'std': 161.5436722136323,
+                'samples': np.array([4530.86912025, 4563.96323096, 4888.90145497])
+            },
+            {
+                'mean': 4145.135786714857,
+                'std': 169.73902462704973,
+                'samples': np.array([4188.86758501, 4327.67794046, 3918.86183468])
+            },
+            {
+                'mean': 2012.6449475018023,
+                'std': 214.76697746725412,
+                'samples': np.array([2312.33568238, 1905.53574144, 1820.06341869])
+            }
+        ],
+        [
+            {
+                'mean': 0.21918964311146039,
+                'std': 0.015847625818032934,
+                'samples': np.array([0.20013775, 0.23893762, 0.21849355])
+            },
+            {
+                'mean': 0.5987452930913449,
+                'std': 0.005452212340318848,
+                'samples': np.array([0.60413286, 0.59127443, 0.60082859])
+            },
+            {
+                'mean': 0.4039364432966774,
+                'std': 0.013999131554322721,
+                'samples': np.array([0.3926383 , 0.39550619, 0.42366484])
+            },
+            {
+                'mean': 0.410974315435433,
+                'std': 0.016828973292588836,
+                'samples': np.array([0.41531016, 0.42907267, 0.38854012])
+            },
+            {
+                'mean': 0.1771056257746353,
+                'std': 0.018898733225290235,
+                'samples': np.array([0.20347735, 0.1676804 , 0.16015913])
+            }
+        ]
+    ]
+    return Explanation(meta=meta, data=data)

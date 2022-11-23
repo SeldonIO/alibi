@@ -491,7 +491,7 @@ def test_plot_pi_feature_index_oor(exp):
     feature_idx = len(exp.data['feature_names'])
     with pytest.raises(IndexError) as err:
         plot_permutation_importance(exp=exp, features=[feature_idx])
-    assert "The `features` indices must be les than the ``len(feature_names)" in str(err.value)
+    assert "The `features` indices must be less than the ``len(feature_names)" in str(err.value)
 
 
 @pytest.mark.parametrize('exp', [lazy_fixture('exp_exact'), lazy_fixture('exp_estimate')])

@@ -902,7 +902,7 @@ def plot_permutation_importance(exp: Explanation,
     # `features` sanity checks
     for ifeature in features:
         if ifeature >= len(exp.data['feature_names']):
-            raise IndexError(f"The `features` indices must be les than the "
+            raise IndexError(f"The `features` indices must be less than the "
                              f"``len(feature_names) = {len(exp.data['feature_names'])}``. Received {ifeature}.")
 
     # construct vector of feature names to display importance for

@@ -46,7 +46,6 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
-.pymon
 
 # Translations
 *.mo

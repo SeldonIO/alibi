@@ -1,18 +1,19 @@
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-
-from tqdm import tqdm
 from copy import deepcopy
-from typing import Callable, Optional, Dict, List, Union, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from skimage.transform import resize
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
-from skimage.transform import resize
+from tqdm import tqdm
 
+from alibi.api.defaults import (DEFAULT_DATA_PROTOSELECT,
+                                DEFAULT_META_PROTOSELECT)
+from alibi.api.interfaces import Explanation, FitMixin, Summariser
 from alibi.utils.distance import batch_compute_kernel_matrix
-from alibi.api.interfaces import Summariser, Explanation, FitMixin
-from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
 from alibi.utils.kernel import EuclideanDistance
 
 logger = logging.getLogger(__name__)
@@ -546,20 +547,15 @@ def _imscatterplot(x: np.ndarray,
     return ax
 
 
-def visualize_image_prototypes(summary: 'Explanation',
-                               trainset: Tuple[np.ndarray, np.ndarray],
-                               reducer: Callable[[np.ndarray], np.ndarray],
-                               preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                               knn_kw: Optional[dict] = None,
-                               ax: Optional[plt.Axes] = None,
-                               fig_kw: Optional[dict] = None,
-                               image_size: Tuple[int, int] = (28, 28),
-                               zoom_lb: float = 1.0,
-                               zoom_ub: float = 3.0) -> plt.Axes:
+def compute_prototypes_importance(summary: 'Explanation',
+                                  trainset: Tuple[np.ndarray, np.ndarray],
+                                  preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                                  knn_kw: Optional[dict] = None):
+
     """
-    Plot the images of the prototypes at the location given by the `reducer` representation.
-    The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
-    classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+    Computes the importance of each prototype. The importance of a prototype is the number of assigned
+    training instances correctly classified according to the 1-KNN classifier
+    (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
 
     Parameters
     ----------
@@ -568,32 +564,31 @@ def visualize_image_prototypes(summary: 'Explanation',
         :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
     trainset
         Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
-    reducer
-        2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
-        input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
-        on the feature representation obtained after passing the input instances through the `preprocess_fn`.
     preprocess_fn
-        Preprocessor function.
+        Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
     knn_kw
         Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
         set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
         If the `metric` is not specified, it will be set by default to ``'euclidean'``.
         See parameters description:
         https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
-    ax
-        A `matplotlib` axes object to plot on.
-    fig_kw
-        Keyword arguments passed to the `fig.set` function.
-    image_size
-        Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
-        `image_size`.
-    zoom_lb
-        Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
-    zoom_ub
-        Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+
+    Returns
+    -------
+    A dictionary containing:
+
+     - ``'prototypes_indices'`` - an array of the prototypes indices.
+
+     - ``'prototypes_importance'`` - an array of prototypes importance.
+
+     - ``'X_protos'`` - an array of raw prototypes.
+
+     - ``'X_protos_ft'`` - an array of preprocessed prototypes. If the ``preprocess_fn=None``, no preprocessing \
+     is applied.
     """
     if knn_kw is None:
         knn_kw = {}
+
     if knn_kw.get('metric') is None:
         knn_kw.update({'metric': 'euclidean'})
         logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
@@ -617,10 +612,69 @@ def visualize_image_prototypes(summary: 'Explanation',
 
     # compute how many correct labeled instances each prototype covers
     idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
+    return {
+        'prototypes_indices': idx,
+        'prototypes_importance': counts,
+        'X_protos': X_protos[idx],
+        'X_protos_ft': X_protos_ft[idx]
+    }
+
+
+def visualize_image_prototypes(reducer: Callable[[np.ndarray], np.ndarray],
+                               summary: 'Explanation',
+                               trainset: Tuple[np.ndarray, np.ndarray],
+                               preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                               knn_kw: Optional[dict] = None,
+                               ax: Optional[plt.Axes] = None,
+                               fig_kw: Optional[dict] = None,
+                               image_size: Tuple[int, int] = (28, 28),
+                               zoom_lb: float = 1.0,
+                               zoom_ub: float = 3.0) -> plt.Axes:
+    """
+    Plot the images of the prototypes at the location given by the `reducer` representation.
+    The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
+    classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+
+    Parameters
+    ----------
+    reducer
+        2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
+        input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
+        on the feature representation obtained after passing the input instances through the `preprocess_fn`.
+    summary, trainset, preprocess_fn, knn_kw
+        See :py:meth:`alibi.prototypes.protoselect.compute_prototypes_importance` method.
+    ax
+        A `matplotlib` axes object to plot on.
+    fig_kw
+        Keyword arguments passed to the `fig.set` function.
+    image_size
+        Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
+        `image_size`.
+    zoom_lb
+        Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+    zoom_ub
+        Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+
+    Returns
+    -------
+    `plt.Axes` with the 2D visualization of the prototypes.
+    """
+    # compute how many correct labeled instances each prototype covers
+    protos_importance = compute_prototypes_importance(summary=summary,
+                                                      trainset=trainset,
+                                                      preprocess_fn=preprocess_fn,
+                                                      knn_kw=knn_kw)
+
+    # unpack values
+    counts = protos_importance['prototypes_importance']
+    X_protos = protos_importance['X_protos']
+    X_protos_ft = protos_importance['X_protos_ft']
+
+    # compute image zoom
     zoom = np.log(counts)
 
     # compute 2D embedding
-    protos_2d = reducer(X_protos_ft[idx])
+    protos_2d = reducer(X_protos_ft)
     x, y = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images

@@ -227,10 +227,10 @@ class ProtoSelect(Summariser, FitMixin):
         Helper method to build the summary as an `Explanation` object.
         """
         data = deepcopy(DEFAULT_DATA_PROTOSELECT)
-        data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
-        data['prototypes_labels'] = np.concatenate([[self.label_inv_mapping[l]] * len(protos[l])
-                                                    for l in protos]).astype(np.int32)  # noqa: E741
-        data['prototypes'] = self.Z[data['prototypes_indices']]
+        data['prototype_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
+        data['prototype_labels'] = np.concatenate([[self.label_inv_mapping[l]] * len(protos[l])
+                                                   for l in protos]).astype(np.int32)  # noqa: E741
+        data['prototypes'] = self.Z[data['prototype_indices']]
         return Explanation(meta=self.meta, data=data)
 
 
@@ -263,7 +263,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     summary = summariser.summarise(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
-    X_protos, y_protos = summary.data['prototypes'], summary.data['prototypes_labels']
+    X_protos, y_protos = summary.data['prototypes'], summary.data['prototype_labels']
     if len(X_protos) == 0:
         return None
 
@@ -547,7 +547,7 @@ def _imscatterplot(x: np.ndarray,
     return ax
 
 
-def compute_prototypes_importance(summary: 'Explanation',
+def compute_prototype_importances(summary: 'Explanation',
                                   trainset: Tuple[np.ndarray, np.ndarray],
                                   preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                                   knn_kw: Optional[dict] = None):
@@ -577,9 +577,9 @@ def compute_prototypes_importance(summary: 'Explanation',
     -------
     A dictionary containing:
 
-     - ``'prototypes_indices'`` - an array of the prototypes indices.
+     - ``'prototype_indices'`` - an array of the prototype indices.
 
-     - ``'prototypes_importance'`` - an array of prototypes importance.
+     - ``'prototype_importances'`` - an array of prototype importances.
 
      - ``'X_protos'`` - an array of raw prototypes.
 
@@ -595,7 +595,7 @@ def compute_prototypes_importance(summary: 'Explanation',
 
     X_train, y_train = trainset
     X_protos = summary.data['prototypes']
-    y_protos = summary.data['prototypes_labels']
+    y_protos = summary.data['prototype_labels']
 
     # preprocess the dataset
     X_train_ft = _batch_preprocessing(X=X_train, preprocess_fn=preprocess_fn) \
@@ -613,8 +613,8 @@ def compute_prototypes_importance(summary: 'Explanation',
     # compute how many correct labeled instances each prototype covers
     idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
     return {
-        'prototypes_indices': idx,
-        'prototypes_importance': counts,
+        'prototype_indices': idx,
+        'prototype_importances': counts,
         'X_protos': X_protos[idx],
         'X_protos_ft': X_protos_ft[idx]
     }
@@ -666,13 +666,13 @@ def visualize_image_prototypes(summary: 'Explanation',
         Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
     """
     # compute how many correct labeled instances each prototype covers
-    protos_importance = compute_prototypes_importance(summary=summary,
+    protos_importance = compute_prototype_importances(summary=summary,
                                                       trainset=trainset,
                                                       preprocess_fn=preprocess_fn,
                                                       knn_kw=knn_kw)
 
     # unpack values
-    counts = protos_importance['prototypes_importance']
+    counts = protos_importance['prototype_importances']
     X_protos = protos_importance['X_protos']
     X_protos_ft = protos_importance['X_protos_ft']
 

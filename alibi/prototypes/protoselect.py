@@ -620,9 +620,9 @@ def compute_prototypes_importance(summary: 'Explanation',
     }
 
 
-def visualize_image_prototypes(reducer: Callable[[np.ndarray], np.ndarray],
-                               summary: 'Explanation',
+def visualize_image_prototypes(summary: 'Explanation',
                                trainset: Tuple[np.ndarray, np.ndarray],
+                               reducer: Callable[[np.ndarray], np.ndarray],
                                preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
                                knn_kw: Optional[dict] = None,
                                ax: Optional[plt.Axes] = None,
@@ -634,15 +634,25 @@ def visualize_image_prototypes(reducer: Callable[[np.ndarray], np.ndarray],
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
     classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
-
     Parameters
     ----------
+    summary
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+    trainset
+        Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
     reducer
         2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
         input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
         on the feature representation obtained after passing the input instances through the `preprocess_fn`.
-    summary, trainset, preprocess_fn, knn_kw
-        See :py:meth:`alibi.prototypes.protoselect.compute_prototypes_importance` method.
+    preprocess_fn
+        Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+    knn_kw
+        Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+        set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+        If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+        See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
     ax
         A `matplotlib` axes object to plot on.
     fig_kw
@@ -654,10 +664,6 @@ def visualize_image_prototypes(reducer: Callable[[np.ndarray], np.ndarray],
         Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
     zoom_ub
         Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
-
-    Returns
-    -------
-    `plt.Axes` with the 2D visualization of the prototypes.
     """
     # compute how many correct labeled instances each prototype covers
     protos_importance = compute_prototypes_importance(summary=summary,

@@ -1,11 +1,14 @@
 import pytest
 import numpy as np
+from copy import deepcopy
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
 from alibi.prototypes import ProtoSelect
 from alibi.utils.kernel import EuclideanDistance
-from alibi.prototypes.protoselect import cv_protoselect_euclidean
+from alibi.prototypes.protoselect import cv_protoselect_euclidean, _batch_preprocessing, compute_prototype_importances
+from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
+from alibi.api.interfaces import Explanation
 
 
 @pytest.mark.parametrize('n_classes', [2, 3, 5, 10])
@@ -143,3 +146,71 @@ def test_size_match():
     summariser = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
     with pytest.raises(ValueError):
         summariser.fit(X=X, y=y)
+
+
+@pytest.mark.parametrize('batch_size', [2, 8, 16])
+def test__batch_preprocessing(batch_size):
+    """ Test if the batch preprocessing function returns the correct shapes. """
+    n_samples, n_features, n_removed = 50, 5, 2
+    X = np.random.randn(n_samples, n_features)
+
+    def preprocess_fn(X):
+        return X[:, :-n_removed]
+
+    X_ft = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn, batch_size=batch_size)
+    assert X_ft.shape == (n_samples, n_features - n_removed)
+
+
+@pytest.fixture(scope='module')
+def importance_data():
+    X = np.array([
+        [0.548, 0.715],
+        [0.602, 0.544],
+        [0.423, 0.645],
+        [5.437, 4.891],
+        [5.963, 4.383],
+        [5.791, 4.528],
+        [5.568, 4.925],
+        [5.071, 4.087],
+        [-3.979, 4.832],
+        [-3.221, 4.870],
+        [-3.021, 4.799],
+        [-3.538, 4.780],
+        [-3.881, 4.639],
+        [-3.856, 4.944],
+        [-3.478, 4.414]
+    ])
+    y = np.array([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2])
+    trainset = (X, y)
+
+    meta = deepcopy(DEFAULT_META_PROTOSELECT)
+    data = deepcopy(DEFAULT_DATA_PROTOSELECT)
+    meta['params'] = {
+        'kernel_distance': 'EuclideanDistance',
+        'eps': 0.5,
+        'lambda_penalty': 0.06666666666666667,
+        'batch_size': 10000000000,
+        'verbose': True
+    }
+    data['prototypes'] = np.array([
+        [0.5488135, 0.71518937],
+        [5.79172504, 4.52889492],
+        [-3.53852064, 4.78052918]
+    ])
+    data['prototype_indices']  = np.array([0, 5, 11], dtype=np.int32),
+    data['prototype_labels'] = np.array([0, 1, 2], dtype=np.int32)
+    summary = Explanation(meta=meta, data=data)
+    return trainset, summary
+
+
+def test_compute_prototype_importances(importance_data):
+    """ Test if the computation of the prototype importances returns the expected results for a simple
+    example with three clusters and three prototypes. In this case, the importance of each prototype is
+    given by the number of data instances in each cluster. """
+    trainset, summary = importance_data
+    X, y = trainset
+
+    expected_importances = np.unique(y, return_counts=True)[1]
+    importances = compute_prototype_importances(summary=summary, trainset=trainset)
+    assert np.allclose(expected_importances, importances['prototype_importances'])
+

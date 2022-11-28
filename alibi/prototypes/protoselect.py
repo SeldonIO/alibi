@@ -583,8 +583,8 @@ def compute_prototype_importances(summary: 'Explanation',
 
      - ``'X_protos'`` - an array of raw prototypes.
 
-     - ``'X_protos_ft'`` - an array of preprocessed prototypes. If the ``preprocess_fn=None``, no preprocessing \
-     is applied.
+     - ``'X_protos_ft'`` - an optional array of preprocessed prototypes. If the ``preprocess_fn=None``, \
+     no preprocessing is applied and ``None`` is returned instead.
     """
     if knn_kw is None:
         knn_kw = {}
@@ -616,7 +616,7 @@ def compute_prototype_importances(summary: 'Explanation',
         'prototype_indices': idx,
         'prototype_importances': counts,
         'X_protos': X_protos[idx],
-        'X_protos_ft': X_protos_ft[idx]
+        'X_protos_ft': None if (preprocess_fn is None) else X_protos_ft[idx]
     }
 
 
@@ -674,7 +674,7 @@ def visualize_image_prototypes(summary: 'Explanation',
     # unpack values
     counts = protos_importance['prototype_importances']
     X_protos = protos_importance['X_protos']
-    X_protos_ft = protos_importance['X_protos_ft']
+    X_protos_ft = protos_importance['X_protos_ft'] if (protos_importance['X_protos_ft'] is not None) else X_protos
 
     # compute image zoom
     zoom = np.log(counts)

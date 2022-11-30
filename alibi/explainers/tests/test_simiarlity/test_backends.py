@@ -2,6 +2,7 @@ import pytest
 
 import torch
 import numpy as np
+import tensorflow as tf
 
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
@@ -41,3 +42,21 @@ def test_backends(random_cls_dataset, linear_models):
     torch_grads = np.sort(torch_grads)
     tf_grads = np.sort(tf_grads)
     np.testing.assert_allclose(torch_grads, tf_grads, rtol=1e-04)
+
+
+def test_tf_embedding_similarity():
+    """Test that the `tensorflow` embedding similarity backend works as expected.
+
+    See https://github.com/SeldonIO/alibi/issues/828.
+    """
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Embedding(10, 4, input_shape=(5,)),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(1)
+    ])
+
+    X = tf.random.uniform(shape=(1, 5), minval=0, maxval=10, dtype=tf.float32)
+    Y = tf.random.uniform(shape=(1, 1), minval=0, maxval=10, dtype=tf.float32)
+    loss_fn = tf.keras.losses.MeanSquaredError()
+    tf_grads = _TensorFlowBackend.get_grads(model, X, Y, loss_fn)
+    assert tf_grads.shape == (21, )  # (5 * 4) + 1

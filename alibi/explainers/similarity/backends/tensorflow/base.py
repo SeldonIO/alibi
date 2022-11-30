@@ -50,7 +50,9 @@ class _TensorFlowBackend:
 
             # compute gradients of the loss w.r.t the weights
             grad_X_train = tape.gradient(loss, model.trainable_weights)
-            grad_X_train = np.concatenate([w.numpy().reshape(-1) for w in grad_X_train])
+            # see https://github.com/SeldonIO/alibi/issues/828 w.r.t. filtering out tf.IndexedSlices
+            grad_X_train = np.concatenate([w.numpy().reshape(-1) for w in grad_X_train
+                                           if not isinstance(w, tf.IndexedSlices)])
         return grad_X_train
 
     @staticmethod

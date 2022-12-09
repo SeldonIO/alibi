@@ -19,7 +19,7 @@ from alibi.utils.download import spacy_model
 import tensorflow as tf
 
 import alibi_testing
-from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
+from alibi_testing.data import get_adult_data, get_iris_data, get_diabetes_data, get_mnist_data, \
     get_movie_sentiment_data
 
 
@@ -47,8 +47,8 @@ def mnist_data():
 
 
 @pytest.fixture(scope='module')
-def boston_data():
-    return get_boston_data()
+def diabetes_data():
+    return get_diabetes_data()
 
 
 @pytest.fixture(scope='module')

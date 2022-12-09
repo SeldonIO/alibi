@@ -15,7 +15,7 @@ from alibi.explainers.backends.cfrl_tabular import get_he_preprocessor, split_oh
 
 @pytest.mark.parametrize('dataset', [lazy_fixture('iris_data'),
                                      lazy_fixture('adult_data'),
-                                     lazy_fixture('boston_data')])
+                                     lazy_fixture('diabetes_data')])
 def test_he_preprocessor(dataset):
     """ Test the heterogeneous preprocessor and inverse preprocessor. """
     # Unpack dataset.
@@ -41,7 +41,7 @@ def test_he_preprocessor(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_split_ohe(dataset):
     """ Test the one-hot encoding splitting of a dataset. """
 
@@ -71,7 +71,7 @@ def test_split_ohe(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_get_numerical_condition(dataset):
     """ Test the training numerical conditional generator. """
 
@@ -116,7 +116,7 @@ def test_get_numerical_condition(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_get_categorical_condition(dataset):
     """ Test the training categorical conditional generator. """
 
@@ -161,7 +161,7 @@ def test_get_categorical_condition(dataset):
 @pytest.mark.parametrize('seed', [0, 1, 2, 3])
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_sample(dataset, seed):
     """ Test sampling reconstruction. """
 

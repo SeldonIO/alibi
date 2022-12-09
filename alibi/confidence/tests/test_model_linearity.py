@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from sklearn.datasets import load_iris, load_boston
+from sklearn.datasets import load_iris, load_diabetes
 from sklearn.linear_model import LogisticRegression, LinearRegression
 from sklearn.svm import SVR
 from alibi.confidence.model_linearity import linearity_measure, LinearityMeasure
@@ -31,11 +31,10 @@ def test_linear_superposition(input_shape, nb_instances):
 @pytest.mark.parametrize('nb_instances', (1, 5))
 @pytest.mark.parametrize('nb_samples', (2, 10))
 def test_sample_knn(nb_instances, nb_samples):
-
     iris = load_iris()
     X_train = iris.data
     input_shape = X_train.shape[1:]
-    x = np.ones((nb_instances, ) + input_shape)
+    x = np.ones((nb_instances,) + input_shape)
 
     X_samples = _sample_knn(x=x, X_train=X_train, nb_samples=nb_samples)
 
@@ -43,12 +42,11 @@ def test_sample_knn(nb_instances, nb_samples):
     assert X_samples.shape[1] == nb_samples
 
 
-@pytest.mark.parametrize('nb_instances', (5, ))
-@pytest.mark.parametrize('nb_samples', (3, ))
+@pytest.mark.parametrize('nb_instances', (5,))
+@pytest.mark.parametrize('nb_samples', (3,))
 @pytest.mark.parametrize('input_shape', ((3,), (4, 4, 1)))
 def test_sample_grid(nb_instances, nb_samples, input_shape):
-
-    x = np.ones((nb_instances, ) + input_shape)
+    x = np.ones((nb_instances,) + input_shape)
     nb_features = x.reshape(x.shape[0], -1).shape[1]
     feature_range = np.array([[0, 1] for _ in range(nb_features)])
 
@@ -64,7 +62,6 @@ def test_sample_grid(nb_instances, nb_samples, input_shape):
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
-
     iris = load_iris()
     X_train = iris.data
     y_train = iris.target
@@ -94,9 +91,8 @@ def test_linearity_measure_class(method, epsilon, res, nb_instances, agg):
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
-
-    boston = load_boston()
-    X_train, y_train = boston.data, boston.target
+    diabetes = load_diabetes()
+    X_train, y_train = diabetes.data, diabetes.target
     x = X_train[0: nb_instances].reshape(nb_instances, -1)
 
     lg = LinearRegression()
@@ -155,7 +151,6 @@ def test_linearity_measure_reg(method, epsilon, res, nb_instances, agg):
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
-
     iris = load_iris()
     X_train = iris.data
     y_train = iris.target
@@ -180,9 +175,8 @@ def test_LinearityMeasure_class(method, epsilon, res, nb_instances, agg):
 @pytest.mark.parametrize('nb_instances', (1, 10))
 @pytest.mark.parametrize('agg', ('global', 'pairwise'))
 def test_LinearityMeasure_reg(method, epsilon, res, nb_instances, agg):
-
-    boston = load_boston()
-    X_train, y_train = boston.data, boston.target
+    diabetes = load_diabetes()
+    X_train, y_train = diabetes.data, diabetes.target
     x = X_train[0: nb_instances].reshape(nb_instances, -1)
 
     lg = LinearRegression()

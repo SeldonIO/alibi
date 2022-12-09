@@ -14,9 +14,9 @@ from alibi.explainers.ale import (_plot_one_ale_num, adaptive_grid, ale_num,
 
 
 @pytest.mark.parametrize('min_bin_points', [1, 4, 10])
-@pytest.mark.parametrize('dataset', [lazy_fixture('boston_data')])
+@pytest.mark.parametrize('dataset', [lazy_fixture('diabetes_data')])
 @pytest.mark.parametrize('lr_regressor',
-                         [lazy_fixture('boston_data')],
+                         [lazy_fixture('diabetes_data')],
                          indirect=True,
                          ids='reg=lr_{}'.format)
 def test_ale_num_linear_regression(min_bin_points, lr_regressor, dataset):

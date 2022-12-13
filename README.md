@@ -255,7 +255,7 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html),
-    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
+    [California housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ord.html)
 

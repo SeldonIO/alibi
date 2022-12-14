@@ -19,7 +19,7 @@ catboost>=1.0.0, <2.0.0
 alibi-testing @ git+https://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
 # other
 pre-commit>=1.20.0, <3.0.0
-tox>=3.21.0, <4.0.0 # used to generate licence info via `make licenses`
+tox>=3.21.0, <5.0.0 # used to generate licence info via `make licenses`
 twine>3.2.0, <4.0.0
 # pytorch
 torch>=1.9.0, <2.0.0

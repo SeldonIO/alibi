@@ -550,7 +550,7 @@ def _imscatterplot(x: np.ndarray,
 def compute_prototype_importances(summary: 'Explanation',
                                   trainset: Tuple[np.ndarray, np.ndarray],
                                   preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
-                                  knn_kw: Optional[dict] = None):
+                                  knn_kw: Optional[dict] = None) -> Dict[str, Optional[np.ndarray]]:
 
     """
     Computes the importance of each prototype. The importance of a prototype is the number of assigned
@@ -677,12 +677,15 @@ def visualize_image_prototypes(summary: 'Explanation',
     X_protos_ft = protos_importance['X_protos_ft'] if (protos_importance['X_protos_ft'] is not None) else X_protos
 
     # compute image zoom
-    zoom = np.log(counts)
+    zoom = np.log(counts)  # type: ignore[arg-type]
 
     # compute 2D embedding
-    protos_2d = reducer(X_protos_ft)
+    protos_2d = reducer(X_protos_ft)  # type: ignore[arg-type]
     x, y = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images
-    return _imscatterplot(x=x, y=y, images=X_protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
+    return _imscatterplot(x=x, y=y,
+                          images=X_protos,  # type: ignore[arg-type]
+                          ax=ax, fig_kw=fig_kw,
+                          image_size=image_size,
                           zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

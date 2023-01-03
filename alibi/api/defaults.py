@@ -249,3 +249,107 @@ DEFAULT_DATA_CFRL = {"orig": None,
 """
 Default CounterfactualRL data.
 """
+
+# Similarity methods
+DEFAULT_META_SIM = {"name": None,
+                    "type": ["whitebox"],
+                    "explanations": ["local"],
+                    "params": {},
+                    "version": None}  # type: dict
+"""
+Default SimilarityExplainer metadata.
+"""
+
+DEFAULT_DATA_SIM = {"scores": None,
+                    "ordered_indices": None,
+                    "most_similar": None,
+                    "least_similar": None}  # type: dict
+"""
+Default SimilarityExplainer data.
+"""
+
+DEFAULT_META_PROTOSELECT = {"name": None,
+                            "type": ["data"],
+                            "explanation": ["global"],
+                            "params": {},
+                            "version": None}  # type: dict
+"""
+Default ProtoSelect metadata.
+"""
+
+DEFAULT_DATA_PROTOSELECT = {"prototypes": None,
+                            "prototypes_indices": None,
+                            "prototypes_labels": None}  # type: dict
+"""
+Default ProtoSelect data.
+"""
+
+# PartialDependence
+DEFAULT_META_PD = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PartialDependence metadata.
+"""
+
+DEFAULT_DATA_PD = {
+    "feature_deciles": None,
+    "pd_values": None,
+    "ice_values": None,
+    "feature_values": None,
+    "feature_names": None,
+}  # type: dict
+"""
+Default PartialDependence data.
+"""
+
+# PartialDependenceVariance
+DEFAULT_META_PDVARIANCE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PartialDependenceVariance metadata.
+"""
+
+DEFAULT_DATA_PDVARIANCE = {
+    "feature_deciles": None,
+    "pd_values": None,
+    "feature_values": None,
+    "feature_names": None,
+    "feature_importance": None,
+    "feature_interaction": None,
+    "conditional_importance": None,
+    "conditional_importance_values": None
+}  # type: dict
+"""
+Default PartialDependenceVariance data.
+"""
+
+# PermutationImportance
+DEFAULT_META_PERMUTATION_IMPORTANCE = {
+    "name": None,
+    "type": ["blackbox"],
+    "explanations": ["global"],
+    "params": {},
+    "version": None
+}  # type: dict
+"""
+Default PermutationImportance metadata.
+"""
+
+DEFAULT_DATA_PERMUTATION_IMPORTANCE = {
+    "feature_names": None,
+    "metric_names": None,
+    "feature_importance": None,
+}  # type: dict
+"""
+Default PermutationImportance data.
+"""

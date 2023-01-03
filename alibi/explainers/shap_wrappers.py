@@ -17,11 +17,13 @@ from alibi.api.defaults import (DEFAULT_DATA_KERNEL_SHAP,
                                 DEFAULT_META_KERNEL_SHAP,
                                 DEFAULT_META_TREE_SHAP)
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.utils.distributed import DistributedExplainer
 from alibi.utils.wrappers import methdispatch
 
 if TYPE_CHECKING:
+    from alibi.utils.distributed import DistributedExplainer
     import catboost  # noqa F401
+else:
+    from alibi.utils import DistributedExplainer
 
 logger = logging.getLogger(__name__)
 
@@ -281,7 +283,8 @@ class KernelExplainerWrapper(KernelExplainer):
 
 class KernelShap(Explainer, FitMixin):
     # object that implements the explanation algorithm (set in fit)
-    _explainer: Union[KernelExplainerWrapper, DistributedExplainer]
+
+    _explainer: Union[KernelExplainerWrapper, 'DistributedExplainer']
 
     def __init__(self,
                  predictor: Callable[[np.ndarray], np.ndarray],
@@ -819,7 +822,7 @@ class KernelShap(Explainer, FitMixin):
             For more details, please see the shap library `documentation`_ .
 
                 .. _documentation:
-                   https://shap.readthedocs.io/en/latest/.
+                   https://shap.readthedocs.io/en/stable/.
 
         Returns
         -------
@@ -828,7 +831,7 @@ class KernelShap(Explainer, FitMixin):
             field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
             .. _KernelSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html
         """  # noqa W605
 
         if not self._fitted:
@@ -899,7 +902,7 @@ class KernelShap(Explainer, FitMixin):
             field containing additional data. See usage at `KernelSHAP examples`_ for details.
 
             .. _KernelSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/KernelSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/KernelSHAP.html
 
         """
 
@@ -997,6 +1000,7 @@ class KernelShap(Explainer, FitMixin):
 # TODO: Look into pyspark support requirements if requested
 # TODO: catboost.Pool not supported for fit stage (due to summarisation) but can do if there is a user need
 
+TREE_SHAP_BACKGROUND_SUPPORTED_SIZE = 100
 TREE_SHAP_BACKGROUND_WARNING_THRESHOLD = 1000
 TREE_SHAP_MODEL_OUTPUT = ['raw', 'probability', 'probability_doubled', 'log_loss']
 
@@ -1156,6 +1160,24 @@ class TreeShap(Explainer, FitMixin):
             else:
                 self._check_inputs(background_data)
 
+            # summarisation can return a DenseData object
+            n_samples = (background_data.data if isinstance(background_data, shap_utils.DenseData)
+                         else background_data).shape[0]
+
+            # Warns the user that TreeShap supports only up to TREE_SHAP_BACKGROUND_SIZE(100) samples in the
+            # background dataset. Note that there is a logic above related to the summarisation of the background
+            # dataset which uses TREE_SHAP_BACKGROUND_WARNING_THRESHOLD(1000) as (warning) threshold. Although the
+            # TREE_SHAP_BACKGROUND_WARNING_THRESHOLD > TREE_SHAP_BACKGROUND_SUPPORTED_SIZE which is contradictory, we
+            # leave the logic above untouched. This approach has at least two benefits:
+            #   i) minimal refactoring
+            #   ii) return the correct result if a newer version of shap which fixes the issue is used before we
+            #   update our dependencies in alibi (i.e. just ignore the warning)
+            if n_samples > TREE_SHAP_BACKGROUND_SUPPORTED_SIZE:
+                logger.warning(f'The upstream implementation of interventional TreeShap supports only up to '
+                               f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} samples in the background dataset. '
+                               f'A larger background dataset will be sampled with replacement to '
+                               f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} instances.')
+
         perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
         self.background_data = background_data
         self._explainer = shap.TreeExplainer(
@@ -1284,7 +1306,7 @@ class TreeShap(Explainer, FitMixin):
             `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
             .. _TreeSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html
 
         """  # noqa: E501
 
@@ -1485,7 +1507,7 @@ class TreeShap(Explainer, FitMixin):
             `meta` field containing additional data. See usage at `TreeSHAP examples`_ for details.
 
             .. _TreeSHAP examples:
-               https://docs.seldon.io/projects/alibi/en/latest/methods/TreeSHAP.html
+               https://docs.seldon.io/projects/alibi/en/stable/methods/TreeSHAP.html
 
         """
 

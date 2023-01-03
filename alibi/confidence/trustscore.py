@@ -179,7 +179,7 @@ class TrustScore:
             X = X.reshape(X.shape[0], -1)
 
         # init distance matrix: [nb instances, nb classes]
-        d = np.tile(None, (X.shape[0], self.classes))  # type: np.ndarray
+        d = np.tile(np.nan, (X.shape[0], self.classes))  # type: np.ndarray
 
         for c in range(self.classes):
             d_tmp = self.kdtrees[c].query(X, k=k)[0]  # get k nearest neighbors for each class

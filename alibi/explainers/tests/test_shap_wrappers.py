@@ -1,17 +1,23 @@
 # type: ignore
-import catboost
 import itertools
 import logging
+import unittest
+from copy import copy
+from itertools import chain
+from unittest.mock import MagicMock
+from typing import Any, List
+
+import catboost
 import pandas
 import pytest
 import scipy.sparse
-import shap
 import sklearn
-import unittest
-
+import shap
 import numpy as np
 import pandas as pd
 import shap.utils._legacy as shap_utils
+from numpy.testing import assert_allclose, assert_almost_equal
+from scipy.special import expit
 
 from alibi.api.defaults import DEFAULT_META_KERNEL_SHAP, DEFAULT_DATA_KERNEL_SHAP, \
     DEFAULT_META_TREE_SHAP, DEFAULT_DATA_TREE_SHAP, KERNEL_SHAP_PARAMS, TREE_SHAP_PARAMS
@@ -19,13 +25,8 @@ from alibi.explainers.shap_wrappers import sum_categories, rank_by_importance, K
 from alibi.explainers.shap_wrappers import KERNEL_SHAP_BACKGROUND_THRESHOLD, TREE_SHAP_BACKGROUND_WARNING_THRESHOLD
 from alibi.explainers.tests.utils import get_random_matrix
 from alibi.tests.utils import assert_message_in_logs, not_raises
-from alibi.utils.distributed import DistributedExplainer, RAY_INSTALLED
-from copy import copy
-from itertools import chain
-from numpy.testing import assert_allclose, assert_almost_equal
-from scipy.special import expit
-from unittest.mock import MagicMock
-from typing import Any, List
+from alibi.utils import DistributedExplainer
+
 
 SUPPORTED_BACKGROUND_DATA_TYPES = ['data', 'array', 'sparse', 'frame', 'series']
 
@@ -936,9 +937,6 @@ use_groups = [True, False]
 summarise_result = [True, False]
 
 
-# FIXME: behaviour of mock data and mock predictor likely needs to be reconsidered
-#  for these tests to pass. See https://github.com/SeldonIO/alibi/issues/564
-@pytest.mark.skip(reason="https://github.com/SeldonIO/alibi/issues/564")
 @pytest.mark.parametrize('mock_kernel_shap_explainer', mock_ker_exp_params, ids=mock_ker_expln_id, indirect=True)
 @pytest.mark.parametrize('use_groups', use_groups, ids='use_groups={}'.format)
 @pytest.mark.parametrize('summarise_result', summarise_result, ids='summarise_result={}'.format)
@@ -996,13 +994,23 @@ def test_explain_kernel(monkeypatch, mock_kernel_shap_explainer, use_groups, sum
     explainer.use_groups = use_groups
     explainer.fit(background_data, group_names=group_names, groups=groups)
 
-    # explain some instances
+    # Explain some instances. Note that we disable the default 'auto' regularization which causes sklearn to throw
+    # ValueError in LassoLARSIC. The noise variance estimate used in the AIC criterion is obtained by solving an
+    # Ordinary Least Squares problem: ||Ax - b||^2, where matrix A has nsamples(4) rows. The error is thrown when the
+    # number of rows in A is less than its number of columns. Note that when the number of rows is less than the
+    # number of columns, the solution is not unique, and depending on the rank(A), the solution might be exact
+    # (i.e. variance of zero). An alternative would be to increase the number of rows which corresponds to increasing
+    # nsamples. Increasing the number of rows will also bypass the warning message returned by KernelSHAP. KernelSHAP
+    # solves a Weighted Least Squares problem, and uses the pseudo-inverse when inversion is not possible. If the
+    # pseudo-inverse is used, KernalSHAP throws a warning along with some suggestions to overcome obtaining a
+    # singular matrix.
     explanation = explainer.explain(
         instances,
         summarise_result=summarise_result,
         cat_vars_enc_dim=cat_vars_enc_dim,
         cat_vars_start_idx=cat_vars_start_idx,
         nsamples=4,
+        l1_reg=False
     )
 
     # check that explanation metadata and data keys are as expected
@@ -1075,8 +1083,6 @@ n_instances, n_features = 10, 10
 
 
 # example on how to send the same parameters to a fixture via indirection and the test. Screws up test ids.
-@pytest.mark.skipif(not RAY_INSTALLED,
-                    reason="Distributed tests skipped as Ray not installed")
 @pytest.mark.parametrize('mock_kernel_shap_explainer, mock_ker_exp_params',
                          mock_ker_exp_params,
                          indirect=["mock_kernel_shap_explainer"],
@@ -1085,8 +1091,7 @@ n_instances, n_features = 10, 10
 @pytest.mark.parametrize('n_instances', (n_instances,), ids='n_instances={}'.format)
 @pytest.mark.parametrize('n_features', (n_features,), ids='n_features={}'.format)
 def test_kernel_distributed_execution(mock_kernel_shap_explainer, mock_ker_exp_params, n_instances, n_features):
-    import ray
-
+    ray = pytest.importorskip('ray', reason="Distributed tests skipped as Ray not installed")
     explainer = mock_kernel_shap_explainer
     background_data = get_random_matrix(n_rows=n_instances, n_cols=n_features)
     explainer.fit(background_data)
@@ -1324,7 +1329,7 @@ def test_explain_tree(caplog, monkeypatch, mock_tree_shap_explainer, data_type, 
                     explainer._check_explainer_setup.assert_not_called()
                     explainer._check_interactions.assert_called_with(False, background_data, None)
                 else:
-                    explainer._check_interactions.asert_not_called()
+                    explainer._check_interactions.assert_not_called()
                     explainer._check_explainer_setup.assert_called_with(background_data, explainer.model_output, None)
 
                 explainer._build_explanation.assert_called_once()

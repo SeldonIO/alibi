@@ -1,14 +1,14 @@
 import logging
 import pkgutil
 import tarfile
+import json
 from io import BytesIO, StringIO
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, Dict
 
 import numpy as np
 import pandas as pd
 import PIL
 import requests
-import tensorflow.keras as keras
 from requests import RequestException
 from sklearn.preprocessing import LabelEncoder
 
@@ -16,18 +16,100 @@ from alibi.utils.data import Bunch
 
 logger = logging.getLogger(__name__)
 
-__all__ = ['fetch_adult',
-           'fetch_fashion_mnist',
-           'fetch_imagenet',
-           'fetch_movie_sentiment',
-           'load_cats']
-
 ADULT_URLS = ['https://storage.googleapis.com/seldon-datasets/adult/adult.data',
               'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
               'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
 
 MOVIESENTIMENT_URLS = ['https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
                        'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
+
+#  TODO change storage format.
+IMAGENET_URLS = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.tar.gz']
+
+
+def fetch_imagenet_10(url_id: int = 0) -> Dict:
+    """
+    Sample dataset extracted from imagenet in a dictionary format.
+    The train set contains 1000 random samples, 100 for each of the following 10 selected classes:
+
+    * stingray
+    * trilobite
+    * centipede
+    * slug
+    * snail
+    * Rhodesian ridgeback
+    * beagle
+    * golden retriever
+    * sea lion
+    * espresso
+
+    The test set contains 50 random samples, 5 for each of the classes above.
+
+    Parameters
+    ----------
+    url_id
+        Index specifying which URL to use for downloading.
+
+    Returns
+    -------
+    Dictionary with the following keys:
+
+        * trainset - train set tuple (X_train, y_train)
+        * testset - test set tuple (X_test, y_test)
+        * int_to_str_labels - map from target to target name
+        * str_to_int_labels -  map from target name to target
+    """
+    url = IMAGENET_URLS[url_id]
+    try:
+        resp = requests.get(url, timeout=2)
+        resp.raise_for_status()
+    except RequestException:
+        logger.exception("Could not connect, URL may be out of service")
+        raise
+    tar = tarfile.open(fileobj=BytesIO(resp.content), mode="r:gz")
+
+    def keystoint(x):
+        return {int(k): v for k, v in x}
+
+    int_to_str_labels = json.load(tar.extractfile('imagenet10/int_to_str_labels.json'),  # type: ignore[arg-type]
+                                  object_pairs_hook=keystoint)
+    str_to_int_labels = json.load(tar.extractfile('imagenet10/str_to_int_labels.json'))  # type: ignore[arg-type]
+
+    # hack to load npy files from a tar archive
+    # see https://github.com/numpy/numpy/issues/7989
+    mean_channels_af = BytesIO()
+    mean_channels_af.write(tar.extractfile('imagenet10/mean_channels.npy').read())  # type: ignore[union-attr]
+    mean_channels_af.seek(0)
+    mean_channels = np.load(mean_channels_af)
+
+    X_train_af = BytesIO()
+    X_train_af.write(tar.extractfile('imagenet10/trainset/X.npy').read())  # type: ignore[union-attr]
+    X_train_af.seek(0)
+    X_train = np.load(X_train_af)
+
+    y_train_af = BytesIO()
+    y_train_af.write(tar.extractfile('imagenet10/trainset/y.npy').read())  # type: ignore[union-attr]
+    y_train_af.seek(0)
+    y_train = np.load(y_train_af)
+
+    X_test_af = BytesIO()
+    X_test_af.write(tar.extractfile('imagenet10/testset/X.npy').read())  # type: ignore[union-attr]
+    X_test_af.seek(0)
+    X_test = np.load(X_test_af)
+
+    y_test_af = BytesIO()
+    y_test_af.write(tar.extractfile('imagenet10/testset/y.npy').read())  # type: ignore[union-attr]
+    y_test_af.seek(0)
+    y_test = np.load(y_test_af)
+
+    # buiding dataset dict
+    imagenet10 = {'trainset': (X_train, y_train),
+                  'testset': (X_test, y_test),
+                  'int_to_str_labels': int_to_str_labels,
+                  'str_to_int_labels': str_to_int_labels,
+                  'mean_channels': mean_channels}
+
+    return imagenet10
 
 
 def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
@@ -51,7 +133,7 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
     (data, target)
         Tuple if ``return_X_y=True``.
     """
-    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "data/cats.tar.gz")),  # type: ignore[arg-type]
+    tar = tarfile.open(fileobj=BytesIO(pkgutil.get_data(__name__, "../data/cats.tar.gz")),  # type: ignore[arg-type]
                        mode='r:gz')
     images = []
     target = []
@@ -249,33 +331,3 @@ def fetch_adult(features_drop: Optional[list] = None, return_X_y: bool = False, 
         return data, labels
 
     return Bunch(data=data, target=labels, feature_names=features, target_names=target_names, category_map=category_map)
-
-
-def fetch_fashion_mnist(return_X_y: bool = False
-                        ) -> Union[Bunch, Tuple[np.ndarray, np.ndarray]]:
-    """
-    Loads the Fashion MNIST dataset.
-
-    Parameters
-    ----------
-    return_X_y:
-        If ``True``, an `N x M x P` array of data points and `N`-array of labels are returned
-        instead of a dict.
-
-    Returns
-    -------
-    If ``return_X_y=False``, a Bunch object with fields 'data', 'targets' and 'target_names'
-    is returned. Otherwise an array with data points and an array of labels is returned.
-    """
-
-    target_names = {
-        0: 'T-shirt/top', 1: 'Trouser', 2: 'Pullover', 3: 'Dress', 4: 'Coat',
-        5: 'Sandal', 6: 'Shirt', 7: 'Sneaker', 8: 'Bag', 9: 'Ankle boot',
-    }
-
-    data, labels = keras.datasets.fashion_mnist.load_data()[0]
-
-    if return_X_y:
-        return data, labels
-
-    return Bunch(data=data, target=labels, target_names=target_names)

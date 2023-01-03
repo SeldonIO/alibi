@@ -8,8 +8,8 @@ from skimage.segmentation import felzenszwalb, quickshift, slic
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR_IMG, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.exceptions import (PredictorCallError,
+                              PredictorReturnTypeError)
 from alibi.utils.wrappers import ArgmaxTransformer
 
 from .anchor_base import AnchorBaseBeam
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 DEFAULT_SEGMENTATION_KWARGS = {
     'felzenszwalb': {},
     'quickshift': {},
-    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5}
+    'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5, 'start_label': 0}
 }  # type: Dict[str, Dict]
 
 
@@ -67,7 +67,8 @@ class AnchorImageSampler:
         predictor
             A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs.
         segmentation_fn
-            Function used to segment the images.
+            Function used to segment the images. The segmentation function is expected to return a segmentation mask
+            containing all integer values from `0` to `K-1`, where `K` is the number of image segments (superpixels).
         image
             Image to be explained.
         images_background
@@ -125,7 +126,7 @@ class AnchorImageSampler:
          - `data` - Matrix with 1s and 0s indicating whether the values in a superpixel will remain unchanged (1) or \
          will be perturbed (0), for each sample.
 
-         - `1.0` - indicates exact coverage is not computed for this algorithm.
+         - `-1.0` - indicates exact coverage is not computed for this algorithm.
 
          - `anchor[0]` - position of anchor in the batch request
 
@@ -139,7 +140,7 @@ class AnchorImageSampler:
             covered_true = [scale_image(img) for img in covered_true]
             covered_false = raw_data[np.logical_not(labels)][: self.n_covered_ex]
             covered_false = [scale_image(img) for img in covered_false]
-            # coverage set to -1.0 as we can't compute 'true'coverage for this model
+            # coverage set to -1.0 as we can't compute 'true' coverage for this model
 
             return [covered_true, covered_false, labels.astype(int), data, -1.0, anchor[0]]  # type: ignore
 
@@ -332,6 +333,8 @@ class AnchorImage(Explainer):
         segmentation_fn
             Any of the built in segmentation function strings: ``'felzenszwalb'``, ``'slic'`` or ``'quickshift'`` or
             a custom segmentation function (callable) which returns an image mask with labels for each superpixel.
+            The segmentation function is expected to return a segmentation mask containing all integer values
+            from `0` to `K-1`, where `K` is the number of image segments (superpixels).
             See http://scikit-image.org/docs/dev/api/skimage.segmentation.html for more info.
         segmentation_kwargs
             Keyword arguments for the built in segmentation functions.
@@ -342,9 +345,9 @@ class AnchorImage(Explainer):
 
         Raises
         ------
-        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+        :py:class:`alibi.exceptions.PredictorCallError`
             If calling `predictor` fails at runtime.
-        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+        :py:class:`alibi.exceptions.PredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
@@ -467,19 +470,45 @@ class AnchorImage(Explainer):
         image
             Image to be explained.
         p_sample
-            Probability for a pixel to be represented by the average value of its superpixel.
+            The probability of simulating the absence of a superpixel. If the `images_background` is not provided,
+            the absent superpixels will be replaced by the average value of their constituent pixels. Otherwise,
+            the synthetic instances are created by fixing the present superpixels and superimposing another image
+            from the `images_background` over the rest of the absent superpixels.
         threshold
-            Minimum precision threshold.
+            Minimum anchor precision threshold. The algorithm tries to find an anchor that maximizes the coverage
+            under precision constraint. The precision constraint is formally defined as
+            :math:`P(prec(A) \\ge t) \\ge 1 - \\delta`, where :math:`A` is an anchor, :math:`t` is the `threshold`
+            parameter, :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision
+            of an anchor. In other words, we are seeking for an anchor having its precision greater or equal than
+            the given `threshold` with a confidence of `(1 - delta)`. A higher value guarantees that the anchors are
+            faithful to the model, but also leads to more computation time. Note that there are cases in which the
+            precision constraint cannot be satisfied due to the quantile-based discretisation of the numerical
+            features. If that is the case, the best (i.e. highest coverage) non-eligible anchor is returned.
         delta
-            Used to compute `beta`.
+            Significance threshold. `1 - delta` represents the confidence threshold for the anchor precision
+            (see `threshold`) and the selection of the best anchor candidate in each iteration (see `tau`).
         tau
-            Margin between lower confidence bound and minimum precision of upper bound.
+            Multi-armed bandit parameter used to select candidate anchors in each iteration. The multi-armed bandit
+            algorithm tries to find within a tolerance `tau` the most promising (i.e. according to the precision)
+            `beam_size` candidate anchor(s) from a list of proposed anchors. Formally, when the `beam_size=1`,
+            the multi-armed bandit algorithm seeks to find an anchor :math:`A` such that
+            :math:`P(prec(A) \\ge prec(A^\\star) - \\tau) \\ge 1 - \\delta`, where :math:`A^\\star` is the anchor
+            with the highest true precision (which we don't know), :math:`\\tau` is the `tau` parameter,
+            :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision of an anchor.
+            In other words, in each iteration, the algorithm returns with a probability of at least `1 - delta` an
+            anchor :math:`A` with a precision within an error tolerance of `tau` from the precision of the
+            highest true precision anchor :math:`A^\\star`. A bigger value for `tau` means faster convergence but also
+            looser anchor conditions.
         batch_size
-            Batch size used for sampling.
+            Batch size used for sampling. The Anchor algorithm will query the black-box model in batches of size
+            `batch_size`. A larger `batch_size` gives more confidence in the anchor, again at the expense of
+            computation time since it involves more model prediction calls.
         coverage_samples
             Number of samples used to estimate coverage from during result search.
         beam_size
-            The number of anchors extended at each step of new anchors construction.
+            Number of candidate anchors selected by the multi-armed bandit algorithm in each iteration from a list of
+            proposed anchors. A bigger beam  width can lead to a better overall anchor (i.e. prevents the algorithm
+            of getting stuck in a local maximum) at the expense of more computation time.
         stop_on_first
             If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.
@@ -508,7 +537,7 @@ class AnchorImage(Explainer):
             See usage at `AnchorImage examples`_ for details.
 
             .. _AnchorImage examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
         """
         # get params for storage in meta
         params = locals()
@@ -639,11 +668,11 @@ class AnchorImage(Explainer):
         except Exception as e:
             msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
                   f"Check that the parameter `image_shape` is correctly specified."
-            raise AlibiPredictorCallException(msg) from e
+            raise PredictorCallError(msg) from e
 
         if not isinstance(prediction, np.ndarray):
             msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
-            raise AlibiPredictorReturnTypeError(msg)
+            raise PredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor

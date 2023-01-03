@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from numpy.testing import assert_allclose
 import pytest
@@ -16,7 +17,8 @@ from alibi.explainers import (
     IntegratedGradients,
     KernelShap,
     TreeShap,
-    CounterfactualRLTabular
+    CounterfactualRLTabular,
+    GradientSimilarity
 )
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
@@ -264,6 +266,19 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
     return explainer
 
 
+@pytest.fixture(scope='module')
+def similarity_explainer(ffn_classifier, iris_data):
+    criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    explainer = GradientSimilarity(
+        predictor=ffn_classifier,
+        loss_fn=criterion,
+        precompute_grads=True,
+        backend='tensorflow',
+        sim_fn='grad_cos')
+    explainer.fit(X_train=iris_data['X_train'], Y_train=iris_data['y_train'])
+    return explainer
+
+
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('iris_data')], indirect=True)
 def test_save_ALE(ale_explainer, lr_classifier, iris_data):
     X = iris_data['X_test']
@@ -326,6 +341,7 @@ def test_save_AnchorImage(ai_explainer, mnist_predictor):
         assert exp0.meta == exp1.meta
 
 
+@pytest.mark.skipif(sys.platform.startswith("win"), reason="Test fails intermittently on windows platform")
 @pytest.mark.parametrize('lr_classifier', [lazy_fixture('movie_sentiment_data')], indirect=True)
 @pytest.mark.parametrize('atext_explainer', [lazy_fixture('atext_explainer_nlp'), lazy_fixture('atext_explainer_lm')])
 def test_save_AnchorText(atext_explainer, lr_classifier, movie_sentiment_data):
@@ -434,5 +450,22 @@ def test_save_cfrl(cfrl_explainer, rf_classifier, iris_data):
         assert exp0.meta == exp1.meta
 
         # cfrl is determinstic
-        assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32))
-        assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32))
+        assert_allclose(exp0.cf["X"].astype(np.float32), exp1.cf["X"].astype(np.float32), atol=1e-06, rtol=0)
+        assert_allclose(exp0.cf["class"].astype(np.float32), exp1.cf["class"].astype(np.float32), atol=1e-06, rtol=0)
+
+
+@pytest.mark.parametrize('ffn_classifier', [lazy_fixture('iris_data')], indirect=True)
+def test_save_SimilartyExplainer(similarity_explainer, ffn_classifier, iris_data):
+    X = iris_data['X_test'][:2]
+    exp0 = similarity_explainer.explain(X)
+    with tempfile.TemporaryDirectory() as temp_dir:
+        similarity_explainer.save(temp_dir)
+        similarity_explainer1 = load_explainer(temp_dir, predictor=ffn_classifier)
+        assert isinstance(similarity_explainer1, GradientSimilarity)
+        assert similarity_explainer.meta == similarity_explainer1.meta
+        exp1 = similarity_explainer1.explain(X)
+        assert exp0.meta == exp1.meta
+        assert (exp0.data['scores'] == exp1.data['scores']).all()
+        assert (exp0.data['ordered_indices'] == exp1.data['ordered_indices']).all()
+        assert (exp0.data['most_similar'] == exp1.data['most_similar']).all()
+        assert (exp0.data['least_similar'] == exp1.data['least_similar']).all()

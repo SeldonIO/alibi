@@ -8,18 +8,22 @@ import warnings
 
 import dill
 import numpy as np
-import tensorflow as tf
 
 if TYPE_CHECKING:
+    import torch
+    import tensorflow
     from alibi.api.interfaces import Explainer
+    from alibi.explainers.integrated_gradients import IntegratedGradients
+    from alibi.explainers.shap_wrappers import KernelShap, TreeShap
     from alibi.explainers import (
         AnchorImage,
         AnchorText,
-        IntegratedGradients,
-        KernelShap,
-        TreeShap,
         CounterfactualRL,
-        CounterfactualRLTabular
+        CounterfactualRLTabular,
+        GradientSimilarity
+    )
+    from alibi.prototypes import (
+        ProtoSelect
     )
 
 from alibi.version import __version__
@@ -117,7 +121,7 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
     return explainer
 
 
-def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: Union[tf.keras.Model],
+def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
     layer_num = meta['params']['layer']
     if layer_num == 0:
@@ -189,7 +193,7 @@ def _load_AnchorText(path: Union[str, os.PathLike], predictor: Callable, meta: d
         model = spacy.load(Path(path, 'nlp'))
     else:
         # load language model
-        import alibi.utils.lang_model as lang_model
+        import alibi.utils as lang_model
         model_class = explainer.model_class
         model = getattr(lang_model, model_class)(preloading=False)
         model.from_disk(Path(path, 'language_model'))
@@ -371,6 +375,35 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
     # load the rest of the explainer
     return _helper_load_CounterfactualRL(path, predictor, explainer)
+
+
+def _save_SimilarityExplainer(explainer: 'GradientSimilarity', path: Union[str, os.PathLike]) -> None:
+    predictor = explainer.predictor
+    explainer.predictor = None  # type: ignore[assignment]
+
+    with open(Path(path, 'explainer.dill'), 'wb') as f:
+        dill.dump(explainer, f, recurse=True)
+
+    explainer.predictor = predictor
+
+
+def _load_SimilarityExplainer(path: Union[str, os.PathLike],
+                              predictor: 'Union[tensorflow.keras.Model, torch.nn.Module]',
+                              meta: dict) -> 'GradientSimilarity':
+    # load explainer
+    with open(Path(path, "explainer.dill"), "rb") as f:
+        explainer = dill.load(f)
+    explainer.reset_predictor(predictor)
+
+    return explainer
+
+
+def _save_ProtoSelect(path: Union[str, os.PathLike]) -> None:
+    raise NotImplementedError('ProtoSelect saving functionality not implemented.')
+
+
+def _load_ProtoSelect(path: Union[str, os.PathLike], meta: dict) -> 'ProtoSelect':
+    raise NotImplementedError('ProtoSelect loading functionality not implemented.')
 
 
 class NumpyEncoder(json.JSONEncoder):

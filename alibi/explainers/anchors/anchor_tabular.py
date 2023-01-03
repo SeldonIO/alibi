@@ -1,5 +1,4 @@
 import copy
-import logging
 from collections import OrderedDict, defaultdict
 from itertools import accumulate
 from typing import (Any, Callable, DefaultDict, Dict, List, Optional, Set,
@@ -9,14 +8,13 @@ import numpy as np
 
 from alibi.api.defaults import DEFAULT_DATA_ANCHOR, DEFAULT_META_ANCHOR
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
-from alibi.exceptions import (AlibiPredictorCallException,
-                              AlibiPredictorReturnTypeError)
+from alibi.exceptions import (NotFittedError,
+                              PredictorCallError,
+                              PredictorReturnTypeError)
 from alibi.utils.discretizer import Discretizer
-from alibi.utils.distributed import RAY_INSTALLED
 from alibi.utils.mapping import ohe_to_ord, ord_to_ohe
 from alibi.utils.wrappers import ArgmaxTransformer
-
-from .anchor_base import AnchorBaseBeam, DistributedAnchorBaseBeam
+from .anchor_base import AnchorBaseBeam
 from .anchor_explanation import AnchorExplanation
 
 
@@ -252,7 +250,8 @@ class TabularSampler:
 
     def perturbation(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray, float]:
         """
-        Implements functionality described in :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`.
+        Implements functionality described in
+        :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.__call__`.
 
         Parameters
         ----------
@@ -291,6 +290,10 @@ class TabularSampler:
             [allowed_rows[feat] for feat in uniq_feat_ids],
             np.intersect1d),
         )
+        if partial_anchor_rows == []:
+            # edge case - if there are no rows at all then `partial_anchor_rows` is the empty list, but it should
+            # be a list of an empty array to not cause an error in calculating coverage (which will be 0)
+            partial_anchor_rows = [np.array([], dtype=int)]
         nb_partial_anchors = np.array([len(n_records) for n_records in
                                        reversed(partial_anchor_rows)])  # reverse required for np.searchsorted later
         coverage = nb_partial_anchors[0] / self.n_records  # since we sorted, the correct coverage is first not last
@@ -332,7 +335,7 @@ class TabularSampler:
         Parameters
         ----------
         allowed_bins
-            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.get_feature_index` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.get_features_index` method.
         num_samples
             Number of replacement values.
         samples
@@ -384,7 +387,14 @@ class TabularSampler:
         requested_samples = num_samples
         start, n_anchor_feats = 0, len(partial_anchor_rows)
         uniq_feat_ids = list(reversed(uniq_feat_ids))
-        start_idx = np.nonzero(nb_partial_anchors)[0][0]  # skip anchors with no samples in the database
+
+        try:
+            start_idx = np.nonzero(nb_partial_anchors)[0][0]  # skip anchors with no samples in the database
+        except IndexError:
+            # there are no samples in the database, need to break out of the function
+            # and go straight to treating unknown features
+            return
+
         end_idx = np.searchsorted(np.cumsum(nb_partial_anchors), num_samples)
 
         # replace partial anchors with partial anchors drawn from the training dataset
@@ -580,102 +590,6 @@ class TabularSampler:
         return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
 
-class RemoteSampler:
-    """ A wrapper that facilitates the use of `TabularSampler` for distributed sampling."""
-    if RAY_INSTALLED:
-        import ray
-        # set module as class variable to used only in this context
-        ray = ray  #: `ray` module.
-
-    def __init__(self, *args):
-        self.train_id, self.d_train_id, self.sampler = args
-        self.sampler = self.sampler.deferred_init(self.train_id, self.d_train_id)
-
-    def __call__(self, anchors_batch: Union[Tuple[int, tuple], List[Tuple[int, tuple]]], num_samples: int,
-                 compute_labels: bool = True) -> List:
-        """
-        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`. It allows sampling a batch
-        of anchors in the same process, which can improve performance.
-
-        Parameters
-        ----------
-        anchors_batch, num_samples, compute_labels
-            A list of result tuples. See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.__call__`
-            for details.
-        """
-
-        if isinstance(anchors_batch, tuple):  # DistributedAnchorBaseBeam._get_samples_coverage call
-            return self.sampler(anchors_batch, num_samples, compute_labels=compute_labels)
-        elif len(anchors_batch) == 1:  # batch size = 1
-            return [self.sampler(*anchors_batch, num_samples, compute_labels=compute_labels)]
-        else:  # batch size > 1
-            batch_result = []
-            for anchor in anchors_batch:
-                batch_result.append(self.sampler(anchor, num_samples, compute_labels=compute_labels))
-
-            return batch_result
-
-    def set_instance_label(self, X: np.ndarray) -> int:
-        """
-        Sets the remote sampler instance label.
-
-        Parameters
-        ----------
-        X
-            The instance to be explained.
-
-        Returns
-        -------
-        label
-            The label of the instance to be explained.
-        """
-
-        self.sampler.set_instance_label(X)
-        label = self.sampler.instance_label
-
-        return label
-
-    def set_n_covered(self, n_covered: int) -> None:
-        """
-        Sets the remote sampler number of examples to save for inspection.
-
-        Parameters
-        ----------
-        n_covered
-            Number of examples where the result (and partial anchors) apply.
-        """
-
-        self.sampler.set_n_covered(n_covered)
-
-    def _get_sampler(self) -> TabularSampler:
-        """
-        A getter that returns the underlying tabular object.
-
-        Returns
-        -------
-        The tabular sampler object that is used in the process.
-        """
-        return self.sampler
-
-    def build_lookups(self, X: np.ndarray):
-        """
-        Wrapper around :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
-
-        Parameters
-        --------
-        X
-            See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
-
-        Returns
-        -------
-        See :py:meth:`alibi.explainers.anchor_tabular.TabularSampler.build_lookups`.
-        """
-
-        cat_lookup_id, ord_lookup_id, enc2feat_idx_id = self.sampler.build_lookups(X)
-
-        return [cat_lookup_id, ord_lookup_id, enc2feat_idx_id]
-
-
 class AnchorTabular(Explainer, FitMixin):
     instance_label: int  #: The label of the instance to be explained.
 
@@ -708,9 +622,9 @@ class AnchorTabular(Explainer, FitMixin):
 
         Raises
         ------
-        :py:class:`alibi.exceptions.AlibiPredictorCallException`
+        :py:class:`alibi.exceptions.PredictorCallError`
             If calling `predictor` fails at runtime.
-        :py:class:`alibi.exceptions.AlibiPredictorReturnTypeError`
+        :py:class:`alibi.exceptions.PredictorReturnTypeError`
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
@@ -744,6 +658,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         # update metadata
         self.meta['params'].update(seed=seed)
+
+        self._fitted = False
 
     def fit(self,  # type: ignore[override]
             train_data: np.ndarray,
@@ -783,6 +699,8 @@ class AnchorTabular(Explainer, FitMixin):
 
         # update metadata
         self.meta['params'].update(disc_perc=disc_perc)
+
+        self._fitted = True
 
         return self
 
@@ -825,17 +743,40 @@ class AnchorTabular(Explainer, FitMixin):
         X
             Instance to be explained.
         threshold
-            Minimum precision threshold.
+            Minimum anchor precision threshold. The algorithm tries to find an anchor that maximizes the coverage
+            under precision constraint. The precision constraint is formally defined as
+            :math:`P(prec(A) \\ge t) \\ge 1 - \\delta`, where :math:`A` is an anchor, :math:`t` is the `threshold`
+            parameter, :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision
+            of an anchor. In other words, we are seeking for an anchor having its precision greater or equal than
+            the given `threshold` with a confidence of `(1 - delta)`. A higher value guarantees that the anchors are
+            faithful to the model, but also leads to more computation time. Note that there are cases in which the
+            precision constraint cannot be satisfied due to the quantile-based discretisation of the numerical
+            features. If that is the case, the best (i.e. highest coverage) non-eligible anchor is returned.
         delta
-            Used to compute `beta`.
+            Significance threshold. `1 - delta` represents the confidence threshold for the anchor precision
+            (see `threshold`) and the selection of the best anchor candidate in each iteration (see `tau`).
         tau
-            Margin between lower confidence bound and minimum precision or upper bound.
+            Multi-armed bandit parameter used to select candidate anchors in each iteration. The multi-armed bandit
+            algorithm tries to find within a tolerance `tau` the most promising (i.e. according to the precision)
+            `beam_size` candidate anchor(s) from a list of proposed anchors. Formally, when the `beam_size=1`,
+            the multi-armed bandit algorithm seeks to find an anchor :math:`A` such that
+            :math:`P(prec(A) \\ge prec(A^\\star) - \\tau) \\ge 1 - \\delta`, where :math:`A^\\star` is the anchor
+            with the highest true precision (which we don't know), :math:`\\tau` is the `tau` parameter,
+            :math:`\\delta` is the `delta` parameter, and :math:`prec(\\cdot)` denotes the precision of an anchor.
+            In other words, in each iteration, the algorithm returns with a probability of at least `1 - delta` an
+            anchor :math:`A` with a precision within an error tolerance of `tau` from the precision of the
+            highest true precision anchor :math:`A^\\star`. A bigger value for `tau` means faster convergence but also
+            looser anchor conditions.
         batch_size
-            Batch size used for sampling.
+            Batch size used for sampling. The Anchor algorithm will query the black-box model in batches of size
+            `batch_size`. A larger `batch_size` gives more confidence in the anchor, again at the expense of
+            computation time since it involves more model prediction calls.
         coverage_samples
             Number of samples used to estimate coverage from during result search.
         beam_size
-            The number of anchors extended at each step of new anchors construction.
+            Number of candidate anchors selected by the multi-armed bandit algorithm in each iteration from a list of
+            proposed anchors. A bigger beam  width can lead to a better overall anchor (i.e. prevents the algorithm
+            of getting stuck in a local maximum) at the expense of more computation time.
         stop_on_first
             If ``True``, the beam search algorithm will return the first anchor that has satisfies the
             probability constraint.
@@ -864,8 +805,16 @@ class AnchorTabular(Explainer, FitMixin):
             See usage at `AnchorTabular examples`_ for details.
 
             .. _AnchorTabular examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html
+
+        Raises
+        ------
+        :py:class:`alibi.exceptions.NotFittedError`
+            If `fit` has not been called prior to calling `explain`.
         """
+        if not self._fitted:
+            raise NotFittedError(self.meta["name"])
+
         # transform one-hot encodings to labels if ohe == True
         X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
 
@@ -918,7 +867,7 @@ class AnchorTabular(Explainer, FitMixin):
         predicted_label
             Label of the instance to be explained (inferred if not given).
         params
-            Parameters passed to :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
+            Parameters passed to :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain`.
 
         Return
         ------
@@ -1059,11 +1008,11 @@ class AnchorTabular(Explainer, FitMixin):
         except Exception as e:
             msg = f"Predictor failed to be called on {type(x)} of shape {x.shape} and dtype {x.dtype}. " \
                   f"Check that the parameter `feature_names` is correctly specified."
-            raise AlibiPredictorCallException(msg) from e
+            raise PredictorCallError(msg) from e
 
         if not isinstance(prediction, np.ndarray):
             msg = f"Excepted predictor return type to be {np.ndarray} but got {type(prediction)}."
-            raise AlibiPredictorReturnTypeError(msg)
+            raise PredictorReturnTypeError(msg)
 
         if np.argmax(prediction.shape) == 0:
             return predictor
@@ -1087,172 +1036,3 @@ class AnchorTabular(Explainer, FitMixin):
         """
         self.predictor = predictor
         self.samplers[0].predictor = self._predictor
-
-
-class DistributedAnchorTabular(AnchorTabular):
-    if RAY_INSTALLED:
-        import ray
-        # set module as class variable to used only in this context
-        ray = ray  #: `ray` module.
-
-    def __init__(self,
-                 predictor: Callable,
-                 feature_names: List[str],
-                 categorical_names: Optional[Dict[int, List[str]]] = None,
-                 dtype: Type[np.generic] = np.float32,
-                 ohe: bool = False,
-                 seed: Optional[int] = None) -> None:
-
-        super().__init__(predictor, feature_names, categorical_names, dtype, ohe, seed)
-        if not DistributedAnchorTabular.ray.is_initialized():
-            DistributedAnchorTabular.ray.init()
-
-    def fit(self,  # type: ignore[override]
-            train_data: np.ndarray,
-            disc_perc: tuple = (25, 50, 75),
-            **kwargs) -> "AnchorTabular":
-        """
-        Creates a list of handles to parallel processes handles that are used for submitting sampling
-        tasks.
-
-        Parameters
-        ----------
-        train_data, disc_perc, **kwargs
-            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.fit` superclass.
-        """
-
-        try:
-            ncpu = kwargs['ncpu']
-        except KeyError:
-            logging.warning('DistributedAnchorTabular object has been initalised but kwargs did not contain '
-                            'expected argument, ncpu. Defaulting to ncpu=2!')
-            ncpu = 2
-
-        # transform one-hot encodings to labels if ohe == True
-        train_data = ohe_to_ord(X_ohe=train_data, cat_vars_ohe=self.cat_vars_ohe)[0] if self.ohe else train_data
-
-        disc = Discretizer(train_data, self.numerical_features, self.feature_names, percentiles=disc_perc)
-        d_train_data = disc.discretize(train_data)
-
-        self.feature_values.update(disc.feature_intervals)
-
-        sampler_args = (
-            self._predictor,
-            disc_perc,
-            self.numerical_features,
-            self.categorical_features,
-            self.feature_names,
-            self.feature_values,
-        )
-        train_data_id = DistributedAnchorTabular.ray.put(train_data)
-        d_train_data_id = DistributedAnchorTabular.ray.put(d_train_data)
-        samplers = [TabularSampler(*sampler_args, seed=self.seed) for _ in range(ncpu)]  # type: ignore[arg-type]
-        d_samplers = []
-        for sampler in samplers:
-            d_samplers.append(
-                DistributedAnchorTabular.ray.remote(RemoteSampler).remote(
-                    *(train_data_id, d_train_data_id, sampler)
-                )
-            )
-        self.samplers = d_samplers
-
-        # update metadata
-        self.meta['params'].update(disc_perc=disc_perc)
-
-        return self
-
-    def _build_sampling_lookups(self, X: np.ndarray) -> None:
-        """
-        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular._build_sampling_lookups` documentation.
-
-        Parameters
-        ----------
-        X
-            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular._build_sampling_lookups` documentation.
-        """
-
-        lookups = [sampler.build_lookups.remote(X) for sampler in self.samplers][0]
-        self.cat_lookup, self.ord_lookup, self.enc2feat_idx = DistributedAnchorTabular.ray.get(lookups)
-
-    def explain(self,
-                X: np.ndarray,
-                threshold: float = 0.95,
-                delta: float = 0.1,
-                tau: float = 0.15,
-                batch_size: int = 100,
-                coverage_samples: int = 10000,
-                beam_size: int = 1,
-                stop_on_first: bool = False,
-                max_anchor_size: Optional[int] = None,
-                min_samples_start: int = 1,
-                n_covered_ex: int = 10,
-                binary_cache_size: int = 10000,
-                cache_margin: int = 1000,
-                verbose: bool = False,
-                verbose_every: int = 1,
-                **kwargs: Any) -> Explanation:
-        """
-        Explains the prediction made by a classifier on instance `X`. Sampling is done in parallel over a number of
-        cores specified in `kwargs['ncpu']`.
-
-        Parameters
-        ----------
-        X, threshold, delta, tau, batch_size, coverage_samples, beam_size, stop_on_first, max_anchor_size, \
-        min_samples_start, n_covered_ex, binary_cache_size, cache_margin, verbose, verbose_every, **kwargs
-            See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain`.
-
-        Returns
-        -------
-        See :py:meth:`alibi.explainers.anchor_tabular.AnchorTabular.explain` superclass.
-        """
-        # transform one-hot encodings to labels if ohe == True
-        X = ohe_to_ord(X_ohe=X.reshape(1, -1), cat_vars_ohe=self.cat_vars_ohe)[0].reshape(-1) if self.ohe else X
-
-        # get params for storage in meta
-        params = locals()
-        remove = ['X', 'self']
-        for key in remove:
-            params.pop(key)
-
-        for sampler in self.samplers:
-            label = sampler.set_instance_label.remote(X)
-            sampler.set_n_covered.remote(n_covered_ex)
-
-        self.instance_label = DistributedAnchorTabular.ray.get(label)
-
-        # build feature encoding and mappings from the instance values to database rows where similar records are found
-        # get anchors and add metadata
-        self._build_sampling_lookups(X)
-        mab = DistributedAnchorBaseBeam(
-            samplers=self.samplers,
-            sample_cache_size=binary_cache_size,
-            cache_margin=cache_margin,
-            **kwargs,
-        )
-        result = mab.anchor_beam(
-            delta=delta, epsilon=tau,
-            desired_confidence=threshold,
-            beam_size=beam_size,
-            min_samples_start=min_samples_start,
-            max_anchor_size=max_anchor_size,
-            batch_size=batch_size,
-            coverage_samples=coverage_samples,
-            verbose=verbose,
-            verbose_every=verbose_every,
-        )  # type: Any
-        self.mab = mab
-
-        return self._build_explanation(X, result, self.instance_label, params)
-
-    def reset_predictor(self, predictor: Callable) -> None:
-        """
-        Resets the predictor function.
-
-        Parameters
-        ----------
-        predictor
-            New model prediction function.
-        """
-        raise NotImplementedError("Resetting predictor is currently not supported for distributed explainers.")
-        # TODO: to support resetting a predictor we would need to re-run most of the code in `fit` instantiating the
-        # instances of RemoteSampler anew

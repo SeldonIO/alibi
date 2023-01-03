@@ -23,3 +23,7 @@ comment:
   layout: "reach,diff,flags,tree"
   behavior: default
   require_changes: no
+
+ignore:
+  - "**/tests/*"  # ignore anything in tests/ directories
+  - "**/test_*.py"  # ignore test_*.py files even if they are located elsewhere

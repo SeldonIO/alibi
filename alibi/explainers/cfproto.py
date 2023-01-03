@@ -38,7 +38,7 @@ class CounterfactualProto(Explainer, FitMixin):
                  shape: tuple,
                  kappa: float = 0.,
                  beta: float = .1,
-                 feature_range: tuple = (-1e10, 1e10),
+                 feature_range: Tuple[Union[float, np.ndarray], Union[float, np.ndarray]] = (-1e10, 1e10),
                  gamma: float = 0.,
                  ae_model: Optional[tf.keras.Model] = None,
                  enc_model: Optional[tf.keras.Model] = None,
@@ -178,7 +178,9 @@ class CounterfactualProto(Explainer, FitMixin):
         self.max_iterations = max_iterations
         self.c_init = c_init
         self.c_steps = c_steps
-        self.feature_range = feature_range
+        self.feature_range = tuple([(np.ones(shape[1:]) * feature_range[_])[None, :]
+                                    if isinstance(feature_range[_], float) else np.array(feature_range[_])
+                                    for _ in range(2)])
         self.update_num_grad = update_num_grad
         self.eps = eps
         self.clip = clip
@@ -192,7 +194,7 @@ class CounterfactualProto(Explainer, FitMixin):
             self.map_cat_to_num = tf.ragged.constant([np.zeros(v) for _, v in cat_vars.items()])
 
             # define placeholder for mapping which can be fed after the fit step
-            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[type-var] # feature with the most categories
+            max_key = max(cat_vars, key=cat_vars.get)  # type: ignore[arg-type] # feature with the most categories
             self.max_cat = cat_vars[max_key]
             cat_keys = list(cat_vars.keys())
             n_cat = len(cat_keys)
@@ -754,13 +756,13 @@ class CounterfactualProto(Explainer, FitMixin):
 
                 # multidim scaled distances
                 d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,
+                                                 feature_range=self.feature_range,  # type: ignore[arg-type]
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)
 
                 d_abs_mvdm, _ = multidim_scaling(d_mvdm, n_components=2, use_metric=True,
-                                                 feature_range=self.feature_range,
+                                                 feature_range=self.feature_range,  # type: ignore[arg-type]
                                                  standardize_cat_vars=standardize_cat_vars,
                                                  smooth=smooth, center=center,
                                                  update_feature_range=False)
@@ -779,7 +781,7 @@ class CounterfactualProto(Explainer, FitMixin):
                     self.feature_range = new_feature_range
             else:  # apply multidimensional scaling for the abdm or mvdm distances
                 self.d_abs, self.feature_range = multidim_scaling(d_pair, n_components=2, use_metric=True,
-                                                                  feature_range=self.feature_range,
+                                                                  feature_range=self.feature_range,  # type: ignore
                                                                   standardize_cat_vars=standardize_cat_vars,
                                                                   smooth=smooth, center=center,
                                                                   update_feature_range=update_feature_range)
@@ -1059,7 +1061,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 self.class_proto[c] = self.X_by_class[c][idx_c[0][-1]].reshape(1, -1)
 
         if self.enc_or_kdtree:
-            self.id_proto = min(dist_proto, key=dist_proto.get)  # type: ignore[type-var]
+            self.id_proto = min(dist_proto, key=dist_proto.get)  # type: ignore[arg-type]
             proto_val = self.class_proto[self.id_proto]
             if verbose:
                 print('Prototype class: {}'.format(self.id_proto))
@@ -1318,7 +1320,7 @@ class CounterfactualProto(Explainer, FitMixin):
             See usage at `CFProto examples`_ for details.
 
             .. _CFProto examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CFProto.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html
         """
         # get params for storage in meta
         params = locals()

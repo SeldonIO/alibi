@@ -22,7 +22,7 @@ def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                start_point: Union[List[np.ndarray], np.ndarray],
                                end_point: Union[List[np.ndarray], np.ndarray],
                                forward_kwargs: Optional[dict],
-                               target: Optional[List[int]],
+                               target: Optional[np.ndarray],
                                _is_list: bool) -> np.ndarray:
     """
     Computes convergence deltas for each data point. Convergence delta measures how close the sum of all attributions
@@ -112,13 +112,17 @@ def _select_target(preds: tf.Tensor,
     Selected predictions.
 
     """
+    if not isinstance(targets, tf.Tensor):
+        targets = tf.convert_to_tensor(targets)
+
     if targets is not None:
         if isinstance(preds, tf.Tensor):
-            preds = tf.linalg.diag_part(tf.gather(preds, targets, axis=1))
+            preds = tf.gather_nd(preds, tf.expand_dims(targets, axis=1), batch_dims=1)
         else:
             raise NotImplementedError
     else:
         raise ValueError("target cannot be `None` if `model` output dimensions > 1")
+
     return preds
 
 
@@ -530,9 +534,9 @@ def _format_baseline(X: np.ndarray,
 
 
 def _format_target(target: Union[None, int, list, np.ndarray],
-                   nb_samples: int) -> Union[None, List[int]]:
+                   nb_samples: int) -> Union[None, np.ndarray]:
     """
-    Formats target to return a list.
+    Formats target to return a np.array.
 
     Parameters
     ----------
@@ -543,18 +547,85 @@ def _format_target(target: Union[None, int, list, np.ndarray],
 
     Returns
     -------
-    Formatted target as a list.
+    Formatted target as a np.array.
 
     """
     if target is not None:
         if isinstance(target, int):
-            target = [target for _ in range(nb_samples)]
-        elif isinstance(target, list) or isinstance(target, np.ndarray):
-            target = [t.astype(int) for t in target]
+            target = np.array([target for _ in range(nb_samples)])
+        elif isinstance(target, list):
+            target = np.array(target)
+        elif isinstance(target, np.ndarray):
+            pass
         else:
             raise NotImplementedError
 
     return target
+
+
+def _check_target(output_shape: Tuple,
+                  target: Optional[np.ndarray],
+                  nb_samples: int) -> None:
+    """
+    Parameters
+    ----------
+    output_shape
+        Output shape of the tensorflow model
+    target
+        Target formatted as np array target.
+    nb_samples
+        Number of samples in the batch.
+
+    Returns
+    -------
+    None
+
+    """
+
+    if target is not None:
+
+        if not np.issubdtype(target.dtype, np.integer):
+            raise ValueError("Targets must be integers")
+
+        if target.shape[0] != nb_samples:
+            raise ValueError(f"First dimension in target must be the same as nb of samples. "
+                             f"Found target first dimension: {target.shape[0]}; nb of samples: {nb_samples}")
+
+        if len(target.shape) > 2:
+            raise ValueError("Target must be a rank-1 or a rank-2 tensor. If target is a rank-2 tensor, "
+                             "each column contains the index of the corresponding dimension "
+                             "in the model's output tensor.")
+
+        if len(output_shape) == 1:
+            # in case of squash output, the rank of the model's output tensor (out_rank) consider the batch dimension
+            out_rank, target_rank = 1, len(target.shape)
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
+
+            if tmax > 1:
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
+
+        # for all other cases, batch dimension is not considered in the out_rank
+        elif len(output_shape) == 2:
+            out_rank, target_rank = 1, len(target.shape)
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
+
+            if (output_shape[-1] > 1 and (tmax >= output_shape[-1]).any()) or (output_shape[-1] == 1 and tmax > 1):
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
+
+        else:
+            out_rank, target_rank = len(output_shape[1:]), target.shape[-1]
+            tmax, tmin = target.max(axis=0), target.min(axis=0)
+
+            if (tmax >= output_shape[1:]).any():
+                raise ValueError(f"Target value {tmax} out of range for output shape {output_shape} ")
+
+        if (tmin < 0).any():
+            raise ValueError(f"Negative value {tmin} for target. Targets represent positional "
+                             f"arguments and cannot be negative")
+
+        if out_rank != target_rank:
+            raise ValueError(f"The last dimension of target  must match the rank of the model's output tensor. "
+                             f"Found target last dimension: {target_rank}; model's output rank: {out_rank}")
 
 
 def _get_target_from_target_fn(target_fn: Callable,
@@ -598,7 +669,7 @@ def _get_target_from_target_fn(target_fn: Callable,
         # TODO: in the future we want to support outputs that are >2D at which point this check should change
         msg = f"`target_fn` returned an array of shape {target.shape} but expected an array of shape {expected_shape}."
         raise ValueError(msg)  # TODO: raise a more specific error type?
-    return target
+    return target.astype(int)
 
 
 def _sum_integral_terms(step_sizes: list,
@@ -633,7 +704,7 @@ def _sum_integral_terms(step_sizes: list,
 
 def _calculate_sum_int(batches: List[List[tf.Tensor]],
                        model: Union[tf.keras.Model],
-                       target: Union[None, List[int]],
+                       target: Optional[np.ndarray],
                        target_paths: np.ndarray,
                        n_steps: int,
                        nb_samples: int,
@@ -683,7 +754,7 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
 
 
 def _validate_output(model: tf.keras.Model,
-                     target: Optional[List[int]]) -> None:
+                     target: Optional[np.ndarray]) -> None:
     """
     Validates the model's output type and raises an error if the output type is not supported.
 
@@ -730,6 +801,12 @@ class IntegratedGradients(Explainer):
         layer
             Layer with respect to which the gradients are calculated.
             If not provided, the gradients are calculated with respect to the input.
+        target_fn
+            A scalar function that is applied to the predictions of the model.
+            This can be used to specify which scalar output the attributions should be calculated for.
+            This can be particularly useful if the desired output is not known before calling the model
+            (e.g. explaining the `argmax` output for a probabilistic classifier, in this case we could pass
+            ``target_fn=partial(np.argmax, axis=1)``).
         method
             Method for the integral approximation. Methods available:
             ``"riemann_left"``, ``"riemann_right"``, ``"riemann_middle"``, ``"riemann_trapezoid"``, ``"gausslegendre"``.
@@ -798,11 +875,16 @@ class IntegratedGradients(Explainer):
             If not provided, all features values for the baselines are set to 0.
         target
             Defines which element of the model output is considered to compute the gradients.
-            It can be a list of integers or a numeric value. If a numeric value is passed, the gradients are calculated
-            for the same element of the output for all data points.
-            It must be provided if the model output dimension is higher than 1.
+            Target can be a numpy array, a list or a numeric value.
+            Numeric values are only valid if the model's output is a rank-n tensor
+            with n <= 2 (regression and classification models).
+            If a numeric value is passed, the gradients are calculated for
+            the same element of the output for all data points.
             For regression models whose output is a scalar, target should not be provided.
             For classification models `target` can be either the true classes or the classes predicted by the model.
+            It must be provided for classification models and regression models whose output is a vector.
+            If the model's output is a rank-n tensor with n > 2,
+            the target must be a rank-2 numpy array or a list of lists (a matrix) with dimensions nb_samples X (n-1) .
         attribute_to_layer_inputs
             In case of layers gradients, controls whether the gradients are computed for the layer's inputs or
             outputs. If ``True``, gradients are computed for the layer's inputs, if ``False`` for the layer's outputs.
@@ -814,7 +896,7 @@ class IntegratedGradients(Explainer):
             for each feature. See usage at `IG examples`_ for details.
 
             .. _IG examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html
         """
         # target handling logic
         if self.target_fn and target is not None:
@@ -880,7 +962,7 @@ class IntegratedGradients(Explainer):
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)  # type: ignore[arg-type]
-
+            _check_target(self.model.output_shape, target, nb_samples)
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
                 attributions = self._compute_attributions_list_input(X,
@@ -928,7 +1010,7 @@ class IntegratedGradients(Explainer):
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
-
+            _check_target(self.model.output_shape, target, nb_samples)
             if self.layer is None:
                 attributions = self._compute_attributions_tensor_input(X,
                                                                        baselines,
@@ -990,7 +1072,7 @@ class IntegratedGradients(Explainer):
                            X: Union[List[np.ndarray], np.ndarray],
                            forward_kwargs: Optional[dict],
                            baselines: List[np.ndarray],
-                           target: Optional[List[int]],
+                           target: Optional[np.ndarray],
                            attributions: Union[List[np.ndarray], List[tf.Tensor]],
                            deltas: np.ndarray) -> Explanation:
         if forward_kwargs is None:
@@ -1024,7 +1106,7 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_list_input(self,
                                          X: List[np.ndarray],
                                          baselines: Union[List[int], List[float], List[np.ndarray]],
-                                         target: Optional[List[int]],
+                                         target: Optional[np.ndarray],
                                          step_sizes: List[float],
                                          alphas: List[float],
                                          nb_samples: int,
@@ -1149,7 +1231,7 @@ class IntegratedGradients(Explainer):
     def _compute_attributions_tensor_input(self,
                                            X: Union[np.ndarray, tf.Tensor],
                                            baselines: Union[np.ndarray, tf.Tensor],
-                                           target: Optional[List[int]],
+                                           target: Optional[np.ndarray],
                                            step_sizes: List[float],
                                            alphas: List[float],
                                            nb_samples: int,

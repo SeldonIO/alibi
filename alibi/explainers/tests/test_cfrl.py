@@ -1,21 +1,21 @@
-import pytest
-from pytest_lazyfixture import lazy_fixture
-
-import numpy as np
-from numpy.testing import assert_allclose
 from typing import Union, List
 
+import pytest
+from pytest_lazyfixture import lazy_fixture
+import numpy as np
+from numpy.testing import assert_allclose
 import tensorflow as tf
 import tensorflow.keras as keras
+
 from alibi.explainers import CounterfactualRLTabular
 from alibi.explainers.backends.cfrl_base import get_hard_distribution
-from alibi.explainers.backends.cfrl_tabular import get_he_preprocessor, split_ohe, get_numerical_conditional_vector,\
-    get_categorical_conditional_vector, get_statistics, get_conditional_vector, sample
+from alibi.explainers.backends.cfrl_tabular import get_he_preprocessor, split_ohe, \
+    get_numerical_conditional_vector, get_categorical_conditional_vector, get_statistics, get_conditional_vector, sample
 
 
 @pytest.mark.parametrize('dataset', [lazy_fixture('iris_data'),
                                      lazy_fixture('adult_data'),
-                                     lazy_fixture('boston_data')])
+                                     lazy_fixture('diabetes_data')])
 def test_he_preprocessor(dataset):
     """ Test the heterogeneous preprocessor and inverse preprocessor. """
     # Unpack dataset.
@@ -41,7 +41,7 @@ def test_he_preprocessor(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_split_ohe(dataset):
     """ Test the one-hot encoding splitting of a dataset. """
 
@@ -71,7 +71,7 @@ def test_split_ohe(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_get_numerical_condition(dataset):
     """ Test the training numerical conditional generator. """
 
@@ -116,7 +116,7 @@ def test_get_numerical_condition(dataset):
 
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_get_categorical_condition(dataset):
     """ Test the training categorical conditional generator. """
 
@@ -161,7 +161,7 @@ def test_get_categorical_condition(dataset):
 @pytest.mark.parametrize('seed', [0, 1, 2, 3])
 @pytest.mark.parametrize('dataset', [lazy_fixture("iris_data"),
                                      lazy_fixture("adult_data"),
-                                     lazy_fixture("boston_data")])
+                                     lazy_fixture("diabetes_data")])
 def test_sample(dataset, seed):
     """ Test sampling reconstruction. """
 

@@ -101,7 +101,7 @@ appropriate. However, human bias itself is still an element. Hence, if the model
 data, we are vulnerable to using explainability to justify relations in the data that may not be accurate. Consider:
 > _"Before launching the model, risk analysts are asked to review the Shapley value explanations to ensure that the
 > model exhibits expected behavior (i.e., the model uses the same features that a human would for the same task)."_
-> &mdash; <cite>[Explainable Machine Learning in Deployment](https://dl.acm.org/doi/pdf/10.1145/3351095.3375624)</cite>
+> &mdash; <cite>[Explainable Machine Learning in Deployment](https://dl.acm.org/doi/abs/10.1145/3351095.3375624)</cite>
 
 The critical point here is that the risk analysts in the above scenario must be aware of their own bias and potential
 bias in the dataset. The Shapley value explanations themselves don't remove this source of human error; they just make
@@ -123,19 +123,23 @@ model performs as desired.
 Alibi provides several local and global insights with which to explore and understand models. The following gives the
 practitioner an understanding of which explainers are suitable in which situations.
 
-| Explainer                                                                                  | Scope  | Model types                                                                     | Task types                 | Data types                                       | Use                                                                                               | Resources                                                                                                                           |
-|--------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box                                                                       | Classification, Regression | Tabular (numerical)                              | How does model prediction vary with respect to features of interest?                              | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
-| [Anchors](anchors)                                                                         | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf)                                     |
-| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box, White-box (_TensorFlow_)                                             | Classification             | Tabular (numerical), Image                       | ""                                                                                                | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
-| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box (_TensorFlow_)                                                        | Classification, Regression | Tabular (numerical, categorical), Text and Image | What does each feature contribute to the model prediction?                                        | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
-| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box                                                                       | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) |
-| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
-| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
-| [Counterfactual Instances](counterfactual-instances)                                       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | What minimal change to features is required to reclassify the current prediction?                 | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399)                                                              |
-| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | ""                                                                                                | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
-| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584)                                                         |
-| [Counterfactuals with Reinforcement Learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597)                                                            |
+| Explainer                                                                                  | Scope  | Model types                                                                     | Task types                 | Data types                                       | Use                                                                                                                  | Resources                                                                                                                           |
+|--------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| [Accumulated Local Effects](accumulated-local-effects)                                     | Global | Black-box                                                                       | Classification, Regression | Tabular (numerical)                              | How does model prediction vary with respect to features of interest?                                                 | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468)                                                             |
+| [Partial Dependence](partial-dependence)                                                   | Global | Black-box, White-box (_scikit-learn_)                                           | Classification, Regression | Tabular (numerical, categorical)                 | How does model prediction vary with respect to features of interest?                                                 | [docs](../methods/PartialDependence.ipynb), [paper](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full) |
+| [Partial Dependence Variance](partial-dependence-variance)                                 | Global | Black-box, White-box (_scikit-learn_)                                           | Classification, Regression | Tabular (numerical, categorical)                 | Which are the most important features globally? How much do features interact globally?                              | [docs](../methods/PartialDependenceVariance.ipynb), [paper](https://arxiv.org/abs/1805.04755) |
+| [Permutation importance](permutation-importance)                                           | Global | Black-box                                                                       | Classification, Regression | Tabular (numerical, categorical)                 | Which are the most important features globally?                                                                      | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
+| [Anchors](anchors)                                                                         | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Text and Image | Which set of features of a given instance are sufficient to ensure the prediction stays the same?                    | [docs](../methods/Anchors.ipynb), [paper](https://dl.acm.org/doi/abs/10.5555/3504035.3504222)                                       |
+| [Pertinent Positives](contrastive-explanation-method-pertinent-positives)                  | Local  | Black-box, White-box (_TensorFlow_)                                             | Classification             | Tabular (numerical), Image                       | ""                                                                                                                   | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Integrated Gradients](integrated-gradients)                                               | Local  | White-box (_TensorFlow_)                                                        | Classification, Regression | Tabular (numerical, categorical), Text and Image | What does each feature contribute to the model prediction?                                                           | [docs](../methods/IntegratedGradients.ipynb), [paper](https://arxiv.org/abs/1703.01365)                                             |
+| [Kernel SHAP](kernel-shap)                                                                 | Local  | Black-box                                                                       | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                                   | [docs](../methods/KernelSHAP.ipynb), [paper](https://papers.nips.cc/paper/2017/hash/8a20a8621978632d76c43dfd28b67767-Abstract.html) |
+| [Tree SHAP (path-dependent)](path-dependent-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                                 | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Tree SHAP (interventional)](interventional-tree-shap)                                     | Local  | White-box (_XGBoost, LightGBM, CatBoost, scikit-learn and pyspark tree models_) | Classification, Regression | Tabular (numerical, categorical)                 | ""                                                                                                                 | [docs](../methods/TreeSHAP.ipynb), [paper](https://www.nature.com/articles/s42256-019-0138-9)                                       |
+| [Counterfactual Instances](counterfactual-instances)                                       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | What minimal change to features is required to reclassify the current prediction?                                    | [docs](../methods/CF.ipynb), [paper](https://arxiv.org/abs/1711.00399)                                                              |
+| [Contrastive Explanation Method](contrastive-explanation-method-pertinent-negatives)       | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical), Image                       | ""                                                                                                                   | [docs](../methods/CEM.ipynb), [paper](https://arxiv.org/abs/1802.07623)                                                             |
+| [Counterfactuals Guided by Prototypes](counterfactuals-guided-by-prototypes)               | Local  | Black-box (_differentiable_), White-box (_TensorFlow_)                          | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                                   | [docs](../methods/CFProto.ipynb), [paper](https://arxiv.org/abs/1907.02584)                                                         |
+| [Counterfactuals with Reinforcement Learning](counterfactuals-with-reinforcement-learning) | Local  | Black-box                                                                       | Classification             | Tabular (numerical, categorical), Image          | ""                                                                                                                   | [docs](../methods/CFRL.ipynb), [paper](https://arxiv.org/abs/2106.02597)                                                            |
+| [Similarity explanations](similarity-explanations)                                         | Local  | White-box                                                                       | Classification, Regression | Tabular (numerical, categorical), Text and Image | What are the instances in the training set that are most similar to the instance of interest according to the model? | [docs](../methods/Similarity.ipynb), [paper](https://papers.nips.cc/paper/2019/hash/c61f571dbd2fb949d3fe5ae1608dd48b-Abstract.html) |
 
 ### 1. Global Feature Attribution
 
@@ -157,7 +161,7 @@ decrease after it gets too hot.
 |---------------------------------------------------|--------|---------------|----------------------------|---------------------|----------------------------------------------------------------------|-------------------------------------------------------------------------|
 | [Accumulated Local Effects](../methods/ALE.ipynb) | Global | Black-box     | Classification, Regression | Tabular (numerical) | How does model prediction vary with respect to features of interest? | [docs](../methods/ALE.ipynb), [paper](https://arxiv.org/abs/1612.08468) |
 
-Alibi only provides [accumulated local effects (ALE)](../methods/ALE.ipynb) plots because they give the most accurate
+Alibi provides [accumulated local effects (ALE)](../methods/ALE.ipynb) plots because they give the most accurate
 insight. Alternatives include Partial Dependence Plots (PDP), of which ALE is a natural extension. Suppose we have a
 model $f$ and features $X=\{x_1,... x_n\}$. Given a subset of the features $X_S$, we denote $X_C=X \setminus X_S$. $X_S$
 is usually chosen to be of size at most 2 in order to make the generated plots easy to visualize. PDP works by
@@ -200,12 +204,84 @@ what the difference between two categorical values should be. Note that if the d
 numerical features, we can always compute the ALE of the numerical ones.
 :::
 
-| Pros                                                                            | Cons                                                                                     |
-|---------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
-| ALE plots are easy to visualize and understand intuitively                      | Harder to explain the underlying motivation behind the method than PDP plots or M plots  |   
-| Very general as it is a black-box algorithm                                     | Requires access to the training dataset                                                  |
-| Doesn't struggle with dependencies in the underlying features, unlike PDP plots | ALE of categorical variables is not well-defined                                         |
-| ALE plots are fast                                                              |                                                                                          |
+| Pros                                                                           | Cons                                                                                     |
+|--------------------------------------------------------------------------------|------------------------------------------------------------------------------------------|
+| ALE plots are easy to visualize and understand intuitively                     | Harder to explain the underlying motivation behind the method than PDP plots or M plots  |   
+| Very general as it is a black-box algorithm                                    | Requires access to the training dataset                                                  |
+| Doesn't struggle with dependencies in the underlying features, unlike PD plots | ALE of categorical variables is not well-defined                                         |
+| ALE plots are fast                                                             |                                                                                          |
+
+(partial-dependence)= 
+
+#### Partial Dependence
+
+| Explainer                                                | Scope  | Model types                         | Task types                 | Data types                       | Use                                                                  | Resources                                                                             |
+|----------------------------------------------------------|--------|-------------------------------------|----------------------------|----------------------------------|----------------------------------------------------------------------|---------------------------------------------------------------------------------------|
+| [Partial Dependence](../methods/PartialDependence.ipynb) | Global | Black-box, White-box (scikit-learn) | Classification, Regression | Tabular (numerical, categorical) | How does model prediction vary with respect to features of interest? | [docs](../methods/PartialDependence.ipynb), [paper](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full) |
+
+Alibi provides [partial dependence (PD)](../methods/PartialDependence.ipynb) plots as an alternative to ALE. Following 
+the same notation as above, we remind the reader that the PD is marginalizing the model's output over the features we 
+are not interested in, $X_C$. This approach has a direct extension for categorical features, something that ALE 
+struggle with. Although, the practitioner should be aware of the main limitation of PD, which is the assumption of
+feature independence. The process of marginalizing out the set $X_C$ under the assumption of feature independence might
+thus include in the computation predictions for data instances belonging to low probability regions of the features 
+distribution.
+
+| Pros                                                                                                                  | Cons                                                                                                                 |
+|-----------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| PD plots are easy to visualize and understand intuitively (easier than ALE)                                           | Struggle with dependencies in the underlying features. In the uncorrelated case the interpretation might be unclear. |  
+| Very general as it is a black-box algorithm                                                                           | Heterogeneous effects might be hidden (ICE to the rescue)                                                            |
+| PD plots are in general fast. Even faster implementation for scikit-learn tree based models                           |                                                                                                                      |
+| PD plots have causal interpretation. The relationship is causal for the model, but not necessarily for the real world |                                                                                                                      |
+| Natural extension to categorical features                                                                             |                                                                                                                      |
+
+
+(partial-dependence-variance)= 
+
+#### Partial Dependence Variance
+
+| Explainer                                                  | Scope  | Model types                         | Task types                 | Data types                       | Use                                                                                     | Resources                                                                                    |
+|------------------------------------------------------------|--------|-------------------------------------|----------------------------|----------------------------------|-----------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------|
+| [Partial Dependence Variance](partial-dependence-variance) | Global | Black-box, White-box (scikit-learn) | Classification, Regression | Tabular (numerical, categorical) | What are the most important features globally? How much do features interact globally?  | [docs](../methods/PartialDependenceVariance.ipynb), [paper](https://arxiv.org/abs/1805.04755)|
+
+
+Alibi provides [partial dependence variance](../methods/PartialDependenceVariance.ipynb) as a way to measure globally 
+the feature importance and the strength of the feature interactions between pairs of features. Since the method is 
+based on the partial dependence, the practitioner should be aware that the method inherits its main limitations 
+(see discussion above). 
+
+| Pros                                                                                                                                           | Cons                                                                                                                 |
+|------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
+| Intuitive motivation for the computation of the feature importance                                                                             | The feature importance captures only the main effect and ignores possible feature interaction                        |  
+| Very general as it is a black-box algorithm                                                                                                    | Can fail to detect feature interaction even though those exist                                                       |
+| Fast computation in general. Even faster implementation for scikit-learn tree-based models                                                     |                                                                                                                      |
+| Offers standardized procedure to quantify the feature importance (i.e., contrasts with internal feature importance for some tree-based model)  |                                                                                                                      |
+| Offers support for both numerical and categorical features                                                                                     |                                                                                                                      |
+| Can quantify the strength of potential interaction effects                                                                                     |                                                                                                                      |
+
+
+(permutation-importance)=
+
+#### Permutation Importance
+
+| Explainer                                         | Scope  | Model types | Task types                 | Data types                       | Use                                               | Resources                                                                                 |
+|---------------------------------------------------|--------|-------------|----------------------------|----------------------------------|---------------------------------------------------|-------------------------------------------------------------------------------------------|
+| [Permutation Importance](permutation-importance)  | Global | Black-box   | Classification, Regression | Tabular (numerical, categorical) | Which are the most important features globally?   | [docs](../methods/PermutationImportance.ipynb), [paper](https://arxiv.org/abs/1801.01489) |
+
+
+Alibi provides [permutation importance](../methods/PermutationImportance.ipynb) as a way to measure globally the 
+feature importance. The computation of the feature importance is based on the degree of model performance degradation 
+when the feature values within a feature column are permuted. One important behavior that a practitioner should be 
+aware of is that the importance of correlated features can be split between them.
+
+
+| Pros                                                                                                                                  | Cons                                                        |
+|---------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
+| A nice and simple interpretation - the feature importance is the increase/decrease in the model loss/score when a feature is noise.   | Need the ground truth labels                                |  
+| Very general as it is a black-box algorithm                                                                                           | Can be biased towards unrealistic data instances            |
+| The feature importance takes into account all the feature interactions                                                                | The importance metric is related to the loss/score function |
+| Does not require retraining the model                                                                                                 |                                                             |
+
 
 ### 2. Local Necessary Features
 
@@ -219,12 +295,12 @@ and [pertinent positives](contrastive-explanation-method-pertinent-positives).
 
 #### Anchors
 
-| Explainer                           | Scope   | Model types   | Task types       | Data types                                        | Use                                                                                               | Resources                                                                                       |
-|-------------------------------------|---------|---------------|------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------|
-| [Anchors](../methods/Anchors.ipynb) | Local   | Black-box     | Classification   | Tabular (numerical, categorical), Text and Image  | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf) |
+| Explainer                           | Scope   | Model types   | Task types       | Data types                                        | Use                                                                                               | Resources                                                                                      |
+|-------------------------------------|---------|---------------|------------------|---------------------------------------------------|---------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------|
+| [Anchors](../methods/Anchors.ipynb) | Local   | Black-box     | Classification   | Tabular (numerical, categorical), Text and Image  | Which set of features of a given instance are sufficient to ensure the prediction stays the same? | [docs](../methods/Anchors.ipynb), [paper](https://dl.acm.org/doi/abs/10.5555/3504035.3504222)  |
 
 Anchors are introduced
-in [Anchors: High-Precision Model-Agnostic Explanations](https://homes.cs.washington.edu/~marcotcr/aaai18.pdf). More detailed documentation can be found [here](../methods/Anchors.ipynb).
+in [Anchors: High-Precision Model-Agnostic Explanations](https://dl.acm.org/doi/abs/10.5555/3504035.3504222). More detailed documentation can be found [here](../methods/Anchors.ipynb).
 
 Let $A$ be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature
 predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) adjusted
@@ -427,7 +503,7 @@ they should satisfy the following properties.
   combination of attributions of that feature for each of those models
 
 Not all LFA methods satisfy these
-methods ([LIME](https://papers.nips.cc/paper/2017/file/8a20a8621978632d76c43dfd28b67767-Paper.pdf) for example) but the
+methods ([LIME](https://arxiv.org/abs/1705.07874) for example) but the
 ones provided by Alibi ([Integrated Gradients](integrated-gradients), [Kernel SHAP](kernel-shap)
 , [Path-dependent](path-dependent-tree-shap) and [Interventional](interventional-tree-shap) Tree SHAP) do.
 
@@ -1080,4 +1156,21 @@ that the ALE plots potentially miss details local to individual instances as the
 ```{image} images/ale-plots.png
 :align: center
 :alt: Ale plots for those features that the above counterfactuals have changed the most. 
+```
+(similarity-explanations)=
+
+### 5. Similarity explanations
+
+| Explainer                                                                                  | Scope  | Model types                                                                     | Task types                 | Data types                                       | Use                                                                                                                  | Resources                                                                                                                           |
+|--------------------------------------------------------------------------------------------|--------|---------------------------------------------------------------------------------|----------------------------|--------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| [Similarity explanations](similarity-explanations)                                         | Local  | White-box                                                                       | Classification, Regression | Tabular (numerical, categorical), Text and Image | What are the instances in the training set that are most similar to the instance of interest according to the model? | [docs](../methods/Similarity.ipynb), [paper](https://papers.nips.cc/paper/2019/hash/c61f571dbd2fb949d3fe5ae1608dd48b-Abstract.html) | 
+
+
+Similarity explanations are instance-based explanations that focus on training data points to justify a model prediction on a test instance. Given a trained model and a test instance whose prediction is to be explained, these methods scan the training set, finding the most similar data points according to the model which forms an explanation. This type of explanation can be interpreted as the model justifying its prediction by referring to similar instances which may share the same prediction---*"I classify this image as a 'Golden Retriever' because it is most similar to images in the training set which I also classified as 'Golden Retriever'"*.
+
+```{figure} images/golden-retrievers.png
+:align: center
+:alt: A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.
+
+*A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.*
 ```

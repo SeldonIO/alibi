@@ -4,9 +4,10 @@ import numpy as np
 import pandas as pd
 from itertools import count
 from functools import partial
-from typing import Callable, List, Optional, Tuple, Union, TYPE_CHECKING, no_type_check
+from typing import Callable, List, Optional, Tuple, Union, Dict, TYPE_CHECKING, no_type_check
 
 import sys
+import logging
 
 if sys.version_info >= (3, 8):
     from typing import Literal
@@ -18,6 +19,8 @@ from alibi.api.defaults import DEFAULT_META_ALE, DEFAULT_DATA_ALE
 
 if TYPE_CHECKING:
     import matplotlib.pyplot as plt
+
+logger = logging.getLogger(__name__)
 
 
 class ALE(Explainer):
@@ -48,12 +51,14 @@ class ALE(Explainer):
         check_feature_resolution
             If ``True``, the number of unique values is calculated for each feature and if it is less than
             `low_resolution_threshold` then the feature values are used for grid-points instead of quantiles.
-            This may increase the runtime of the algorithm for large datasets.
+            This may increase the runtime of the algorithm for large datasets. Only used for features without custom
+            grid-points specified in :py:meth:`alibi.explainers.ale.ALE.explain`.
         low_resolution_threshold
             If a feature has at most this many unique values, these are used as the grid points instead of
             quantiles. This is to avoid situations when the quantile algorithm returns quantiles between discrete
             values which can result in jumps in the ALE plot obscuring the true effect. Only used if
-            `check_feature_resolution` is ``True``.
+            `check_feature_resolution` is ``True`` and for features without custom grid-points specified in
+            :py:meth:`alibi.explainers.ale.ALE.explain`.
         extrapolate_constant
             If a feature is constant, only one quantile exists where all the data points lie. In this case the
             ALE value at that point is zero, however this may be misleading if the feature does have an effect on
@@ -89,7 +94,11 @@ class ALE(Explainer):
                                    extrapolate_constant_perc=extrapolate_constant_perc,
                                    extrapolate_constant_min=extrapolate_constant_min)
 
-    def explain(self, X: np.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4) -> Explanation:
+    def explain(self,
+                X: np.ndarray,
+                features: Optional[List[int]] = None,
+                min_bin_points: int = 4,
+                grid_points: Optional[Dict[int, np.ndarray]] = None) -> Explanation:
         """
         Calculate the ALE curves for each feature with respect to the dataset `X`.
 
@@ -102,7 +111,14 @@ class ALE(Explainer):
             Features for which to calculate ALE.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise
-            ALE estimation.
+            ALE estimation. Only relevant for adaptive grid points (i.e., features without an entry in the
+            `grid_points` dictionary).
+        grid_points
+            Custom grid points. Must be a `dict` where the keys are features indices and the values are
+            monotonically increasing `numpy` arrays defining the grid points for each feature.
+            See the :ref:`Notes<Notes ALE explain>` section for the default behavior when potential edge-cases arise
+            when using grid-points. If no grid points are specified (i.e. the feature is missing from the `grid_points`
+            dictionary), deciles discretization is used instead.
 
         Returns
         -------
@@ -112,6 +128,28 @@ class ALE(Explainer):
 
             .. _ALE examples:
                 https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
+
+        Notes
+        -----
+        .. _Notes ALE explain:
+
+        Consider `f` to be a feature of interest. We denote possible feature values of `f` by `X` (i.e. the values
+        from the dataset column corresponding to feature `f`), by `O` a user-specified grid-point value, and by
+        `(X|O)` an overlap between a grid-point and a feature value. We can encounter the following edge-cases:
+
+         - Grid points outside the feature range. Consider the following example: `O O O X X O X O X O O`, \
+        where 3 grid-points are smaller than the minimum value in `f`, and 2 grid-points are larger than the maximum \
+        value in `f`. The empty leading and ending bins are removed. The grid-points considered
+        will be: `O X X O X O X O`.
+
+         - Grid points that do not cover the entire feature range. Consider the following example: \
+        `X X O X X O X O X X X X X`. Two auxiliary grid-points are added which correspond the value of the minimum \
+        and maximum value of feature `f`. The grid-points considered will be: `(O|X) X O X X O X O X X X X (X|O)`.
+
+         - Grid points that do not contain any values in between. Consider the following example: \
+        `(O|X) X X O O O X O X O O (X|O)`. The intervals which do not contain any feature values are removed/merged. \
+        The grid-points considered will be: `(O|X) X X O X O X O (X|O)`.
+
         """
         self.meta['params'].update(min_bin_points=min_bin_points)
 
@@ -141,22 +179,29 @@ class ALE(Explainer):
         ale0 = []
         feature_deciles = []
 
-        # TODO: use joblib to paralelise?
+        if grid_points is None:
+            grid_points = {}
+
+        # TODO: use joblib to parallelize?
         for feature in features:
-            q, ale, a0 = ale_num(
+
+            # Getting custom grid values. If the grid for a feature is not specified, `feature_grid_points = None`.
+            feature_grid_points = grid_points.get(feature)
+            fvals, ale, a0 = ale_num(
                 self.predictor,
                 X=X,
                 feature=feature,
+                feature_grid_points=feature_grid_points,
                 min_bin_points=min_bin_points,
                 check_feature_resolution=self.check_feature_resolution,
                 low_resolution_threshold=self.low_resolution_threshold,
                 extrapolate_constant=self.extrapolate_constant,
                 extrapolate_constant_perc=self.extrapolate_constant_perc,
-                extrapolate_constant_min=self.extrapolate_constant_min
+                extrapolate_constant_min=self.extrapolate_constant_min,
             )
             deciles = get_quantiles(X[:, feature], num_quantiles=11)
 
-            feature_values.append(q)
+            feature_values.append(fvals)
             ale_values.append(ale)
             ale0.append(a0)
             feature_deciles.append(deciles)
@@ -342,6 +387,7 @@ def ale_num(
         predictor: Callable,
         X: np.ndarray,
         feature: int,
+        feature_grid_points: Optional[np.ndarray] = None,
         min_bin_points: int = 4,
         check_feature_resolution: bool = True,
         low_resolution_threshold: int = 10,
@@ -359,9 +405,11 @@ def ale_num(
         Dataset for which ALE curves are computed.
     feature
         Index of the numerical feature for which to calculate ALE.
+    feature_grid_points
+        Custom grid points. An `numpy` array defining the grid points for the given features.
     min_bin_points
         Minimum number of points each discretized interval should contain to ensure more precise
-        ALE estimation.
+        ALE estimation. Only relevant for adaptive grid points (i.e., feature for which ``feature_grid_points=None``).
     check_feature_resolution
         Refer to :class:`ALE` documentation.
     low_resolution_threshold
@@ -375,42 +423,96 @@ def ale_num(
 
     Returns
     -------
-    q
-        Array of quantiles of the input values.
+    fvals
+        Array of quantiles or custom grid-points of the input values.
     ale
-        ALE values for each feature at each of the points in `q`.
+        ALE values for each feature at each of the points in `fvals`.
     ale0
         The constant offset used to center the ALE curves.
 
     """
-    if check_feature_resolution:
-        uniques = np.unique(X[:, feature])
-        if len(uniques) <= low_resolution_threshold:
-            q = uniques
+    if feature_grid_points is None:
+        if check_feature_resolution:
+            uniques = np.unique(X[:, feature])
+            if len(uniques) <= low_resolution_threshold:
+                fvals = uniques
+            else:
+                fvals, _ = adaptive_grid(X[:, feature], min_bin_points)
         else:
-            q, _ = adaptive_grid(X[:, feature], min_bin_points)
+            fvals, _ = adaptive_grid(X[:, feature], min_bin_points)
     else:
-        q, _ = adaptive_grid(X[:, feature], min_bin_points)
+        # set q to custom grid for feature
+        min_val, max_val = X[:, feature].min(), X[:, feature].max()
+        fvals = np.sort(feature_grid_points)
+
+        if min_val > fvals[0]:
+            # select the greatest grid point that is less or equal to the minimum feature value
+            min_idx = np.where(fvals <= min_val)[0][-1]
+            min_val = fvals[min_idx]
+
+            if min_idx != 0:
+                logger.warning(f'The leading bins of feature {feature} defined by the grid-points do not contain '
+                               'any feature values. Automatically removing the empty leading bins to ensure that '
+                               'each bin contains at least one feature value.')
+
+        if max_val < fvals[-1]:
+            # select the smallest grid point that is larger or equal to the maximum feature value
+            max_idx = np.where(fvals >= max_val)[0][0]
+            max_val = fvals[max_idx]
+
+            if max_idx != len(fvals) - 1:
+                logger.warning(f'The ending bins of feature {feature} defined by the grid-points do not contain '
+                               'any feature values. Automatically removing the empty ending bins to ensure that '
+                               'each bin contains at least one feature value.')
+
+        # clip the values and remove duplicates
+        fvals = np.unique(np.clip(fvals, a_min=min_val, a_max=max_val))
+
+        # add min feature value and maybe log a warning
+        if fvals[0] > min_val:
+            fvals = np.append(min_val, fvals)
+            logger.warning(f'Feature {feature} grid-points does not cover the lower feature values. '
+                           'Automatically adding the minimum feature values to the grid-points.')
+
+        # add max feature value and maybe log a warning
+        if fvals[-1] < max_val:
+            fvals = np.append(fvals, max_val)
+            logger.warning(f'Feature {feature} grid-points does not cover the larger feature values. '
+                           'Automatically adding the maximum feature value to the grid points.')
+
+        # check how many feature values are in each bin
+        indices = np.searchsorted(fvals, X[:, feature], side="left")
+        # put the smallest data point in the first interval
+        indices[indices == 0] = 1
+        # count the number of points in each interval without considering the first bin,
+        # because the first bin will contain always 0 (see line above)
+        interval_n = np.bincount(indices)[1:]
+
+        if np.any(interval_n == 0):
+            fvals = np.delete(fvals, np.where(interval_n == 0)[0] + 1)  # +1 because we don't consider the first bin
+            logger.warning(f'Some bins of feature {feature} defined by the grid-points do not contain '
+                           'any feature values. Automatically merging consecutive bins to ensure that '
+                           'each bin contains at least one feature value.')
 
     # if the feature is constant, calculate the ALE on a small interval surrounding the feature value
-    if len(q) == 1:
+    if len(fvals) == 1:
         if extrapolate_constant:
-            delta = max(q * extrapolate_constant_perc / 100, extrapolate_constant_min)
-            q = np.hstack((q - delta, q + delta))
+            delta = max(fvals * extrapolate_constant_perc / 100, extrapolate_constant_min)
+            fvals = np.hstack((fvals - delta, fvals + delta))
         else:
             # ALE is 0 at a constant feature value
-            return q, np.array([[0.]]), np.array([0.])
+            return fvals, np.array([[0.]]), np.array([0.])
 
     # find which interval each observation falls into
-    indices = np.searchsorted(q, X[:, feature], side="left")
+    indices = np.searchsorted(fvals, X[:, feature], side="left")
     indices[indices == 0] = 1  # put the smallest data point in the first interval
     interval_n = np.bincount(indices)  # number of points in each interval
 
     # predictions for the upper and lower ranges of intervals
     z_low = X.copy()
     z_high = X.copy()
-    z_low[:, feature] = q[indices - 1]
-    z_high[:, feature] = q[indices]
+    z_low[:, feature] = fvals[indices - 1]
+    z_high[:, feature] = fvals[indices]
     p_low = predictor(z_low)
     p_high = predictor(z_high)
 
@@ -420,10 +522,9 @@ def ale_num(
     # make a dataframe for averaging over intervals
     concat = np.column_stack((p_deltas, indices))
     df = pd.DataFrame(concat)
-
     avg_p_deltas = df.groupby(df.shape[1] - 1).mean().values  # groupby indices
 
-    # accummulate over intervals
+    # accumulate over intervals
     accum_p_deltas = np.cumsum(avg_p_deltas, axis=0)
 
     # pre-pend 0 for the left-most point
@@ -434,7 +535,7 @@ def ale_num(
     ale0 = (0.5 * (accum_p_deltas[:-1, :] + accum_p_deltas[1:, :]) * interval_n[1:, np.newaxis]).sum(axis=0)
     ale0 = ale0 / interval_n.sum()
 
-    # crude approximation (assume datapoints on interval endpoints)
+    # crude approximation (assume data points on interval endpoints)
     # ale0 = accum_p_deltas.mean(axis=0)
 
     # exact marginalisation
@@ -445,7 +546,7 @@ def ale_num(
     # center
     ale = accum_p_deltas - ale0
 
-    return q, ale, ale0
+    return fvals, ale, ale0
 
 
 # no_type_check is needed because exp is a generic explanation and so mypy doesn't know that the

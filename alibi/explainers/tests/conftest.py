@@ -4,7 +4,9 @@ import shap
 
 import spacy
 import numpy as np
+
 from sklearn.linear_model import LogisticRegression, LinearRegression
+from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
 from alibi.explainers import ALE
 from alibi.explainers import AnchorTabular
@@ -15,10 +17,9 @@ from alibi.utils.lang_model import BertBaseUncased, DistilbertBaseUncased, Rober
 from alibi.utils.download import spacy_model
 
 import tensorflow as tf
-from sklearn.ensemble import RandomForestClassifier
 
 import alibi_testing
-from alibi_testing.data import get_adult_data, get_iris_data, get_boston_data, get_mnist_data, \
+from alibi_testing.data import get_adult_data, get_iris_data, get_diabetes_data, get_mnist_data, \
     get_movie_sentiment_data
 
 
@@ -46,8 +47,8 @@ def mnist_data():
 
 
 @pytest.fixture(scope='module')
-def boston_data():
-    return get_boston_data()
+def diabetes_data():
+    return get_diabetes_data()
 
 
 @pytest.fixture(scope='module')
@@ -145,6 +146,29 @@ def lr_classifier(request):
         clf.fit(data['X_train'], data['y_train'])
 
     return clf, preprocessor
+
+
+@pytest.fixture(scope='module')
+def rf_regressor(request):
+    """
+    Trains a random forest regression model.
+    """
+    is_preprocessor = False
+    preprocessor = False
+
+    data = request.param
+    if data['preprocessor']:
+        is_preprocessor = True
+        preprocessor = data['preprocessor']
+
+    model = RandomForestRegressor()
+
+    if is_preprocessor:
+        model.fit(preprocessor.transform(data['X_train']), data['y_train'])
+    else:
+        model.fit(data['X_train'], data['y_train'])
+
+    return model, preprocessor
 
 
 @pytest.fixture(scope='module')

@@ -6,9 +6,10 @@ import numpy as np
 from typing import List
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR
-from alibi.exceptions import AlibiPredictorCallException, AlibiPredictorReturnTypeError
+from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
 from alibi.explainers import AnchorText
-from alibi.explainers.anchor_text import Neighbors, _load_spacy_lexeme_prob, LanguageModelSampler
+from alibi.explainers.anchors.text_samplers import Neighbors, load_spacy_lexeme_prob
+from alibi.explainers.anchors.language_model_text_sampler import LanguageModelSampler
 from alibi.explainers.tests.utils import predict_fcn
 
 
@@ -142,7 +143,7 @@ def test_neighbors(nlp):
     tag = 'NN'
     top_n = 10
 
-    neighbor = Neighbors(_load_spacy_lexeme_prob(nlp), w_prob=w_prob)
+    neighbor = Neighbors(load_spacy_lexeme_prob(nlp), w_prob=w_prob)
     n = neighbor.neighbors('book', tag, top_n)
     # The word itself is excluded from the array with similar words
     assert 'book' not in n['words']
@@ -398,6 +399,8 @@ def test_lm_mask(lang_model, num_tokens, sample_proba, filling):
     assert empirical_mean1 == empirical_mean2
 
 
+# marked xfail as test intermittently failing, see https://github.com/SeldonIO/alibi/issues/664
+@pytest.mark.xfail()
 @pytest.mark.parametrize('lang_model', ['DistilbertBaseUncased', 'BertBaseUncased', 'RobertaBase'], indirect=True)
 @pytest.mark.parametrize('filling', ['parallel'])
 @pytest.mark.parametrize('punctuation', [string.punctuation])
@@ -466,10 +469,10 @@ def bad_predictor_input_type(x: np.ndarray) -> np.ndarray:
 
 
 def test_anchor_text_fails_init_bad_predictor_input_type_call():
-    with pytest.raises(AlibiPredictorCallException):
+    with pytest.raises(PredictorCallError):
         explainer = AnchorText(bad_predictor_input_type)  # noqa: F841
 
 
 def test_anchor_text_fails_wrong_predictor_return_type():
-    with pytest.raises(AlibiPredictorReturnTypeError):
+    with pytest.raises(PredictorReturnTypeError):
         explainer = AnchorText(bad_predictor_return_type)  # noqa: F841

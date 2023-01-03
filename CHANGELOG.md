@@ -1,12 +1,96 @@
 # Change Log
 
-## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.4) (2022-03-18)
+## [v0.x.x](https://github.com/SeldonIO/alibi/tree/v0.x.x)(202x-xx-xx)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.x.x)
+
+### Added
+- **New feature** `PermutationImportance` explainer implementing the permutation feature importance global explanations. Also included is a `plot_permutation_importance` utility function for flexible plotting of the resulting feature importance scores ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html),  [#798](https://github.com/SeldonIO/alibi/pull/798)). 
+- **New feature** `PartialDependenceVariance` explainer implementing partial dependence variance global explanations. Also included is a `plot_pd_variance` utility function for flexible plotting of the resulting PD variance plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html), [#758](https://github.com/SeldonIO/alibi/pull/758)).
+
+
+## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-26)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.7.0...v0.8.0)
+
+### Added
+- **New feature** `PartialDependence` and `TreePartialDependence` explainers implementing partial dependence (PD) global explanations. Also included is a `plot_pd` utility function for flexible plotting of the resulting PD plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependence.html), [#721](https://github.com/SeldonIO/alibi/pull/721)).
+- New `exceptions.NotFittedError` exception which is raised whenever a compulsory call to a `fit` method has not been carried out. Specifically, this is now raised in `AnchorTabular.explain` when `AnchorTabular.fit` has been skipped ([#732](https://github.com/SeldonIO/alibi/pull/732)).
+- Various improvements to docs and examples ([#695](https://github.com/SeldonIO/alibi/pull/695), [#701](https://github.com/SeldonIO/alibi/pull/701), [#698](https://github.com/SeldonIO/alibi/pull/698), [#703](https://github.com/SeldonIO/alibi/pull/703), [#717](https://github.com/SeldonIO/alibi/pull/717), [#711](https://github.com/SeldonIO/alibi/pull/711), [#750](https://github.com/SeldonIO/alibi/pull/750), [#784](https://github.com/SeldonIO/alibi/pull/784)).
+
+### Fixed
+- Edge case in `AnchorTabular` where an error is raised during an `explain` call if the instance contains a categorical feature value not seen in the training data ([#742](https://github.com/SeldonIO/alibi/pull/742)).
+
+### Changed
+- Improved handling of custom `grid_points` for the `ALE` explainer ([#731](https://github.com/SeldonIO/alibi/pull/731)).
+- Renamed our custom exception classes to remove the verbose `Alibi*` prefix and standardised the `*Error` suffix. Concretely:
+  - `exceptions.AlibiPredictorCallException` is now `exceptions.PredictorCallError`
+  - `exceptions.AlibiPredictorReturnTypeError` is now `exceptions.PredictorReturnTypeError`. Backwards compatibility has been maintained by subclassing the new exception classes by the old ones, **but these will likely be removed in a future version** ([#733](https://github.com/SeldonIO/alibi/pull/733)).
+- Warn users when `TreeShap` is used with more than 100 samples in the background dataset which is due to a limitation in the upstream `shap` package ([#710](https://github.com/SeldonIO/alibi/pull/710)).
+- Minimum version of `scikit-learn` bumped to `1.0.0` mainly due to upcoming deprecations ([#776](https://github.com/SeldonIO/alibi/pull/776)).
+- Minimum version of `scikit-image` bumped to `0.17.2` to fix a possible bug when using the `slic` segmentation function with `AnchorImage` ([#753](https://github.com/SeldonIO/alibi/pull/753)).
+- Maximum supported version of `attrs` bumped to `22.x` ([#727](https://github.com/SeldonIO/alibi/pull/727)).
+- Maximum supported version of `tensorflow` bumped to `2.10.x` ([#745](https://github.com/SeldonIO/alibi/pull/745)).
+- Maximum supported version of `ray` bumped to `2.x` ([#740](https://github.com/SeldonIO/alibi/pull/740)).
+- Maximum supported version of `numba` bumped to `0.56.x` ([#724](https://github.com/SeldonIO/alibi/pull/724)).
+- Maximum supported version of `shap` bumped to `0.41.x` ([#702](https://github.com/SeldonIO/alibi/pull/702)).
+- Updated `shap` example notebooks to recommend installing `matplotlib==3.5.3` due to failure of `shap` plotting functions with `matplotlib==3.6.0` ([#776](https://github.com/SeldonIO/alibi/pull/776)).
+
+### Development
+- Extend optional dependency checks to ensure the correct submodules are present ([#714](https://github.com/SeldonIO/alibi/pull/714)). 
+- Introduce `pytest-custom_exit_code` to let notebook CI pass when no notebooks are selected for tests ([#728](https://github.com/SeldonIO/alibi/pull/728)).
+- Use UTF-8 encoding when loading `README.md` in `setup.py` to avoid a possible failure of installation for some users ([#744](https://github.com/SeldonIO/alibi/pull/744)).
+- Updated guidance for class docstrings ([#743](https://github.com/SeldonIO/alibi/pull/743)).
+- Reinstate `ray` tests ([#756](https://github.com/SeldonIO/alibi/pull/756)).
+- We now exclude test files from test coverage for a more accurate representation of coverage ([#751](https://github.com/SeldonIO/alibi/pull/751)). Note that this has led to a drop in code covered which will be addressed in due course ([#760](https://github.com/SeldonIO/alibi/issues/760)).
+- The Python `3.10.x` version on CI has been pinned to `3.10.6` due to typechecking failures, pending a new release of `mypy` ([#761](https://github.com/SeldonIO/alibi/pull/761)).
+- The `test_changed_notebooks` workflow can now be triggered manually and is run on push/PR for any branch ([#762](https://github.com/SeldonIO/alibi/commit/98e962b32c31e7ee670147a44af032b593950b5d)).
+- Use `codecov` flags for more granular reporting of code coverage ([#759](https://github.com/SeldonIO/alibi/pull/759)).
+- Option to ssh into Github Actions runs for remote debugging of CI pipelines ([#770](https://github.com/SeldonIO/alibi/pull/770)).
+- Version of `sphinx` bumped to `5.x` but capped at `<5.1.0` to avoid CI failures ([#722](https://github.com/SeldonIO/alibi/pull/722)).
+- Version of `myst-parser` bumped to `0.18.x` ([#693](https://github.com/SeldonIO/alibi/pull/693)).
+- Version of `flake8` bumped to `5.x` ([#729](https://github.com/SeldonIO/alibi/pull/729)).
+- Version of `ipykernel` bumped to `6.x` ([#431](https://github.com/SeldonIO/alibi/pull/572)).
+- Version of `ipython` bumped to `8.x` ([#572](https://github.com/SeldonIO/alibi/pull/572)).
+- Version of `pytest` bumped to `7.x` ([#591](https://github.com/SeldonIO/alibi/pull/591)).
+- Version of `sphinx-design` bumped to `0.3.0` ([#739](https://github.com/SeldonIO/alibi/pull/739)).
+- Version of `nbconvert` bumped to `7.x` ([#738](https://github.com/SeldonIO/alibi/pull/738)).
+
+
+
+## [v0.7.0](https://github.com/SeldonIO/alibi/tree/v0.7.0) (2022-05-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.5...v0.7.0)
+
+This release introduces two new methods, a `GradientSimilarity` explainer and a `ProtoSelect` data summarisation algorithm.
+
+### Added
+- **New feature** `GradientSimilarity` explainer for explaining predictions of gradient-based (PyTorch and TensorFlow) models by returning the most similar training data points from the point of view of the model ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/Similarity.html)).
+- **New feature** We have introduced a new subpackage `alibi.prototypes` which contains the `ProtoSelect` algorithm for summarising datasets with a representative set of "prototypes" ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/ProtoSelect.html)).
+- `ALE` explainer now can take a custom grid-point per feature to evaluate the `ALE` on. This can help in certain situations when grid-points defined by quantiles might not be the best choice ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html#Usage)).
+- Extended the `IntegratedGradients` method target selection to handle explaining any scalar dimension of tensors of any rank (previously only rank-1 and rank-2 were supported). See [#635](https://github.com/SeldonIO/alibi/pull/635).
+- Python 3.10 support. Note that `PyTorch` at the time of writing doesn't support Python 3.10 on Windows.
+
+### Fixed
+- Fixed a bug which incorrectly handled multi-dimensional scaling in `CounterfactualProto` ([#646](https://github.com/SeldonIO/alibi/pull/646)).
+- Fixed a bug in the example using `CounterfactualRLTabular` ([#651](https://github.com/SeldonIO/alibi/pull/651)).
+
+### Changed
+- `tensorflow` is now an optional dependency. To use methods that require `tensorflow` you can install `alibi` using `pip install alibi[tensorflow]` which will pull in a supported version. For full instructions for the recommended way of installing optional dependencies please refer to [Installation docs](https://docs.seldon.io/projects/alibi/en/stable/overview/getting_started.html#installation).
+- Updated `sklearn` version bounds to `scikit-learn>=0.22.0, <2.0.0`.
+- Updated `tensorflow` maximum allowed version to `2.9.x`.
+
+### Development
+- This release introduces a way to manage the absence of optional dependencies. In short, the design is such that if an optional dependency is required for an algorithm but missing, at import time the corresponding public (or private in the case of the optional dependency being required for a subset of the functionality of a private class) algorithm class will be replaced by a `MissingDependency` object. For full details on developing `alibi` with optional dependencies see [Contributing: Optional Dependencies](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md#optional-dependencies).
+- The [CONTRIBUTING.md](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md) has been updated with further instructions for managing optional dependencies (see point above) and more conventions around docstrings.
+- We have split the `Explainer` base class into `Base` and `Explainer` to facilitate reusability and better class hierarchy semantics with introducing methods that are not explainers ([#649](https://github.com/SeldonIO/alibi/pull/649)).
+- `mypy` has been updated to `~=0.900` which requires additional development dependencies for type stubs, currently only `types-requests` has been necessary to add to `requirements/dev.txt`.
+- Fron this release onwards we exclude the directories `doc/` and `examples/` from the source distribution (by adding `prune` directives in `MANIFEST.in`). This results in considerably smaller file sizes for the source distribution.
+
+## [v0.6.5](https://github.com/SeldonIO/alibi/tree/v0.6.5) (2022-03-18)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.4...v0.6.5)
 
 This is a patch release to correct a regression in `CounterfactualProto` introduced in `v0.6.3`.
 
 ### Added
-- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/latest/overview/faq.html) page to the docs.
+- Added a [Frequently Asked Questions](https://docs.seldon.io/projects/alibi/en/stable/overview/faq.html) page to the docs.
 
 ### Fixed
 - Fix a bug introduced in `v0.6.3` which prevented `CounterfactualProto` working with categorical features ([#612](https://github.com/SeldonIO/alibi/pull/612)).
@@ -31,8 +115,8 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.2...v0.6.3)
 
 ### Added
-- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
-- A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/latest/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
+- **New feature** A callback can now be passed to `IntegratedGradients` via the `target_fn` argument, in order to calculate the scalar target dimension from the model output. This is to bypass the requirement of passing `target` directly to `explain` when the `target` of interest may depend on the prediction output. See the example in the [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/IntegratedGradients.html). ([#523](https://github.com/SeldonIO/alibi/pull/523)).
+- A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/stable/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
 
 ### Changed
 - Python 3.6 has been deprecated from the supported versions as it has reached end-of-life. 
@@ -53,7 +137,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.1...v0.6.2)
 
 ### Added
-- Documentation on using black-box and white-box models in the context of alibi, [see here](https://docs.seldon.io/projects/alibi/en/latest/overview/white_box_black_box.html).
+- Documentation on using black-box and white-box models in the context of alibi, [see here](https://docs.seldon.io/projects/alibi/en/stable/overview/white_box_black_box.html).
 - `AnchorTabular`, `AnchorImage` and `AnchorText` now expose an additional `dtype` keyword argument with a default value of `np.float32`. This is to ensure that whenever a user `predictor` is called internally with dummy data a correct data type can be ensured ([#506](https://github.com/SeldonIO/alibi/pull/506)).
 - Custom exceptions. A new public module `alibi.exceptions` defining the `alibi` exception hierarchy. This introduces two exceptions, `AlibiPredictorCallException` and `AlibiPredictorReturnTypeError`. See [#520](https://github.com/SeldonIO/alibi/pull/520) for more details.
 
@@ -78,7 +162,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.6.0...v0.6.1)
 
 ### Added
-- **New feature** An implementation of [Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning](https://arxiv.org/abs/2106.02597) is now available via `alibi.explainers.CounterfactualRL` and `alibi.explainers.CounterfactualRLTabular` classes. The method is model-agnostic and the implementation is written in both PyTorch and TensorFlow. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html) for more information.
+- **New feature** An implementation of [Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning](https://arxiv.org/abs/2106.02597) is now available via `alibi.explainers.CounterfactualRL` and `alibi.explainers.CounterfactualRLTabular` classes. The method is model-agnostic and the implementation is written in both PyTorch and TensorFlow. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html) for more information.
 
 ### Changed
 - **Future breaking change** The names of `CounterFactual` and `CounterFactualProto` classes have been changed to `Counterfactual` and `CounterfactualProto` respectively for consistency and correctness. The old class names continue working for now but emit a deprecation warning message and will be removed in an upcoming version.
@@ -94,11 +178,11 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.8...v0.6.0)
 
 ### Added
-- **New feature** `AnchorText` now supports sampling according to masked language models via the `transformers` library. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) and the [example](https://docs.seldon.io/projects/alibi/en/latest/examples/anchor_text_movie.html) for using the new functionality.
-- **Breaking change** due to the new masked language model sampling for `AnchorText` the public API for the constructor has changed. See [docs](https://docs.seldon.io/projects/alibi/en/latest/methods/Anchors.html#id2) for a full description of the new API.
+- **New feature** `AnchorText` now supports sampling according to masked language models via the `transformers` library. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html#id2) and the [example](https://docs.seldon.io/projects/alibi/en/stable/examples/anchor_text_movie.html) for using the new functionality.
+- **Breaking change** due to the new masked language model sampling for `AnchorText` the public API for the constructor has changed. See [docs](https://docs.seldon.io/projects/alibi/en/stable/methods/Anchors.html#id2) for a full description of the new API.
 - `AnchorTabular` now supports one-hot encoded categorical variables in addition to the default ordinal/label encoded representation of categorical variables.
 - `IntegratedGradients` changes to allow explaining a wider variety of models. In particular, a new `forward_kwargs` argument to `explain` allows passing additional arguments to the model and `attribute_to_layer_inputs` flag to allow calculating attributions with respect to layer input instead of output if set to `True`. The API and capabilities now track more closely to the [captum.ai](https://captum.ai/api/) `PyTorch` implementation.
-- [Example](https://docs.seldon.io/projects/alibi/en/latest/examples/integrated_gradients_transformers.html) of using `IntegratedGradients` to explain `transformer` models.
+- [Example](https://docs.seldon.io/projects/alibi/en/stable/examples/integrated_gradients_transformers.html) of using `IntegratedGradients` to explain `transformer` models.
 - Python 3.9 support.
 
 ### Fixed
@@ -108,7 +192,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.7...v0.5.8)
 
 ### Added
-- Experimental explainer serialization support using `dill`. See [docs](https://docs.seldon.io/projects/alibi/en/latest/overview/saving.html) for more details.
+- Experimental explainer serialization support using `dill`. See [docs](https://docs.seldon.io/projects/alibi/en/stable/overview/saving.html) for more details.
 
 ### Fixed
 - Handle layers which are not part of `model.layers` for `IntegratedGradients`.
@@ -144,7 +228,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 
 ### Fixed
 - `AnchorTabular` coverage calculation was incorrect which was caused by incorrectly indexing a list, this is now resolved.
-- `ALE` was causing an error when a constant feature was present. This is now handled explicitly and the user has control over how to handle these features. See https://docs.seldon.io/projects/alibi/en/latest/api/alibi.explainers.ale.html#alibi.explainers.ale.ALE for more details.
+- `ALE` was causing an error when a constant feature was present. This is now handled explicitly and the user has control over how to handle these features. See https://docs.seldon.io/projects/alibi/en/stable/api/alibi.explainers.ale.html#alibi.explainers.ale.ALE for more details.
 - Release of Spacy 3.0 broke the `AnchorText` functionality as the way `lexeme_prob` tables are loaded was changed. This is now fixed by explicitly handling the loading depending on the `spacy` version.
 - Fixed documentation to refer to the `Explanation` object instead of the old `dict` object.
 - Added warning boxes to `CounterFactual`, `CounterFactualProto` and `CEM` docs to explain the necessity of clearing the TensorFlow graph if switching to a new model in the same session.

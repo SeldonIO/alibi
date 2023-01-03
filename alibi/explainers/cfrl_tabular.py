@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     import tensorflow
     import torch
 
+
 if has_pytorch:
     # import pytorch backend
     from alibi.explainers.backends.pytorch import cfrl_tabular as pytorch_tabular_backend
@@ -319,7 +320,7 @@ class CounterfactualRLTabular(CounterfactualRL):
             See usage `CFRL examples`_ for details.
 
             .. _CFRL examples:
-                https://docs.seldon.io/projects/alibi/en/latest/methods/CFRL.html
+                https://docs.seldon.io/projects/alibi/en/stable/methods/CFRL.html
         """
         # General validation.
         self._validate_input(X)

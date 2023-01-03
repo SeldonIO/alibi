@@ -1,12 +1,9 @@
 import copy
 import logging
 from collections import defaultdict, namedtuple
-from functools import partial
 from typing import Callable, Dict, List, Optional, Set, Tuple
 
 import numpy as np
-
-from alibi.utils.distributed import RAY_INSTALLED, ActorPool
 from alibi.utils.distributions import kl_bernoulli
 
 logger = logging.getLogger(__name__)
@@ -40,9 +37,9 @@ class AnchorBaseBeam:
         Parameters
         ----------
         batch_size
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.anchor_beam` method.
         coverage_data
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam._get_coverage_samples` method.
         """
 
         prealloc_size = batch_size * self.sample_cache_size
@@ -168,7 +165,10 @@ class AnchorBaseBeam:
         -------
         Level used to update upper and lower precision bounds.
         """
-        # TODO: where do magic numbers come from?
+        # The following constants are defined and used in the paper introducing the KL-LUCB bandit algorithm
+        # (http://proceedings.mlr.press/v30/Kaufmann13.html). Specifically, Theorem 1 proves the lower bounds
+        # of these constants to ensure the algorithm is PAC with probability at least 1-delta. Also refer to
+        # section "5. Numerical experiments" where these values are used empirically.
         alpha = 1.1
         k = 405.5
         temp = np.log(k * n_features * (t ** alpha) / delta)
@@ -182,9 +182,9 @@ class AnchorBaseBeam:
         Parameters
         ---------
         coverage_samples
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.anchor_beam` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.anchor_beam` method.
         samplers
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__` method.
+            See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.__init__` method.
 
         Returns
         -------
@@ -422,7 +422,7 @@ class AnchorBaseBeam:
     def update_state(self, covered_true: np.ndarray, covered_false: np.ndarray, labels: np.ndarray,
                      samples: Tuple[np.ndarray, float], anchor: tuple) -> Tuple[int, int]:
         """
-        Updates the explainer state (see :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.__init__`
+        Updates the explainer state (see :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.__init__`
         for full state definition).
 
         Parameters
@@ -793,8 +793,12 @@ class AnchorBaseBeam:
         # if no result is found, choose highest precision of best result candidate from every round
         if not best_anchor:
             success = False  # indicates the method has not found an anchor
-            logger.warning('Could not find an result satisfying the {} precision constraint. Now returning '
-                           'the best non-eligible result.'.format(desired_confidence))
+            logger.warning(f'Could not find an anchor satisfying the {desired_confidence} precision constraint. '
+                           f'Now returning the best non-eligible result. The desired precision threshold might not be '
+                           f'achieved due to the quantile-based discretisation of the numerical features. The '
+                           f'resolution of the bins may be too large to find an anchor of required precision. '
+                           f'Consider increasing the number of bins in `disc_perc`, but note that for some '
+                           f'numerical distribution (e.g. skewed distribution) it may not help.')
             anchors = []
             for i in range(0, current_size):
                 anchors.extend(best_of_size[i])
@@ -813,82 +817,3 @@ class AnchorBaseBeam:
             success = True
 
         return self.get_anchor_metadata(best_anchor, success, batch_size=batch_size)
-
-
-class DistributedAnchorBaseBeam(AnchorBaseBeam):
-    if RAY_INSTALLED:
-        import ray
-        ray = ray  #: `ray` module.
-
-    def __init__(self, samplers: List[Callable], **kwargs) -> None:
-
-        super().__init__(samplers)
-        self.chunksize = kwargs.get('chunksize', 1)
-        self.sample_fcn = lambda actor, anchor, n_samples, compute_labels=True: \
-            actor.__call__.remote(anchor,
-                                  n_samples,
-                                  compute_labels=compute_labels)
-        self.pool = ActorPool(samplers)
-        self.samplers = samplers
-
-    def _get_coverage_samples(self, coverage_samples: int,  # type: ignore[override]
-                              samplers: List[Callable]) -> np.ndarray:
-        """
-        Sends a request for a coverage set to process running sampling tasks.
-
-        Parameters
-        ----------
-        coverage_samples, samplers
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
-
-        Returns
-        -------
-        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam._get_coverage_samples` implementation.
-        """
-
-        [coverage_data] = DistributedAnchorBaseBeam.ray.get(
-            self.sample_fcn(samplers[0], (0, ()), coverage_samples, compute_labels=False)
-        )
-
-        return coverage_data
-
-    def draw_samples(self, anchors: list, batch_size: int) -> Tuple[np.ndarray, np.ndarray]:  # type: ignore[override]
-        """
-        Distributes sampling requests among processes running sampling tasks.
-
-        Parameters
-        ----------
-        anchors, batch_size
-            See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
-
-        Returns
-        -------
-        See :py:meth:`alibi.explainers.anchor_base.AnchorBaseBeam.draw_samples` implementation.
-        """
-
-        # partial anchors not generated by propose_anchors are not in the order dictionary
-        for anchor in anchors:
-            if anchor not in self.state['t_order']:
-                self.state['t_order'][anchor] = list(anchor)
-
-        pos, total = np.zeros((len(anchors),)), np.zeros((len(anchors),))
-        order_map = [(i, tuple(self.state['t_order'][anchor])) for i, anchor in enumerate(anchors)]
-        samples_iter = self.pool.map_unordered(
-            partial(self.sample_fcn, n_samples=batch_size),
-            order_map,
-            self.chunksize,
-        )
-        for samples_batch in samples_iter:
-            for samples in samples_batch:
-                covered_true, covered_false, labels, *additionals, anchor_idx = samples
-                positives, n_samples = self.update_state(
-                    covered_true,
-                    covered_false,
-                    labels,
-                    additionals,
-                    anchors[anchor_idx],
-                )
-                # return statistics in the same order as the requests
-                pos[anchor_idx], total[anchor_idx] = positives, n_samples
-
-        return pos, total

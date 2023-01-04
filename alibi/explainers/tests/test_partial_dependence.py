@@ -186,17 +186,17 @@ def test_explanation_numerical_shapes(rf_classifier, iris_data, grid_resolution,
             assert exp.data['ice_values'][i].shape == (num_targets, num_instances, len(exp.data['feature_values'][i]))
 
 
-@pytest.mark.parametrize('rf_regressor', [lazy_fixture('boston_data')], indirect=True)
+@pytest.mark.parametrize('rf_regressor', [lazy_fixture('diabetes_data')], indirect=True)
 @pytest.mark.parametrize('kind', ['average', 'individual', 'both'])
 @pytest.mark.parametrize('features', [
     [0, 1, 2],
     [(0, 1), (0, 2), (1, 2)],
     [0, 1, (0, 1)]
 ])
-def test_blackbox_regression(rf_regressor, boston_data, kind, features):
+def test_blackbox_regression(rf_regressor, diabetes_data, kind, features):
     """ Test the black-box predictor for a regression function. """
     rf, _ = rf_regressor
-    X_train = boston_data['X_train']
+    X_train = diabetes_data['X_train']
 
     # define explainer and compute explanation
     explainer = PartialDependence(predictor=rf.predict)

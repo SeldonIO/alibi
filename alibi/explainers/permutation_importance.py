@@ -461,8 +461,7 @@ class PermutationImportance(Explainer):
         -------
         Evaluation of the metric.
         """
-        args = inspect.getfullargspec(metric_fn)
-        str_args = args.args + args.kwonlyargs
+        str_args = inspect.signature(metric_fn).parameters.keys()
 
         if 'y_true' not in str_args:
             raise ValueError('The `scoring` function must have the argument `y_true` in its definition.')

@@ -41,8 +41,8 @@ def test_protoselect(n_classes, ft_factor, kernel_distance, num_prototypes, eps)
     # get prototypes
     summary = summariser.summarise(num_prototypes=num_prototypes)
     protos = summary.prototypes
-    protos_indices = summary.prototypes_indices
-    protos_labels = summary.prototypes_labels
+    protos_indices = summary.prototype_indices
+    protos_labels = summary.prototype_labels
 
     assert len(protos) == len(protos_indices) == len(protos_labels)
     assert len(protos) <= num_prototypes
@@ -139,7 +139,7 @@ def test_relabeling(n_samples, n_classes):
     assert np.array_equal(internal_labels, np.arange(len(provided_labels)))
 
     # check if the prototypes labels are labels with the provided labels
-    assert np.all(np.isin(np.unique(summary.data['prototypes_labels']), provided_labels))
+    assert np.all(np.isin(np.unique(summary.data['prototype_labels']), provided_labels))
 
 
 def test_size_match():

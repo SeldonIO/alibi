@@ -1,18 +1,19 @@
 import logging
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-
-from tqdm import tqdm
 from copy import deepcopy
-from typing import Callable, Optional, Dict, List, Union, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.offsetbox import AnnotationBbox, OffsetImage
+from skimage.transform import resize
 from sklearn.model_selection import KFold
 from sklearn.neighbors import KNeighborsClassifier
-from skimage.transform import resize
+from tqdm import tqdm
 
+from alibi.api.defaults import (DEFAULT_DATA_PROTOSELECT,
+                                DEFAULT_META_PROTOSELECT)
+from alibi.api.interfaces import Explanation, FitMixin, Summariser
 from alibi.utils.distance import batch_compute_kernel_matrix
-from alibi.api.interfaces import Summariser, Explanation, FitMixin
-from alibi.api.defaults import DEFAULT_META_PROTOSELECT, DEFAULT_DATA_PROTOSELECT
 from alibi.utils.kernel import EuclideanDistance
 
 logger = logging.getLogger(__name__)
@@ -226,10 +227,10 @@ class ProtoSelect(Summariser, FitMixin):
         Helper method to build the summary as an `Explanation` object.
         """
         data = deepcopy(DEFAULT_DATA_PROTOSELECT)
-        data['prototypes_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
-        data['prototypes_labels'] = np.concatenate([[self.label_inv_mapping[l]] * len(protos[l])
-                                                    for l in protos]).astype(np.int32)  # noqa: E741
-        data['prototypes'] = self.Z[data['prototypes_indices']]
+        data['prototype_indices'] = np.concatenate(list(protos.values())).astype(np.int32)
+        data['prototype_labels'] = np.concatenate([[self.label_inv_mapping[l]] * len(protos[l])
+                                                   for l in protos]).astype(np.int32)  # noqa: E741
+        data['prototypes'] = self.Z[data['prototype_indices']]
         return Explanation(meta=self.meta, data=data)
 
 
@@ -262,7 +263,7 @@ def _helper_protoselect_euclidean_1knn(summariser: ProtoSelect,
     summary = summariser.summarise(num_prototypes=num_prototypes)
 
     # train 1-knn classifier
-    X_protos, y_protos = summary.data['prototypes'], summary.data['prototypes_labels']
+    X_protos, y_protos = summary.data['prototypes'], summary.data['prototype_labels']
     if len(X_protos) == 0:
         return None
 
@@ -546,6 +547,79 @@ def _imscatterplot(x: np.ndarray,
     return ax
 
 
+def compute_prototype_importances(summary: 'Explanation',
+                                  trainset: Tuple[np.ndarray, np.ndarray],
+                                  preprocess_fn: Optional[Callable[[np.ndarray], np.ndarray]] = None,
+                                  knn_kw: Optional[dict] = None) -> Dict[str, Optional[np.ndarray]]:
+
+    """
+    Computes the importance of each prototype. The importance of a prototype is the number of assigned
+    training instances correctly classified according to the 1-KNN classifier
+    (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+
+    Parameters
+    ----------
+    summary
+        An `Explanation` object produced by a call to the
+        :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+    trainset
+        Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+    preprocess_fn
+        Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+    knn_kw
+        Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+        set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+        If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+        See parameters description:
+        https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+
+    Returns
+    -------
+    A dictionary containing:
+
+     - ``'prototype_indices'`` - an array of the prototype indices.
+
+     - ``'prototype_importances'`` - an array of prototype importances.
+
+     - ``'X_protos'`` - an array of raw prototypes.
+
+     - ``'X_protos_ft'`` - an optional array of preprocessed prototypes. If the ``preprocess_fn=None``, \
+     no preprocessing is applied and ``None`` is returned instead.
+    """
+    if knn_kw is None:
+        knn_kw = {}
+
+    if knn_kw.get('metric') is None:
+        knn_kw.update({'metric': 'euclidean'})
+        logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
+
+    X_train, y_train = trainset
+    X_protos = summary.data['prototypes']
+    y_protos = summary.data['prototype_labels']
+
+    # preprocess the dataset
+    X_train_ft = _batch_preprocessing(X=X_train, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_train
+    X_protos_ft = _batch_preprocessing(X=X_protos, preprocess_fn=preprocess_fn) \
+        if (preprocess_fn is not None) else X_protos
+
+    # train knn classifier
+    knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
+    knn = knn.fit(X=X_protos_ft, y=y_protos)
+
+    # get neighbors indices for each training instance
+    neigh_idx = knn.kneighbors(X=X_train_ft, n_neighbors=1, return_distance=False).reshape(-1)
+
+    # compute how many correct labeled instances each prototype covers
+    idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
+    return {
+        'prototype_indices': idx,
+        'prototype_importances': counts,
+        'X_protos': X_protos[idx],
+        'X_protos_ft': None if (preprocess_fn is None) else X_protos_ft[idx]
+    }
+
+
 def visualize_image_prototypes(summary: 'Explanation',
                                trainset: Tuple[np.ndarray, np.ndarray],
                                reducer: Callable[[np.ndarray], np.ndarray],
@@ -560,7 +634,6 @@ def visualize_image_prototypes(summary: 'Explanation',
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
     classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
-
     Parameters
     ----------
     summary
@@ -573,7 +646,7 @@ def visualize_image_prototypes(summary: 'Explanation',
         input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
         on the feature representation obtained after passing the input instances through the `preprocess_fn`.
     preprocess_fn
-        Preprocessor function.
+        Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
     knn_kw
         Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
         set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
@@ -592,37 +665,27 @@ def visualize_image_prototypes(summary: 'Explanation',
     zoom_ub
         Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
     """
-    if knn_kw is None:
-        knn_kw = {}
-    if knn_kw.get('metric') is None:
-        knn_kw.update({'metric': 'euclidean'})
-        logger.warning("KNN metric was not specified. Automatically setting `metric='euclidean'`.")
-
-    X_train, y_train = trainset
-    X_protos = summary.data['prototypes']
-    y_protos = summary.data['prototypes_labels']
-
-    # preprocess the dataset
-    X_train_ft = _batch_preprocessing(X=X_train, preprocess_fn=preprocess_fn) \
-        if (preprocess_fn is not None) else X_train
-    X_protos_ft = _batch_preprocessing(X=X_protos, preprocess_fn=preprocess_fn) \
-        if (preprocess_fn is not None) else X_protos
-
-    # train knn classifier
-    knn = KNeighborsClassifier(n_neighbors=1, **knn_kw)
-    knn = knn.fit(X=X_protos_ft, y=y_protos)
-
-    # get neighbors indices for each training instance
-    neigh_idx = knn.kneighbors(X=X_train_ft, n_neighbors=1, return_distance=False).reshape(-1)
-
     # compute how many correct labeled instances each prototype covers
-    idx, counts = np.unique(neigh_idx[y_protos[neigh_idx] == y_train], return_counts=True)
-    zoom = np.log(counts)
+    protos_importance = compute_prototype_importances(summary=summary,
+                                                      trainset=trainset,
+                                                      preprocess_fn=preprocess_fn,
+                                                      knn_kw=knn_kw)
+
+    # unpack values
+    counts = protos_importance['prototype_importances']
+    X_protos = protos_importance['X_protos']
+    X_protos_ft = protos_importance['X_protos_ft'] if (protos_importance['X_protos_ft'] is not None) else X_protos
+
+    # compute image zoom
+    zoom = np.log(counts)  # type: ignore[arg-type]
 
     # compute 2D embedding
-    protos_2d = reducer(X_protos_ft[idx])
+    protos_2d = reducer(X_protos_ft)  # type: ignore[arg-type]
     x, y = protos_2d[:, 0], protos_2d[:, 1]
 
     # plot images
-    return _imscatterplot(x=x, y=y, images=X_protos, ax=ax, fig_kw=fig_kw, image_size=image_size,
+    return _imscatterplot(x=x, y=y,
+                          images=X_protos,  # type: ignore[arg-type]
+                          ax=ax, fig_kw=fig_kw,
+                          image_size=image_size,
                           zoom=zoom, zoom_lb=zoom_lb, zoom_ub=zoom_ub)

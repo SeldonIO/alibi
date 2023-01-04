@@ -278,8 +278,8 @@ Default ProtoSelect metadata.
 """
 
 DEFAULT_DATA_PROTOSELECT = {"prototypes": None,
-                            "prototypes_indices": None,
-                            "prototypes_labels": None}  # type: dict
+                            "prototype_indices": None,
+                            "prototype_labels": None}  # type: dict
 """
 Default ProtoSelect data.
 """

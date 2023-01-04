@@ -1,11 +1,20 @@
-import pytest
+from copy import deepcopy
+
+import matplotlib
 import numpy as np
+import pytest
 from sklearn.datasets import make_classification
 from sklearn.model_selection import train_test_split
 
+from alibi.api.defaults import (DEFAULT_DATA_PROTOSELECT,
+                                DEFAULT_META_PROTOSELECT)
+from alibi.api.interfaces import Explanation
 from alibi.prototypes import ProtoSelect
+from alibi.prototypes.protoselect import (_batch_preprocessing, _imscatterplot,
+                                          compute_prototype_importances,
+                                          cv_protoselect_euclidean,
+                                          visualize_image_prototypes)
 from alibi.utils.kernel import EuclideanDistance
-from alibi.prototypes.protoselect import cv_protoselect_euclidean
 
 
 @pytest.mark.parametrize('n_classes', [2, 3, 5, 10])
@@ -143,3 +152,137 @@ def test_size_match():
     summariser = ProtoSelect(eps=0.5, kernel_distance=EuclideanDistance())
     with pytest.raises(ValueError):
         summariser.fit(X=X, y=y)
+
+
+@pytest.mark.parametrize('batch_size', [2, 8, 16])
+def test__batch_preprocessing(batch_size):
+    """ Test if the batch preprocessing function returns the correct shapes. """
+    n_samples, n_features, n_removed = 50, 5, 2
+    X = np.random.randn(n_samples, n_features)
+
+    def preprocess_fn(X):
+        return X[:, :-n_removed]
+
+    X_ft = _batch_preprocessing(X=X, preprocess_fn=preprocess_fn, batch_size=batch_size)
+    assert X_ft.shape == (n_samples, n_features - n_removed)
+
+
+@pytest.fixture(scope='module')
+def importance_data():
+    X = np.array([
+        [0.548, 0.715],
+        [0.602, 0.544],
+        [0.423, 0.645],
+        [5.437, 4.891],
+        [5.963, 4.383],
+        [5.791, 4.528],
+        [5.568, 4.925],
+        [5.071, 4.087],
+        [-3.979, 4.832],
+        [-3.221, 4.870],
+        [-3.021, 4.799],
+        [-3.538, 4.780],
+        [-3.881, 4.639],
+        [-3.856, 4.944],
+        [-3.478, 4.414]
+    ])
+    y = np.array([0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2])
+    trainset = (X, y)
+
+    meta = deepcopy(DEFAULT_META_PROTOSELECT)
+    data = deepcopy(DEFAULT_DATA_PROTOSELECT)
+    meta['params'] = {
+        'kernel_distance': 'EuclideanDistance',
+        'eps': 0.5,
+        'lambda_penalty': 0.066,
+        'batch_size': 10000000000,
+        'verbose': True
+    }
+    data['prototypes'] = np.array([
+        [0.548, 0.715],
+        [5.791, 4.528],
+        [-3.53, 4.780]
+    ])
+    data['prototype_indices'] = np.array([0, 5, 11], dtype=np.int32),
+    data['prototype_labels'] = np.array([0, 1, 2], dtype=np.int32)
+    summary = Explanation(meta=meta, data=data)
+    return trainset, summary
+
+
+def test_compute_prototype_importances(importance_data):
+    """ Test if the computation of the prototype importances returns the expected results for a simple
+    example with three clusters and three prototypes. In this case, the importance of each prototype is
+    given by the number of data instances in each cluster. """
+    trainset, summary = importance_data
+    X, y = trainset
+
+    expected_importances = np.unique(y, return_counts=True)[1]
+    importances = compute_prototype_importances(summary=summary, trainset=trainset)
+    assert np.allclose(expected_importances, importances['prototype_importances'])
+
+
+@pytest.fixture(scope='module')
+def plot_data():
+    n_samples = 10
+    x = np.random.uniform(low=-10, high=10, size=(n_samples, ))
+    y = np.random.uniform(low=-10, high=10, size=(n_samples, ))
+
+    image_size = (5, 5)
+    images = np.random.rand(n_samples, *image_size, 3)
+
+    zoom_lb, zoom_ub = 3, 7
+    zoom = np.random.permutation(np.linspace(1, 5, n_samples))
+    return {
+        'x': x,
+        'y': y,
+        'image_size': image_size,
+        'images': images,
+        'zoom_lb': zoom_lb,
+        'zoom_ub': zoom_ub,
+        'zoom': zoom
+    }
+
+
+@pytest.mark.parametrize('use_zoom', [False, True])
+def test__imscatterplot(plot_data, use_zoom):
+    """ Test `_imscatterplot` function. """
+    ax = _imscatterplot(x=plot_data['x'],
+                        y=plot_data['y'],
+                        images=plot_data['images'],
+                        image_size=plot_data['image_size'],
+                        zoom=plot_data['zoom'] if use_zoom else None,
+                        zoom_lb=plot_data['zoom_lb'],
+                        zoom_ub=plot_data['zoom_ub'],
+                        sort_by_zoom=True)
+
+    annboxes = [x for x in ax.get_children() if isinstance(x, matplotlib.offsetbox.AnnotationBbox)]
+    data = np.array([annbox.offsetbox.get_data() for annbox in annboxes])
+    zoom = np.array([annbox.offsetbox.get_zoom() for annbox in annboxes])
+
+    sorted_idx = np.argsort(plot_data['zoom'])[::-1] if use_zoom else None
+    expected_data = plot_data['images'][sorted_idx]
+
+    if not use_zoom:
+        expected_zoom = np.ones(len(plot_data['zoom']))
+    else:
+        expected_zoom = plot_data['zoom'][sorted_idx]
+        expected_zoom = (expected_zoom - expected_zoom.min()) / (expected_zoom.max() - expected_zoom.min())
+        expected_zoom = expected_zoom * (plot_data['zoom_ub'] - plot_data['zoom_lb']) + plot_data['zoom_lb']
+
+    assert np.allclose(expected_data, data)
+    assert np.allclose(expected_zoom, zoom)
+
+
+def test_visualize_image_prototypes(mocker):
+    """ Test the `visualize_image_prototypes` function. """
+    importances = {
+        'prototype_importances': np.random.randint(2, 50, size=(10, )),
+        'X_protos': np.random.randn(10, 2),
+        'X_protos_ft': None
+    }
+
+    m1 = mocker.patch('alibi.prototypes.protoselect.compute_prototype_importances', return_value=importances)
+    m2 = mocker.patch('alibi.prototypes.protoselect._imscatterplot')
+    visualize_image_prototypes(summary=None, trainset=None, reducer=lambda x: x)
+    m1.assert_called_once()
+    m2.assert_called_once()

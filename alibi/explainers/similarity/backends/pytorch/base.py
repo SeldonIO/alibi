@@ -96,10 +96,9 @@ class _PytorchBackend:
         return torch.argmax(X, dim=dim)
 
     @staticmethod
-    def check_all_layers_trainable(model: nn.Module) -> None:
+    def check_all_layers_trainable(model: nn.Module) -> bool:
         """Checks that all layers in a model are trainable."""
         for param in model.parameters():
             if not param.requires_grad:
                 return False
         return True
-                

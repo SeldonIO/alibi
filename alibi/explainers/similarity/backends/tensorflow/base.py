@@ -89,7 +89,7 @@ class _TensorFlowBackend:
         return X
 
     @staticmethod
-    def check_all_layers_trainable(model: keras.Model) -> None:
+    def check_all_layers_trainable(model: keras.Model) -> bool:
         """Checks if all layers in a model are trainable."""
         if len(model.weights) != len(model.trainable_weights):
             return False

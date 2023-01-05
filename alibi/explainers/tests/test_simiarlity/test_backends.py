@@ -74,10 +74,7 @@ def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
         torch.nn.LazyLinear(1)
     )
 
-    if trainable_emd:
-        model[0].weight.requires_grad = True
-    else:
-        model[0].weight.requires_grad = False
+    model[0].weight.requires_grad = trainable_emd
 
     X = torch.randint(0, 10, (1, 5))
     Y = torch.randint(0, 10, (1, 1), dtype=torch.float32)

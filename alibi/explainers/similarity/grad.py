@@ -7,6 +7,7 @@ import copy
 from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
 from typing_extensions import Literal
 from enum import Enum
+import warnings
 
 import numpy as np
 
@@ -127,6 +128,10 @@ class GradientSimilarity(BaseSimilarityExplainer):
             backend_name=backend,
             task_name=task
         )
+
+        if not self.backend.check_all_layers_trainable(self.predictor):
+            warnings.warn(("Some layers in the model are not trainable. These layer gradients will not be "
+                           "included in the computation of gradient similarity."))
 
     def fit(self,
             X_train: np.ndarray,

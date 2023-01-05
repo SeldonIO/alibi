@@ -87,3 +87,10 @@ class _TensorFlowBackend:
         """Returns the index of the maximum value in a tensor."""
         X = tf.math.argmax(X, axis=dim)
         return X
+
+    @staticmethod
+    def check_all_layers_trainable(model: keras.Model) -> None:
+        """Checks if all layers in a model are trainable."""
+        if len(model.weights) != len(model.trainable_weights):
+            return False
+        return True

@@ -94,3 +94,12 @@ class _PytorchBackend:
     def argmax(X: torch.Tensor, dim=-1) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
         return torch.argmax(X, dim=dim)
+
+    @staticmethod
+    def check_all_layers_trainable(model: nn.Module) -> None:
+        """Checks that all layers in a model are trainable."""
+        for param in model.parameters():
+            if not param.requires_grad:
+                return False
+        return True
+                

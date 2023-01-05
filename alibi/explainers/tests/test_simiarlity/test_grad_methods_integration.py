@@ -317,12 +317,10 @@ def test_non_trainable_layers_warning_tf():
         tf.keras.layers.Dense(1)
     ])
 
-    X = tf.random.uniform(shape=(1, 5), minval=0, maxval=10, dtype=tf.float32)
-    Y = tf.random.uniform(shape=(1, 1), minval=0, maxval=10, dtype=tf.float32)
     loss_fn = tf.keras.losses.MeanSquaredError()
-    model.layers[1].trainable = False
+    model.layers[2].trainable = False
 
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(Warning) as record:
         GradientSimilarity(
             model,
             task='regression',
@@ -331,7 +329,9 @@ def test_non_trainable_layers_warning_tf():
             backend='tensorflow',
             precompute_grads=False
         )
-    print(warning)
+
+    assert str(record[0].message) == ("Some layers in the model are not trainable. These layer gradients will not be "
+                                      "included in the computation of gradient similarity.")
 
 
 def test_non_trainable_layers_warning_torch():
@@ -339,23 +339,23 @@ def test_non_trainable_layers_warning_torch():
     Test that users are warned when passing models with non-trainable layers.
     """
     model = torch.nn.Sequential(
-        torch.nn.Embedding(10, 4, 5, sparse=True),
+        torch.nn.Embedding(10, 4, 5),
         torch.nn.Flatten(),
         torch.nn.LazyLinear(1)
     )
 
-    X = torch.randint(0, 10, (1, 5))
-    Y = torch.randint(0, 10, (1, 1), dtype=torch.float32)
     loss_fn = torch.nn.MSELoss()
     model[2].weight.requires_grad = False
 
-    with pytest.warns(UserWarning) as warning:
+    with pytest.warns(Warning) as record:
         GradientSimilarity(
             model,
             task='regression',
             loss_fn=loss_fn,
             sim_fn='grad_asym_dot',
-            backend='tensorflow',
+            backend='pytorch',
             precompute_grads=False
         )
-    print(warning)
+
+    assert str(record[0].message) == ("Some layers in the model are not trainable. These layer gradients will not be "
+                                      "included in the computation of gradient similarity.")

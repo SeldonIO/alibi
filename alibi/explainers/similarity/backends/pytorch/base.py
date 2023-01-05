@@ -50,8 +50,18 @@ class _PytorchBackend:
         loss = loss_fn(output, Y)
         loss.backward()
         model.train(initial_model_state)
-        return np.concatenate([_PytorchBackend.to_numpy(param.grad).reshape(-1)  # type: ignore [arg-type] # see #810
-                               for param in model.parameters()])
+
+        return np.concatenate([_PytorchBackend._grad_to_numpy(param.grad)  # type: ignore [arg-type] # see #810
+                               for param in model.parameters()
+                               if param.grad is not None])
+
+    @staticmethod
+    def _grad_to_numpy(grad: torch.Tensor) -> torch.Tensor:
+        """Flattens a gradient tensor."""
+        if grad.is_sparse:
+            grad = grad.to_dense()
+        grad = grad.reshape(-1).detach().cpu()
+        return grad.numpy()
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> torch.Tensor:

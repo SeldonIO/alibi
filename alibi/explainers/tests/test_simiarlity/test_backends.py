@@ -44,13 +44,14 @@ def test_backends(random_cls_dataset, linear_models):
     np.testing.assert_allclose(torch_grads, tf_grads, rtol=1e-04)
 
 
-def test_tf_embedding_similarity():
+@pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
+def test_tf_embedding_similarity(trainable_emd, grads_shape):
     """Test that the `tensorflow` embedding similarity backend works as expected.
 
     See https://github.com/SeldonIO/alibi/issues/828.
     """
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Embedding(10, 4, input_shape=(5,)),
+        tf.keras.layers.Embedding(10, 4, input_shape=(5,), trainable=trainable_emd),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(1)
     ])
@@ -59,4 +60,27 @@ def test_tf_embedding_similarity():
     Y = tf.random.uniform(shape=(1, 1), minval=0, maxval=10, dtype=tf.float32)
     loss_fn = tf.keras.losses.MeanSquaredError()
     tf_grads = _TensorFlowBackend.get_grads(model, X, Y, loss_fn)
-    assert tf_grads.shape == (21, )  # (5 * 4) + 1
+    assert tf_grads.shape == grads_shape  # (4 * 10) + (5 * 4) + 1
+
+
+@pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
+@pytest.mark.parametrize('sparse', [True, False])
+def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
+    """Test that the `pytorch` embedding similarity backend works as expected."""
+
+    model = torch.nn.Sequential(
+        torch.nn.Embedding(10, 4, 5, sparse=sparse),
+        torch.nn.Flatten(),
+        torch.nn.LazyLinear(1)
+    )
+
+    if trainable_emd:
+        model[0].weight.requires_grad = True
+    else:
+        model[0].weight.requires_grad = False
+
+    X = torch.randint(0, 10, (1, 5))
+    Y = torch.randint(0, 10, (1, 1), dtype=torch.float32)
+    loss_fn = torch.nn.MSELoss()
+    tf_grads = _PytorchBackend.get_grads(model, X, Y, loss_fn)
+    assert tf_grads.shape == grads_shape  # (4 * 10) + (5 * 4) + 1

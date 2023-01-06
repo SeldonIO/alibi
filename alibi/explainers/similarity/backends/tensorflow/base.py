@@ -50,14 +50,19 @@ class _TensorFlowBackend:
 
             # compute gradients of the loss w.r.t the weights
             grad_X_train = tape.gradient(loss, model.trainable_weights)
-            # see https://github.com/SeldonIO/alibi/issues/828 w.r.t. filtering out tf.IndexedSlices
             grad_X_train = np.concatenate([_TensorFlowBackend._grad_to_numpy(w) for w in grad_X_train])
         return grad_X_train
 
     @staticmethod
     def _grad_to_numpy(grad: tf.Tensor) -> tf.Tensor:
-        """Flattens a gradient tensor."""
+        """Convert graidient to numpy array.
+
+        Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense \
+        tensor first.
+        """
+
         if isinstance(grad, tf.IndexedSlices):
+            # see https://github.com/SeldonIO/alibi/issues/828
             grad = tf.convert_to_tensor(grad)
         return grad.numpy().reshape(-1)
 
@@ -90,7 +95,10 @@ class _TensorFlowBackend:
 
     @staticmethod
     def check_all_layers_trainable(model: keras.Model) -> bool:
-        """Checks if all layers in a model are trainable."""
+        """Checks if all layers in a model are trainable.
+
+        Note: batch normalization layers are ignored as they are not trainable by default.
+        """
         for weight in model.non_trainable_weights:
             if weight.name.startswith('batch_normalization'):
                 continue

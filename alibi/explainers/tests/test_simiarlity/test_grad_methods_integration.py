@@ -342,7 +342,7 @@ def test_no_warnings_batch_norm(linear_cls_model):
                          indirect=True, ids=['torch-model', 'tf-model'])
 def test_non_trainable_layer_warnings(linear_cls_model):
     """
-    Test that no warnings are raised when using batch norm layers.
+    Test that warnings are raised when user passes non-trainbable layers to grad sim method.
     """
     backend, model, loss_fn, target_fn = linear_cls_model
 

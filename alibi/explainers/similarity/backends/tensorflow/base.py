@@ -50,11 +50,12 @@ class _TensorFlowBackend:
 
             # compute gradients of the loss w.r.t the weights
             grad_X_train = tape.gradient(loss, model.trainable_weights)
-            grad_X_train = np.concatenate([_TensorFlowBackend._grad_to_numpy(w) for w in grad_X_train])
+            grad_X_train = np.concatenate([_TensorFlowBackend._grad_to_numpy(w, getattr(w, 'name', None))
+                                           for w in grad_X_train])
         return grad_X_train
 
     @staticmethod
-    def _grad_to_numpy(grad: tf.Tensor) -> tf.Tensor:
+    def _grad_to_numpy(grad: tf.Tensor, name: Optional[str] = None) -> tf.Tensor:
         """Convert graidient to numpy array.
 
         Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense \
@@ -64,6 +65,11 @@ class _TensorFlowBackend:
         if isinstance(grad, tf.IndexedSlices):
             # see https://github.com/SeldonIO/alibi/issues/828
             grad = tf.convert_to_tensor(grad)
+
+        if not hasattr(grad, 'numpy'):
+            name = f' for the named tensor: {name}' if name else ''
+            raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
+                             'gradients in the similarity computation use `trainable=False`.'))
         return grad.numpy().reshape(-1)
 
     @staticmethod

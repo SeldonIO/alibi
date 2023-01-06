@@ -51,12 +51,12 @@ class _PytorchBackend:
         loss.backward()
         model.train(initial_model_state)
 
-        return np.concatenate([_PytorchBackend._grad_to_numpy(param.grad)  # type: ignore [arg-type] # see #810
-                               for param in model.parameters()
+        return np.concatenate([_PytorchBackend._grad_to_numpy(grad=param.grad, name=name)
+                               for name, param in model.named_parameters()
                                if param.grad is not None])
 
     @staticmethod
-    def _grad_to_numpy(grad: torch.Tensor) -> torch.Tensor:
+    def _grad_to_numpy(grad: torch.Tensor, name: Optional[str] = None) -> torch.Tensor:
         """Convert graidient to numpy array.
 
         Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense \
@@ -64,8 +64,12 @@ class _PytorchBackend:
         """
         if grad.is_sparse:
             grad = grad.to_dense()
-        grad = grad.reshape(-1).detach().cpu()
-        return grad.numpy()
+
+        if not hasattr(grad, 'numpy'):
+            name = f' for the named tensor: {name}' if name else ''
+            raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
+                             'gradients in the similarity computation use `requires_grad=False`.'))
+        return grad.reshape(-1).cpu().numpy()
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> torch.Tensor:

@@ -94,17 +94,17 @@ jobs:
 
   docs:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04  # To match 22.04 set in .readthedocs.yml
 
     container:
-      image: readthedocs/build:latest
+      image: readthedocs/build:ubuntu-22.04-2022.03.15  # See https://hub.docker.com/r/readthedocs/build/tags 
       options: --user root
 
     steps:
       - uses: actions/checkout@v2
       - name: Create a virtualenv to use for docs build
         run: |
-          python3.8 -m virtualenv $HOME/docs
+          python3.9 -m virtualenv $HOME/docs
       - name: Install dependencies
         run: |
           . $HOME/docs/bin/activate

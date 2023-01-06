@@ -6,7 +6,7 @@
 version: 2
 
 build:
-  image: latest # Python 3.8 available on latest
+  image: ubuntu-22.04-2022.03.15
   apt_packages:
     - pandoc
 
@@ -20,6 +20,6 @@ formats:
 
 # Optionally set the version of Python and requirements required to build your docs
 python:
-   version: 3.8
+   version: 3.9  # To match alibi-detect
    install:
    - requirements: requirements/docs.txt

@@ -70,7 +70,7 @@ def test_tf_embedding_similarity(trainable_emd, grads_shape):
 def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
     """Test GradSim explainer correctly handles sparcity and non-trainable layers for pytorch.
 
-    Tests that the `pytorch` embedding layers work as expected and that layers marked as 
+    Tests that the `pytorch` embedding layers work as expected and that layers marked as
     non-trainable are not included in the gradients.
     """
 

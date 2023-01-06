@@ -42,7 +42,7 @@ Key:
 
 **Accumulated Local Effects (ALE)**: calculates first-order feature effects on the model with
 respect to a dataset. Intended for use on tabular datasets, currently supports numerical features.
-[Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_boston.ipynb),
+[Documentation](../methods/ALE.ipynb), [regression example](../examples/ale_regression_california.ipynb),
 [classification example](../examples/ale_classification.ipynb).
 
 **Partial Dependence**: computes the marginal effect that one or multiple features have on the predicted outcome of a 

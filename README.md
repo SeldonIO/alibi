@@ -213,7 +213,7 @@ These algorithms provide a **distilled** view of the dataset and help construct 
 - Accumulated Local Effects (ALE, [Apley and Zhu, 2016](https://arxiv.org/abs/1612.08468))
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/ALE.html)
   - Examples:
-    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_regression_boston.html),
+    [California housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_regression_california.html),
     [Iris dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/ale_classification.html)
 
 - Partial Dependence ([J.H. Friedman, 2001](https://projecteuclid.org/journals/annals-of-statistics/volume-29/issue-5/Greedy-function-approximation-A-gradient-boostingmachine/10.1214/aos/1013203451.full))
@@ -255,7 +255,7 @@ These algorithms provide a **distilled** view of the dataset and help construct 
   - [Documentation](https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html)
   - Examples:
     [MNIST](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_mnist.html),
-    [Boston housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
+    [California housing dataset](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_housing.html),
     [Adult income (one-hot)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ohe.html),
     [Adult income (ordinal)](https://docs.seldon.io/projects/alibi/en/stable/examples/cfproto_cat_adult_ord.html)
 

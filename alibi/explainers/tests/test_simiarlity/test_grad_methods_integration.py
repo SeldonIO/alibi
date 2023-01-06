@@ -12,11 +12,10 @@ Note:
 """
 
 import pytest
+import warnings
 
 import numpy as np
-import torch
 import torch.nn as nn
-import tensorflow as tf
 from tensorflow import keras
 
 from alibi.explainers.similarity.grad import GradientSimilarity
@@ -140,6 +139,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -162,6 +162,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -184,6 +185,7 @@ def test_grad_dot_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -204,6 +206,7 @@ def test_grad_cos_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -224,6 +227,7 @@ def test_multiple_test_instances_grad_cos(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -250,6 +254,7 @@ def test_multiple_test_instances_grad_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -273,6 +278,7 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
     explainer = GradientSimilarity(
         model,
         task='regression',
@@ -307,55 +313,50 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     np.testing.assert_allclose(explanation.scores, scores[:, ::-1], atol=1e-4)
 
 
-def test_non_trainable_layers_warning_tf():
+@pytest.mark.parametrize('linear_cls_model',
+                         [
+                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10, 'batch_norm': True}),
+                             ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10, 'batch_norm': True})
+                         ],
+                         indirect=True, ids=['torch-model', 'tf-model'])
+def test_no_warnings_batch_norm(linear_cls_model):
     """
-    Test that users are warned when passing models with non-trainable layers.
+    Test that no warnings are raised when using batch norm layers.
     """
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Embedding(10, 4, input_shape=(5,), trainable=True),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(1)
-    ])
+    backend, model, loss_fn, target_fn = linear_cls_model
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        GradientSimilarity(
+            model,
+            task='classification',
+            loss_fn=loss_fn,
+            backend=backend,
+        )
 
-    loss_fn = tf.keras.losses.MeanSquaredError()
-    model.layers[2].trainable = False
+
+@pytest.mark.parametrize('linear_cls_model',
+                         [
+                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
+                             ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
+                         ],
+                         indirect=True, ids=['torch-model', 'tf-model'])
+def test_non_trainable_layer_warnings(linear_cls_model):
+    """
+    Test that no warnings are raised when using batch norm layers.
+    """
+    backend, model, loss_fn, target_fn = linear_cls_model
+
+    if backend == 'pytorch':
+        model.linear_stack[2].weight.requires_grad = False
+    elif backend == 'tensorflow':
+        model.layers[1].trainable = False
 
     with pytest.warns(Warning) as record:
         GradientSimilarity(
             model,
-            task='regression',
+            task='classification',
             loss_fn=loss_fn,
-            sim_fn='grad_asym_dot',
-            backend='tensorflow',
-            precompute_grads=False
+            backend=backend,
         )
-
-    assert str(record[0].message) == ("Some layers in the model are not trainable. These layer gradients will not be "
-                                      "included in the computation of gradient similarity.")
-
-
-def test_non_trainable_layers_warning_torch():
-    """
-    Test that users are warned when passing models with non-trainable layers.
-    """
-    model = torch.nn.Sequential(
-        torch.nn.Embedding(10, 4, 5),
-        torch.nn.Flatten(),
-        torch.nn.LazyLinear(1)
-    )
-
-    loss_fn = torch.nn.MSELoss()
-    model[2].weight.requires_grad = False
-
-    with pytest.warns(Warning) as record:
-        GradientSimilarity(
-            model,
-            task='regression',
-            loss_fn=loss_fn,
-            sim_fn='grad_asym_dot',
-            backend='pytorch',
-            precompute_grads=False
-        )
-
     assert str(record[0].message) == ("Some layers in the model are not trainable. These layer gradients will not be "
                                       "included in the computation of gradient similarity.")

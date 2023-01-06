@@ -91,6 +91,8 @@ class _TensorFlowBackend:
     @staticmethod
     def check_all_layers_trainable(model: keras.Model) -> bool:
         """Checks if all layers in a model are trainable."""
-        if len(model.weights) != len(model.trainable_weights):
+        for weight in model.non_trainable_weights:
+            if weight.name.startswith('batch_normalization'):
+                continue
             return False
         return True

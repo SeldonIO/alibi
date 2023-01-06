@@ -104,7 +104,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Create a virtualenv to use for docs build
         run: |
-          python3.9 -m virtualenv $HOME/docs
+          python -m virtualenv $HOME/docs
       - name: Install dependencies
         run: |
           . $HOME/docs/bin/activate

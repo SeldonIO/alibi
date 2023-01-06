@@ -348,8 +348,10 @@ def test_non_trainable_layer_warnings(linear_cls_model):
 
     if backend == 'pytorch':
         model.linear_stack[2].weight.requires_grad = False
+        model.linear_stack[3].weight.requires_grad = False
     elif backend == 'tensorflow':
         model.layers[1].trainable = False
+        model.layers[2].trainable = False
 
     with pytest.warns(Warning) as record:
         GradientSimilarity(
@@ -358,5 +360,13 @@ def test_non_trainable_layer_warnings(linear_cls_model):
             loss_fn=loss_fn,
             backend=backend,
         )
-    assert str(record[0].message) == ("Some layers in the model are not trainable. These layer gradients will not be "
-                                      "included in the computation of gradient similarity.")
+
+    assert ("Some layers in the model are not trainable. These layer gradients will not be "
+            "included in the computation of gradient similarity.") in str(record[0].message)
+
+    if backend == 'pytorch':
+        assert "The following layers are not trainable: 'linear_stack.2.weight', 'linear_stack.3.weight'" \
+                in str(record[0].message)
+    if backend == 'tensorflow':
+        assert "The following layers are not trainable: 'dense_24', 'dense_25'" \
+                in str(record[0].message)

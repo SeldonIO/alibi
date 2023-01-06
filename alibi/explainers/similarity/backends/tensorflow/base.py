@@ -4,7 +4,7 @@ Methods unique to the `tensorflow` backend are defined here. The interface this 
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Optional, Union
+from typing import Callable, Optional, Union, List
 
 import numpy as np
 import tensorflow as tf
@@ -100,13 +100,9 @@ class _TensorFlowBackend:
         return X
 
     @staticmethod
-    def check_all_layers_trainable(model: keras.Model) -> bool:
+    def get_non_trainable(model: keras.Model) -> List[Union[int, str]]:
         """Checks if all layers in a model are trainable.
 
         Note: batch normalization layers are ignored as they are not trainable by default.
         """
-        for weight in model.non_trainable_weights:
-            if weight.name.startswith('batch_normalization'):
-                continue
-            return False
-        return True
+        return [getattr(layer, 'name', i) for i, layer in enumerate(model.layers) if not layer.trainable]

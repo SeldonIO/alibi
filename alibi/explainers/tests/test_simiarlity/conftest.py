@@ -156,6 +156,7 @@ def tf_linear_model(input_shape, output_shape, batch_norm=False):
         layers.append(tf.keras.layers.BatchNormalization())
     layers.extend([
         tf.keras.layers.Dense(output_shape),
+        tf.keras.layers.Dense(output_shape),
         tf.keras.layers.Softmax()
     ])
 
@@ -175,6 +176,7 @@ def torch_linear_model(input_shape_arg, output_shape_arg, batch_norm=False):
                 nn.Flatten(start_dim=1),
                 nn.BatchNorm1d(input_shape) if batch_norm else nn.Identity(),
                 nn.Linear(input_shape, output_shape),
+                nn.Linear(output_shape, output_shape),
                 nn.Softmax()
             )
 

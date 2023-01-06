@@ -4,7 +4,7 @@ Methods unique to the `pytorch` backend are defined here. The interface this cla
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Union, Optional
+from typing import Callable, Union, Optional, List
 
 import numpy as np
 import torch.nn as nn
@@ -104,9 +104,7 @@ class _PytorchBackend:
         return torch.argmax(X, dim=dim)
 
     @staticmethod
-    def check_all_layers_trainable(model: nn.Module) -> bool:
+    def get_non_trainable(model: nn.Module) -> List[Union[int, str]]:
         """Checks that all layers in a model are trainable."""
-        for param in model.parameters():
-            if not param.requires_grad:
-                return False
-        return True
+        return [name if name else i for i, (name, param) in enumerate(model.named_parameters())
+                if not param.requires_grad]

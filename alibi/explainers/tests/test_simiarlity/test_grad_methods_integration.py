@@ -317,7 +317,7 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
 def test_non_trainable_layer_warnings_tf():
     """Test Non trainable layer warnings tensorflow.
 
-    Test that warnings are raised when user passes non-trainbable layers to grad sim method for
+    Test that warnings are raised when user passes non-trainable layers to grad sim method for
     tensorflow models.
     """
     model = keras.Sequential([

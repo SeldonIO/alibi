@@ -141,7 +141,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
 
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -167,7 +167,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -193,7 +193,7 @@ def test_grad_dot_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -217,7 +217,7 @@ def test_grad_cos_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -241,7 +241,7 @@ def test_multiple_test_instances_grad_cos(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -271,7 +271,7 @@ def test_multiple_test_instances_grad_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -298,7 +298,7 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -356,7 +356,7 @@ def test_non_trainable_layer_warnings_tf():
         ])
     ])
 
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 10))
 
@@ -443,7 +443,7 @@ def test_not_trainable_model_error_tf():
     """Test Not trainable model error tensorflow."""
 
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the 
+    # GradSim method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
     model.trainable = False

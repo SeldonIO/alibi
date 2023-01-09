@@ -133,8 +133,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
         if non_trainable_layers:
             layers_msg = 'The following tensors are not trainable: '
             layers = ", ".join([f"'{layer}'" for layer in non_trainable_layers if layer is not None])
-            warning_msg = ("Some layers in the model are not trainable. These layer gradients will not be "
-                           f"included in the computation of gradient similarity. {layers_msg}{layers}")
+            warning_msg = ("Some layers in the model are not trainable. These layers don't have gradients "
+                           "and will not be included in the computation of gradient similarity. "
+                           f"{layers_msg}{layers}")
             warnings.warn(warning_msg)  # todo: scope warning to this location
 
     def fit(self,

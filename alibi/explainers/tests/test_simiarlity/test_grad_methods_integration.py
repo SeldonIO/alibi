@@ -348,8 +348,9 @@ def test_non_trainable_layer_warnings_tf():
             backend='tensorflow',
         )
 
-    assert ("Some layers in the model are not trainable. These layer gradients will not be "
-            "included in the computation of gradient similarity.") in str(record[0].message)
+    assert ("Some layers in the model are not trainable. These layers don't have "
+            "gradients and will not be included in the computation of gradient similarity.") \
+            in str(record[0].message)
 
     assert "The following tensors are not trainable:" \
         in str(record[0].message)
@@ -399,8 +400,9 @@ def test_non_trainable_layer_warnings_pt():
             backend='pytorch'
         )
 
-    assert ("Some layers in the model are not trainable. These layer gradients will not be "
-            "included in the computation of gradient similarity.") in str(record[0].message)
+    assert ("Some layers in the model are not trainable. These layers don't have "
+            "gradients and will not be included in the computation of gradient similarity.") \
+            in str(record[0].message)
 
     assert "The following tensors are not trainable:" \
         in str(record[0].message)

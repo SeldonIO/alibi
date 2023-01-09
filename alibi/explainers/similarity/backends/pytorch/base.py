@@ -67,9 +67,9 @@ class _PytorchBackend:
 
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
-            # add comment for devs
             raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
-                             'gradients in the similarity computation use `requires_grad=False`.'))
+                             'gradients in the similarity computation set `requires_grad=False` on the '
+                             'corresponding parameter.'))
         return grad.reshape(-1).cpu().numpy()
 
     @staticmethod

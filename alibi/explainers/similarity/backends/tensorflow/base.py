@@ -69,7 +69,8 @@ class _TensorFlowBackend:
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
             raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
-                             'gradients in the similarity computation use `trainable=False`.'))
+                             'gradients in the similarity computation set `trainable=False` on the '
+                             'corresponding parameter.'))
         return grad.numpy().reshape(-1)
 
     @staticmethod

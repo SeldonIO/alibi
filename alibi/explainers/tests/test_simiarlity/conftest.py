@@ -82,11 +82,10 @@ def linear_cls_model(request):
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     framework = request.param.get('framework', 'tensorflow')
-    batch_norm = request.param.get('batch_norm', False)
 
     model = {
-        'tensorflow': lambda i_shape, o_shape: tf_linear_model(i_shape, o_shape, batch_norm),
-        'pytorch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape, batch_norm)
+        'tensorflow': lambda i_shape, o_shape: tf_linear_model(i_shape, o_shape),
+        'pytorch': lambda i_shape, o_shape: torch_linear_model(i_shape, o_shape)
     }[framework](input_shape, output_shape)
 
     loss_fn = {
@@ -144,26 +143,21 @@ def linear_models(request):
     return tf_model, tf_loss, torch_model, torch_loss
 
 
-def tf_linear_model(input_shape, output_shape, batch_norm=False):
+def tf_linear_model(input_shape, output_shape):
     """
     Constructs a linear model for `tensorflow`.
     """
     layers = [
         tf.keras.layers.InputLayer(input_shape=input_shape),
         tf.keras.layers.Flatten(),
-    ]
-    if batch_norm:
-        layers.append(tf.keras.layers.BatchNormalization())
-    layers.extend([
-        tf.keras.layers.Dense(output_shape),
         tf.keras.layers.Dense(output_shape),
         tf.keras.layers.Softmax()
-    ])
+    ]
 
     return keras.Sequential(layers)
 
 
-def torch_linear_model(input_shape_arg, output_shape_arg, batch_norm=False):
+def torch_linear_model(input_shape_arg, output_shape_arg):
     """
     Constructs a linear model for `torch`.
     """
@@ -174,9 +168,7 @@ def torch_linear_model(input_shape_arg, output_shape_arg, batch_norm=False):
             super(Model, self).__init__()
             self.linear_stack = nn.Sequential(
                 nn.Flatten(start_dim=1),
-                nn.BatchNorm1d(input_shape) if batch_norm else nn.Identity(),
                 nn.Linear(input_shape, output_shape),
-                nn.Linear(output_shape, output_shape),
                 nn.Softmax()
             )
 

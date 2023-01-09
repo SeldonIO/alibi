@@ -67,6 +67,7 @@ class _PytorchBackend:
 
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
+            # add comment for devs
             raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
                              'gradients in the similarity computation use `requires_grad=False`.'))
         return grad.reshape(-1).cpu().numpy()
@@ -104,7 +105,15 @@ class _PytorchBackend:
         return torch.argmax(X, dim=dim)
 
     @staticmethod
-    def get_non_trainable(model: nn.Module) -> List[Union[int, str]]:
+    def get_non_trainable(model: nn.Module) -> List[Optional[str]]:
         """Checks that all layers in a model are trainable."""
-        return [name if name else i for i, (name, param) in enumerate(model.named_parameters())
-                if not param.requires_grad]
+
+        params = [name if name else None for name, param in model.named_parameters()
+                  if not param.requires_grad]
+
+        if len(params) == len(list(model.parameters())):
+            raise ValueError('The model has no trainable parameters. This method requires at least'
+                             'one trainable parameter to compute the gradients for. '
+                             'Set `.requires_grad_(True)` on the model')
+
+        return params

@@ -12,10 +12,11 @@ Note:
 """
 
 import pytest
-import warnings
 
 import numpy as np
 import torch.nn as nn
+import torch
+import tensorflow as tf
 from tensorflow import keras
 
 from alibi.explainers.similarity.grad import GradientSimilarity
@@ -313,60 +314,134 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     np.testing.assert_allclose(explanation.scores, scores[:, ::-1], atol=1e-4)
 
 
-@pytest.mark.parametrize('linear_cls_model',
-                         [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10, 'batch_norm': True}),
-                             ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10, 'batch_norm': True})
-                         ],
-                         indirect=True, ids=['torch-model', 'tf-model'])
-def test_no_warnings_batch_norm(linear_cls_model):
-    """
-    Test that no warnings are raised when using batch norm layers.
-    """
-    backend, model, loss_fn, target_fn = linear_cls_model
-    with warnings.catch_warnings():
-        warnings.simplefilter("error")
-        GradientSimilarity(
-            model,
-            task='classification',
-            loss_fn=loss_fn,
-            backend=backend,
-        )
+def test_non_trainable_layer_warnings_tf():
+    """Test Non trainable layer warnings tensorflow.
 
-
-@pytest.mark.parametrize('linear_cls_model',
-                         [
-                             ({'framework': 'pytorch', 'input_shape': (10,), 'output_shape': 10}),
-                             ({'framework': 'tensorflow', 'input_shape': (10,), 'output_shape': 10})
-                         ],
-                         indirect=True, ids=['torch-model', 'tf-model'])
-def test_non_trainable_layer_warnings(linear_cls_model):
+    Test that warnings are raised when user passes non-trainbable layers to grad sim method for
+    tensorflow models.
     """
-    Test that warnings are raised when user passes non-trainbable layers to grad sim method.
-    """
-    backend, model, loss_fn, target_fn = linear_cls_model
+    model = keras.Sequential([
+        keras.layers.Dense(10),
+        keras.layers.Dense(20),
+        keras.layers.BatchNormalization(),
+        keras.Sequential([
+            keras.layers.Dense(30),
+            keras.layers.Dense(40),
+        ])
+    ])
+    model.build((None, 10))
 
-    if backend == 'pytorch':
-        model.linear_stack[2].weight.requires_grad = False
-        model.linear_stack[3].weight.requires_grad = False
-    elif backend == 'tensorflow':
-        model.layers[1].trainable = False
-        model.layers[2].trainable = False
+    model.layers[1].trainable = False
+    model.layers[-1].layers[1].trainable = False
+
+    tensor_names = [tensor.name for tensor in model.layers[1].non_trainable_weights]
+    tensor_names.extend([tensor.name for tensor in model.layers[-1].layers[1].non_trainable_weights])
+    tensor_names.extend([tensor.name for tensor in model.layers[2].non_trainable_weights])
+
+    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     with pytest.warns(Warning) as record:
         GradientSimilarity(
             model,
             task='classification',
             loss_fn=loss_fn,
-            backend=backend,
+            backend='tensorflow',
         )
 
     assert ("Some layers in the model are not trainable. These layer gradients will not be "
             "included in the computation of gradient similarity.") in str(record[0].message)
 
-    if backend == 'pytorch':
-        assert "The following layers are not trainable: 'linear_stack.2.weight', 'linear_stack.3.weight'" \
-                in str(record[0].message)
-    if backend == 'tensorflow':
-        assert "The following layers are not trainable: 'dense_24', 'dense_25'" \
-                in str(record[0].message)
+    assert "The following tensors are not trainable:" \
+        in str(record[0].message)
+    for tensor_name in tensor_names:
+        # print(tensor_name, str(record[0].message).split(':')[-1])
+        assert tensor_name in str(record[0].message)
+
+
+def test_non_trainable_layer_warnings_pt():
+    """Test Non trainable layer warnings pytorch.
+
+    Test that warnings are raised when user passes non-trainbable layers to grad sim method for
+    pytorch models.
+    """
+
+    class Model(nn.Module):
+        def __init__(self, input_shape, output_shape):
+            super(Model, self).__init__()
+            self.linear_stack = nn.Sequential(
+                nn.Flatten(start_dim=1),
+                nn.Linear(input_shape, output_shape),
+                nn.Linear(output_shape, output_shape),
+                nn.BatchNorm1d(output_shape),
+                nn.Sequential(
+                    nn.Linear(output_shape, output_shape),
+                    nn.Linear(output_shape, output_shape)
+                ),
+                nn.Softmax()
+            )
+
+        def forward(self, x):
+            x = x.type(torch.FloatTensor)
+            return self.linear_stack(x)
+
+    model = Model(10, 20)
+    model.linear_stack[2].weight.requires_grad = False
+    model.linear_stack[4][1].weight.requires_grad = False
+    tensor_names = [name for name, tensor in model.named_parameters() if not tensor.requires_grad]
+
+    loss_fn = nn.CrossEntropyLoss()
+
+    with pytest.warns(Warning) as record:
+        GradientSimilarity(
+            model,
+            task='classification',
+            loss_fn=loss_fn,
+            backend='pytorch'
+        )
+
+    assert ("Some layers in the model are not trainable. These layer gradients will not be "
+            "included in the computation of gradient similarity.") in str(record[0].message)
+
+    assert "The following tensors are not trainable:" \
+        in str(record[0].message)
+    for tensor_name in tensor_names:
+        assert tensor_name in str(record[0].message)
+
+
+def test_not_trainable_model_error_tf():
+    """Test Not trainable model error tensorflow."""
+
+    model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
+    model.build((None, 2))
+    model.trainable = False
+    with pytest.raises(ValueError) as err:
+        GradientSimilarity(
+            model,
+            task='regression',
+            loss_fn=loss_tf,
+            sim_fn='grad_dot',
+            backend='tensorflow'
+        )
+    assert err.value.args[0] == ('The model has no trainable weights. This method requires at least'
+                                 'one trainable parameter to compute the gradients for. '
+                                 'Set `trainable=True` on the model or a model weight')
+
+
+def test_not_trainable_model_error_torch():
+    """Test Not trainable model error pytorch."""
+
+    model = nn.Linear(2, 1, bias=False)
+    model.requires_grad_(False)
+
+    with pytest.raises(ValueError) as err:
+        GradientSimilarity(
+            model,
+            task='regression',
+            loss_fn=loss_tf,
+            sim_fn='grad_dot',
+            backend='pytorch'
+        )
+
+    assert err.value.args[0] == ('The model has no trainable parameters. This method requires at least'
+                                 'one trainable parameter to compute the gradients for. '
+                                 'Set `.requires_grad_(True)` on the model')

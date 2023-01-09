@@ -8,7 +8,7 @@ from typing import Callable, Optional, Union, List
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
+from tensorflow import keras
 
 
 class _TensorFlowBackend:
@@ -100,9 +100,15 @@ class _TensorFlowBackend:
         return X
 
     @staticmethod
-    def get_non_trainable(model: keras.Model) -> List[Union[int, str]]:
+    def get_non_trainable(model: keras.Model) -> List[Optional[str]]:
         """Checks if all layers in a model are trainable.
 
         Note: batch normalization layers are ignored as they are not trainable by default.
         """
-        return [getattr(layer, 'name', i) for i, layer in enumerate(model.layers) if not layer.trainable]
+
+        if len(model.trainable_weights) == 0:
+            raise ValueError('The model has no trainable weights. This method requires at least'
+                             'one trainable parameter to compute the gradients for. '
+                             'Set `trainable=True` on the model or a model weight')
+
+        return [getattr(weight, 'name', None) for weight in model.non_trainable_weights]

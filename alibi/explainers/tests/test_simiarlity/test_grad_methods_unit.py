@@ -74,7 +74,7 @@ def test_explainer_method_preprocessing(linear_cls_model, random_cls_dataset):
     assert X.shape == (1, 10)
 
     grad_X_test = explainer.backend.get_grads(model, X, Y, loss_fn)
-    assert grad_X_test.shape == (220, )
+    assert grad_X_test.shape == (110, )
 
 
 @pytest.mark.parametrize('linear_cls_model',

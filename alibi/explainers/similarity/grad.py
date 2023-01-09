@@ -131,11 +131,11 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         non_trainable_layers = self.backend.get_non_trainable(self.predictor)
         if non_trainable_layers:
-            layers_msg = 'The following layers are not trainable: '
+            layers_msg = 'The following tensors are not trainable: '
             layers = ", ".join([f"'{layer}'" for layer in non_trainable_layers if layer is not None])
             warning_msg = ("Some layers in the model are not trainable. These layer gradients will not be "
                            f"included in the computation of gradient similarity. {layers_msg}{layers}")
-            warnings.warn(warning_msg)
+            warnings.warn(warning_msg)  # todo: scope warning to this location
 
     def fit(self,
             X_train: np.ndarray,

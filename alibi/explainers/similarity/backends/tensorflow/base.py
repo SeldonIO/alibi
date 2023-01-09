@@ -101,9 +101,10 @@ class _TensorFlowBackend:
 
     @staticmethod
     def get_non_trainable(model: keras.Model) -> List[Optional[str]]:
-        """Checks if all layers in a model are trainable.
+        """Returns a list of non trainable parameters.
 
-        Note: batch normalization layers are ignored as they are not trainable by default.
+        Returns a list of names of parameters that are non trainable. If no trainable parameter exist we raise
+        a ValueError.
         """
 
         if len(model.trainable_weights) == 0:

@@ -106,7 +106,11 @@ class _PytorchBackend:
 
     @staticmethod
     def get_non_trainable(model: nn.Module) -> List[Optional[str]]:
-        """Checks that all layers in a model are trainable."""
+        """Returns a list of non trainable parameters.
+
+        Returns a list of names of parameters that are non trainable. If no trainable parameter exist we raise
+        a ValueError.
+        """
 
         params = [name if name else None for name, param in model.named_parameters()
                   if not param.requires_grad]

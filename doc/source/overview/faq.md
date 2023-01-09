@@ -64,3 +64,19 @@ Unfortunately, running this line means it's impossible to run explainers based o
 ### Why am I'm unable to restrict the features allowed to changed in [CounterfactualProto](../methods/CFProto.ipynb)?
 
 This is a known issue with the current implementation, see [here](https://github.com/SeldonIO/alibi/issues/327) and [here](https://github.com/SeldonIO/alibi/issues/366#issuecomment-820299804). It is currently blocked until we migrate the code to use TensorFlow 2.x constructs. In the meantime, it is recommended to use [CFRL](../methods/CFRL.ipynb) for counterfactual explanations with flexible feature-range constraints.
+
+
+## Similarity explanations
+
+### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a large model and it runs very slow. If I use `precompute_grads` I get out of memory errors?
+
+Large models with many parameters result in the similarity method running very slow and using `precompute_grads=True` may not be an option due to the memory cost. The best solutions for this problem are:
+
+- Use the explainer on a reduced dataset. You can use [Prototype Methods](../methods/ProtoSelect.ipynb) to obtain a smaller representative sample.
+- Freeze some parameters in the model so that when computing the gradients the simialrity method excludes them. If using [tensorflow](https://www.tensorflow.org/guide/keras/transfer_learning) you can do this by setting `trainable` to false on layers or specific parameters. For [torch](https://pytorch.org/docs/master/notes/autograd.html#locally-disabling-gradient-computation) we can set `requires_grad=False` on the relevent model parameters.
+
+Note that doing so will cause the explainer to issue a warning on initialization, informing you there are non-trainable parameters in your model and the explainer will not use those when computng the similarity scores.
+
+### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a tensorflow model and I keep getting warnings about non-trainable parameters but I haven't set any to be non-trainable?
+
+This warning likely means that your model has layers that track statistics using non-trainable parameters such as batch normalization layers. The warning should list the specific tensors that are non-trainable so you should be able to check. If this is the case you don't need to worry as similarity methods don't use those parameters anyway. Otherwise you will see this warning if you have set one of the parameters to `trainable=False` and alibi is just making sure you know this is the case.

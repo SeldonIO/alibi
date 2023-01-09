@@ -350,7 +350,7 @@ def test_non_trainable_layer_warnings_tf():
 
     assert ("Some layers in the model are not trainable. These layers don't have "
             "gradients and will not be included in the computation of gradient similarity.") \
-            in str(record[0].message)
+        in str(record[0].message)
 
     assert "The following tensors are not trainable:" \
         in str(record[0].message)
@@ -402,7 +402,7 @@ def test_non_trainable_layer_warnings_pt():
 
     assert ("Some layers in the model are not trainable. These layers don't have "
             "gradients and will not be included in the computation of gradient similarity.") \
-            in str(record[0].message)
+        in str(record[0].message)
 
     assert "The following tensors are not trainable:" \
         in str(record[0].message)

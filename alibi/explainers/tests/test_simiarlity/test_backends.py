@@ -62,7 +62,7 @@ def test_tf_embedding_similarity(trainable_emd, grads_shape):
     Y = tf.random.uniform(shape=(1, 1), minval=0, maxval=10, dtype=tf.float32)
     loss_fn = tf.keras.losses.MeanSquaredError()
     tf_grads = _TensorFlowBackend.get_grads(model, X, Y, loss_fn)
-    assert tf_grads.shape == grads_shape  # (4 * 10) + (5 * 4) + 1
+    assert tf_grads.shape == grads_shape  # (4 * 10) * trainable_emd + (5 * 4) + 1
 
 
 @pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
@@ -85,8 +85,8 @@ def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
     X = torch.randint(0, 10, (1, 5))
     Y = torch.randint(0, 10, (1, 1), dtype=torch.float32)
     loss_fn = torch.nn.MSELoss()
-    tf_grads = _PytorchBackend.get_grads(model, X, Y, loss_fn)
-    assert tf_grads.shape == grads_shape  # (4 * 10) + (5 * 4) + 1
+    pt_grads = _PytorchBackend.get_grads(model, X, Y, loss_fn)
+    assert pt_grads.shape == grads_shape  # (4 * 10) * trainable_emd + (5 * 4) + 1
 
 
 def test_non_numpy_grads_pytorch():

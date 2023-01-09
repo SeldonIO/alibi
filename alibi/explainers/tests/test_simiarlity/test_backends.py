@@ -46,7 +46,7 @@ def test_backends(random_cls_dataset, linear_models):
 
 @pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
 def test_tf_embedding_similarity(trainable_emd, grads_shape):
-    """Test GradSim explainer correctly handles sparcity and non-trainable layers for tensorflow.
+    """Test GradSim explainer correctly handles sparsity and non-trainable layers for tensorflow.
 
     Test that `tensorflow` embedding layers work as expected and also that layers
     marked as non-trainable are not included in the gradients.
@@ -68,7 +68,7 @@ def test_tf_embedding_similarity(trainable_emd, grads_shape):
 @pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
 @pytest.mark.parametrize('sparse', [True, False])
 def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
-    """Test GradSim explainer correctly handles sparcity and non-trainable layers for pytorch.
+    """Test GradSim explainer correctly handles sparsity and non-trainable layers for pytorch.
 
     Tests that the `pytorch` embedding layers work as expected and that layers marked as
     non-trainable are not included in the gradients.

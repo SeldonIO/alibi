@@ -341,6 +341,10 @@ def test_non_trainable_layer_warnings_tf():
 
     Test that warnings are raised when user passes non-trainable layers to grad sim method for
     tensorflow models.
+
+    Note: Keras batch norm layers register non-trainable weights by default and so will raise the
+    warning we test for here. This is different to the pytorch behavour which doesn't include
+    the batch norm parameters in model.parameters().
     """
     model = keras.Sequential([
         keras.layers.Dense(10),

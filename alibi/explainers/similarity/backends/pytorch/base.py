@@ -105,7 +105,7 @@ class _PytorchBackend:
         return torch.argmax(X, dim=dim)
 
     @staticmethod
-    def get_non_trainable(model: nn.Module) -> List[Optional[str]]:
+    def _get_non_trainable(model: nn.Module) -> List[Optional[str]]:
         """Returns a list of non trainable parameters.
 
         Returns a list of names of parameters that are non trainable. If no trainable parameter exist we raise

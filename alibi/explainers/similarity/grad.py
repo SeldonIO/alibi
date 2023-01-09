@@ -129,7 +129,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             task_name=task
         )
 
-        non_trainable_layers = self.backend.get_non_trainable(self.predictor)
+        non_trainable_layers = self.backend._get_non_trainable(self.predictor)
         if non_trainable_layers:
             layers_msg = 'The following tensors are not trainable: '
             layers = ", ".join([f"'{layer}'" for layer in non_trainable_layers if layer is not None])

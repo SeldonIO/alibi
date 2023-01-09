@@ -147,14 +147,12 @@ def tf_linear_model(input_shape, output_shape):
     """
     Constructs a linear model for `tensorflow`.
     """
-    layers = [
+    return keras.Sequential([
         tf.keras.layers.InputLayer(input_shape=input_shape),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(output_shape),
         tf.keras.layers.Softmax()
-    ]
-
-    return keras.Sequential(layers)
+    ])
 
 
 def torch_linear_model(input_shape_arg, output_shape_arg):

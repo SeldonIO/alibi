@@ -57,9 +57,9 @@ class _PytorchBackend:
 
     @staticmethod
     def _grad_to_numpy(grad: torch.Tensor, name: Optional[str] = None) -> torch.Tensor:
-        """Convert graidient to numpy array.
+        """Convert graidient to `np.ndarray`.
 
-        Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense
+        Converts gradient tensor to flat `numpy` array. If the gradient is a sparse tensor, it is converted to a dense
         tensor first.
         """
         if grad.is_sparse:
@@ -67,7 +67,7 @@ class _PytorchBackend:
 
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
-            raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
+            raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
                              'gradients in the similarity computation set `requires_grad=False` on the '
                              'corresponding parameter.'))
         return grad.reshape(-1).cpu().numpy()
@@ -91,12 +91,12 @@ class _PytorchBackend:
         elif isinstance(device, torch.device):
             _PytorchBackend.device = device
         elif device is not None:
-            raise TypeError(("`device` must be a None, string, integer or "
-                            f"torch.device object. Got {type(device)} instead."))
+            raise TypeError(("`device` must be a `None`, `string`, `integer` or "
+                            f"`torch.device` object. Got {type(device)} instead."))
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:
-        """Maps a `pytorch` tensor to a `numpy` array."""
+        """Maps a `pytorch` tensor to `np.ndarray`."""
         return X.detach().cpu().numpy()
 
     @staticmethod
@@ -109,7 +109,7 @@ class _PytorchBackend:
         """Returns a list of non trainable parameters.
 
         Returns a list of names of parameters that are non trainable. If no trainable parameter exist we raise
-        a ValueError.
+        a `ValueError`.
         """
 
         params = [name if name else None for name, param in model.named_parameters()
@@ -118,6 +118,6 @@ class _PytorchBackend:
         if len(params) == len(list(model.parameters())):
             raise ValueError('The model has no trainable parameters. This method requires at least'
                              'one trainable parameter to compute the gradients for. '
-                             'Set `.requires_grad_(True)` on the model')
+                             "Try setting `.requires_grad_(True)` on the model or one of it's parameters")
 
         return params

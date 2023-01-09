@@ -56,9 +56,9 @@ class _TensorFlowBackend:
 
     @staticmethod
     def _grad_to_numpy(grad: Union[tf.IndexedSlices, tf.Tensor], name: Optional[str] = None) -> tf.Tensor:
-        """Convert graidient to numpy array.
+        """Convert graidient to `np.ndarray`.
 
-        Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense
+        Converts gradient tensor to flat `numpy` array. If the gradient is a sparse tensor, it is converted to a dense
         tensor first.
         """
 
@@ -68,7 +68,7 @@ class _TensorFlowBackend:
 
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
-            raise TypeError((f'Could not convert gradient to numpy array{name}. To ignore these '
+            raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
                              'gradients in the similarity computation set `trainable=False` on the '
                              'corresponding parameter.'))
         return grad.numpy().reshape(-1)
@@ -87,11 +87,11 @@ class _TensorFlowBackend:
         if device is None or isinstance(device, str):
             _TensorFlowBackend.device = device
         else:
-            raise TypeError(f"`device` must be a string or None. Got {type(device)} instead.")
+            raise TypeError(f"`device` must be a `string` or `None`. Got {type(device)} instead.")
 
     @staticmethod
     def to_numpy(X: tf.Tensor) -> tf.Tensor:
-        """Converts a tensor to a `numpy` array."""
+        """Converts a tensor to `np.ndarray`."""
         return X.numpy()
 
     @staticmethod
@@ -105,7 +105,7 @@ class _TensorFlowBackend:
         """Returns a list of non trainable parameters.
 
         Returns a list of names of parameters that are non trainable. If no trainable parameter exist we raise
-        a ValueError.
+        a `ValueError`.
         """
 
         if len(model.trainable_weights) == 0:

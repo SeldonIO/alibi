@@ -100,14 +100,14 @@ def test_non_numpy_grads_pytorch():
     with pytest.raises(TypeError) as err:
         _PytorchBackend._grad_to_numpy(MockTensor())
 
-    assert ("Could not convert gradient to numpy array. To ignore these gradients in the "
+    assert ("Could not convert gradient to `numpy` array. To ignore these gradients in the "
             "similarity computation set `requires_grad=False` on the corresponding parameter.") \
         in str(err.value)
 
     with pytest.raises(TypeError) as err:
         _PytorchBackend._grad_to_numpy(MockTensor(), 'test')
 
-    assert ("Could not convert gradient to numpy array for the named tensor: test. "
+    assert ("Could not convert gradient to `numpy` array for the named tensor: test. "
             "To ignore these gradients in the similarity computation set `requires_grad=False`"
             " on the corresponding parameter.") in str(err.value)
 
@@ -123,13 +123,13 @@ def test_non_numpy_grads_tensorflow():
     with pytest.raises(TypeError) as err:
         _TensorFlowBackend._grad_to_numpy(MockTensor())
 
-    assert ("Could not convert gradient to numpy array. To ignore these gradients "
+    assert ("Could not convert gradient to `numpy` array. To ignore these gradients "
             "in the similarity computation set `trainable=False` on the corresponding parameter.") \
         in str(err.value)
 
     with pytest.raises(TypeError) as err:
         _TensorFlowBackend._grad_to_numpy(MockTensor(), 'test')
 
-    assert ("Could not convert gradient to numpy array for the named tensor: test."
+    assert ("Could not convert gradient to `numpy` array for the named tensor: test."
             " To ignore these gradients in the similarity computation set "
             "`trainable=False` on the corresponding parameter.") in str(err.value)

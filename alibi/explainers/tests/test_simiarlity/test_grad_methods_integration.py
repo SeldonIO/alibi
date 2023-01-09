@@ -477,4 +477,4 @@ def test_not_trainable_model_error_torch():
 
     assert err.value.args[0] == ('The model has no trainable parameters. This method requires at least'
                                  'one trainable parameter to compute the gradients for. '
-                                 'Set `.requires_grad_(True)` on the model')
+                                 "Try setting `.requires_grad_(True)` on the model or one of it's parameters")

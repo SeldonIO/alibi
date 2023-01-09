@@ -233,7 +233,7 @@ def test_device_error_msgs(linear_reg_model):
             device=[0]
         )
     if backend == 'pytorch':
-        assert ("`device` must be a None, string, integer or torch.device object."
+        assert ("`device` must be a `None`, `string`, `integer` or `torch.device` object."
                " Got <class 'list'> instead.") in str(err.value)
     elif backend == 'tensorflow':
-        assert "`device` must be a string or None. Got <class 'list'> instead." in str(err.value)
+        assert "`device` must be a `string` or `None`. Got <class 'list'> instead." in str(err.value)

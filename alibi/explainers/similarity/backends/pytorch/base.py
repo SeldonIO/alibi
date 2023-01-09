@@ -59,7 +59,7 @@ class _PytorchBackend:
     def _grad_to_numpy(grad: torch.Tensor, name: Optional[str] = None) -> torch.Tensor:
         """Convert graidient to numpy array.
 
-        Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense \
+        Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense
         tensor first.
         """
         if grad.is_sparse:

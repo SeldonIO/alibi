@@ -55,7 +55,7 @@ class _TensorFlowBackend:
         return grad_X_train
 
     @staticmethod
-    def _grad_to_numpy(grad: tf.Tensor, name: Optional[str] = None) -> tf.Tensor:
+    def _grad_to_numpy(grad: Union[tf.IndexedSlices, tf.Tensor], name: Optional[str] = None) -> tf.Tensor:
         """Convert graidient to numpy array.
 
         Converts gradient tensor to flat numpy array. If the gradient is a sparse tensor, it is converted to a dense

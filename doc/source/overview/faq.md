@@ -68,12 +68,12 @@ This is a known issue with the current implementation, see [here](https://github
 
 ## Similarity explanations
 
-### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a large model and it runs very slow. If I use `precompute_grads` I get out of memory errors?
+### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a large model and it runs very slow. If I use `precompute_grads=True` I get out of memory errors?
 
 Large models with many parameters result in the similarity method running very slow and using `precompute_grads=True` may not be an option due to the memory cost. The best solutions for this problem are:
 
 - Use the explainer on a reduced dataset. You can use [Prototype Methods](../methods/ProtoSelect.ipynb) to obtain a smaller representative sample.
-- Freeze some parameters in the model so that when computing the gradients the simialrity method excludes them. If using [tensorflow](https://www.tensorflow.org/guide/keras/transfer_learning) you can do this by setting `trainable` to false on layers or specific parameters. For [torch](https://pytorch.org/docs/master/notes/autograd.html#locally-disabling-gradient-computation) we can set `requires_grad=False` on the relevent model parameters.
+- Freeze some parameters in the model so that when computing the gradients the simialrity method excludes them. If using [tensorflow](https://www.tensorflow.org/guide/keras/transfer_learning) you can do this by setting `trainable=False` on layers or specific parameters. For [pytorch](https://pytorch.org/docs/master/notes/autograd.html#locally-disabling-gradient-computation) we can set `requires_grad=False` on the relevent model parameters.
 
 Note that doing so will cause the explainer to issue a warning on initialization, informing you there are non-trainable parameters in your model and the explainer will not use those when computng the similarity scores.
 

@@ -55,8 +55,8 @@ class _TensorFlowBackend:
         return grad_X_train
 
     @staticmethod
-    def _grad_to_numpy(grad: Union[tf.IndexedSlices, tf.Tensor], name: Optional[str] = None) -> tf.Tensor:
-        """Convert graidient to `np.ndarray`.
+    def _grad_to_numpy(grad: Union[tf.IndexedSlices, tf.Tensor], name: Optional[str] = None) -> np.ndarray:
+        """Convert gradient to `np.ndarray`.
 
         Converts gradient tensor to flat `numpy` array. If the gradient is a sparse tensor, it is converted to a dense
         tensor first.
@@ -90,7 +90,7 @@ class _TensorFlowBackend:
             raise TypeError(f"`device` must be a `string` or `None`. Got {type(device)} instead.")
 
     @staticmethod
-    def to_numpy(X: tf.Tensor) -> tf.Tensor:
+    def to_numpy(X: tf.Tensor) -> np.ndarray:
         """Converts a tensor to `np.ndarray`."""
         return X.numpy()
 

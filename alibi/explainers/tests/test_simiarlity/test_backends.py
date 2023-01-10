@@ -46,7 +46,7 @@ def test_backends(random_cls_dataset, linear_models):
 
 @pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
 def test_tf_embedding_similarity(trainable_emd, grads_shape):
-    """Test GradSim explainer correctly handles sparsity and non-trainable layers for tensorflow.
+    """Test `GradientSimilarity` explainer correctly handles sparsity and non-trainable layers for `tensorflow`.
 
     Test that `tensorflow` embedding layers work as expected and also that layers
     marked as non-trainable are not included in the gradients.
@@ -68,7 +68,7 @@ def test_tf_embedding_similarity(trainable_emd, grads_shape):
 @pytest.mark.parametrize('trainable_emd, grads_shape', [(True, (61, )), (False, (21, ))])
 @pytest.mark.parametrize('sparse', [True, False])
 def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
-    """Test GradSim explainer correctly handles sparsity and non-trainable layers for pytorch.
+    """Test GradientSimilarity explainer correctly handles sparsity and non-trainable layers for pytorch.
 
     Tests that the `pytorch` embedding layers work as expected and that layers marked as
     non-trainable are not included in the gradients.
@@ -90,9 +90,9 @@ def test_pytorch_embedding_similarity(trainable_emd, grads_shape, sparse):
 
 
 def test_non_numpy_grads_pytorch():
-    """Test that the `pytorch` backend handles non-numpy gradients correctly.
+    """Test that the `pytorch` backend handles gradients withtout `numpy` methods correctly.
 
-    _PytorchBackend should throw an error if the gradients cannot be converted to numpy arrays.
+    `_PytorchBackend` should throw an error if the gradients cannot be converted to numpy arrays.
     """
     class MockTensor():
         is_sparse = False
@@ -101,21 +101,21 @@ def test_non_numpy_grads_pytorch():
         _PytorchBackend._grad_to_numpy(MockTensor())
 
     assert ("Could not convert gradient to `numpy` array. To ignore these gradients in the "
-            "similarity computation set `requires_grad=False` on the corresponding parameter.") \
+            "similarity computation set ``requires_grad=False`` on the corresponding parameter.") \
         in str(err.value)
 
     with pytest.raises(TypeError) as err:
         _PytorchBackend._grad_to_numpy(MockTensor(), 'test')
 
     assert ("Could not convert gradient to `numpy` array for the named tensor: test. "
-            "To ignore these gradients in the similarity computation set `requires_grad=False`"
+            "To ignore these gradients in the similarity computation set ``requires_grad=False``"
             " on the corresponding parameter.") in str(err.value)
 
 
 def test_non_numpy_grads_tensorflow():
-    """Test that the `tensorflow` backend handles non-numpy gradients correctly.
+    """Test that the `tensorflow` backend handles gradients without `numpy` methods correctly.
 
-    _TensorFlowBackend should throw an error if the gradients cannot be converted to numpy arrays.
+    `_TensorFlowBackend` should throw an error if the gradients cannot be converted to `numpy` arrays.
     """
     class MockTensor():
         is_sparse = False
@@ -124,7 +124,7 @@ def test_non_numpy_grads_tensorflow():
         _TensorFlowBackend._grad_to_numpy(MockTensor())
 
     assert ("Could not convert gradient to `numpy` array. To ignore these gradients "
-            "in the similarity computation set `trainable=False` on the corresponding parameter.") \
+            "in the similarity computation set ``trainable=False`` on the corresponding parameter.") \
         in str(err.value)
 
     with pytest.raises(TypeError) as err:
@@ -132,4 +132,4 @@ def test_non_numpy_grads_tensorflow():
 
     assert ("Could not convert gradient to `numpy` array for the named tensor: test."
             " To ignore these gradients in the similarity computation set "
-            "`trainable=False` on the corresponding parameter.") in str(err.value)
+            "``trainable=False`` on the corresponding parameter.") in str(err.value)

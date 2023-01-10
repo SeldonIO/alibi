@@ -45,12 +45,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  device: 'Union[int, str, torch.device, None]' = None,
                  verbose: bool = False,
                  ):
-        """``GradientSimilarity`` explainer.
+        """`GradientSimilarity` explainer.
 
         The gradient similarity explainer is used to find examples in the training data that the predictor considers
         similar to test instances the user wants to explain. It uses the gradients of the loss between the model output
         and the training data labels. These are compared using the similarity function specified by ``sim_fn``. The
-        GradientSimilarity can be applied to models trained for both classification and regression tasks.
+        `GradientSimilarity` explainer can be applied to models trained for both classification and regression tasks.
 
 
         Parameters
@@ -131,9 +131,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
         non_trainable_layers = self.backend._get_non_trainable(self.predictor)
         if non_trainable_layers:
-            layers_msg = 'The following tensors are not trainable: '
+            layers_msg = 'The following tensors are non-trainable: '
             layers = ", ".join([f"'{layer}'" for layer in non_trainable_layers if layer is not None])
-            warning_msg = ("Some layers in the model are not trainable. These layers don't have gradients "
+            warning_msg = ("Some layers in the model are non-trainable. These layers don't have gradients "
                            "and will not be included in the computation of gradient similarity. "
                            f"{layers_msg}{layers}")
             warnings.warn(warning_msg)  # todo: scope warning to this location
@@ -143,8 +143,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer.
 
-        The ``GradientSimilarity`` explainer requires the model gradients over the training data. In the explain method
-        it compares them to the model gradients for the test instance(s). If ``precompute_grads`` was set to ``True`` on
+        The `GradientSimilarity` explainer requires the model gradients over the training data. In the explain method
+        it compares them to the model gradients for the test instance(s). If `precompute_grads` was set to ``True`` on
         initialization then the gradients are precomputed here and stored. This will speed up the explain method call
         but storing the gradients may not be feasible for large models.
 

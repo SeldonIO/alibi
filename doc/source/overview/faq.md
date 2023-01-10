@@ -68,7 +68,7 @@ This is a known issue with the current implementation, see [here](https://github
 
 ## Similarity explanations
 
-### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a large model and it runs very slow. If I use `precompute_grads=True` I get out of memory errors?
+### I'm using the [GradientSimilarity](../methods/Similarity.ipynb) method on a large model and it runs very slow. If I use `precompute_grads=True` I get out of memory errors. How do I solve this?
 
 Large models with many parameters result in the similarity method running very slow and using `precompute_grads=True` may not be an option due to the memory cost. The best solutions for this problem are:
 

@@ -69,7 +69,7 @@ class _TensorFlowBackend:
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
             raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
-                             'gradients in the similarity computation set `trainable=False` on the '
+                             'gradients in the similarity computation set ``trainable=False`` on the '
                              'corresponding parameter.'))
         return grad.numpy().reshape(-1)
 
@@ -87,7 +87,7 @@ class _TensorFlowBackend:
         if device is None or isinstance(device, str):
             _TensorFlowBackend.device = device
         else:
-            raise TypeError(f"`device` must be a `string` or `None`. Got {type(device)} instead.")
+            raise TypeError(f"`device` must be a ``string`` or ``None``. Got {type(device)} instead.")
 
     @staticmethod
     def to_numpy(X: tf.Tensor) -> np.ndarray:
@@ -109,8 +109,7 @@ class _TensorFlowBackend:
         """
 
         if len(model.trainable_weights) == 0:
-            raise ValueError('The model has no trainable weights. This method requires at least'
-                             'one trainable parameter to compute the gradients for. '
-                             'Set `trainable=True` on the model or a model weight')
-
+            raise ValueError("The model has no trainable weights. This method requires at least "
+                             "one trainable parameter to compute the gradients for. "
+                             "Set ``trainable=True`` on the model or a model weight.")
         return [getattr(weight, 'name', None) for weight in model.non_trainable_weights]

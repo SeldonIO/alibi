@@ -141,7 +141,7 @@ def test_correct_grad_dot_sim_result_tf(seed, normed_ds):
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
 
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -167,7 +167,7 @@ def test_correct_grad_cos_sim_result_tf(seed, ds):
     `tensorflow` backend.
     """
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -193,7 +193,7 @@ def test_grad_dot_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -217,7 +217,7 @@ def test_grad_cos_result_order_tf(seed):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -241,7 +241,7 @@ def test_multiple_test_instances_grad_cos(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -271,7 +271,7 @@ def test_multiple_test_instances_grad_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -298,7 +298,7 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
     """
     ds = np.array([[1, 0], [0.9, 0.1], [0.5 * 100, 0.5 * 100]]).astype('float32')
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
 
@@ -337,14 +337,14 @@ def test_multiple_test_instances_stored_grads_asym_dot(precompute_grads):
 
 
 def test_non_trainable_layer_warnings_tf():
-    """Test Non trainable layer warnings tensorflow.
+    """Test non-trainable layer warnings `tensorflow`.
 
-    Test that warnings are raised when user passes non-trainable layers to grad sim method for
-    tensorflow models.
+    Test that warnings are raised when user passes non-trainable layers to `GradientSimilarity` method for
+    `tensorflow` models.
 
-    Note: Keras batch norm layers register non-trainable weights by default and so will raise the
-    warning we test for here. This is different to the pytorch behavour which doesn't include
-    the batch norm parameters in model.parameters().
+    Note: `Keras` batch norm layers register non-trainable weights by default and so will raise the
+    warning we test for here. This is different to the `pytorch` behavour which doesn't include
+    the batch norm parameters in ``model.parameters()``.
     """
     model = keras.Sequential([
         keras.layers.Dense(10),
@@ -356,7 +356,7 @@ def test_non_trainable_layer_warnings_tf():
         ])
     ])
 
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 10))
 
@@ -377,11 +377,11 @@ def test_non_trainable_layer_warnings_tf():
             backend='tensorflow',
         )
 
-    assert ("Some layers in the model are not trainable. These layers don't have "
+    assert ("Some layers in the model are non-trainable. These layers don't have "
             "gradients and will not be included in the computation of gradient similarity.") \
         in str(record[0].message)
 
-    assert "The following tensors are not trainable:" \
+    assert "The following tensors are non-trainable:" \
         in str(record[0].message)
     for tensor_name in tensor_names:
         # print(tensor_name, str(record[0].message).split(':')[-1])
@@ -389,10 +389,10 @@ def test_non_trainable_layer_warnings_tf():
 
 
 def test_non_trainable_layer_warnings_pt():
-    """Test Non trainable layer warnings pytorch.
+    """Test non-trainable layer warnings `pytorch`.
 
-    Test that warnings are raised when user passes non-trainbable layers to grad sim method for
-    pytorch models.
+    Test that warnings are raised when user passes non-trainbable layers to to `GradientSimilarity` method for
+    `pytorch` models.
     """
 
     class Model(nn.Module):
@@ -429,21 +429,21 @@ def test_non_trainable_layer_warnings_pt():
             backend='pytorch'
         )
 
-    assert ("Some layers in the model are not trainable. These layers don't have "
+    assert ("Some layers in the model are non-trainable. These layers don't have "
             "gradients and will not be included in the computation of gradient similarity.") \
         in str(record[0].message)
 
-    assert "The following tensors are not trainable:" \
+    assert "The following tensors are non-trainable:" \
         in str(record[0].message)
     for tensor_name in tensor_names:
         assert tensor_name in str(record[0].message)
 
 
 def test_not_trainable_model_error_tf():
-    """Test Not trainable model error tensorflow."""
+    """Test non-trainable model error `tensorflow`."""
 
     model = keras.Sequential([keras.layers.Dense(1, use_bias=False)])
-    # GradSim method checks weights are trainable so we need to build the model before passing it to the
+    # GradientSimilarity method checks weights are trainable so we need to build the model before passing it to the
     # method
     model.build((None, 2))
     model.trainable = False
@@ -455,13 +455,13 @@ def test_not_trainable_model_error_tf():
             sim_fn='grad_dot',
             backend='tensorflow'
         )
-    assert err.value.args[0] == ('The model has no trainable weights. This method requires at least'
+    assert err.value.args[0] == ('The model has no trainable weights. This method requires at least '
                                  'one trainable parameter to compute the gradients for. '
-                                 'Set `trainable=True` on the model or a model weight')
+                                 'Set ``trainable=True`` on the model or a model weight.')
 
 
 def test_not_trainable_model_error_torch():
-    """Test Not trainable model error pytorch."""
+    """Test non-trainable model error `pytorch`."""
 
     model = nn.Linear(2, 1, bias=False)
     model.requires_grad_(False)
@@ -475,6 +475,6 @@ def test_not_trainable_model_error_torch():
             backend='pytorch'
         )
 
-    assert err.value.args[0] == ('The model has no trainable parameters. This method requires at least'
+    assert err.value.args[0] == ('The model has no trainable parameters. This method requires at least '
                                  'one trainable parameter to compute the gradients for. '
-                                 "Try setting `.requires_grad_(True)` on the model or one of it's parameters")
+                                 "Try setting ``.requires_grad_(True)`` on the model or one of its parameters.")

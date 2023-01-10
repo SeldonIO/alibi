@@ -68,7 +68,7 @@ class _PytorchBackend:
         if not hasattr(grad, 'numpy'):
             name = f' for the named tensor: {name}' if name else ''
             raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
-                             'gradients in the similarity computation set `requires_grad=False` on the '
+                             'gradients in the similarity computation set ``requires_grad=False`` on the '
                              'corresponding parameter.'))
         return grad.reshape(-1).cpu().numpy()
 
@@ -91,7 +91,7 @@ class _PytorchBackend:
         elif isinstance(device, torch.device):
             _PytorchBackend.device = device
         elif device is not None:
-            raise TypeError(("`device` must be a `None`, `string`, `integer` or "
+            raise TypeError(("`device` must be a ``None``, ``string``, ``integer`` or "
                             f"`torch.device` object. Got {type(device)} instead."))
 
     @staticmethod
@@ -116,8 +116,8 @@ class _PytorchBackend:
                   if not param.requires_grad]
 
         if len(params) == len(list(model.parameters())):
-            raise ValueError('The model has no trainable parameters. This method requires at least'
-                             'one trainable parameter to compute the gradients for. '
-                             "Try setting `.requires_grad_(True)` on the model or one of it's parameters")
+            raise ValueError("The model has no trainable parameters. This method requires at least "
+                             "one trainable parameter to compute the gradients for. "
+                             "Try setting ``.requires_grad_(True)`` on the model or one of its parameters.")
 
         return params

@@ -87,7 +87,7 @@ class _TensorFlowBackend:
         if device is None or isinstance(device, str):
             _TensorFlowBackend.device = device
         else:
-            raise TypeError(f"`device` must be a ``string`` or ``None``. Got {type(device)} instead.")
+            raise TypeError(f"`device` must be a `string` or ``None``. Got {type(device)} instead.")
 
     @staticmethod
     def to_numpy(X: tf.Tensor) -> np.ndarray:

@@ -91,7 +91,7 @@ class _PytorchBackend:
         elif isinstance(device, torch.device):
             _PytorchBackend.device = device
         elif device is not None:
-            raise TypeError(("`device` must be a ``None``, ``string``, ``integer`` or "
+            raise TypeError(("`device` must be a ``None``, `string`, `integer` or "
                             f"`torch.device` object. Got {type(device)} instead."))
 
     @staticmethod

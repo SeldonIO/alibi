@@ -362,10 +362,6 @@ def test_non_trainable_layer_warnings_tf():
 
     model.layers[1].trainable = False
     model.layers[-1].layers[1].trainable = False
-
-    # tensor_names = [tensor.name for tensor in model.layers[1].non_trainable_weights]
-    # tensor_names.extend([tensor.name for tensor in model.layers[-1].layers[1].non_trainable_weights])
-    # tensor_names.extend([tensor.name for tensor in model.layers[2].non_trainable_weights])
     num_params_non_trainable = len(model.non_trainable_weights)
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 

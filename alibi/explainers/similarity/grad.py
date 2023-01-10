@@ -45,7 +45,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  device: 'Union[int, str, torch.device, None]' = None,
                  verbose: bool = False,
                  ):
-        """GradientSimilarity explainer.
+        """``GradientSimilarity`` explainer.
 
         The gradient similarity explainer is used to find examples in the training data that the predictor considers
         similar to test instances the user wants to explain. It uses the gradients of the loss between the model output
@@ -143,7 +143,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer.
 
-        The `GradientSimilarity` explainer requires the model gradients over the training data. In the explain method it
+        The ``GradientSimilarity`` explainer requires the model gradients over the training data. In the explain method it
         compares them to the model gradients for the test instance(s). If ``store_grads`` was set to ``True`` on
         initialization then the gradients are precomputed here and stored. This will speed up the explain method call
         but storing the gradients may not be feasible for large models.

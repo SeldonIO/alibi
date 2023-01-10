@@ -363,10 +363,10 @@ def test_non_trainable_layer_warnings_tf():
     model.layers[1].trainable = False
     model.layers[-1].layers[1].trainable = False
 
-    tensor_names = [tensor.name for tensor in model.layers[1].non_trainable_weights]
-    tensor_names.extend([tensor.name for tensor in model.layers[-1].layers[1].non_trainable_weights])
-    tensor_names.extend([tensor.name for tensor in model.layers[2].non_trainable_weights])
-
+    # tensor_names = [tensor.name for tensor in model.layers[1].non_trainable_weights]
+    # tensor_names.extend([tensor.name for tensor in model.layers[-1].layers[1].non_trainable_weights])
+    # tensor_names.extend([tensor.name for tensor in model.layers[2].non_trainable_weights])
+    num_params_non_trainable = len(model.non_trainable_weights)
     loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     with pytest.warns(Warning) as record:
@@ -377,15 +377,12 @@ def test_non_trainable_layer_warnings_tf():
             backend='tensorflow',
         )
 
-    assert ("Some layers in the model are non-trainable. These layers don't have "
-            "gradients and will not be included in the computation of gradient similarity.") \
-        in str(record[0].message)
-
-    assert "The following tensors are non-trainable:" \
-        in str(record[0].message)
-    for tensor_name in tensor_names:
-        # print(tensor_name, str(record[0].message).split(':')[-1])
-        assert tensor_name in str(record[0].message)
+    assert (f"Found {num_params_non_trainable} non-trainable parameters in the model. These parameters "
+            "don't have gradients and will not be included in the computation of gradient similarity."
+            " This might be because your model has layers that track statistics using non-trainable "
+            "parameters such as batch normalization layers. In this case, you don't need to worry. "
+            "Otherwise it's because you have set some parameters to be non-trainable and alibi is "
+            "letting you know.") == str(record[0].message)
 
 
 def test_non_trainable_layer_warnings_pt():
@@ -417,7 +414,7 @@ def test_non_trainable_layer_warnings_pt():
     model = Model(10, 20)
     model.linear_stack[2].weight.requires_grad = False
     model.linear_stack[4][1].weight.requires_grad = False
-    tensor_names = [name for name, tensor in model.named_parameters() if not tensor.requires_grad]
+    num_params_non_trainable = len([param for param in model.parameters() if not param.requires_grad])
 
     loss_fn = nn.CrossEntropyLoss()
 
@@ -429,14 +426,12 @@ def test_non_trainable_layer_warnings_pt():
             backend='pytorch'
         )
 
-    assert ("Some layers in the model are non-trainable. These layers don't have "
-            "gradients and will not be included in the computation of gradient similarity.") \
-        in str(record[0].message)
-
-    assert "The following tensors are non-trainable:" \
-        in str(record[0].message)
-    for tensor_name in tensor_names:
-        assert tensor_name in str(record[0].message)
+    assert (f"Found {num_params_non_trainable} non-trainable parameters in the model. These parameters "
+            "don't have gradients and will not be included in the computation of gradient similarity."
+            " This might be because your model has layers that track statistics using non-trainable "
+            "parameters such as batch normalization layers. In this case, you don't need to worry. "
+            "Otherwise it's because you have set some parameters to be non-trainable and alibi is "
+            "letting you know.") == str(record[0].message)
 
 
 def test_not_trainable_model_error_tf():

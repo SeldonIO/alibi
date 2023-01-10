@@ -4,7 +4,7 @@ Methods unique to the `tensorflow` backend are defined here. The interface this 
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Optional, Union, List
+from typing import Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -101,10 +101,10 @@ class _TensorFlowBackend:
         return X
 
     @staticmethod
-    def _get_non_trainable(model: keras.Model) -> List[Optional[str]]:
-        """Returns a list of non trainable parameters.
+    def _count_non_trainable(model: keras.Model) -> int:
+        """Returns number of non trainable parameters.
 
-        Returns a list of names of parameters that are non trainable. If no trainable parameter exists we raise
+        Returns the number of parameters that are non trainable. If no trainable parameter exists we raise
         a `ValueError`.
         """
 
@@ -112,4 +112,4 @@ class _TensorFlowBackend:
             raise ValueError("The model has no trainable weights. This method requires at least "
                              "one trainable parameter to compute the gradients for. "
                              "Set ``trainable=True`` on the model or a model weight.")
-        return [getattr(weight, 'name', None) for weight in model.non_trainable_weights]
+        return len(model.non_trainable_weights)

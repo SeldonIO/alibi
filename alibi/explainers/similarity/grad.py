@@ -129,14 +129,15 @@ class GradientSimilarity(BaseSimilarityExplainer):
             task_name=task
         )
 
-        non_trainable_layers = self.backend._get_non_trainable(self.predictor)
-        if non_trainable_layers:
-            layers_msg = 'The following tensors are non-trainable: '
-            layers = ", ".join([f"'{layer}'" for layer in non_trainable_layers if layer is not None])
-            warning_msg = ("Some layers in the model are non-trainable. These layers don't have gradients "
-                           "and will not be included in the computation of gradient similarity. "
-                           f"{layers_msg}{layers}")
-            warnings.warn(warning_msg)  # todo: scope warning to this location
+        num_non_trainable = self.backend._count_non_trainable(self.predictor)
+        if num_non_trainable:
+            warning_msg = (f"Found {num_non_trainable} non-trainable parameters in the model. These parameters "
+                           "don't have gradients and will not be included in the computation of gradient similarity."
+                           " This might be because your model has layers that track statistics using non-trainable "
+                           "parameters such as batch normalization layers. In this case, you don't need to worry. "
+                           "Otherwise it's because you have set some parameters to be non-trainable and alibi is "
+                           "letting you know.")
+            warnings.warn(warning_msg)
 
     def fit(self,
             X_train: np.ndarray,

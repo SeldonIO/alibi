@@ -4,7 +4,7 @@ Methods unique to the `pytorch` backend are defined here. The interface this cla
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Union, Optional, List
+from typing import Callable, Union, Optional
 
 import numpy as np
 import torch.nn as nn
@@ -105,19 +105,18 @@ class _PytorchBackend:
         return torch.argmax(X, dim=dim)
 
     @staticmethod
-    def _get_non_trainable(model: nn.Module) -> List[Optional[str]]:
-        """Returns a list of non trainable parameters.
+    def _count_non_trainable(model: nn.Module) -> int:
+        """Returns number of non trainable parameters.
 
-        Returns a list of names of parameters that are non trainable. If no trainable parameter exists we raise
+        Returns the number of parameters that are non trainable. If no trainable parameter exists we raise
         a `ValueError`.
         """
 
-        params = [name if name else None for name, param in model.named_parameters()
-                  if not param.requires_grad]
+        num_non_trainable_params = len([param for param in model.parameters() if not param.requires_grad])
 
-        if len(params) == len(list(model.parameters())):
+        if num_non_trainable_params == len(list(model.parameters())):
             raise ValueError("The model has no trainable parameters. This method requires at least "
                              "one trainable parameter to compute the gradients for. "
                              "Try setting ``.requires_grad_(True)`` on the model or one of its parameters.")
 
-        return params
+        return num_non_trainable_params

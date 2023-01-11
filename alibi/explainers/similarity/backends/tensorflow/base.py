@@ -8,7 +8,7 @@ from typing import Callable, Optional, Union
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
+from tensorflow import keras
 
 
 class _TensorFlowBackend:
@@ -50,8 +50,28 @@ class _TensorFlowBackend:
 
             # compute gradients of the loss w.r.t the weights
             grad_X_train = tape.gradient(loss, model.trainable_weights)
-            grad_X_train = np.concatenate([w.numpy().reshape(-1) for w in grad_X_train])
+            grad_X_train = np.concatenate([_TensorFlowBackend._grad_to_numpy(w, getattr(w, 'name', None))
+                                           for w in grad_X_train])
         return grad_X_train
+
+    @staticmethod
+    def _grad_to_numpy(grad: Union[tf.IndexedSlices, tf.Tensor], name: Optional[str] = None) -> np.ndarray:
+        """Convert gradient to `np.ndarray`.
+
+        Converts gradient tensor to flat `numpy` array. If the gradient is a sparse tensor, it is converted to a dense
+        tensor first.
+        """
+
+        if isinstance(grad, tf.IndexedSlices):
+            # see https://github.com/SeldonIO/alibi/issues/828
+            grad = tf.convert_to_tensor(grad)
+
+        if not hasattr(grad, 'numpy'):
+            name = f' for the named tensor: {name}' if name else ''
+            raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
+                             'gradients in the similarity computation set ``trainable=False`` on the '
+                             'corresponding parameter.'))
+        return grad.numpy().reshape(-1)
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> tf.Tensor:
@@ -67,11 +87,11 @@ class _TensorFlowBackend:
         if device is None or isinstance(device, str):
             _TensorFlowBackend.device = device
         else:
-            raise TypeError(f"`device` must be a string or None. Got {type(device)} instead.")
+            raise TypeError(f"`device` must be a `string` or ``None``. Got {type(device)} instead.")
 
     @staticmethod
-    def to_numpy(X: tf.Tensor) -> tf.Tensor:
-        """Converts a tensor to a `numpy` array."""
+    def to_numpy(X: tf.Tensor) -> np.ndarray:
+        """Converts a tensor to `np.ndarray`."""
         return X.numpy()
 
     @staticmethod
@@ -79,3 +99,17 @@ class _TensorFlowBackend:
         """Returns the index of the maximum value in a tensor."""
         X = tf.math.argmax(X, axis=dim)
         return X
+
+    @staticmethod
+    def _count_non_trainable(model: keras.Model) -> int:
+        """Returns number of non trainable parameters.
+
+        Returns the number of parameters that are non trainable. If no trainable parameter exists we raise
+        a `ValueError`.
+        """
+
+        if len(model.trainable_weights) == 0:
+            raise ValueError("The model has no trainable weights. This method requires at least "
+                             "one trainable parameter to compute the gradients for. "
+                             "Set ``trainable=True`` on the model or a model weight.")
+        return len(model.non_trainable_weights)

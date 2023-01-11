@@ -7,6 +7,7 @@ import copy
 from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
 from typing_extensions import Literal
 from enum import Enum
+import warnings
 
 import numpy as np
 
@@ -44,12 +45,12 @@ class GradientSimilarity(BaseSimilarityExplainer):
                  device: 'Union[int, str, torch.device, None]' = None,
                  verbose: bool = False,
                  ):
-        """GradientSimilarity explainer.
+        """`GradientSimilarity` explainer.
 
         The gradient similarity explainer is used to find examples in the training data that the predictor considers
         similar to test instances the user wants to explain. It uses the gradients of the loss between the model output
         and the training data labels. These are compared using the similarity function specified by ``sim_fn``. The
-        GradientSimilarity can be applied to models trained for both classification and regression tasks.
+        `GradientSimilarity` explainer can be applied to models trained for both classification and regression tasks.
 
 
         Parameters
@@ -128,13 +129,23 @@ class GradientSimilarity(BaseSimilarityExplainer):
             task_name=task
         )
 
+        num_non_trainable = self.backend._count_non_trainable(self.predictor)
+        if num_non_trainable:
+            warning_msg = (f"Found {num_non_trainable} non-trainable parameters in the model. These parameters "
+                           "don't have gradients and will not be included in the computation of gradient similarity."
+                           " This might be because your model has layers that track statistics using non-trainable "
+                           "parameters such as batch normalization layers. In this case, you don't need to worry. "
+                           "Otherwise it's because you have set some parameters to be non-trainable and alibi is "
+                           "letting you know.")
+            warnings.warn(warning_msg)
+
     def fit(self,
             X_train: np.ndarray,
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer.
 
-        The GradientSimilarity explainer requires the model gradients over the training data. In the explain method it
-        compares them to the model gradients for the test instance(s). If ``store_grads`` was set to ``True`` on
+        The `GradientSimilarity` explainer requires the model gradients over the training data. In the explain method
+        it compares them to the model gradients for the test instance(s). If ``precompute_grads=True`` on
         initialization then the gradients are precomputed here and stored. This will speed up the explain method call
         but storing the gradients may not be feasible for large models.
 

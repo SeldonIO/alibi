@@ -50,8 +50,27 @@ class _PytorchBackend:
         loss = loss_fn(output, Y)
         loss.backward()
         model.train(initial_model_state)
-        return np.concatenate([_PytorchBackend.to_numpy(param.grad).reshape(-1)  # type: ignore [arg-type] # see #810
-                               for param in model.parameters()])
+
+        return np.concatenate([_PytorchBackend._grad_to_numpy(grad=param.grad, name=name)
+                               for name, param in model.named_parameters()
+                               if param.grad is not None])
+
+    @staticmethod
+    def _grad_to_numpy(grad: torch.Tensor, name: Optional[str] = None) -> np.ndarray:
+        """Convert gradient to `np.ndarray`.
+
+        Converts gradient tensor to flat `numpy` array. If the gradient is a sparse tensor, it is converted to a dense
+        tensor first.
+        """
+        if grad.is_sparse:
+            grad = grad.to_dense()
+
+        if not hasattr(grad, 'numpy'):
+            name = f' for the named tensor: {name}' if name else ''
+            raise TypeError((f'Could not convert gradient to `numpy` array{name}. To ignore these '
+                             'gradients in the similarity computation set ``requires_grad=False`` on the '
+                             'corresponding parameter.'))
+        return grad.reshape(-1).cpu().numpy()
 
     @staticmethod
     def to_tensor(X: np.ndarray) -> torch.Tensor:
@@ -72,15 +91,32 @@ class _PytorchBackend:
         elif isinstance(device, torch.device):
             _PytorchBackend.device = device
         elif device is not None:
-            raise TypeError(("`device` must be a None, string, integer or "
-                            f"torch.device object. Got {type(device)} instead."))
+            raise TypeError(("`device` must be a ``None``, `string`, `integer` or "
+                            f"`torch.device` object. Got {type(device)} instead."))
 
     @staticmethod
     def to_numpy(X: torch.Tensor) -> np.ndarray:
-        """Maps a `pytorch` tensor to a `numpy` array."""
+        """Maps a `pytorch` tensor to `np.ndarray`."""
         return X.detach().cpu().numpy()
 
     @staticmethod
     def argmax(X: torch.Tensor, dim=-1) -> torch.Tensor:
         """Returns the index of the maximum value in a tensor."""
         return torch.argmax(X, dim=dim)
+
+    @staticmethod
+    def _count_non_trainable(model: nn.Module) -> int:
+        """Returns number of non trainable parameters.
+
+        Returns the number of parameters that are non trainable. If no trainable parameter exists we raise
+        a `ValueError`.
+        """
+
+        num_non_trainable_params = len([param for param in model.parameters() if not param.requires_grad])
+
+        if num_non_trainable_params == len(list(model.parameters())):
+            raise ValueError("The model has no trainable parameters. This method requires at least "
+                             "one trainable parameter to compute the gradients for. "
+                             "Try setting ``.requires_grad_(True)`` on the model or one of its parameters.")
+
+        return num_non_trainable_params

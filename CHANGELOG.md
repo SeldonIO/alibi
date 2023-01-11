@@ -1,11 +1,35 @@
 # Change Log
 
-## [v0.x.x](https://github.com/SeldonIO/alibi/tree/v0.x.x)(202x-xx-xx)
-[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.x.x)
+## [v0.9.0](https://github.com/SeldonIO/alibi/tree/v0.x.x) (2023-xx-xx)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.9.0)
 
 ### Added
 - **New feature** `PermutationImportance` explainer implementing the permutation feature importance global explanations. Also included is a `plot_permutation_importance` utility function for flexible plotting of the resulting feature importance scores ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html),  [#798](https://github.com/SeldonIO/alibi/pull/798)). 
 - **New feature** `PartialDependenceVariance` explainer implementing partial dependence variance global explanations. Also included is a `plot_pd_variance` utility function for flexible plotting of the resulting PD variance plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html), [#758](https://github.com/SeldonIO/alibi/pull/758)).
+
+### Fixed
+- `GradientSimilarity` explainer now automatically handles sparse tensors in the model by converting the gradient tensors to dense ones before calculating similarity. This used to be a source of bugs when calculating similarity for models with embedding layers for which gradients tensors are sparse by default. Additionally, it now filters any non-trainable parameters and doesn't consider those in the calculation as no gradients exist. A warning is raised if any non-trainable layers or parameters are detected ([#829](https://github.com/SeldonIO/alibi/pull/829)).
+- Updated the discussion of the interpretation of `ALE`. The previous examples and documentation had some misleading claims; these have been removed and reworked with an emphasis on the mostly qualitative interpretation of `ALE` plots ([#838](https://github.com/SeldonIO/alibi/pull/838), [#846](https://github.com/SeldonIO/alibi/pull/846)).
+
+### Changed
+- Deprecated the use of the legacy Boston housing dataset in examples and testing. The new examples now use the California housing dataset ([#838](https://github.com/SeldonIO/alibi/pull/838), [#834](https://github.com/SeldonIO/alibi/pull/834)).
+- Modularized the computation of prototype importances and plotting for `ProtoSelect`, allowing greater flexibility to the end user ([#826](https://github.com/SeldonIO/alibi/pull/826)).
+- Roadmap documentation page removed due to going out of date ([#842](https://github.com/SeldonIO/alibi/pull/842)).
+
+### Development
+- Tests added for `tensorflow` models used in `CounterfactualRL` ([#793](https://github.com/SeldonIO/alibi/pull/793)).
+- Tests added for `pytorch` models used in `CounterfactualRL` ([#799](https://github.com/SeldonIO/alibi/pull/799)).
+- Tests added for `ALE` plotting functionality ([#816](https://github.com/SeldonIO/alibi/pull/816)).
+- Tests added for `PartialDependence` plotting functionality ([#819](https://github.com/SeldonIO/alibi/pull/819)).
+- Tests added for `PartialDependenceVariance` plotting functionality ([#820](https://github.com/SeldonIO/alibi/pull/820)).
+- Tests added for `PermutationImportance` plotting functionality ([#824](https://github.com/SeldonIO/alibi/pull/824)).
+- Tests addef for `ProtoSelect` plotting functionality ([#841](https://github.com/SeldonIO/alibi/pull/841)).
+- Tests added for the `datasets` subpackage ([#814](https://github.com/SeldonIO/alibi/pull/814)).
+- Fixed optional dependency installation during CI to make sure dependencies are consistent ([#817](https://github.com/SeldonIO/alibi/pull/817)).
+- Synchronize notebook CI workflow with the main CI workflow ([#818](https://github.com/SeldonIO/alibi/pull/818)).
+- Version of `pytest-cov` bumped to `4.x` ([#794](https://github.com/SeldonIO/alibi/pull/794)).
+- Version of `pytest-xdist` bumped to `3.x` ([#808](https://github.com/SeldonIO/alibi/pull/808)).
+- Version of `tox` bumped to `4.x` ([#832](https://github.com/SeldonIO/alibi/pull/832)).
 
 
 ## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-26)

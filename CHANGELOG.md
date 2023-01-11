@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.9.0](https://github.com/SeldonIO/alibi/tree/v0.x.x)(2023-xx-xx)
+## [v0.9.0](https://github.com/SeldonIO/alibi/tree/v0.x.x) (2023-xx-xx)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.9.0)
 
 ### Added
@@ -30,8 +30,6 @@
 - Version of `pytest-cov` bumped to `4.x` ([#794](https://github.com/SeldonIO/alibi/pull/794)).
 - Version of `pytest-xdist` bumped to `3.x` ([#808](https://github.com/SeldonIO/alibi/pull/808)).
 - Version of `tox` bumped to `4.x` ([#832](https://github.com/SeldonIO/alibi/pull/832)).
-- Version of `sphinx` bumped ([#839](https://github.com/SeldonIO/alibi/pull/839)).
-- Version of `sphinx-autodoc-typehints` bumped ([#844](https://github.com/SeldonIO/alibi/pull/844)).
 
 
 ## [v0.8.0](https://github.com/SeldonIO/alibi/tree/v0.8.0) (2022-09-26)

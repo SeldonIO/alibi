@@ -107,7 +107,7 @@ class ALE(Explainer):
         X
             An `N x F` tabular dataset used to calculate the ALE curves. This is typically the training dataset
             or a representative sample.
-        features:
+        features
             Features for which to calculate ALE.
         min_bin_points
             Minimum number of points each discretized interval should contain to ensure more precise

@@ -452,10 +452,10 @@ class DistributedExplainer:
                 on one CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when \
                 few physical cores are available. In particular, this is highly useful when the user wants to share \
                 a GPU for multiple tasks, with the caviat that the machine learning framework itself needs to \
-                support running multiple replicas on the same GPU. See the `ray` documentation `here_` for details.
+                support running multiple replicas on the same GPU. See the `ray` documentation `here`_ for details.
                 
                 .. _here:
-                   https://docs.ray.io/en/stable/resources.html#fractional-resources
+                   https://docs.ray.io/en/latest/ray-core/scheduling/resources.html#fractional-resource-requirements
                 
                 - ``'algorithm'`` : ``str`` - this is specified internally by the caller. It is used in order to \
                 register target function callbacks for the parallel pool These should be implemented in the global \

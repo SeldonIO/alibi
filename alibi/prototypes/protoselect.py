@@ -634,6 +634,7 @@ def visualize_image_prototypes(summary: 'Explanation',
     Plot the images of the prototypes at the location given by the `reducer` representation.
     The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
     classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+
     Parameters
     ----------
     summary

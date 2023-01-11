@@ -62,7 +62,7 @@ nbsphinx_execute = "auto"
 
 # Create symlinks for example notebooks
 import glob
-nb_files = [os.path.basename(f) for f in glob.glob(os.path.join('examples','*.ipynb')) 
+nb_files = [os.path.basename(f) for f in glob.glob(os.path.join('examples','*.ipynb'))
         if not os.path.basename(f).startswith('temp_')]
 for nb_file in nb_files:
     target = os.path.join('../../examples', nb_file)
@@ -81,7 +81,7 @@ apidoc_extra_args = ['-d 6']
 # mock imports
 autodoc_mock_imports = ['sklearn', 'skimage', 'requests',
                         'cv2', 'keras', 'seaborn', 'PIL', 'tensorflow', 'spacy',
-                        'catboost', 'dill', 'transformers', 'torch', 'matplotlib', 'mpl_toolkits']
+                        'catboost', 'dill', 'transformers', 'torch', 'matplotlib', 'mpl_toolkits', 'ray']
 
 # Napoleon settings
 napoleon_google_docstring = True
@@ -113,7 +113,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -275,7 +275,7 @@ git_rev + "doc/source/" + r"{{ docname }}"
 )
 
 # -- myst-parser configuration -----------------------------------------------
-# See https://myst-parser.readthedocs.io/en/stable/syntax/optional.html for 
+# See https://myst-parser.readthedocs.io/en/stable/syntax/optional.html for
 # details of available extensions.
 myst_enable_extensions = [
     "dollarmath",

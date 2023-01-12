@@ -37,17 +37,17 @@ jobs:
         os: [ubuntu-latest]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
         include: # Run macos and windows tests on only one python version
-          - os: windows-latest 
-            python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python) 
-          - os: macos-latest 
+          - os: windows-latest
+            python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
+          - os: macos-latest
             python-version:  '3.10'
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -101,7 +101,7 @@ jobs:
       options: --user root
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Create a virtualenv to use for docs build
         run: |
           python3.8 -m virtualenv $HOME/docs
@@ -125,9 +125,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.x
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
       - name: Check 3rd party licenses haven't changed
@@ -141,9 +141,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.x
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.8'
       - name: Check optional dependency imports are protected

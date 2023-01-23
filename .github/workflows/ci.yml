@@ -40,7 +40,7 @@ jobs:
           - os: windows-latest
             python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest
-            python-version:  '3.10'
+            python-version:  '3.9'  # Don't test python3.10 for macos (see https://github.com/orgs/community/discussions/38364 for details)
 
     steps:
       - name: Checkout code

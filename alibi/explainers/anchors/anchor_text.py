@@ -442,7 +442,7 @@ class AnchorText(Explainer):
             **kwargs
         )
 
-        result = mab.anchor_beam(
+        result: Any = mab.anchor_beam(
             delta=delta,
             epsilon=tau,
             batch_size=batch_size,
@@ -455,7 +455,7 @@ class AnchorText(Explainer):
             verbose=verbose,
             verbose_every=verbose_every,
             **kwargs,
-        )  # type: Any
+        )
 
         if self.sampling_strategy == self.SAMPLING_LANGUAGE_MODEL:
             # take the whole word (this points just to the first part of the word)

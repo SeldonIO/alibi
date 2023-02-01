@@ -164,7 +164,7 @@ class ProtoSelect(Summariser, FitMixin):
                            f'the prototypes selection set. Automatically setting `num_prototypes={num_prototypes}`.')
 
         # dictionary of prototypes indices for each class
-        protos = {l: [] for l in range(len(self.label_mapping))}  # type: Dict[int, List[int]]  # noqa: E741
+        protos: Dict[int, List[int]] = {l: [] for l in range(len(self.label_mapping))}  # noqa: E741
         # set of available prototypes indices. Note that initially we start with the entire set of Z,
         # but as the algorithm progresses, we remove the indices of the prototypes that we already selected.
         available_indices = set(range(len(self.Z)))

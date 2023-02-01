@@ -282,7 +282,7 @@ class CEM(Explainer, FitMixin):
             new_vars = [x for x in end_vars if x.name not in start_vars]
 
         # variables to initialize
-        self.setup = []  # type: list
+        self.setup: list = []
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.target.assign(self.assign_target))
         self.setup.append(self.const.assign(self.assign_const))
@@ -528,7 +528,8 @@ class CEM(Explainer, FitMixin):
                                        self.assign_adv_s: X,
                                        self.assign_no_info: self.no_info_val})
 
-            X_der_batch, X_der_batch_s = [], []  # type: Any, Any
+            X_der_batch: Any = []
+            X_der_batch_s: Any = []
 
             for i in range(self.max_iterations):
 

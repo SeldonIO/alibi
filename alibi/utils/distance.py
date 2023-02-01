@@ -122,8 +122,8 @@ def abdm(X: np.ndarray,
     # combine dict for categorical with binned features
     cat_vars_combined = {**cat_vars, **cat_vars_bin}
 
-    d_pair = {}  # type: Dict
-    X_cat_eq = {}  # type: Dict
+    d_pair: dict = {}
+    X_cat_eq: dict = {}
     for col, n_cat in cat_vars.items():
         X_cat_eq[col] = []
         for i in range(n_cat):  # for each category in categorical variable, store instances of each category

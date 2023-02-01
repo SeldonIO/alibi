@@ -484,8 +484,8 @@ class PartialDependenceBase(Explainer, ABC):
         `Explanation` object.
         """
         feature_deciles, feature_values = [], []
-        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
-        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
+        pd_values: Optional[List[np.ndarray]] = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None
+        ice_values: Optional[List[np.ndarray]] = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None
 
         for pd in pds:
             feature_values.append(pd['values'])

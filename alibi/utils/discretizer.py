@@ -30,8 +30,8 @@ class Discretizer(object):
         bins = self.bins(data)
         bins = [np.unique(x) for x in bins]
 
-        self.feature_intervals = {}  # type: Dict[int, list]
-        self.lambdas = {}            # type: Dict[int, Callable]
+        self.feature_intervals: Dict[int, list] = {}
+        self.lambdas: Dict[int, Callable] = {}
         for feature, qts in zip(self.to_discretize, bins):
 
             # get nb of borders (nb of bins - 1) and the feature name

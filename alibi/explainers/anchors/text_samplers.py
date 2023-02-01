@@ -58,7 +58,8 @@ class Neighbors:
         # the word itself is excluded so we add one to return the expected number of words
         top_n += 1
 
-        texts, similarities = [], []  # type: List, List
+        texts: List = []
+        similarities: List = []
         if word in self.nlp.vocab:
             word_vocab = self.nlp.vocab[word]
             queries = [w for w in self.to_check if w.is_lower == word_vocab.is_lower]
@@ -165,10 +166,12 @@ class UnknownSampler(AnchorTextSampler):
 
         # set nlp and perturbation options
         self.nlp = load_spacy_lexeme_prob(nlp)
-        self.perturb_opts = perturb_opts  # type: Union[Dict, None]
+        self.perturb_opts: Union[Dict, None] = perturb_opts
 
         # define buffer for word, punctuation and position
-        self.words, self.punctuation, self.positions = [], [], []  # type: List, List, List
+        self.words: List = []
+        self.punctuation: List = []
+        self.positions: List = []
 
     def set_text(self, text: str) -> None:
         """
@@ -269,7 +272,7 @@ class SimilaritySampler(AnchorTextSampler):
         self._synonyms_generator = Neighbors(self.nlp)
 
         # dict containing an np.array of similar words with same part of speech and an np.array of similarities
-        self.synonyms = {}  # type: Dict[str, Dict[str, np.ndarray]]
+        self.synonyms: Dict[str, Dict[str, np.ndarray]] = {}
         self.tokens: 'spacy.tokens.Doc'
         self.words: List[str] = []
         self.positions: List[int] = []

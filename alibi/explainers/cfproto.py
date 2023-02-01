@@ -641,7 +641,7 @@ class CounterfactualProto(Explainer, FitMixin):
             new_vars = [x for x in end_vars if x.name not in start_vars]
 
         # variables to initialize
-        self.setup = []  # type: list
+        self.setup: list = []
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.target.assign(self.assign_target))
         self.setup.append(self.const.assign(self.assign_const))
@@ -713,7 +713,7 @@ class CounterfactualProto(Explainer, FitMixin):
         else:
             preds = np.argmax(self.predict(train_data), axis=1)
 
-        self.cat_vars_ord = dict()  # type: dict
+        self.cat_vars_ord: dict = dict()
         if self.is_cat:  # compute distance metrics for categorical variables
 
             if self.ohe:  # convert OHE to ordinal encoding
@@ -768,7 +768,7 @@ class CounterfactualProto(Explainer, FitMixin):
                                                  update_feature_range=False)
 
                 # combine abdm and mvdm
-                self.d_abs = {}  # type: Dict
+                self.d_abs: Any = {}
                 new_feature_range = tuple([f.copy() for f in self.feature_range])
                 for k, v in d_abs_abdm.items():
                     self.d_abs[k] = v * w + d_abs_mvdm[k] * (1 - w)
@@ -787,7 +787,7 @@ class CounterfactualProto(Explainer, FitMixin):
                                                                   update_feature_range=update_feature_range)
 
             # create array used for ragged tensor placeholder
-            self.d_abs_ragged = []  # type: Any
+            self.d_abs_ragged: Any = []
             for _, v in self.d_abs.items():
                 n_pad = self.max_cat - len(v)
                 v_pad = np.pad(v, (0, n_pad), 'constant')
@@ -796,8 +796,8 @@ class CounterfactualProto(Explainer, FitMixin):
 
         if self.enc_model:
             enc_data = self.enc.predict(train_data)  # type: ignore[union-attr]
-            self.class_proto = {}  # type: dict
-            self.class_enc = {}  # type: dict
+            self.class_proto: dict = {}
+            self.class_enc: dict = {}
             for i in range(self.classes):
                 idx = np.where(preds == i)[0]
                 self.class_proto[i] = np.expand_dims(np.mean(enc_data[idx], axis=0), axis=0)
@@ -1083,7 +1083,7 @@ class CounterfactualProto(Explainer, FitMixin):
         overall_best_grad = (np.zeros(self.shape), np.zeros(self.shape))
 
         # keep track of counterfactual evolution
-        self.cf_global = {i: [] for i in range(self.c_steps)}  # type: dict
+        self.cf_global: dict = {i: [] for i in range(self.c_steps)}
 
         # iterate over nb of updates for 'c'
         for _ in range(self.c_steps):
@@ -1106,7 +1106,8 @@ class CounterfactualProto(Explainer, FitMixin):
                 feed_dict[self.assign_map] = self.d_abs_ragged
             self.sess.run(self.setup, feed_dict=feed_dict)
 
-            X_der_batch, X_der_batch_s = [], []  # type: Any, Any
+            X_der_batch: Any = []
+            X_der_batch_s: Any = []
 
             for i in range(self.max_iterations):
 

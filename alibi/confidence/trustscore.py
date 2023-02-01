@@ -112,8 +112,8 @@ class TrustScore:
             Number of prediction classes, needs to be provided if `Y` equals the predicted class.
         """
         self.classes = classes if classes is not None else Y.shape[1]
-        self.kdtrees = [None] * self.classes  # type: Any
-        self.X_kdtree = [None] * self.classes  # type: Any
+        self.kdtrees: Any = [None] * self.classes
+        self.X_kdtree: Any = [None] * self.classes
 
         # KDTree and kNeighborsClassifier need 2D data
         if len(X.shape) > 2:
@@ -179,7 +179,7 @@ class TrustScore:
             X = X.reshape(X.shape[0], -1)
 
         # init distance matrix: [nb instances, nb classes]
-        d = np.tile(np.nan, (X.shape[0], self.classes))  # type: np.ndarray
+        d: np.ndarray = np.tile(np.nan, (X.shape[0], self.classes))
 
         for c in range(self.classes):
             d_tmp = self.kdtrees[c].query(X, k=k)[0]  # get k nearest neighbors for each class

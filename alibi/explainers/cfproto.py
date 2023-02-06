@@ -768,7 +768,7 @@ class CounterfactualProto(Explainer, FitMixin):
                                                  update_feature_range=False)
 
                 # combine abdm and mvdm
-                self.d_abs: Any = {}
+                self.d_abs: Dict = {}
                 new_feature_range = tuple([f.copy() for f in self.feature_range])
                 for k, v in d_abs_abdm.items():
                     self.d_abs[k] = v * w + d_abs_mvdm[k] * (1 - w)

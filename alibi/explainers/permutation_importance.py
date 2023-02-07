@@ -933,7 +933,7 @@ def plot_permutation_importance(exp: Explanation,
         n_cols = min(n_cols, n_metric_names)
         n_rows = math.ceil(n_metric_names / n_cols)
 
-        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 

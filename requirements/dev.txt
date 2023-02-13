@@ -1,6 +1,6 @@
 # development dependencies (see docs.txt for documentation building dependencies)
 # linting and static type-checking
-flake8>=3.7.7, <6.0.0
+flake8>=3.7.7, <7.0.0
 mypy~= 0.900
 types-requests>=2.25.0, <3.0.0
 # testing

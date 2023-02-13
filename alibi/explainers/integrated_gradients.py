@@ -1153,8 +1153,9 @@ class IntegratedGradients(Explainer):
             paths.append(path)
 
         if forward_kwargs:
-            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}  # type: Optional[dict]
+            paths_kwargs: Optional[dict] = {k: np.concatenate([forward_kwargs[k]
+                                            for _ in range(self.n_steps)], axis=0)
+                                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 
@@ -1269,8 +1270,9 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
         if forward_kwargs:
-            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}  # type: Optional[dict]
+            paths_kwargs: Optional[dict] = {k: np.concatenate([forward_kwargs[k]
+                                            for _ in range(self.n_steps)], axis=0)
+                                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 

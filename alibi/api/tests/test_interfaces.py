@@ -3,11 +3,11 @@ import numpy as np
 import pytest
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
 
-valid_meta = {"type": "blackbox", "explanations": ['local'], "params": {}}  # type: dict
-valid_data = {"anchor": [], "precision": [], "coverage": []}  # type: dict
+valid_meta: dict = {"type": "blackbox", "explanations": ['local'], "params": {}}
+valid_data: dict = {"anchor": [], "precision": [], "coverage": []}
 
-invalid_meta = []  # type: list
-invalid_data = {}  # type: dict
+invalid_meta: list = []
+invalid_data: dict = {}
 
 # testing dictionaries
 data_dicts = [

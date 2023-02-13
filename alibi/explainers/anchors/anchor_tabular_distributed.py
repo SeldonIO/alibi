@@ -314,7 +314,7 @@ class DistributedAnchorTabular(AnchorTabular):
             cache_margin=cache_margin,
             **kwargs,
         )
-        result = mab.anchor_beam(
+        result: Any = mab.anchor_beam(
             delta=delta, epsilon=tau,
             desired_confidence=threshold,
             beam_size=beam_size,
@@ -324,7 +324,7 @@ class DistributedAnchorTabular(AnchorTabular):
             coverage_samples=coverage_samples,
             verbose=verbose,
             verbose_every=verbose_every,
-        )  # type: Any
+        )
         self.mab = mab
 
         return self._build_explanation(X, result, self.instance_label, params)

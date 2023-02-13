@@ -60,8 +60,10 @@ class LanguageModelSampler(AnchorTextSampler):
                 self.subwords_mask[vocab[token]] = True
 
         # define head, tail part of the text
-        self.head, self.tail = '', ''  # type: str, str
-        self.head_tokens, self.tail_tokens = [], []  # type: List[str], List[str]
+        self.head: str = ''
+        self.tail: str = ''
+        self.head_tokens: List[str] = []
+        self.tail_tokens: List[str] = []
 
     def get_sample_ids(self,
                        punctuation: str = string.punctuation,

@@ -62,10 +62,10 @@ class TabularSampler:
         self.categorical_features = categorical_features
         self.feature_values = feature_values
 
-        self.val2idx = {}  # type: Dict[int, DefaultDict[int, Any]]
-        self.cat_lookup = {}  # type: Dict[int, int]
-        self.ord_lookup = {}  # type: Dict[int, set]
-        self.enc2feat_idx = {}  # type: Dict[int, int]
+        self.val2idx: Dict[int, DefaultDict[int, Any]] = {}
+        self.cat_lookup: Dict[int, int] = {}
+        self.ord_lookup: Dict[int, set] = {}
+        self.enc2feat_idx: Dict[int, int] = {}
 
     def deferred_init(self, train_data: Union[np.ndarray, Any], d_train_data: Union[np.ndarray, Any]) -> Any:
         """
@@ -132,7 +132,7 @@ class TabularSampler:
             Instance to be explained.
         """
 
-        label = self.predictor(X.reshape(1, -1))[0]  # type: int
+        label: int = self.predictor(X.reshape(1, -1))[0]
         self.instance_label = label
 
     def set_n_covered(self, n_covered: int) -> None:
@@ -162,7 +162,7 @@ class TabularSampler:
         """
 
         all_features = self.numerical_features + self.categorical_features
-        val2idx = {f_id: defaultdict(None) for f_id in all_features}  # type: Dict[int, DefaultDict[int, np.ndarray]]
+        val2idx: Dict[int, DefaultDict[int, np.ndarray]] = {f_id: defaultdict(None) for f_id in all_features}
         for feat in val2idx:
             for value in range(len(self.feature_values[feat])):
                 val2idx[feat][value] = (self.d_train_data[:, feat] == value).nonzero()[0]
@@ -474,11 +474,11 @@ class TabularSampler:
         """
 
         # bins one can sample from for each numerical feature (key: feat id)
-        allowed_bins = {}  # type: Dict[int, Set[int]]
+        allowed_bins: Dict[int, Set[int]] = {}
         # index of database rows (values) for each feature in result (key: feat id)
-        allowed_rows = {}  # type: Dict[int, Any[int]]
+        allowed_rows: Dict[int, Any[int]] = {}
         # feats for which there are not training records in the desired bin/with that value
-        unk_feat_values = []  # type: List[Tuple[int, str, Optional[int]]]
+        unk_feat_values: List[Tuple[int, str, Optional[int]]] = []
         cat_enc_ids = [enc_id for enc_id in anchor if enc_id in self.cat_lookup.keys()]
         ord_enc_ids = [enc_id for enc_id in anchor if enc_id in self.ord_lookup.keys()]
         if cat_enc_ids:
@@ -652,7 +652,7 @@ class AnchorTabular(Explainer, FitMixin):
 
         self.numerical_features = [x for x in range(len(feature_names)) if x not in self.categorical_features]
 
-        self.samplers = []  # type: list
+        self.samplers: list = []
         self.ohe = ohe
         self.seed = seed
 
@@ -839,7 +839,7 @@ class AnchorTabular(Explainer, FitMixin):
             sample_cache_size=binary_cache_size,
             cache_margin=cache_margin,
             **kwargs)
-        result = mab.anchor_beam(
+        result: Any = mab.anchor_beam(
             delta=delta, epsilon=tau,
             desired_confidence=threshold,
             beam_size=beam_size,
@@ -849,7 +849,7 @@ class AnchorTabular(Explainer, FitMixin):
             coverage_samples=coverage_samples,
             verbose=verbose,
             verbose_every=verbose_every,
-        )  # type: Any
+        )
         self.mab = mab
 
         return self._build_explanation(X, result, self.instance_label, params)
@@ -926,7 +926,7 @@ class AnchorTabular(Explainer, FitMixin):
                     ordinal_ranges[feat_id][0], min(list(self.ord_lookup[idx])) - 1
                 )
 
-        handled = set()  # type: Set[int]
+        handled: Set[int] = set()
         for idx in anchor_idxs:
             feat_id = self.enc2feat_idx[idx]
             if idx in self.cat_lookup:

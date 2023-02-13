@@ -271,7 +271,7 @@ class Counterfactual(Explainer):
             self.apply_grads = opt.apply_gradients(grad_and_var, global_step=self.global_step)
 
         # variables to initialize
-        self.setup = []  # type: list
+        self.setup: list = []
         self.setup.append(self.orig.assign(self.assign_orig))
         self.setup.append(self.cf.assign(self.assign_cf))
         self.setup.append(self.target.assign(self.assign_target))

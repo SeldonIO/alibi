@@ -178,8 +178,8 @@ class Explanation:
     """
     Explanation class returned by explainers.
     """
-    meta = attr.ib(repr=alibi_pformat)  # type: dict
-    data = attr.ib(repr=alibi_pformat)  # type: dict
+    meta: dict = attr.ib(repr=alibi_pformat)
+    data: dict = attr.ib(repr=alibi_pformat)
 
     def __attrs_post_init__(self):
         """

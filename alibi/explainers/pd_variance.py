@@ -228,7 +228,7 @@ class PartialDependenceVariance(Explainer):
             else:
                 ft_var = PartialDependenceVariance._compute_pd_variance_num(pdv)
             # add extra dimension for later concatenation along the axis 0
-            feature_variance.append(ft_var[None, ...])  # type: ignore[index]
+            feature_variance.append(ft_var[None, ...])
 
         # stack the feature importance such that the array has the shape `F x T x N1 ... N(k-1)`
         return np.concatenate(feature_variance, axis=0)

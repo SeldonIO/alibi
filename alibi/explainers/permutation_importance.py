@@ -384,7 +384,7 @@ class PermutationImportance(Explainer):
             return {metric_type: metric_fns}
 
         if isinstance(metric_fns, str):
-            metric_fns = [metric_fns]  # type: ignore[assignment]
+            metric_fns = [metric_fns]
 
         if isinstance(metric_fns, list):
             dict_metric_fns = {}

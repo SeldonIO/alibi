@@ -123,7 +123,7 @@ class TrustScore:
 
         # make sure Y represents predicted classes, not one-hot encodings
         if len(Y.shape) > 1:
-            Y = np.argmax(Y, axis=1)  # type: ignore
+            Y = np.argmax(Y, axis=1)
 
         if self.filter == 'probability_knn':
             X_filter, Y_filter = self.filter_by_probability_knn(X, Y)
@@ -170,7 +170,7 @@ class TrustScore:
         """
         # make sure Y represents predicted classes, not probabilities
         if len(Y.shape) > 1:
-            Y = np.argmax(Y, axis=1)  # type: ignore
+            Y = np.argmax(Y, axis=1)
 
         # KDTree needs 2D data
         if len(X.shape) > 2:

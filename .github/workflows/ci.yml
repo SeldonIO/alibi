@@ -4,9 +4,6 @@ defaults:
   run:
     shell: bash  # To override PowerShell on Windows
 
-env:
-  DEFAULT_PY_VERSION: '3.10'  # Default Python version to use for licence/docs builds etc.
-
 on:
   # Trigger the workflow on push or pull request,
   # push only for the master branch,
@@ -43,7 +40,7 @@ jobs:
           - os: windows-latest
             python-version: '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest
-            python-version: $DEFAULT_PY_VERSION
+            python-version: '3.10'
 
     steps:
       - name: Checkout code
@@ -104,7 +101,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.DEFAULT_PY_VERSION }}
+          python-version: '3.10'
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -126,7 +123,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.DEFAULT_PY_VERSION }}
+          python-version: '3.10'
       - name: Check 3rd party licenses haven't changed
         run: |
           pip install "tox>=3.21.0,<4.0.0"
@@ -142,7 +139,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ env.DEFAULT_PY_VERSION }}
+          python-version: '3.10'
       - name: Check optional dependency imports are protected
         run: |
           pip install "tox>=3.21.0,<4.0.0"

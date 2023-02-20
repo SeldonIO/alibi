@@ -129,7 +129,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Check 3rd party licenses haven't changed
         run: |
           pip install "tox>=3.21.0,<4.0.0"
@@ -145,7 +145,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Check optional dependency imports are protected
         run: |
           pip install "tox>=3.21.0,<4.0.0"

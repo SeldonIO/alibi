@@ -97,7 +97,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: docker pull readthedocs/build:ubuntu-22.04-2022.03.15
+      image: readthedocs/build:ubuntu-22.04-2022.03.15
 
     steps:
       - uses: actions/checkout@v3

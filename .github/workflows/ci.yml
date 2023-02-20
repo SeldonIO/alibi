@@ -98,6 +98,7 @@ jobs:
 
     container:
       image: readthedocs/build:ubuntu-22.04-2022.03.15
+      options: --user root
 
     steps:
       - uses: actions/checkout@v3

@@ -43,7 +43,7 @@ jobs:
           - os: windows-latest
             python-version: '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest
-            python-version: ${{ env.DEFAULT_PY_VERSION }}
+            python-version: $DEFAULT_PY_VERSION
 
     steps:
       - name: Checkout code

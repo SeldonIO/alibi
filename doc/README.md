@@ -15,7 +15,7 @@ To build the documentation, first we need to install Python requirements:
 We also need `pandoc` for parsing Jupyter notebooks, the easiest way
 to install this is using conda:
 
-`conda install -c conda-forge pandoc=1.19.2`
+`conda install -c conda-forge pandoc=2.9.2.1`
 
 Note: the older version of pandoc is used because this is available on `readthedocs.org` where we host our docs, the newer version fixes a lot of bugs, but using a newer version locally is misleading as to whether the docs will render properly on RTD, also see [gotchas](#gotchas-when-writing-notebooks-as-examples).
 
@@ -82,8 +82,8 @@ We use Jupyter notebooks for examples and method descriptions and invoke the [nb
 * For references and footnotes, the tag indicating the section needs to start with an uppercase letter, e.g. `[[1]](#References)` linking to a section `<a id='References'></a>
 [1](#f_1) reference here`
 * Whilst superscript (for e.g. footnotes) can be rendered in Jupyter using `<sup></sup>` tags, this won't work in the static docs. To avoid jarring appearence of footnote numbers in the text, wrap them in parentheses, e.g. <sup>`(1)`</sup> will be rendered inline as `(1)`.
-* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==1.19.2` used both on CI and `readthedocs.org` machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
-* Avoid using underscores in alternative text for images, e.g. instead of `![my_pic](my_pic.png)` use `![my-pic](my_pic.png)`, this is due to the old version of `pandoc==1.19.2` used on `reathedocs.org`.
+* Avoid starting a cell with an html tag, e.g. for making hyperlinks to link back to the reference in the text `<a id='ref1'></a>`. The (older) version of `pandoc==2.9.2.1` used both on CI and `readthedocs.org` machines cannot handle it and may fail to build the docs. Recommended action is to put such tags at the end of the cell.
+* Avoid using underscores in alternative text for images, e.g. instead of `![my_pic](my_pic.png)` use `![my-pic](my_pic.png)`, this is due to the old version of `pandoc==2.9.2.1` used on `reathedocs.org`.
 * Avoid nesting markdown markups, e.g. italicising a hyperlink, this might not render
 * ~~When embedding images in notebooks which are linked to via a `.nblink` file, an `extra-media` key needs to be added in the `.nblink` file. See the [nbsphinx-link](https://github.com/vidartf/nbsphinx-link) docs, or [alibi_detect_deploy.nblink](https://github.com/SeldonIO/alibi-detect/blob/master/doc/source/examples/alibi_detect_deploy.nblink) for an example in alibi-detect.~~ Prefer using the following to produce self-contained notebooks:
 * To add a static image to an example, use the syntax `![my-image.png](attachment:my_image.png)` and execute the cell. This will embed the actual binary image into the example notebook so that the notebook is self-contained (note that some notebooks won't be self-contained due to dependencies on data or models under `doc/source/examples/assets`). Afterwards, ensure the image is located in the `doc/source/examples/assets` directory and committed to the repository.

@@ -232,14 +232,25 @@ def _save_AnchorText(explainer: 'AnchorText', path: Union[str, os.PathLike]) -> 
     explainer.perturbation = perturbation
 
 
-def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:
-    # TODO: save internal shap objects using native pickle?
+def _save_Shap(explainer: Union['KernelShap', 'TreeShap'], path: Union[str, os.PathLike]) -> None:
+    # set the internal explainer object to avoid saving it. The internal explainer
+    # object is recreated when in the `reset_predictor` function call.
+    _explainer = explainer._explainer
+    explainer._explainer = None
+
+    # simple save which does not save the predictor
     _simple_save(explainer, path)
+
+    # reset the internal explainer object
+    explainer._explainer = _explainer
+
+
+def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> None:
+    _save_Shap(explainer, path)
 
 
 def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> None:
-    # TODO: save internal shap objects using native pickle?
-    _simple_save(explainer, path)
+    _save_Shap(explainer, path)
 
 
 def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.PathLike]) -> None:

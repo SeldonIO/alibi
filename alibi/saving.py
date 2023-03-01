@@ -249,7 +249,7 @@ def _save_KernelShap(explainer: 'KernelShap', path: Union[str, os.PathLike]) -> 
     _save_Shap(explainer, path)
 
 
-def _save_TreelShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> None:
+def _save_TreeShap(explainer: 'TreeShap', path: Union[str, os.PathLike]) -> None:
     _save_Shap(explainer, path)
 
 

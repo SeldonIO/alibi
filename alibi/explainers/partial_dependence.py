@@ -988,7 +988,7 @@ def plot_pd(exp: Explanation,
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
 
-        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
         for i, spec in enumerate(list(gs)[:n_features]):

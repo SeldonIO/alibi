@@ -70,7 +70,7 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
             self.num_classes = self.Y_m.shape[1]
         else:
             self.min_m = np.min(self.Y_m)
-            self.max_n = np.max(self.Y_m)
+            self.max_m = np.max(self.Y_m)
 
         # Preprocess data.
         self.X = self.preprocessor(self.X)

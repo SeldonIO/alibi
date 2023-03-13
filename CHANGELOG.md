@@ -1,5 +1,22 @@
 # Change Log
 
+## [v0.9.1](https://github.com/SeldonIO/alibi/tree/v0.9.1) (2023-03-13)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.0...v0.9.1)
+
+This is a patch release fixing several bugs.
+
+### Fixed
+ - Replace deprecated usage of `np.object` in the codebase which was causing errors with `numpy>=1.24` ([#872](https://github.com/SeldonIO/alibi/pull/872), [#890](https://github.com/SeldonIO/alibi/pull/890)).
+ - Fix a bug/typo in `cfrl_base.py` of the `tensorflow` backend ([#891](https://github.com/SeldonIO/alibi/pull/891)).
+ - Correctly handle calls to `.reset_predictor` for `KernelShap` and `TreeShap` explainers ([#880](https://github.com/SeldonIO/alibi/pull/880)).
+ - Update saving of `KernelShap` to avoid saving the internal `_explainer` object ([#881](https://github.com/SeldonIO/alibi/pull/881)).
+
+### Development
+ - Show text execution times ([#849](https://github.com/SeldonIO/alibi/pull/849)).
+ - Replace Python 2 style type comments with type annotations ([#870](https://github.com/SeldonIO/alibi/pull/870)).
+ - Bump the `mypy` version to `~1.0` ([#871](https://github.com/SeldonIO/alibi/pull/871)).
+ - Bump the default development version of Python to 3.10 ([#876](https://github.com/SeldonIO/alibi/pull/876), [#877](https://github.com/SeldonIO/alibi/pull/877)).
+
 ## [v0.9.0](https://github.com/SeldonIO/alibi/tree/v0.9.0) (2023-01-11)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.9.0)
 

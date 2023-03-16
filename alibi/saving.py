@@ -1,5 +1,6 @@
 import copy
 import json
+import numbers
 import os
 from pathlib import Path
 import sys
@@ -123,17 +124,18 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
 
 def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
-    layer_num = meta['params']['layer']
-    if layer_num == 0:
-        layer = None
+    layer_meta = meta['params']['layer']
+
+    if isinstance(layer_meta, numbers.Integral):
+        layer = None if layer_meta == 0 else predictor.layers[layer_meta]
     else:
-        layer = predictor.layers[layer_num]
+        layer = layer_meta(predictor)
 
     with open(Path(path, 'explainer.dill'), 'rb') as f:
         explainer = dill.load(f)
+
     explainer.reset_predictor(predictor)
     explainer.layer = layer
-
     return explainer
 
 

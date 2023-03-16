@@ -1,3 +1,4 @@
+import numbers
 import sys
 import numpy as np
 from numpy.testing import assert_allclose
@@ -141,9 +142,19 @@ def ale_explainer(iris_data, lr_classifier):
     return ale
 
 
-@pytest.fixture(scope='module')
-def ig_explainer(iris_data, ffn_classifier):
-    ig = IntegratedGradients(model=ffn_classifier)
+@pytest.fixture(scope='module',
+                params=[None, 1, lambda model: model.layers[1]])
+def ig_explainer(request, iris_data, ffn_classifier):
+    layer_meta = request.param
+
+    if layer_meta is None:
+        layer = None
+    elif isinstance(layer_meta, numbers.Integral):
+        layer = ffn_classifier.layers[layer_meta]
+    else:
+        layer = layer_meta  # callable case
+
+    ig = IntegratedGradients(model=ffn_classifier, layer=layer)
     return ig
 
 
@@ -314,7 +325,26 @@ def test_save_IG(ig_explainer, ffn_classifier, iris_data):
         ig_explainer1 = load_explainer(temp_dir, predictor=ffn_classifier)
 
         assert isinstance(ig_explainer1, IntegratedGradients)
+
+        # need to remove the layer entry since it can be a callable.
+        # Although the callable are identical, they have different addresses in memory
+        layer = ig_explainer.meta['params']['layer']
+        layer1 = ig_explainer1.meta['params']['layer']
+        del ig_explainer.meta['params']['layer']
+        del ig_explainer1.meta['params']['layer']
+
+        # compare metadata
         assert ig_explainer.meta == ig_explainer1.meta
+
+        # compare layers
+        if callable(layer):
+            assert layer.__code__ == layer1.__code__
+        else:
+            assert layer == layer1
+
+        # insert layers back in case the `ig_explainer` will be used in the future
+        ig_explainer.meta['params']['layer'] = layer
+        ig_explainer1.meta['params']['layer'] = layer1
 
         exp1 = ig_explainer.explain(X, target=target)
         assert exp0.meta == exp1.meta

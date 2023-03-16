@@ -783,7 +783,12 @@ class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 layer: Optional[tf.keras.layers.Layer] = None,
+                 layer: Optional[
+                     Union[
+                         Callable[[tf.keras.Model], tf.keras.layers.Layer],
+                         tf.keras.layers.Layer
+                     ]
+                 ] = None,
                  target_fn: Optional[Callable] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
@@ -799,8 +804,8 @@ class IntegratedGradients(Explainer):
         model
             `tensorflow` model.
         layer
-            Layer with respect to which the gradients are calculated.
-            If not provided, the gradients are calculated with respect to the input.
+            A layer or a function having as parameter the model and returning a layer with respect to which the
+            gradients are calculated. If not provided, the gradients are calculated with respect to the input.
         target_fn
             A scalar function that is applied to the predictions of the model.
             This can be used to specify which scalar output the attributions should be calculated for.
@@ -829,18 +834,29 @@ class IntegratedGradients(Explainer):
 
         if layer is None:
             self.orig_call: Optional[Callable] = None
-            layer_num: Optional[int] = 0
-        else:
+            self.layer = None
+            layer_meta: Optional[Union[int, Callable[[tf.keras.Model], tf.keras.layers.Layer]]] = 0
+
+        elif isinstance(layer, tf.keras.layers.Layer):
             self.orig_call = layer.call
+            self.layer = layer
+
             try:
-                layer_num = model.layers.index(layer)
+                layer_meta = model.layers.index(layer)
             except ValueError:
                 logger.info("Layer not in the list of model.layers")
-                layer_num = None
+                layer_meta = None
 
-        params['layer'] = layer_num
+        elif callable(layer):
+            self.layer = layer(self.model)
+            self.orig_call = self.layer.call
+            layer_meta = layer
+
+        else:
+            raise TypeError(f'Unsupported layer type. Received {type(layer)}.')
+
+        params['layer'] = layer_meta
         self.meta['params'].update(params)
-        self.layer = layer
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size

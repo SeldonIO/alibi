@@ -124,10 +124,13 @@ def _simple_load(path: Union[str, os.PathLike], predictor, meta) -> 'Explainer':
 
 def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[tensorflow.keras.Model]',
                               meta: dict) -> 'IntegratedGradients':
+    from alibi.explainers.integrated_gradients import LayerState
     layer_meta = meta['params']['layer']
 
-    if isinstance(layer_meta, numbers.Integral):
-        layer = None if layer_meta == 0 else predictor.layers[layer_meta]
+    if layer_meta == LayerState.UNSPECIFIED:
+        layer = None
+    elif isinstance(layer_meta, numbers.Integral):
+        layer = predictor.layers[layer_meta]
     else:
         layer = layer_meta(predictor)
 
@@ -140,6 +143,13 @@ def _load_IntegratedGradients(path: Union[str, os.PathLike], predictor: 'Union[t
 
 
 def _save_IntegratedGradients(explainer: 'IntegratedGradients', path: Union[str, os.PathLike]) -> None:
+    from alibi.explainers.integrated_gradients import LayerState
+
+    if explainer.meta['params']['layer'] == LayerState.NON_SERIALIZABLE:
+        raise ValueError('The layer provided in the explainer initialization cannot be serialized. This is due '
+                         'to nested layers. To permit the serialization of the explainer, provide the layer as '
+                         'a callable which returns the layer given the model.')
+
     model = explainer.model
     layer = explainer.layer
     explainer.model = explainer.layer = None

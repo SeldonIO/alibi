@@ -2,6 +2,7 @@ import copy
 import logging
 import string
 import warnings
+from enum import Enum
 from typing import Callable, List, Optional, Tuple, Union, cast
 
 import numpy as np
@@ -779,6 +780,11 @@ def _validate_output(model: tf.keras.Model,
                        "Targets can be either the true classes or the classes predicted by the model.")
 
 
+class LayerState(str, Enum):
+    UNSPECIFIED = 'unspecified'
+    NON_SERIALIZABLE = 'non-serializable'
+
+
 class IntegratedGradients(Explainer):
 
     def __init__(self,
@@ -806,6 +812,8 @@ class IntegratedGradients(Explainer):
         layer
             A layer or a function having as parameter the model and returning a layer with respect to which the
             gradients are calculated. If not provided, the gradients are calculated with respect to the input.
+            To guarantee saving and loading of the explainer, the layer has to be specified as a callable which
+            returns a layer given the model. E.g. ``lambda model: model.layers[0].embeddings``.
         target_fn
             A scalar function that is applied to the predictions of the model.
             This can be used to specify which scalar output the attributions should be calculated for.
@@ -835,7 +843,8 @@ class IntegratedGradients(Explainer):
         if layer is None:
             self.orig_call: Optional[Callable] = None
             self.layer = None
-            layer_meta: Optional[Union[int, Callable[[tf.keras.Model], tf.keras.layers.Layer]]] = 0
+            layer_meta: Optional[Union[int, LayerState, Callable[[tf.keras.Model], tf.keras.layers.Layer]]] = \
+                LayerState.UNSPECIFIED
 
         elif isinstance(layer, tf.keras.layers.Layer):
             self.orig_call = layer.call
@@ -844,8 +853,11 @@ class IntegratedGradients(Explainer):
             try:
                 layer_meta = model.layers.index(layer)
             except ValueError:
-                logger.info("Layer not in the list of model.layers")
-                layer_meta = None
+                layer_meta = LayerState.NON_SERIALIZABLE
+                logger.info('Layer not in the list of `model.layers`. Passing the layer directly would not '
+                            'permit the serialization of the explainer. This is due to nested layers. To permit '
+                            'the serialization of the explainer, provide the layer as a callable which returns '
+                            'the layer given the model.')
 
         elif callable(layer):
             self.layer = layer(self.model)

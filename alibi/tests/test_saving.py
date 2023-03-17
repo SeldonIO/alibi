@@ -21,6 +21,7 @@ from alibi.explainers import (
     CounterfactualRLTabular,
     GradientSimilarity
 )
+from alibi.explainers.integrated_gradients import LayerState
 from alibi.saving import load_explainer
 from alibi_testing.data import get_adult_data, get_iris_data, get_movie_sentiment_data
 import alibi_testing
@@ -143,11 +144,11 @@ def ale_explainer(iris_data, lr_classifier):
 
 
 @pytest.fixture(scope='module',
-                params=[None, 1, lambda model: model.layers[1]])
+                params=[LayerState.UNSPECIFIED, 1, lambda model: model.layers[1]])
 def ig_explainer(request, iris_data, ffn_classifier):
     layer_meta = request.param
 
-    if layer_meta is None:
+    if layer_meta == LayerState.UNSPECIFIED:
         layer = None
     elif isinstance(layer_meta, numbers.Integral):
         layer = ffn_classifier.layers[layer_meta]

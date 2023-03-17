@@ -31,45 +31,6 @@ NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-Keras-Preprocessing
-1.1.2
-MIT License
-COPYRIGHT
-
-Copyright (c) 2015 - 2018, the respective contributors.
-All rights reserved.
-
-Each contributor holds copyright over their respective contributions.
-The project versioning (Git) records all such contribution source information.
-The initial code of this repository came from https://github.com/keras-team/keras
-(the Keras repository), hence, for author information regarding commits
-that occured earlier than the first commit in the present repository,
-please see the original Keras repository.
-
-LICENSE
-
-The MIT License (MIT)
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-
-
 Markdown
 3.4.1
 BSD License
@@ -1788,7 +1749,7 @@ one at http://mozilla.org/MPL/2.0/.
 
 
 charset-normalizer
-3.0.1
+3.1.0
 MIT License
 MIT License
 
@@ -2329,7 +2290,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 filelock
-3.9.0
+3.10.0
 The Unlicense (Unlicense)
 This is free and unencumbered software released into the public domain.
 
@@ -2358,12 +2319,12 @@ For more information, please refer to <http://unlicense.org>
 
 
 flatbuffers
-23.1.21
+23.3.3
 Apache Software License
 UNKNOWN
 
 fonttools
-4.38.0
+4.39.2
 MIT License
 MIT License
 
@@ -2629,7 +2590,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.16.1
+2.16.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3248,7 +3209,7 @@ Apache Software License
 
 
 grpcio
-1.51.1
+1.51.3
 Apache Software License
 
                                  Apache License
@@ -3898,7 +3859,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.12.1
+0.13.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -4138,7 +4099,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 imageio
-2.25.1
+2.26.0
 BSD License
 Copyright (c) 2014-2022, imageio developers
 All rights reserved.
@@ -4225,7 +4186,7 @@ THE SOFTWARE.
 
 
 keras
-2.10.0
+2.11.0
 Apache Software License
 
                                  Apache License
@@ -4844,7 +4805,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.7.0
+3.7.1
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -4947,7 +4908,7 @@ Licensee agrees to be bound by the terms and conditions of this License
 Agreement.
 
 msgpack
-1.0.4
+1.0.5
 Apache Software License
 Copyright (C) 2008-2011 INADA Naoki <songofacandy@gmail.com>
 
@@ -6307,7 +6268,7 @@ Apache Software License
 
 
 platformdirs
-3.0.0
+3.1.1
 MIT License
 MIT License
 
@@ -6422,7 +6383,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-1.10.5
+1.10.6
 MIT License
 The MIT License (MIT)
 
@@ -6579,7 +6540,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 ray
-2.2.0
+2.3.0
 Apache 2.0
 MIT License
 
@@ -7122,7 +7083,7 @@ skimage/_shared/version_requirements.py:is_installed:
 
 
 scikit-learn
-1.2.1
+1.2.2
 BSD License
 BSD 3-Clause License
 
@@ -8173,7 +8134,7 @@ SOFTWARE.
 
 
 spacy
-3.5.0
+3.5.1
 MIT License
 The MIT License (MIT)
 
@@ -8277,7 +8238,7 @@ SOFTWARE.
 
 
 srsly
-2.4.5
+2.4.6
 MIT License
 The MIT License (MIT)
 
@@ -8303,7 +8264,7 @@ THE SOFTWARE.
 
 
 tensorboard
-2.10.1
+2.11.2
 Apache Software License
 # TensorBoard License
 
@@ -8885,7 +8846,7 @@ Apache 2.0
 UNKNOWN
 
 tensorflow
-2.10.1
+2.11.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -9140,12 +9101,12 @@ or otherwise, the contributor releases their content to the
 license and copyright terms herein.
 
 tensorflow-estimator
-2.10.0
+2.11.0
 Apache Software License
 UNKNOWN
 
 tensorflow-io-gcs-filesystem
-0.30.0
+0.31.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -9375,7 +9336,7 @@ THE SOFTWARE.
 
 
 thinc
-8.1.7
+8.1.9
 MIT License
 The MIT License (MIT)
 
@@ -9429,7 +9390,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2023.2.3
+2023.3.15
 BSD License
 BSD 3-Clause License
 
@@ -15297,7 +15258,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 tqdm
-4.64.1
+4.65.0
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -15308,7 +15269,7 @@ Exceptions or notable authors are listed below
 in reverse chronological order:
 
 * files: *
-  MPLv2.0 2015-2021 (c) Casper da Costa-Luis
+  MPLv2.0 2015-2023 (c) Casper da Costa-Luis
   [casperdcl](https://github.com/casperdcl).
 * files: tqdm/_tqdm.py
   MIT 2016 (c) [PR #96] on behalf of Google Inc.
@@ -15351,7 +15312,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.26.1
+4.27.1
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -15844,7 +15805,7 @@ OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 urllib3
-1.26.14
+1.26.15
 MIT License
 MIT License
 
@@ -15870,7 +15831,7 @@ SOFTWARE.
 
 
 virtualenv
-20.19.0
+20.21.0
 MIT License
 Copyright (c) 2020-202x The virtualenv developers
 
@@ -15921,9 +15882,9 @@ THE SOFTWARE.
 
 
 wrapt
-1.14.1
+1.15.0
 BSD License
-Copyright (c) 2013-2022, Graham Dumpleton
+Copyright (c) 2013-2023, Graham Dumpleton
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without

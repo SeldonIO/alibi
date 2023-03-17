@@ -144,16 +144,17 @@ def ale_explainer(iris_data, lr_classifier):
 
 
 @pytest.fixture(scope='module',
-                params=[LayerState.UNSPECIFIED, 1, lambda model: model.layers[1]])
+                params=[LayerState.UNSPECIFIED, LayerState.CALLABLE, 1])
 def ig_explainer(request, iris_data, ffn_classifier):
     layer_meta = request.param
 
-    if layer_meta == LayerState.UNSPECIFIED:
-        layer = None
+    if layer_meta == LayerState.CALLABLE:
+        def layer(model):
+            return model.layers[1]
     elif isinstance(layer_meta, numbers.Integral):
         layer = ffn_classifier.layers[layer_meta]
     else:
-        layer = layer_meta  # callable case
+        layer = None
 
     ig = IntegratedGradients(model=ffn_classifier, layer=layer)
     return ig

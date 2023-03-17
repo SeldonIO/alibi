@@ -783,6 +783,7 @@ def _validate_output(model: tf.keras.Model,
 class LayerState(str, Enum):
     UNSPECIFIED = 'unspecified'
     NON_SERIALIZABLE = 'non-serializable'
+    CALLABLE = 'callable'
 
 
 class IntegratedGradients(Explainer):
@@ -843,8 +844,7 @@ class IntegratedGradients(Explainer):
         if layer is None:
             self.orig_call: Optional[Callable] = None
             self.layer = None
-            layer_meta: Optional[Union[int, LayerState, Callable[[tf.keras.Model], tf.keras.layers.Layer]]] = \
-                LayerState.UNSPECIFIED
+            layer_meta: Union[int, LayerState] = LayerState.UNSPECIFIED
 
         elif isinstance(layer, tf.keras.layers.Layer):
             self.orig_call = layer.call
@@ -862,7 +862,8 @@ class IntegratedGradients(Explainer):
         elif callable(layer):
             self.layer = layer(self.model)
             self.orig_call = self.layer.call
-            layer_meta = layer
+            self.callable_layer = layer
+            layer_meta = LayerState.CALLABLE
 
         else:
             raise TypeError(f'Unsupported layer type. Received {type(layer)}.')

@@ -52,3 +52,11 @@ class NotFittedError(AlibiException):
         super().__init__(
             f"This {object_name} instance is not fitted yet. Call 'fit' with appropriate arguments first."
         )
+
+
+class SerializationError(AlibiException):
+    """
+    This exception is raised whenever an explainer cannot be serialized.
+    """
+    def __init__(self, message: str):
+        super().__init__(message)

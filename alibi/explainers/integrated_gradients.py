@@ -844,7 +844,7 @@ class IntegratedGradients(Explainer):
         if layer is None:
             self.orig_call: Optional[Callable] = None
             self.layer = None
-            layer_meta: Union[int, LayerState] = LayerState.UNSPECIFIED
+            layer_meta: Union[int, str] = LayerState.UNSPECIFIED.value
 
         elif isinstance(layer, tf.keras.layers.Layer):
             self.orig_call = layer.call
@@ -853,17 +853,17 @@ class IntegratedGradients(Explainer):
             try:
                 layer_meta = model.layers.index(layer)
             except ValueError:
-                layer_meta = LayerState.NON_SERIALIZABLE
-                logger.info('Layer not in the list of `model.layers`. Passing the layer directly would not '
-                            'permit the serialization of the explainer. This is due to nested layers. To permit '
-                            'the serialization of the explainer, provide the layer as a callable which returns '
-                            'the layer given the model.')
+                layer_meta = LayerState.NON_SERIALIZABLE.value
+                logger.warning('Layer not in the list of `model.layers`. Passing the layer directly would not '
+                               'permit the serialization of the explainer. This is due to nested layers. To permit '
+                               'the serialization of the explainer, provide the layer as a callable which returns '
+                               'the layer given the model.')
 
         elif callable(layer):
             self.layer = layer(self.model)
             self.orig_call = self.layer.call
             self.callable_layer = layer
-            layer_meta = LayerState.CALLABLE
+            layer_meta = LayerState.CALLABLE.value
 
         else:
             raise TypeError(f'Unsupported layer type. Received {type(layer)}.')

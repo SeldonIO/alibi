@@ -632,6 +632,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # replace masked tokens with the sampled one
             tokens[masked_rows, masked_cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
+            tokens_plus['input_ids'] = tf.convert_to_tensor(tokens)
         return tokens, data
 
     def set_data_type(self) -> None:

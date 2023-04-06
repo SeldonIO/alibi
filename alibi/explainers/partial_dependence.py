@@ -506,14 +506,14 @@ class PartialDependenceBase(Explainer, ABC):
         )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-    def reset_predictor(self, predictor: Callable) -> None:
+    def reset_predictor(self, predictor: Union[Callable[[np.ndarray], np.ndarray], BaseEstimator]) -> None:
         """
-        Resets the predictor function.
+        Resets the predictor function or tree-based `sklearn` estimator.
 
         Parameters
         ----------
         predictor
-            New predictor function.
+            New predictor function or tree-based `sklearn` estimator.
         """
         self.predictor = predictor
 

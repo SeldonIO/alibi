@@ -83,13 +83,13 @@ jobs:
           pytest -m "not tf1" alibi
 
       - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        directory: .
-        env_vars: OS,PYTHON
-        fail_ci_if_error: true
-        name: codecov-umbrella
-        verbose: true
+        uses: codecov/codecov-action@v3
+        with:
+          directory: .
+          env_vars: OS,PYTHON
+          fail_ci_if_error: true
+          name: codecov-umbrella
+          verbose: true
 
       - name: Build Python package
         run: |

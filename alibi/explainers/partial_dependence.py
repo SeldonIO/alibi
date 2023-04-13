@@ -484,8 +484,8 @@ class PartialDependenceBase(Explainer, ABC):
         `Explanation` object.
         """
         feature_deciles, feature_values = [], []
-        pd_values = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
-        ice_values = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None  # type: Optional[List[np.ndarray]]
+        pd_values: Optional[List[np.ndarray]] = [] if kind in [Kind.AVERAGE, Kind.BOTH] else None
+        ice_values: Optional[List[np.ndarray]] = [] if kind in [Kind.INDIVIDUAL, Kind.BOTH] else None
 
         for pd in pds:
             feature_values.append(pd['values'])
@@ -505,6 +505,17 @@ class PartialDependenceBase(Explainer, ABC):
             feature_deciles=feature_deciles,
         )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
+
+    def reset_predictor(self, predictor: Union[Callable[[np.ndarray], np.ndarray], BaseEstimator]) -> None:
+        """
+        Resets the predictor function or tree-based `sklearn` estimator.
+
+        Parameters
+        ----------
+        predictor
+            New predictor function or tree-based `sklearn` estimator.
+        """
+        self.predictor = predictor
 
 
 class PartialDependence(PartialDependenceBase):
@@ -988,7 +999,7 @@ def plot_pd(exp: Explanation,
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
 
-        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
         for i, spec in enumerate(list(gs)[:n_features]):

@@ -17,11 +17,11 @@ from .anchor_explanation import AnchorExplanation
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_SEGMENTATION_KWARGS = {
+DEFAULT_SEGMENTATION_KWARGS: Dict[str, Dict] = {
     'felzenszwalb': {},
     'quickshift': {},
     'slic': {'n_segments': 10, 'compactness': 10, 'sigma': .5, 'start_label': 0}
-}  # type: Dict[str, Dict]
+}
 
 
 def scale_image(image: np.ndarray, scale: tuple = (0, 255)) -> np.ndarray:
@@ -388,7 +388,7 @@ class AnchorImage(Explainer):
 
         self.images_background = images_background
         # a superpixel is perturbed with prob 1 - p_sample
-        self.p_sample = 0.5  # type: float
+        self.p_sample: float = 0.5
 
         # update metadata
         self.meta['params'].update(
@@ -561,7 +561,7 @@ class AnchorImage(Explainer):
             sample_cache_size=binary_cache_size,
             cache_margin=cache_margin,
             **kwargs)
-        result = mab.anchor_beam(
+        result: Any = mab.anchor_beam(
             desired_confidence=threshold,
             delta=delta,
             epsilon=tau,
@@ -574,7 +574,7 @@ class AnchorImage(Explainer):
             verbose=verbose,
             verbose_every=verbose_every,
             **kwargs,
-        )  # type: Any
+        )
 
         return self._build_explanation(
             image, result, sampler.instance_label, params, sampler

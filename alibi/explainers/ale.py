@@ -644,7 +644,7 @@ def plot_ale(exp: Explanation,
         n_cols = min(n_cols, n_features)
         n_rows = math.ceil(n_features / n_cols)
 
-        axes = np.empty((n_rows, n_cols), dtype=np.object)
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         # gs = GridSpecFromSubplotSpec(n_rows, n_cols, subplot_spec=ax.get_subplotspec())
         gs = GridSpec(n_rows, n_cols)

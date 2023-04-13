@@ -60,8 +60,10 @@ class LanguageModelSampler(AnchorTextSampler):
                 self.subwords_mask[vocab[token]] = True
 
         # define head, tail part of the text
-        self.head, self.tail = '', ''  # type: str, str
-        self.head_tokens, self.tail_tokens = [], []  # type: List[str], List[str]
+        self.head: str = ''
+        self.tail: str = ''
+        self.head_tokens: List[str] = []
+        self.tail_tokens: List[str] = []
 
     def get_sample_ids(self,
                        punctuation: str = string.punctuation,
@@ -630,6 +632,7 @@ class LanguageModelSampler(AnchorTextSampler):
 
             # replace masked tokens with the sampled one
             tokens[masked_rows, masked_cols] = tf.gather(top_k_tokens, ids_k, batch_dims=1)
+            tokens_plus['input_ids'] = tf.convert_to_tensor(tokens)
         return tokens, data
 
     def set_data_type(self) -> None:

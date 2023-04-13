@@ -78,8 +78,8 @@ def rank_by_importance(shap_values: List[np.ndarray],
             logger.warning(msg.format(len(feature_names), shap_values[0].shape[1]))
             feature_names = ['feature_{}'.format(i) for i in range(shap_values[0].shape[1])]
 
-    importances = {}  # type: Dict[str, Dict[str, Union[np.ndarray, List[str]]]]
-    avg_mag = []  # type: List
+    importances: Dict[str, Dict[str, Union[np.ndarray, List[str]]]] = {}
+    avg_mag: List = []
 
     # rank the features by average shap value for each class in turn
     for class_idx in range(len(shap_values)):
@@ -163,7 +163,7 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
         unchanged.
         """
 
-        slices = []  # type: List[int]
+        slices: List[int] = []
         # first columns may not be reduced
         if start[0] > 0:
             slices.extend(tuple(range(start[0])))
@@ -205,10 +205,10 @@ def sum_categories(values: np.ndarray, start_idx: Sequence[int], enc_feat_dim: S
     return np.add.reduceat(values, slices, axis=1)
 
 
-DISTRIBUTED_OPTS = {
+DISTRIBUTED_OPTS: Dict = {
     'n_cpus': None,
     'batch_size': 1,
-}  # type: dict
+}
 """
 Default distributed options for KernelShap:
 
@@ -749,20 +749,7 @@ class KernelShap(Explainer, FitMixin):
 
         # perform grouping if requested by the user
         self.background_data = self._get_data(background_data, group_names, groups, weights, **kwargs)
-        explainer_args = (self.predictor, self.background_data)
-        explainer_kwargs = {'link': self.link}  # type: Dict[str, Union[str, int, None]]
-        # distribute computation
-        if self.distribute:
-            # set seed for each process
-            explainer_kwargs['seed'] = self.seed
-            self._explainer = DistributedExplainer(
-                self.distributed_opts,
-                KernelExplainerWrapper,
-                explainer_args,
-                explainer_kwargs,
-            )  #
-        else:
-            self._explainer = KernelExplainerWrapper(*explainer_args, **explainer_kwargs)
+        self._explainer = self._init_shap_object()
         self.expected_value = self._explainer.expected_value
         if not self._explainer.vector_out:
             logger.warning(
@@ -781,8 +768,25 @@ class KernelShap(Explainer, FitMixin):
             'transpose': self.transposed,
         }
         self._update_metadata(params, params=True)
-
         return self
+
+    def _init_shap_object(self) -> Union[KernelExplainerWrapper, DistributedExplainer]:
+        """ Initialize explainer as a `KernelExplainerWrapper` or as a `DistributedExplainer`. """
+        explainer_args = (self.predictor, self.background_data)
+        explainer_kwargs: Dict[str, Union[str, int, None]] = {'link': self.link}
+
+        # distribute computation
+        if self.distribute:
+            # set seed for each process
+            explainer_kwargs['seed'] = self.seed
+            return DistributedExplainer(
+                self.distributed_opts,
+                KernelExplainerWrapper,
+                explainer_args,
+                explainer_kwargs,
+            )
+
+        return KernelExplainerWrapper(*explainer_args, **explainer_kwargs)
 
     def explain(self,
                 X: Union[np.ndarray, pd.DataFrame, sparse.spmatrix],
@@ -910,9 +914,9 @@ class KernelShap(Explainer, FitMixin):
         # TODO: Plotting default should be same space as the explanation? How do we figure out what space they
         #  explain in?
 
-        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Sequence[int]
-        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Sequence[int]
-        summarise_result = kwargs.get('summarise_result', False)  # type: bool
+        cat_vars_start_idx: Sequence[int] = kwargs.get('cat_vars_start_idx', ())
+        cat_vars_enc_dim: Sequence[int] = kwargs.get('cat_vars_enc_dim', ())
+        summarise_result: bool = kwargs.get('summarise_result', False)
         if summarise_result:
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
@@ -992,9 +996,7 @@ class KernelShap(Explainer, FitMixin):
             New prediction function.
         """
         self.predictor = predictor
-        # TODO: check if we need to reinitialize self._explainer (potentially not, as it should hold a reference
-        #  to self.predictor) however, the shap.KernelExplainer may utilize the Callable to set some attributes
-        # TODO: check if we need to do more for the distributed case
+        self._explainer = self._init_shap_object()
 
 
 # TODO: Look into pyspark support requirements if requested
@@ -1178,14 +1180,9 @@ class TreeShap(Explainer, FitMixin):
                                f'A larger background dataset will be sampled with replacement to '
                                f'{TREE_SHAP_BACKGROUND_SUPPORTED_SIZE} instances.')
 
-        perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
+        self.perturbation = 'interventional' if background_data is not None else 'tree_path_dependent'
         self.background_data = background_data
-        self._explainer = shap.TreeExplainer(
-            self.predictor,
-            data=self.background_data,
-            model_output=self.model_output,
-            feature_perturbation=perturbation,
-        )  # type: shap.TreeExplainer
+        self._explainer = self._init_shap_object()
         self.expected_value = self._explainer.expected_value
 
         self.scalar_output = False
@@ -1200,12 +1197,20 @@ class TreeShap(Explainer, FitMixin):
         # update metadata
         params = {
             'summarise_background': self.summarise_background,
-            'algorithm': perturbation,
+            'algorithm': self.perturbation,
             'kwargs': kwargs,
         }
         self._update_metadata(params, params=True)
-
         return self
+
+    def _init_shap_object(self) -> shap.TreeExplainer:
+        """ Initialize explainer as a `shap.TreeExplainer`. """
+        return shap.TreeExplainer(
+            self.predictor,
+            data=self.background_data,
+            model_output=self.model_output,
+            feature_perturbation=self.perturbation,
+        )
 
     @staticmethod
     def _check_inputs(background_data: Union[pd.DataFrame, np.ndarray]) -> None:
@@ -1514,9 +1519,9 @@ class TreeShap(Explainer, FitMixin):
         y = kwargs.get('y')
         if y is None:
             y = np.array([])
-        cat_vars_start_idx = kwargs.get('cat_vars_start_idx', ())  # type: Sequence[int]
-        cat_vars_enc_dim = kwargs.get('cat_vars_enc_dim', ())  # type: Sequence[int]
-        summarise_result = kwargs.get('summarise_result', False)  # type: bool
+        cat_vars_start_idx: Sequence[int] = kwargs.get('cat_vars_start_idx', ())
+        cat_vars_enc_dim: Sequence[int] = kwargs.get('cat_vars_enc_dim', ())
+        summarise_result: bool = kwargs.get('summarise_result', False)
 
         # check if interactions were computed
         if len(shap_output[0].shape) == 3:
@@ -1546,7 +1551,7 @@ class TreeShap(Explainer, FitMixin):
         # NB: raw output of a regression or classification task will not work for pyspark (predict not implemented)
         if self.model_output == 'log_loss':
             loss = self._explainer.model.predict(X, y, tree_limit=self.tree_limit)
-            raw_predictions = []  # type: Any
+            raw_predictions: Any = []
         else:
             loss = []
             raw_predictions = self._explainer.model.predict(X, tree_limit=self.tree_limit)
@@ -1555,7 +1560,7 @@ class TreeShap(Explainer, FitMixin):
                 raw_predictions = raw_predictions.squeeze(-1)
 
         # predicted class
-        argmax_pred = []  # type: Any
+        argmax_pred: Any = []
         if self.task != 'regression':
             if not isinstance(raw_predictions, list):
                 if self.scalar_output:
@@ -1628,3 +1633,4 @@ class TreeShap(Explainer, FitMixin):
         """
         # TODO: check what else should be done (e.g. validate dtypes again?)
         self.predictor = predictor
+        self._explainer = self._init_shap_object()

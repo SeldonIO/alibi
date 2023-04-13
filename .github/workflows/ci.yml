@@ -14,7 +14,7 @@ on:
       - 'feature/*'
   pull_request:
     # don't trigger for draft PRs
-    types: [opened, synchronize, reopened, ready_for_review]
+    types: [ opened, synchronize, reopened, ready_for_review ]
   # Trigger workflow once per day at midnight
   schedule:
     - cron: '0 0 * * *'
@@ -34,13 +34,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ ubuntu-latest ]
         python-version: [ '3.7', '3.8', '3.9', '3.10' ]
         include: # Run macos and windows tests on only one python version
           - os: windows-latest
-            python-version:  '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
+            python-version: '3.9'  # PyTorch doesn't yet have 3.10 support on Windows (https://pytorch.org/get-started/locally/#windows-python)
           - os: macos-latest
-            python-version:  '3.10'
+            python-version: '3.10'
 
     steps:
       - name: Checkout code
@@ -97,30 +97,28 @@ jobs:
 
   docs:
 
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
 
     container:
-      image: readthedocs/build:latest
+      image: readthedocs/build:ubuntu-22.04-2022.03.15
       options: --user root
 
     steps:
       - uses: actions/checkout@v3
-      - name: Create a virtualenv to use for docs build
-        run: |
-          python3.8 -m virtualenv $HOME/docs
+      - name: Set up Python 3.x
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
       - name: Install dependencies
         run: |
-          . $HOME/docs/bin/activate
           python -m pip install --upgrade pip
           python -m pip install -r requirements/docs.txt
           python -m pip freeze
       - name: Build documentation to html
         run: |
-          . $HOME/docs/bin/activate
           make build_docs
       - name: Build documentation to pdf via latex
         run: |
-          . $HOME/docs/bin/activate
           make build_latex
 
   licenses:
@@ -132,7 +130,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Check 3rd party licenses haven't changed
         run: |
           pip install "tox>=3.21.0,<4.0.0"
@@ -148,7 +146,7 @@ jobs:
       - name: Set up Python 3.x
         uses: actions/setup-python@v4
         with:
-          python-version: '3.8'
+          python-version: '3.10'
       - name: Check optional dependency imports are protected
         run: |
           pip install "tox>=3.21.0,<4.0.0"

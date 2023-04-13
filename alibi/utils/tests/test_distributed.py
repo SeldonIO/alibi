@@ -21,7 +21,7 @@ class MockExplainer:
     def __init__(self, sleep_time: int, multiplier: int = 3):
         self.sleep_time = sleep_time
         self.multiplier = multiplier
-        self.proc_id = None  # type: Optional[int]
+        self.proc_id: Optional[int] = None
 
     def get_explanation(self, X: Union[Tuple[int, np.ndarray], np.ndarray], **kwargs):
         """

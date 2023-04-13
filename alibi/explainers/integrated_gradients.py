@@ -2,6 +2,7 @@ import copy
 import logging
 import string
 import warnings
+from enum import Enum
 from typing import Callable, List, Optional, Tuple, Union, cast
 
 import numpy as np
@@ -779,11 +780,22 @@ def _validate_output(model: tf.keras.Model,
                        "Targets can be either the true classes or the classes predicted by the model.")
 
 
+class LayerState(str, Enum):
+    UNSPECIFIED = 'unspecified'
+    NON_SERIALIZABLE = 'non-serializable'
+    CALLABLE = 'callable'
+
+
 class IntegratedGradients(Explainer):
 
     def __init__(self,
                  model: tf.keras.Model,
-                 layer: Optional[tf.keras.layers.Layer] = None,
+                 layer: Optional[
+                     Union[
+                         Callable[[tf.keras.Model], tf.keras.layers.Layer],
+                         tf.keras.layers.Layer
+                     ]
+                 ] = None,
                  target_fn: Optional[Callable] = None,
                  method: str = "gausslegendre",
                  n_steps: int = 50,
@@ -799,8 +811,10 @@ class IntegratedGradients(Explainer):
         model
             `tensorflow` model.
         layer
-            Layer with respect to which the gradients are calculated.
-            If not provided, the gradients are calculated with respect to the input.
+            A layer or a function having as parameter the model and returning a layer with respect to which the
+            gradients are calculated. If not provided, the gradients are calculated with respect to the input.
+            To guarantee saving and loading of the explainer, the layer has to be specified as a callable which
+            returns a layer given the model. E.g. ``lambda model: model.layers[0].embeddings``.
         target_fn
             A scalar function that is applied to the predictions of the model.
             This can be used to specify which scalar output the attributions should be calculated for.
@@ -829,18 +843,33 @@ class IntegratedGradients(Explainer):
 
         if layer is None:
             self.orig_call: Optional[Callable] = None
-            layer_num: Optional[int] = 0
-        else:
-            self.orig_call = layer.call
-            try:
-                layer_num = model.layers.index(layer)
-            except ValueError:
-                logger.info("Layer not in the list of model.layers")
-                layer_num = None
+            self.layer = None
+            layer_meta: Union[int, str] = LayerState.UNSPECIFIED.value
 
-        params['layer'] = layer_num
+        elif isinstance(layer, tf.keras.layers.Layer):
+            self.orig_call = layer.call
+            self.layer = layer
+
+            try:
+                layer_meta = model.layers.index(layer)
+            except ValueError:
+                layer_meta = LayerState.NON_SERIALIZABLE.value
+                logger.warning('Layer not in the list of `model.layers`. Passing the layer directly would not '
+                               'permit the serialization of the explainer. This is due to nested layers. To permit '
+                               'the serialization of the explainer, provide the layer as a callable which returns '
+                               'the layer given the model.')
+
+        elif callable(layer):
+            self.layer = layer(self.model)
+            self.orig_call = self.layer.call
+            self.callable_layer = layer
+            layer_meta = LayerState.CALLABLE.value
+
+        else:
+            raise TypeError(f'Unsupported layer type. Received {type(layer)}.')
+
+        params['layer'] = layer_meta
         self.meta['params'].update(params)
-        self.layer = layer
         self.n_steps = n_steps
         self.method = method
         self.internal_batch_size = internal_batch_size
@@ -1153,8 +1182,9 @@ class IntegratedGradients(Explainer):
             paths.append(path)
 
         if forward_kwargs:
-            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}  # type: Optional[dict]
+            paths_kwargs: Optional[dict] = {k: np.concatenate([forward_kwargs[k]
+                                            for _ in range(self.n_steps)], axis=0)
+                                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 
@@ -1269,8 +1299,9 @@ class IntegratedGradients(Explainer):
         paths = np.concatenate([baselines + alphas[i] * (X - baselines) for i in range(self.n_steps)], axis=0)
 
         if forward_kwargs:
-            paths_kwargs = {k: np.concatenate([forward_kwargs[k] for _ in range(self.n_steps)], axis=0)
-                            for k in forward_kwargs.keys()}  # type: Optional[dict]
+            paths_kwargs: Optional[dict] = {k: np.concatenate([forward_kwargs[k]
+                                            for _ in range(self.n_steps)], axis=0)
+                                            for k in forward_kwargs.keys()}
         else:
             paths_kwargs = None
 

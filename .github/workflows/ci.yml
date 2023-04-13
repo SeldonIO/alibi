@@ -88,7 +88,6 @@ jobs:
           directory: .
           env_vars: OS,PYTHON
           fail_ci_if_error: true
-          name: codecov-umbrella
           verbose: true
 
       - name: Build Python package

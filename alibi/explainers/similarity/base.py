@@ -1,9 +1,9 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Callable, Union, Tuple, Optional
-from typing_extensions import Literal
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
 
 import numpy as np
 from tqdm import tqdm
+from typing_extensions import Literal
 
 from alibi.api.interfaces import Explainer
 from alibi.explainers.similarity.backends import _select_backend
@@ -63,7 +63,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         super().__init__(meta=meta)
 
     def fit(self,
-            X_train: np.ndarray,
+            X_train: Union[np.ndarray, List[Any]],
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer. If ``self.precompute_grads == True`` then the gradients are precomputed and stored.
 
@@ -79,18 +79,21 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self
             Returns self.
         """
-        self.X_train: np.ndarray = X_train
+        self.X_train: Union[np.ndarray, List[Any]] = X_train
         self.Y_train: np.ndarray = Y_train
-        self.X_dims: Tuple = self.X_train.shape[1:]
+        self.X_dims: Optional[Tuple] = self.X_train.shape[1:] if isinstance(self.X_train, np.ndarray) else None
         self.Y_dims: Tuple = self.Y_train.shape[1:]
         self.grad_X_train: np.ndarray = np.array([])
 
         # compute and store gradients
         if self.precompute_grads:
             grads = []
+            X: Union[np.ndarray, List[Any]]
             for X, Y in tqdm(zip(self.X_train, self.Y_train), disable=not self.verbose):
-                grad_X_train = self._compute_grad(X[None], Y[None])
+                X = X[None] if isinstance(self.X_train, np.ndarray) else [X]  # type: ignore[call-overload]
+                grad_X_train = self._compute_grad(X, Y[None])
                 grads.append(grad_X_train[None])
+
             self.grad_X_train = np.concatenate(grads, axis=0)
         return self
 
@@ -149,18 +152,19 @@ class BaseSimilarityExplainer(Explainer, ABC):
         grad_X
             Gradients of the test instances.
         """
-        scores = np.zeros((grad_X.shape[0], self.X_train.shape[0]))
+        scores = np.zeros((len(grad_X), len(self.X_train)))
+        X: Union[np.ndarray, List[Any]]
         for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train)), disable=not self.verbose):
-            grad_X_train = self._compute_grad(X[None], Y[None])
+            X = X[None] if isinstance(self.X_train, np.ndarray) else [X]  # type: ignore[call-overload]
+            grad_X_train = self._compute_grad(X, Y[None])
             scores[:, i] = self.sim_fn(grad_X, grad_X_train[None])[:, 0]
         return scores
 
     def _compute_grad(self,
-                      X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+                      X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor, List[Any]]',
                       Y: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]') \
             -> np.ndarray:
-        """Computes predictor parameter gradients and returns a flattened `numpy` array."""
-
+        """ Computes predictor parameter gradients and returns a flattened `numpy` array."""
         X = self.backend.to_tensor(X) if isinstance(X, np.ndarray) else X
         Y = self.backend.to_tensor(Y) if isinstance(Y, np.ndarray) else Y
         return self.backend.get_grads(self.predictor, X, Y, self.loss_fn)

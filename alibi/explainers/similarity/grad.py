@@ -4,20 +4,20 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 """
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
-from typing_extensions import Literal
-from enum import Enum
 import warnings
+from enum import Enum
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union)
 
 import numpy as np
+from typing_extensions import Literal
 
-from alibi.api.interfaces import Explanation
+from alibi.api.defaults import DEFAULT_DATA_SIM, DEFAULT_META_SIM
+from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
-from alibi.explainers.similarity.metrics import dot, cos, asym_dot
-from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
+from alibi.explainers.similarity.metrics import asym_dot, cos, dot
 from alibi.utils import _get_options_string
 from alibi.utils.frameworks import Framework
-from alibi.api.interfaces import Explainer
 
 if TYPE_CHECKING:
     import tensorflow
@@ -140,7 +140,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             warnings.warn(warning_msg)
 
     def fit(self,
-            X_train: np.ndarray,
+            X_train: Union[np.ndarray, List[Any]],
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer.
 
@@ -185,7 +185,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Target data formatted for explain method.
 
         """
-        X = self._match_shape_to_data(X, 'X')
+        if hasattr(X, 'shape'):
+            X = self._match_shape_to_data(X, 'X')
+
         if isinstance(X, np.ndarray):
             X = self.backend.to_tensor(X)
 
@@ -267,11 +269,24 @@ class GradientSimilarity(BaseSimilarityExplainer):
         """
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[:, ::-1]
-        broadcast_indices = np.expand_dims(sorted_score_indices, axis=tuple(range(2, len(self.X_train[None].shape))))
+        most_similar: Union[np.ndarray, List[Any]]
+        least_similar: Union[np.ndarray, List[Any]]
+
+        if isinstance(self.X_train, np.ndarray):
+            broadcast_indices = np.expand_dims(
+                sorted_score_indices,
+                axis=tuple(range(2, len(self.X_train[None].shape)))
+            )
+            most_similar = np.take_along_axis(self.X_train[None], broadcast_indices[:, :5], axis=1)
+            least_similar = np.take_along_axis(self.X_train[None], broadcast_indices[:, -1:-6:-1], axis=1)
+        else:
+            most_similar = [[self.X_train[i] for i in ssi[:5]] for ssi in sorted_score_indices]
+            least_similar = [[self.X_train[i] for i in ssi[-1:-6:-1]] for ssi in sorted_score_indices]
+
         data.update(
             scores=np.take_along_axis(scores, sorted_score_indices, axis=1),
             ordered_indices=sorted_score_indices,
-            most_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, :5], axis=1),
-            least_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, -1:-6:-1], axis=1),
+            most_similar=most_similar,
+            least_similar=least_similar
         )
         return Explanation(meta=self.meta, data=data)

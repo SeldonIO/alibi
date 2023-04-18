@@ -4,11 +4,11 @@ Methods unique to the `pytorch` backend are defined here. The interface this cla
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Union, Optional
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
-import torch.nn as nn
 import torch
+import torch.nn as nn
 
 
 class _PytorchBackend:
@@ -17,7 +17,7 @@ class _PytorchBackend:
     @staticmethod
     def get_grads(
             model: nn.Module,
-            X: torch.Tensor,
+            X: Union[torch.Tensor, List[Any]],
             Y: torch.Tensor,
             loss_fn: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     ) -> np.ndarray:

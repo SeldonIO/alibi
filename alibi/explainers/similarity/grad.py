@@ -250,7 +250,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X, Y = self._preprocess_args(X, Y)
         test_grads = []
         for x, y in zip(X, Y):
-            x = x[None] if not isinstance(x, list) else [x]
+            x = x[None] if hasattr(x, 'shape') else [x]
             test_grads.append(self._compute_grad(x, y[None])[None])
         grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:

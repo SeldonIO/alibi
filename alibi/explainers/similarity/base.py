@@ -159,7 +159,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         scores = np.zeros((len(grad_X), len(self.X_train)))
         X: Union[np.ndarray, List[Any]]
         for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train)), disable=not self.verbose):
-            X = X[None] if not isinstance(self.X_train, list) else [X]  # type: ignore[call-overload]
+            X = X[None] if hasattr(self.X_train, 'shape') else [X]  # type: ignore[call-overload]
             grad_X_train = self._compute_grad(X, Y[None])
             scores[:, i] = self.sim_fn(grad_X, grad_X_train[None])[:, 0]
         return scores

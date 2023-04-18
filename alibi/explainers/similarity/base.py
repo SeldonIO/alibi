@@ -134,12 +134,16 @@ class BaseSimilarityExplainer(Explainer, ABC):
             If the shape of `data` does not match the shape of the training data, or fit has not been called prior to
             calling this method.
         """
-        target_shape = getattr(self, f'{target_type}_dims')
-        if data.shape == target_shape:
-            data = data[None]
-        if data.shape[1:] != target_shape:
-            raise ValueError((f'Input `{target_type}` has shape {data.shape[1:]}'
-                              f' but training data has shape {target_shape}'))
+        if hasattr(data, 'shape'):
+            target_shape = getattr(self, f'{target_type}_dims')
+            if data.shape == target_shape:
+                data = data[None]
+            if data.shape[1:] != target_shape:
+                raise ValueError((f'Input `{target_type}` has shape {data.shape[1:]}'
+                                  f' but training data has shape {target_shape}'))
+        elif not isinstance(data, list):
+            data = [data]
+
         return data
 
     def _compute_adhoc_similarity(self, grad_X: np.ndarray) -> np.ndarray:
@@ -155,7 +159,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         scores = np.zeros((len(grad_X), len(self.X_train)))
         X: Union[np.ndarray, List[Any]]
         for i, (X, Y) in tqdm(enumerate(zip(self.X_train, self.Y_train)), disable=not self.verbose):
-            X = X[None] if isinstance(self.X_train, np.ndarray) else [X]  # type: ignore[call-overload]
+            X = X[None] if not isinstance(self.X_train, list) else [X]  # type: ignore[call-overload]
             grad_X_train = self._compute_grad(X, Y[None])
             scores[:, i] = self.sim_fn(grad_X, grad_X_train[None])[:, 0]
         return scores

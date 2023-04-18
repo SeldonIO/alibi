@@ -165,7 +165,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
     def _preprocess_args(
             self,
-            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Any, List[Any]]',
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) \
             -> 'Union[Tuple[torch.Tensor, torch.Tensor], Tuple[tensorflow.Tensor, tensorflow.Tensor]]':
         """Formats `X`, `Y` for explain method.
@@ -185,9 +185,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             Target data formatted for explain method.
 
         """
-        if hasattr(X, 'shape'):
-            X = self._match_shape_to_data(X, 'X')
-
+        X = self._match_shape_to_data(X, 'X')
         if isinstance(X, np.ndarray):
             X = self.backend.to_tensor(X)
 
@@ -207,7 +205,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
     def explain(
             self,
-            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Any, List[Any]]',
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) -> "Explanation":
         """Explain the predictor's predictions for a given input.
 
@@ -219,8 +217,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
         Parameters
         ----------
         X
-            `X` can be a `numpy` array, `tensorflow` tensor, or `pytorch` tensor of the same shape as the training data
-            with or without a leading batch dimension. If the batch dimension is missing it's added.
+            `X` can be a `numpy` array, `tensorflow` tensor, `pytorch` tensor of the same shape as the training data
+            or a list of objects, with or without a leading batch dimension. If the batch dimension is missing it's
+            added.
         Y
             `Y` can be a `numpy` array, `tensorflow` tensor or a `pytorch` tensor. In the case of a regression task, the
             `Y` argument must be present. If the task is classification then `Y` defaults to the model prediction.
@@ -251,7 +250,8 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X, Y = self._preprocess_args(X, Y)
         test_grads = []
         for x, y in zip(X, Y):
-            test_grads.append(self._compute_grad(x[None], y[None])[None])
+            x = x[None] if not isinstance(X, list) else [X]
+            test_grads.append(self._compute_grad(x, y[None])[None])
         grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:
             scores = self._compute_adhoc_similarity(grads_X_test)

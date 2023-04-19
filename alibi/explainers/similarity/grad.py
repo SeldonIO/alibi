@@ -10,14 +10,13 @@ from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
                     Union)
 
 import numpy as np
-from typing_extensions import Literal
-
 from alibi.api.defaults import DEFAULT_DATA_SIM, DEFAULT_META_SIM
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
 from alibi.explainers.similarity.metrics import asym_dot, cos, dot
 from alibi.utils import _get_options_string
 from alibi.utils.frameworks import Framework
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     import tensorflow
@@ -250,8 +249,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X, Y = self._preprocess_args(X, Y)
         test_grads = []
         for x, y in zip(X, Y):
-            x = x[None] if hasattr(x, 'shape') else [x]
-            test_grads.append(self._compute_grad(x, y[None])[None])
+            test_grads.append(self._compute_grad(self._format(x), y[None])[None])
         grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:
             scores = self._compute_adhoc_similarity(grads_X_test)

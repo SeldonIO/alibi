@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import numpy as np
 from alibi.api.interfaces import Explainer
@@ -82,11 +82,11 @@ class BaseSimilarityExplainer(Explainer, ABC):
         self
             Returns self.
         """
-        self.X_train: Union[np.ndarray, List[Any]] = X_train
-        self.Y_train: np.ndarray = Y_train
-        self.X_dims: Optional[Tuple] = self.X_train.shape[1:] if isinstance(self.X_train, np.ndarray) else None
-        self.Y_dims: Tuple = self.Y_train.shape[1:]
-        self.grad_X_train: np.ndarray = np.array([])
+        self.X_train = X_train
+        self.Y_train = Y_train
+        self.X_dims = self.X_train.shape[1:] if isinstance(self.X_train, np.ndarray) else None
+        self.Y_dims = self.Y_train.shape[1:]
+        self.grad_X_train = np.array([])
 
         # compute and store gradients
         if self.precompute_grads:
@@ -100,7 +100,7 @@ class BaseSimilarityExplainer(Explainer, ABC):
         return self
 
     @staticmethod
-    def _is_tensor(x: Any):
+    def _is_tensor(x: Any) -> bool:
         """Checks if an obejct is a tensor."""
         if has_tensorflow and isinstance(x, _TfTensor):
             return True

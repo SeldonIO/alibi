@@ -4,20 +4,19 @@ This module implements the gradient-based explainers grad-dot and grad-cos.
 """
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, Union, Dict, Tuple
-from typing_extensions import Literal
-from enum import Enum
 import warnings
+from enum import Enum
+from typing import (TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple,
+                    Union)
 
 import numpy as np
-
-from alibi.api.interfaces import Explanation
+from alibi.api.defaults import DEFAULT_DATA_SIM, DEFAULT_META_SIM
+from alibi.api.interfaces import Explainer, Explanation
 from alibi.explainers.similarity.base import BaseSimilarityExplainer
-from alibi.explainers.similarity.metrics import dot, cos, asym_dot
-from alibi.api.defaults import DEFAULT_META_SIM, DEFAULT_DATA_SIM
+from alibi.explainers.similarity.metrics import asym_dot, cos, dot
 from alibi.utils import _get_options_string
 from alibi.utils.frameworks import Framework
-from alibi.api.interfaces import Explainer
+from typing_extensions import Literal
 
 if TYPE_CHECKING:
     import tensorflow
@@ -140,7 +139,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
             warnings.warn(warning_msg)
 
     def fit(self,
-            X_train: np.ndarray,
+            X_train: Union[np.ndarray, List[Any]],
             Y_train: np.ndarray) -> "Explainer":
         """Fit the explainer.
 
@@ -165,7 +164,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
     def _preprocess_args(
             self,
-            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Any, List[Any]]',
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) \
             -> 'Union[Tuple[torch.Tensor, torch.Tensor], Tuple[tensorflow.Tensor, tensorflow.Tensor]]':
         """Formats `X`, `Y` for explain method.
@@ -205,7 +204,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
 
     def explain(
             self,
-            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor]',
+            X: 'Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Any, List[Any]]',
             Y: 'Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]]' = None) -> "Explanation":
         """Explain the predictor's predictions for a given input.
 
@@ -217,8 +216,9 @@ class GradientSimilarity(BaseSimilarityExplainer):
         Parameters
         ----------
         X
-            `X` can be a `numpy` array, `tensorflow` tensor, or `pytorch` tensor of the same shape as the training data
-            with or without a leading batch dimension. If the batch dimension is missing it's added.
+            `X` can be a `numpy` array, `tensorflow` tensor, `pytorch` tensor of the same shape as the training data
+            or a list of objects, with or without a leading batch dimension. If the batch dimension is missing it's
+            added.
         Y
             `Y` can be a `numpy` array, `tensorflow` tensor or a `pytorch` tensor. In the case of a regression task, the
             `Y` argument must be present. If the task is classification then `Y` defaults to the model prediction.
@@ -249,7 +249,7 @@ class GradientSimilarity(BaseSimilarityExplainer):
         X, Y = self._preprocess_args(X, Y)
         test_grads = []
         for x, y in zip(X, Y):
-            test_grads.append(self._compute_grad(x[None], y[None])[None])
+            test_grads.append(self._compute_grad(self._format(x), y[None])[None])
         grads_X_test = np.concatenate(np.array(test_grads), axis=0)
         if not self.precompute_grads:
             scores = self._compute_adhoc_similarity(grads_X_test)
@@ -267,11 +267,24 @@ class GradientSimilarity(BaseSimilarityExplainer):
         """
         data = copy.deepcopy(DEFAULT_DATA_SIM)
         sorted_score_indices = np.argsort(scores)[:, ::-1]
-        broadcast_indices = np.expand_dims(sorted_score_indices, axis=tuple(range(2, len(self.X_train[None].shape))))
+        most_similar: Union[np.ndarray, List[Any]]
+        least_similar: Union[np.ndarray, List[Any]]
+
+        if isinstance(self.X_train, np.ndarray):
+            broadcast_indices = np.expand_dims(
+                sorted_score_indices,
+                axis=tuple(range(2, len(self.X_train[None].shape)))
+            )
+            most_similar = np.take_along_axis(self.X_train[None], broadcast_indices[:, :5], axis=1)
+            least_similar = np.take_along_axis(self.X_train[None], broadcast_indices[:, -1:-6:-1], axis=1)
+        else:
+            most_similar = [[self.X_train[i] for i in ssi[:5]] for ssi in sorted_score_indices]
+            least_similar = [[self.X_train[i] for i in ssi[-1:-6:-1]] for ssi in sorted_score_indices]
+
         data.update(
             scores=np.take_along_axis(scores, sorted_score_indices, axis=1),
             ordered_indices=sorted_score_indices,
-            most_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, :5], axis=1),
-            least_similar=np.take_along_axis(self.X_train[None], broadcast_indices[:, -1:-6:-1], axis=1),
+            most_similar=most_similar,
+            least_similar=least_similar
         )
         return Explanation(meta=self.meta, data=data)

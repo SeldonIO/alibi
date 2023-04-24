@@ -28,6 +28,7 @@
 "flatbuffers","Apache Software License"
 "fonttools","MIT License"
 "frozenlist","Apache Software License"
+"fsspec","BSD License"
 "gast","BSD License"
 "google-auth","Apache Software License"
 "google-auth-oauthlib","Apache Software License"

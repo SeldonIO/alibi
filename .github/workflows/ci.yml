@@ -83,9 +83,12 @@ jobs:
           pytest -m "not tf1" alibi
 
       - name: Upload coverage to Codecov
-        if: ${{ success() }}
-        run: |
-          codecov -F ${{ matrix.os }}-${{ matrix.python-version }}
+        uses: codecov/codecov-action@v3
+        with:
+          directory: .
+          env_vars: ${{matrix.os}}, ${{matrix.python-version}}
+          fail_ci_if_error: false
+          verbose: true
 
       - name: Build Python package
         run: |

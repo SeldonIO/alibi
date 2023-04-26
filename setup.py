@@ -16,13 +16,13 @@ extras_require = {
         'shap>=0.40.0, <0.42.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
         'numba>=0.50.0, !=0.54.0, <0.57.0',  # Avoid 0.54 due to: https://github.com/SeldonIO/alibi/issues/466
     ],
-    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.12.0'],
+    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0'],
     'torch': ['torch>=1.9.0, <2.0.0'],
     'all': [
         'ray>=0.8.7, <3.0.0',
         'shap>=0.40.0, <0.42.0',
         'numba>=0.50.0, !=0.54.0, <0.57.0',
-        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.12.0',
+        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0',
         'torch>=1.9.0, <2.0.0'
     ]
 }
@@ -43,11 +43,11 @@ if __name__ == '__main__':
           # lower bounds based on Debian Stable versions where available
           install_requires=[
               'numpy>=1.16.2, <2.0.0',
-              'pandas>=0.23.3, <2.0.0',
+              'pandas>=1.0.0, <3.0.0',
               'scikit-learn>=1.0.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <4.0.0',
               'blis<0.8.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
-              'scikit-image>=0.17.2, <0.20',  # introduced `start_label` argument for `slic`
+              'scikit-image>=0.17.2, <0.21',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <10.0',
               'attrs>=19.2.0, <23.0.0',

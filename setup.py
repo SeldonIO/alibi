@@ -50,7 +50,7 @@ if __name__ == '__main__':
               'scikit-image>=0.17.2, <0.21',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <10.0',
-              'attrs>=19.2.0, <23.0.0',
+              'attrs>=19.2.0, <24.0.0',
               'scipy>=1.1.0, <2.0.0',
               'matplotlib>=3.0.0, <4.0.0',
               'typing-extensions>=3.7.4.3',

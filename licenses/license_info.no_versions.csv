@@ -92,7 +92,6 @@
 "srsly","MIT License"
 "tensorboard","Apache Software License"
 "tensorboard-data-server","Apache Software License"
-"tensorboard-plugin-wit","Apache 2.0"
 "tensorflow","Apache Software License"
 "tensorflow-estimator","Apache Software License"
 "tensorflow-io-gcs-filesystem","Apache Software License"

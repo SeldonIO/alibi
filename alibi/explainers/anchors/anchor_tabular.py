@@ -399,7 +399,7 @@ class TabularSampler:
 
         # replace partial anchors with partial anchors drawn from the training dataset
         # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
-        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore[misc]
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp

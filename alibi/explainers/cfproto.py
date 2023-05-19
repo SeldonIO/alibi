@@ -1206,7 +1206,7 @@ class CounterfactualProto(Explainer, FitMixin):
                     if not self.model:
                         print('Gradient numerical attack min/max: {:.3f}/{:.3f}'
                               .format(grads_num.min(), grads_num.max()))
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'  # type: ignore[str-format]
                               .format(np.mean(grads_num), np.mean(np.abs(grads_num))))
                     sys.stdout.flush()
 

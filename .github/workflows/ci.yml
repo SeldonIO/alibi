@@ -30,7 +30,6 @@ on:
 jobs:
   build:
     if: github.event.pull_request.draft == false
-    needs: code-quality
 
     runs-on: ${{ matrix.os }}
     strategy:

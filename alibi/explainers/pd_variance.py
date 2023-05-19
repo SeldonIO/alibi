@@ -461,7 +461,7 @@ def _plot_hbar(exp_values: np.ndarray,
         fig = ax.figure
         n_cols = min(n_cols, n_targets)
         n_rows = math.ceil(n_targets / n_cols)
-        axes = np.empty((n_rows, n_cols), dtype=object)   # type: ignore[attr-defined]
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 

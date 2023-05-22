@@ -15,7 +15,7 @@ class LanguageModelSampler(AnchorTextSampler):
     FILLING_PARALLEL: str = 'parallel'  #: Parallel filling procedure.
     FILLING_AUTOREGRESSIVE = 'autoregressive'  #: Autoregressive filling procedure. Considerably slow.
 
-    def __init__(self, model: LanguageModel, perturb_opts: dict, ):
+    def __init__(self, model: LanguageModel, perturb_opts: dict, seed: Optional[int] = None) -> None:
         """
         Initialize language model sampler. This sampler replaces words with the ones
         sampled according to the output distribution of the language model. There are
@@ -31,7 +31,12 @@ class LanguageModelSampler(AnchorTextSampler):
         perturb_opts
             Perturbation options.
         """
-        super().__init__()
+        super().__init__(seed=seed)
+
+        # set the tensorflow seed global since tf.random.Generator doesn't yet support all distributions
+        # TODO: change this once tf.random.Generator supports `categorical`
+        if seed is not None:
+            tf.random.set_seed(seed)
 
         # set language model and perturbation options
         self.model = model
@@ -289,8 +294,8 @@ class LanguageModelSampler(AnchorTextSampler):
                 # is much easier to ensure that at least one word in the sentence is masked.
                 # If the sampling is performed over the columns it might be the case
                 # that no word in a sentence will be masked.
-                n_changed = max(1, np.random.binomial(len(allowed_indices), sample_proba))
-                changed = np.random.choice(allowed_indices, n_changed, replace=False)
+                n_changed = max(1, self.rng.binomial(len(allowed_indices), sample_proba))
+                changed = self.rng.choice(allowed_indices, n_changed, replace=False)
 
                 # mark the entrance as maks
                 data[i, changed] = 0
@@ -662,6 +667,3 @@ class LanguageModelSampler(AnchorTextSampler):
         # define the types to be used
         self.dtype_token = '<U' + str(max_len)
         self.dtype_sent = '<U' + str(max_sent_len)
-
-    def seed(self, seed: int) -> None:
-        tf.random.set_seed(seed)

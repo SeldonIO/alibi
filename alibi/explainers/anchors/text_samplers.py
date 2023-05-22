@@ -119,6 +119,18 @@ def load_spacy_lexeme_prob(nlp: 'spacy.language.Language') -> 'spacy.language.La
 
 
 class AnchorTextSampler:
+
+    def __init__(self, seed: Optional[int] = None) -> None:
+        """
+        Initialize the anchor text sampler by fixing a random seed.
+
+        Parameters
+        ----------
+        seed
+            Random seed.
+        """
+        self.rng = np.random.default_rng(seed=seed)
+
     @abstractmethod
     def set_text(self, text: str) -> None:
         pass
@@ -151,7 +163,7 @@ class AnchorTextSampler:
 class UnknownSampler(AnchorTextSampler):
     UNK: str = "UNK"  #: Unknown token to be used.
 
-    def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
+    def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict, seed: Optional[int] = None) -> None:
         """
         Initialize unknown sampler. This sampler replaces word with the `UNK` token.
 
@@ -161,8 +173,10 @@ class UnknownSampler(AnchorTextSampler):
             `spaCy` object.
         perturb_opts
             Perturbation options.
+        seed
+            Random seed.
         """
-        super().__init__()
+        super().__init__(seed=seed)
 
         # set nlp and perturbation options
         self.nlp = load_spacy_lexeme_prob(nlp)
@@ -226,8 +240,8 @@ class UnknownSampler(AnchorTextSampler):
                 continue
 
             # sample the words in the text outside of the anchor that are replaced with UNKs
-            n_changed = np.random.binomial(num_samples, self.perturb_opts['sample_proba'])
-            changed = np.random.choice(num_samples, n_changed, replace=False)
+            n_changed = self.rng.binomial(num_samples, self.perturb_opts['sample_proba'])
+            changed = self.rng.choice(num_samples, n_changed, replace=False)
             raw[changed, i] = UnknownSampler.UNK
             data[changed, i] = 0
 
@@ -250,7 +264,7 @@ class UnknownSampler(AnchorTextSampler):
 
 class SimilaritySampler(AnchorTextSampler):
 
-    def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict):
+    def __init__(self, nlp: 'spacy.language.Language', perturb_opts: Dict, seed: Optional[int] = None) -> None:
         """
         Initialize similarity sampler. This sampler replaces words with similar words.
 
@@ -260,9 +274,10 @@ class SimilaritySampler(AnchorTextSampler):
             `spaCy` object.
         perturb_opts
             Perturbation options.
-
+        seed
+            Random seed.
         """
-        super().__init__()
+        super().__init__(seed=seed)
 
         # set nlp and perturbation options
         self.nlp = load_spacy_lexeme_prob(nlp)
@@ -396,8 +411,8 @@ class SimilaritySampler(AnchorTextSampler):
                 if t_neighbors.size == 0:
                     continue
 
-                n_changed = np.random.binomial(n, sample_proba)
-                changed = np.random.choice(n, n_changed, replace=False)
+                n_changed = self.rng.binomial(n, sample_proba)
+                changed = self.rng.choice(n, n_changed, replace=False)
 
                 if use_proba:  # use similarity scores to sample changed tokens
                     weights = self.synonyms[t.text]['similarities']
@@ -407,7 +422,7 @@ class SimilaritySampler(AnchorTextSampler):
                     weights = np.ones((t_neighbors.shape[0],))
                     weights /= t_neighbors.shape[0]
 
-                raw[changed, i] = np.random.choice(t_neighbors, n_changed, p=weights, replace=True)
+                raw[changed, i] = self.rng.choice(t_neighbors, n_changed, p=weights, replace=True)
                 data[changed, i] = 0
 
         raw = np.apply_along_axis(self._joiner, axis=1, arr=raw, dtype=self.dtype)

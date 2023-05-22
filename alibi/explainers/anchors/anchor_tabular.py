@@ -51,7 +51,7 @@ class TabularSampler:
             If set, fixes the random number sequence.
         """
 
-        np.random.seed(seed)
+        self.rng = np.random.default_rng(seed=seed)
 
         self.predictor = predictor
         self.n_covered_ex = n_covered_ex
@@ -271,7 +271,7 @@ class TabularSampler:
         """
 
         # initialise samples randomly
-        init_sample_idx = np.random.choice(range(self.train_data.shape[0]), num_samples, replace=True)
+        init_sample_idx = self.rng.choice(range(self.train_data.shape[0]), num_samples, replace=True)
         samples = self.train_data[init_sample_idx]
         d_samples = self.d_train_data[init_sample_idx]
 
@@ -301,7 +301,7 @@ class TabularSampler:
         # if there are enough train records containing the anchor, replace the original records and return...
         num_samples_pos = np.searchsorted(nb_partial_anchors, num_samples)
         if num_samples_pos == 0:
-            samples_idxs = np.random.choice(partial_anchor_rows[-1], num_samples)
+            samples_idxs = self.rng.choice(partial_anchor_rows[-1], num_samples)
             samples[:, uniq_feat_ids] = self.train_data[np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
             d_samples[:, uniq_feat_ids] = self.d_train_data[
                 np.ix_(samples_idxs, uniq_feat_ids)]  # type: ignore[arg-type]
@@ -355,7 +355,7 @@ class TabularSampler:
                       " Sampling uniformly at random from the feature range!"
                 print(fmt.format(feat, allowed_bins[feat]))
                 min_vals, max_vals = self.min[feat], self.max[feat]
-                samples[:, feat] = np.random.uniform(low=min_vals, high=max_vals, size=(num_samples,))
+                samples[:, feat] = self.rng.uniform(low=min_vals, high=max_vals, size=(num_samples,))
 
     def replace_features(self, samples: np.ndarray, allowed_rows: Dict[int, Any], uniq_feat_ids: List[int],
                          partial_anchor_rows: List[np.ndarray], nb_partial_anchors: np.ndarray,
@@ -405,9 +405,9 @@ class TabularSampler:
                 num_samples -= n_samp
             else:
                 if num_samples <= partial_anchor_rows[n_anchor_feats - idx - 1].shape[0]:
-                    samp_idxs = np.random.choice(partial_anchor_rows[n_anchor_feats - idx - 1], num_samples)
+                    samp_idxs = self.rng.choice(partial_anchor_rows[n_anchor_feats - idx - 1], num_samples)
                 else:
-                    samp_idxs = np.random.choice(
+                    samp_idxs = self.rng.choice(
                         partial_anchor_rows[n_anchor_feats - idx - 1],
                         num_samples,
                         replace=True,
@@ -423,7 +423,7 @@ class TabularSampler:
                 feats_to_replace = uniq_feat_ids[:idx]
                 samp_idxs = np.zeros((len(feats_to_replace), n_samp)).astype(int)  # =: P x Q
                 for i, feat_idx in enumerate(feats_to_replace):
-                    samp_idxs[i, :] = np.random.choice(allowed_rows[feat_idx], n_samp, replace=True)
+                    samp_idxs[i, :] = self.rng.choice(allowed_rows[feat_idx], n_samp, replace=True)
 
                 # N x F ->  P X Q x F -> P X Q
                 # First slice takes the data rows indicated in rows of samp_idxs; each row corresponds to a diff. feat
@@ -441,7 +441,7 @@ class TabularSampler:
 
             samp_idxs = np.zeros((len(uniq_feat_ids), n_samp)).astype(int)
             for i, feat_idx in enumerate(uniq_feat_ids):
-                samp_idxs[i, :] = np.random.choice(allowed_rows[feat_idx], n_samp, replace=True)
+                samp_idxs[i, :] = self.rng.choice(allowed_rows[feat_idx], n_samp, replace=True)
 
             to_replace_vals = self.train_data[samp_idxs][np.arange(len(uniq_feat_ids)), :, uniq_feat_ids]
             samples[start:, uniq_feat_ids] = to_replace_vals.transpose()

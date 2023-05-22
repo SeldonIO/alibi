@@ -133,7 +133,7 @@ class AnchorText(Explainer):
                  sampling_strategy: str = 'unknown',
                  nlp: Optional['spacy.language.Language'] = None,
                  language_model: Union['LanguageModel', None] = None,
-                 seed: int = 0,
+                 seed: Optional[int] = None,
                  **kwargs: Any) -> None:
         """
         Initialize anchor text explainer.
@@ -176,7 +176,7 @@ class AnchorText(Explainer):
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
-        self._seed(seed)
+        self.seed = seed
 
         # set the predictor
         self.predictor = self._transform_predictor(predictor)
@@ -542,9 +542,3 @@ class AnchorText(Explainer):
             New predictor function.
         """
         self.predictor = self._transform_predictor(predictor)
-
-    def _seed(self, seed: int) -> None:
-        np.random.seed(seed)
-        # If LanguageModel is used, we need to set the seed for tf as well.
-        if hasattr(self, 'model') and isinstance(self.model, LanguageModelSampler):
-            self.perturbation.seed(seed)

@@ -58,7 +58,8 @@ class AnchorImageSampler:
             images_background: Optional[np.ndarray] = None,
             p_sample: float = 0.5,
             n_covered_ex: int = 10,
-    ):
+            seed: Optional[int] = None
+    ) -> None:
         """
         Initialize anchor image sampler.
 
@@ -79,6 +80,8 @@ class AnchorImageSampler:
             How many examples where anchors apply to store for each anchor sampled during search
             (both examples where prediction on samples agrees/disagrees with `desired_label` are stored).
         """
+
+        self.rng = np.random.default_rng(seed=seed)
         self.predictor = predictor
         self.segmentation_fn = segmentation_fn
         self.custom_segmentation = custom_segmentation
@@ -189,7 +192,7 @@ class AnchorImageSampler:
         """
 
         n_features = len(self.segment_labels)
-        data = np.random.choice(
+        data = self.rng.choice(
             [0, 1], num_samples * n_features, p=[p_sample, 1 - p_sample]
         )
         data = data.reshape((num_samples, n_features))
@@ -232,7 +235,7 @@ class AnchorImageSampler:
 
         # for each sample, need to sample one of the background images if provided
         if self.images_background is not None:
-            backgrounds = np.random.choice(
+            backgrounds = self.rng.choice(
                 range(len(self.images_background)),
                 segments_mask.shape[0],
                 replace=True,
@@ -351,7 +354,7 @@ class AnchorImage(Explainer):
             If the return type of `predictor` is not `np.ndarray`.
         """
         super().__init__(meta=copy.deepcopy(DEFAULT_META_ANCHOR))
-        np.random.seed(seed)
+        self.seed = seed
 
         # TODO: this logic needs improvement. We should check against a fixed set of strings
         # for built-ins instead of any `str`.
@@ -553,6 +556,7 @@ class AnchorImage(Explainer):
             images_background=self.images_background,
             p_sample=p_sample,
             n_covered_ex=n_covered_ex,
+            seed=self.seed,
         )
 
         # get anchors and add metadata

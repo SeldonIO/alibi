@@ -490,9 +490,9 @@ class CEM(Explainer, FitMixin):
             if not isinstance(x, (float, int, np.int64)):
                 x = np.copy(x)
                 if self.mode == "PP":
-                    x[y] -= self.kappa  # type:ignore
+                    x[y] -= self.kappa
                 elif self.mode == "PN":
-                    x[y] += self.kappa  # type:ignore
+                    x[y] += self.kappa
                 x = np.argmax(x)  # type:ignore
             if self.mode == "PP":
                 return x == y
@@ -554,8 +554,8 @@ class CEM(Explainer, FitMixin):
                         grads_num = self.get_gradients(X_der_batch, Y) * c
                         grads_num_s = self.get_gradients(X_der_batch_s, Y) * c
                         # clip gradients
-                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])  # type:ignore
-                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])  # type: ignore
+                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])
+                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])
                         X_der_batch, X_der_batch_s = [], []
 
                 # compute and clip gradients defined in graph
@@ -601,12 +601,12 @@ class CEM(Explainer, FitMixin):
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
                     print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'
-                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
+                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))
                     if not self.model:
                         print('Gradient numerical attack min/max: {:.3f}/{:.3f}'
-                              .format(grads_num.min(), grads_num.max()))  # type: ignore
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'
-                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
+                              .format(grads_num.min(), grads_num.max()))
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'  # type: ignore[str-format]
+                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))
                     sys.stdout.flush()
 
                 # update best perturbation (distance) and class probabilities

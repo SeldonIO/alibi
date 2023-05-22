@@ -941,7 +941,7 @@ class IntegratedGradients(Explainer):
 
         if self._is_list:
             X = cast(List[np.ndarray], X)  # help mypy out
-            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]  # type: ignore
+            self.orig_dummy_input = [np.zeros((1,) + xx.shape[1:], dtype=xx.dtype) for xx in X]
             nb_samples = len(X[0])
             input_dtypes = [xx.dtype for xx in X]
             # Formatting baselines in case of models with multiple inputs
@@ -967,9 +967,9 @@ class IntegratedGradients(Explainer):
 
         elif self._is_np:
             X = cast(np.ndarray, X)  # help mypy out
-            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)  # type: ignore
+            self.orig_dummy_input = np.zeros((1,) + X.shape[1:], dtype=X.dtype)
             nb_samples = len(X)
-            input_dtypes = [X.dtype]  # type: ignore
+            input_dtypes = [X.dtype]
             # Formatting baselines for models with a single input
             baselines = _format_baseline(X, baselines)  # type: ignore # TODO: validate/narrow baselines type
 
@@ -979,7 +979,7 @@ class IntegratedGradients(Explainer):
         # defining integral method
         step_sizes_func, alphas_func = approximation_parameters(self.method)
         step_sizes, alphas = step_sizes_func(self.n_steps), alphas_func(self.n_steps)
-        target = _format_target(target, nb_samples)  # type: ignore[assignment]
+        target = _format_target(target, nb_samples)
 
         if self._is_list:
             X = cast(List[np.ndarray], X)  # help mypy out
@@ -990,7 +990,7 @@ class IntegratedGradients(Explainer):
                 inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inputs, **forward_kwargs)
 
-            _validate_output(self.model, target)  # type: ignore[arg-type]
+            _validate_output(self.model, target)
             _check_target(self.model.output_shape, target, nb_samples)
             if self.layer is None:
                 # No layer passed, attributions computed with respect to the inputs
@@ -1176,7 +1176,7 @@ class IntegratedGradients(Explainer):
         # define paths in features' space
         paths = []
         for i in range(len(X)):
-            x, baseline = X[i], baselines[i]  # type: ignore
+            x, baseline = X[i], baselines[i]
             # construct paths
             path = np.concatenate([baseline + alphas[i] * (x - baseline) for i in range(self.n_steps)], axis=0)
             paths.append(path)
@@ -1252,7 +1252,7 @@ class IntegratedGradients(Explainer):
                                          target, target_paths,
                                          self.n_steps, nb_samples,
                                          step_sizes, j)
-            norm = X[j] - baselines[j]  # type: ignore
+            norm = X[j] - baselines[j]
             attribution = norm * sum_int
             attributions.append(attribution)
 

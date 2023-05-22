@@ -400,7 +400,7 @@ def _load_CounterfactualRLTabular(path: Union[str, os.PathLike],
 
 def _save_SimilarityExplainer(explainer: 'GradientSimilarity', path: Union[str, os.PathLike]) -> None:
     predictor = explainer.predictor
-    explainer.predictor = None  # type: ignore[assignment]
+    explainer.predictor = None
 
     with open(Path(path, 'explainer.dill'), 'wb') as f:
         dill.dump(explainer, f, recurse=True)

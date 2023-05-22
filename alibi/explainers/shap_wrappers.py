@@ -581,7 +581,7 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
-    @_get_data.register(np.ndarray)  # type: ignore
+    @_get_data.register(np.ndarray)
     def _(self, background_data, *args, **kwargs) -> Union[np.ndarray, shap_utils.Data]:
         """
         Initialises background data if the user passes an `np.ndarray` object as input.
@@ -598,7 +598,7 @@ class KernelShap(Explainer, FitMixin):
         else:
             return background_data
 
-    @_get_data.register(sparse.spmatrix)  # type: ignore
+    @_get_data.register(sparse.spmatrix)
     def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, sparse.spmatrix]:
         """
         Initialises background data if the user passes a sparse matrix as input. If the
@@ -623,7 +623,7 @@ class KernelShap(Explainer, FitMixin):
 
         return background_data
 
-    @_get_data.register(pd.core.frame.DataFrame)  # type: ignore
+    @_get_data.register(pd.core.frame.DataFrame)
     def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, pd.core.frame.DataFrame]:
         """
         Initialises background data if the user passes a `pandas.core.frame.DataFrame` as input.
@@ -654,7 +654,7 @@ class KernelShap(Explainer, FitMixin):
         else:
             return background_data
 
-    @_get_data.register(pd.core.frame.Series)  # type: ignore
+    @_get_data.register(pd.core.frame.Series)
     def _(self, background_data, *args, **kwargs) -> Union[shap_utils.Data, pd.core.frame.Series]:
         """
         Initialises background data if the user passes a `pandas.Series` object as input.
@@ -930,7 +930,7 @@ class KernelShap(Explainer, FitMixin):
         if self.task != 'regression':
             argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
         else:
-            argmax_pred = []  # type: ignore
+            argmax_pred = []
         importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if isinstance(X, sparse.spmatrix):
@@ -1530,13 +1530,13 @@ class TreeShap(Explainer, FitMixin):
             shap_values = [interactions.sum(axis=2) for interactions in shap_output]
         else:
             shap_interaction_values = [np.array([])]
-            shap_values = shap_output  # type: ignore
+            shap_values = shap_output
         if summarise_result:
             self._check_result_summarisation(summarise_result, cat_vars_start_idx, cat_vars_enc_dim)
         if self.summarise_result:
             summarised_shap = []
             for shap_array in shap_values:
-                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))  # type: ignore
+                summarised_shap.append(sum_categories(shap_array, cat_vars_start_idx, cat_vars_enc_dim))
             shap_values = summarised_shap
             if shap_interaction_values[0].size != 0:
                 summarised_shap_interactions = []
@@ -1572,7 +1572,7 @@ class TreeShap(Explainer, FitMixin):
                 else:
                     argmax_pred = np.argmax(np.atleast_2d(raw_predictions), axis=1)
 
-        importances = rank_by_importance(shap_values, feature_names=self.feature_names)  # type: ignore
+        importances = rank_by_importance(shap_values, feature_names=self.feature_names)
 
         if self._explainer.model.model_type == 'catboost':
             import catboost  # noqa: F811

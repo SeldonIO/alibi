@@ -42,9 +42,9 @@ def check_correct_dependencies(
     for item_name in lib_obj:
         item = getattr(module, item_name)
         if not isinstance(item, ModuleType):
-            pass_contexts = dependencies[item_name]  # type: ignore
+            pass_contexts = dependencies[item_name]
             try:
-                item.test  # type: ignore # noqa
+                item.test  # noqa
             except AttributeError:
                 assert opt_dep in pass_contexts or 'default' in pass_contexts or opt_dep == 'all', \
                     (f'{item_name} was imported instead of an instance of MissingDependency. '

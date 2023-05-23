@@ -191,7 +191,7 @@ class AnchorText(Explainer):
 
         # set perturbation
         self.perturbation: Any = \
-            self.CLASS_SAMPLER[self.sampling_strategy](self.model, self.perturb_opts)  #: Perturbation method.
+            self.CLASS_SAMPLER[self.sampling_strategy](self.model, self.perturb_opts, self.seed)  #: Perturbation method.
 
         # update metadata
         self.meta['params'].update(seed=seed)

@@ -742,7 +742,7 @@ class CounterfactualProto(Explainer, FitMixin):
             if d_type == 'abdm':
                 d_pair = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
             elif d_type == 'mvdm':
-                d_pair = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)  # type: ignore
+                d_pair = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
 
             # combined distance measure
             if d_type == 'abdm-mvdm':
@@ -752,7 +752,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
                 # pairwise distances
                 d_abdm = abdm(train_data_bin, self.cat_vars_ord, cat_vars_bin)
-                d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)  # type: ignore
+                d_mvdm = mvdm(train_data_ord, preds, self.cat_vars_ord, alpha=1)
 
                 # multidim scaled distances
                 d_abs_abdm, _ = multidim_scaling(d_abdm, n_components=2, use_metric=True,
@@ -810,7 +810,7 @@ class CounterfactualProto(Explainer, FitMixin):
                 ts = TrustScore()
             if self.is_cat:  # map categorical to numerical data
                 train_data = ord_to_num(train_data_ord, self.d_abs)
-            ts.fit(train_data, preds, classes=self.classes)  # type: ignore
+            ts.fit(train_data, preds, classes=self.classes)
             self.kdtrees = ts.kdtrees
             self.X_by_class = ts.X_kdtree
 
@@ -1007,8 +1007,8 @@ class CounterfactualProto(Explainer, FitMixin):
             """
             if not isinstance(x, (float, int, np.int64)):
                 x = np.copy(x)
-                x[y] += self.kappa  # type: ignore
-                x = np.argmax(x)  # type: ignore
+                x[y] += self.kappa
+                x = np.argmax(x)  # type: ignore[assignment]
             return x != y
 
         # define target classes for prototype if not specified yet
@@ -1131,8 +1131,8 @@ class CounterfactualProto(Explainer, FitMixin):
                         grads_num_s = self.get_gradients(X_der_batch_s, Y, cat_vars_ord=self.cat_vars_ord,
                                                          grads_shape=pert_shape[1:]) * c
                         # clip gradients
-                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])  # type: ignore
-                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])  # type: ignore
+                        grads_num = np.clip(grads_num, self.clip[0], self.clip[1])
+                        grads_num_s = np.clip(grads_num_s, self.clip[0], self.clip[1])
                         X_der_batch, X_der_batch_s = [], []
 
                 # compute and clip gradients defined in graph
@@ -1202,12 +1202,12 @@ class CounterfactualProto(Explainer, FitMixin):
                                                                                       nontarget_proba_max))
                     print('Gradient graph min/max: {:.3f}/{:.3f}'.format(grads_graph.min(), grads_graph.max()))
                     print('Gradient graph mean/abs mean: {:.3f}/{:.3f}'
-                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))  # type: ignore
+                          .format(np.mean(grads_graph), np.mean(np.abs(grads_graph))))
                     if not self.model:
                         print('Gradient numerical attack min/max: {:.3f}/{:.3f}'
-                              .format(grads_num.min(), grads_num.max()))  # type: ignore
-                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'
-                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))  # type: ignore
+                              .format(grads_num.min(), grads_num.max()))
+                        print('Gradient numerical mean/abs mean: {:.3f}/{:.3f}'  # type: ignore[str-format]
+                              .format(np.mean(grads_num), np.mean(np.abs(grads_num))))
                     sys.stdout.flush()
 
                 # update best perturbation (distance) and class probabilities

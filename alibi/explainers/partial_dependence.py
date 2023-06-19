@@ -78,7 +78,7 @@ class PartialDependenceBase(Explainer, ABC):
         self.target_names = target_names
         self.verbose = verbose
 
-    def explain(self,  # type: ignore[override]
+    def explain(self,
                 X: np.ndarray,
                 features: Optional[List[Union[int, Tuple[int, int]]]] = None,
                 kind: Literal['average', 'individual', 'both'] = 'average',
@@ -506,6 +506,17 @@ class PartialDependenceBase(Explainer, ABC):
         )
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
+    def reset_predictor(self, predictor: Union[Callable[[np.ndarray], np.ndarray], BaseEstimator]) -> None:
+        """
+        Resets the predictor function or tree-based `sklearn` estimator.
+
+        Parameters
+        ----------
+        predictor
+            New predictor function or tree-based `sklearn` estimator.
+        """
+        self.predictor = predictor
+
 
 class PartialDependence(PartialDependenceBase):
     """ Black-box implementation of partial dependence for tabular datasets.
@@ -557,7 +568,7 @@ class PartialDependence(PartialDependenceBase):
                          target_names=target_names,
                          verbose=verbose)
 
-    def explain(self,  # type: ignore[override]
+    def explain(self,
                 X: np.ndarray,
                 features: Optional[List[Union[int, Tuple[int, int]]]] = None,
                 kind: Literal['average', 'individual', 'both'] = 'average',
@@ -1109,12 +1120,12 @@ def _sample_ice(ice_values: np.ndarray, n_ice: Union[Literal['all'], int, List[i
 
     _, N = ice_values.shape
     if isinstance(n_ice, numbers.Integral):
-        if n_ice >= N:  # type: ignore[operator]
+        if n_ice >= N:
             logger.warning('`n_ice` is greater than the number of instances in the reference dataset. '
                            'Automatically setting `n_ice` to the number of instances in the reference dataset.')
             return ice_values
 
-        if n_ice <= 0:  # type: ignore[operator]
+        if n_ice <= 0:
             raise ValueError('`n_ice` must be an integer grater than 0.')
 
         indices = np.random.choice(a=N, size=n_ice, replace=False)

@@ -1,7 +1,7 @@
 # development dependencies (see docs.txt for documentation building dependencies)
 # linting and static type-checking
 flake8>=3.7.7, <7.0.0
-mypy~= 1.0
+mypy>=1.0, <2.0
 types-requests>=2.25.0, <3.0.0
 # testing
 pytest>=5.3.5, <8.0.0
@@ -14,12 +14,11 @@ pytest-mock>=3.10.0, <4.0.0
 jupytext>=1.12.0, <2.0.0 # for notebook tests
 ipykernel>=5.1.0, <7.0.0 # for notebook tests
 nbconvert>=6.0.7, <8.0.0 # for notebook tests
-codecov>=2.0.15, <3.0.0
 catboost>=1.0.0, <2.0.0
 alibi-testing @ git+https://github.com/SeldonIO/alibi-testing@master#egg=alibi-testing # pre-trained models for testing
 # other
-pre-commit>=1.20.0, <3.0.0
+pre-commit>=1.20.0, <4.0.0
 tox>=3.21.0, <5.0.0 # used to generate licence info via `make licenses`
-twine>3.2.0, <4.0.0
+twine>3.2.0, <5.0.0
 # pytorch
 torch>=1.9.0, <3.0.0

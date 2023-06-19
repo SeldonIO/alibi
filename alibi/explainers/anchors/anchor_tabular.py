@@ -399,7 +399,7 @@ class TabularSampler:
 
         # replace partial anchors with partial anchors drawn from the training dataset
         # samp_idxs are arrays of training set row indices from where partial anchors are extracted for replacement
-        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):  # type: ignore[misc]
+        for idx, n_samp in enumerate(nb_partial_anchors[start_idx:end_idx + 1], start=start_idx):
             if num_samples >= n_samp:
                 samp_idxs = partial_anchor_rows[n_anchor_feats - idx - 1]
                 num_samples -= n_samp
@@ -912,9 +912,10 @@ class AnchorTabular(Explainer, FitMixin):
         """
 
         anchor_idxs = explanation['feature']
-        explanation['names'] = []
-        explanation['feature'] = [self.enc2feat_idx[idx] for idx in anchor_idxs]
         ordinal_ranges = {self.enc2feat_idx[idx]: [float('-inf'), float('inf')] for idx in anchor_idxs}
+        explanation['feature'] = list(ordinal_ranges.keys())
+        explanation['names'] = []
+
         for idx in set(anchor_idxs) - self.cat_lookup.keys():
             feat_id = self.enc2feat_idx[idx]  # feature col. id
             if 0 in self.ord_lookup[idx]:  # tells if the feature in X falls in a higher or lower bin

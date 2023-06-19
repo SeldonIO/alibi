@@ -16,7 +16,6 @@ def test_anchor_base_beam(rf_classifier, at_defaults, at_iris_explainer):
     # inputs
     n_anchors_to_sample = 6
     coverage_samples = 500
-    dummy_coverage = - 0.55  # used to test coverage updates on sampling
 
     X_test, explainer, predict_fn, predict_type = at_iris_explainer
     explain_defaults = at_defaults
@@ -37,15 +36,10 @@ def test_anchor_base_beam(rf_classifier, at_defaults, at_iris_explainer):
         to_sample.append(tuple(anchor))
     to_sample = list(set(to_sample))
     current_state = deepcopy(anchor_beam.state)
-    for anchor in to_sample:
-        if anchor not in current_state['t_nsamples']:
-            anchor_beam.state['t_coverage'][anchor] = dummy_coverage
     pos, total = anchor_beam.draw_samples(to_sample, explain_defaults['batch_size'])
     for p, t, anchor in zip(pos, total, to_sample):
         assert anchor_beam.state['t_nsamples'][anchor] == current_state['t_nsamples'][anchor] + t
         assert anchor_beam.state['t_positives'][anchor] == current_state['t_positives'][anchor] + p
-        if anchor:  # empty anchor has dummy coverage
-            assert anchor_beam.state['t_coverage'][anchor] != dummy_coverage
 
     # testing resampling works
     # by sampling all features, we are guaranteed that partial anchors might not exist

@@ -228,7 +228,7 @@ class PartialDependenceVariance(Explainer):
             else:
                 ft_var = PartialDependenceVariance._compute_pd_variance_num(pdv)
             # add extra dimension for later concatenation along the axis 0
-            feature_variance.append(ft_var[None, ...])  # type: ignore[index]
+            feature_variance.append(ft_var[None, ...])
 
         # stack the feature importance such that the array has the shape `F x T x N1 ... N(k-1)`
         return np.concatenate(feature_variance, axis=0)
@@ -461,7 +461,7 @@ def _plot_hbar(exp_values: np.ndarray,
         fig = ax.figure
         n_cols = min(n_cols, n_targets)
         n_rows = math.ceil(n_targets / n_cols)
-        axes = np.empty((n_rows, n_cols), dtype=object)   # type: ignore[attr-defined]
+        axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 

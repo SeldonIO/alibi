@@ -1,5 +1,37 @@
 # Change Log
 
+## [v0.9.2](https://github.com/SeldonIO/alibi/tree/v0.9.2) (2023-04-28)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.1...v0.9.2)
+
+This is a patch release fixing several bugs, updating dependencies and adding some small extensions.
+
+### Added
+- Allow `IntegratedGradients` layer selection to be specified with a custom callable ([#894](https://github.com/SeldonIO/alibi/pull/894)).
+- Implement `reset_predictor` method for `PartialDependence` explainer ([#897](https://github.com/SeldonIO/alibi/pull/897)).
+- Extend `GradientSimilarity` explainer to allow models of any input type ([#912](https://github.com/SeldonIO/alibi/pull/912)).
+
+### Fixed
+ - `AnchorText` auto-regressive language model sampler updating `input_ids` tensor ([#895](https://github.com/SeldonIO/alibi/pull/895)).
+ - `AnchorTabular` length discrepancy between `feature` and `names` fields ([#902](https://github.com/SeldonIO/alibi/pull/902)).
+ - `AnchorBaseBeam` unintended coverage update during the multi-armed bandit run ([#919](https://github.com/SeldonIO/alibi/pull/919), [#914](https://github.com/SeldonIO/alibi/issues/914)).
+
+### Changed
+ - Maximum supported version of `tensorflow` bumped to `2.12.x` ([#896](https://github.com/SeldonIO/alibi/pull/896)).
+ - Supported version of `pandas` bumped to `>1.0.0, <3.0.0` ([#899](https://github.com/SeldonIO/alibi/pull/899)).
+ - Update notebooks to account for `pandas` version `2.x` deprecations ([#908](https://github.com/SeldonIO/alibi/pull/908), [#910](https://github.com/SeldonIO/alibi/pull/910)).
+ - Maximum supported version of `scikit-image` bumped to `0.20.x` ([#882](https://github.com/SeldonIO/alibi/pull/882)).
+ - Maximum supported version of `attrs` bumped to `23.x` ([#905](https://github.com/SeldonIO/alibi/pull/905)).
+
+### Development
+ - Migrate `codecov` to use Github Actions and don't fail CI on coverage report upload failure due to rate limiting ([#901](https://github.com/SeldonIO/alibi/pull/901), [#913](https://github.com/SeldonIO/alibi/pull/913)).
+ - Bumpy `mypy` version to `>=1.0, <2.0` ([#886](https://github.com/SeldonIO/alibi/pull/886)).
+ - Bump `sphinx` version to `6.x` ([#852](https://github.com/SeldonIO/alibi/pull/852)).
+ - Bump `sphinx-design` version to `0.4.1` ([#904](https://github.com/SeldonIO/alibi/pull/904)).
+ - Bump `nbsphinx` version to `0.9.x` ([#889](https://github.com/SeldonIO/alibi/pull/889)).
+ - Bump `myst-parser` version to `>=1.0, <2.0` ([#887](https://github.com/SeldonIO/alibi/pull/887)).
+ - Bump `twine` version to `4.x` ([#620](https://github.com/SeldonIO/alibi/pull/620)).
+ - Bump `pre-commit` version to `3.x` and update the config ([#866](https://github.com/SeldonIO/alibi/pull/866)).
+
 ## [v0.9.1](https://github.com/SeldonIO/alibi/tree/v0.9.1) (2023-03-13)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.0...v0.9.1)
 

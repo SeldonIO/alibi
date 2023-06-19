@@ -4,7 +4,7 @@ Methods unique to the `tensorflow` backend are defined here. The interface this 
 backend in order to ensure that the similarity methods only require to match this interface.
 """
 
-from typing import Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 import numpy as np
 import tensorflow as tf
@@ -17,7 +17,7 @@ class _TensorFlowBackend:
     @staticmethod
     def get_grads(
             model: keras.Model,
-            X: tf.Tensor,
+            X: Union[tf.Tensor, List[Any]],
             Y: tf.Tensor,
             loss_fn: Callable[[tf.Tensor, tf.Tensor], tf.Tensor],
     ) -> np.ndarray:

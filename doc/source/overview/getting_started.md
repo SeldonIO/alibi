@@ -66,8 +66,9 @@ pip install alibi[tensorflow]
 :class-label: sd-pt-0
 :sync: label-torch
 ```{div} sd-mb-1
-Installation with support for torch backends. One of Torch or TensorFlow is required for the 
-[Counterfactuals with RL](../methods/CFRL.ipynb) methods.
+Installation with support for torch backends. One of Torch or TensorFlow is required for: 
+- [Counterfactuals with RL](../methods/CFRL.ipynb)
+- [Similarity explanations](../methods/Similarity.ipynb)
 ```
 ```bash
 pip install alibi[torch]

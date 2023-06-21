@@ -16,6 +16,7 @@ extras_require = {
         'shap>=0.40.0, <0.42.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
         'numba>=0.50.0, !=0.54.0, <0.58.0',  # Avoid 0.54 due to: https://github.com/SeldonIO/alibi/issues/466
     ],
+
     'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0'],
     'torch': ['torch>=1.9.0, <2.0.0'],
     'all': [
@@ -23,7 +24,7 @@ extras_require = {
         'shap>=0.40.0, <0.42.0',
         'numba>=0.50.0, !=0.54.0, <0.58.0',
         'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0',
-        'torch>=1.9.0, <2.0.0'
+        'torch>=1.9.0, <3.0.0'
     ]
 }
 

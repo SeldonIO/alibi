@@ -510,7 +510,7 @@ def get_he_preprocessor(X: np.ndarray,
         # Cast numerical features to desired data types
         for i, fn in enumerate(feature_names):
             if i in numerical_ids:
-                ft_type = feature_types[fn] if fn in feature_types else float  # type: ignore[index,operator]
+                ft_type = feature_types[fn] if fn in feature_types else float
 
                 # Round `int` type features to the closest integer number to avoid rounding error when casting to `int`.
                 # The casting to `np.float32` is due to previous casting to `object` which raises an error when

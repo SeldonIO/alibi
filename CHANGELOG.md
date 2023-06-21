@@ -1,5 +1,21 @@
 # Change Log
 
+## [v0.9.3](https://github.com/SeldonIO/alibi/tree/v0.9.3) (2023-06-21)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.2...v0.9.3)
+
+This is a patch release to officially enable support for Python 3.11.<br>
+This is the last release with official support for Python 3.7.
+
+### Development
+- Test library on Python 3.11 ([#932](https://github.com/SeldonIO/alibi/pull/932)).
+- Separate code quality into its own Github Action and only run against the main development version of Python, currently Python 3.10 ([#925](https://github.com/SeldonIO/alibi/pull/925)).
+- Check and remove stale `mypy` ignore commands ([#874](https://github.com/SeldonIO/alibi/pull/874)).
+- Bump `torch` version to `2.x` ([#893](https://github.com/SeldonIO/alibi/pull/893)).
+- Bump `scikit-image` version to `0.21.x` ([#928](https://github.com/SeldonIO/alibi/pull/928)).
+- Bump `numba` version to `0.57.x` ([#922](https://github.com/SeldonIO/alibi/pull/922)).
+- Bump `sphinx` version to `7.x` ([#921](https://github.com/SeldonIO/alibi/pull/921)).
+
+
 ## [v0.9.2](https://github.com/SeldonIO/alibi/tree/v0.9.2) (2023-04-28)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.1...v0.9.2)
 

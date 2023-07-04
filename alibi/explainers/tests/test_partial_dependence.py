@@ -387,7 +387,7 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
 @pytest.mark.parametrize('params', [
     {
         'percentiles': (0, 1),
-        'grid_resolution': np.inf,
+        'grid_resolution': 100000,
         'method': 'brute',
         'kind': 'average'
     }
@@ -432,7 +432,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
 @pytest.mark.parametrize('params', [
     {
         'percentiles': (0, 1),
-        'grid_resolution': np.inf,
+        'grid_resolution': 100000,
         'method': 'recursion',
         'kind': 'average'
     }

@@ -387,7 +387,6 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
 @pytest.mark.parametrize('params', [
     {
         'percentiles': (0, 1),
-        'grid_resolution': 100000,
         'method': 'brute',
         'kind': 'average'
     }
@@ -400,8 +399,12 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
     # subsample data for faster computation
     X_train = adult_data['X_train'][:100]
 
+    categorical_names = adult_data['metadata']['category_map']
+    categorical_names = list(categorical_names.keys())
+
     # compute `sklearn` explanation
     exp_sklearn = partial_dependence(X=X_train,
+                                     categorical_features=categorical_names,
                                      estimator=rf_pipeline,
                                      features=features,
                                      **params)
@@ -411,7 +414,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
 
     # compute alibi explanation
     exp_alibi = get_alibi_pd_explanation(predictor=rf_pipeline.predict_proba,
-                                         feature_names=adult_data['metadata']['feature_names'],
+                                         feature_names=adult_data['metadata'    ]['feature_names'],
                                          categorical_names=adult_data['metadata']['category_map'],
                                          X=X_train,
                                          features=features,
@@ -432,7 +435,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
 @pytest.mark.parametrize('params', [
     {
         'percentiles': (0, 1),
-        'grid_resolution': 100000,
+        'grid_resolution': 30,
         'method': 'recursion',
         'kind': 'average'
     }

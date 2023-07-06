@@ -422,7 +422,7 @@ def test_sklearn_categorical(rf_classifier, adult_data, features, params):
 
     # compute alibi explanation
     exp_alibi = get_alibi_pd_explanation(predictor=rf_pipeline.predict_proba,
-                                         feature_names=adult_data['metadata'    ]['feature_names'],
+                                         feature_names=adult_data['metadata']['feature_names'],
                                          categorical_names=adult_data['metadata']['category_map'],
                                          X=X_train,
                                          features=features,

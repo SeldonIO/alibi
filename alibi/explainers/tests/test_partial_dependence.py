@@ -2,6 +2,7 @@ import re
 import sys
 from copy import deepcopy
 from typing import Dict, List, Optional, Tuple, Union
+from packaging import version
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -17,6 +18,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.utils import Bunch, shuffle
+import sklearn
 
 from alibi.api.defaults import DEFAULT_DATA_PD, DEFAULT_META_PD
 from alibi.api.interfaces import Explanation
@@ -393,18 +395,24 @@ def test_sklearn_numerical(rf_classifier, iris_data, features, params):
 ])
 def test_sklearn_categorical(rf_classifier, adult_data, features, params):
     """ Checks `alibi` pd black-box implementation against the `sklearn` implementation for categorical features."""
+
     rf, preprocessor = rf_classifier
     rf_pipeline = Pipeline(steps=[('preprocessor', preprocessor), ('predictor', rf)])
 
     # subsample data for faster computation
     X_train = adult_data['X_train'][:100]
 
-    categorical_names = adult_data['metadata']['category_map']
-    categorical_names = list(categorical_names.keys())
+    # Behaviour depends on sklearn version, See https://github.com/SeldonIO/alibi/pull/940#issuecomment-1623783025
+    sklearn_version = version.parse(sklearn.__version__)
+    if sklearn_version >= version.parse('1.3.0'):
+        categorical_names = adult_data['metadata']['category_map']
+        categorical_names = list(categorical_names.keys())
+        params.update(categorical_features=categorical_names)
+    else:
+        params.update(grid_resolution=np.inf)
 
     # compute `sklearn` explanation
     exp_sklearn = partial_dependence(X=X_train,
-                                     categorical_features=categorical_names,
                                      estimator=rf_pipeline,
                                      features=features,
                                      **params)

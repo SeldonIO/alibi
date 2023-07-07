@@ -1,6 +1,6 @@
 # Change Log
 
-## [v0.9.4](https://github.com/SeldonIO/alibi/tree/v0.9.4) (2023-07-7)
+## [v0.9.4](https://github.com/SeldonIO/alibi/tree/v0.9.4) (2023-07-07)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.3...v0.9.4)
 
 This is a patch release to support `numpy >= 1.24` and `scikit-learn >= 1.3.0`, and drop official support for Python 3.7.

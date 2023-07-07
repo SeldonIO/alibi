@@ -40,7 +40,7 @@ if __name__ == '__main__':
           license="Apache 2.0",
           packages=find_packages(),
           include_package_data=True,
-          python_requires='>=3.7',
+          python_requires='>=3.8',
           # lower bounds based on Debian Stable versions where available
           install_requires=[
               'numpy>=1.16.2, <2.0.0',
@@ -66,7 +66,6 @@ if __name__ == '__main__':
               "Intended Audience :: Science/Research",
               "Operating System :: OS Independent",
               "Programming Language :: Python :: 3",
-              "Programming Language :: Python :: 3.7",
               "Programming Language :: Python :: 3.8",
               "Programming Language :: Python :: 3.9",
               "Programming Language :: Python :: 3.10",

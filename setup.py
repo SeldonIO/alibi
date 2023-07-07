@@ -13,7 +13,7 @@ extras_require = {
     'ray': ['ray>=0.8.7, <3.0.0'],
     # shap is separated due to build issues, see https://github.com/slundberg/shap/pull/1802
     'shap': [
-        'shap>=0.40.0, <0.42.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
+        'shap>=0.40.0, <0.43.0',  # versioning: https://github.com/SeldonIO/alibi/issues/333
         'numba>=0.50.0, !=0.54.0, <0.58.0',  # Avoid 0.54 due to: https://github.com/SeldonIO/alibi/issues/466
     ],
 
@@ -21,7 +21,7 @@ extras_require = {
     'torch': ['torch>=1.9.0, <2.0.0'],
     'all': [
         'ray>=0.8.7, <3.0.0',
-        'shap>=0.40.0, <0.42.0',
+        'shap>=0.40.0, <0.43.0',
         'numba>=0.50.0, !=0.54.0, <0.58.0',
         'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0',
         'torch>=1.9.0, <3.0.0'

@@ -19,8 +19,8 @@ authors:
 - family-names: "Athorne"
   given-names: "Alex"
 title: "Alibi Explain: Algorithms for Explaining Machine Learning Models"
-version: 0.9.3
-date-released: 2023-06-21
+version: 0.9.4
+date-released: 2023-07-07
 url: "https://github.com/SeldonIO/alibi"
 preferred-citation:
   type: article

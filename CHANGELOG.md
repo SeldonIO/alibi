@@ -1,5 +1,16 @@
 # Change Log
 
+## [v0.9.4](https://github.com/SeldonIO/alibi/tree/v0.9.4) (2023-07-7)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.3...v0.9.4)
+
+This is a patch release to support `numpy >= 1.24` and `scikit-learn >= 1.3.0`, and drop official support for Python 3.7.
+
+### Development
+- Drop official support for Python 3.7 ([#942](https://github.com/SeldonIO/alibi/pull/942)).
+- Maximum supported version of `shap` bumped to `0.42.x`, to give `numpy >= 1.24` support ([#944](https://github.com/SeldonIO/alibi/pull/944)).
+- Fix handling of `scikit-learn` `partial_dependence` kwarg's in tests, for compatibility with `scikit-learn 1.3.0` ([#940](https://github.com/SeldonIO/alibi-detect/pull/940)).
+
+
 ## [v0.9.3](https://github.com/SeldonIO/alibi/tree/v0.9.3) (2023-06-21)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.2...v0.9.3)
 

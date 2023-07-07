@@ -1322,7 +1322,7 @@ Apache License
 
 
 alibi
-0.9.3.dev0
+0.9.4.dev0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -1774,7 +1774,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 click
-8.1.3
+8.1.4
 BSD License
 Copyright 2014 Pallets
 
@@ -2040,7 +2040,7 @@ third-party archives.
 
 
 confection
-0.0.4
+0.1.0
 MIT License
 MIT License
 
@@ -2531,7 +2531,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.20.0
+2.21.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -3800,7 +3800,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.15.1
+0.16.3
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -4069,7 +4069,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 jax
-0.4.12
+0.4.13
 Apache-2.0
 
                                  Apache License
@@ -4276,7 +4276,7 @@ Apache-2.0
 
 
 joblib
-1.2.0
+1.3.1
 BSD License
 BSD 3-Clause License
 
@@ -4310,9 +4310,33 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 jsonschema
-4.17.3
+4.18.0
 MIT License
 Copyright (c) 2013 Julian Berman
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
+jsonschema-specifications
+2023.6.1
+MIT License
+Copyright (c) 2022 Julian Berman
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -4641,7 +4665,7 @@ SOFTWARE.
 
 
 lazy_loader
-0.2
+0.3
 BSD License
 BSD 3-Clause License
 
@@ -5242,7 +5266,7 @@ SOFTWARE.
 
 
 llvmlite
-0.40.1rc1
+0.40.1
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -5271,7 +5295,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.7.1
+3.7.2
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -5700,7 +5724,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.57.0
+0.57.1
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -5729,7 +5753,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 numpy
-1.23.5
+1.24.3
 BSD License
 Copyright (c) 2005-2022, NumPy Developers.
 All rights reserved.
@@ -6766,7 +6790,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-2.0.2
+2.0.3
 BSD License
 BSD 3-Clause License
 
@@ -7034,7 +7058,7 @@ THE SOFTWARE.
 
 
 protobuf
-4.23.3
+4.23.4
 3-Clause BSD License
 
 Copyright (c) 2009-2021, Google LLC
@@ -7123,7 +7147,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-1.10.9
+1.10.11
 MIT License
 The MIT License (MIT)
 
@@ -7149,7 +7173,7 @@ SOFTWARE.
 
 
 pyparsing
-3.1.0
+3.0.9
 MIT License
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -7170,32 +7194,6 @@ CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
-pyrsistent
-0.19.3
-MIT License
-Copyright (c) 2022 Tobias Gustafsson
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to deal in the Software without
-restriction, including without limitation the rights to use,
-copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the
-Software is furnished to do so, subject to the following
-conditions:
-
-The above copyright notice and this permission notice shall be
-included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-OTHER DEALINGS IN THE SOFTWARE.
 
 python-dateutil
 2.8.2
@@ -7280,7 +7278,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 ray
-2.5.0
+2.5.1
 Apache 2.0
 MIT License
 
@@ -7303,6 +7301,30 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+
+referencing
+0.29.1
+MIT License
+Copyright (c) 2022 Julian Berman
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 
 regex
@@ -7718,6 +7740,30 @@ ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
+rpds-py
+0.8.8
+MIT License
+Copyright (c) 2023 Julian Berman
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+
 rsa
 4.9
 Apache Software License
@@ -7892,11 +7938,11 @@ SOFTWARE.
 
 
 scikit-learn
-1.2.2
+1.3.0
 BSD License
 BSD 3-Clause License
 
-Copyright (c) 2007-2022 The scikit-learn developers.
+Copyright (c) 2007-2023 The scikit-learn developers.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -7926,9 +7972,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.10.1
+1.11.1
 BSD License
-Copyright (c) 2001-2002 Enthought, Inc. 2003-2022, SciPy Developers.
+Copyright (c) 2001-2002 Enthought, Inc. 2003-2023, SciPy Developers.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -8841,8 +8887,8 @@ Public License instead of this License.  But first, please read
 
 
 shap
-0.41.0
-MIT
+0.42.0
+MIT License
 The MIT License (MIT)
 
 Copyright (c) 2018 Scott Lundberg
@@ -8943,7 +8989,7 @@ SOFTWARE.
 
 
 spacy
-3.5.3
+3.6.0
 MIT License
 The MIT License (MIT)
 
@@ -9808,7 +9854,7 @@ Apache Software License
 UNKNOWN
 
 tensorflow
-2.12.0
+2.12.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -10352,7 +10398,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2023.4.12
+2023.7.4
 BSD License
 BSD 3-Clause License
 
@@ -17658,7 +17704,7 @@ MIT License
 UNKNOWN
 
 typer
-0.7.0
+0.9.0
 MIT License
 The MIT License (MIT)
 
@@ -17684,18 +17730,18 @@ THE SOFTWARE.
 
 
 typing_extensions
-4.6.3
+4.5.0
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================
 
 Python was created in the early 1990s by Guido van Rossum at Stichting
-Mathematisch Centrum (CWI, see https://www.cwi.nl) in the Netherlands
+Mathematisch Centrum (CWI, see http://www.cwi.nl) in the Netherlands
 as a successor of a language called ABC.  Guido remains Python's
 principal author, although it includes many contributions from others.
 
 In 1995, Guido continued his work on Python at the Corporation for
-National Research Initiatives (CNRI, see https://www.cnri.reston.va.us)
+National Research Initiatives (CNRI, see http://www.cnri.reston.va.us)
 in Reston, Virginia where he released several versions of the
 software.
 
@@ -17707,7 +17753,7 @@ https://www.python.org/psf/) was formed, a non-profit organization
 created specifically to own Python-related Intellectual Property.
 Zope Corporation was a sponsoring member of the PSF.
 
-All Python releases are Open Source (see https://opensource.org for
+All Python releases are Open Source (see http://www.opensource.org for
 the Open Source Definition).  Historically, most, but not all, Python
 releases have also been GPL-compatible; the table below summarizes
 the various releases.
@@ -17747,17 +17793,6 @@ direction to make these releases possible.
 B. TERMS AND CONDITIONS FOR ACCESSING OR OTHERWISE USING PYTHON
 ===============================================================
 
-Python software and documentation are licensed under the
-Python Software Foundation License Version 2.
-
-Starting with Python 3.8.6, examples, recipes, and other code in
-the documentation are dual licensed under the PSF License Version 2
-and the Zero-Clause BSD license.
-
-Some software incorporated into Python is under different licenses.
-The licenses are listed with code falling under that license.
-
-
 PYTHON SOFTWARE FOUNDATION LICENSE VERSION 2
 --------------------------------------------
 
@@ -17772,7 +17807,7 @@ analyze, test, perform and/or display publicly, prepare derivative works,
 distribute, and otherwise use Python alone or in any derivative version,
 provided, however, that PSF's License Agreement and PSF's notice of copyright,
 i.e., "Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
-2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023 Python Software Foundation;
+2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022 Python Software Foundation;
 All Rights Reserved" are retained in Python alone or in any derivative version
 prepared by Licensee.
 
@@ -17951,20 +17986,6 @@ FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
 WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
 OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
-ZERO-CLAUSE BSD LICENSE FOR CODE IN THE PYTHON DOCUMENTATION
-----------------------------------------------------------------------
-
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
-REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
-AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
-INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
-LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
-OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
-PERFORMANCE OF THIS SOFTWARE.
 
 
 tzdata

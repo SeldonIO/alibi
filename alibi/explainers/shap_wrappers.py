@@ -770,7 +770,7 @@ class KernelShap(Explainer, FitMixin):
         self._update_metadata(params, params=True)
         return self
 
-    def _init_shap_object(self) -> Union[KernelExplainerWrapper, DistributedExplainer]:
+    def _init_shap_object(self) -> Union[KernelExplainerWrapper, 'DistributedExplainer']:
         """ Initialize explainer as a `KernelExplainerWrapper` or as a `DistributedExplainer`. """
         explainer_args = (self.predictor, self.background_data)
         explainer_kwargs: Dict[str, Union[str, int, None]] = {'link': self.link}

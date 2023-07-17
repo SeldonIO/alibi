@@ -18,7 +18,7 @@ extras_require = {
     ],
 
     'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.13.0'],
-    'torch': ['torch>=1.9.0, <2.0.0'],
+    'torch': ['torch>=1.9.0, <3.0.0'],
     'all': [
         'ray>=0.8.7, <3.0.0',
         'shap>=0.40.0, <0.43.0',

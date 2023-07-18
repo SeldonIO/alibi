@@ -50,7 +50,7 @@ if __name__ == '__main__':
               'blis<0.8.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
               'scikit-image>=0.17.2, <0.22',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
-              'Pillow>=5.4.1, <10.0',
+              'Pillow>=5.4.1, <11.0',
               'attrs>=19.2.0, <24.0.0',
               'scipy>=1.1.0, <2.0.0',
               'matplotlib>=3.0.0, <4.0.0',

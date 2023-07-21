@@ -155,7 +155,9 @@ jobs:
   optional_dependencies:
 
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        env: [ 'default', 'tensorflow', 'torch', 'shap', 'ray', 'all' ]
     steps:
       - uses: actions/checkout@v3
       - name: Set up Python 3.x
@@ -165,4 +167,4 @@ jobs:
       - name: Check optional dependency imports are protected
         run: |
           pip install "tox>=3.21.0,<4.0.0"
-          tox
+          tox -e ${{matrix.env}}

@@ -299,7 +299,7 @@ def batch_compute_kernel_matrix(x: Union[list, np.ndarray],
     -------
     Kernel matrix in the form of a `numpy` array.
     """
-    if type(x) != type(y):
+    if type(x) != type(y):  # noqa: E721
         raise ValueError("x and y should be of the same type")
 
     n_x, n_y = len(x), len(y)

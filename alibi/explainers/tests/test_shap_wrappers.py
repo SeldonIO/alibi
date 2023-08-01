@@ -742,10 +742,10 @@ def test__summarise_background_kernel(caplog,
         msg = "Received option to summarise the data but the background_data object was an " \
               "instance of shap_utils.Data"
         assert_message_in_logs(msg, caplog.records)
-        assert type(background_data) == type(summary_data)
+        assert type(background_data) == type(summary_data)  # noqa: E721
     else:
         if use_groups or categorical_names:
-            assert type(background_data) == type(summary_data)
+            assert type(background_data) == type(summary_data)  # noqa: E721
             if data_type == 'series':
                 assert summary_data.shape == background_data.shape
             else:
@@ -1181,14 +1181,14 @@ def test__summarise_background_tree(mock_tree_shap_explainer, data_dimension, da
     assert explainer.summarise_background
     if n_background_samples > n_instances:
         if categorical_names:
-            assert type(background_data) == type(summary_data)
+            assert type(background_data) == type(summary_data)  # noqa: E721
         else:
             assert isinstance(summary_data, shap_utils.Data)
             assert summary_data.data.shape == background_data.shape
     else:
         if categorical_names:
             assert summary_data.shape[0] == n_background_samples
-            assert type(background_data) == type(summary_data)
+            assert type(background_data) == type(summary_data)  # noqa: E721
         else:
             assert summary_data.data.shape[0] == n_background_samples
             assert isinstance(summary_data, shap_utils.Data)

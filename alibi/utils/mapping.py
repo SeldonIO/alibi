@@ -52,7 +52,7 @@ def ord_to_num(data: np.ndarray, dist: dict) -> np.ndarray:
     for k, v in dist.items():
         cat_col = X[:, k].copy()
         cat_col = np.array([v[int(cat_col[i])] for i in range(rng)])
-        if type(X) == np.matrix:
+        if isinstance(X, np.matrix):
             X[:, k] = cat_col.reshape(-1, 1)
         else:
             X[:, k] = cat_col

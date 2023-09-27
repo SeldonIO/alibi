@@ -617,7 +617,7 @@ def assert_deciles(xsegments: Optional[List[np.ndarray]] = None,
 
 def assert_pd_values(feature_values: np.ndarray, pd_values: np.ndarray, line: plt.Line2D):
     """ Checks if the plotted pd values are correct. """
-    x, y = line.get_xydata().T
+    x, y = line.get_xydata().T  # type: ignore[union-attr]
     assert np.allclose(x, feature_values)
     assert np.allclose(y, pd_values)
 
@@ -625,7 +625,7 @@ def assert_pd_values(feature_values: np.ndarray, pd_values: np.ndarray, line: pl
 def assert_ice_values(feature_values: np.ndarray, ice_values: np.ndarray, lines: List[plt.Line2D]):
     """ Checks if the plotted ice values are correct. """
     for ice_vals, line in zip(ice_values, lines):
-        x, y = line.get_xydata().T
+        x, y = line.get_xydata().T  # type: ignore[union-attr]
         assert np.allclose(x, feature_values)
         assert np.allclose(y, ice_vals)
 
@@ -637,14 +637,14 @@ def assert_pd_ice_values(feature: int, target_idx: int, kind: str, explanation: 
         line = ax.lines[0] if kind == 'average' else ax.lines[2]
         assert_pd_values(feature_values=explanation.data['feature_values'][feature],
                          pd_values=explanation.data['pd_values'][feature][target_idx],
-                         line=line)
+                         line=line)  # type: ignore[arg-type]
 
     if kind in ['individual', 'both']:
         # check the ice values
         lines = ax.lines if kind == 'individual' else ax.lines[:2]
         assert_ice_values(feature_values=explanation.data['feature_values'][feature],
                           ice_values=explanation.data['ice_values'][feature][target_idx],
-                          lines=lines)
+                          lines=lines)  # type: ignore[arg-type]
 
 
 @pytest.mark.parametrize('explanation', ['average', 'individual', 'both'], indirect=True)

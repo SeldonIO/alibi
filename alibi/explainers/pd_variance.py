@@ -458,14 +458,14 @@ def _plot_hbar(exp_values: np.ndarray,
 
     if isinstance(ax, plt.Axes) and n_targets != 1:
         ax.set_axis_off()  # treat passed axis as a canvas for subplots
-        fig = ax.figure
+        fig = ax.figure  # type: ignore[assignment]
         n_cols = min(n_cols, n_targets)
         n_rows = math.ceil(n_targets / n_cols)
         axes = np.empty((n_rows, n_cols), dtype=object)
         axes_ravel = axes.ravel()
         gs = GridSpec(n_rows, n_cols)
 
-        for i, spec in enumerate(list(gs)[:n_targets]):
+        for i, spec in enumerate(list(gs)[:n_targets]):  # type: ignore[call-overload]
             axes_ravel[i] = fig.add_subplot(spec)
     else:
         if isinstance(ax, plt.Axes):
@@ -489,15 +489,15 @@ def _plot_hbar(exp_values: np.ndarray,
         default_bar_kw = {'align': 'center'}
         bar_kw = default_bar_kw if bar_kw is None else {**default_bar_kw, **bar_kw}
 
-        ax.barh(y=y, width=width, **bar_kw)
-        ax.set_yticks(y)
-        ax.set_yticklabels(y_labels)
-        ax.invert_yaxis()  # labels read top-to-bottom
-        ax.set_xlabel(title)
-        ax.set_title(target_name)
+        ax.barh(y=y, width=width, **bar_kw)  # type: ignore[union-attr,arg-type]
+        ax.set_yticks(y)  # type: ignore[union-attr]
+        ax.set_yticklabels(y_labels)  # type: ignore[union-attr]
+        ax.invert_yaxis()  # type: ignore[union-attr] # labels read top-to-bottom
+        ax.set_xlabel(title)  # type: ignore[union-attr]
+        ax.set_title(target_name)  # type: ignore[union-attr]
 
     fig.set(**fig_kw)
-    return axes
+    return axes  # type: ignore[return-value]
 
 
 def _plot_feature_importance(exp: Explanation,
@@ -697,15 +697,18 @@ def _plot_feature_interaction(exp: Explanation,
         # set title for the 2-way pdp
         ax = axes_flatten[step * i]
         (ft_name1, ft_name2) = feature_names[features[i]]  # type: Tuple[str, str]  # type: ignore[misc]
-        ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2, feature_interaction[i]))
+        ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2,  # type: ignore[union-attr]
+                                                    feature_interaction[i]))
 
         # set title for the first conditional importance plot
         ax = axes.flatten()[step * i + 1]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0][target_idx]))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1,  # type: ignore[union-attr]
+                                                    conditional_importance[i][0][target_idx]))
 
         # set title for the second conditional importance plot
         ax = axes.flatten()[step * i + 2]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1][target_idx]))
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2,  # type: ignore[union-attr]
+                                                    conditional_importance[i][1][target_idx]))
 
     return axes
 

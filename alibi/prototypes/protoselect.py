@@ -530,7 +530,7 @@ def _imscatterplot(x: np.ndarray,
         ax.set_xticks([])
         ax.set_yticks([])
     else:
-        fig = ax.figure
+        fig = ax.figure  # type: ignore[assignment]
 
     resized_imgs = [resize(images[i], image_size) for i in range(len(images))]
     imgs = [OffsetImage(img, zoom=zoom[i], cmap='gray') for i, img in enumerate(resized_imgs)]  # type: ignore

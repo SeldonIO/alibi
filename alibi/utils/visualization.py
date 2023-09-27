@@ -6,8 +6,7 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
-from matplotlib.figure import Figure
-from matplotlib.pyplot import axis, figure
+from matplotlib.pyplot import Axes, Figure
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from numpy import ndarray
 
@@ -83,7 +82,7 @@ def visualize_image_attr(
         original_image: Union[None, ndarray] = None,
         method: str = "heat_map",
         sign: str = "absolute_value",
-        plt_fig_axis: Union[None, Tuple[figure, axis]] = None,
+        plt_fig_axis: Union[None, Tuple[Figure, Axes]] = None,
         outlier_perc: Union[int, float] = 2,
         cmap: Union[None, str] = None,
         alpha_overlay: float = 0.5,
@@ -91,7 +90,7 @@ def visualize_image_attr(
         title: Union[None, str] = None,
         fig_size: Tuple[int, int] = (6, 6),
         use_pyplot: bool = True,
-):
+) -> Tuple[Figure, Axes]:
     """
     Visualizes attribution for a given image by normalizing attribution values of the desired sign
     (``'positive'`` | ``'negative'`` | ``'absolute_value'`` | ``'all'``) and displaying them using the desired mode
@@ -163,10 +162,10 @@ def visualize_image_attr(
     Returns
     -------
     2-element tuple of consisting of
-     - `figure` : ``matplotlib.pyplot.figure`` - Figure object on which visualization is created. If `plt_fig_axis` \
+     - `figure` : ``matplotlib.pyplot.Figure`` - Figure object on which visualization is created. If `plt_fig_axis` \
      argument is given, this is the same figure provided.
 
-     - `axis` : ``matplotlib.pyplot.axis`` - Axis object on which visualization is created. If `plt_fig_axis` argument \
+     - `axis` : ``matplotlib.pyplot.Axes`` - Axes object on which visualization is created. If `plt_fig_axis` argument \
      is given, this is the same axis provided.
 
     """
@@ -178,7 +177,7 @@ def visualize_image_attr(
             plt_fig, plt_axis = plt.subplots(figsize=fig_size)
         else:
             plt_fig = Figure(figsize=fig_size)
-            plt_axis = plt_fig.subplots()
+            plt_axis = plt_fig.subplots()  # type: ignore[assignment]
 
     if original_image is not None:
         if np.max(original_image) <= 1.0:
@@ -204,7 +203,7 @@ def visualize_image_attr(
 
         # Set default colormap and bounds based on sign.
         if VisualizeSign[sign] == VisualizeSign.all:
-            default_cmap = LinearSegmentedColormap.from_list(
+            default_cmap: Union[LinearSegmentedColormap, str] = LinearSegmentedColormap.from_list(
                 "RdWhGn", ["red", "white", "green"]
             )
             vmin, vmax = -1, 1
@@ -219,7 +218,7 @@ def visualize_image_attr(
             vmin, vmax = 0, 1
         else:
             raise AssertionError("Visualize Sign type is not valid.")
-        cmap = cmap if cmap is not None else default_cmap
+        cmap = cmap if cmap is not None else default_cmap  # type: ignore[assignment]
 
         # Show appropriate image visualization.
         if ImageVisualizationMethod[method] == ImageVisualizationMethod.heat_map:
@@ -339,7 +338,7 @@ def _create_heatmap(data: np.ndarray,
     if cbar:
         if cbar_ax is None:
             cbar_ax = ax
-        cbar_obj = ax.figure.colorbar(im, ax=cbar_ax, **cbar_kws)
+        cbar_obj = ax.figure.colorbar(im, ax=cbar_ax, **cbar_kws)  # type: ignore[union-attr]
         cbar_obj.ax.set_ylabel(cbar_label, rotation=-90, va="bottom")
 
     # show all ticks and label them with the respective list entries.
@@ -355,7 +354,7 @@ def _create_heatmap(data: np.ndarray,
     plt.setp(ax.get_xticklabels(), rotation=90, ha="right", rotation_mode="anchor")
 
     # turn spines off and create white grid.
-    ax.spines[:].set_visible(False)
+    ax.spines[:].set_visible(False)  # type: ignore[call-overload]
 
     ax.set_xticks(np.arange(data.shape[1]+1)-.5, minor=True)
     ax.set_yticks(np.arange(data.shape[0]+1)-.5, minor=True)
@@ -401,6 +400,7 @@ def _annotate_heatmap(im: matplotlib.image.AxesImage,
 
     if not isinstance(data, (list, np.ndarray)):
         data = im.get_array()
+        assert isinstance(data, np.ndarray)  # for mypy, since get_array() can sometimes be None
 
     # normalize the threshold to the images color range.
     if threshold is not None:
@@ -422,7 +422,7 @@ def _annotate_heatmap(im: matplotlib.image.AxesImage,
     for i in range(data.shape[0]):
         for j in range(data.shape[1]):
             kw.update(color=textcolors[int(im.norm(data[i, j]) > threshold)])
-            text = im.axes.text(j, i, fmt(data[i, j], None), **kw)
+            text = im.axes.text(j, i, fmt(data[i, j], None), **kw)  # type: ignore[arg-type]
             texts.append(text)
 
     return texts

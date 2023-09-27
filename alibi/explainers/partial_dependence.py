@@ -1097,8 +1097,8 @@ def plot_pd(exp: Explanation,
         min_val = min([ax_pd_lim[0] for _, ax_pd_lim in ax_group])
         max_val = max([ax_pd_lim[1] for _, ax_pd_lim in ax_group])
         axs = [ax[0] for ax in ax_group]
-        for ax1, ax2 in zip(axs, axs[1:]):
-            ax1.sharey(ax2)
+        for ax in axs[1:]:
+            ax.sharey(axs[0])
         axs[0].set_ylim(min_val, max_val)
 
     fig.set(**fig_kw)

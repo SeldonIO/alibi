@@ -235,7 +235,7 @@ class DistributedAnchorTabular(AnchorTabular):
         d_samplers = []
         for sampler in samplers:
             d_samplers.append(
-                ray.remote(RemoteSampler).remote(
+                ray.remote(RemoteSampler).remote(  # type: ignore[call-arg]
                     *(train_data_id, d_train_data_id, sampler)
                 )
             )

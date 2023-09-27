@@ -1096,8 +1096,10 @@ def plot_pd(exp: Explanation,
     for ax_group in one_way_axs.values():
         min_val = min([ax_pd_lim[0] for _, ax_pd_lim in ax_group])
         max_val = max([ax_pd_lim[1] for _, ax_pd_lim in ax_group])
-        ax_group[0][0].get_shared_y_axes().join(ax_group[0][0], *[ax[0] for ax in ax_group[1:]])
-        ax_group[0][0].set_ylim(min_val, max_val)
+        axs = [ax[0] for ax in ax_group]
+        for ax in axs[1:]:
+            ax.sharey(axs[0])
+        axs[0].set_ylim(min_val, max_val)
 
     fig.set(**fig_kw)
     return axes

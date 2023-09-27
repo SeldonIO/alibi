@@ -697,15 +697,18 @@ def _plot_feature_interaction(exp: Explanation,
         # set title for the 2-way pdp
         ax = axes_flatten[step * i]
         (ft_name1, ft_name2) = feature_names[features[i]]  # type: Tuple[str, str]  # type: ignore[misc]
-        ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2, feature_interaction[i]))  # type: ignore[union-attr]
+        ax.set_title('inter({},{}) = {:.3f}'.format(ft_name1, ft_name2,  # type: ignore[union-attr]
+                                                    feature_interaction[i]))
 
         # set title for the first conditional importance plot
         ax = axes.flatten()[step * i + 1]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1, conditional_importance[i][0][target_idx]))  # type: ignore[union-attr]
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name2, ft_name1,  # type: ignore[union-attr]
+                                                    conditional_importance[i][0][target_idx]))
 
         # set title for the second conditional importance plot
         ax = axes.flatten()[step * i + 2]
-        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2, conditional_importance[i][1][target_idx]))  # type: ignore[union-attr]
+        ax.set_title('inter({}|{}) = {:.3f}'.format(ft_name1, ft_name2,  # type: ignore[union-attr]
+                                                    conditional_importance[i][1][target_idx]))
 
     return axes
 

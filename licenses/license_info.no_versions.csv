@@ -17,6 +17,7 @@
 "certifi","Mozilla Public License 2.0 (MPL 2.0)"
 "charset-normalizer","MIT License"
 "click","BSD License"
+"cloudpathlib","MIT License"
 "cloudpickle","BSD License"
 "cmake","Apache Software License; BSD License"
 "confection","MIT License"
@@ -119,4 +120,5 @@
 "tzdata","Apache Software License"
 "urllib3","MIT License"
 "wasabi","MIT"
+"weasel","MIT License"
 "wrapt","BSD License"

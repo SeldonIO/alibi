@@ -151,7 +151,6 @@ def tf_linear_model(input_shape, output_shape):
         tf.keras.layers.InputLayer(input_shape=input_shape),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(output_shape),
-        tf.keras.layers.Softmax()
     ])
 
 
@@ -167,7 +166,6 @@ def torch_linear_model(input_shape_arg, output_shape_arg):
             self.linear_stack = nn.Sequential(
                 nn.Flatten(start_dim=1),
                 nn.Linear(input_shape, output_shape),
-                nn.Softmax()
             )
 
         def forward(self, x):

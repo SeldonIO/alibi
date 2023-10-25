@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 
-from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union)
+from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Union)
 
 import numpy as np
 import spacy
@@ -127,7 +127,7 @@ class AnchorTextSampler:
     def __call__(self, anchor: tuple, num_samples: int) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
-    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[str] = None) -> np.ndarray:
         """
         Function to concatenate a `numpy` array of strings along a specified axis.
 

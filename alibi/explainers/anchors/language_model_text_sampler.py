@@ -1,7 +1,7 @@
 import string
 from functools import partial
 
-from typing import (Dict, List, Optional, Tuple, Type)
+from typing import (Dict, List, Optional, Tuple)
 
 import numpy as np
 import tensorflow as tf
@@ -332,7 +332,7 @@ class LanguageModelSampler(AnchorTextSampler):
         # convert to array and return
         return np.array(full_raw, dtype=self.dtype_sent)
 
-    def _joiner(self, arr: np.ndarray, dtype: Optional[Type[np.generic]] = None) -> np.ndarray:
+    def _joiner(self, arr: np.ndarray, dtype: Optional[str] = None) -> np.ndarray:
         """
         Function to concatenate an `numpy` array of strings along a specified axis.
 

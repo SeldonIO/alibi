@@ -1,7 +1,7 @@
 import logging
 from abc import abstractmethod
 
-from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Type, Union)
+from typing import (TYPE_CHECKING, Dict, List, Optional, Tuple, Union)
 
 import numpy as np
 import spacy

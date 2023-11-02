@@ -637,7 +637,7 @@ def assert_pd_ice_values(feature: int, target_idx: int, kind: str, explanation: 
         line = ax.lines[0] if kind == 'average' else ax.lines[2]
         assert_pd_values(feature_values=explanation.data['feature_values'][feature],
                          pd_values=explanation.data['pd_values'][feature][target_idx],
-                         line=line)  # type: ignore[arg-type]
+                         line=line)
 
     if kind in ['individual', 'both']:
         # check the ice values

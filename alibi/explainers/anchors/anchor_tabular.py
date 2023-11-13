@@ -542,7 +542,7 @@ class TabularSampler:
 
         if not self.numerical_features:  # data contains only categorical variables
             self.cat_lookup = dict(zip(self.categorical_features, X))
-            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))  # type: ignore[arg-type]
+            self.enc2feat_idx = dict(zip(*[self.categorical_features] * 2))
             return [self.cat_lookup, self.ord_lookup, self.enc2feat_idx]
 
         first_numerical_idx = np.searchsorted(self.categorical_features, self.numerical_features[0]).item()

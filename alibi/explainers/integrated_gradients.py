@@ -400,11 +400,11 @@ def _gradients_input(model: Union[tf.keras.models.Model],
 
     grads = tape.gradient(preds, x)
 
-    # if there are inputs have not impact to the output, the gradient is None, but we need to return a tensor
+    # If certain inputs don't impact the target, the gradient is None, but we need to return a tensor
     if isinstance(x, list):
         for idx, grad in enumerate(grads):
             if grad is None:
-                grads[idx] = tf.convert_to_tensor(np.zeros(x[0].shape), dtype=x[idx].dtype)
+                grads[idx] = tf.convert_to_tensor(np.zeros(x[idx].shape), dtype=x[idx].dtype)
     return grads
 
 
@@ -502,11 +502,11 @@ def _gradients_layer(model: Union[tf.keras.models.Model],
         grads = tape.gradient(preds, layer.inp)
     else:
         grads = tape.gradient(preds, layer.result)
-    # if there are inputs have not impact to the output, the gradient is None, but we need to return a tensor
+    # If certain inputs don't impact the target, the gradient is None, but we need to return a tensor
     if isinstance(x, list):
         for idx, grad in enumerate(grads):
             if grad is None:
-                grads[idx] = tf.convert_to_tensor(np.zeros(x[0].shape), dtype=x[idx].dtype)
+                grads[idx] = tf.convert_to_tensor(np.zeros(x[idx].shape), dtype=x[idx].dtype)
     delattr(layer, 'inp')
     delattr(layer, 'result')
     layer.call = orig_call

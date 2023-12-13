@@ -58,6 +58,7 @@ if __name__ == '__main__':
               'dill>=0.3.0, <0.4.0',
               'transformers>=4.7.0, <5.0.0',
               'tqdm>=4.28.1, <5.0.0',
+              'pydantic <2.0.0',
           ],
           extras_require=extras_require,
           test_suite='tests',

@@ -3,7 +3,7 @@
 We welcome PRs from the community. This document outlines the standard
 practices and development tools we use.
 
-When you contribute code, you affirm that the contribution is your original work and that you license the work to the project under the project's open source license. Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you agree to license the material under the project's open source license and warrant that you have the legal authority to do so.
+When you contribute code, you affirm that the contribution is your original work and that you license the work to the project under the project's license. Whether or not you state this explicitly, by submitting any copyrighted material via pull request, email, or other means you agree to license the material under the project's license and warrant that you have the legal authority to do so.
 
 ## Getting started
 The easiest way to get started is to clone `alibi` and install it locally together with all the development dependencies
@@ -195,8 +195,6 @@ the CI Guthub Action runner.
 
 - If the registered public SSH key is not your default private SSH key, you will need to specify the path manually, like so: ssh -i <path-to-key> <tmate-connection-string>.
 - Once you have finished debugging, you can continue the workflow (i.e. let the full build CI run) by running `touch continue` whilst in the root directory (`~/work/alibi/alibi`). This will close the tmate session.
-- This new capability is currently temperamental on the `MacOS` build due to [this issue](https://github.com/mxschmitt/action-tmate/issues/69). If the MacOS build fails all the builds are failed. If this happens, it is 
-recommended to retrigger only the workflow build of interest e.g. `ubuntu-latest, 3.10`, and then follow the instructions above from step 3.
 
 ## Optional Dependencies
 

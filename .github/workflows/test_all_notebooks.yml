@@ -21,10 +21,8 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [ '3.8', '3.9', '3.10', '3.11' ]
-        include: # Run macos and windows tests on only one python version
+        include: # Run windows tests on only one python version
           - os: windows-latest
-            python-version:  '3.11'
-          - os: macos-latest
             python-version:  '3.11'
 
     steps:

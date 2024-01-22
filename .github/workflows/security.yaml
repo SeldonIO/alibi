@@ -1,0 +1,59 @@
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - master
+      - release/*
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  scan-code:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install .[all]
+      - name: Create requirements.txt
+        run: |
+          # Snyk has issues working with complex setup.py files (e.g.
+          # https://github.com/snyk/cli/issues/1367).
+          # To account for this, we set up the environment and then dump it
+          # into a `requirements.txt` - this env includes both production and
+          # development dependencies.
+          # TODO: Once we move into Poetry, this can be replaced for the lock
+          # file.
+          pip freeze > requirements.txt
+      - name: Security Scan
+        uses: snyk/actions/python-3.10@master
+        with:
+          args: --fail-on=upgradable
+            --severity-threshold=high
+            --all-projects
+            --exclude=tests,testing,docs
+            --sarif-file-output=snyk-code.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  static-code-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Static Code Analysis Scan
+        uses: snyk/actions/python-3.10@master
+        with:
+          command: code test
+          args: --fail-on=upgradable
+            --severity-threshold=high
+            --all-projects
+            --exclude=tests,testing,docs
+            --sarif-file-output=snyk-sat.sarif
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}

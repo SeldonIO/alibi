@@ -1,5 +1,37 @@
 # Change Log
 
+## [v0.9.5](https://github.com/SeldonIO/alibi/tree/v0.9.5) (2024-01-22)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.4...v0.9.5)
+
+This is a patch release fixing several bugs, updating dependencies and a change of license.
+
+### Fixed
+- Fix torch version bound in setup.py extras_require ([#950](https://github.com/SeldonIO/alibi/pull/950))
+- Fix DistributedExplainer import errors that arise when ray absent([#951](https://github.com/SeldonIO/alibi/pull/951))
+- Fix memory limit issue in tox ci jobs ([#956](https://github.com/SeldonIO/alibi/pull/956))
+- Fix E721 linting errors ([#958](https://github.com/SeldonIO/alibi/pull/958))
+- Fix plot_pd function to work with matplotlib 3.8.0 changes ([#965](https://github.com/SeldonIO/alibi/pull/965))
+- Fix typechecking with matplotlib 3.8.0 ([#969](https://github.com/SeldonIO/alibi/pull/969))
+- fix typechecking for matplotlib 3.8.1 ([#981](https://github.com/SeldonIO/alibi/pull/981))
+- Fix typechecking for mypy 1.7.0 ([#983](https://github.com/SeldonIO/alibi/pull/983))
+- Fix test models to output logits and work with default loss functions ([#975](https://github.com/SeldonIO/alibi/pull/975))
+- Fix dtype type in helper method for AnchorText samplers ([#980](https://github.com/SeldonIO/alibi/pull/980))
+
+### Changed
+- Alibi License change from Apache to Business Source License 1.1 ([#995](https://github.com/SeldonIO/alibi/pull/995))
+
+### Development
+- Update myst-parser requirement upper bound from 2.0 to 3.0 ([#931](https://github.com/SeldonIO/alibi/pull/931))
+- Update pillow requirement upper bound from 10.0 to 11.0 ([#939](https://github.com/SeldonIO/alibi/pull/939))
+- Add notebooks tests for python 3.11 ([#948](https://github.com/SeldonIO/alibi/pull/948)) & ([#949](https://github.com/SeldonIO/alibi/pull/949))
+- Update sphinxcontrib-apidoc requirement upper bound from 0.4.0 to 0.5.0 ([#962](https://github.com/SeldonIO/alibi/pull/962))
+- Update numba requirement upper bound from 0.58.0 to 0.59.0 ([#967](https://github.com/SeldonIO/alibi/pull/967))
+- Update shap requirement upper bound from 0.43.0 to 0.44.0 ([#974](https://github.com/SeldonIO/alibi/pull/974))
+- Update tensorflow requirement upper bound from 2.14.0 to 2.15.0 ([#968](https://github.com/SeldonIO/alibi/pull/968))
+- Update Alibi_Explain_Logo_rgb image with white stroked letters ([#979](https://github.com/SeldonIO/alibi/pull/979))
+- Remove macos from ci ([#995](https://github.com/SeldonIO/alibi/pull/995))
+- Add security scans to CI ([#995](https://github.com/SeldonIO/alibi/pull/995))
+
 ## [v0.9.4](https://github.com/SeldonIO/alibi/tree/v0.9.4) (2023-07-07)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.3...v0.9.4)
 

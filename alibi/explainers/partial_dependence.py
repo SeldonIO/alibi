@@ -417,10 +417,10 @@ class PartialDependenceBase(Explainer, ABC):
         if not isinstance(percentiles, Iterable) or len(percentiles) != 2:
             raise ValueError("`percentiles` must be a sequence of 2 elements.")
 
-        if not all(0 <= x <= 1 for x in percentiles):  # type: ignore[attr-defined]
+        if not all(0 <= x <= 1 for x in percentiles):
             raise ValueError("`percentiles` values must be in [0, 1].")
 
-        if percentiles[0] >= percentiles[1]:  # type: ignore[index]
+        if percentiles[0] >= percentiles[1]:
             raise ValueError("`percentiles[0]` must be strictly less than `percentiles[1]`.")
 
         if grid_resolution <= 1:

@@ -18,7 +18,7 @@ This is a patch release fixing several bugs, updating dependencies and a change 
 - Fix dtype type in helper method for AnchorText samplers ([#980](https://github.com/SeldonIO/alibi/pull/980))
 
 ### Changed
-- Alibi License change from Apache to Business Source License 1.1 (link tbd)
+- Alibi License change from Apache to Business Source License 1.1 ([#995](https://github.com/SeldonIO/alibi/pull/995))
 
 ### Development
 - Update myst-parser requirement upper bound from 2.0 to 3.0 ([#931](https://github.com/SeldonIO/alibi/pull/931))
@@ -29,7 +29,8 @@ This is a patch release fixing several bugs, updating dependencies and a change 
 - Update shap requirement upper bound from 0.43.0 to 0.44.0 ([#974](https://github.com/SeldonIO/alibi/pull/974))
 - Update tensorflow requirement upper bound from 2.14.0 to 2.15.0 ([#968](https://github.com/SeldonIO/alibi/pull/968))
 - Update Alibi_Explain_Logo_rgb image with white stroked letters ([#979](https://github.com/SeldonIO/alibi/pull/979))
-- Remove macos from ci (link tbh)
+- Remove macos from ci ([#995](https://github.com/SeldonIO/alibi/pull/995))
+- Add security scans to CI ([#995](https://github.com/SeldonIO/alibi/pull/995))
 
 ## [v0.9.4](https://github.com/SeldonIO/alibi/tree/v0.9.4) (2023-07-07)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.3...v0.9.4)

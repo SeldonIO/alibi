@@ -1,6 +1,10 @@
+.PHONY: install-dev
+install-dev:
+	pip install -r requirements/dev.txt
+
 .PHONY: install
 install:
-	pip install -e .
+	pip install -e .[all]
 
 .PHONY: test
 test:
@@ -60,5 +64,3 @@ check_licenses:
 tox-env=default
 repl:
 	env COMMAND="python" tox -e $(tox-env)
-
-

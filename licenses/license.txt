@@ -1,5 +1,5 @@
 Jinja2
-3.1.2
+3.1.3
 BSD License
 Copyright 2007 Pallets
 
@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Markdown
-3.5.1
+3.5.2
 BSD License
 Copyright 2007, 2008 The Python Markdown Project (v. 1.7 and later)
 Copyright 2004, 2005, 2006 Yuri Takhteyev (v. 0.2-1.6b)
@@ -66,7 +66,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 MarkupSafe
-2.1.3
+2.1.5
 BSD License
 Copyright 2010 Pallets
 
@@ -157,7 +157,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 absl-py
-2.0.0
+2.1.0
 Apache Software License
 
                                  Apache License
@@ -625,6 +625,32 @@ In consideration of the right to use this License’s text and the “Business S
 4. Not to modify this License in any other way.
 
 
+annotated-types
+0.6.0
+MIT License
+The MIT License (MIT)
+
+Copyright (c) 2022 the contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
 astunparse
 1.6.3
 BSD License
@@ -770,11 +796,11 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 cachetools
-5.3.2
+5.3.3
 MIT License
 The MIT License (MIT)
 
-Copyright (c) 2014-2022 Thomas Kemmer
+Copyright (c) 2014-2024 Thomas Kemmer
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
 this software and associated documentation files (the "Software"), to deal in
@@ -821,7 +847,7 @@ SOFTWARE.
 
 
 certifi
-2023.11.17
+2024.2.2
 Mozilla Public License 2.0 (MPL 2.0)
 This package contains a modified version of ca-bundle.crt:
 
@@ -1052,10 +1078,10 @@ THE SOFTWARE.
 
 
 dill
-0.3.7
+0.3.8
 BSD License
 Copyright (c) 2004-2016 California Institute of Technology.
-Copyright (c) 2016-2023 The Uncertainty Quantification Foundation.
+Copyright (c) 2016-2024 The Uncertainty Quantification Foundation.
 All rights reserved.
 
 This software is available subject to the conditions and terms laid
@@ -1121,12 +1147,12 @@ For more information, please refer to <http://unlicense.org>
 
 
 flatbuffers
-23.5.26
+24.3.7
 Apache Software License
 UNKNOWN
 
 fonttools
-4.47.0
+4.49.0
 MIT License
 MIT License
 
@@ -1358,7 +1384,7 @@ Apache License
 
 
 fsspec
-2023.12.2
+2024.2.0
 BSD License
 BSD 3-Clause License
 
@@ -1426,7 +1452,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.26.1
+2.28.1
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2045,7 +2071,7 @@ Apache Software License
 
 
 grpcio
-1.60.0
+1.62.0
 Apache Software License
 
                                  Apache License
@@ -2695,7 +2721,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.20.2
+0.21.4
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2937,7 +2963,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 imageio
-2.33.1
+2.34.0
 BSD License
 Copyright (c) 2014-2022, imageio developers
 All rights reserved.
@@ -3000,7 +3026,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 jsonschema
-4.20.0
+4.21.1
 MIT License
 Copyright (c) 2013 Julian Berman
 
@@ -3500,7 +3526,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.8.2
+3.8.3
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -3842,7 +3868,7 @@ DAMAGE.
 
 
 msgpack
-1.0.7
+1.0.8
 Apache Software License
 Copyright (C) 2008-2011 INADA Naoki <songofacandy@gmail.com>
 
@@ -3958,7 +3984,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 numpy
-1.26.3
+1.26.4
 BSD License
 Copyright (c) 2005-2023, NumPy Developers.
 All rights reserved.
@@ -4024,11 +4050,6 @@ Name: Meson
 Files: vendored-meson/meson/*
 License: Apache 2.0
   For license text, see vendored-meson/meson/COPYING
-
-Name: meson-python
-Files: vendored-meson/meson-python/*
-License: MIT
-  For license text, see vendored-meson/meson-python/LICENSE
 
 Name: spin
 Files: .spin/cmds.py
@@ -4984,12 +5005,12 @@ Other/Proprietary License
 UNKNOWN
 
 nvidia-nccl-cu12
-2.18.1
+2.19.3
 Other/Proprietary License
 UNKNOWN
 
 nvidia-nvjitlink-cu12
-12.3.101
+12.4.99
 Other/Proprietary License
 UNKNOWN
 
@@ -5066,7 +5087,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-2.1.4
+2.2.1
 BSD License
 BSD 3-Clause License
 
@@ -6476,7 +6497,7 @@ THE SOFTWARE.
 
 
 protobuf
-4.25.1
+4.25.3
 3-Clause BSD License
 Copyright 2008 Google Inc.  All rights reserved.
 
@@ -6571,11 +6592,37 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-1.10.13
+2.6.3
 MIT License
 The MIT License (MIT)
 
-Copyright (c) 2017, 2018, 2019, 2020, 2021 Samuel Colvin and other contributors
+Copyright (c) 2017 to present Pydantic Services Inc. and individual contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+
+pydantic_core
+2.16.3
+MIT License
+The MIT License (MIT)
+
+Copyright (c) 2022 Samuel Colvin
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -6597,7 +6644,7 @@ SOFTWARE.
 
 
 pyparsing
-3.1.1
+3.1.2
 MIT License
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -6620,7 +6667,7 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 python-dateutil
-2.8.2
+2.9.0.post0
 Apache Software License; BSD License
 Copyright 2017- Paul Ganssle <paul@ganssle.io>
 Copyright 2017- dateutil contributors (see AUTHORS file)
@@ -6678,7 +6725,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 The above BSD License Applies to all code, even that also covered by Apache 2.0.
 
 pytz
-2023.3.post1
+2024.1
 MIT License
 Copyright (c) 2003-2019 Stuart Bishop <stuart@stuartbishop.net>
 
@@ -6702,7 +6749,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 ray
-2.9.0
+2.9.3
 Apache 2.0
    Copyright aio-libs contributors.
 
@@ -6720,7 +6767,7 @@ Apache 2.0
 
 
 referencing
-0.32.1
+0.33.0
 MIT License
 Copyright (c) 2022 Julian Berman
 
@@ -7157,7 +7204,7 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 
 rpds-py
-0.16.2
+0.18.0
 MIT License
 Copyright (c) 2023 Julian Berman
 
@@ -7199,7 +7246,7 @@ limitations under the License.
 
 
 safetensors
-0.4.1
+0.4.2
 Apache Software License
 UNKNOWN
 
@@ -7354,7 +7401,7 @@ SOFTWARE.
 
 
 scikit-learn
-1.3.2
+1.4.1.post1
 BSD License
 BSD 3-Clause License
 
@@ -7388,9 +7435,9 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.11.4
+1.12.0
 BSD License
-Copyright (c) 2001-2002 Enthought, Inc. 2003-2023, SciPy Developers.
+Copyright (c) 2001-2002 Enthought, Inc. 2003-2024, SciPy Developers.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -8428,11 +8475,11 @@ SOFTWARE.
 
 
 spacy
-3.7.2
+3.7.4
 MIT License
 The MIT License (MIT)
 
-Copyright (C) 2016-2022 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
+Copyright (C) 2016-2023 ExplosionAI GmbH, 2016 spaCy GmbH, 2015 Matthew Honnibal
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -9553,7 +9600,7 @@ Apache Software License
 UNKNOWN
 
 tensorflow-io-gcs-filesystem
-0.35.0
+0.36.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -9783,7 +9830,7 @@ THE SOFTWARE.
 
 
 thinc
-8.2.2
+8.2.3
 MIT License
 The MIT License (MIT)
 
@@ -9809,7 +9856,7 @@ THE SOFTWARE.
 
 
 threadpoolctl
-3.2.0
+3.3.0
 BSD License
 Copyright (c) 2019, threadpoolctl contributors
 
@@ -9837,11 +9884,11 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2023.12.9
+2024.2.12
 BSD License
 BSD 3-Clause License
 
-Copyright (c) 2008-2023, Christoph Gohlke
+Copyright (c) 2008-2024, Christoph Gohlke
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -9872,12 +9919,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 tokenizers
-0.15.0
+0.15.2
 Apache Software License
 UNKNOWN
 
 torch
-2.1.2
+2.2.1
 BSD License
 From PyTorch:
 
@@ -10073,11 +10120,6 @@ Name: eigen
 License: BSD-3-Clause
 Files: third_party/eigen
   For details, see the files concatenated below: third_party/eigen/COPYING.BSD
-
-Name: enum
-License: BSD-3-Clause
-Files: third_party/python-enum/enum
-  For details, see the files concatenated below: third_party/python-enum/enum/LICENSE
 
 Name: fbgemm
 License: BSD-3-Clause
@@ -10275,11 +10317,6 @@ Name: python-peachpy
 License: BSD-2-Clause
 Files: third_party/python-peachpy
   For details, see the files concatenated below: third_party/python-peachpy/LICENSE.rst
-
-Name: python-six
-License: MIT
-Files: third_party/python-six
-  For details, see the files concatenated below: third_party/python-six/LICENSE
 
 Name: sleef
 License: BSL-1.0
@@ -11980,42 +12017,6 @@ third_party/eigen/COPYING.BSD
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
-
-third_party/python-enum/enum/LICENSE
-------------------------------------
-Copyright (c) 2013, Ethan Furman.
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions
-are met:
-
-    Redistributions of source code must retain the above
-    copyright notice, this list of conditions and the
-    following disclaimer.
-
-    Redistributions in binary form must reproduce the above
-    copyright notice, this list of conditions and the following
-    disclaimer in the documentation and/or other materials
-    provided with the distribution.
-
-    Neither the name Ethan Furman nor the names of any
-    contributors may be used to endorse or promote products
-    derived from this software without specific prior written
-    permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
 
 
 third_party/fbgemm/LICENSE
@@ -14598,12 +14599,14 @@ third_party/ideep/mkl-dnn/LICENSE
 
    ============================================================================
 
-   Copyright 2016-2021 Intel Corporation
+   Copyright 2016-2023 Intel Corporation
    Copyright 2018 YANDEX LLC
-   Copyright 2019-2021 FUJITSU LIMITED
-   Copyright 2020 Arm Limited and affiliates
-   Copyright 2020 Codeplay Software Limited
+   Copyright 2019-2023 FUJITSU LIMITED
+   Copyright 2020-2023 Arm Ltd. and affiliates
+   Copyright 2020-2022 Codeplay Software Limited
    Copyright 2021 Alanna Tempest
+   Copyright 2022-2023 IBM Corporation
+   Copyright 2023 KNS Group LLC (YADRO)
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -15381,28 +15384,6 @@ Redistribution and use in source and binary forms, with or without modification,
 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-third_party/python-six/LICENSE
-------------------------------
-Copyright (c) 2010-2017 Benjamin Peterson
-
-Permission is hereby granted, free of charge, to any person obtaining a copy of
-this software and associated documentation files (the "Software"), to deal in
-the Software without restriction, including without limitation the rights to
-use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
-the Software, and to permit persons to whom the Software is furnished to do so,
-subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
-FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
-COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
-IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
-CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 third_party/sleef/LICENSE.txt
@@ -16629,7 +16610,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 tqdm
-4.66.1
+4.66.2
 MIT License; Mozilla Public License 2.0 (MPL 2.0)
 `tqdm` is a product of collaborative work.
 Unless otherwise stated, all authors (see commit logs) retain copyright
@@ -16640,7 +16621,7 @@ Exceptions or notable authors are listed below
 in reverse chronological order:
 
 * files: *
-  MPL-2.0 2015-2023 (c) Casper da Costa-Luis
+  MPL-2.0 2015-2024 (c) Casper da Costa-Luis
   [casperdcl](https://github.com/casperdcl).
 * files: tqdm/_tqdm.py
   MIT 2016 (c) [PR #96] on behalf of Google Inc.
@@ -16683,7 +16664,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.36.2
+4.38.2
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -16891,7 +16872,7 @@ Copyright 2018- The Hugging Face team. All rights reserved.
 
 
 triton
-2.1.0
+2.2.0
 MIT License
 UNKNOWN
 
@@ -16922,7 +16903,7 @@ THE SOFTWARE.
 
 
 typing_extensions
-4.9.0
+4.10.0
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================
@@ -17206,7 +17187,7 @@ PERFORMANCE OF THIS SOFTWARE.
 
 
 tzdata
-2023.4
+2024.1
 Apache Software License
 Apache Software License 2.0
 
@@ -17226,7 +17207,7 @@ limitations under the License.
 
 
 urllib3
-2.1.0
+2.2.1
 MIT License
 MIT License
 

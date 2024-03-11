@@ -17,13 +17,13 @@ extras_require = {
         'numba>=0.50.0, !=0.54.0, <0.59.0',  # Avoid 0.54 due to: https://github.com/SeldonIO/alibi/issues/466
     ],
 
-    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.15.0'],
+    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.17.0'],
     'torch': ['torch>=1.9.0, <3.0.0'],
     'all': [
         'ray>=0.8.7, <3.0.0',
         'shap>=0.40.0, <0.44.0',
         'numba>=0.50.0, !=0.54.0, <0.59.0',
-        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.15.0',
+        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.17.0',
         'torch>=1.9.0, <3.0.0'
     ]
 }

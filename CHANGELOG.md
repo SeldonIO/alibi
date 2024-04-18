@@ -1,5 +1,20 @@
 # Change Log
 
+## [v0.9.6](https://github.com/SeldonIO/alibi/tree/v0.9.6) (2024-04-18)
+[Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.5...v0.9.6)
+
+This is a minor release.
+
+### Changed
+- Removed explicit dependency on Pydantic ([#1002](https://github.com/SeldonIO/alibi/pull/1002))
+
+### Development
+- Bump tj-actions/changed-files from 1.1.2 to 41.0.0 in /.github/workflows ([#992](https://github.com/SeldonIO/alibi/pull/992))
+- Update README.md ([#996](https://github.com/SeldonIO/alibi/pull/996))
+- Update numba requirement from !=0.54.0,<0.59.0,>=0.50.0 to >=0.50.0,!=0.54.0,<0.60.0 ([#999](https://github.com/SeldonIO/alibi/pull/999))
+- Update twine requirement from <5.0.0,>3.2.0 to >3.2.0,<6.0.0 ([#1001](https://github.com/SeldonIO/alibi/pull/1001))
+- build(ci): Migrate actions to later Node version ([#1003](https://github.com/SeldonIO/alibi/pull/1003))
+
 ## [v0.9.5](https://github.com/SeldonIO/alibi/tree/v0.9.5) (2024-01-22)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.9.4...v0.9.5)
 
@@ -112,7 +127,7 @@ This is a patch release fixing several bugs.
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.8.0...v0.9.0)
 
 ### Added
-- **New feature** `PermutationImportance` explainer implementing the permutation feature importance global explanations. Also included is a `plot_permutation_importance` utility function for flexible plotting of the resulting feature importance scores ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html),  [#798](https://github.com/SeldonIO/alibi/pull/798)). 
+- **New feature** `PermutationImportance` explainer implementing the permutation feature importance global explanations. Also included is a `plot_permutation_importance` utility function for flexible plotting of the resulting feature importance scores ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html),  [#798](https://github.com/SeldonIO/alibi/pull/798)).
 - **New feature** `PartialDependenceVariance` explainer implementing partial dependence variance global explanations. Also included is a `plot_pd_variance` utility function for flexible plotting of the resulting PD variance plots ([docs](https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html), [#758](https://github.com/SeldonIO/alibi/pull/758)).
 
 ### Fixed
@@ -167,7 +182,7 @@ This is a patch release fixing several bugs.
 - Updated `shap` example notebooks to recommend installing `matplotlib==3.5.3` due to failure of `shap` plotting functions with `matplotlib==3.6.0` ([#776](https://github.com/SeldonIO/alibi/pull/776)).
 
 ### Development
-- Extend optional dependency checks to ensure the correct submodules are present ([#714](https://github.com/SeldonIO/alibi/pull/714)). 
+- Extend optional dependency checks to ensure the correct submodules are present ([#714](https://github.com/SeldonIO/alibi/pull/714)).
 - Introduce `pytest-custom_exit_code` to let notebook CI pass when no notebooks are selected for tests ([#728](https://github.com/SeldonIO/alibi/pull/728)).
 - Use UTF-8 encoding when loading `README.md` in `setup.py` to avoid a possible failure of installation for some users ([#744](https://github.com/SeldonIO/alibi/pull/744)).
 - Updated guidance for class docstrings ([#743](https://github.com/SeldonIO/alibi/pull/743)).
@@ -226,7 +241,7 @@ This is a patch release to correct a regression in `CounterfactualProto` introdu
 
 ### Fixed
 - Fix a bug introduced in `v0.6.3` which prevented `CounterfactualProto` working with categorical features ([#612](https://github.com/SeldonIO/alibi/pull/612)).
-- Fix an issue with the `LanguageModelSampler` where it would sometimes sample punctuation ([#585](https://github.com/SeldonIO/alibi/pull/585)). 
+- Fix an issue with the `LanguageModelSampler` where it would sometimes sample punctuation ([#585](https://github.com/SeldonIO/alibi/pull/585)).
 
 ### Development
 - The maximum `tensorflow` version has been bumped from 2.7 to 2.8 ([#588](https://github.com/SeldonIO/alibi/pull/588)).
@@ -251,7 +266,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 - A new comprehensive [Introduction](https://docs.seldon.io/projects/alibi/en/stable/overview/high_level.html) to explainability added to the documentation ([#510](https://github.com/SeldonIO/alibi/pull/510)).
 
 ### Changed
-- Python 3.6 has been deprecated from the supported versions as it has reached end-of-life. 
+- Python 3.6 has been deprecated from the supported versions as it has reached end-of-life.
 
 ### Fixed
 - Fix a bug with passing background images to `AnchorImage` leading to an error ([#542](https://github.com/SeldonIO/alibi/pull/542)).
@@ -259,7 +274,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 
 ### Development
 - Docstrings have been updated and consolidated ([#548](https://github.com/SeldonIO/alibi/pull/548)). For developers, docstring conventions have been documented in [CONTRIBUTING.md](https://github.com/SeldonIO/alibi/blob/master/CONTRIBUTING.md#docstrings).
-- `numpy` typing has been updated to be compatible with `numpy 1.22` ([#543](https://github.com/SeldonIO/alibi/pull/543)). This is a prerequisite for upgrading to `tensorflow 2.7`. 
+- `numpy` typing has been updated to be compatible with `numpy 1.22` ([#543](https://github.com/SeldonIO/alibi/pull/543)). This is a prerequisite for upgrading to `tensorflow 2.7`.
 - To further improve reliability, strict `Optional` type-checking with `mypy` has been reinstated ([#541](https://github.com/SeldonIO/alibi/pull/541)).
 - The Alibi CI tests now include Windows and MacOS platforms ([#575](https://github.com/SeldonIO/alibi/pull/575)).
 - The maximum `tensorflow` version has been bumped from 2.6 to 2.7 ([#377](https://github.com/SeldonIO/alibi-detect/pull/377)).
@@ -318,7 +333,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 - Python 3.9 support.
 
 ### Fixed
-- `IntegratedGradients` - fix the path definition for attributions calculated with respect to an internal layer. Previously the paths were defined in terms of the inputs and baselines, now they are correctly defined in terms of the corresponding layer input/output. 
+- `IntegratedGradients` - fix the path definition for attributions calculated with respect to an internal layer. Previously the paths were defined in terms of the inputs and baselines, now they are correctly defined in terms of the corresponding layer input/output.
 
 ## [v0.5.8](https://github.com/SeldonIO/alibi/tree/v0.5.8) (2021-04-29)
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.7...v0.5.8)
@@ -407,7 +422,7 @@ This is a patch release to correct a regression in `AnchorImage` introduced in `
 [Full Changelog](https://github.com/SeldonIO/alibi/compare/v0.5.2...v0.5.3)
 
 ### Changed
-- Updated roadmap 
+- Updated roadmap
 
 ### Fixed
 - Bug in integrated gradients where incorrect layer handling led to output shape mismatch when explaining layer outputs

@@ -32,37 +32,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 Markdown
-3.5.2
+3.6
 BSD License
-Copyright 2007, 2008 The Python Markdown Project (v. 1.7 and later)
-Copyright 2004, 2005, 2006 Yuri Takhteyev (v. 0.2-1.6b)
-Copyright 2004 Manfred Stienstra (the original version)
+BSD 3-Clause License
 
-All rights reserved.
+Copyright 2007, 2008 The Python Markdown Project (v. 1.7 and later)  
+Copyright 2004, 2005, 2006 Yuri Takhteyev (v. 0.2-1.6b)  
+Copyright 2004 Manfred Stienstra (the original version)
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-* Redistributions of source code must retain the above copyright
-  notice, this list of conditions and the following disclaimer.
-* Redistributions in binary form must reproduce the above copyright
-  notice, this list of conditions and the following disclaimer in the
-  documentation and/or other materials provided with the distribution.
-* Neither the name of the Python Markdown Project nor the
-  names of its contributors may be used to endorse or promote products
-  derived from this software without specific prior written permission.
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
 
-THIS SOFTWARE IS PROVIDED BY THE PYTHON MARKDOWN PROJECT ''AS IS'' AND ANY
-EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL ANY CONTRIBUTORS TO THE PYTHON MARKDOWN PROJECT
-BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-POSSIBILITY OF SUCH DAMAGE.
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its
+   contributors may be used to endorse or promote products derived from
+   this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 MarkupSafe
@@ -124,7 +125,7 @@ SOFTWARE.
 
 
 Werkzeug
-3.0.1
+3.0.2
 BSD License
 Copyright 2007 Pallets
 
@@ -570,7 +571,7 @@ Apache License
 
 
 alibi
-0.9.5.dev0
+0.9.6
 Other/Proprietary License
 Parameters
 
@@ -987,11 +988,11 @@ SOFTWARE.
 
 
 contourpy
-1.2.0
+1.2.1
 BSD License
 BSD 3-Clause License
 
-Copyright (c) 2021-2023, ContourPy Developers.
+Copyright (c) 2021-2024, ContourPy Developers.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -1118,7 +1119,7 @@ ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 filelock
-3.13.1
+3.13.4
 The Unlicense (Unlicense)
 This is free and unencumbered software released into the public domain.
 
@@ -1147,12 +1148,12 @@ For more information, please refer to <http://unlicense.org>
 
 
 flatbuffers
-24.3.7
+24.3.25
 Apache Software License
 UNKNOWN
 
 fonttools
-4.49.0
+4.51.0
 MIT License
 MIT License
 
@@ -1384,7 +1385,7 @@ Apache License
 
 
 fsspec
-2024.2.0
+2024.3.1
 BSD License
 BSD 3-Clause License
 
@@ -1452,7 +1453,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 google-auth
-2.28.1
+2.29.0
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2071,7 +2072,7 @@ Apache Software License
 
 
 grpcio
-1.62.0
+1.62.1
 Apache Software License
 
                                  Apache License
@@ -2686,7 +2687,7 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
 
 
 h5py
-3.10.0
+3.11.0
 BSD License
 Copyright (c) 2008 Andrew Collette and contributors
 All rights reserved.
@@ -2721,7 +2722,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 huggingface-hub
-0.21.4
+0.22.2
 Apache Software License
                                  Apache License
                            Version 2.0, January 2004
@@ -2927,11 +2928,11 @@ Apache Software License
 
 
 idna
-3.6
+3.7
 BSD License
 BSD 3-Clause License
 
-Copyright (c) 2013-2023, Kim Davies and contributors.
+Copyright (c) 2013-2024, Kim Davies and contributors.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -2992,7 +2993,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 joblib
-1.3.2
+1.4.0
 BSD License
 BSD 3-Clause License
 
@@ -3180,7 +3181,7 @@ SOFTWARE.
 
 
 lazy_loader
-0.3
+0.4
 BSD License
 BSD 3-Clause License
 
@@ -3214,7 +3215,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 libclang
-16.0.6
+18.1.1
 Apache Software License
 ==============================================================================
 The LLVM Project is under the Apache License v2.0 with LLVM Exceptions:
@@ -3497,7 +3498,7 @@ SOFTWARE.
 
 
 llvmlite
-0.41.1
+0.42.0
 BSD
 Copyright (c) 2014-, Continuum Analytics, Inc.
 All rights reserved.
@@ -3526,7 +3527,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 matplotlib
-3.8.3
+3.8.4
 Python Software Foundation License
 License agreement for matplotlib versions 1.3.0 and later
 =========================================================
@@ -3913,13 +3914,13 @@ THE SOFTWARE.
 
 
 networkx
-3.2.1
+3.3
 BSD License
 NetworkX is distributed with the 3-clause BSD license.
 
 ::
 
-   Copyright (C) 2004-2023, NetworkX Developers
+   Copyright (C) 2004-2024, NetworkX Developers
    Aric Hagberg <hagberg@lanl.gov>
    Dan Schult <dschult@colgate.edu>
    Pieter Swart <swart@lanl.gov>
@@ -3955,7 +3956,7 @@ NetworkX is distributed with the 3-clause BSD license.
 
 
 numba
-0.58.1
+0.59.1
 BSD License
 Copyright (c) 2012, Anaconda, Inc.
 All rights reserved.
@@ -5010,7 +5011,7 @@ Other/Proprietary License
 UNKNOWN
 
 nvidia-nvjitlink-cu12
-12.4.99
+12.4.127
 Other/Proprietary License
 UNKNOWN
 
@@ -5079,7 +5080,7 @@ SOFTWARE.
 
 
 packaging
-23.2
+24.0
 Apache Software License; BSD License
 This software is made available under the terms of *either* of the licenses
 found in LICENSE.APACHE or LICENSE.BSD. Contributions to this software is made
@@ -5087,7 +5088,7 @@ under the terms of *both* these licenses.
 
 
 pandas
-2.2.1
+2.2.2
 BSD License
 BSD 3-Clause License
 
@@ -5123,16 +5124,16 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 pillow
-10.2.0
+10.3.0
 Historical Permission Notice and Disclaimer (HPND)
 The Python Imaging Library (PIL) is
 
     Copyright © 1997-2011 by Secret Labs AB
-    Copyright © 1995-2011 by Fredrik Lundh
+    Copyright © 1995-2011 by Fredrik Lundh and contributors
 
 Pillow is the friendly PIL fork. It is
 
-    Copyright © 2010-2024 by Jeffrey A. Clark (Alex) and contributors.
+    Copyright © 2010-2024 by Jeffrey A. Clark and contributors
 
 Like PIL, Pillow is licensed under the open source HPND License:
 
@@ -6534,7 +6535,7 @@ support library is itself covered by the above license.
 
 
 pyasn1
-0.5.1
+0.6.0
 BSD License
 Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
 All rights reserved.
@@ -6562,8 +6563,8 @@ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE. 
 
 
-pyasn1-modules
-0.3.0
+pyasn1_modules
+0.4.0
 BSD License
 Copyright (c) 2005-2020, Ilya Etingof <etingof@gmail.com>
 All rights reserved.
@@ -6592,7 +6593,7 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 pydantic
-2.6.3
+2.7.0
 MIT License
 The MIT License (MIT)
 
@@ -6618,7 +6619,7 @@ SOFTWARE.
 
 
 pydantic_core
-2.16.3
+2.18.1
 MIT License
 The MIT License (MIT)
 
@@ -6749,7 +6750,7 @@ DEALINGS IN THE SOFTWARE.
 
 
 ray
-2.9.3
+2.11.0
 Apache 2.0
    Copyright aio-libs contributors.
 
@@ -6767,7 +6768,7 @@ Apache 2.0
 
 
 referencing
-0.33.0
+0.34.0
 MIT License
 Copyright (c) 2022 Julian Berman
 
@@ -6791,7 +6792,7 @@ THE SOFTWARE.
 
 
 regex
-2023.12.25
+2024.4.16
 Apache Software License
 This work was derived from the 're' module of CPython 2.6 and CPython 3.1,
 copyright (c) 1998-2001 by Secret Labs AB and licensed under CNRI's Python 1.6
@@ -7184,7 +7185,7 @@ Apache Software License
 
 
 requests-oauthlib
-1.3.1
+2.0.0
 BSD License
 ISC License
 
@@ -7246,7 +7247,7 @@ limitations under the License.
 
 
 safetensors
-0.4.2
+0.4.3
 Apache Software License
 UNKNOWN
 
@@ -7401,7 +7402,7 @@ SOFTWARE.
 
 
 scikit-learn
-1.4.1.post1
+1.4.2
 BSD License
 BSD 3-Clause License
 
@@ -7435,7 +7436,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 scipy
-1.12.0
+1.13.0
 BSD License
 Copyright (c) 2001-2002 Enthought, Inc. 2003-2024, SciPy Developers.
 All rights reserved.
@@ -9856,7 +9857,7 @@ THE SOFTWARE.
 
 
 threadpoolctl
-3.3.0
+3.4.0
 BSD License
 Copyright (c) 2019, threadpoolctl contributors
 
@@ -9884,7 +9885,7 @@ OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 tifffile
-2024.2.12
+2024.4.18
 BSD License
 BSD 3-Clause License
 
@@ -9919,12 +9920,12 @@ POSSIBILITY OF SUCH DAMAGE.
 
 
 tokenizers
-0.15.2
+0.19.1
 Apache Software License
 UNKNOWN
 
 torch
-2.2.1
+2.2.2
 BSD License
 From PyTorch:
 
@@ -16664,7 +16665,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
 transformers
-4.38.2
+4.40.0
 Apache Software License
 Copyright 2018- The Hugging Face team. All rights reserved.
 
@@ -16877,7 +16878,7 @@ MIT License
 UNKNOWN
 
 typer
-0.9.0
+0.9.4
 MIT License
 The MIT License (MIT)
 
@@ -16903,7 +16904,7 @@ THE SOFTWARE.
 
 
 typing_extensions
-4.10.0
+4.11.0
 Python Software Foundation License
 A. HISTORY OF THE SOFTWARE
 ==========================

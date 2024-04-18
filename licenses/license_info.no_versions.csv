@@ -74,7 +74,7 @@
 "preshed","MIT License"
 "protobuf","3-Clause BSD License"
 "pyasn1","BSD License"
-"pyasn1-modules","BSD License"
+"pyasn1_modules","BSD License"
 "pydantic","MIT License"
 "pydantic_core","MIT License"
 "pyparsing","MIT License"

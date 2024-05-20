@@ -815,7 +815,7 @@ def plot_pd_variance(exp: Explanation,
                              f"Available values are: {exp.meta['params']['target_names']}.")
 
         if isinstance(target, numbers.Integral) \
-                and (target > len(exp.meta['params']['target_names'])):  # type: ignore[operator]
+                and (target > len(exp.meta['params']['target_names'])):
             raise IndexError(f"Target index out of range. Received {target}. "
                              f"The number of targets is {len(exp.meta['params']['target_names'])}.")
 

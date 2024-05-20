@@ -196,6 +196,7 @@ def visualize_image_attr(
     heat_map = None
     # Show original image
     if ImageVisualizationMethod[method] == ImageVisualizationMethod.original_image:
+        assert original_image is not None
         plt_axis.imshow(original_image)
     else:
         # Choose appropriate signed attributions and normalize.

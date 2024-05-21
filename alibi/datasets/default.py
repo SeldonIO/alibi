@@ -142,7 +142,8 @@ def load_cats(target_size: tuple = (299, 299), return_X_y: bool = False) -> Unio
         # data
         img = tar.extractfile(member).read()  # type: ignore[union-attr]
         img = PIL.Image.open(BytesIO(img))
-        img = np.expand_dims(img.resize(target_size), axis=0)
+        img = np.array(img.resize(target_size))
+        img = np.expand_dims(img, axis=0)
         images.append(img)
 
         # labels

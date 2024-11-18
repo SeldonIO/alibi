@@ -43,6 +43,7 @@ if __name__ == '__main__':
           python_requires='>=3.8',
           # lower bounds based on Debian Stable versions where available
           install_requires=[
+              'wheel<0.46.0',
               'numpy>=2.0.0, <2.1.4',
               'pandas>=1.0.0, <3.0.0',
               'scikit-learn>=1.0.0, <2.0.0',

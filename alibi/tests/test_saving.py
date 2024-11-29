@@ -109,7 +109,7 @@ def ffn_classifier(request):
 
 @pytest.fixture(scope='module')
 def mnist_predictor():
-    model = alibi_testing.load('mnist-cnn-tf2.2.0')
+    model = alibi_testing.load('mnist-cnn-tf2.18.0.keras')
     predictor = lambda x: model.predict(x)  # noqa
     return predictor
 

@@ -1,8 +1,7 @@
+import numpy as np
 from typing import Tuple, Union
 
-import tensorflow.keras as keras
-import numpy as np
-
+import alibi.utils.legacy_keras as keras
 from alibi.utils.data import Bunch
 
 

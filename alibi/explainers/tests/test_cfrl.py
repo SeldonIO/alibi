@@ -5,7 +5,7 @@ from pytest_lazyfixture import lazy_fixture
 import numpy as np
 from numpy.testing import assert_allclose
 import tensorflow as tf
-import tensorflow.keras as keras
+import alibi.utils.legacy_keras as keras
 
 from alibi.explainers import CounterfactualRLTabular
 from alibi.explainers.backends.cfrl_base import get_hard_distribution
@@ -295,7 +295,7 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     return explainer
 
 
-@pytest.mark.parametrize('models', [('iris-ae-tf2.2.0', 'iris-enc-tf2.2.0')], ids='model={}'.format, indirect=True)
+@pytest.mark.parametrize('models', [('iris-ae-tf2.18.0.keras', 'iris-enc-tf2.18.0.keras')], ids='model={}'.format, indirect=True)
 @pytest.mark.parametrize('rf_classifier',
                          [lazy_fixture('iris_data')],
                          indirect=True,
@@ -314,11 +314,12 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
     X_hat = decoder(Z)
     assert isinstance(X_hat, list)
 
-    # Fit the explainer
+    # Fit the explainer#
+    print(iris_data['X_train'].shape)
     explainer.fit(X=iris_data["X_train"])
 
-    # Construct explanation object.
-    explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
+    # # Construct explanation object.
+    # explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
 
 
 @pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])

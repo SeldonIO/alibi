@@ -110,7 +110,7 @@ def test_cf_explainer_iris(disable_tf2, cf_iris_explainer):
                          ids='target={}'.format,
                          indirect=True)
 @pytest.mark.parametrize('models',
-                         [('mnist-logistic-tf2.2.0',), ('mnist-logistic-tf1.15.2.h5',)],
+                         [('mnist-logistic-tf2.18.0.keras',), ('mnist-logistic-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
 def test_keras_mnist_explainer(disable_tf2, keras_mnist_cf_explainer, mnist_data):

@@ -19,14 +19,18 @@ extras_require = {
 
     # `keras 3` becomes the default for `tensorflow >= 2.16.0``
     # which is not yet supported by `transformers`
-    'tensorflow': ['tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.16.0'],
+    'tensorflow': [
+        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.19.0',
+        'tf-keras>=2.0.0,<2.19.0'
+    ],
     'torch': ['torch>=1.9.0, <3.0.0'],
     'all': [
         'ray>=0.8.7, <3.0.0',
         'shap>=0.40.0, <0.44.0',
         'numba>=0.50.0, !=0.54.0, <0.60.0',
-        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.16.0',
-        'torch>=1.9.0, <3.0.0'
+        'tensorflow>=2.0.0, !=2.6.0, !=2.6.1, <2.19.0',
+        'tf-keras>=2.0.0,<2.19.0'
+        'torch>=1.9.0, <3.0.0',
     ]
 }
 

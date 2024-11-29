@@ -4,7 +4,7 @@ experiments for both data modalities (image and tabular).
 """
 
 import tensorflow as tf
-import tensorflow.keras as keras
+import alibi.utils.legacy_keras as keras
 from typing import List
 
 

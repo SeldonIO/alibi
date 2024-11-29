@@ -36,7 +36,7 @@ def tf_keras_iris_explainer(request, models, iris_data):
                           ((True, 1., 3), True, 2)],
                          indirect=['tf_keras_iris_explainer'])
 @pytest.mark.parametrize('models',
-                         [('iris-ffn-tf2.2.0', 'iris-ae-tf2.2.0', 'iris-enc-tf2.2.0'),
+                         [('iris-ffn-tf2.18.0.keras', 'iris-ae-tf2.18.0.keras', 'iris-enc-tf2.18.0.keras'),
                           ('iris-ffn-tf1.15.2.h5', 'iris-ae-tf1.15.2.h5', 'iris-enc-tf1.15.2.h5')],
                          indirect=True)
 def test_tf_keras_iris_explainer(disable_tf2, iris_data, tf_keras_iris_explainer, use_kdtree, k):
@@ -101,7 +101,7 @@ def tf_keras_adult_explainer(request, models, adult_data):
                           ((True, 1., 3), True, 2, 'abdm')],
                          indirect=['tf_keras_adult_explainer'])
 @pytest.mark.parametrize('models',
-                         [('adult-ffn-tf2.2.0',), ('adult-ffn-tf1.15.2.h5',)],
+                         [('adult-ffn-tf2.18.0.keras',), ('adult-ffn-tf1.15.2.h5',)],
                          ids='model={}'.format,
                          indirect=True)
 def test_tf_keras_adult_explainer(disable_tf2, adult_data, tf_keras_adult_explainer, use_kdtree, k, d_type):

@@ -5,8 +5,7 @@ can have broader use-cases.
 """
 
 import tensorflow as tf
-import tensorflow.keras as keras
-
+from tensorflow import keras
 
 class Actor(keras.Model):
     """

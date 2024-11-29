@@ -1,8 +1,8 @@
 from typing import Tuple, Union
 
-import tensorflow.keras as keras
 import numpy as np
 
+from tensorflow import keras
 from alibi.utils.data import Bunch
 
 

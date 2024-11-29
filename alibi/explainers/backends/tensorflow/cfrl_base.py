@@ -9,7 +9,7 @@ from typing import Any, List, Dict, Callable, Union, Optional, TYPE_CHECKING
 
 import numpy as np
 import tensorflow as tf
-import tensorflow.keras as keras
+from tensorflow import keras
 
 from alibi.explainers.backends.cfrl_base import CounterfactualRLDataset
 from alibi.models.tensorflow.actor_critic import Actor, Critic

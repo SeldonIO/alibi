@@ -302,10 +302,10 @@ def test_grid_points_error(adult_data, use_int):
 def assert_feature_values_equal(exp_alibi: Explanation, exp_sklearn: Bunch):
     """ Compares feature values of `alibi` explanation and `sklearn` explanation. """
     if isinstance(exp_alibi.data['feature_names'][0], tuple):
-        for i in range(len(exp_sklearn['values'])):
-            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['values'][i])
+        for i in range(len(exp_sklearn['grid_values'])):
+            assert np.allclose(exp_alibi.data['feature_values'][0][i], exp_sklearn['grid_values'][i])
     else:
-        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['values'][0])
+        assert np.allclose(exp_alibi.data['feature_values'][0], exp_sklearn['grid_values'][0])
 
 
 def get_alibi_pd_explanation(predictor: BaseEstimator,

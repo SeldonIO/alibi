@@ -5,7 +5,7 @@ output.
 """
 
 import tensorflow as tf
-from tensorflow import keras
+import tensorflow.keras as keras
 from typing import List, Tuple, Union
 
 

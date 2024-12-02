@@ -8,6 +8,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 import tempfile
 import tensorflow as tf
+import alibi.utils.legacy_keras as keras
 from typing import List, Union
 
 from alibi.explainers import (
@@ -97,13 +98,13 @@ def rf_classifier(request):
 @pytest.fixture(scope='module')
 def ffn_classifier(request):
     data = request.param
-    inputs = tf.keras.Input(shape=data['X_train'].shape[1:])
-    x = tf.keras.layers.Dense(20, activation='relu')(inputs)
-    x = tf.keras.layers.Dense(20, activation='relu')(x)
-    outputs = tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
-    model = tf.keras.Model(inputs=inputs, outputs=outputs)
+    inputs = keras.Input(shape=data['X_train'].shape[1:])
+    x = keras.layers.Dense(20, activation='relu')(inputs)
+    x = keras.layers.Dense(20, activation='relu')(x)
+    outputs = keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
+    model = keras.Model(inputs=inputs, outputs=outputs)
     model.compile(loss=config['loss'], optimizer='adam')
-    model.fit(data['X_train'], tf.keras.utils.to_categorical(data['y_train']), epochs=1)
+    model.fit(data['X_train'], keras.utils.to_categorical(data['y_train']), epochs=1)
     return model
 
 
@@ -119,19 +120,19 @@ def iris_ae(iris_data):
     from alibi.models.tensorflow.autoencoder import AE
 
     # define encoder
-    encoder = tf.keras.Sequential([
-        tf.keras.layers.Dense(2),
-        tf.keras.layers.Activation('tanh')
+    encoder = keras.Sequential([
+        keras.layers.Dense(2),
+        keras.layers.Activation('tanh')
     ])
 
     # define decoder
-    decoder = tf.keras.Sequential([
-        tf.keras.layers.Dense(4)
+    decoder = keras.Sequential([
+        keras.layers.Dense(4)
     ])
 
     # define autoencoder, compile and fit
     ae = AE(encoder=encoder, decoder=decoder)
-    ae.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=1e-3), loss=tf.keras.losses.MeanSquaredError())
+    ae.compile(optimizer=keras.optimizers.Adam(learning_rate=1e-3), loss=keras.losses.MeanSquaredError())
     ae.fit(iris_data['X_train'], iris_data['X_train'], epochs=1)
     return ae
 
@@ -233,6 +234,30 @@ def tree_explainer(rf_classifier, iris_data):
     return treeshap
 
 
+# need to define a wrapper for the decoder to return a list of tensors
+class DecoderList(keras.Model):
+    def __init__(self, decoder: keras.Model, **kwargs):
+        super().__init__(**kwargs)
+        self.decoder = decoder
+
+    def call(self, input: Union[tf.Tensor, List[tf.Tensor]], **kwargs):
+        return [self.decoder(input, **kwargs)]
+    
+    def get_config(self):
+        # Return the configuration of this class
+        config = super().get_config()
+        config.update({
+            "decoder": keras.utils.serialize_keras_object(self.decoder)  # Serialize the decoder
+        })
+        return config
+
+    @classmethod
+    def from_config(cls, config):
+        # Deserialize the decoder and create the instance
+        decoder = keras.utils.deserialize_keras_object(config.pop("decoder"))
+        return cls(decoder=decoder, **config)
+
+
 @pytest.fixture(scope='module')
 def cfrl_explainer(rf_classifier, iris_ae, iris_data):
     # define explainer constants
@@ -241,15 +266,6 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
     COEFF_CONSISTENCY = 0.0
     TRAIN_STEPS = 100
     BATCH_SIZE = 100
-
-    # need to define a wrapper for the decoder to return a list of tensors
-    class DecoderList(tf.keras.Model):
-        def __init__(self, decoder: tf.keras.Model, **kwargs):
-            super().__init__(**kwargs)
-            self.decoder = decoder
-
-        def call(self, input: Union[tf.Tensor, List[tf.Tensor]], **kwargs):
-            return [self.decoder(input, **kwargs)]
 
     # redefine the call method to return a list of tensors.
     iris_ae.decoder = DecoderList(iris_ae.decoder)
@@ -281,7 +297,7 @@ def cfrl_explainer(rf_classifier, iris_ae, iris_data):
 
 @pytest.fixture(scope='module')
 def similarity_explainer(ffn_classifier, iris_data):
-    criterion = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    criterion = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     explainer = GradientSimilarity(
         predictor=ffn_classifier,
         loss_fn=criterion,

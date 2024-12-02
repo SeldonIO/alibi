@@ -260,8 +260,8 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     ])
 
     # need to define a wrapper for the decoder to return a list of tensors
-    class DecoderList(tf.keras.Model):
-        def __init__(self, decoder: tf.keras.Model, **kwargs):
+    class DecoderList(keras.Model):
+        def __init__(self, decoder: keras.Model, **kwargs):
             super().__init__(**kwargs)
             self.decoder = decoder
 

@@ -315,11 +315,10 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
     assert isinstance(X_hat, list)
 
     # Fit the explainer#
-    print(iris_data['X_train'].shape)
     explainer.fit(X=iris_data["X_train"])
 
     # # Construct explanation object.
-    # explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
+    explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
 
 
 @pytest.mark.parametrize('backend', ['tensorflow', 'pytorch'])

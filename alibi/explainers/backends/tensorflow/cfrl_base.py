@@ -89,6 +89,9 @@ class TfCounterfactualRLDataset(CounterfactualRLDataset, keras.utils.Sequence):
         return self.X.shape[0] // self.batch_size
 
     def __getitem__(self, idx) -> Dict[str, np.ndarray]:
+        if idx >= self.__len__():
+            raise IndexError("Index out of bounds.")
+
         if hasattr(self, 'num_classes'):
             # Generate random targets for classification task.
             tgts = np.random.randint(low=0, high=self.num_classes, size=self.batch_size)

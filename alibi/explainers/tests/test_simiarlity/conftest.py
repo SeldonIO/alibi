@@ -3,8 +3,8 @@ import random
 import os
 
 import numpy as np
-from tensorflow import keras
 import tensorflow as tf
+import alibi.utils.legacy_keras as keras
 import torch
 import torch.nn as nn
 from sklearn.datasets import make_classification, make_regression
@@ -42,7 +42,7 @@ def get_flattened_model_parameters(model):
     """
     if isinstance(model, nn.Module):
         return np.concatenate([_PytorchBackend.to_numpy(p).reshape(-1) for p in model.parameters()])
-    elif isinstance(model, tf.keras.Model):
+    elif isinstance(model, keras.Model):
         return np.concatenate([_TensorFlowBackend.to_numpy(p).reshape(-1) for p in model.trainable_weights])
 
 
@@ -89,7 +89,7 @@ def linear_cls_model(request):
     }[framework](input_shape, output_shape)
 
     loss_fn = {
-        'tensorflow': tf.keras.losses.SparseCategoricalCrossentropy,
+        'tensorflow': keras.losses.SparseCategoricalCrossentropy,
         'pytorch': nn.CrossEntropyLoss
     }[framework]()
 
@@ -116,7 +116,7 @@ def linear_reg_model(request):
     }[framework](input_shape, output_shape)
 
     loss_fn = {
-        'tensorflow': tf.keras.losses.MeanSquaredError,
+        'tensorflow': keras.losses.MeanSquaredError,
         'pytorch': nn.MSELoss
     }[framework]()
 
@@ -137,7 +137,7 @@ def linear_models(request):
     input_shape = request.param.get('input_shape', (10,))
     output_shape = request.param.get('output_shape', 10)
     tf_model = tf_linear_model(input_shape, output_shape)
-    tf_loss = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    tf_loss = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     torch_model = torch_linear_model(input_shape, output_shape)
     torch_loss = nn.CrossEntropyLoss()
     return tf_model, tf_loss, torch_model, torch_loss
@@ -148,9 +148,9 @@ def tf_linear_model(input_shape, output_shape):
     Constructs a linear model for `tensorflow`.
     """
     return keras.Sequential([
-        tf.keras.layers.InputLayer(input_shape=input_shape),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(output_shape),
+        keras.layers.InputLayer(input_shape=input_shape),
+        keras.layers.Flatten(),
+        keras.layers.Dense(output_shape),
     ])
 
 

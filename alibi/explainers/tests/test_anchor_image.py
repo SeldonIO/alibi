@@ -1,8 +1,8 @@
 import pytest
 from pytest_lazyfixture import lazy_fixture
-import numpy as np
-import tensorflow as tf
 import torch
+import numpy as np
+import alibi.utils.legacy_keras as keras
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
@@ -27,7 +27,7 @@ def predict_fn(request):
     This fixture takes in a white-box model (Tensorflow or Pytorch) and returns an
     AnchorImage compatible prediction function.
     """
-    if isinstance(request.param[0], tf.keras.Model):
+    if isinstance(request.param[0], keras.Model):
         func = request.param[0].predict
     elif isinstance(request.param[0], torch.nn.Module):
         def func(image: np.ndarray) -> np.ndarray:

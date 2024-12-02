@@ -17,7 +17,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 import tensorflow as tf
-from tensorflow import keras
+import alibi.utils.legacy_keras as keras
 
 from alibi.explainers.similarity.grad import GradientSimilarity
 
@@ -363,7 +363,7 @@ def test_non_trainable_layer_warnings_tf():
     model.layers[1].trainable = False
     model.layers[-1].layers[1].trainable = False
     num_params_non_trainable = len(model.non_trainable_weights)
-    loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
+    loss_fn = keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     with pytest.warns(Warning) as record:
         GradientSimilarity(

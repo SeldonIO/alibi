@@ -7,6 +7,9 @@ defaults:
     shell: bash  # To override PowerShell on Windows
 
 on:
+  pull_request:
+    branches:
+      - master
   # Trigger the workflow on manual dispatch and once a week
   workflow_dispatch:
   schedule:

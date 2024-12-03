@@ -68,8 +68,7 @@ jobs:
           limit-access-to-actor: true
 
       - name: Test with pytest
-        run: |
-          pytest alibi/explainers/tests
+        run: make test
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

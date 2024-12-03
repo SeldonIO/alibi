@@ -64,3 +64,8 @@ check_licenses:
 tox-env=default
 repl:
 	env COMMAND="python" tox -e $(tox-env)
+
+.PHONY: test
+test:
+	pytest alibi/explainers/tests_tf1/
+	pytest alibi

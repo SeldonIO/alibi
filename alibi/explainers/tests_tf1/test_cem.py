@@ -1,5 +1,3 @@
-from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
-from alibi.explainers import CEM
 import numpy as np
 from sklearn.datasets import load_iris
 from sklearn.linear_model import LogisticRegression
@@ -30,6 +28,8 @@ def test_cem(set_env_variables):
     # test explainer initialization
     shape = (1, 4)
     feature_range = (X.min(axis=0).reshape(shape) - .1, X.max(axis=0).reshape(shape) + .1)
+
+    from alibi.explainers import CEM
     cem = CEM(predict_fn, 'PN', shape, feature_range=feature_range, max_iterations=10, no_info_val=-1.)
     explanation = cem.explain(X_expl, verbose=False)
 
@@ -38,5 +38,7 @@ def test_cem(set_env_variables):
     assert (explanation.X != explanation.PN).astype(int).sum() > 0
     assert explanation.X_pred != explanation.PN_pred
     assert explanation.grads_graph.shape == explanation.grads_num.shape
+
+    from alibi.api.defaults import DEFAULT_META_CEM, DEFAULT_DATA_CEM
     assert explanation.meta.keys() == DEFAULT_META_CEM.keys()
     assert explanation.data.keys() == DEFAULT_DATA_CEM.keys()

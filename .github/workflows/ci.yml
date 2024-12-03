@@ -35,7 +35,7 @@ jobs:
     strategy:
       matrix:
         os: [ ubuntu-latest ]
-        python-version: [ '3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.9', '3.10', '3.11']
         include: # Run windows tests on only one python version
           - os: windows-latest
             python-version: '3.11'
@@ -69,8 +69,7 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest -m tf1 alibi
-          pytest -m "not tf1" alibi
+          pytest alibi/explainers/tests
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

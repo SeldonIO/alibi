@@ -2,8 +2,8 @@ import pytest
 from pytest_lazyfixture import lazy_fixture
 import torch
 import numpy as np
-import alibi.utils.legacy_keras as keras
 
+from alibi.utils.legacy_keras import keras
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
 from alibi.explainers.anchors.anchor_image import AnchorImage, AnchorImageSampler, scale_image

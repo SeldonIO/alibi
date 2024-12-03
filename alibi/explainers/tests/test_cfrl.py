@@ -5,8 +5,8 @@ from pytest_lazyfixture import lazy_fixture
 import numpy as np
 from numpy.testing import assert_allclose
 import tensorflow as tf
-import alibi.utils.legacy_keras as keras
 
+from alibi.utils.legacy_keras import keras
 from alibi.explainers import CounterfactualRLTabular
 from alibi.explainers.backends.cfrl_base import get_hard_distribution
 from alibi.explainers.backends.cfrl_tabular import get_he_preprocessor, split_ohe, \

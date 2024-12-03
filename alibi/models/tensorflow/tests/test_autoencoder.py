@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import alibi.utils.legacy_keras as keras
+from alibi.utils.legacy_keras import keras
 from alibi.models.tensorflow.autoencoder import HeAE
 
 

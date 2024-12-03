@@ -17,7 +17,7 @@ import numpy as np
 import torch.nn as nn
 import torch
 
-import alibi.utils.legacy_keras as keras
+from alibi.utils.legacy_keras import keras
 from alibi.explainers.similarity.grad import GradientSimilarity
 
 

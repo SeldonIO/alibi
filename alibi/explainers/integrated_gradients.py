@@ -8,7 +8,7 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import numpy as np
 import tensorflow as tf
 
-import alibi.utils.legacy_keras as keras
+from alibi.utils.legacy_keras import keras
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.approximation_methods import approximation_parameters

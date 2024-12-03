@@ -1,16 +1,20 @@
-import numbers
 import sys
+import numbers
+
 import numpy as np
 from numpy.testing import assert_allclose
+
 import pytest
 from pytest_lazyfixture import lazy_fixture
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
+
 import tempfile
-import tensorflow as tf
-import alibi.utils.legacy_keras as keras
 from typing import List, Union
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+
+import tensorflow as tf
+from alibi.utils.legacy_keras import keras
 from alibi.explainers import (
     ALE,
     AnchorImage,
@@ -29,8 +33,8 @@ import alibi_testing
 from alibi.utils.download import spacy_model
 from alibi.explainers.tests.utils import predict_fcn
 
-
 # TODO: consolidate fixtures with those in explainers/tests/conftest.py
+
 
 @pytest.fixture(scope='module')
 def english_spacy_model():

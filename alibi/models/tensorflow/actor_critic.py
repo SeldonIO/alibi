@@ -5,7 +5,7 @@ can have broader use-cases.
 """
 
 import tensorflow as tf
-import alibi.utils.legacy_keras as keras
+from alibi.utils.legacy_keras import keras
 
 
 class Actor(keras.Model):

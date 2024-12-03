@@ -4,19 +4,6 @@ import numpy as np
 from typing import Any, Dict, Tuple, List
 
 
-@pytest.fixture
-def set_env_variables(monkeypatch):
-    import os
-    os.environ["TF_USE_LEGACY_KERAS"] = "1"
-    os.environ["CUDA_VISIBLE_DEVICES"] = "-1" # force CPU usage
-
-    import tensorflow as tf
-    tf.compat.v1.disable_v2_behavior() # disable TF2 behaviour as alibi code still relies on TF1 constructs 
-
-    print('TF version: ', tf.__version__)
-    print('Eager execution enabled: ', tf.executing_eagerly()) # False
-
-
 def tf_models(tf_models: Tuple[str]):
     """
     This fixture loads a list of pre-trained test-models by name from the
@@ -79,7 +66,6 @@ def test_tf_keras_iris_explainer(set_env_variables, tf_model_names, use_kdtree, 
         c_init=c_init,
         c_steps=c_steps
     )
-
 
     # instance to be explained
     X_train = iris_data['X_train']

@@ -368,7 +368,7 @@ class PartialDependenceBase(Explainer, ABC):
                 'average': averaged_predictions,
                 'individual': predictions
             })
-        return pd
+        return pd  # type: ignore[return-value]
 
     @abstractmethod
     def _compute_pd(self,

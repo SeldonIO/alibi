@@ -68,4 +68,4 @@ repl:
 .PHONY: test
 test:
 	pytest alibi/explainers/tests_tf1/
-	pytest alibi
+	pytest alibi --ignore=alibi/explainers/tests_tf1/

@@ -145,7 +145,7 @@ def ffn_model_subclass_list_input(request):
 
         def __init__(self, output_dim, activation):
             super(Linear, self).__init__()
-         
+
             self.flat = keras.layers.Flatten()
             self.concat = keras.layers.Concatenate()
             self.dense_1 = keras.layers.Dense(20, activation='relu')
@@ -158,7 +158,7 @@ def ffn_model_subclass_list_input(request):
             x = self.dense_1(x)
             outputs = self.dense_2(x)
             return outputs
-        
+
     inputs = [
         keras.layers.Input(shape=config['X_train_multi_inputs'][0].shape[1:]),
         keras.layers.Input(shape=config['X_train_multi_inputs'][1].shape[1:])
@@ -615,12 +615,16 @@ def test_run_forward_from_layer(layer_nb,
                                 run_from_layer_inputs):
     # One layer ffn with all weights = 1.
     inputs = keras.Input(shape=(16,))
-    out = keras.layers.Dense(8,
-                                kernel_initializer=keras.initializers.Ones(),
-                                name='linear1')(inputs)
-    out = keras.layers.Dense(1,
-                                kernel_initializer=keras.initializers.Ones(),
-                                name='linear3')(out)
+    out = keras.layers.Dense(
+        8,
+        kernel_initializer=keras.initializers.Ones(),
+        name='linear1'
+    )(inputs)
+    out = keras.layers.Dense(
+        1,
+        kernel_initializer=keras.initializers.Ones(),
+        name='linear3'
+    )(out)
     model = keras.Model(inputs=inputs, outputs=out)
 
     # Select layer

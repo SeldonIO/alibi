@@ -242,7 +242,7 @@ class DecoderList(keras.Model):
 
     def call(self, input: Union[tf.Tensor, List[tf.Tensor]], **kwargs):
         return [self.decoder(input, **kwargs)]
-    
+
     def get_config(self):
         # Return the configuration of this class
         config = super().get_config()

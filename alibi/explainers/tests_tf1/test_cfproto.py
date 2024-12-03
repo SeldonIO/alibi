@@ -13,7 +13,13 @@ def tf_models(tf_models: Tuple[str]):
     return [load(name) for name in tf_models]
 
 
-def tf_keras_iris_explainer(models: List[Any], iris_data: Dict[str, Any], use_kdtree: bool, c_init: float, c_steps: int):
+def tf_keras_iris_explainer(
+    models: List[Any],
+    iris_data: Dict[str, Any],
+    use_kdtree: bool,
+    c_init: float,
+    c_steps: int
+):
     X_train = iris_data['X_train']
     model, ae, enc = models
 
@@ -25,18 +31,24 @@ def tf_keras_iris_explainer(models: List[Any], iris_data: Dict[str, Any], use_kd
 
     from alibi.explainers import CounterfactualProto
     cf_explainer = CounterfactualProto(
-        model, 
-        shape, 
+        model,
+        shape,
         gamma=100, theta=100,
-        ae_model=ae, enc_model=enc, 
-        use_kdtree=use_kdtree, max_iterations=1000, 
+        ae_model=ae, enc_model=enc,
+        use_kdtree=use_kdtree, max_iterations=1000,
         c_init=c_init, c_steps=c_steps,
         feature_range=feature_range
     )
-    
+
     return model, cf_explainer
 
-@pytest.mark.parametrize('tf_model_names', [('iris-ffn-tf2.18.0.h5', 'iris-ae-tf2.18.0.h5', 'iris-enc-tf2.18.0.h5')])
+
+@pytest.mark.parametrize(
+    'tf_model_names',
+    [
+        ('iris-ffn-tf2.18.0.h5', 'iris-ae-tf2.18.0.h5', 'iris-enc-tf2.18.0.h5')
+    ]
+)
 @pytest.mark.parametrize(
     'use_kdtree, c_init, c_steps, k',
     [
@@ -77,7 +89,7 @@ def test_tf_keras_iris_explainer(set_env_variables, tf_model_names, use_kdtree, 
 
     # Run the fit method inside the session
     cf.fit(X_train)
-    
+
     if use_kdtree:  # k-d trees
         assert len(cf.kdtrees) == cf.classes  # each class has a k-d tree
         assert cf.kdtrees[pred_class].query(x, k=1)[0] == 0.  # nearest distance to own class equals 0
@@ -110,21 +122,27 @@ def test_tf_keras_iris_explainer(set_env_variables, tf_model_names, use_kdtree, 
     assert grads.shape == x.shape
 
 
-def tf_keras_adult_explainer(models: List[Any], adult_data: Dict[str, Any], use_kdtree: bool, c_init: float, c_steps: int):
+def tf_keras_adult_explainer(
+    models: List[Any],
+    adult_data: Dict[str, Any],
+    use_kdtree: bool,
+    c_init: float,
+    c_steps: int
+):
     shape = (1, 57)
     cat_vars_ohe = adult_data['metadata']['cat_vars_ohe']
 
     from alibi.explainers import CounterfactualProto
     cf_explainer = CounterfactualProto(
-        models[0], 
-        shape, 
-        beta=.01, 
+        models[0],
+        shape,
+        beta=.01,
         cat_vars=cat_vars_ohe, ohe=True,
         use_kdtree=use_kdtree, max_iterations=1000,
         c_init=c_init, c_steps=c_steps,
         feature_range=(-1 * np.ones((1, 12)), np.ones((1, 12)))
     )
-    
+
     return models[0], cf_explainer
 
 
@@ -178,7 +196,7 @@ def test_tf_keras_adult_explainer(set_env_variables, tf_model_names, use_kdtree,
     # test explanation
     num_shape = (1, 12)
     explanation = cf.explain(x, k=k)
-    
+
     if use_kdtree:
         assert cf.id_proto != pred_class
 
@@ -198,7 +216,7 @@ def test_tf_keras_adult_explainer(set_env_variables, tf_model_names, use_kdtree,
     from alibi.utils.mapping import ohe_to_ord, ord_to_num
     x_ord = ohe_to_ord(x, cf.cat_vars)[0]
     x_num = ord_to_num(x_ord, cf.d_abs)
-    
+
     # check gradients
     grads = cf.get_gradients(x_num, y, num_shape[1:], cf.cat_vars_ord)
     assert grads.shape == num_shape

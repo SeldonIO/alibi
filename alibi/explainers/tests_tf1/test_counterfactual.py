@@ -14,13 +14,12 @@ def logistic_iris():
 def cf_iris_explainer(predict_fn, target_class):
     from alibi.explainers import Counterfactual
     return Counterfactual(
-        predict_fn=predict_fn, 
+        predict_fn=predict_fn,
         shape=(1, 4),
-        target_class=target_class, 
+        target_class=target_class,
         lam_init=1e-1, max_iter=1000,
         max_lam_steps=10
     )
-
 
 
 @pytest.mark.parametrize('target_class', ['other', 'same', 0, 1, 2])
@@ -102,7 +101,7 @@ def tf_models(tf_models: Tuple[str]):
 def tf_keras_mnist_cf_explainer(models, target_class):
     from alibi.explainers import Counterfactual
     cf_explainer = Counterfactual(
-        predict_fn=models[0], 
+        predict_fn=models[0],
         shape=(1, 28, 28, 1),
         target_class=target_class,
         lam_init=1e-1, max_iter=1000,

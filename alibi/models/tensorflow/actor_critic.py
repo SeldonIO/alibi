@@ -55,7 +55,7 @@ class Actor(keras.Model):
         x = tf.nn.relu(self.ln2(self.fc2(x)))
         x = tf.nn.tanh(self.fc3(x))
         return x
-    
+
     def get_config(self):
         """
         Returns the configuration of the model for serialization.

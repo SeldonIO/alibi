@@ -16,9 +16,8 @@ import pytest
 import numpy as np
 import torch.nn as nn
 import torch
-import tensorflow as tf
-import alibi.utils.legacy_keras as keras
 
+import alibi.utils.legacy_keras as keras
 from alibi.explainers.similarity.grad import GradientSimilarity
 
 

@@ -295,11 +295,20 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     return explainer
 
 
-@pytest.mark.parametrize('models', [('iris-ae-tf2.18.0.keras', 'iris-enc-tf2.18.0.keras')], ids='model={}'.format, indirect=True)
-@pytest.mark.parametrize('rf_classifier',
-                         [lazy_fixture('iris_data')],
-                         indirect=True,
-                         ids='clf=rf_{}'.format)
+@pytest.mark.parametrize(
+    'models',
+    [
+        ('iris-ae-tf2.18.0.keras', 'iris-enc-tf2.18.0.keras')
+    ],
+    ids='model={}'.format,
+    indirect=True
+)
+@pytest.mark.parametrize(
+    'rf_classifier',
+    [lazy_fixture('iris_data')],
+    indirect=True,
+    ids='clf=rf_{}'.format
+)
 def test_explainer(tf_keras_iris_explainer, iris_data):
     explainer = tf_keras_iris_explainer
 

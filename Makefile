@@ -29,7 +29,7 @@ build_latex: ## Build the documentation into a pdf
 	# explicit cd here due to a bug in latexmk 4.41
 	python -m sphinx -b latex -d doc/_build/doctrees -D language=en doc/source doc/_build/latex && \
 	cd doc/_build/latex && \
-	latexmk -pdf -pdflatex="lualatex" -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode
+	TEXMFBUF=1000000 latexmk -pdf -f -dvi- -ps- -jobname=alibi -interaction=nonstopmode
 
 .PHONY: clean_docs
 clean_docs:

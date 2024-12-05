@@ -72,6 +72,7 @@ if __name__ == '__main__':
               "Programming Language :: Python :: 3.9",
               "Programming Language :: Python :: 3.10",
               "Programming Language :: Python :: 3.11",
+              "Programming Language :: Python :: 3.12",
               "License :: Other/Proprietary License",
               "Topic :: Scientific/Engineering",
           ])

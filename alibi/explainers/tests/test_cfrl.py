@@ -2,8 +2,10 @@ from typing import Union, List
 
 import pytest
 from pytest_lazyfixture import lazy_fixture
+
 import numpy as np
 from numpy.testing import assert_allclose
+
 import tensorflow as tf
 import tensorflow.keras as keras
 
@@ -260,8 +262,8 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     ])
 
     # need to define a wrapper for the decoder to return a list of tensors
-    class DecoderList(tf.keras.Model):
-        def __init__(self, decoder: tf.keras.Model, **kwargs):
+    class DecoderList(keras.Model):
+        def __init__(self, decoder: keras.Model, **kwargs):
             super().__init__(**kwargs)
             self.decoder = decoder
 
@@ -295,11 +297,20 @@ def tf_keras_iris_explainer(models, iris_data, rf_classifier):
     return explainer
 
 
-@pytest.mark.parametrize('models', [('iris-ae-tf2.2.0', 'iris-enc-tf2.2.0')], ids='model={}'.format, indirect=True)
-@pytest.mark.parametrize('rf_classifier',
-                         [lazy_fixture('iris_data')],
-                         indirect=True,
-                         ids='clf=rf_{}'.format)
+@pytest.mark.parametrize(
+    'models',
+    [
+        ('iris-ae-tf2.18.0.keras', 'iris-enc-tf2.18.0.keras')
+    ],
+    ids='model={}'.format,
+    indirect=True
+)
+@pytest.mark.parametrize(
+    'rf_classifier',
+    [lazy_fixture('iris_data')],
+    indirect=True,
+    ids='clf=rf_{}'.format
+)
 def test_explainer(tf_keras_iris_explainer, iris_data):
     explainer = tf_keras_iris_explainer
 
@@ -317,7 +328,7 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
     # Fit the explainer
     explainer.fit(X=iris_data["X_train"])
 
-    # Construct explanation object.
+    # # Construct explanation object.
     explainer.explain(X=iris_data["X_test"], Y_t=np.array([2]), C=None)
 
 

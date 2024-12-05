@@ -64,3 +64,8 @@ check_licenses:
 tox-env=default
 repl:
 	env COMMAND="python" tox -e $(tox-env)
+
+.PHONY: test
+test:
+	TF_USE_LEGACY_KERAS=1 pytest -m "tf1" alibi
+	pytest -m "not tf1" alibi

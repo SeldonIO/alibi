@@ -272,7 +272,7 @@ def _save_CounterfactualRL(explainer: 'CounterfactualRL', path: Union[str, os.Pa
     backend = explainer.backend
 
     # define extension
-    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
+    ext = ".keras" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
     # save encoder and decoder (autoencoder components)
     encoder = explainer.params["encoder"]
@@ -329,7 +329,7 @@ def _helper_load_CounterfactualRL(path: Union[str, os.PathLike],
                                   explainer):
     # define extension
     from alibi.utils.frameworks import Framework
-    ext = ".tf" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
+    ext = ".keras" if explainer.params["backend"] == Framework.TENSORFLOW else ".pth"
 
     # load the encoder and decoder (autoencoder components)
     explainer.params["encoder"] = explainer.backend.load_model(Path(path, "encoder" + ext))

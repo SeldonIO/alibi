@@ -1,10 +1,11 @@
 from functools import partial
 
-import numpy as np
 import pytest
-import tensorflow as tf
+import numpy as np
 from numpy.testing import assert_allclose
-from tensorflow.keras import Model
+
+import tensorflow as tf
+import tensorflow.keras as keras
 
 from alibi.api.interfaces import Explanation
 from alibi.explainers import IntegratedGradients
@@ -39,7 +40,7 @@ y_train_regression = y_regression[:N_TRAIN]
 
 # classification labels
 y_classification_ordinal = (X[:, 0] + X[:, 1] > 1).astype(int)
-y_classification_categorical = tf.keras.utils.to_categorical(y_classification_ordinal)
+y_classification_categorical = keras.utils.to_categorical(y_classification_ordinal)
 
 y_train_classification_ordinal = y_classification_ordinal[:N_TRAIN]
 y_train_classification_categorical = y_classification_categorical[:N_TRAIN, :]
@@ -59,13 +60,13 @@ def ffn_model(request):
     Simple feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
-    inputs = tf.keras.Input(shape=config['X_train'].shape[1:])
-    x = tf.keras.layers.Dense(20, activation='relu')(inputs)
-    x = tf.keras.layers.Dense(20, activation='relu')(x)
-    outputs = tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
+    inputs = keras.Input(shape=config['X_train'].shape[1:])
+    x = keras.layers.Dense(20, activation='relu')(inputs)
+    x = keras.layers.Dense(20, activation='relu')(x)
+    outputs = keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
     if config.get('squash_output', False):
-        outputs = tf.keras.layers.Reshape(())(outputs)
-    model = tf.keras.models.Model(inputs=inputs, outputs=outputs)
+        outputs = keras.layers.Reshape(())(outputs)
+    model = keras.models.Model(inputs=inputs, outputs=outputs)
     model.compile(loss=config['loss'],
                   optimizer='adam')
 
@@ -80,17 +81,17 @@ def ffn_model_multi_inputs(request):
     Simple multi-inputs feed-forward model with configurable data, loss function, output activation and dimension
     """
     config = request.param
-    input0 = tf.keras.Input(shape=config['X_train_multi_inputs'][0].shape[1:])
-    input1 = tf.keras.Input(shape=config['X_train_multi_inputs'][1].shape[1:])
+    input0 = keras.Input(shape=config['X_train_multi_inputs'][0].shape[1:])
+    input1 = keras.Input(shape=config['X_train_multi_inputs'][1].shape[1:])
 
-    x = tf.keras.layers.Flatten()(input0)
-    x = tf.keras.layers.Concatenate()([x, input1])
+    x = keras.layers.Flatten()(input0)
+    x = keras.layers.Concatenate()([x, input1])
 
-    x = tf.keras.layers.Dense(20, activation='relu')(x)
-    outputs = tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
+    x = keras.layers.Dense(20, activation='relu')(x)
+    outputs = keras.layers.Dense(config['output_dim'], activation=config['activation'])(x)
     if config.get('squash_output', False):
-        outputs = tf.keras.layers.Reshape(())(outputs)
-    model = tf.keras.models.Model(inputs=[input0, input1], outputs=outputs)
+        outputs = keras.layers.Reshape(())(outputs)
+    model = keras.models.Model(inputs=[input0, input1], outputs=outputs)
     model.compile(loss=config['loss'],
                   optimizer='adam')
 
@@ -106,13 +107,13 @@ def ffn_model_subclass(request):
     """
     config = request.param
 
-    class Linear(Model):
+    class Linear(keras.Model):
 
         def __init__(self, output_dim, activation):
             super(Linear, self).__init__()
-            self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
-            self.dense_2 = tf.keras.layers.Dense(20, activation='relu')
-            self.dense_3 = tf.keras.layers.Dense(output_dim, activation)
+            self.dense_1 = keras.layers.Dense(20, activation='relu')
+            self.dense_2 = keras.layers.Dense(20, activation='relu')
+            self.dense_3 = keras.layers.Dense(output_dim, activation)
 
         def call(self, inputs, mask=None):
             if mask is not None:
@@ -124,10 +125,10 @@ def ffn_model_subclass(request):
             outputs = self.dense_3(x)
             return outputs
 
-    model = Linear(config['output_dim'], activation=config['activation'])
-    model.compile(loss=config['loss'],
-                  optimizer='adam')
-
+    model_input = keras.layers.Input(shape=config['X_train'].shape[1:])
+    model_output = Linear(config['output_dim'], activation=config['activation'])(model_input)
+    model = keras.Model(inputs=model_input, outputs=model_output)
+    model.compile(loss=config['loss'], optimizer='adam')
     model.fit(config['X_train'], config['y_train'], epochs=1, batch_size=256, verbose=1)
 
     return model
@@ -141,14 +142,15 @@ def ffn_model_subclass_list_input(request):
     """
     config = request.param
 
-    class Linear(Model):
+    class Linear(keras.Model):
 
         def __init__(self, output_dim, activation):
             super(Linear, self).__init__()
-            self.flat = tf.keras.layers.Flatten()
-            self.concat = tf.keras.layers.Concatenate()
-            self.dense_1 = tf.keras.layers.Dense(20, activation='relu')
-            self.dense_2 = tf.keras.layers.Dense(output_dim, activation)
+
+            self.flat = keras.layers.Flatten()
+            self.concat = keras.layers.Concatenate()
+            self.dense_1 = keras.layers.Dense(20, activation='relu')
+            self.dense_2 = keras.layers.Dense(output_dim, activation)
 
         def call(self, inputs):
             inp0 = self.flat(inputs[0])
@@ -158,12 +160,14 @@ def ffn_model_subclass_list_input(request):
             outputs = self.dense_2(x)
             return outputs
 
-    model = Linear(config['output_dim'], activation=config['activation'])
-    model.compile(loss=config['loss'],
-                  optimizer='adam')
-
+    inputs = [
+        keras.layers.Input(shape=config['X_train_multi_inputs'][0].shape[1:]),
+        keras.layers.Input(shape=config['X_train_multi_inputs'][1].shape[1:])
+    ]
+    output = Linear(config['output_dim'], activation=config['activation'])(inputs)
+    model = keras.Model(inputs=inputs, outputs=output)
+    model.compile(loss=config['loss'], optimizer='adam')
     model.fit(config['X_train_multi_inputs'], config['y_train'], epochs=1, batch_size=256, verbose=1)
-
     return model
 
 
@@ -174,18 +178,15 @@ def ffn_model_sequential(request):
     """
     config = request.param
     layers = [
-        tf.keras.layers.InputLayer(input_shape=config['X_train'].shape[1:]),
-        tf.keras.layers.Dense(20, activation='relu'),
-        tf.keras.layers.Dense(config['output_dim'], activation=config['activation'])
+        keras.layers.InputLayer(input_shape=config['X_train'].shape[1:]),
+        keras.layers.Dense(20, activation='relu'),
+        keras.layers.Dense(config['output_dim'], activation=config['activation'])
     ]
     if config.get('squash_output', False):
-        layers.append(tf.keras.layers.Reshape(()))
-    model = tf.keras.models.Sequential(layers)
-    model.compile(loss=config['loss'],
-                  optimizer='adam')
-
+        layers.append(keras.layers.Reshape(()))
+    model = keras.models.Sequential(layers)
+    model.compile(loss=config['loss'], optimizer='adam')
     model.fit(config['X_train'], config['y_train'], epochs=1, batch_size=256, verbose=1)
-
     return model
 
 
@@ -547,7 +548,7 @@ def test_integrated_gradients_binary_classification_layer_subclass(ffn_model_sub
                                                                    target):
     model = ffn_model_subclass
     if layer_nb is not None:
-        layer = model.layers[layer_nb]
+        layer = model.layers[1].layers[layer_nb]
     else:
         layer = None
 
@@ -614,14 +615,18 @@ def test_integrated_gradients_regression(ffn_model, method, baselines):
 def test_run_forward_from_layer(layer_nb,
                                 run_from_layer_inputs):
     # One layer ffn with all weights = 1.
-    inputs = tf.keras.Input(shape=(16,))
-    out = tf.keras.layers.Dense(8,
-                                kernel_initializer=tf.keras.initializers.Ones(),
-                                name='linear1')(inputs)
-    out = tf.keras.layers.Dense(1,
-                                kernel_initializer=tf.keras.initializers.Ones(),
-                                name='linear3')(out)
-    model = tf.keras.Model(inputs=inputs, outputs=out)
+    inputs = keras.Input(shape=(16,))
+    out = keras.layers.Dense(
+        8,
+        kernel_initializer=keras.initializers.Ones(),
+        name='linear1'
+    )(inputs)
+    out = keras.layers.Dense(
+        1,
+        kernel_initializer=keras.initializers.Ones(),
+        name='linear3'
+    )(out)
+    model = keras.Model(inputs=inputs, outputs=out)
 
     # Select layer
     layer = model.layers[layer_nb]
@@ -630,11 +635,11 @@ def test_run_forward_from_layer(layer_nb,
     dummy_input = np.zeros((1, 16))
 
     if run_from_layer_inputs:
-        x_layer = [tf.convert_to_tensor(np.ones((2,) + (layer.input_shape[1:])))]
+        x_layer = [tf.convert_to_tensor(np.ones((2,) + (layer.input.shape[1:])))]
         expected_shape = (2, 1)
         expected_values = 128
     else:
-        x_layer = tf.convert_to_tensor(np.ones((3,) + (layer.output_shape[1:])))
+        x_layer = tf.convert_to_tensor(np.ones((3,) + (layer.output.shape[1:])))
         expected_shape = (3, 1)
         expected_values = 8
 

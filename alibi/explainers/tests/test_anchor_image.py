@@ -1,8 +1,8 @@
 import pytest
 from pytest_lazyfixture import lazy_fixture
+import torch
 import numpy as np
 import tensorflow as tf
-import torch
 
 from alibi.api.defaults import DEFAULT_META_ANCHOR, DEFAULT_DATA_ANCHOR_IMG
 from alibi.exceptions import PredictorCallError, PredictorReturnTypeError
@@ -44,7 +44,7 @@ def predict_fn(request):
 
 @pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
 @pytest.mark.parametrize('models',
-                         [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",), ("mnist-cnn-pt1.9.1.pt",)],
+                         [("mnist-cnn-tf2.18.0.keras",), ("mnist-cnn-pt1.9.1.pt",)],
                          indirect=True,
                          ids='models={}'.format
                          )
@@ -99,7 +99,7 @@ def test_sampler(predict_fn, models, mnist_data):
 
 @pytest.mark.parametrize('predict_fn', [lazy_fixture('models'), ], indirect=True)
 @pytest.mark.parametrize('models',
-                         [("mnist-cnn-tf2.2.0",), ("mnist-cnn-tf1.15.2.h5",), ("mnist-cnn-pt1.9.1.pt",)],
+                         [("mnist-cnn-tf2.18.0.keras",), ("mnist-cnn-pt1.9.1.pt",)],
                          indirect=True,
                          ids='models={}'.format
                          )

@@ -348,7 +348,7 @@ class PermutationImportance(Explainer):
                                    sample_weight=sample_weight)
 
         # build and return the explanation object
-        return self._build_explanation(feature_names=feature_names,  # type: ignore[arg-type]
+        return self._build_explanation(feature_names=feature_names,
                                        individual_feature_importance=individual_feature_importance)
 
     @staticmethod

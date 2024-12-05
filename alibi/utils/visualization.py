@@ -177,7 +177,7 @@ def visualize_image_attr(
             plt_fig, plt_axis = plt.subplots(figsize=fig_size)
         else:
             plt_fig = Figure(figsize=fig_size)
-            plt_axis = plt_fig.subplots()  # type: ignore[assignment]
+            plt_axis = plt_fig.subplots()
 
     if original_image is not None:
         if np.max(original_image) <= 1.0:

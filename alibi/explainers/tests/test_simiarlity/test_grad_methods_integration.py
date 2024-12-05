@@ -14,10 +14,11 @@ Note:
 import pytest
 
 import numpy as np
-import torch.nn as nn
-import torch
+import tensorflow.keras as keras
 
-from alibi.utils.legacy_keras import keras
+import torch
+import torch.nn as nn
+
 from alibi.explainers.similarity.grad import GradientSimilarity
 
 

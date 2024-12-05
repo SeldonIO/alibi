@@ -1,15 +1,17 @@
+import os
 import pytest
 import random
-import os
-
 import numpy as np
+
 import tensorflow as tf
+import tensorflow.keras as keras
+
 import torch
 import torch.nn as nn
+
 from sklearn.datasets import make_classification, make_regression
 from sklearn.model_selection import train_test_split
 
-from alibi.utils.legacy_keras import keras
 from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 

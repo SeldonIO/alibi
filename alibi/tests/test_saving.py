@@ -14,7 +14,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 
 import tensorflow as tf
-from alibi.utils.legacy_keras import keras
+import tensorflow.keras as keras
+
 from alibi.explainers import (
     ALE,
     AnchorImage,

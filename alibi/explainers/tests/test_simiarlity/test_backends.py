@@ -3,7 +3,7 @@ import pytest
 import torch
 import numpy as np
 import tensorflow as tf
-from alibi.utils.legacy_keras import keras
+import tensorflow.keras as keras
 
 from alibi.explainers.similarity.backends.tensorflow.base import _TensorFlowBackend
 from alibi.explainers.similarity.backends.pytorch.base import _PytorchBackend

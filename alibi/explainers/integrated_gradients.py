@@ -8,7 +8,6 @@ from typing import Callable, List, Optional, Tuple, Union, cast
 import numpy as np
 import tensorflow as tf
 
-from alibi.utils.legacy_keras import keras
 from alibi.api.defaults import DEFAULT_DATA_INTGRAD, DEFAULT_META_INTGRAD
 from alibi.api.interfaces import Explainer, Explanation
 from alibi.utils.approximation_methods import approximation_parameters
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 _valid_output_shape_type: List = [tuple, list]
 
 
-def _compute_convergence_delta(model: Union[keras.models.Model],
+def _compute_convergence_delta(model: Union[tf.keras.models.Model],
                                input_dtypes: List[tf.DType],
                                attributions: List[np.ndarray],
                                start_point: Union[List[np.ndarray], np.ndarray],
@@ -128,7 +127,7 @@ def _select_target(preds: tf.Tensor,
     return preds
 
 
-def _run_forward(model: Union[keras.models.Model],
+def _run_forward(model: Union[tf.keras.models.Model],
                  x: Union[List[tf.Tensor], List[np.ndarray], tf.Tensor, np.ndarray],
                  target: Union[None, tf.Tensor, np.ndarray, list],
                  forward_kwargs: Optional[dict] = None) -> tf.Tensor:
@@ -162,8 +161,8 @@ def _run_forward(model: Union[keras.models.Model],
     return preds
 
 
-def _run_forward_from_layer(model: keras.models.Model,
-                            layer: keras.layers.Layer,
+def _run_forward_from_layer(model: tf.keras.models.Model,
+                            layer: tf.keras.layers.Layer,
                             orig_call: Callable,
                             orig_dummy_input: Union[list, np.ndarray],
                             x: tf.Tensor,
@@ -242,8 +241,8 @@ def _run_forward_from_layer(model: keras.models.Model,
     return preds
 
 
-def _run_forward_to_layer(model: keras.models.Model,
-                          layer: keras.layers.Layer,
+def _run_forward_to_layer(model: tf.keras.models.Model,
+                          layer: tf.keras.layers.Layer,
                           orig_call: Callable,
                           x: Union[List[np.ndarray], np.ndarray],
                           forward_kwargs: Optional[dict] = None,
@@ -310,8 +309,8 @@ def _run_forward_to_layer(model: keras.models.Model,
 
 def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
                             bls: Union[List[np.ndarray], np.ndarray],
-                            model: keras.Model,
-                            layer: keras.layers.Layer,
+                            model: tf.keras.Model,
+                            layer: tf.keras.layers.Layer,
                             orig_call: Callable,
                             forward_kwargs: Optional[dict] = None,
                             forward_to_inputs: bool = False) -> Tuple[Union[list, tf.Tensor], Union[list, tf.Tensor]]:
@@ -369,7 +368,7 @@ def _forward_input_baseline(X: Union[List[np.ndarray], np.ndarray],
         return X, bls
 
 
-def _gradients_input(model: Union[keras.models.Model],
+def _gradients_input(model: Union[tf.keras.models.Model],
                      x: List[tf.Tensor],
                      target: Union[None, tf.Tensor],
                      forward_kwargs: Optional[dict] = None) -> List[tf.Tensor]:
@@ -404,8 +403,8 @@ def _gradients_input(model: Union[keras.models.Model],
     return grads
 
 
-def _gradients_layer(model: Union[keras.models.Model],
-                     layer: Union[keras.layers.Layer],
+def _gradients_layer(model: Union[tf.keras.models.Model],
+                     layer: Union[tf.keras.layers.Layer],
                      orig_call: Callable,
                      orig_dummy_input: Union[list, np.ndarray],
                      x: Union[List[tf.Tensor], tf.Tensor],
@@ -631,7 +630,7 @@ def _check_target(output_shape: Tuple,
 
 
 def _get_target_from_target_fn(target_fn: Callable,
-                               model: keras.Model,
+                               model: tf.keras.Model,
                                X: Union[np.ndarray, List[np.ndarray]],
                                forward_kwargs: Optional[dict] = None) -> np.ndarray:
     """
@@ -705,7 +704,7 @@ def _sum_integral_terms(step_sizes: list,
 
 
 def _calculate_sum_int(batches: List[List[tf.Tensor]],
-                       model: Union[keras.Model],
+                       model: Union[tf.keras.Model],
                        target: Optional[np.ndarray],
                        target_paths: np.ndarray,
                        n_steps: int,
@@ -755,7 +754,7 @@ def _calculate_sum_int(batches: List[List[tf.Tensor]],
     return sum_int
 
 
-def _validate_output(model: keras.Model,
+def _validate_output(model: tf.keras.Model,
                      target: Optional[np.ndarray]) -> None:
     """
     Validates the model's output type and raises an error if the output type is not supported.
@@ -790,11 +789,11 @@ class LayerState(str, Enum):
 class IntegratedGradients(Explainer):
 
     def __init__(self,
-                 model: keras.Model,
+                 model: tf.keras.Model,
                  layer: Optional[
                      Union[
-                         Callable[[keras.Model], keras.layers.Layer],
-                         keras.layers.Layer
+                         Callable[[tf.keras.Model], tf.keras.layers.Layer],
+                         tf.keras.layers.Layer
                      ]
                  ] = None,
                  target_fn: Optional[Callable] = None,
@@ -840,14 +839,14 @@ class IntegratedGradients(Explainer):
         if self.model.inputs is None:
             self._has_inputs = False
         else:
-            self._has_inputs = False
+            self._has_inputs = True
 
         if layer is None:
             self.orig_call: Optional[Callable] = None
             self.layer = None
             layer_meta: Union[int, str] = LayerState.UNSPECIFIED.value
 
-        elif isinstance(layer, keras.layers.Layer):
+        elif isinstance(layer, tf.keras.layers.Layer):
             self.orig_call = layer.call
             self.layer = layer
 
@@ -988,7 +987,7 @@ class IntegratedGradients(Explainer):
             if not self._has_inputs:
                 # Inferring model's inputs from data points for models with no explicit inputs
                 # (typically subclassed models)
-                inputs = [keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
+                inputs = [tf.keras.Input(shape=xx.shape[1:], dtype=xx.dtype) for xx in X]
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
@@ -1036,7 +1035,7 @@ class IntegratedGradients(Explainer):
         else:
             # Attributions calculation in case of single input
             if not self._has_inputs:
-                inputs = keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
+                inputs = tf.keras.Input(shape=X.shape[1:], dtype=X.dtype)  # type: ignore
                 self.model(inputs, **forward_kwargs)
 
             _validate_output(self.model, target)
@@ -1121,7 +1120,7 @@ class IntegratedGradients(Explainer):
 
         return Explanation(meta=copy.deepcopy(self.meta), data=data)
 
-    def reset_predictor(self, predictor: Union[keras.Model]) -> None:
+    def reset_predictor(self, predictor: Union[tf.keras.Model]) -> None:
         """
         Resets the predictor model.
 

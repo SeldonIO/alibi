@@ -67,5 +67,5 @@ repl:
 
 .PHONY: test
 test:
-	pytest alibi/explainers/tests_tf1/
-	pytest alibi --ignore=alibi/explainers/tests_tf1/
+	TF_USE_LEGACY_KERAS=1 pytest -m "tf1" alibi
+	pytest -m "not tf1" alibi

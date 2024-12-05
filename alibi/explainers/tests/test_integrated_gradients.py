@@ -5,7 +5,8 @@ import numpy as np
 from numpy.testing import assert_allclose
 
 import tensorflow as tf
-from alibi.utils.legacy_keras import keras
+import tensorflow.keras as keras
+
 from alibi.api.interfaces import Explanation
 from alibi.explainers import IntegratedGradients
 from alibi.explainers.integrated_gradients import (_get_target_from_target_fn,

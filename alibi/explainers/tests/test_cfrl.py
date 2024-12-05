@@ -2,11 +2,13 @@ from typing import Union, List
 
 import pytest
 from pytest_lazyfixture import lazy_fixture
+
 import numpy as np
 from numpy.testing import assert_allclose
-import tensorflow as tf
 
-from alibi.utils.legacy_keras import keras
+import tensorflow as tf
+import tensorflow.keras as keras
+
 from alibi.explainers import CounterfactualRLTabular
 from alibi.explainers.backends.cfrl_base import get_hard_distribution
 from alibi.explainers.backends.cfrl_tabular import get_he_preprocessor, split_ohe, \
@@ -323,7 +325,7 @@ def test_explainer(tf_keras_iris_explainer, iris_data):
     X_hat = decoder(Z)
     assert isinstance(X_hat, list)
 
-    # Fit the explainer#
+    # Fit the explainer
     explainer.fit(X=iris_data["X_train"])
 
     # # Construct explanation object.

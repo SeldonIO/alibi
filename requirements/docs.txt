@@ -16,3 +16,5 @@ shap>=0.40.0, <0.44.0 # https://github.com/SeldonIO/alibi/issues/333
 # pandoc==2.9.2.1 # NB: as this is not a Python library, it should be installed manually on the system or via a package manager such as `conda`
 # alibi dependencies (these are installed on ReadTheDocs so are not mocked)
 typing-extensions>=3.7.4.3
+#AttributeError: `np.obj2sctype` was removed in the NumPy 2.0 release. Use `np.dtype(obj).type` instead.
+numpy<2.0.0

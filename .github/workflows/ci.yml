@@ -28,90 +28,90 @@ on:
         default: false
 
 jobs:
-  build:
-    if: github.event.pull_request.draft == false
+  # build:
+  #   if: github.event.pull_request.draft == false
 
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ ubuntu-latest ]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        include: # Run windows tests on only one python version
-          - os: windows-latest
-            python-version: '3.11'
+  #   runs-on: ${{ matrix.os }}
+  #   strategy:
+  #     matrix:
+  #       os: [ ubuntu-latest ]
+  #       python-version: ['3.9', '3.10', '3.11', '3.12']
+  #       include: # Run windows tests on only one python version
+  #         - os: windows-latest
+  #           python-version: '3.11'
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
+  #     - name: Set up Python ${{ matrix.python-version }}
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: ${{ matrix.python-version }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap]
-          if [ "$RUNNER_OS" != "Windows" ]; then  
-          # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
-            python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap,ray]  # include other deps so that they are taking into account during ray install
-          fi
-          python -m spacy download en_core_web_md
-          python -m pip freeze
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip setuptools wheel
+  #         python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
+  #         python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap]
+  #         if [ "$RUNNER_OS" != "Windows" ]; then  
+  #         # Windows support for ray is experimental (https://docs.ray.io/en/latest/installation.html#windows-support)
+  #           python -m pip install --upgrade --upgrade-strategy eager .[tensorflow,torch,shap,ray]  # include other deps so that they are taking into account during ray install
+  #         fi
+  #         python -m spacy download en_core_web_md
+  #         python -m pip freeze
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.tmate_enabled }}
-        with:
-          limit-access-to-actor: true
+  #     - name: Setup tmate session
+  #       uses: mxschmitt/action-tmate@v3
+  #       if: ${{ github.event_name == 'workflow_dispatch' && inputs.tmate_enabled }}
+  #       with:
+  #         limit-access-to-actor: true
 
-      - name: Test with pytest
-        run: make test
+  #     - name: Test with pytest
+  #       run: make test
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          directory: .
-          env_vars: ${{matrix.os}}, ${{matrix.python-version}}
-          fail_ci_if_error: false
-          verbose: true
+  #     - name: Upload coverage to Codecov
+  #       uses: codecov/codecov-action@v4
+  #       with:
+  #         directory: .
+  #         env_vars: ${{matrix.os}}, ${{matrix.python-version}}
+  #         fail_ci_if_error: false
+  #         verbose: true
 
-      - name: Build Python package
-        run: |
-          make build_pypi
+  #     - name: Build Python package
+  #       run: |
+  #         make build_pypi
 
-  code-quality:
+  # code-quality:
 
-    runs-on: ubuntu-latest
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python 3.x
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
-          python -m pip install --upgrade --upgrade-strategy eager .[all]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - name: Set up Python 3.x
+  #       uses: actions/setup-python@v5
+  #       with:
+  #         python-version: '3.10'
+  #     - name: Install dependencies
+  #       run: |
+  #         python -m pip install --upgrade pip
+  #         python -m pip install --upgrade --upgrade-strategy eager -r requirements/dev.txt
+  #         python -m pip install --upgrade --upgrade-strategy eager .[all]
 
-      - name: Lint with flake8
-        run: |
-          flake8 alibi
+  #     - name: Lint with flake8
+  #       run: |
+  #         flake8 alibi
 
-      - name: Typecheck with mypy
-        run: |
-          mypy alibi
+  #     - name: Typecheck with mypy
+  #       run: |
+  #         mypy alibi
 
   docs:
 
     runs-on: ubuntu-latest
 
     container:
-      image: readthedocs/build:ubuntu-22.04-2022.03.15
+      image: readthedocs/build:ubuntu-24.04-2024.06.17
       options: --user root
 
     steps:

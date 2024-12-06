@@ -111,7 +111,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: readthedocs/build:ubuntu-22.04-2022.03.15
+      image: readthedocs/build:ubuntu-24.04-2024.06.17
       options: --user root
 
     steps:

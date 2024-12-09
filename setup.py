@@ -46,7 +46,7 @@ if __name__ == '__main__':
           python_requires='>=3.9',
           # lower bounds based on Debian Stable versions where available
           install_requires=[
-              'numpy>=1.16.2, <2.0.0',
+              'numpy>=1.16.2, <3.0.0',
               'pandas>=1.0.0, <3.0.0',
               'scikit-learn>=1.0.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <3.8.0',  # later versions depend on `numpy<3.0.0,>=2.0.0`

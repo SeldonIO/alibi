@@ -50,7 +50,7 @@ if __name__ == '__main__':
               'pandas>=1.0.0, <3.0.0',
               'scikit-learn>=1.0.0, <2.0.0',
               'spacy[lookups]>=2.0.0, <3.8.0',  # later versions depend on `numpy<3.0.0,>=2.0.0`
-              'blis<0.8.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
+              'blis<1.4.0',  # Windows memory issues https://github.com/explosion/thinc/issues/771
               'scikit-image>=0.17.2, <0.23',  # introduced `start_label` argument for `slic`
               'requests>=2.21.0, <3.0.0',
               'Pillow>=5.4.1, <11.0',

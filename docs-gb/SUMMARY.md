@@ -31,9 +31,6 @@
     * [TrustScores](source/methods/trustscores.md)
     * [ALE Figures](source/methods/ale_figures.md)
 
-  * [prototypes](source/prototypes/README.md)
-    * [Examples](source/prototypes/examples.md)
-    * [Methods](source/prototypes/methods.md)
   
 ## Model Confidence
 * [confidence](source/confidence/README.md)

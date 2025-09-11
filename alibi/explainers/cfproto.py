@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow.python.keras.backend as K
 
 from alibi.api.defaults import DEFAULT_DATA_CFP, DEFAULT_META_CFP
 from alibi.api.interfaces import Explainer, Explanation, FitMixin
@@ -120,7 +121,7 @@ class CounterfactualProto(Explainer, FitMixin):
 
         # check if the passed object is a model and get session
         is_model = isinstance(predict, tf.keras.Model)
-        model_sess = tf.compat.v1.keras.backend.get_session()
+        model_sess = K.get_session()
         is_ae = isinstance(ae_model, tf.keras.Model)
         is_enc = isinstance(enc_model, tf.keras.Model)
         self.meta['params'].update(is_model=is_model, is_ae=is_ae, is_enc=is_enc)

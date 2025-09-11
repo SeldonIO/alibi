@@ -4,6 +4,7 @@ from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow.python.keras.backend as K
 
 from alibi.api.defaults import DEFAULT_DATA_CF, DEFAULT_META_CF
 from alibi.api.interfaces import Explainer, Explanation
@@ -167,7 +168,7 @@ class Counterfactual(Explainer):
 
         # check if the passed object is a model and get session
         is_model = isinstance(predict_fn, tf.keras.Model)
-        model_sess = tf.compat.v1.keras.backend.get_session()
+        model_sess = K.get_session()
 
         self.meta['params'].update(is_model=is_model)
 

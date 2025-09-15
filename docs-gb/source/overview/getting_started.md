@@ -11,22 +11,22 @@ Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
 {% tab title="Standard" %} 
  Default installation.
  ```bash
- pip install alibi` {% endtab %}
+ pip install alibi`
  ```
+{% endtab %}
 
 {% tab title="SHAP" %} Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
 ```bash
 pip install alibi[shap]
 ```
-
- {% endtab %}
+{% endtab %}
 
 {% tab title="Distributed" %} Installation with support for 
 [distributed Kernel SHAP](../examples/distributed_kernel_shap_adult_lr.ipynb).
 ```bash
 pip install alibi[ray]
 ```
- {% endtab %}
+{% endtab %}
 
 {% tab title="TensorFlow" %}
 Installation with support for tensorflow backends. Required for
@@ -49,13 +49,13 @@ pip install alibi[tensorflow]
 ```bash
 pip install alibi[torch]
 ```
- {% endtab %}
+{% endtab %}
 
 {% tab title="All" %} Installs all optional dependencies.
 ```bash
 pip install alibi[all]
 ```
- {% endtab %}
+{% endtab %}
 
 {% endtabs %}
 

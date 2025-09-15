@@ -1,6 +1,9 @@
 # Table of contents
 
+* [README](README.md)
+
 ## Overview
+
 * [Introduction](source/overview/README.md)
 * [Getting Started](source/overview/getting_started.md)
 * [Algorithm Overview](source/overview/algorithms.md)
@@ -9,9 +12,10 @@
 * [Frequently Asked Questions](source/overview/faq.md)
 
 ## Explanations
+
 * [Explanations](source/explanations/README.md)
-    * [Examples](source/explanations/examples.md)
-    * [Methods](source/explanations/methods.md)
+  * [Examples](source/explanations/examples.md)
+  * [Methods](source/explanations/methods.md)
   * [methods](source/methods/README.md)
     * [ALE](source/methods/ale.md)
     * [Anchors](source/methods/anchors.md)
@@ -31,11 +35,11 @@
     * [TrustScores](source/methods/trustscores.md)
     * [ALE Figures](source/methods/ale_figures.md)
 
-  
 ## Model Confidence
+
 * [confidence](source/confidence/README.md)
-    * [Examples](source/confidence/examples.md)
-    * [Methods](source/confidence/methods.md)
+  * [Examples](source/confidence/examples.md)
+  * [Methods](source/confidence/methods.md)
   * [examples](source/examples/README.md)
     * [Accumulated Local Effects for classifying flowers](source/examples/ale_classification.md)
     * [Accumulated Local Effects for predicting house prices](source/examples/ale_regression_california.md)
@@ -77,13 +81,15 @@
     * [Trust Scores applied to Iris](source/examples/trustscore_iris.md)
     * [Trust Scores applied to MNIST](source/examples/trustscore_mnist.md)
     * [A Gradient Boosted Tree Model for the Adult Dataset](source/examples/xgboost_model_fitting_adult.md)
-  * [Methods](confidence/methods.md)
-  * [Examples](confidence/examples.md)
+  * [Methods](model-confidence/confidence/methods-1.md)
+  * [Examples](model-confidence/confidence/examples-2.md)
 
 ## Prototypes
+
 * [prototypes](source/prototypes/README.md)
   * [Examples](source/prototypes/examples.md)
   * [Methods](source/prototypes/methods.md)
 
 ## API Reference
- * [Annotation Based Configuration]
+
+* [\[Annotation Based Configuration\]](api-reference/annotation-based-configuration.md)

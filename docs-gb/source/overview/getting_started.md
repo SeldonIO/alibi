@@ -11,7 +11,7 @@ Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
 {% tab title="Standard" %} 
  Default installation.
  ```bash
- pip install alibi`
+ pip install alibi
  ```
 {% endtab %}
 

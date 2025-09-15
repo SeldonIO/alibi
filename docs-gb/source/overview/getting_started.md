@@ -2,91 +2,65 @@
 
 ## Installation
 
-Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi/) or [conda-forge](https://conda-forge.org/) by following the instructions below.
+Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi/) or [conda-forge](https://conda-forge.org/) by following these instructions.
 
-``````{dropdown}
-```{div} sd-mb-3
-- Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
-```
+Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
 
-`````{tab-set}
+{% tabs %}
 
-````{tab-item} Standard
-:sync: label-standard
-:class-label: sd-pt-0
-```{div} sd-mb-1
-Default installation.
-```
-```bash
-pip install alibi
-```
-````
+{% tab title="Standard" %} 
+ Default installation.
+ ```bash
+ pip install alibi` {% endtab %}
+ ```
 
-````{tab-item} SHAP
-:sync: label-shap
-:class-label: sd-pt-0
-```{div} sd-mb-1
-Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
-```
+{% tab title="SHAP" %} Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
 ```bash
 pip install alibi[shap]
 ```
-````
 
-````{tab-item} Distributed
-:class-label: sd-pt-0
-:sync: label-dist
-```{div} sd-mb-1
-Installation with support for 
+ {% endtab %}
+
+{% tab title="Distributed" %} Installation with support for 
 [distributed Kernel SHAP](../examples/distributed_kernel_shap_adult_lr.ipynb).
-```
 ```bash
 pip install alibi[ray]
 ```
-````
+ {% endtab %}
 
-````{tab-item} TensorFlow
-:class-label: sd-pt-0
-:sync: label-tensorflow
-```{div} sd-mb-1
-Installation with support for tensorflow backends. Required for 
+{% tab title="TensorFlow" %}
+Installation with support for tensorflow backends. Required for
+
 - [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb) 
 - [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb) 
 - [Counterfactual Instances](../methods/CF.ipynb)
 - [Integrated gradients](../methods/IntegratedGradients.ipynb) 
 - [Anchors on Textual data](../examples/anchor_text_movie.ipynb) with `sampling_strategy='language_model'` 
 - One of Torch or TensorFlow is required for the [Counterfactuals with RL](../methods/CFRL.ipynb) methods
-```
 ```bash
 pip install alibi[tensorflow]
 ```
-````
+{% endtab %}
 
-````{tab-item} Torch
-:class-label: sd-pt-0
-:sync: label-torch
-```{div} sd-mb-1
-Installation with support for torch backends. One of Torch or TensorFlow is required for: 
+{% tab title="Torch" %} Installation with support for torch backends. One of Torch or TensorFlow is required for: 
 - [Counterfactuals with RL](../methods/CFRL.ipynb)
 - [Similarity explanations](../methods/Similarity.ipynb)
-```
+
 ```bash
 pip install alibi[torch]
 ```
-````
+ {% endtab %}
 
-````{tab-item} All
-:class-label: sd-pt-0
-:sync: label-all
-```{div} sd-mb-1
-Installs all optional dependencies.
-```
+{% tab title="All" %} Installs all optional dependencies.
 ```bash
 pip install alibi[all]
 ```
-````
-`````
-``````
+ {% endtab %}
+
+{% endtabs %}
+
+
+
 
 ``````{dropdown}
 ```{div} sd-mb-3

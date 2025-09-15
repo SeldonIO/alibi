@@ -1,5 +1,4 @@
 # Table of contents
-
 ## Overview
 * [Introduction](source/overview/high_level.md)
 * [Getting Started](source/overview/getting_started.md)
@@ -9,11 +8,12 @@
 * [Frequently Asked Questions](source/overview/faq.md)
 
 ## Explanations
+
 * [Explanations](source/explanations/README.md)
-    * [Examples](source/explanations/examples.md)
-    * [Methods](source/explanations/methods.md)
+  * [Examples](source/explanations/examples.md)
+  * [Methods](source/explanations/methods.md)
   * [methods](source/methods/README.md)
-    * [ALE](source/methods/ale.md)
+   * [ALE](source/methods/ale.md)
     * [Anchors](source/methods/anchors.md)
     * [CEM](source/methods/cem.md)
     * [CF](source/methods/cf.md)
@@ -31,16 +31,18 @@
     * [TrustScores](source/methods/trustscores.md)
     * [ALE Figures](source/methods/ale_figures.md)
 
-  * [prototypes](source/prototypes/README.md)
-    * [Examples](source/prototypes/examples.md)
-    * [Methods](source/prototypes/methods.md)
   
 ## Model Confidence
 * [confidence](source/confidence/README.md)
     * [Examples](source/confidence/examples.md)
     * [Methods](source/confidence/methods.md)
+## Model Confidence
+
+* [confidence](source/confidence/README.md)
+  * [Examples](source/confidence/examples.md)
+  * [Methods](source/confidence/methods.md)
   * [examples](source/examples/README.md)
-    * [Accumulated Local Effects for classifying flowers](source/examples/ale_classification.md)
+   * [Accumulated Local Effects for classifying flowers](source/examples/ale_classification.md)
     * [Accumulated Local Effects for predicting house prices](source/examples/ale_regression_california.md)
     * [Anchor explanations for fashion MNIST](source/examples/anchor_image_fashion_mnist.md)
     * [Anchor explanations for ImageNet](source/examples/anchor_image_imagenet.md)
@@ -80,17 +82,13 @@
     * [Trust Scores applied to Iris](source/examples/trustscore_iris.md)
     * [Trust Scores applied to MNIST](source/examples/trustscore_mnist.md)
     * [A Gradient Boosted Tree Model for the Adult Dataset](source/examples/xgboost_model_fitting_adult.md)
-  * [Methods](confidence/methods.md)
-  * [Examples](confidence/examples.md)
 
 ## Prototypes
-* [prototypes](source/prototypes/README.md)
-  * [Examples](source/prototypes/examples.md)
-  * [Methods](source/prototypes/methods.md)
+
+  * [Methods](model-confidence/confidence/methods-1.md)
+  * [Examples](model-confidence/confidence/examples-2.md)
 
 ## API Reference
- * [Annotation Based Configuration]
- 
 
-  
-  
+* [\[Annotation Based Configuration\]](api-reference/annotation-based-configuration.md)
+

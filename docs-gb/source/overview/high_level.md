@@ -1,12 +1,5 @@
 # Introduction
 
-```{contents}
-:depth: 4
-:local: true
-```
-
-## What is Explainability?
-
 **Explainability provides us with algorithms that give insights into trained model predictions.** It allows us to answer questions such as:
 
 * How does a prediction **change** dependent on feature inputs?
@@ -14,10 +7,7 @@
 * What set of features would you have to minimally **change** to obtain a **new** prediction of your choosing?
 * How does each feature **contribute** to a model's prediction?
 
-```{image}
-:align: center
-:alt: Model augmented with explainabilty 
-```
+<figure><img src="../images/exp-aug.png" alt="Model augmented with explainabilty"><figcaption><p>Model Augmentation with explainability</p></figcaption></figure>
 
 Alibi provides a set of **algorithms** or **methods** known as **explainers**. Each explainer provides some kind of insight about a model. The set of insights available given a trained model is dependent on a number of factors. For instance, if the model is a [regression model](https://en.wikipedia.org/wiki/Regression_analysis) it makes sense to ask how the prediction varies for some regressor. Whereas it doesn't make sense to ask what minimal change is required to obtain a new class prediction. In general, given a model the explainers available from **Alibi** are constrained by:
 
@@ -38,7 +28,9 @@ As machine learning methods have become more complex and more mainstream, with m
 
 Some explainers apply only to specific types of models such as the [Tree SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/path-dependent-tree-shap/README.md) methods which can only be used with [tree-based models](https://en.wikipedia.org/wiki/Decision_tree_learning). This is the case when an explainer uses some aspect of that model's internal structure. If the model is a neural network then some methods require taking gradients of the model predictions with respect to the inputs. Methods that require access to the model internals are known as **white-box** methods. Other explainers apply to any type of model. They can do so because the underlying method doesn't make use of the model internals. Instead, they only need to have access to the model outputs given particular inputs. Methods that apply in this general setting are known as **black-box** methods. Typically, white-box methods are faster than black-box methods as they can exploit the model internals. For a more detailed discussion see [white-box and black-box models](white_box_black_box.md).
 
-:::{admonition} **Note 1: Black-box Definition** The use of black-box here varies subtly from the conventional use within machine learning. In most other contexts a model is a black-box if the mechanism by which it makes predictions is too complicated to be interpretable to a human. Here we use black-box to mean that the explainer method doesn't need access to the model internals to be applied. :::
+{% hint style="info" %}
+**Note 1: Black-box Definition** The use of black-box here varies subtly from the conventional use within machine learning. In most other contexts a model is a black-box if the mechanism by which it makes predictions is too complicated to be interpretable to a human. Here we use black-box to mean that the explainer method doesn't need access to the model internals to be applied.
+{% endhint %}
 
 ### Global and Local Insights
 
@@ -46,10 +38,7 @@ Insights can be categorised into two categories — local and global. Intuitivel
 
 On the other hand, global insights refer to the behaviour of the model over a range of inputs. As an example, a plot that shows how a regression prediction varies for a given feature. These insights provide a more general understanding of the relationship between inputs and model predictions.
 
-```{image}
-:align: center
-:alt: Local and Global insights 
-```
+<figure><img src="../images/local-global.png" alt="Local and Global insights"><figcaption><p>Local and Global insights</p></figcaption></figure>
 
 ### Biases
 
@@ -93,8 +82,6 @@ Global Feature Attribution methods aim to show the dependency of model output on
 
 Suppose a trained regression model that predicts the number of bikes rented on a given day depending on the temperature, humidity, and wind speed. A global feature attribution plot for the temperature feature might be a line graph plotted against the number of bikes rented. One would anticipate an increase in rentals until a specific temperature and then a decrease after it gets too hot.
 
-(accumulated-local-effects)=
-
 #### Accumulated Local Effects
 
 | Explainer                                                                                                               | Scope  | Model types | Task types                 | Data types          | Use                                                                  | Resources                                                                                                                                     |
@@ -119,15 +106,12 @@ plot_ale(exp, features=['alcohol'], line_kw={'label': 'Probability of "good" cla
 
 Hence, we see the model predicts higher alcohol content wines as being better:
 
-(ale-plot)=
+<figure><img src="../images/anchor.png" alt="ALE Plot of wine quality good class probability dependency on alcohols"><figcaption><p>ALE Plot for wine quality</p></figcaption></figure>
 
-```{image}
-:align: center
-:alt: ALE Plot of wine quality "good" class probability dependency on alcohol
-:width: 650px
-```
+{% hint style="info" %}
+**Note 2: Categorical Variables and ALE** Note that while ALE is well-defined on numerical tabular data, it isn't on categorical data. This is because it's unclear what the difference between two categorical values should be. Note that if the dataset has a mix of categorical and numerical features, we can always compute the ALE of the numerical ones.
+{% endhint %}
 
-:::{admonition} **Note 2: Categorical Variables and ALE** Note that while ALE is well-defined on numerical tabular data, it isn't on categorical data. This is because it's unclear what the difference between two categorical values should be. Note that if the dataset has a mix of categorical and numerical features, we can always compute the ALE of the numerical ones. :::
 
 | Pros                                                                           | Cons                                                                                    |
 | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
@@ -136,7 +120,6 @@ Hence, we see the model predicts higher alcohol content wines as being better:
 | Doesn't struggle with dependencies in the underlying features, unlike PD plots | ALE of categorical variables is not well-defined                                        |
 | ALE plots are fast                                                             |                                                                                         |
 
-(partial-dependence)=
 
 #### Partial Dependence
 
@@ -154,7 +137,6 @@ Alibi provides [partial dependence (PD)](https://github.com/ramonpzg/alibi/blob/
 | PD plots have causal interpretation. The relationship is causal for the model, but not necessarily for the real world |                                                                                                                      |
 | Natural extension to categorical features                                                                             |                                                                                                                      |
 
-(partial-dependence-variance)=
 
 #### Partial Dependence Variance
 
@@ -194,7 +176,6 @@ Alibi provides [permutation importance](https://github.com/ramonpzg/alibi/blob/r
 
 Local necessary features tell us what features need to stay the same for a specific instance in order for the model to give the same classification. In the case of a trained image classification model, local necessary features for a given instance would be a minimal subset of the image that the model uses to make its decision. Alibi provides two explainers for computing local necessary features: [anchors](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/anchors/README.md) and [pertinent positives](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/contrastive-explanation-method-pertinent-positives/README.md).
 
-(anchors)=
 
 #### Anchors
 
@@ -206,22 +187,14 @@ Anchors are introduced in [Anchors: High-Precision Model-Agnostic Explanations](
 
 Let $A$ be a rule (set of predicates) acting on input instances, such that $A(x)$ returns $1$ if all its feature predicates are true. Consider the [wine quality dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) adjusted by partitioning the data into good and bad wine based on a quality threshold of 0.5:
 
-```{image}
-:align: center
-:alt: first five rows of wine quality dataset 
-```
+<figure><img src="../images/wine-quality-ds.png" alt="First five rows of wine quality dataset "><figcaption><p>First five rows of the dataset</p></figcaption></figure>
 
-```{image}
-:align: right
-:alt: Illustration of an anchor as a subset of two dimensional feature space.
-:width: 450px
-```
+<figure><img src="../images/anchor.png" alt="Illustration of an anchor as a subset of two dimensional feature space. "><figcaption><p>Illustration of an anchor</p></figcaption></figure>
+
 
 An example of a predicate for this dataset would be a rule of the form: `'alcohol > 11.00'`. Note that the more predicates we add to an anchor, the fewer instances it applies to, as by doing so, we filter out more instances of the data. Anchors are sets of predicates associated to a specific instance $x$ such that $x$ is in the anchor ($A(x)=1$) and any other point in the anchor has the same classification as $x$ ($z$ such that $A(z) = 1 \implies f(z) = f(x)$ where $f$ is the model). We're interested in finding the Anchor that contains both the most instances and also $x$.
 
 To construct an anchor using Alibi for tabular data such as the wine quality dataset (see [notebook](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/examples/overview.ipynb)), we use:
-
-\
 
 
 ```ipython3
@@ -268,7 +241,6 @@ Similarly, comparing anchors that are close to decision boundaries can require m
 |                                                                                                               | High dimensional feature spaces such as images need to be reduced to improve the runtime complexity   |
 |                                                                                                               | Practitioners may need domain-specific knowledge to correctly sample from the conditional probability |
 
-(contrastive-explanation-method-pertinent-positives)=
 
 #### Contrastive Explanation Method (Pertinent Positives)
 

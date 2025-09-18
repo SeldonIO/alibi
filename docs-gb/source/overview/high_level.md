@@ -109,7 +109,7 @@ Hence, we see the model predicts higher alcohol content wines as being better:
 <figure><img src="../images/anchor.png" alt="ALE Plot of wine quality good class probability dependency on alcohols"><figcaption><p>ALE Plot for wine quality</p></figcaption></figure>
 
 {% hint style="info" %}
-**Note 2: Categorical Variables and ALE** Note that while ALE is well-defined on numerical tabular data, it isn't on categorical data. This is because it's unclear what the difference between two categorical values should be. Note that if the dataset has a mix of categorical and numerical features, we can always compute the ALE of the numerical ones.
+**Note 2: Categorical Variables and ALE** while ALE is well-defined on numerical tabular data, it isn't on categorical data. This is because it's unclear what the difference between two categorical values should be. If the dataset has a mix of categorical and numerical features, we can always compute the ALE of the numerical ones.
 {% endhint %}
 
 
@@ -155,7 +155,6 @@ Alibi provides [partial dependence variance](https://github.com/ramonpzg/alibi/b
 | Offers support for both numerical and categorical features                                                                                    |                                                                                               |
 | Can quantify the strength of potential interaction effects                                                                                    |                                                                                               |
 
-(permutation-importance)=
 
 #### Permutation Importance
 
@@ -219,7 +218,9 @@ Anchor = ['sulphates <= 0.55', 'volatile acidity > 0.52', 'alcohol <= 11.00', 'p
 Coverage =  0.0316930775646372
 ```
 
-Note: Alibi also gives an idea of the size (coverage) of the Anchor which is the proportion of the input space the anchor applies to.
+{% hint style="info" %}
+**Note**: Alibi also gives an idea of the size (coverage) of the Anchor which is the proportion of the input space the anchor applies to.
+{% endhint %}
 
 To find anchors Alibi sequentially builds them by generating a set of candidates from an initial anchor candidate, picking the best candidate of that set and then using that to generate the next set of candidates and repeating. Candidates are favoured on the basis of the number of instances they contain that are in the same class as $x$ under $f$. The proportion of instances the anchor contains that are classified the same as $x$ is known as the _precision_ of the anchor. We repeat the above process until we obtain a candidate anchor with satisfactory precision. If there are multiple such anchors we choose the one that contains the most instances (as measured by _coverage_).
 
@@ -291,8 +292,6 @@ Let $f:\mathbb{R}^n \rightarrow \mathbb{R}$. $f$ might be a regression model, a 
 
 Alibi exposes four explainers to compute LFAs: [Integrated Gradients](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/integrated-gradients/README.md) , [Kernel SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/kernel-shap/README.md) , [Path-dependent Tree SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/path-dependent-tree-shap/README.md) and [Interventional Tree SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/interventional-tree-shap/README.md). The last three of these are implemented in the [SHAP library](https://github.com/slundberg/shap) and Alibi acts as a wrapper. Interventional and path-dependent tree SHAP are white-box methods that apply to tree based models.
 
-(lfa-properties)=
-
 For attribution methods to be relevant, we expect the attributes to behave consistently in certain situations. Hence, they should satisfy the following properties.
 
 * **Efficiency/Completeness**: The sum of attributions should equal the difference between the prediction and the baseline
@@ -302,7 +301,6 @@ For attribution methods to be relevant, we expect the attributes to behave consi
 
 Not all LFA methods satisfy these methods ([LIME](https://arxiv.org/abs/1705.07874) for example) but the ones provided by Alibi ([Integrated Gradients](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/integrated-gradients/README.md), [Kernel SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/kernel-shap/README.md) , [Path-dependent](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/path-dependent-tree-shap/README.md) and [Interventional](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/interventional-tree-shap/README.md) Tree SHAP) do.
 
-(integrated-gradients)=
 
 #### Integrated Gradients
 
@@ -314,9 +312,9 @@ The [Integrated Gradients](https://arxiv.org/abs/1703.01365) (IG) method compute
 
 We need to choose a baseline which should capture a blank state in which the model makes essentially no prediction or assigns the probability of each class equally. This is dependent on domain knowledge of the dataset. In the case of MNIST for instance a common choice is an image set to black. For numerical tabular data we can set the baseline as the average of each feature.
 
-(choice-of-baseline)=
-
-:::{admonition} **Note 3: Choice of Baseline** The main difficulty with this method is that as IG is very [dependent on the baseline](https://distill.pub/2020/attribution-baselines/), it's essential to make sure you choose it well. Choosing a black image baseline for a classifier trained to distinguish between photos taken at day or night may not be the best choice. :::
+{% hint style="info" %}
+**Note 3: Choice of Baseline** The main difficulty with this method is that as IG is very [dependent on the baseline](https://distill.pub/2020/attribution-baselines/), it's essential to make sure you choose it well. Choosing a black image baseline for a classifier trained to distinguish between photos taken at day or night may not be the best choice.
+{% endhint %}
 
 Note that IG is a white-box method that requires access to the model internals in order to compute the partial derivatives. Alibi provides support for TensorFlow models. For example given a TensorFlow classifier trained on the wine quality dataset we can compute the IG attributions (see [notebook](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/examples/overview.ipynb)) by doing:
 
@@ -339,19 +337,18 @@ This gives:
 :alt: IG applied to Wine quality dataset for class "Good" 
 ```
 
-:::{admonition} **Note 4: Comparison to ALE**
+{% hint style="info" %}
+**Note 4: Comparison to ALE**
 
-(comparison-to-ale)=
+The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict the [ALE result](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/ale-plot/README.md). However, The instance $x$ we choose has an alcohol content of 9.4%, which is reasonably low for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and bad wines 9.7%)
+{% endhint %}
 
-The alcohol feature value contributes negatively here to the "Good" prediction which seems to contradict the [ALE result](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/ale-plot/README.md). However, The instance $x$ we choose has an alcohol content of 9.4%, which is reasonably low for a wine classed as "Good" and is consistent with the ALE plot. (The median for good wines is 10.8% and bad wines 9.7%) :::
-
-| Pros                                                                                                                                                 | Cons                                                                                                                                                                                                |
+Pros                                                                                                                                                 | Cons                                                                                                                                                                                                |
 | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Simple to understand and visualize, especially with image data                                                                                       | White-box method. Requires the partial derivatives of the model outputs with respect to inputs                                                                                                      |
 | Doesn't require access to the training data                                                                                                          | Requires [choosing the baseline](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/choice-of-baseline/README.md) which can have a significant effect on the outcome |
 | [Satisfies several desirable properties](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/lfa-properties/README.md) |                                                                                                                                                                                                     |
 
-(kernel-shap)=
 
 #### Kernel SHAP
 
@@ -385,7 +382,6 @@ plot_importance(result.shap_values[1], features, 1)
 
 This gives the following output:
 
-(kern-shap-plot)=
 
 ```{image}
 :align: center
@@ -400,7 +396,7 @@ This result is similar to the one for [Integrated Gradients](https://github.com/
 | Shapley values can be easily interpreted and visualized                                                                                              | The interventional conditional probability introduces unrealistic data points                         |
 | Very general as is a black-box method                                                                                                                | Requires access to the training dataset                                                               |
 
-(path-dependent-tree-shap)=
+
 
 #### Path-dependent Tree SHAP
 
@@ -425,7 +421,6 @@ plot_importance(result.shap_values[1], features, '"Good"')
 
 From this we obtain:
 
-(pd-tree-shap-plot)=
 
 ```{image}
 :align: center
@@ -441,7 +436,6 @@ This result is similar to the one for [Integrated Gradients](https://github.com/
 | Doesn't require access to the training data                                                                                                          |                                                                                                      |
 | Shapley values can be easily interpreted and visualized                                                                                              |                                                                                                      |
 
-(interventional-tree-shap)=
 
 #### Interventional Tree SHAP
 
@@ -496,13 +490,10 @@ Given an instance of the dataset and a prediction given by a model, a question n
 
 Given a classification model trained on the MNIST dataset and a sample from the dataset, a counterfactual would be a generated image that closely resembles the original but is changed enough that the model classifies it as a different number from the original instance.
 
-```{figure}
-:align: center
-:alt: Samples from MNIST and counterfactuals for each.
-:width: 500px
+<figure><img src="../overview/images/rlcf-digits.png" alt="Samples from MNIST and counterfactuals for each"></figure>
 
 *From Samoilescu RF et al., Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning, 2021* 
-```
+
 
 Counterfactuals can be used to both [debug and augment](https://research-information.bris.ac.uk/en/publications/counterfactual-explanations-of-machine-learning-predictions-oppor) model functionality. Given tabular data that a model uses to make financial decisions about a customer, a counterfactual would explain how to change their behavior to obtain a different conclusion. Alternatively, it may tell the Machine Learning Engineer that the model is drawing incorrect assumptions if the recommended changes involve features that are irrelevant to the given decision. However, practitioners must still be wary of [bias](high_level.md#biases).
 
@@ -515,36 +506,27 @@ The first requirement is clear. The second, however, requires some idea of what 
 
 Note that sparse changes to the instance of interest doesn't guarantee that the generated counterfactual is believably a member of the data distribution. [**CEM**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/contrastive-explanation-method-pertinent-negatives/README.md) , [**CFP**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-guided-by-prototypes/README.md), and [**CFRL**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-with-reinforcement-learning/README.md) also require that the counterfactual be in distribution in order to be interpretable.
 
-```{figure}
-:align: center
-:alt: Examples of counterfactuals constructed using CFI and CFP methods
-:width: 500px
+<figure><img src="../overview/images/interp-and-non-interp-cfs.png" alt="Examples of counterfactuals constructed using CFI and CFP methods"></figure>
 
-*Original MNIST 7 instance, Counterfactual instances constructed using 1) **counterfactual instances** method, 
-2) **counterfactual instances with prototypes** method* 
-```
+*Original MNIST 7 instance, Counterfactual instances constructed using 1. **counterfactual instances** method, 2.**counterfactual instances with prototypes** method* 
 
 The first three methods [**CFI**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactual-instances/README.md) , [**CEM**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/contrastive-explanation-method-pertinent-negatives/README.md) , [**CFP**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-guided-by-prototypes/README.md) all construct counterfactuals using a very similar method. They build them by defining a loss that prefer interpretable instances close to the target class. They then use gradient descent to move within the feature space until they obtain a counterfactual of sufficient quality. The main difference is the **CEM** and **CFP** methods also train an autoencoder to ensure that the constructed counterfactuals are within the data-distribution.
 
-```{figure}
-:align: center
-:alt: Construction of different types of interpretable counterfactuals
-:width: 400px
+<figure><img src="../overview//images/interp-cfs.png" alt="Construction of different types of interpretable counterfactuals"></figure>
 
 *Obtaining counterfactuals using gradient descent with and without autoencoder trained on data distribution* 
-```
 
 These three methods only realistically work for grayscale images and anything multi-channel will not be interpretable. In order to get quality results for multi-channel images practitioners should use [CFRL](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-with-reinforcement-learning/README.md).
 
 [CFRL](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-with-reinforcement-learning/README.md) uses a similar loss to CEM and CFP but applies reinforcement learning to train a model which will generate counterfactuals on demand.
 
-:::{admonition} **Note 5: fit and explain method runtime differences** Alibi explainers expose two methods, `fit` and `explain`. Typically in machine learning the method that takes the most time is the fit method, as that's where the model optimization conventionally takes place. In explainability, the explain step often requires the bulk of computation. However, this isn't always the case.
+{% hint style="info" %}
+**Note 5: fit and explain method runtime differences** Alibi explainers expose two methods, `fit` and `explain`. Typically in machine learning the method that takes the most time is the fit method, as that's where the model optimization conventionally takes place. In explainability, the explain step often requires the bulk of computation. However, this isn't always the case.
 
 Among the explainers in this section, there are two approaches taken. The first finds a counterfactual when the user requests the insight. This happens during the `.explain()` method call on the explainer class. This is done by running gradient descent on model inputs to find a counterfactual. The methods that take this approach are **counterfactual instances**, **contrastive explanation**, and **counterfactuals guided by prototypes**. Thus, the `fit` method in these cases is quick, but the `explain` method is slow.
 
-The other approach, **counterfactuals with reinforcement learning**, trains a model that produces explanations on demand. The training takes place during the `fit` method call, so this has a long runtime while the `explain` method is quick. If you want performant explanations in production environments, then the latter approach is preferable. :::
-
-(counterfactual-instances)=
+The other approach, **counterfactuals with reinforcement learning**, trains a model that produces explanations on demand. The training takes place during the `fit` method call, so this has a long runtime while the `explain` method is quick. If you want performant explanations in production environments, then the latter approach is preferable.
+{% endhint %}
 
 #### Counterfactual Instances
 
@@ -611,13 +593,10 @@ A subtle aspect of this method is that it requires defining the absence or prese
 
 This approach extends the definition of interpretable to include a requirement that the computed counterfactual be believably a member of the dataset. This isn't always satisfied (see image below). In particular, the constructed counterfactual often doesn't look like a member of the target class.
 
-```{figure}
-:align: center
-:alt: Example of less interpretable result obtained by CEM
-:width: 400
+<figure><img src="../overview//images/cem-non-interp.png" alt="Example of less interpretable result obtained by CEM"></figure>
 
 *An original MNIST instance and a pertinent negative obtained using CEM.* 
-```
+
 
 To compute a pertinent-negative using Alibi (see [notebook](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/examples/overview.ipynb)) we use:
 
@@ -660,8 +639,6 @@ This method can apply to both black-box and white-box models. There is a perform
 |                                                                                  | Requires training an autoencoder                                                         |
 |                                                                                  | Requires domain knowledge when choosing what it means for a feature to be present or not |
 |                                                                                  | Slow for black-box models                                                                |
-
-(counterfactuals-guided-by-prototypes)=
 
 #### Counterfactuals Guided by Prototypes
 
@@ -715,7 +692,6 @@ Counterfactual prediction: 1  # "bad"
 | Black-box version of the method is fast                    | Requires setup and configuration in choosing $\gamma$, $\beta$ and $c$ |
 | Applies to more data-types                                 | Requires training an autoencoder                                       |
 
-(counterfactuals-with-reinforcement-learning)=
 
 #### Counterfactuals with Reinforcement Learning
 
@@ -761,8 +737,10 @@ Which gives the following output:
 Instance prediction: 0        # "good"
 Counterfactual prediction: 1  # "bad"
 ```
+{% hint style="info" %}
+**Note 6: CFRL explainers** Alibi exposes two explainer methods for counterfactuals with reinforcement learning. The first is the CounterfactualRL and the second is CounterfactualRlTabular. The difference is that CounterfactualRlTabular is designed to support categorical features. See the [CFRL documentation page](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/methods/CFRL.ipynb) for more details.
+{% endhint %}
 
-:::{admonition} **Note 6: CFRL explainers** Alibi exposes two explainer methods for counterfactuals with reinforcement learning. The first is the CounterfactualRL and the second is CounterfactualRlTabular. The difference is that CounterfactualRlTabular is designed to support categorical features. See the [CFRL documentation page](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/methods/CFRL.ipynb) for more details. :::
 
 | Pros                                                       | Cons                                    |
 | ---------------------------------------------------------- | --------------------------------------- |
@@ -771,7 +749,6 @@ Counterfactual prediction: 1  # "bad"
 | Can be trained to account for arbitrary constraints        | Requires access to the training dataset |
 | General as is a black-box algorithm                        |                                         |
 
-(counterfactual-example-results)=
 
 #### Counterfactual Example Results
 
@@ -793,12 +770,12 @@ For each of the four explainers, we have generated a counterfactual instance. We
 
 The CFI, CEM, and CFRL methods all perturb more features than CFP, making them less interpretable. Looking at the ALE plots, we can see how the counterfactual methods change the features to flip the prediction. In general, each method seems to decrease the sulphates and alcohol content to obtain a "bad" classification consistent with the ALE plots. Note that the ALE plots potentially miss details local to individual instances as they are global insights.
 
+<figure><img src="../images/rlcf-digits.png" alt="Ale plots for those features that the above counterfactuals have changed the most."><figcaption><p></p></figcaption></figure>
+
 ```{image}
 :align: center
 :alt: Ale plots for those features that the above counterfactuals have changed the most. 
 ```
-
-(similarity-explanations)=
 
 ### 5. Similarity explanations
 

@@ -251,11 +251,8 @@ Similarly, comparing anchors that are close to decision boundaries can require m
 
 Introduced by [Amit Dhurandhar, et al](https://arxiv.org/abs/1802.07623), a Pertinent Positive is the subset of features of an instance that still obtains the same classification as that instance. These differ from [anchors](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/anchors/README.md) primarily in the fact that they aren't constructed to maximize coverage. The method to create them is also substantially different. The rough idea is to define an **absence of a feature** and then perturb the instance to take away as much information as possible while still retaining the original classification. Note that these are a subset of the [CEM](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/methods/CEM.ipynb) method which is also used to construct [pertinent negatives/counterfactuals](high_level.md#4-counterfactual-instances).
 
-```{image}
-:align: center
-:alt: Pertinent postive of an MNIST digit
-:width: 450px
-```
+<figure><img src="../images/pp_mnist.png" alt="Pertinent postive of an MNIST digit"></figure>
+
 
 Given an instance $x$ we use gradient descent to find a $\delta$ that minimizes the following loss:
 
@@ -280,10 +277,7 @@ Local feature attribution (LFA) asks how each feature in a given instance contri
 
 A good example use of local feature attribution is to detect that an image classifier is focusing on the correct features of an image to infer the class. In their paper ["Why Should I Trust You?": Explaining the Predictions of Any Classifier](https://arxiv.org/abs/1602.04938), Marco Tulio Ribeiro et al. train a logistic regression classifier on a small dataset of images of wolves and huskies. The data set has been handpicked so that only the pictures of wolves have snowy backdrops while the huskies don't. LFA methods reveal that the resulting misclassification of huskies in snow as wolves results from the network incorrectly focusing on those images snowy backdrops.
 
-```{figure}
-:align: center
-:alt: Husky with snowy backdrop misclassified as wolf.
-:width: 700px
+<figure><img src="../images/husky-vs-wolves.png" alt="Husky with snowy backdrop misclassified as wolf"></figure>
 
 *Figure 11 from "Why Should I Trust You?": Explaining the Predictions of Any Classifier.* 
 ```
@@ -332,10 +326,8 @@ plot_importance(result.data['attributions'][0], features, 0)
 
 This gives:
 
-```{image}
-:align: center
-:alt: IG applied to Wine quality dataset for class "Good" 
-```
+<figure><img src="../images/ig-lfa.png" alt="IG applied to Wine quality dataset for class Good "></figure>
+
 
 {% hint style="info" %}
 **Note 4: Comparison to ALE**
@@ -382,11 +374,8 @@ plot_importance(result.shap_values[1], features, 1)
 
 This gives the following output:
 
+<figure><img src="../images/kern-shap-lfa.png" alt="Kernel SHAP applied to Wine quality dataset for class Good"></figure>
 
-```{image}
-:align: center
-:alt: Kernel SHAP applied to Wine quality dataset for class "Good" 
-```
 
 This result is similar to the one for [Integrated Gradients](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/comparison-to-ale/README.md) although there are differences due to using different methods and models in each case.
 
@@ -421,11 +410,8 @@ plot_importance(result.shap_values[1], features, '"Good"')
 
 From this we obtain:
 
+<figure><img src="../images/pd-tree-shap-lfa.png" alt="Path-dependent tree SHAP applied to Wine quality dataset for class Good"></figure>
 
-```{image}
-:align: center
-:alt: Path-dependent tree SHAP applied to Wine quality dataset for class "Good" 
-```
 
 This result is similar to the one for [Integrated Gradients](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/comparison-to-ale/README.md) and [Kernel SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/kern-shap-plot/README.md) although there are differences due to using different methods and models in each case.
 
@@ -468,10 +454,8 @@ plot_importance(result.shap_values[1], features, '"Good"')
 
 From this we obtain:
 
-```{image}
-:align: center
-:alt: Interventional tree SHAP applied to Wine quality dataset for class "Good" 
-```
+<figure><img src="../images/int-tree-shap-lfa.png" alt="Interventional tree SHAP applied to Wine quality dataset for class Good"></figure>
+
 
 This result is similar to the one for [Integrated Gradients](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/comparison-to-ale/README.md), [Kernel SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/kern-shap-plot/README.md) , [Path-dependent Tree SHAP](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/pd-tree-shap-plot/README.md) although there are differences due to using different methods and models in each case.
 
@@ -490,7 +474,7 @@ Given an instance of the dataset and a prediction given by a model, a question n
 
 Given a classification model trained on the MNIST dataset and a sample from the dataset, a counterfactual would be a generated image that closely resembles the original but is changed enough that the model classifies it as a different number from the original instance.
 
-<figure><img src="../overview/images/rlcf-digits.png" alt="Samples from MNIST and counterfactuals for each"></figure>
+<figure><img src="../images/rlcf-digits.png" alt="Samples from MNIST and counterfactuals for each"></figure>
 
 *From Samoilescu RF et al., Model-agnostic and Scalable Counterfactual Explanations via Reinforcement Learning, 2021* 
 
@@ -506,13 +490,13 @@ The first requirement is clear. The second, however, requires some idea of what 
 
 Note that sparse changes to the instance of interest doesn't guarantee that the generated counterfactual is believably a member of the data distribution. [**CEM**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/contrastive-explanation-method-pertinent-negatives/README.md) , [**CFP**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-guided-by-prototypes/README.md), and [**CFRL**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-with-reinforcement-learning/README.md) also require that the counterfactual be in distribution in order to be interpretable.
 
-<figure><img src="../overview/images/interp-and-non-interp-cfs.png" alt="Examples of counterfactuals constructed using CFI and CFP methods"></figure>
+<figure><img src="../images/interp-and-non-interp-cfs.png" alt="Examples of counterfactuals constructed using CFI and CFP methods"></figure>
 
 *Original MNIST 7 instance, Counterfactual instances constructed using 1. **counterfactual instances** method, 2.**counterfactual instances with prototypes** method* 
 
 The first three methods [**CFI**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactual-instances/README.md) , [**CEM**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/contrastive-explanation-method-pertinent-negatives/README.md) , [**CFP**](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/overview/counterfactuals-guided-by-prototypes/README.md) all construct counterfactuals using a very similar method. They build them by defining a loss that prefer interpretable instances close to the target class. They then use gradient descent to move within the feature space until they obtain a counterfactual of sufficient quality. The main difference is the **CEM** and **CFP** methods also train an autoencoder to ensure that the constructed counterfactuals are within the data-distribution.
 
-<figure><img src="../overview//images/interp-cfs.png" alt="Construction of different types of interpretable counterfactuals"></figure>
+<figure><img src="../images/interp-cfs.png" alt="Construction of different types of interpretable counterfactuals"></figure>
 
 *Obtaining counterfactuals using gradient descent with and without autoencoder trained on data distribution* 
 
@@ -593,7 +577,7 @@ A subtle aspect of this method is that it requires defining the absence or prese
 
 This approach extends the definition of interpretable to include a requirement that the computed counterfactual be believably a member of the dataset. This isn't always satisfied (see image below). In particular, the constructed counterfactual often doesn't look like a member of the target class.
 
-<figure><img src="../overview//images/cem-non-interp.png" alt="Example of less interpretable result obtained by CEM"></figure>
+<figure><img src="../images/cem-non-interp.png" alt="Example of less interpretable result obtained by CEM"></figure>
 
 *An original MNIST instance and a pertinent negative obtained using CEM.* 
 
@@ -771,11 +755,6 @@ For each of the four explainers, we have generated a counterfactual instance. We
 The CFI, CEM, and CFRL methods all perturb more features than CFP, making them less interpretable. Looking at the ALE plots, we can see how the counterfactual methods change the features to flip the prediction. In general, each method seems to decrease the sulphates and alcohol content to obtain a "bad" classification consistent with the ALE plots. Note that the ALE plots potentially miss details local to individual instances as they are global insights.
 
 <figure><img src="../images/rlcf-digits.png" alt="Ale plots for those features that the above counterfactuals have changed the most."><figcaption><p></p></figcaption></figure>
-
-```{image}
-:align: center
-:alt: Ale plots for those features that the above counterfactuals have changed the most. 
-```
 
 ### 5. Similarity explanations
 

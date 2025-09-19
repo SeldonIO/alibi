@@ -1,10 +1,8 @@
 # Table of contents
 
-* [README](README.md)
-
 ## Overview
 
-* [Introduction](source/overview/README.md)
+* [Introduction](source/overview/high_level.md)
 * [Getting Started](source/overview/getting_started.md)
 * [Algorithm Overview](source/overview/algorithms.md)
 * [White-box and black-box models](source/overview/white_box_black_box.md)

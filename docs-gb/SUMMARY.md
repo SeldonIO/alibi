@@ -1,7 +1,5 @@
 # Table of contents
 
-* [README](README.md)
-
 ## Overview
 
 * [Introduction](source/overview/high_level.md)

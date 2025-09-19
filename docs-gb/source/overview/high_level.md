@@ -106,7 +106,7 @@ plot_ale(exp, features=['alcohol'], line_kw={'label': 'Probability of "good" cla
 
 Hence, we see the model predicts higher alcohol content wines as being better:
 
-<figure><img src="../images/anchor.png" alt="ALE Plot of wine quality good class probability dependency on alcohols"><figcaption><p>ALE Plot for wine quality</p></figcaption></figure>
+<figure><img src="../images/ale-wine-quality.png" alt="ALE Plot of wine quality good class probability dependency on alcohols"><figcaption><p>ALE Plot for wine quality</p></figcaption></figure>
 
 {% hint style="info" %}
 **Note 2: Categorical Variables and ALE** while ALE is well-defined on numerical tabular data, it isn't on categorical data. This is because it's unclear what the difference between two categorical values should be. If the dataset has a mix of categorical and numerical features, we can always compute the ALE of the numerical ones.
@@ -754,7 +754,7 @@ For each of the four explainers, we have generated a counterfactual instance. We
 
 The CFI, CEM, and CFRL methods all perturb more features than CFP, making them less interpretable. Looking at the ALE plots, we can see how the counterfactual methods change the features to flip the prediction. In general, each method seems to decrease the sulphates and alcohol content to obtain a "bad" classification consistent with the ALE plots. Note that the ALE plots potentially miss details local to individual instances as they are global insights.
 
-<figure><img src="../images/rlcf-digits.png" alt="Ale plots for those features that the above counterfactuals have changed the most."><figcaption><p></p></figcaption></figure>
+<figure><img src="../images/ale-plots.png.png" alt="Ale plots for those features that the above counterfactuals have changed the most."><figcaption><p></p></figcaption></figure>
 
 ### 5. Similarity explanations
 
@@ -764,9 +764,8 @@ The CFI, CEM, and CFRL methods all perturb more features than CFP, making them l
 
 Similarity explanations are instance-based explanations that focus on training data points to justify a model prediction on a test instance. Given a trained model and a test instance whose prediction is to be explained, these methods scan the training set, finding the most similar data points according to the model which forms an explanation. This type of explanation can be interpreted as the model justifying its prediction by referring to similar instances which may share the same prediction---_"I classify this image as a 'Golden Retriever' because it is most similar to images in the training set which I also classified as 'Golden Retriever'"_.
 
-```{figure}
-:align: center
-:alt: A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.
+<figure><img src="../images/golden-retrievers.png" alt="A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'."><figcaption><p></p></figcaption></figure>
+
 
 *A similarity explanation justifies the classification of an image as a 'Golden Retriever' because most similar instances in the training set are also classified as 'Golden Retriever'.*
 ```

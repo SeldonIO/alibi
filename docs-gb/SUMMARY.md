@@ -10,7 +10,7 @@
 * [Frequently Asked Questions](source/overview/faq.md)
 
 ## Explanations
-* [Methods]
+* Methods
   * [ALE](source/methods/ale.md)
   * [Anchors](source/methods/anchors.md)
   * [CEM](source/methods/cem.md)
@@ -27,7 +27,7 @@
   * [Similarity](source/methods/similarity.md)
   * [TreeSHAP](source/methods/treeshap.md)
   * [TrustScores](source/methods/trustscores.md)
-* [Examples]
+* Examples
   * [Alibi Overview Examples](source/examples/overview.md)
   * [Accumulated Local Effets]
     * [Accumulated Local Effects for classifying flowers](source/examples/ale_classification.md)
@@ -77,10 +77,10 @@
 
 ## Model Confidence
 
-* [Methods]
+* Methods
   * [Measuring the linearity of machine learning models](source/methods/linearitymeasure.md)
   * [Trust Scores](source/methods/trustscores.md)
-* [Examples]
+* Examples
   * [Measuring the linearity of machine learning models]
     * [Linearity measure applied to fashion MNIST](source/examples/linearity_measure_fashion_mnist.md)
     * [Linearity measure applied to Iris](source/examples/linearity_measure_iris.md)

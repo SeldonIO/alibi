@@ -10,7 +10,7 @@
 * [Frequently Asked Questions](source/overview/faq.md)
 
 ## Explanations
-* [Methods](source/methods/README.md)
+* [Methods]
   * [ALE](source/methods/ale.md)
   * [Anchors](source/methods/anchors.md)
   * [CEM](source/methods/cem.md)
@@ -27,7 +27,7 @@
   * [Similarity](source/methods/similarity.md)
   * [TreeSHAP](source/methods/treeshap.md)
   * [TrustScores](source/methods/trustscores.md)
-* [Examples](source/methods/README.md)
+* [Examples]
   * [Alibi Overview Examples](source/examples/overview.md)
   * [Accumulated Local Effets]
     * [Accumulated Local Effects for classifying flowers](source/examples/ale_classification.md)

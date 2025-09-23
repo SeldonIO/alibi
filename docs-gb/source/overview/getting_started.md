@@ -2,101 +2,141 @@
 
 ## Installation
 
-Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi/) or [conda-forge](https://conda-forge.org/) by following these instructions.
+Alibi works with Python 3.7+ and can be installed from [PyPI](https://pypi.org/project/alibi/) or [conda-forge](https://conda-forge.org/) by following the instructions below.
 
-### PyPI
+``````{dropdown}
+```{div} sd-mb-3
+- Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
+```
 
-Alibi can be installed from [PyPI](https://pypi.org/project/alibi/) with `pip`:
+`````{tab-set}
 
-{% tabs %}
+````{tab-item} Standard
+:sync: label-standard
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Default installation.
+```
+```bash
+pip install alibi
+```
+````
 
-{% tab title="Standard" %} 
- Default installation.
- ```bash
- pip install alibi
- ```
-{% endtab %}
-
-{% tab title="SHAP" %} Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
+````{tab-item} SHAP
+:sync: label-shap
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
+```
 ```bash
 pip install alibi[shap]
 ```
-{% endtab %}
+````
 
-{% tab title="Distributed" %} Installation with support for 
+````{tab-item} Distributed
+:class-label: sd-pt-0
+:sync: label-dist
+```{div} sd-mb-1
+Installation with support for 
 [distributed Kernel SHAP](../examples/distributed_kernel_shap_adult_lr.ipynb).
+```
 ```bash
 pip install alibi[ray]
 ```
-{% endtab %}
+````
 
-{% tab title="TensorFlow" %}
-Installation with support for tensorflow backends. Required for
-
+````{tab-item} TensorFlow
+:class-label: sd-pt-0
+:sync: label-tensorflow
+```{div} sd-mb-1
+Installation with support for tensorflow backends. Required for 
 - [Contrastive Explanation Method (CEM)](../methods/CEM.ipynb) 
 - [Counterfactuals Guided by Prototypes](../methods/CFProto.ipynb) 
 - [Counterfactual Instances](../methods/CF.ipynb)
 - [Integrated gradients](../methods/IntegratedGradients.ipynb) 
 - [Anchors on Textual data](../examples/anchor_text_movie.ipynb) with `sampling_strategy='language_model'` 
 - One of Torch or TensorFlow is required for the [Counterfactuals with RL](../methods/CFRL.ipynb) methods
+```
 ```bash
 pip install alibi[tensorflow]
 ```
-{% endtab %}
+````
 
-{% tab title="Torch" %} Installation with support for torch backends. One of Torch or TensorFlow is required for: 
+````{tab-item} Torch
+:class-label: sd-pt-0
+:sync: label-torch
+```{div} sd-mb-1
+Installation with support for torch backends. One of Torch or TensorFlow is required for: 
 - [Counterfactuals with RL](../methods/CFRL.ipynb)
 - [Similarity explanations](../methods/Similarity.ipynb)
-
+```
 ```bash
 pip install alibi[torch]
 ```
-{% endtab %}
+````
 
-{% tab title="All" %} Installs all optional dependencies.
+````{tab-item} All
+:class-label: sd-pt-0
+:sync: label-all
+```{div} sd-mb-1
+Installs all optional dependencies.
+```
 ```bash
 pip install alibi[all]
 ```
-{% endtab %}
+````
+`````
+``````
 
-{% endtabs %}
-
-
-### conda-forge
-
+``````{dropdown}
+```{div} sd-mb-3
 - To install the conda-forge version it is recommended to use [mamba](https://mamba.readthedocs.io/en/stable/), 
 which can be installed to the *base* conda enviroment with:
-
+```
 ```bash
 conda install mamba -n base -c conda-forge
 ```
-
+```{div} sd-mb-3
 - `mamba` can then be used to install alibi in a conda enviroment:
 ```
-{% tabs %}
 
-{% tab title="Standard" %} 
+`````{tab-set}
+
+````{tab-item} Standard
+:sync: label-standard
+:class-label: sd-pt-0
+```{div} sd-mb-1
 Default installation.
 ```
 ```bash
 mamba install -c conda-forge alibi
-``` 
-{% endtab %}
+```
+````
 
-{% tab title="SHAP" %} Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
+````{tab-item} SHAP
+:sync: label-shap
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
+```
 ```bash
 mamba install -c conda-forge alibi shap
 ```
- {% endtab %}
+````
 
-{% tab title="Distributed" %} Installation with support for distributed computation of explanations.
-
+````{tab-item} Distributed
+:sync: label-dist
+:class-label: sd-pt-0
+```{div} sd-mb-1
+Installation with support for distributed computation of explanations.
+```
 ```bash
 mamba install -c conda-forge alibi ray 
 ```
- {% endtab %}
+````
 
-{% endtabs %}
+`````
+``````
 
 ## Features
 
@@ -109,7 +149,7 @@ import alibi
 alibi.explainers.__all__
 ```
 
-```bash
+```
 ['ALE', 
 'AnchorTabular',
 'DistributedAnchorTabular', 
@@ -140,7 +180,7 @@ For gauging model confidence:
 alibi.confidence.__all__
 ```
 
-```bash
+```
 ['linearity_measure',
  'LinearityMeasure',
  'TrustScore']
@@ -152,7 +192,7 @@ For dataset summarization
 alibi.prototypes.__all__
 ```
 
-```bash
+```
 ['ProtoSelect',
  'visualize_image_prototypes']
 ```
@@ -199,7 +239,7 @@ Some methods require an additional `.fit` step which requires access to the trai
 explainer.fit(X_train)
 ```
 
-```bash
+```
 AnchorTabular(meta={
     'name': 'AnchorTabular',
     'type': ['blackbox'],
@@ -220,7 +260,7 @@ The returned `Explanation` object has `meta` and `data` attributes which are dic
 explanation.meta
 ```
 
-```bash
+```
 {'name': 'AnchorTabular',
  'type': ['blackbox'],
  'explanations': ['local'],
@@ -234,7 +274,7 @@ explanation.meta
 explanation.data
 ```
 
-```bash
+```
 {'anchor': ['petal width (cm) > 1.80', 'sepal width (cm) <= 2.80'],
  'precision': 0.9839228295819936,
  'coverage': 0.31724137931034485,
@@ -251,7 +291,7 @@ The top level keys of both `meta` and `data` dictionaries are also exposed as at
 explanation.anchor
 ```
 
-```bash
+```
 ['petal width (cm) > 1.80', 'sepal width (cm) <= 2.80']
 ```
 

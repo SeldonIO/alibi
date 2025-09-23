@@ -6,21 +6,21 @@ Explainer algorithms can be categorised in many ways (see [this table](algorithm
 
 On the other hand, a **black-box** model describes any model that the explainer method may not inspect and modify arbitrarily. The only interaction with the model is via calling its `predict` function (or similar) on data and receiving predictions back. In the context of `alibi` black-box models have a concrete definition—they are functions that take in a `numpy` array representing data and return a `numpy` array representing a prediction. Using [type hints](https://docs.python.org/3/library/typing.html) we can define a general black-box model (also referred to as a _prediction function_) to be of type `Callable[[np.ndarray], np.ndarray]` . Explainers that expect black-box models as input are very flexible as _any_ type of function that conforms to the expected type can be explained by black-box explainers.
 
-{% hint style="info" %}
-**Note**:In addition to the expected type, black-box models **must** be
+```{note}
+In addition to the expected type, black-box models **must** be
 compatible with batch prediction. I.e. `alibi` explainers assume
 that the first dimension of the input array is always batch.
-{% endhint %}
+```
 
-{% hint style="warning" %}
-**Warning**: There is currently one exception to the black-box interface: the
+```{warning}
+There is currently one exception to the black-box interface: the
 `AnchorText` explainer expects the prediction function to be of
 type `Callable[[List[str], np.ndarray]`, i.e. the model is expected
 to work on batches of raw text (here `List[str]` indicates a batch
 of text strings). See [this
 example](../examples/anchor_text_movie.ipynb) for more
 information.
-{% endhint %}
+```
 
 ## Wrapping white-box models into black-box models
 

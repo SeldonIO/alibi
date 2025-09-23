@@ -81,10 +81,10 @@
   * [Measuring the linearity of machine learning models](source/methods/linearitymeasure.md)
   * [Trust Scores](source/methods/trustscores.md)
 * Examples
-  * [Measuring the linearity of machine learning models]
+  * Measuring the linearity of machine learning models
     * [Linearity measure applied to fashion MNIST](source/examples/linearity_measure_fashion_mnist.md)
     * [Linearity measure applied to Iris](source/examples/linearity_measure_iris.md)
-  * [Trust Scores]
+  * Trust Scores
     * [Trust Scores applied to Iris](source/examples/trustscore_iris.md)
     * [Trust Scores applied to MNIST](source/examples/trustscore_mnist.md)
 

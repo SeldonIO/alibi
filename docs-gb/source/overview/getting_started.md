@@ -83,6 +83,7 @@ mamba install -c conda-forge alibi
 {% endtab %}
 
 {% tab title="SHAP" %} Installation with support for computing [SHAP](https://shap.readthedocs.io/en/stable/index.html) values.
+
 ```bash
 mamba install -c conda-forge alibi shap
 ```

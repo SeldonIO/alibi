@@ -97,4 +97,4 @@
 
 ## API Reference
 
-* [\[Annotation Based Configuration\]](api-reference/annotation-based-configuration.md)
+* [Annotation Based Configuration](api-reference/annotation-based-configuration.md)

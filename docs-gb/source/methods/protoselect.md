@@ -1,10 +1,6 @@
 # ProtoSelect
 
-[\[source\]](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/api/alibi.prototypes.html#alibi.prototypes.ProtoSelect)
-
-## ProtoSelect
-
-### Overview
+## Overview
 
 [Bien and Tibshirani (2012)](https://arxiv.org/abs/1202.5933) proposed ProtoSelect, which is a prototype selection method with the goal of constructing not only a condensed view of a dataset but also an interpretable model (applicable to classification only). Prototypes can be defined as instances that are representative of the entire training data distribution. Formally, consider a dataset of training points $\mathcal{X} = {x\_1, ..., x\_n } \subset \mathbf{R}^p$ and their corresponding labels $\mathcal{Y} = {y\_1, ..., y\_n}$, where $y\_i \in {1, 2, ..., L}$. ProtoSelect finds sets $\mathcal{P}\_{l} \subseteq \mathcal{X}$ for each class $l$ such that the set union of $\mathcal{P}\_1, \mathcal{P}\_2, ..., \mathcal{P}\_L$ would provided a distilled view of the training dataset $(\mathcal{X}, \mathcal{Y})$.
 

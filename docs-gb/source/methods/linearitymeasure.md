@@ -1,7 +1,5 @@
 # LinearityMeasure
 
-[\[source\]](https://github.com/ramonpzg/alibi/blob/rp-alibi-newdocs-dec23/doc/source/api/alibi.confidence.html#alibi.confidence.LinearityMeasure)
-
 ## Measuring the linearity of machine learning models
 
 ### Overview

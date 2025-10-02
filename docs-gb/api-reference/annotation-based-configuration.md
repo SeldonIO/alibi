@@ -1,2 +1,0 @@
-# \[Annotation Based Configuration]
-

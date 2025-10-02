@@ -1,0 +1,272 @@
+# `alibi.prototypes.protoselect`
+## Classes
+### `ProtoSelect` (_inherits from `Summariser`, `FitMixin`, `ABC`, `Base`)
+
+Base class for prototype algorithms from :py:mod:`alibi.prototypes`.
+
+#### Constructor
+
+```python
+ProtoSelect(self, kernel_distance: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray], eps: float, lambda_penalty: Optional[float] = None, batch_size: int = 10000000000, preprocess_fn: Optional[Callable[[Union[list, numpy.ndarray]], numpy.ndarray]] = None, verbose: bool = False)
+```
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `kernel_distance` | `Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>]], numpy.ndarray]` |  |  |
+| `eps` | `float` |  |  |
+| `lambda_penalty` | `Optional[float]` | `None` |  |
+| `batch_size` | `int` | `10000000000` |  |
+| `preprocess_fn` | `Optional[Callable[[.[typing.Union[list, numpy.ndarray]]], numpy.ndarray]]` | `None` |  |
+| `verbose` | `bool` | `False` |  |
+
+#### Methods
+
+##### `fit`
+
+```python
+fit(X: Union[list, numpy.ndarray], y: Optional[numpy.ndarray] = None, Z: Union[list, numpy.ndarray, None] = None) -> alibi.prototypes.protoselect.ProtoSelect
+```
+
+Fit the summariser. This step forms the kernel matrix in memory which has a shape of `NX x NX`,
+
+where `NX` is  the number of instances in `X`, if the optional dataset `Z` is not provided. Otherwise, if
+the optional dataset `Z` is provided, the kernel matrix has a shape of `NZ x NX`, where `NZ` is the
+number of instances in `Z`.
+
+Parameters
+---------
+X
+    Dataset to be summarised.
+y
+    Labels of the dataset `X` to be summarised. The labels are expected to be represented as integers
+    `[0, 1, ..., L-1]`, where `L` is the number of classes in the dataset `X`.
+Z
+    Optional dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
+    dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
+    it is summarised by prototypes belonging to the dataset `Z`.
+
+Returns
+-------
+self
+    Reference to itself.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `Union[list, numpy.ndarray]` |  |  |
+| `y` | `Optional[numpy.ndarray]` | `None` |  |
+| `Z` | `Union[list, numpy.ndarray, None]` | `None` |  |
+
+**Returns**
+- Type: `alibi.prototypes.protoselect.ProtoSelect`
+
+##### `summarise`
+
+```python
+summarise(num_prototypes: int = 1) -> alibi.api.interfaces.Explanation
+```
+
+Searches for the requested number of prototypes. Note that the algorithm can return a lower number of
+
+prototypes than the requested one. To increase the number of prototypes, reduce the epsilon-ball radius
+(`eps`), and the penalty for adding a prototype (`lambda_penalty`).
+
+Parameters
+----------
+num_prototypes
+    Maximum number of prototypes to be selected.
+
+Returns
+-------
+An `Explanation` object containing the prototypes, prototype indices and prototype labels with additional         metadata as attributes.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `num_prototypes` | `int` | `1` |  |
+
+**Returns**
+- Type: `alibi.api.interfaces.Explanation`
+
+## Functions
+### `compute_prototype_importances`
+
+```python
+compute_prototype_importances(summary: alibi.api.interfaces.Explanation, trainset: Tuple[numpy.ndarray, numpy.ndarray], preprocess_fn: Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]] = None, knn_kw: Optional[dict] = None) -> Dict[str, Optional[numpy.ndarray]]
+```
+
+Computes the importance of each prototype. The importance of a prototype is the number of assigned
+
+training instances correctly classified according to the 1-KNN classifier
+(Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+
+Parameters
+----------
+summary
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+preprocess_fn
+    Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+    If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+    See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+
+Returns
+-------
+A dictionary containing:
+
+ - ``'prototype_indices'`` - an array of the prototype indices.
+
+ - ``'prototype_importances'`` - an array of prototype importances.
+
+ - ``'X_protos'`` - an array of raw prototypes.
+
+ - ``'X_protos_ft'`` - an optional array of preprocessed prototypes. If the ``preprocess_fn=None``,      no preprocessing is applied and ``None`` is returned instead.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `summary` | `alibi.api.interfaces.Explanation` |  |  |
+| `trainset` | `Tuple[numpy.ndarray, numpy.ndarray]` |  |  |
+| `preprocess_fn` | `Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]]` | `None` |  |
+| `knn_kw` | `Optional[dict]` | `None` |  |
+
+**Returns**
+- Type: `Dict[str, Optional[numpy.ndarray]]`
+
+### `cv_protoselect_euclidean`
+
+```python
+cv_protoselect_euclidean(trainset: Tuple[numpy.ndarray, numpy.ndarray], protoset: Optional[Tuple[numpy.ndarray]] = None, valset: Optional[Tuple[numpy.ndarray, numpy.ndarray]] = None, num_prototypes: int = 1, eps_grid: Optional[numpy.ndarray] = None, quantiles: Optional[Tuple[float, float]] = None, grid_size: int = 25, n_splits: int = 2, batch_size: int = 10000000000, preprocess_fn: Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]] = None, protoselect_kw: Optional[dict] = None, knn_kw: Optional[dict] = None, kfold_kw: Optional[dict] = None) -> dict
+```
+
+Cross-validation parameter selection for `ProtoSelect` with Euclidean distance. The method computes
+
+the best epsilon radius.
+
+Parameters
+----------
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+protoset
+    Tuple, `(Z, )`, consisting of the dataset to choose the prototypes from. If `Z` is not provided
+    (i.e., ``protoset=None``), the prototypes will be selected from the training dataset `X`. Otherwise, if `Z`
+    is provided, the dataset to be summarised is still `X`, but it is summarised by prototypes belonging to
+    the dataset `Z`. Note that the argument is passed as a tuple with a single element for consistency reasons.
+valset
+    Optional tuple `(X_val, y_val)` consisting of validation data instances with the corresponding
+    validation labels. 1-KNN classifier is evaluated on the validation dataset to obtain the best epsilon radius.
+    In case ``valset=None``, then `n-splits` cross-validation is performed on the `trainset`.
+num_prototypes
+    The number of prototypes to be selected.
+eps_grid
+    Optional grid of values to select the epsilon radius from. If not specified, the search grid is
+    automatically proposed based on the inter-distances between `X` and `Z`. The distances are filtered
+    by considering only values in between the `quantiles` values. The minimum and maximum distance values are
+    used to define the range of values to search the epsilon radius. The interval is discretized in `grid_size`
+    equidistant bins.
+quantiles
+    Quantiles, `(q_min, q_max)`, to be used to filter the range of values of the epsilon radius. The expected
+    quantile values are in `[0, 1]` and clipped to `[0, 1]` if outside the range. See `eps_grid` for usage.
+    If not specified, no filtering is applied. Only used if ``eps_grid=None``.
+grid_size
+    The number of equidistant bins to be used to discretize the `eps_grid` automatically proposed interval.
+    Only used if ``eps_grid=None``.
+batch_size
+    Batch size to be used for kernel matrix computation.
+preprocess_fn
+    Preprocessing function to be applied to the data instance before applying the kernel.
+protoselect_kw
+    Keyword arguments passed to :py:meth:`alibi.prototypes.protoselect.ProtoSelect.__init__`.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1 and the `metric` will be set to ``'euclidean``. See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+kfold_kw
+    Keyword arguments passed to `sklearn.model_selection.KFold`. See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.model_selection.KFold.html
+
+Returns
+-------
+Dictionary containing
+ - ``'best_eps'``: ``float`` - the best epsilon radius according to the accuracy of a 1-KNN classifier.
+ - ``'meta'``: ``dict`` - dictionary containing argument and data gather throughout cross-validation.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `trainset` | `Tuple[numpy.ndarray, numpy.ndarray]` |  |  |
+| `protoset` | `Optional[Tuple[numpy.ndarray]]` | `None` |  |
+| `valset` | `Optional[Tuple[numpy.ndarray, numpy.ndarray]]` | `None` |  |
+| `num_prototypes` | `int` | `1` |  |
+| `eps_grid` | `Optional[numpy.ndarray]` | `None` |  |
+| `quantiles` | `Optional[Tuple[float, float]]` | `None` |  |
+| `grid_size` | `int` | `25` |  |
+| `n_splits` | `int` | `2` |  |
+| `batch_size` | `int` | `10000000000` |  |
+| `preprocess_fn` | `Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]]` | `None` |  |
+| `protoselect_kw` | `Optional[dict]` | `None` |  |
+| `knn_kw` | `Optional[dict]` | `None` |  |
+| `kfold_kw` | `Optional[dict]` | `None` |  |
+
+**Returns**
+- Type: `dict`
+
+### `visualize_image_prototypes`
+
+```python
+visualize_image_prototypes(summary: alibi.api.interfaces.Explanation, trainset: Tuple[numpy.ndarray, numpy.ndarray], reducer: Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray], preprocess_fn: Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]] = None, knn_kw: Optional[dict] = None, ax: Optional[matplotlib.axes._axes.Axes] = None, fig_kw: Optional[dict] = None, image_size: Tuple[int, int] = (28, 28), zoom_lb: float = 1.0, zoom_ub: float = 3.0) -> matplotlib.axes._axes.Axes
+```
+
+Plot the images of the prototypes at the location given by the `reducer` representation.
+
+The size of each prototype is proportional to the logarithm of the number of assigned training instances correctly
+classified according to the 1-KNN classifier (Bien and Tibshirani (2012): https://arxiv.org/abs/1202.5933).
+
+Parameters
+----------
+summary
+    An `Explanation` object produced by a call to the
+    :py:meth:`alibi.prototypes.protoselect.ProtoSelect.summarise` method.
+trainset
+    Tuple, `(X_train, y_train)`, consisting of the training data instances with the corresponding labels.
+reducer
+    2D reducer. Reduces the input feature representation to 2D. Note that the reducer operates directly on the
+    input instances if ``preprocess_fn=None``. If the `preprocess_fn` is specified, the reducer will be called
+    on the feature representation obtained after passing the input instances through the `preprocess_fn`.
+preprocess_fn
+    Optional preprocessor function. If ``preprocess_fn=None``, no preprocessing is applied.
+knn_kw
+    Keyword arguments passed to `sklearn.neighbors.KNeighborsClassifier`. The `n_neighbors` will be
+    set automatically to 1, but the `metric` has to be specified according to the kernel distance used.
+    If the `metric` is not specified, it will be set by default to ``'euclidean'``.
+    See parameters description:
+    https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
+ax
+    A `matplotlib` axes object to plot on.
+fig_kw
+    Keyword arguments passed to the `fig.set` function.
+image_size
+    Shape to which the prototype images will be resized. A zoom of 1 will display the image having the shape
+    `image_size`.
+zoom_lb
+    Zoom lower bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+zoom_ub
+    Zoom upper bound. The zoom will be scaled linearly between `[zoom_lb, zoom_ub]`.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `summary` | `alibi.api.interfaces.Explanation` |  |  |
+| `trainset` | `Tuple[numpy.ndarray, numpy.ndarray]` |  |  |
+| `reducer` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  |  |
+| `preprocess_fn` | `Optional[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]]` | `None` |  |
+| `knn_kw` | `Optional[dict]` | `None` |  |
+| `ax` | `Optional[matplotlib.axes._axes.Axes]` | `None` |  |
+| `fig_kw` | `Optional[dict]` | `None` |  |
+| `image_size` | `Tuple[int, int]` | `(28, 28)` |  |
+| `zoom_lb` | `float` | `1.0` |  |
+| `zoom_ub` | `float` | `3.0` |  |
+
+**Returns**
+- Type: `matplotlib.axes._axes.Axes`

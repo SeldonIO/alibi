@@ -1,0 +1,333 @@
+# `alibi.explainers.cfproto`
+## Classes
+### `CounterfactualProto` (_inherits from `Explainer`, `FitMixin`, `ABC`, `Base`)
+
+Base class for explainer algorithms from :py:mod:`alibi.explainers`.
+
+#### Constructor
+
+```python
+CounterfactualProto(self, predict: Union[Callable[[numpy.ndarray], numpy.ndarray], keras.src.models.model.Model], shape: tuple, kappa: float = 0.0, beta: float = 0.1, feature_range: Tuple[Union[float, numpy.ndarray], Union[float, numpy.ndarray]] = (-10000000000.0, 10000000000.0), gamma: float = 0.0, ae_model: Optional[keras.src.models.model.Model] = None, enc_model: Optional[keras.src.models.model.Model] = None, theta: float = 0.0, cat_vars: Optional[Dict[int, int]] = None, ohe: bool = False, use_kdtree: bool = False, learning_rate_init: float = 0.01, max_iterations: int = 1000, c_init: float = 10.0, c_steps: int = 10, eps: tuple = (0.001, 0.001), clip: tuple = (-1000.0, 1000.0), update_num_grad: int = 1, write_dir: Optional[str] = None, sess: Optional[tensorflow.python.client.session.Session] = None) -> None
+```
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `predict` | `Union[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray], keras.src.models.model.Model]` |  |  |
+| `shape` | `tuple` |  |  |
+| `kappa` | `float` | `0.0` |  |
+| `beta` | `float` | `0.1` |  |
+| `feature_range` | `Tuple[Union[float, numpy.ndarray], Union[float, numpy.ndarray]]` | `(-10000000000.0, 10000000000.0)` |  |
+| `gamma` | `float` | `0.0` |  |
+| `ae_model` | `Optional[keras.src.models.model.Model]` | `None` |  |
+| `enc_model` | `Optional[keras.src.models.model.Model]` | `None` |  |
+| `theta` | `float` | `0.0` |  |
+| `cat_vars` | `Optional[Dict[int, int]]` | `None` |  |
+| `ohe` | `bool` | `False` |  |
+| `use_kdtree` | `bool` | `False` |  |
+| `learning_rate_init` | `float` | `0.01` |  |
+| `max_iterations` | `int` | `1000` |  |
+| `c_init` | `float` | `10.0` |  |
+| `c_steps` | `int` | `10` |  |
+| `eps` | `tuple` | `(0.001, 0.001)` |  |
+| `clip` | `tuple` | `(-1000.0, 1000.0)` |  |
+| `update_num_grad` | `int` | `1` |  |
+| `write_dir` | `Optional[str]` | `None` |  |
+| `sess` | `Optional[tensorflow.python.client.session.Session]` | `None` |  |
+
+#### Methods
+
+##### `attack`
+
+```python
+attack(X: numpy.ndarray, Y: numpy.ndarray, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]
+```
+
+Find a counterfactual (CF) for instance `X` using a fast iterative shrinkage-thresholding algorithm (FISTA).
+
+Parameters
+----------
+X
+    Instance to attack.
+Y
+    Labels for `X` as one-hot-encoding.
+target_class
+    List with target classes used to find closest prototype. If ``None``, the nearest prototype
+    except for the predict class on the instance is used.
+k
+    Number of nearest instances used to define the prototype for a class. Defaults to using all
+    instances belonging to the class if an encoder is used and to 1 for k-d trees.
+k_type
+    Use either the average encoding of the k nearest instances in a class (``k_type='mean'``) or
+    the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
+    Only relevant if an encoder is used to define the prototypes.
+threshold
+    Threshold level for the ratio between the distance of the counterfactual to the prototype of the
+    predicted class for the original instance over the distance to the prototype of the predicted class
+    for the counterfactual. If the trust score is below the threshold, the proposed counterfactual does
+    not meet the requirements.
+verbose
+    Print intermediate results of optimization if ``True``.
+print_every
+    Print frequency if verbose is ``True``.
+log_every
+    `tensorboard` log frequency if write directory is specified.
+
+Returns
+-------
+Overall best attack and gradients for that attack.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `numpy.ndarray` |  |  |
+| `Y` | `numpy.ndarray` |  |  |
+| `target_class` | `Optional[list]` | `None` |  |
+| `k` | `Optional[int]` | `None` |  |
+| `k_type` | `str` | `'mean'` |  |
+| `threshold` | `float` | `0.0` |  |
+| `verbose` | `bool` | `False` |  |
+| `print_every` | `int` | `100` |  |
+| `log_every` | `int` | `100` |  |
+
+**Returns**
+- Type: `Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]`
+
+##### `explain`
+
+```python
+explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> alibi.api.interfaces.Explanation
+```
+
+Explain instance and return counterfactual with metadata.
+
+Parameters
+----------
+X
+    Instances to attack.
+Y
+    Labels for `X` as one-hot-encoding.
+target_class
+    List with target classes used to find closest prototype. If ``None``, the nearest prototype
+    except for the predict class on the instance is used.
+k
+    Number of nearest instances used to define the prototype for a class. Defaults to using all
+    instances belonging to the class if an encoder is used and to 1 for k-d trees.
+k_type
+    Use either the average encoding of the `k` nearest instances in a class (``k_type='mean'``) or
+    the k-nearest encoding in the class (``k_type='point'``) to define the prototype of that class.
+    Only relevant if an encoder is used to define the prototypes.
+threshold
+    Threshold level for the ratio between the distance of the counterfactual to the prototype of the
+    predicted class for the original instance over the distance to the prototype of the predicted class
+    for the counterfactual. If the trust score is below the threshold, the proposed counterfactual does
+    not meet the requirements.
+verbose
+    Print intermediate results of optimization if ``True``.
+print_every
+    Print frequency if verbose is ``True``.
+log_every
+    `tensorboard` log frequency if write directory is specified
+
+Returns
+-------
+explanation
+    `Explanation` object containing the counterfactual with additional metadata as attributes.
+    See usage at `CFProto examples`_ for details.
+
+    .. _CFProto examples:
+        https://docs.seldon.io/projects/alibi/en/stable/methods/CFProto.html
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `numpy.ndarray` |  |  |
+| `Y` | `Optional[numpy.ndarray]` | `None` |  |
+| `target_class` | `Optional[list]` | `None` |  |
+| `k` | `Optional[int]` | `None` |  |
+| `k_type` | `str` | `'mean'` |  |
+| `threshold` | `float` | `0.0` |  |
+| `verbose` | `bool` | `False` |  |
+| `print_every` | `int` | `100` |  |
+| `log_every` | `int` | `100` |  |
+
+**Returns**
+- Type: `alibi.api.interfaces.Explanation`
+
+##### `fit`
+
+```python
+fit(train_data: numpy.ndarray, trustscore_kwargs: Optional[dict] = None, d_type: str = 'abdm', w: Optional[float] = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False, smooth: float = 1.0, center: bool = True, update_feature_range: bool = True) -> alibi.explainers.cfproto.CounterfactualProto
+```
+
+Get prototypes for each class using the encoder or k-d trees.
+
+The prototypes are used for the encoder loss term or to calculate the optional trust scores.
+
+Parameters
+----------
+train_data
+    Representative sample from the training data.
+trustscore_kwargs
+    Optional arguments to initialize the trust scores method.
+d_type
+    Pairwise distance metric used for categorical variables. Currently, ``'abdm'``, ``'mvdm'`` and
+    ``'abdm-mvdm'`` are supported. ``'abdm'`` infers context from the other variables while ``'mvdm'`` uses
+    the model predictions. ``'abdm-mvdm'`` is a weighted combination of the two metrics.
+w
+    Weight on ``'abdm'`` (between 0. and 1.) distance if `d_type` equals ``'abdm-mvdm'``.
+disc_perc
+    List with percentiles used in binning of numerical features used for the ``'abdm'``
+    and ``'abdm-mvdm'`` pairwise distance measures.
+standardize_cat_vars
+    Standardize numerical values of categorical variables if ``True``.
+smooth
+    Smoothing exponent between 0 and 1 for the distances. Lower values will smooth the difference in
+    distance metric between different features.
+center
+    Whether to center the scaled distance measures. If ``False``, the min distance for each feature
+    except for the feature with the highest raw max distance will be the lower bound of the
+    feature range, but the upper bound will be below the max feature range.
+update_feature_range
+    Update feature range with scaled values.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `train_data` | `numpy.ndarray` |  |  |
+| `trustscore_kwargs` | `Optional[dict]` | `None` |  |
+| `d_type` | `str` | `'abdm'` |  |
+| `w` | `Optional[float]` | `None` |  |
+| `disc_perc` | `Sequence[Union[int, float]]` | `(25, 50, 75)` |  |
+| `standardize_cat_vars` | `bool` | `False` |  |
+| `smooth` | `float` | `1.0` |  |
+| `center` | `bool` | `True` |  |
+| `update_feature_range` | `bool` | `True` |  |
+
+**Returns**
+- Type: `alibi.explainers.cfproto.CounterfactualProto`
+
+##### `get_gradients`
+
+```python
+get_gradients(X: numpy.ndarray, Y: numpy.ndarray, grads_shape: tuple, cat_vars_ord: dict) -> numpy.ndarray
+```
+
+Compute numerical gradients of the attack loss term:
+
+`dL/dx = (dL/dP)*(dP/dx)` with `L = loss_attack_s; P = predict; x = adv_s`.
+
+Parameters
+----------
+X
+    Instance around which gradient is evaluated.
+Y
+    One-hot representation of instance labels.
+grads_shape
+    Shape of gradients.
+cat_vars_ord
+    Dict with as keys the categorical columns and as values
+    the number of categories per categorical variable.
+
+Returns
+-------
+Array with gradients.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `numpy.ndarray` |  |  |
+| `Y` | `numpy.ndarray` |  |  |
+| `grads_shape` | `tuple` |  |  |
+| `cat_vars_ord` | `dict` |  |  |
+
+**Returns**
+- Type: `numpy.ndarray`
+
+##### `loss_fn`
+
+```python
+loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
+```
+
+Compute the attack loss.
+
+Parameters
+----------
+pred_proba
+    Prediction probabilities of an instance.
+Y
+    One-hot representation of instance labels.
+
+Returns
+-------
+Loss of the attack.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `pred_proba` | `numpy.ndarray` |  |  |
+| `Y` | `numpy.ndarray` |  |  |
+
+**Returns**
+- Type: `numpy.ndarray`
+
+##### `reset_predictor`
+
+```python
+reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None
+```
+
+Resets the predictor function/model.
+
+Parameters
+----------
+predictor
+    New predictor function/model.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `predictor` | `Union[Callable, keras.src.models.model.Model]` |  |  |
+
+**Returns**
+- Type: `None`
+
+##### `score`
+
+```python
+score(X: numpy.ndarray, adv_class: int, orig_class: int, eps: float = 1e-10) -> float
+```
+
+Parameters
+
+----------
+X
+    Instance to encode and calculate distance metrics for.
+adv_class
+    Predicted class on the perturbed instance.
+orig_class
+    Predicted class on the original instance.
+eps
+    Small number to avoid dividing by 0.
+
+Returns
+-------
+Ratio between the distance to the prototype of the predicted class for the original instance and         the prototype of the predicted class for the perturbed instance.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `numpy.ndarray` |  |  |
+| `adv_class` | `int` |  |  |
+| `orig_class` | `int` |  |  |
+| `eps` | `float` | `1e-10` |  |
+
+**Returns**
+- Type: `float`
+
+## Functions
+### `CounterFactualProto`
+
+```python
+CounterFactualProto(args, kwargs)
+```
+
+The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `args` |  |  |  |
+| `kwargs` |  |  |  |

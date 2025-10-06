@@ -4,29 +4,11 @@
 ```python
 DEFAULT_DATA_ANCHOR = {'anchor': [], 'precision': None, 'coverage': None, 'raw': None}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_ANCHOR`
 ```python
 DEFAULT_META_ANCHOR = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ## Classes
 ### `AnchorTabular` (_inherits from `Explainer`, `FitMixin`, `ABC`, `Base`)

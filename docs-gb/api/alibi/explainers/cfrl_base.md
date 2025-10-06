@@ -14,29 +14,11 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 ```python
 DEFAULT_DATA_CFRL = {'orig': None, 'cf': None, 'target': None, 'condition': None}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_CFRL`
 ```python
 DEFAULT_META_CFRL = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `has_pytorch`
 ```python
@@ -79,15 +61,6 @@ There is no arbitrary limit to the depth of nesting.
 ```python
 DEFAULT_BASE_PARAMS = {'act_noise': 0.1, 'act_low': -1.0, 'act_high': 1.0, 'replay_buffer_size': 10...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ## Classes
 ### `Callback` (_inherits from `ABC`)

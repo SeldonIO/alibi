@@ -4,29 +4,11 @@
 ```python
 DEFAULT_DATA_INTGRAD = {'attributions': None, 'X': None, 'forward_kwargs': None, 'baselines': None, ...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_INTGRAD`
 ```python
 DEFAULT_META_INTGRAD = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `logger`
 ```python

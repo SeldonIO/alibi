@@ -678,7 +678,8 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
             else:
                 parts.append(f"### `{name}`")
                 parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
-            if doc:
+            # Only include the docstring if it's not the default `dict` constructor doc
+            if doc and not doc.startswith("dict() -> new empty dictionary"):
                 parts.append(doc)
             parts.append("")
 

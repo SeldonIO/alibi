@@ -14,57 +14,21 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 ```python
 DEFAULT_DATA_KERNEL_SHAP = {'shap_values': [], 'expected_value': [], 'categorical_names': {}, 'feature_n...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_DATA_TREE_SHAP`
 ```python
 DEFAULT_DATA_TREE_SHAP = {'shap_values': [], 'shap_interaction_values': [], 'expected_value': [], 'cat...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_KERNEL_SHAP`
 ```python
 DEFAULT_META_KERNEL_SHAP = {'name': None, 'type': ['blackbox'], 'task': None, 'explanations': ['local', ...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_TREE_SHAP`
 ```python
 DEFAULT_META_TREE_SHAP = {'name': None, 'type': ['whitebox'], 'task': None, 'explanations': ['local', ...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `logger`
 ```python
@@ -106,15 +70,6 @@ Base 0 means to interpret the base from the string as an integer literal.
 ```python
 DISTRIBUTED_OPTS = {'n_cpus': None, 'batch_size': 1}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `TREE_SHAP_BACKGROUND_SUPPORTED_SIZE`
 ```python

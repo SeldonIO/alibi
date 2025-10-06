@@ -14,29 +14,11 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 ```python
 DEFAULT_DATA_ANCHOR = {'anchor': [], 'precision': None, 'coverage': None, 'raw': None}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_ANCHOR`
 ```python
 DEFAULT_META_ANCHOR = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `logger`
 ```python
@@ -59,43 +41,16 @@ There is no arbitrary limit to the depth of nesting.
 ```python
 DEFAULT_SAMPLING_UNKNOWN = {'sample_proba': 0.5}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_SAMPLING_SIMILARITY`
 ```python
 DEFAULT_SAMPLING_SIMILARITY = {'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0, 'use_proba': False}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_SAMPLING_LANGUAGE_MODEL`
 ```python
 DEFAULT_SAMPLING_LANGUAGE_MODEL = {'filling': 'parallel', 'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ## Classes
 ### `AnchorText` (_inherits from `Explainer`, `ABC`, `Base`)

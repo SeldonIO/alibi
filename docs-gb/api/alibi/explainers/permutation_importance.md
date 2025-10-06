@@ -4,29 +4,11 @@
 ```python
 DEFAULT_DATA_PERMUTATION_IMPORTANCE = {'feature_names': None, 'metric_names': None, 'feature_importance': None}
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_PERMUTATION_IMPORTANCE`
 ```python
 DEFAULT_META_PERMUTATION_IMPORTANCE = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `logger`
 ```python
@@ -47,31 +29,13 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS = {'mean_absolute_error': <function mean_absolute_error at 0x157b5cca0>, 'mean_...
+LOSS_FNS = {'mean_absolute_error': <function mean_absolute_error at 0x12f2c8ca0>, 'mean_...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS = {'accuracy': <function accuracy_score at 0x157a49790>, 'precision': <function...
+SCORE_FNS = {'accuracy': <function accuracy_score at 0x12bfed790>, 'precision': <function...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ## Classes
 ### `Kind` (_inherits from `str`, `Enum`)

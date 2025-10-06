@@ -18,29 +18,11 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 ```python
 DEFAULT_DATA_SIM = {'scores': None, 'ordered_indices': None, 'most_similar': None, 'least_simila...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ### `DEFAULT_META_SIM`
 ```python
 DEFAULT_META_SIM = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
 ```
-dict() -> new empty dictionary
-dict(mapping) -> new dictionary initialized from a mapping object's
-    (key, value) pairs
-dict(iterable) -> new dictionary initialized as if via:
-    d = {}
-    for k, v in iterable:
-        d[k] = v
-dict(**kwargs) -> new dictionary initialized with the name=value pairs
-    in the keyword argument list.  For example:  dict(one=1, two=2)
 
 ## Classes
 ### `GradientSimilarity` (_inherits from `BaseSimilarityExplainer`, `Explainer`, `ABC`, `Base`)

@@ -10,10 +10,10 @@ Discretizer(self, data: numpy.ndarray, numerical_features: List[int], feature_na
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `numerical_features` | `List[int]` |  |  |
-| `feature_names` | `List[str]` |  |  |
-| `percentiles` | `Sequence[Union[int, float]]` | `(25, 50, 75)` |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
+| `numerical_features` | `List[int]` |  | List of indices corresponding to the continuous feature columns. Only these features will be discretized. |
+| `feature_names` | `List[str]` |  | List with feature names. |
+| `percentiles` | `Sequence[Union[int, float]]` | `(25, 50, 75)` | Percentiles used for discretization. |
 
 #### Methods
 
@@ -35,7 +35,7 @@ List with bin values for each feature that is discretized.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
 
 **Returns**
 - Type: `List[numpy.ndarray]`
@@ -58,7 +58,7 @@ Discretized version of data with the same dimension.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -88,8 +88,8 @@ A discretized data `numpy` array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `numpy.ndarray` |  |  |
-| `qts` | `numpy.ndarray` |  |  |
+| `x` | `numpy.ndarray` |  | A `numpy` array of data to be discretized |
+| `qts` | `numpy.ndarray` |  | A `numpy` array of percentiles. This should be a 1-D array sorted in ascending order. |
 
 **Returns**
 - Type: `numpy.ndarray`

@@ -29,9 +29,9 @@ Bunch
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `features_drop` | `Optional[list]` | `None` |  |
-| `return_X_y` | `bool` | `False` |  |
-| `url_id` | `int` | `0` |  |
+| `features_drop` | `Optional[list]` | `None` | List of features to be dropped from dataset, by default drops ``["fnlwgt", "Education-Num"]``. |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object. |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading. |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[numpy.ndarray, numpy.ndarray]]`
@@ -93,7 +93,7 @@ Dictionary with the following keys:
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `url_id` | `int` | `0` |  |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading. |
 
 **Returns**
 - Type: `Dict`
@@ -122,8 +122,8 @@ Bunch
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `return_X_y` | `bool` | `False` |  |
-| `url_id` | `int` | `0` |  |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `Python` lists. If ``False`` return a `Bunch` object. |
+| `url_id` | `int` | `0` | Index specifying which URL to use for downloading |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[list, list]]`
@@ -156,8 +156,8 @@ Bunch
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `target_size` | `tuple` | `(299, 299)` |  |
-| `return_X_y` | `bool` | `False` |  |
+| `target_size` | `tuple` | `(299, 299)` | Size of the returned images, used to crop images for a specified model input size. |
+| `return_X_y` | `bool` | `False` | If ``True``, return features `X` and labels `y` as `numpy` arrays. If ``False`` return a `Bunch` object |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[numpy.ndarray, numpy.ndarray]]`

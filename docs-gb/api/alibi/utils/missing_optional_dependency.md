@@ -22,9 +22,9 @@ MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, Import
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `object_name` | `str` |  |  |
-| `err` | `Union[ModuleNotFoundError, ImportError]` |  |  |
-| `missing_dependency` | `str` | `'all'` |  |
+| `object_name` | `str` |  | Name of object we are replacing |
+| `err` | `Union[ModuleNotFoundError, ImportError]` |  | Error to be raised when the class is initialized or used |
+| `missing_dependency` | `str` | `'all'` | Name of missing dependency required for object |
 
 #### Properties
 
@@ -60,8 +60,8 @@ the MissingDependency class above.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `module_name` | `str` |  |  |
-| `names` | `Optional[List[str]]` | `None` |  |
+| `module_name` | `str` |  | The module to import |
+| `names` | `Optional[List[str]]` | `None` | The names to import from the module. If None, all names are imported. |
 
 **Returns**
 - Type: `typing.Any`

@@ -27,15 +27,16 @@ CounterfactualRL(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], enco
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  |  |
-| `encoder` | `Union[tensorflow.keras.Model, torch.nn.Module]` |  |  |
-| `decoder` | `Union[tensorflow.keras.Model, torch.nn.Module]` |  |  |
-| `coeff_sparsity` | `float` |  |  |
-| `coeff_consistency` | `float` |  |  |
-| `latent_dim` | `Optional[int]` | `None` |  |
-| `backend` | `str` | `'tensorflow'` |  |
-| `seed` | `int` | `0` |  |
+| `predictor` | `Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray]` |  | A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs. For classification task, the second dimension of the output should match the number of classes. Thus, the output can be either a soft label distribution or a hard label distribution (i.e. one-hot encoding) without affecting the performance since `argmax` is applied to the predictor's output. |
+| `encoder` | `Union[tensorflow.keras.Model, torch.nn.Module]` |  | Pretrained encoder network. |
+| `decoder` | `Union[tensorflow.keras.Model, torch.nn.Module]` |  | Pretrained decoder network. |
+| `coeff_sparsity` | `float` |  | Sparsity loss coefficient. |
+| `coeff_consistency` | `float` |  | Consistency loss coefficient. |
+| `latent_dim` | `Optional[int]` | `None` | Auto-encoder latent dimension. Can be omitted if the actor network is user specified. |
+| `backend` | `str` | `'tensorflow'` | Deep learning backend: ``'tensorflow'`` | ``'pytorch'``. Default ``'tensorflow'``. |
+| `seed` | `int` | `0` | Seed for reproducibility. The results are not reproducible for ``'tensorflow'`` backend. |
 | `kwargs` |  |  |  |
+| `Used` |  |  |  |
 
 #### Methods
 
@@ -69,10 +70,10 @@ explanation
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y_t` | `numpy.ndarray` |  |  |
-| `C` | `Optional[numpy.ndarray]` | `None` |  |
-| `batch_size` | `int` | `100` |  |
+| `X` | `numpy.ndarray` |  | Instances to be explained. |
+| `Y_t` | `numpy.ndarray` |  | Counterfactual targets. |
+| `C` | `Optional[numpy.ndarray]` | `None` | Conditional vectors. If ``None``, it means that no conditioning was used during training (i.e. the `conditional_func` returns ``None``). |
+| `batch_size` | `int` | `100` | Batch size to be used when generating counterfactuals. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
@@ -97,7 +98,7 @@ self
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | Training data array. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
@@ -131,7 +132,7 @@ predictor
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `typing.Any` |  |  |
+| `predictor` | `typing.Any` |  | New predictor. |
 
 **Returns**
 - Type: `None`
@@ -151,7 +152,7 @@ path
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
 
 **Returns**
 - Type: `None`
@@ -168,8 +169,8 @@ NormalActionNoise(self, mu: float, sigma: float) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `mu` | `float` |  |  |
-| `sigma` | `float` |  |  |
+| `mu` | `float` |  | Mean of the normal noise. |
+| `sigma` | `float` |  | Standard deviation of the noise. |
 
 ### `Postprocessing` (_inherits from `ABC`)
 
@@ -204,7 +205,7 @@ ReplayBuffer(self, size: int = 1000) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `size` | `int` | `1000` |  |
+| `size` | `int` | `1000` | Dimension of the buffer in batch size. This that the total memory allocated is proportional with the `size x batch_size`, where `batch_size` is inferred from the first array to be stored. |
 
 #### Methods
 
@@ -239,14 +240,15 @@ R_tilde
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y_m` | `numpy.ndarray` |  |  |
-| `Y_t` | `numpy.ndarray` |  |  |
-| `Z` | `numpy.ndarray` |  |  |
-| `Z_cf_tilde` | `numpy.ndarray` |  |  |
-| `C` | `Optional[numpy.ndarray]` |  |  |
-| `R_tilde` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | Input array. |
+| `Y_m` | `numpy.ndarray` |  | Model's prediction class of `X`. |
+| `Y_t` | `numpy.ndarray` |  | Counterfactual target class. |
+| `Z` | `numpy.ndarray` |  | Input's embedding. |
+| `Z_cf_tilde` | `numpy.ndarray` |  | Noised counterfactual embedding. |
+| `C` | `Optional[numpy.ndarray]` |  | Conditional array. |
+| `R_tilde` | `numpy.ndarray` |  | Noised counterfactual reward array. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `None`

@@ -19,9 +19,10 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int], **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
 | `output_dims` | `List[int]` |  |  |
 | `kwargs` |  |  |  |
+| `output_dim` |  |  | List of output dimensions. |
 
 #### Methods
 
@@ -46,8 +47,9 @@ List of reconstruction of the input tensor. First element corresponds to the rec
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`
@@ -68,8 +70,8 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `latent_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `latent_dim` | `int` |  | Latent dimension. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -95,8 +97,9 @@ Encoding representation having each component in the interval [-1, 1].
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -117,7 +120,7 @@ MNISTClassifier(self, output_dim: int = 10, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `output_dim` | `int` | `10` |  |
+| `output_dim` | `int` | `10` | Output dimension |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -145,9 +148,10 @@ Classification logits.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
-| `training` | `bool` | `True` |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `training` | `bool` | `True` | Training flag. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -194,8 +198,9 @@ Decoded input having each component in the interval [0, 1].
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -218,7 +223,7 @@ MNISTEncoder(self, latent_dim: int, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -244,8 +249,9 @@ Encoding representation having each component in the interval [-1, 1]
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`

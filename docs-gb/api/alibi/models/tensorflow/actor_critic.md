@@ -20,8 +20,8 @@ Actor(self, hidden_dim: int, output_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension |
+| `output_dim` | `int` |  | Output dimension |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -47,8 +47,9 @@ Continuous action.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -88,7 +89,7 @@ Critic(self, hidden_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -112,7 +113,7 @@ Critic value.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
 
 **Returns**

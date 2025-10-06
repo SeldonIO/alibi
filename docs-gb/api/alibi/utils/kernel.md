@@ -18,7 +18,7 @@ GaussianRBF(self, sigma: Union[float, numpy.ndarray, NoneType] = None) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `sigma` | `Union[float, numpy.ndarray, None]` | `None` |  |
+| `sigma` | `Union[float, numpy.ndarray, None]` | `None` | Kernel bandwidth. Not to be specified if being inferred or trained. Can pass multiple values to evaluate the kernel with and then average. |
 
 #### Properties
 
@@ -36,4 +36,4 @@ GaussianRBFDistance(self, sigma: Union[float, numpy.ndarray, NoneType] = None)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `sigma` | `Union[float, numpy.ndarray, None]` | `None` |  |
+| `sigma` | `Union[float, numpy.ndarray, None]` | `None` | See :py:meth:`alibi.utils.kernel.GaussianRBF.__init__`. |

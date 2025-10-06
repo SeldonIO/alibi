@@ -28,9 +28,9 @@ Dict with as keys the categorical columns and as values the pairwise distance ma
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `cat_vars` | `dict` |  |  |
-| `cat_vars_bin` | `dict` | `{}` |  |
+| `X` | `numpy.ndarray` |  | Batch of arrays. |
+| `cat_vars` | `dict` |  | Dict with as keys the categorical columns and as optional values the number of categories per categorical variable. |
+| `cat_vars_bin` | `dict` | `{}` | Dict with as keys the binned numerical columns and as optional values the number of bins per variable. |
 
 ### `batch_compute_kernel_matrix`
 
@@ -61,11 +61,11 @@ Kernel matrix in the form of a `numpy` array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `Union[list, numpy.ndarray]` |  |  |
-| `y` | `Union[list, numpy.ndarray]` |  |  |
-| `kernel` | `Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>]], numpy.ndarray]` |  |  |
-| `batch_size` | `int` | `10000000000` |  |
-| `preprocess_fn` | `Optional[Callable[[.[typing.Union[list, numpy.ndarray]]], numpy.ndarray]]` | `None` |  |
+| `x` | `Union[list, numpy.ndarray]` |  | The first list/`numpy` array of data instances. |
+| `y` | `Union[list, numpy.ndarray]` |  | The second list/`numpy` array of data instances. |
+| `kernel` | `Callable[[.[<class 'numpy.ndarray'>, <class 'numpy.ndarray'>]], numpy.ndarray]` |  | Kernel function to be used for kernel matrix computation. |
+| `batch_size` | `int` | `10000000000` | Batch size to be used for each prediction. |
+| `preprocess_fn` | `Optional[Callable[[.[typing.Union[list, numpy.ndarray]]], numpy.ndarray]]` | `None` | Optional preprocessing function for each batch. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -91,8 +91,8 @@ Array of distances from each array in `X` to `y`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `y` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | Batch of arrays to calculate the distances from. |
+| `y` | `numpy.ndarray` |  | Array to calculate the distance to. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -135,14 +135,14 @@ Dict with multidimensional scaled version of pairwise distance matrices.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `d_pair` | `dict` |  |  |
-| `feature_range` | `Tuple[numpy.ndarray, numpy.ndarray]` |  |  |
-| `n_components` | `int` | `2` |  |
-| `use_metric` | `bool` | `True` |  |
-| `standardize_cat_vars` | `bool` | `True` |  |
-| `smooth` | `float` | `1.0` |  |
-| `center` | `bool` | `True` |  |
-| `update_feature_range` | `bool` | `True` |  |
+| `d_pair` | `dict` |  | Dict with as keys the column index of the categorical variables and as values a pairwise distance matrix for the categories of the variable. |
+| `feature_range` | `Tuple[numpy.ndarray, numpy.ndarray]` |  | Tuple with `min` and `max` ranges to allow for perturbed instances. `Min` and `max` ranges are `numpy` arrays with dimension (`1 x nb of features`). |
+| `n_components` | `int` | `2` | Number of dimensions in which to immerse the dissimilarities. |
+| `use_metric` | `bool` | `True` | If ``True``, perform metric MDS; otherwise, perform nonmetric MDS. |
+| `standardize_cat_vars` | `bool` | `True` | Standardize numerical values of categorical variables if ``True``. |
+| `smooth` | `float` | `1.0` | Smoothing exponent between 0 and 1 for the distances. Lower values than 1 will smooth the difference in distance metric between different features. |
+| `center` | `bool` | `True` | Whether to center the scaled distance measures. If ``False``, the min distance for each feature except for the feature with the highest raw max distance will be the lower bound of the feature range, but the upper bound will be below the max feature range. |
+| `update_feature_range` | `bool` | `True` | Update feature range with scaled values. |
 
 **Returns**
 - Type: `Tuple[dict, tuple]`
@@ -176,10 +176,10 @@ Dict with as keys the categorical columns and as values the pairwise distance ma
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `y` | `numpy.ndarray` |  |  |
-| `cat_vars` | `dict` |  |  |
-| `alpha` | `int` | `1` |  |
+| `X` | `numpy.ndarray` |  | Batch of arrays. |
+| `y` | `numpy.ndarray` |  | Batch of labels or predictions. |
+| `cat_vars` | `dict` |  | Dict with as keys the categorical columns and as optional values the number of categories per categorical variable. |
+| `alpha` | `int` | `1` | Power of absolute difference between conditional probabilities. |
 
 **Returns**
 - Type: `Dict[int, numpy.ndarray]`
@@ -209,10 +209,10 @@ Pairwise squared Euclidean distance `Nx x Ny`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `numpy.ndarray` |  |  |
-| `y` | `numpy.ndarray` |  |  |
-| `a_min` | `float` | `1e-07` |  |
-| `a_max` | `float` | `1e+30` |  |
+| `x` | `numpy.ndarray` |  | A batch of instances of shape `Nx x features`. |
+| `y` | `numpy.ndarray` |  | A batch of instances of shape `Ny x features`. |
+| `a_min` | `float` | `1e-07` | Lower bound to clip distance values. |
+| `a_max` | `float` | `1e+30` | Upper bound to clip distance values. |
 
 **Returns**
 - Type: `numpy.ndarray`

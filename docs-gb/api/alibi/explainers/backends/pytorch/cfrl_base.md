@@ -16,11 +16,11 @@ PtCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predic
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `preprocessor` | `Callable` |  |  |
-| `predictor` | `Callable` |  |  |
-| `conditional_func` | `Callable` |  |  |
-| `batch_size` | `int` |  |  |
+| `X` | `numpy.ndarray` |  | Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling the `preprocessor` function. |
+| `preprocessor` | `Callable` |  | Preprocessor function. This function correspond to the preprocessing steps applied to the auto-encoder model. |
+| `predictor` | `Callable` |  | Prediction function. The classifier function should expect the input in the original format and preprocess it internally in the `predictor` if necessary. |
+| `conditional_func` | `Callable` |  | Conditional function generator. Given an preprocessed input array, the functions generates a conditional array. |
+| `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 
 ## Functions
 ### `add_noise`
@@ -56,13 +56,13 @@ Z_cf_tilde
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z_cf` | `torch.Tensor` |  |  |
-| `noise` | `NormalActionNoise` |  |  |
-| `act_low` | `float` |  |  |
-| `act_high` | `float` |  |  |
-| `step` | `int` |  |  |
-| `exploration_steps` | `int` |  |  |
-| `device` | `torch.device` |  |  |
+| `Z_cf` | `torch.Tensor` |  | Counterfactual embedding. |
+| `noise` | `NormalActionNoise` |  | Noise generator object. |
+| `act_low` | `float` |  | Action lower bound. |
+| `act_high` | `float` |  | Action upper bound. |
+| `step` | `int` |  | Training step. |
+| `exploration_steps` | `int` |  | Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding is sampled uniformly at random. |
+| `device` | `torch.device` |  | Device to send data to. |
 | `kwargs` |  |  |  |
 
 **Returns**
@@ -89,8 +89,8 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z_cf_pred` | `torch.Tensor` |  |  |
-| `Z_cf_tgt` | `torch.Tensor` |  |  |
+| `Z_cf_pred` | `torch.Tensor` |  | Counterfactual embedding prediction. |
+| `Z_cf_tgt` | `torch.Tensor` |  | Counterfactual embedding target. |
 
 ### `data_generator`
 
@@ -126,14 +126,15 @@ num_workers
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `encoder_preprocessor` | `Callable` |  |  |
-| `predictor` | `Callable` |  |  |
-| `conditional_func` | `Callable` |  |  |
-| `batch_size` | `int` |  |  |
-| `shuffle` | `bool` |  |  |
-| `num_workers` | `int` |  |  |
+| `X` | `numpy.ndarray` |  | Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling the `preprocessor` function. |
+| `encoder_preprocessor` | `Callable` |  | Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/auto-encoder model. |
+| `predictor` | `Callable` |  | Prediction function. The classifier function should expect the input in the original format and preprocess it internally in the `predictor` if necessary. |
+| `conditional_func` | `Callable` |  | Conditional function generator. Given an preprocessed input array, the functions generates a conditional array. |
+| `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
+| `shuffle` | `bool` |  | Whether to shuffle the dataset each epoch. ``True`` by default. |
+| `num_workers` | `int` |  | Number of worker processes to be created. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 ### `decode`
 
@@ -158,9 +159,9 @@ Embedding tensor decoding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z` | `torch.Tensor` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
-| `device` | `torch.device` |  |  |
+| `Z` | `torch.Tensor` |  | Embedding tensor to be decoded. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Pretrained decoder network. |
+| `device` | `torch.device` |  | Device to sent data to. |
 | `kwargs` |  |  |  |
 
 ### `encode`
@@ -186,9 +187,9 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `torch.Tensor` |  |  |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `device` | `torch.device` |  |  |
+| `X` | `torch.Tensor` |  | Input to be encoded. |
+| `encoder` | `torch.nn.modules.module.Module` |  | Pretrained encoder network. |
+| `device` | `torch.device` |  | Device to send data to. |
 | `kwargs` |  |  |  |
 
 ### `generate_cf`
@@ -225,14 +226,14 @@ Z_cf
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z` | `torch.Tensor` |  |  |
-| `Y_m` | `torch.Tensor` |  |  |
-| `Y_t` | `torch.Tensor` |  |  |
-| `C` | `Optional[torch.Tensor]` |  |  |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
-| `actor` | `torch.nn.modules.module.Module` |  |  |
-| `device` | `torch.device` |  |  |
+| `Z` | `torch.Tensor` |  | Input embedding tensor. |
+| `Y_m` | `torch.Tensor` |  | Input classification label. |
+| `Y_t` | `torch.Tensor` |  | Target counterfactual classification label. |
+| `C` | `Optional[torch.Tensor]` |  | Conditional tensor. |
+| `encoder` | `torch.nn.modules.module.Module` |  | Pretrained encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Pretrained decoder network. |
+| `actor` | `torch.nn.modules.module.Module` |  | Actor network. The model generates the counterfactual embedding. |
+| `device` | `torch.device` |  | Device object to be used. |
 | `kwargs` |  |  |  |
 
 **Returns**
@@ -259,8 +260,8 @@ Actor network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Actor's hidden dimension |
+| `output_dim` | `int` |  | Actor's output dimension. |
 
 **Returns**
 - Type: `torch.nn.modules.module.Module`
@@ -284,7 +285,7 @@ Critic network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Critic's hidden dimension. |
 
 **Returns**
 - Type: `torch.nn.modules.module.Module`
@@ -343,7 +344,7 @@ Loaded model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to the loading location. |
 
 **Returns**
 - Type: `torch.nn.modules.module.Module`
@@ -365,8 +366,8 @@ model
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
-| `model` | `torch.nn.modules.module.Module` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to the saving location. |
+| `model` | `torch.nn.modules.module.Module` |  | Model to be saved. |
 
 **Returns**
 - Type: `None`
@@ -386,7 +387,7 @@ seed
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `seed` | `int` | `13` |  |
+| `seed` | `int` | `13` | Seed to be set. |
 
 ### `sparsity_loss`
 
@@ -409,8 +410,8 @@ L1 sparsity loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_hat_cf` | `torch.Tensor` |  |  |
-| `X` | `torch.Tensor` |  |  |
+| `X_hat_cf` | `torch.Tensor` |  | Auto-encoder counterfactual reconstruction. |
+| `X` | `torch.Tensor` |  | Input instance |
 
 **Returns**
 - Type: `Dict[str, torch.Tensor]`
@@ -434,7 +435,7 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `Union[List[Any], numpy.ndarray, torch.Tensor, None]` |  |  |
+| `X` | `Union[List[Any], numpy.ndarray, torch.Tensor, None]` |  | Input tensor to be converted to `numpy` array. |
 
 **Returns**
 - Type: `Union[List[Any], numpy.ndarray, None]`
@@ -517,23 +518,24 @@ Dictionary of losses.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
-| `critic` | `torch.nn.modules.module.Module` |  |  |
-| `actor` | `torch.nn.modules.module.Module` |  |  |
-| `optimizer_critic` | `torch.optim.optimizer.Optimizer` |  |  |
-| `optimizer_actor` | `torch.optim.optimizer.Optimizer` |  |  |
-| `sparsity_loss` | `Callable` |  |  |
-| `consistency_loss` | `Callable` |  |  |
-| `coeff_sparsity` | `float` |  |  |
-| `coeff_consistency` | `float` |  |  |
-| `X` | `numpy.ndarray` |  |  |
-| `X_cf` | `numpy.ndarray` |  |  |
-| `Z` | `numpy.ndarray` |  |  |
-| `Z_cf_tilde` | `numpy.ndarray` |  |  |
-| `Y_m` | `numpy.ndarray` |  |  |
-| `Y_t` | `numpy.ndarray` |  |  |
-| `C` | `Optional[numpy.ndarray]` |  |  |
-| `R_tilde` | `numpy.ndarray` |  |  |
-| `device` | `torch.device` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Pretrained encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Pretrained decoder network. |
+| `critic` | `torch.nn.modules.module.Module` |  | Critic network. |
+| `actor` | `torch.nn.modules.module.Module` |  | Actor network. |
+| `optimizer_critic` | `torch.optim.optimizer.Optimizer` |  | Critic's optimizer. |
+| `optimizer_actor` | `torch.optim.optimizer.Optimizer` |  | Actor's optimizer. |
+| `sparsity_loss` | `Callable` |  | Sparsity loss function. |
+| `consistency_loss` | `Callable` |  | Consistency loss function. |
+| `coeff_sparsity` | `float` |  | Sparsity loss coefficient. |
+| `coeff_consistency` | `float` |  | Consistency loss coefficient |
+| `X` | `numpy.ndarray` |  | Input array. |
+| `X_cf` | `numpy.ndarray` |  | Counterfactual array. |
+| `Z` | `numpy.ndarray` |  | Input embedding. |
+| `Z_cf_tilde` | `numpy.ndarray` |  | Noised counterfactual embedding. |
+| `Y_m` | `numpy.ndarray` |  | Input classification label. |
+| `Y_t` | `numpy.ndarray` |  | Target counterfactual classification label. |
+| `C` | `Optional[numpy.ndarray]` |  | Conditional tensor. |
+| `R_tilde` | `numpy.ndarray` |  | Noised counterfactual reward. |
+| `device` | `torch.device` |  | Torch device object. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |

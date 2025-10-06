@@ -165,18 +165,21 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
     result = {
         "short": "",
         "long": "",
-        "params": [],  # list of dict(name,type,default,desc)
+        "params": [],   # list of dict(name,type,default,desc)
         "returns": None,  # dict(type, desc)
-        "raises": [],     # list of dict(type, desc)
-        "examples": []    # list of code blocks or strings
+        "raises": [],   # list of dict(type, desc)
+        "examples": []  # list of code blocks or strings
     }
     if not doc:
         return result
+
+    # First try docstring_parser (NumPy/Google/reST)
     if _DOCSTRING_PARSER is not None:
         try:
             parsed = _DOCSTRING_PARSER.parse(doc, style=_DOCSTRING_PARSER.DocstringStyle.AUTO)
             result["short"] = (parsed.short_description or "").strip()
             result["long"] = (parsed.long_description or "").strip()
+
             # parameters
             for p in parsed.params:
                 result["params"].append({
@@ -185,57 +188,135 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                     "default": (p.default or "").strip(),
                     "desc": (p.description or "").strip(),
                 })
-            # returns
+
+            # returns (type + description if present)
             if parsed.returns:
                 result["returns"] = {
                     "type": (parsed.returns.type_name or "").strip(),
                     "desc": (parsed.returns.description or "").strip(),
                 }
+
             # raises
             for r in parsed.raises:
                 result["raises"].append({
                     "type": (r.type_name or "").strip(),
                     "desc": (r.description or "").strip(),
                 })
-            # examples: naive detection (sections)
+
+            # examples (best effort)
             for meta in getattr(parsed, "meta", []):
                 if str(meta.args or [""])[0].lower().startswith("example"):
                     if meta.description:
                         result["examples"].append(meta.description.strip())
+
         except Exception:
-            # fall through to naive
+            # fall through to naive parse
             pass
+
+    # Fallbacks & enhancements (also run when parser succeeded but missed a section)
     if not result["short"] and doc:
         lines = doc.strip().splitlines()
         result["short"] = lines[0].strip()
         if len(lines) > 1:
             result["long"] = "\n".join(l.rstrip() for l in lines[1:]).strip()
-    # Very naive extraction of "Parameters", "Returns", "Raises" when parser missing/failed
-    if not result["params"] and doc:
-        sects = re.split(r"\n(?=[A-Z][A-Za-z ]+:\s*\n)", "\n" + doc + "\n")
-        for s in sects:
-            header_match = re.match(r"\n([A-Z][A-Za-z ]+):\s*\n", s)
-            if not header_match:
-                continue
-            header = header_match.group(1).lower()
-            body = s[header_match.end():]
-            if header.startswith("parameter"):
-                for line in body.splitlines():
-                    m = re.match(r"\s*([\w\*]+)\s*(?:\((.*?)\))?\s*:\s*(.*)", line)
-                    if m:
-                        name, typ, desc = m.groups()
-                        result["params"].append({"name": name, "type": typ or "", "default": "", "desc": desc})
-            elif header.startswith("return"):
-                m = re.search(r"^\s*(.*?)\s*:\s*(.*)$", body.strip(), flags=re.M)
+
+    # Split into titled sections, e.g., NumPy style headers
+    # Covers "Parameters", "Returns", "Raises", PLUS "Return type"
+    sects = re.split(r"\n(?=[A-Z][A-Za-z ]+:\s*\n)", "\n" + doc + "\n")
+    for s in sects:
+        m = re.match(r"\n([A-Z][A-Za-z ]+):\s*\n", s)
+        if not m:
+            continue
+        header = m.group(1).strip().lower()
+        body = s[m.end():]
+
+        if header.startswith("parameter"):
+            # lines like: name (Type) : description
+            for line in body.splitlines():
+                m2 = re.match(r"\s*([\w\*]+)\s*(?:\((.*?)\))?\s*:\s*(.*)", line)
+                if m2:
+                    name, typ, desc = m2.groups()
+                    result["params"].append({"name": name, "type": typ or "", "default": "", "desc": desc})
+                else:
+                    # Also handle NumPy 2-line style:
+                    # name
+                    #     description...
+                    # (Types will be filled from annotations later)
+                    m3 = re.match(r"^\s*([\w\*]+)\s*$", line)
+                    if m3:
+                        name = m3.group(1)
+                        result["params"].append({"name": name, "type": "", "default": "", "desc": ""})
+
+        elif header.startswith("return type"):
+            # e.g., just a single line with the type name
+            rt = body.strip().splitlines()
+            if rt:
+                typ_line = rt[0].strip()
+                if typ_line:
+                    if result["returns"] is None:
+                        result["returns"] = {"type": typ_line, "desc": ""}
+                    else:
+                        # only set type if not already set by parser
+                        if not result["returns"].get("type"):
+                            result["returns"]["type"] = typ_line
+
+        elif header.startswith("return"):
+            # Try to capture "Type : description" or just description
+            text = body.strip()
+            m2 = re.search(r"^\s*(.*?)\s*:\s*(.*)$", text, flags=re.M)
+            if m2:
+                typ, desc = m2.groups()
+                result["returns"] = {"type": typ or "", "desc": desc or ""}
+            else:
+                # Pure description (type may come from "Return type" or from signature)
+                if result["returns"] is None:
+                    result["returns"] = {"type": "", "desc": text}
+
+        elif header.startswith("raise"):
+            for line in body.splitlines():
+                m2 = re.match(r"\s*(\w+)\s*:\s*(.*)", line)
+                if m2:
+                    typ, desc = m2.groups()
+                    result["raises"].append({"type": typ, "desc": desc})
+
+    # ---- NumPy-style fallback for sections without trailing colon (e.g. "Parameters" + underline) ----
+    if not result["params"]:
+        # Capture blocks like:
+        # Parameters
+        # ----------
+        # name : type
+        #     description
+        numpy_params_block = re.search(
+            r"(^|\n)Parameters\s*\n[-=]{3,}\n(?P<body>.*?)(\n[A-Z][A-Za-z0-9 _]*\n[-=]{3,}\n|$)",
+            doc,
+            flags=re.DOTALL,
+        )
+        if numpy_params_block:
+            body = numpy_params_block.group("body").rstrip()
+            lines = body.splitlines()
+            i = 0
+            while i < len(lines):
+                line = lines[i]
+                if not line.strip():
+                    i += 1
+                    continue
+                # Parameter header line: name [ : type ...]
+                m = re.match(r"^\s*([A-Za-z_][\w]*)\s*(?:[:]\s*([^,\n]+))?", line)
                 if m:
-                    typ, desc = m.groups()
-                    result["returns"] = {"type": typ or "", "desc": desc or ""}
-            elif header.startswith("raise"):
-                for line in body.splitlines():
-                    m = re.match(r"\s*(\w+)\s*:\s*(.*)", line)
-                    if m:
-                        typ, desc = m.groups()
-                        result["raises"].append({"type": typ, "desc": desc})
+                    name = m.group(1)
+                    typ = (m.group(2) or "").strip()
+                    i += 1
+                    desc_lines = []
+                    while i < len(lines) and (lines[i].startswith("    ") or (lines[i].strip() and lines[i][0].isspace() and not re.match(r"^\s*[A-Za-z_][\w]*\s*(?:[:]\s*[^,\n]+)?$", lines[i]))):
+                        desc_lines.append(lines[i].strip())
+                        i += 1
+                    desc = " ".join(dl.rstrip() for dl in desc_lines).strip()
+                    # Avoid duplicates
+                    if not any(p["name"] == name for p in result["params"]):
+                        result["params"].append({"name": name, "type": typ, "default": "", "desc": desc})
+                    continue
+                i += 1
+
     return result
 
 def render_params_table(params: List[Dict[str, str]], sig: Optional[inspect.Signature], hints: Dict[str, Any]) -> str:
@@ -359,11 +440,11 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
     if link:
         out.append(f"[View source]({link})\n")
 
-    ds = parse_docstring(inspect.getdoc(cls))
-    if ds["short"]:
-        out.append(ds["short"] + "\n")
-    if ds["long"]:
-        out.append(ds["long"] + "\n")
+    class_ds = parse_docstring(inspect.getdoc(cls))
+    if class_ds["short"]:
+        out.append(class_ds["short"] + "\n")
+    if class_ds["long"]:
+        out.append(class_ds["long"] + "\n")
 
     # Dataclass fields (if any)
     if dataclasses.is_dataclass(cls):
@@ -393,11 +474,15 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
         except Exception:
             pass
         out.append("#### Constructor\n")
-        out.append(f"```python\n{cls.__name__}{str(sig) if sig else '(... )'}\n```")
         if sig:
-            params_table = render_params_table(ds["params"], sig, hints)
-            if params_table:
-                out.append("\n" + params_table + "\n")
+            out.append(f"```python\n{cls.__name__}{sig}\n```")
+        else:
+            out.append(f"```python\n{cls.__name__}(...)\n```")
+        # Parse __init__ docstring (NOT the class docstring) for parameters
+        init_ds = parse_docstring(inspect.getdoc(init))
+        params_table = render_params_table(init_ds["params"], sig, hints)
+        if params_table:
+            out.append("\n" + params_table + "\n")
 
     # Properties
     props = get_properties(cls)
@@ -580,24 +665,19 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
 
     return "\n".join(parts).strip() + "\n"
 
-def write_summary(all_module_names: List[str], package: str, outdir: Path):
-    rels = []
-    index_path = Path("README.md")
-    rels.append(("* Introduction", index_path.as_posix()))
-    for modname in all_module_names:
-        file_rel = Path("api") / (modname.replace(".", "/") + ".md")
-        rels.append((f"* `{modname}`", file_rel.as_posix()))
-
-    lines = ["# Summary", ""]
-    lines.append("* [Introduction](README.md)")
-    def add_path(path_str: str, title: str):
-        indent_level = path_str.count("/")
-        lines.append("  " * indent_level + f"* [{title}]({path_str})")
-
-    for title, path in rels[1:]:
-        add_path(path, title.replace("* ", "").strip())
-
-    (outdir / "SUMMARY.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+def write_api_summary(all_module_names: List[str], outdir: Path, filename: str = "SUMMARY-API.md"):
+    """
+    Write a standalone API navigation file (does NOT overwrite the main SUMMARY.md).
+    Produces a bullet list headed by '* API Reference' with indentation based on
+    package depth. Each module maps to api/<dotted/path>.md.
+    """
+    lines: List[str] = []
+    lines.append("* API Reference")
+    for modname in sorted(all_module_names):
+        depth = modname.count(".") + 1   # +1 because inside "API Reference"
+        rel_md = f"api/{modname.replace('.', '/')}.md"
+        lines.append("  " * depth + f"* [`{modname}`]({rel_md})")
+    (outdir / filename).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 def main():
     parser = argparse.ArgumentParser(description="Generate GitBook-ready Markdown API docs for a Python package (e.g., alibi).")
@@ -610,6 +690,7 @@ def main():
     parser.add_argument("--repo-root", default=None, help="Local path to repo root (for source links) e.g., '.'.")
     parser.add_argument("--source-url-prefix", default=None, help="URL prefix to repository files, e.g., https://github.com/SeldonIO/alibi/blob/main")
     parser.add_argument("--add-sys-path", nargs="*", default=[], help="Prepend these paths to sys.path before importing the package (useful for local checkouts).")
+    parser.add_argument("--summary-api-filename", default="SUMMARY-API.md", help="Filename for the generated API nav (default: SUMMARY-API.md).")
     args = parser.parse_args()
 
     # Prepend sys.path entries before importing
@@ -641,11 +722,11 @@ def main():
         file_path.write_text(md, encoding="utf-8")
         all_mods.append(modname)
 
-    write_summary(all_mods, args.package, outdir)
+    write_api_summary(all_mods, outdir, filename=args.summary_api_filename)
 
     print(f"✅ Done. Wrote {len(all_mods)} module pages under: {api_dir}")
-    print(f"   GitBook SUMMARY.md at: {outdir / 'SUMMARY.md'}")
-    print("   Tip: Commit the folder to your repo and connect GitBook to render it.")
+    print(f"   API nav file at: {outdir / args.summary_api_filename}")
+    print("   Tip: Append the contents of this file into your existing SUMMARY.md where desired.")
     
 if __name__ == "__main__":
     main()

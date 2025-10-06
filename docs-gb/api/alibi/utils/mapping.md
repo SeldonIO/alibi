@@ -22,8 +22,8 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `dist` | `dict` |  |  |
+| `data` | `numpy.ndarray` |  | `Numpy` array with the numerical data. |
+| `dist` | `dict` |  | Dict with as keys the categorical variables and as values the numerical value for each category. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -50,8 +50,8 @@ Ordinal equivalent of one-hot encoded data and dict with categorical columns and
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_ohe` | `numpy.ndarray` |  |  |
-| `cat_vars_ohe` | `dict` |  |  |
+| `X_ohe` | `numpy.ndarray` |  | Data with mixture of one-hot encoded and numerical variables. |
+| `cat_vars_ohe` | `dict` |  | Dict with as keys the first column index for each one-hot encoded categorical variable and as values the number of categories per categorical variable. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, dict]`
@@ -80,9 +80,9 @@ Tuple with shape of instance with ordinal encoding of categorical variables.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `shape` | `tuple` |  |  |
-| `cat_vars` | `Dict[int, int]` |  |  |
-| `is_ohe` | `bool` | `False` |  |
+| `shape` | `tuple` |  | Instance shape, starting with batch dimension. |
+| `cat_vars` | `Dict[int, int]` |  | Dict with as keys the categorical columns and as values the number of categories per categorical variable. |
+| `is_ohe` | `bool` | `False` | Whether instance is OHE. |
 
 **Returns**
 - Type: `tuple`
@@ -109,8 +109,8 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `dist` | `dict` |  |  |
+| `data` | `numpy.ndarray` |  | `Numpy` array with the categorical data. |
+| `dist` | `dict` |  | Dict with as keys the categorical variables and as values the numerical value for each category. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -137,8 +137,8 @@ One-hot equivalent of ordinal encoded data and dict with categorical columns and
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_ord` | `numpy.ndarray` |  |  |
-| `cat_vars_ord` | `dict` |  |  |
+| `X_ord` | `numpy.ndarray` |  | Data with mixture of ordinal encoded and numerical variables. |
+| `cat_vars_ord` | `dict` |  | Dict with as keys the categorical columns and as values the number of categories per categorical variable. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, dict]`

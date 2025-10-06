@@ -20,8 +20,8 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -48,8 +48,9 @@ x_hat
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]`
@@ -69,8 +70,8 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -90,7 +91,7 @@ input_shape
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `input_shape` | `Tuple[int, .Ellipsis]` |  |  |
+| `input_shape` | `Tuple[int, .Ellipsis]` |  | Tensor's input shape. |
 
 **Returns**
 - Type: `None`
@@ -116,8 +117,9 @@ List of reconstruction of the input tensor. First element corresponds to the rec
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
 | `kwargs` |  |  |  |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`

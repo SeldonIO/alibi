@@ -26,9 +26,9 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
-| `eps` | `float` | `1e-07` |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
+| `eps` | `float` | `1e-07` | Numerical stability. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`
@@ -58,9 +58,9 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
-| `eps` | `float` | `1e-07` |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
+| `eps` | `float` | `1e-07` | Numerical stability. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`
@@ -88,8 +88,8 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `Y` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | Matrix of vectors. |
+| `Y` | `numpy.ndarray` |  | Matrix of vectors. |
 
 **Returns**
 - Type: `Union[float, numpy.ndarray]`

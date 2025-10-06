@@ -19,7 +19,8 @@ AccuracyMetric(self, name: str = 'accuracy')
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `name` | `str` | `'accuracy'` |  |
+| `name` | `str` | `'accuracy'` | Name of the metric. |
+| `reduction` |  |  | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
 
 #### Methods
 
@@ -40,8 +41,8 @@ y_true
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
-| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
+| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  | Predicted label. |
+| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  | True label. |
 
 **Returns**
 - Type: `None`
@@ -58,8 +59,8 @@ LossContainer(self, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  |  |
-| `name` | `str` |  |  |
+| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  | Loss function. |
+| `name` | `str` |  | Name of the loss function |
 
 #### Methods
 
@@ -98,8 +99,8 @@ Metric(self, reduction: alibi.models.pytorch.metrics.Reduction = <Reduction.MEAN
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` |  |
-| `name` | `str` | `'unknown'` |  |
+| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
+| `name` | `str` | `'unknown'` | Name of the metric. |
 
 #### Methods
 

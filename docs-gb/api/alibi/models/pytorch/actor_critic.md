@@ -20,8 +20,8 @@ Actor(self, hidden_dim: int, output_dim: int) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `output_dim` | `int` |  | Output dimension |
 
 #### Methods
 
@@ -44,7 +44,7 @@ Continuous action.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -64,7 +64,7 @@ Critic(self, hidden_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
 
 #### Methods
 
@@ -87,7 +87,7 @@ Critic value.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`

@@ -10,7 +10,7 @@ DistributedAnchorBaseBeam(self, samplers: List[Callable], **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `samplers` | `List[Callable]` |  |  |
+| `samplers` | `List[Callable]` |  | Objects that can be called with args (`result`, `n_samples`) tuple to draw samples. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -34,7 +34,7 @@ See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.draw_samples` 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchors` | `list` |  |  |
+| `anchors` | `list` |  | See :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.draw_samples` implementation. |
 | `batch_size` | `int` |  |  |
 
 **Returns**
@@ -52,12 +52,12 @@ DistributedAnchorTabular(self, predictor: Callable, feature_names: List[str], ca
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `Callable` |  |  |
-| `feature_names` | `List[str]` |  |  |
-| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` |  |
-| `dtype` | `type[numpy.generic]` | `<class 'numpy.float32'>` |  |
-| `ohe` | `bool` | `False` |  |
-| `seed` | `Optional[int]` | `None` |  |
+| `predictor` | `Callable` |  | A callable that takes a `numpy` array of `N` data points as inputs and returns `N` outputs. |
+| `feature_names` | `List[str]` |  | List with feature names. |
+| `categorical_names` | `Optional[Dict[int, List[str]]]` | `None` | Dictionary where keys are feature columns and values are the categories for the feature. |
+| `dtype` | `type[numpy.generic]` | `<class 'numpy.float32'>` | A `numpy` scalar type that corresponds to the type of input array expected by `predictor`. This may be used to construct arrays of the given type to be passed through the `predictor`. For most use cases this argument should have no effect, but it is exposed for use with predictors that would break when called with an array of unsupported type. |
+| `ohe` | `bool` | `False` | Whether the categorical variables are one-hot encoded (OHE) or not. If not OHE, they are assumed to have ordinal encodings. |
+| `seed` | `Optional[int]` | `None` | Used to set the random number generator for repeatability purposes. |
 
 #### Methods
 
@@ -82,7 +82,7 @@ See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain` sup
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.explain`. |
 | `threshold` | `float` | `0.95` |  |
 | `delta` | `float` | `0.1` |  |
 | `tau` | `float` | `0.15` |  |
@@ -119,7 +119,7 @@ train_data, disc_perc, **kwargs
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `train_data` | `numpy.ndarray` |  |  |
+| `train_data` | `numpy.ndarray` |  | See :py:meth:`alibi.explainers.anchors.anchor_tabular.AnchorTabular.fit` superclass. |
 | `disc_perc` | `tuple` | `(25, 50, 75)` |  |
 | `kwargs` |  |  |  |
 
@@ -141,7 +141,7 @@ predictor
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `Callable` |  |  |
+| `predictor` | `Callable` |  | New model prediction function. |
 
 **Returns**
 - Type: `None`
@@ -181,7 +181,7 @@ See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_looku
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_lookups`. |
 
 ##### `set_instance_label`
 
@@ -203,7 +203,7 @@ label
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | The instance to be explained. |
 
 **Returns**
 - Type: `int`
@@ -223,7 +223,7 @@ n_covered
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `n_covered` | `int` |  |  |
+| `n_covered` | `int` |  | Number of examples where the result (and partial anchors) apply. |
 
 **Returns**
 - Type: `None`

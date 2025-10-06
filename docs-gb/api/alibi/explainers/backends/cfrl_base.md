@@ -46,9 +46,9 @@ Classification labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `predictor` | `Callable` |  |  |
-| `batch_size` | `int` |  |  |
+| `X` | `numpy.ndarray` |  | Input to be classified. |
+| `predictor` | `Callable` |  | Prediction function. |
+| `batch_size` | `int` |  | Maximum batch size to be used during each inference step. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -69,7 +69,7 @@ X
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `typing.Any` |  |  |
+| `X` | `typing.Any` |  | Input instance. |
 
 **Returns**
 - Type: `None`
@@ -98,8 +98,8 @@ Classification reward per instance. 1 if the most likely classes match, 0 otherw
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Y_pred` | `numpy.ndarray` |  |  |
-| `Y_true` | `numpy.ndarray` |  |  |
+| `Y_pred` | `numpy.ndarray` |  | Prediction output as a distribution over the possible classes. |
+| `Y_true` | `numpy.ndarray` |  | True label as a distribution over the possible classes. |
 
 ### `get_hard_distribution`
 
@@ -122,8 +122,8 @@ Hard label distribution (one-hot encoding).
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Y` | `numpy.ndarray` |  |  |
-| `num_classes` | `Optional[int]` | `None` |  |
+| `Y` | `numpy.ndarray` |  | Prediction array. Can be soft or hard label distribution, or a label. |
+| `num_classes` | `Optional[int]` | `None` | Number of classes to be considered. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -148,7 +148,7 @@ X
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `typing.Any` |  |  |
+| `X` | `typing.Any` |  | Input instance. |
 
 **Returns**
 - Type: `typing.Any`

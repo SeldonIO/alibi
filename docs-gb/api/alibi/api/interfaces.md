@@ -81,8 +81,8 @@ An explainer instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
-| `predictor` | `typing.Any` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
+| `predictor` | `typing.Any` |  | Model or prediction function used to originally initialize the explainer. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
@@ -102,7 +102,7 @@ predictor
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `typing.Any` |  |  |
+| `predictor` | `typing.Any` |  | New predictor. |
 
 **Returns**
 - Type: `None`
@@ -122,7 +122,7 @@ path
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
 
 **Returns**
 - Type: `None`
@@ -163,7 +163,7 @@ An Explanation object.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `jsonrepr` |  |  |  |
+| `jsonrepr` |  |  | `json` representation of an explanation. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`

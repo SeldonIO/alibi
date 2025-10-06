@@ -20,8 +20,8 @@ AE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.modu
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -46,7 +46,7 @@ x_hat
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `Union[torch.Tensor, List[torch.Tensor]]`
@@ -66,8 +66,8 @@ HeAE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.mo
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 | `kwargs` |  |  |  |
 
 #### Methods
@@ -91,7 +91,7 @@ List of reconstruction of the input tensor. First element corresponds to the rec
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `List[torch.Tensor]`

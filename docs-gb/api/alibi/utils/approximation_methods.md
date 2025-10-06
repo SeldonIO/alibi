@@ -33,7 +33,7 @@ method
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `str` |  |  |
+| `method` | `str` |  | The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'. Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_*'`` possible values. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
@@ -66,6 +66,10 @@ Returns
 
  - `alphas` : ``Callable`` - `alphas` takes the number of steps as an input argument and returns the      multipliers/coefficients for the inputs of integrand in the range of [0, 1].
 
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `n` |  |  | The number of integration steps. |
+
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
 
@@ -94,7 +98,8 @@ Returns
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` |  |
+| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` | Riemann method: ``Riemann.left`` | ``Riemann.right`` | ``Riemann.middle`` | ``Riemann.trapezoid``. |
+| `n` |  |  | The number of integration steps. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`

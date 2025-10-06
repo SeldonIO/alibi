@@ -1,4 +1,94 @@
 # `alibi.explainers.cfrl_base`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+bool(x) -> bool
+
+Returns True when the argument x is true, False otherwise.
+The builtins True and False are the only two instances of the class bool.
+The class bool is a subclass of the class int, and cannot be subclassed.
+
+### `DEFAULT_DATA_CFRL`
+```python
+DEFAULT_DATA_CFRL: dict = {'orig': None, 'cf': None, 'target': None, 'condition': None}
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_META_CFRL`
+```python
+DEFAULT_META_CFRL: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `has_pytorch`
+```python
+has_pytorch: bool = True
+```
+bool(x) -> bool
+
+Returns True when the argument x is true, False otherwise.
+The builtins True and False are the only two instances of the class bool.
+The class bool is a subclass of the class int, and cannot be subclassed.
+
+### `has_tensorflow`
+```python
+has_tensorflow: bool = True
+```
+bool(x) -> bool
+
+Returns True when the argument x is true, False otherwise.
+The builtins True and False are the only two instances of the class bool.
+The class bool is a subclass of the class int, and cannot be subclassed.
+
+### `logger`
+```python
+logger: logging.Logger = <Logger alibi.explainers.cfrl_base (WARNING)>
+```
+Instances of the Logger class represent a single logging channel. A
+"logging channel" indicates an area of an application. Exactly how an
+"area" is defined is up to the application developer. Since an
+application can have any number of areas, logging channels are identified
+by a unique string. Application areas can be nested (e.g. an area
+of "input processing" might include sub-areas "read CSV files", "read
+XLS files" and "read Gnumeric files"). To cater for this natural nesting,
+channel names are organized into a namespace hierarchy where levels are
+separated by periods, much like the Java or Python package namespace. So
+in the instance given above, channel names might be "input" for the upper
+level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
+There is no arbitrary limit to the depth of nesting.
+
+### `DEFAULT_BASE_PARAMS`
+```python
+DEFAULT_BASE_PARAMS: dict = {'act_noise': 0.1, 'act_low': -1.0, 'act_high': 1.0, 'replay_buffer_size': 10...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
 ## Classes
 ### `Callback` (_inherits from `ABC`)
 

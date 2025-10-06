@@ -1,4 +1,64 @@
 # `alibi.explainers.pd_variance`
+## Constants
+### `DEFAULT_DATA_PD`
+```python
+DEFAULT_DATA_PD: dict = {'feature_deciles': None, 'pd_values': None, 'ice_values': None, 'feature_val...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_DATA_PDVARIANCE`
+```python
+DEFAULT_DATA_PDVARIANCE: dict = {'feature_deciles': None, 'pd_values': None, 'feature_values': None, 'feature...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_META_PDVARIANCE`
+```python
+DEFAULT_META_PDVARIANCE: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `logger`
+```python
+logger: logging.Logger = <Logger alibi.explainers.pd_variance (WARNING)>
+```
+Instances of the Logger class represent a single logging channel. A
+"logging channel" indicates an area of an application. Exactly how an
+"area" is defined is up to the application developer. Since an
+application can have any number of areas, logging channels are identified
+by a unique string. Application areas can be nested (e.g. an area
+of "input processing" might include sub-areas "read CSV files", "read
+XLS files" and "read Gnumeric files"). To cater for this natural nesting,
+channel names are organized into a namespace hierarchy where levels are
+separated by periods, much like the Java or Python package namespace. So
+in the instance given above, channel names might be "input" for the upper
+level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
+There is no arbitrary limit to the depth of nesting.
+
 ## Classes
 ### `Method` (_inherits from `str`, `Enum`)
 

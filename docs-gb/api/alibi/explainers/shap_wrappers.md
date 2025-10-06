@@ -1,4 +1,168 @@
 # `alibi.explainers.shap_wrappers`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+bool(x) -> bool
+
+Returns True when the argument x is true, False otherwise.
+The builtins True and False are the only two instances of the class bool.
+The class bool is a subclass of the class int, and cannot be subclassed.
+
+### `DEFAULT_DATA_KERNEL_SHAP`
+```python
+DEFAULT_DATA_KERNEL_SHAP: dict = {'shap_values': [], 'expected_value': [], 'categorical_names': {}, 'feature_n...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_DATA_TREE_SHAP`
+```python
+DEFAULT_DATA_TREE_SHAP: dict = {'shap_values': [], 'shap_interaction_values': [], 'expected_value': [], 'cat...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_META_KERNEL_SHAP`
+```python
+DEFAULT_META_KERNEL_SHAP: dict = {'name': None, 'type': ['blackbox'], 'task': None, 'explanations': ['local', ...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `DEFAULT_META_TREE_SHAP`
+```python
+DEFAULT_META_TREE_SHAP: dict = {'name': None, 'type': ['whitebox'], 'task': None, 'explanations': ['local', ...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `logger`
+```python
+logger: logging.Logger = <Logger alibi.explainers.shap_wrappers (WARNING)>
+```
+Instances of the Logger class represent a single logging channel. A
+"logging channel" indicates an area of an application. Exactly how an
+"area" is defined is up to the application developer. Since an
+application can have any number of areas, logging channels are identified
+by a unique string. Application areas can be nested (e.g. an area
+of "input processing" might include sub-areas "read CSV files", "read
+XLS files" and "read Gnumeric files"). To cater for this natural nesting,
+channel names are organized into a namespace hierarchy where levels are
+separated by periods, much like the Java or Python package namespace. So
+in the instance given above, channel names might be "input" for the upper
+level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
+There is no arbitrary limit to the depth of nesting.
+
+### `KERNEL_SHAP_BACKGROUND_THRESHOLD`
+```python
+KERNEL_SHAP_BACKGROUND_THRESHOLD: int = 300
+```
+int([x]) -> integer
+int(x, base=10) -> integer
+
+Convert a number or string to an integer, or return 0 if no arguments
+are given.  If x is a number, return x.__int__().  For floating point
+numbers, this truncates towards zero.
+
+If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.  The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.
+>>> int('0b100', base=0)
+4
+
+### `DISTRIBUTED_OPTS`
+```python
+DISTRIBUTED_OPTS: dict = {'n_cpus': None, 'batch_size': 1}
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
+### `TREE_SHAP_BACKGROUND_SUPPORTED_SIZE`
+```python
+TREE_SHAP_BACKGROUND_SUPPORTED_SIZE: int = 100
+```
+int([x]) -> integer
+int(x, base=10) -> integer
+
+Convert a number or string to an integer, or return 0 if no arguments
+are given.  If x is a number, return x.__int__().  For floating point
+numbers, this truncates towards zero.
+
+If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.  The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.
+>>> int('0b100', base=0)
+4
+
+### `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD`
+```python
+TREE_SHAP_BACKGROUND_WARNING_THRESHOLD: int = 1000
+```
+int([x]) -> integer
+int(x, base=10) -> integer
+
+Convert a number or string to an integer, or return 0 if no arguments
+are given.  If x is a number, return x.__int__().  For floating point
+numbers, this truncates towards zero.
+
+If x is not a number or if base is given, then x must be a string,
+bytes, or bytearray instance representing an integer literal in the
+given base.  The literal can be preceded by '+' or '-' and be surrounded
+by whitespace.  The base defaults to 10.  Valid bases are 0 and 2-36.
+Base 0 means to interpret the base from the string as an integer literal.
+>>> int('0b100', base=0)
+4
+
+### `TREE_SHAP_MODEL_OUTPUT`
+```python
+TREE_SHAP_MODEL_OUTPUT: list = ['raw', 'probability', 'probability_doubled', 'log_loss']
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
 ## Classes
 ### `KernelExplainerWrapper` (_inherits from `KernelExplainer`, `Explainer`, `Serializable`)
 

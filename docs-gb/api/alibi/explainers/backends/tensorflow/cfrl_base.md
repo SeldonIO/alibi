@@ -3,6 +3,17 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base`, for the Tensorflow backend.
 
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+bool(x) -> bool
+
+Returns True when the argument x is true, False otherwise.
+The builtins True and False are the only two instances of the class bool.
+The class bool is a subclass of the class int, and cannot be subclassed.
+
 ## Classes
 ### `TfCounterfactualRLDataset` (_inherits from `CounterfactualRLDataset`, `ABC`, `PyDataset`)
 

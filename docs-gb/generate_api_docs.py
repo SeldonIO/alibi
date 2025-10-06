@@ -638,6 +638,16 @@ def select_public_members(mod: ModuleType, want_classes: bool = True, want_funcs
     funcs.sort(key=lambda x: x[0])
     return classes, funcs
 
+def get_constants(mod: ModuleType) -> List[Tuple[str, Any]]:
+    """
+    Extract constants (variables with default values) from a module.
+    """
+    constants = []
+    for name, obj in mod.__dict__.items():
+        if not name.startswith("_") and not callable(obj) and not inspect.ismodule(obj):
+            constants.append((name, obj))
+    return constants
+
 def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_root: Optional[str], source_url_prefix: Optional[str]) -> str:
     parts = []
     title = f"# `{mod.__name__}`"
@@ -651,13 +661,29 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
             parts.append(mod_ds["long"])
         parts.append("")
 
-    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
+    # Render constants
+    constants = get_constants(mod)
+    if constants:
+        parts.append("## Constants")
+        for name, value in constants:
+            value_str = repr(value)
+            if len(value_str) > 80:  # Truncate long values for readability
+                value_str = value_str[:77] + "..."
+            doc = inspect.getdoc(getattr(mod, name, None)) or ""
+            parts.append(f"### `{name}`")
+            parts.append(f"```python\n{name}: {type_to_str(type(value))} = {value_str}\n```")
+            if doc:
+                parts.append(doc)
+            parts.append("")
 
+    # Render classes
+    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
     if classes:
         parts.append("## Classes")
         for name, cls in classes:
             parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))
 
+    # Render functions
     if funcs:
         parts.append("## Functions")
         for name, fn in funcs:

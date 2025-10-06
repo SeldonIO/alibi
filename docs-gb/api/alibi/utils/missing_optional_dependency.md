@@ -6,6 +6,27 @@ alibi that is not usable due to missing optional dependencies this code is used 
 with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
 functionality independent of the missing dependency.
 
+## Constants
+### `err_msg_template`
+```python
+err_msg_template: string.Template = <string.Template object at 0x17c0691c0>
+```
+A string class for supporting $-substitutions.
+
+### `ERROR_TYPES`
+```python
+ERROR_TYPES: dict = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
+```
+dict() -> new empty dictionary
+dict(mapping) -> new dictionary initialized from a mapping object's
+    (key, value) pairs
+dict(iterable) -> new dictionary initialized as if via:
+    d = {}
+    for k, v in iterable:
+        d[k] = v
+dict(**kwargs) -> new dictionary initialized with the name=value pairs
+    in the keyword argument list.  For example:  dict(one=1, two=2)
+
 ## Classes
 ### `MissingDependency`
 

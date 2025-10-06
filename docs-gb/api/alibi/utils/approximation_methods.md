@@ -1,4 +1,23 @@
 # `alibi.utils.approximation_methods`
+## Constants
+### `SUPPORTED_RIEMANN_METHODS`
+```python
+SUPPORTED_RIEMANN_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid']
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
+### `SUPPORTED_METHODS`
+```python
+SUPPORTED_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid', 'gau...
+```
+Built-in mutable sequence.
+
+If no argument is given, the constructor creates a new empty list.
+The argument must be an iterable if specified.
+
 ## Classes
 ### `Riemann` (_inherits from `Enum`)
 

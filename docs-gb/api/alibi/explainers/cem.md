@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_CEM`
 ```python
-DEFAULT_DATA_CEM: dict = {'PN': None, 'PP': None, 'PN_pred': None, 'PP_pred': None, 'grads_graph': Non...
+DEFAULT_DATA_CEM = {'PN': None, 'PP': None, 'PN_pred': None, 'PP_pred': None, 'grads_graph': Non...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_CEM`
 ```python
-DEFAULT_META_CEM: dict = {'name': None, 'type': ['blackbox', 'tensorflow', 'keras'], 'explanations': [...
+DEFAULT_META_CEM = {'name': None, 'type': ['blackbox', 'tensorflow', 'keras'], 'explanations': [...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

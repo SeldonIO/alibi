@@ -16,7 +16,7 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 
 ### `DEFAULT_DATA_SIM`
 ```python
-DEFAULT_DATA_SIM: dict = {'scores': None, 'ordered_indices': None, 'most_similar': None, 'least_simila...
+DEFAULT_DATA_SIM = {'scores': None, 'ordered_indices': None, 'most_similar': None, 'least_simila...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -30,7 +30,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_SIM`
 ```python
-DEFAULT_META_SIM: dict = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
+DEFAULT_META_SIM = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

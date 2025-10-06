@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_INTGRAD`
 ```python
-DEFAULT_DATA_INTGRAD: dict = {'attributions': None, 'X': None, 'forward_kwargs': None, 'baselines': None, ...
+DEFAULT_DATA_INTGRAD = {'attributions': None, 'X': None, 'forward_kwargs': None, 'baselines': None, ...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_INTGRAD`
 ```python
-DEFAULT_META_INTGRAD: dict = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
+DEFAULT_META_INTGRAD = {'name': None, 'type': ['whitebox'], 'explanations': ['local'], 'params': {},...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

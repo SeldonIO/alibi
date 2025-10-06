@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_ANCHOR_IMG`
 ```python
-DEFAULT_DATA_ANCHOR_IMG: dict = {'anchor': [], 'segments': None, 'precision': None, 'coverage': None, 'raw': ...
+DEFAULT_DATA_ANCHOR_IMG = {'anchor': [], 'segments': None, 'precision': None, 'coverage': None, 'raw': ...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_ANCHOR`
 ```python
-DEFAULT_META_ANCHOR: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
+DEFAULT_META_ANCHOR = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -47,7 +47,7 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `DEFAULT_SEGMENTATION_KWARGS`
 ```python
-DEFAULT_SEGMENTATION_KWARGS: dict = {'felzenszwalb': {}, 'quickshift': {}, 'slic': {'n_segments': 10, 'compactnes...
+DEFAULT_SEGMENTATION_KWARGS = {'felzenszwalb': {}, 'quickshift': {}, 'slic': {'n_segments': 10, 'compactnes...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

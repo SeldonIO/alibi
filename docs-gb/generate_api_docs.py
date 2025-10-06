@@ -670,8 +670,14 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
             if len(value_str) > 80:  # Truncate long values for readability
                 value_str = value_str[:77] + "..."
             doc = inspect.getdoc(getattr(mod, name, None)) or ""
-            parts.append(f"### `{name}`")
-            parts.append(f"```python\n{name}: {type_to_str(type(value))} = {value_str}\n```")
+            # Skip detailed type rendering for dict
+            type_str = type_to_str(type(value))
+            if type_str == "dict":
+                parts.append(f"### `{name}`")
+                parts.append(f"```python\n{name} = {value_str}\n```")
+            else:
+                parts.append(f"### `{name}`")
+                parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
             if doc:
                 parts.append(doc)
             parts.append("")

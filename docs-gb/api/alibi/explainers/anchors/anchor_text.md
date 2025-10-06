@@ -12,7 +12,7 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 
 ### `DEFAULT_DATA_ANCHOR`
 ```python
-DEFAULT_DATA_ANCHOR: dict = {'anchor': [], 'precision': None, 'coverage': None, 'raw': None}
+DEFAULT_DATA_ANCHOR = {'anchor': [], 'precision': None, 'coverage': None, 'raw': None}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -26,7 +26,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_ANCHOR`
 ```python
-DEFAULT_META_ANCHOR: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
+DEFAULT_META_ANCHOR = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -57,7 +57,7 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `DEFAULT_SAMPLING_UNKNOWN`
 ```python
-DEFAULT_SAMPLING_UNKNOWN: dict = {'sample_proba': 0.5}
+DEFAULT_SAMPLING_UNKNOWN = {'sample_proba': 0.5}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -71,7 +71,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_SAMPLING_SIMILARITY`
 ```python
-DEFAULT_SAMPLING_SIMILARITY: dict = {'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0, 'use_proba': False}
+DEFAULT_SAMPLING_SIMILARITY = {'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0, 'use_proba': False}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -85,7 +85,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_SAMPLING_LANGUAGE_MODEL`
 ```python
-DEFAULT_SAMPLING_LANGUAGE_MODEL: dict = {'filling': 'parallel', 'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0...
+DEFAULT_SAMPLING_LANGUAGE_MODEL = {'filling': 'parallel', 'sample_proba': 0.5, 'top_n': 100, 'temperature': 1.0...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

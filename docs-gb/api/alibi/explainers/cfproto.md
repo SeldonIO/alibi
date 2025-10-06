@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_CFP`
 ```python
-DEFAULT_DATA_CFP: dict = {'cf': None, 'all': [], 'orig_class': None, 'orig_proba': None, 'id_proto': N...
+DEFAULT_DATA_CFP = {'cf': None, 'all': [], 'orig_class': None, 'orig_proba': None, 'id_proto': N...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_CFP`
 ```python
-DEFAULT_META_CFP: dict = {'name': None, 'type': ['blackbox', 'tensorflow', 'keras'], 'explanations': [...
+DEFAULT_META_CFP = {'name': None, 'type': ['blackbox', 'tensorflow', 'keras'], 'explanations': [...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

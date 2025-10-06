@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_PROTOSELECT`
 ```python
-DEFAULT_DATA_PROTOSELECT: dict = {'prototypes': None, 'prototype_indices': None, 'prototype_labels': None}
+DEFAULT_DATA_PROTOSELECT = {'prototypes': None, 'prototype_indices': None, 'prototype_labels': None}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_PROTOSELECT`
 ```python
-DEFAULT_META_PROTOSELECT: dict = {'name': None, 'type': ['data'], 'explanation': ['global'], 'params': {}, 've...
+DEFAULT_META_PROTOSELECT = {'name': None, 'type': ['data'], 'explanation': ['global'], 'params': {}, 've...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

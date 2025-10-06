@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_PD`
 ```python
-DEFAULT_DATA_PD: dict = {'feature_deciles': None, 'pd_values': None, 'ice_values': None, 'feature_val...
+DEFAULT_DATA_PD = {'feature_deciles': None, 'pd_values': None, 'ice_values': None, 'feature_val...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_PD`
 ```python
-DEFAULT_META_PD: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+DEFAULT_META_PD = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

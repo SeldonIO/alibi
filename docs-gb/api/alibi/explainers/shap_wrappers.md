@@ -12,7 +12,7 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 
 ### `DEFAULT_DATA_KERNEL_SHAP`
 ```python
-DEFAULT_DATA_KERNEL_SHAP: dict = {'shap_values': [], 'expected_value': [], 'categorical_names': {}, 'feature_n...
+DEFAULT_DATA_KERNEL_SHAP = {'shap_values': [], 'expected_value': [], 'categorical_names': {}, 'feature_n...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -26,7 +26,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_DATA_TREE_SHAP`
 ```python
-DEFAULT_DATA_TREE_SHAP: dict = {'shap_values': [], 'shap_interaction_values': [], 'expected_value': [], 'cat...
+DEFAULT_DATA_TREE_SHAP = {'shap_values': [], 'shap_interaction_values': [], 'expected_value': [], 'cat...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -40,7 +40,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_KERNEL_SHAP`
 ```python
-DEFAULT_META_KERNEL_SHAP: dict = {'name': None, 'type': ['blackbox'], 'task': None, 'explanations': ['local', ...
+DEFAULT_META_KERNEL_SHAP = {'name': None, 'type': ['blackbox'], 'task': None, 'explanations': ['local', ...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -54,7 +54,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_TREE_SHAP`
 ```python
-DEFAULT_META_TREE_SHAP: dict = {'name': None, 'type': ['whitebox'], 'task': None, 'explanations': ['local', ...
+DEFAULT_META_TREE_SHAP = {'name': None, 'type': ['whitebox'], 'task': None, 'explanations': ['local', ...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -104,7 +104,7 @@ Base 0 means to interpret the base from the string as an integer literal.
 
 ### `DISTRIBUTED_OPTS`
 ```python
-DISTRIBUTED_OPTS: dict = {'n_cpus': None, 'batch_size': 1}
+DISTRIBUTED_OPTS = {'n_cpus': None, 'batch_size': 1}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

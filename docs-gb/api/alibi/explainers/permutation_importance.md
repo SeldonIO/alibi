@@ -2,7 +2,7 @@
 ## Constants
 ### `DEFAULT_DATA_PERMUTATION_IMPORTANCE`
 ```python
-DEFAULT_DATA_PERMUTATION_IMPORTANCE: dict = {'feature_names': None, 'metric_names': None, 'feature_importance': None}
+DEFAULT_DATA_PERMUTATION_IMPORTANCE = {'feature_names': None, 'metric_names': None, 'feature_importance': None}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -16,7 +16,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_PERMUTATION_IMPORTANCE`
 ```python
-DEFAULT_META_PERMUTATION_IMPORTANCE: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+DEFAULT_META_PERMUTATION_IMPORTANCE = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -47,7 +47,7 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x15e050ca0>, 'mean_...
+LOSS_FNS = {'mean_absolute_error': <function mean_absolute_error at 0x157b5cca0>, 'mean_...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -61,7 +61,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x15df3d790>, 'precision': <function...
+SCORE_FNS = {'accuracy': <function accuracy_score at 0x157a49790>, 'precision': <function...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

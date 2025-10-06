@@ -12,7 +12,7 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 
 ### `DEFAULT_DATA_CFRL`
 ```python
-DEFAULT_DATA_CFRL: dict = {'orig': None, 'cf': None, 'target': None, 'condition': None}
+DEFAULT_DATA_CFRL = {'orig': None, 'cf': None, 'target': None, 'condition': None}
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -26,7 +26,7 @@ dict(**kwargs) -> new dictionary initialized with the name=value pairs
 
 ### `DEFAULT_META_CFRL`
 ```python
-DEFAULT_META_CFRL: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
+DEFAULT_META_CFRL = {'name': None, 'type': ['blackbox'], 'explanations': ['local'], 'params': {},...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's
@@ -77,7 +77,7 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `DEFAULT_BASE_PARAMS`
 ```python
-DEFAULT_BASE_PARAMS: dict = {'act_noise': 0.1, 'act_low': -1.0, 'act_high': 1.0, 'replay_buffer_size': 10...
+DEFAULT_BASE_PARAMS = {'act_noise': 0.1, 'act_low': -1.0, 'act_high': 1.0, 'replay_buffer_size': 10...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

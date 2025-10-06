@@ -9,13 +9,13 @@ functionality independent of the missing dependency.
 ## Constants
 ### `err_msg_template`
 ```python
-err_msg_template: string.Template = <string.Template object at 0x17c0691c0>
+err_msg_template: string.Template = <string.Template object at 0x175b73040>
 ```
 A string class for supporting $-substitutions.
 
 ### `ERROR_TYPES`
 ```python
-ERROR_TYPES: dict = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
+ERROR_TYPES = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
 ```
 dict() -> new empty dictionary
 dict(mapping) -> new dictionary initialized from a mapping object's

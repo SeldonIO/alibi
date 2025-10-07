@@ -9,24 +9,23 @@ functionality independent of the missing dependency.
 ## Constants
 ### `err_msg_template`
 ```python
-err_msg_template: string.Template = <string.Template object at 0x16bc2a790>
+err_msg_template: string.Template = <string.Template object at 0x16dcab040>
 ```
 A string class for supporting $-substitutions.
 
 ### `ERROR_TYPES`
 ```python
-ERROR_TYPES = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
+ERROR_TYPES: dict = {'ray': 'ray', 'tensorflow': 'tensorflow', 'torch': 'torch', 'pytorch': 'torc...
 ```
 
-## Classes
-### `MissingDependency`
+## `MissingDependency`
 
 Missing Dependency Class
 
 Used to replace any object that requires unmet optional dependencies. Attribute access or calling the __call__
 method on this object will raise an error.
 
-#### Constructor
+### Constructor
 
 ```python
 MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, ImportError], missing_dependency: str = 'all')
@@ -38,7 +37,7 @@ MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, Import
 | `err` | `Union[ModuleNotFoundError, ImportError]` |  | Error to be raised when the class is initialized or used |
 | `missing_dependency` | `str` | `'all'` | Name of missing dependency required for object |
 
-#### Properties
+### Properties
 
 | Property | Type | Description |
 | -------- | ---- | ----------- |

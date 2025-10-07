@@ -18,21 +18,17 @@ Built-in mutable sequence.
 If no argument is given, the constructor creates a new empty list.
 The argument must be an iterable if specified.
 
-## Classes
-### `Riemann` (_inherits from `Enum`)
+## `Riemann`
+
+_Inherits from:_ `Enum`
 
 An enumeration.
 
-#### Constructor
+### Constructor
 
 ```python
 Riemann(self, /, *args, **kwargs)
 ```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
 
 ## Functions
 ### `approximation_parameters`

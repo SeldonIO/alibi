@@ -17,29 +17,25 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `AlibiPrettyPrinter` (_inherits from `PrettyPrinter`)
+## `AlibiPrettyPrinter`
+
+_Inherits from:_ `PrettyPrinter`
 
 Overrides the built in dictionary pretty representation to look more similar to the external
 
 prettyprinter libary.
 
-#### Constructor
+### Constructor
 
 ```python
 AlibiPrettyPrinter(self, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
-
-### `Base`
+## `Base`
 
 Base class for all `alibi` algorithms. Implements a structured approach to handle metadata.
 
-#### Constructor
+### Constructor
 
 ```python
 Base(self, meta: dict = NOTHING) -> None
@@ -49,11 +45,13 @@ Base(self, meta: dict = NOTHING) -> None
 | ---- | ---- | ------- | ----------- |
 | `meta` | `dict` | `NOTHING` |  |
 
-### `Explainer` (_inherits from `ABC`, `Base`)
+## `Explainer`
+
+_Inherits from:_ `ABC`, `Base`
 
 Base class for explainer algorithms from :py:mod:`alibi.explainers`.
 
-#### Constructor
+### Constructor
 
 ```python
 Explainer(self, meta: dict = NOTHING) -> None
@@ -63,9 +61,9 @@ Explainer(self, meta: dict = NOTHING) -> None
 | ---- | ---- | ------- | ----------- |
 | `meta` | `dict` | `NOTHING` |  |
 
-#### Methods
+### Methods
 
-##### `explain`
+#### `explain`
 
 ```python
 explain(X: typing.Any) -> alibi.api.interfaces.Explanation
@@ -78,24 +76,11 @@ explain(X: typing.Any) -> alibi.api.interfaces.Explanation
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-##### `load`
+#### `load`
 
 ```python
 load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfaces.Explainer
 ```
-
-Load an explainer from disk.
-
-Parameters
-----------
-path
-    Path to a directory containing the saved explainer.
-predictor
-    Model or prediction function used to originally initialize the explainer.
-
-Returns
--------
-An explainer instance.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -105,18 +90,11 @@ An explainer instance.
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-##### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: typing.Any) -> None
 ```
-
-Resets the predictor.
-
-Parameters
-----------
-predictor
-    New predictor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -125,18 +103,11 @@ predictor
 **Returns**
 - Type: `None`
 
-##### `save`
+#### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
 ```
-
-Save an explainer to disk. Uses the `dill` module.
-
-Parameters
-----------
-path
-    Path to a directory. A new directory will be created if one does not exist.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -145,11 +116,11 @@ path
 **Returns**
 - Type: `None`
 
-### `Explanation`
+## `Explanation`
 
 Explanation class returned by explainers.
 
-#### Constructor
+### Constructor
 
 ```python
 Explanation(self, meta: dict, data: dict) -> None
@@ -160,24 +131,13 @@ Explanation(self, meta: dict, data: dict) -> None
 | `meta` | `dict` |  |  |
 | `data` | `dict` |  |  |
 
-#### Methods
+### Methods
 
-##### `from_json`
+#### `from_json`
 
 ```python
 from_json(jsonrepr) -> alibi.api.interfaces.Explanation
 ```
-
-Create an instance of an `Explanation` class using a `json` representation of the `Explanation`.
-
-Parameters
-----------
-jsonrepr
-    `json` representation of an explanation.
-
-Returns
--------
-An Explanation object.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -186,41 +146,31 @@ An Explanation object.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-##### `to_json`
+#### `to_json`
 
 ```python
 to_json() -> str
 ```
 
-Serialize the explanation data and metadata into a `json` format.
-
-Returns
--------
-String containing `json` representation of the explanation.
-
 **Returns**
 - Type: `str`
 
-### `FitMixin` (_inherits from `ABC`)
+## `FitMixin`
+
+_Inherits from:_ `ABC`
 
 Helper class that provides a standard way to create an ABC using
 
 inheritance.
 
-#### Constructor
+### Constructor
 
 ```python
 FitMixin(self, /, *args, **kwargs)
 ```
+### Methods
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
-
-#### Methods
-
-##### `fit`
+#### `fit`
 
 ```python
 fit(X: typing.Any) -> alibi.api.interfaces.Explainer
@@ -233,11 +183,13 @@ fit(X: typing.Any) -> alibi.api.interfaces.Explainer
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-### `Summariser` (_inherits from `ABC`, `Base`)
+## `Summariser`
+
+_Inherits from:_ `ABC`, `Base`
 
 Base class for prototype algorithms from :py:mod:`alibi.prototypes`.
 
-#### Constructor
+### Constructor
 
 ```python
 Summariser(self, meta: dict = NOTHING) -> None
@@ -247,9 +199,9 @@ Summariser(self, meta: dict = NOTHING) -> None
 | ---- | ---- | ------- | ----------- |
 | `meta` | `dict` | `NOTHING` |  |
 
-#### Methods
+### Methods
 
-##### `load`
+#### `load`
 
 ```python
 load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
@@ -262,7 +214,7 @@ load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
 **Returns**
 - Type: `alibi.api.interfaces.Summariser`
 
-##### `save`
+#### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
@@ -275,7 +227,7 @@ save(path: Union[str, os.PathLike]) -> None
 **Returns**
 - Type: `None`
 
-##### `summarise`
+#### `summarise`
 
 ```python
 summarise(num_prototypes: int) -> alibi.api.interfaces.Explanation

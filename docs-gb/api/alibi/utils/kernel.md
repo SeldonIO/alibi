@@ -1,16 +1,15 @@
 # `alibi.utils.kernel`
-## Classes
-### `EuclideanDistance`
+## `EuclideanDistance`
 
-#### Constructor
+### Constructor
 
 ```python
 EuclideanDistance(self) -> None
 ```
 
-### `GaussianRBF`
+## `GaussianRBF`
 
-#### Constructor
+### Constructor
 
 ```python
 GaussianRBF(self, sigma: Union[float, numpy.ndarray, NoneType] = None) -> None
@@ -20,15 +19,15 @@ GaussianRBF(self, sigma: Union[float, numpy.ndarray, NoneType] = None) -> None
 | ---- | ---- | ------- | ----------- |
 | `sigma` | `Union[float, numpy.ndarray, None]` | `None` | Kernel bandwidth. Not to be specified if being inferred or trained. Can pass multiple values to evaluate the kernel with and then average. |
 
-#### Properties
+### Properties
 
 | Property | Type | Description |
 | -------- | ---- | ----------- |
 | `sigma` | `numpy.ndarray` |  |
 
-### `GaussianRBFDistance`
+## `GaussianRBFDistance`
 
-#### Constructor
+### Constructor
 
 ```python
 GaussianRBFDistance(self, sigma: Union[float, numpy.ndarray, NoneType] = None)

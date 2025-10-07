@@ -14,12 +14,13 @@ Returns True when the argument x is true, False otherwise.
 The builtins True and False are the only two instances of the class bool.
 The class bool is a subclass of the class int, and cannot be subclassed.
 
-## Classes
-### `PtCounterfactualRLDataset` (_inherits from `CounterfactualRLDataset`, `ABC`, `Dataset`, `Generic`)
+## `PtCounterfactualRLDataset`
+
+_Inherits from:_ `CounterfactualRLDataset`, `ABC`, `Dataset`, `Generic`
 
 Pytorch backend datasets.
 
-#### Constructor
+### Constructor
 
 ```python
 PtCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predictor: Callable, conditional_func: Callable, batch_size: int) -> None
@@ -74,7 +75,6 @@ Z_cf_tilde
 | `step` | `int` |  | Training step. |
 | `exploration_steps` | `int` |  | Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding is sampled uniformly at random. |
 | `device` | `torch.device` |  | Device to send data to. |
-| `kwargs` |  |  |  |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -144,7 +144,6 @@ num_workers
 | `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 | `shuffle` | `bool` |  | Whether to shuffle the dataset each epoch. ``True`` by default. |
 | `num_workers` | `int` |  | Number of worker processes to be created. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 ### `decode`
@@ -173,7 +172,6 @@ Embedding tensor decoding.
 | `Z` | `torch.Tensor` |  | Embedding tensor to be decoded. |
 | `decoder` | `torch.nn.modules.module.Module` |  | Pretrained decoder network. |
 | `device` | `torch.device` |  | Device to sent data to. |
-| `kwargs` |  |  |  |
 
 ### `encode`
 
@@ -201,7 +199,6 @@ Returns
 | `X` | `torch.Tensor` |  | Input to be encoded. |
 | `encoder` | `torch.nn.modules.module.Module` |  | Pretrained encoder network. |
 | `device` | `torch.device` |  | Device to send data to. |
-| `kwargs` |  |  |  |
 
 ### `generate_cf`
 
@@ -245,7 +242,6 @@ Z_cf
 | `decoder` | `torch.nn.modules.module.Module` |  | Pretrained decoder network. |
 | `actor` | `torch.nn.modules.module.Module` |  | Actor network. The model generates the counterfactual embedding. |
 | `device` | `torch.device` |  | Device object to be used. |
-| `kwargs` |  |  |  |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -467,7 +463,6 @@ Returns
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, torch.Tensor]` |  |  |
 | `device` | `torch.device` |  |  |
-| `kwargs` |  |  |  |
 
 **Returns**
 - Type: `Optional[torch.Tensor]`
@@ -548,5 +543,4 @@ Dictionary of losses.
 | `C` | `Optional[numpy.ndarray]` |  | Conditional tensor. |
 | `R_tilde` | `numpy.ndarray` |  | Noised counterfactual reward. |
 | `device` | `torch.device` |  | Torch device object. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |

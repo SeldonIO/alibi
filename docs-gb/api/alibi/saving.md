@@ -19,8 +19,9 @@ Built-in mutable sequence.
 If no argument is given, the constructor creates a new empty list.
 The argument must be an iterable if specified.
 
-## Classes
-### `NumpyEncoder` (_inherits from `JSONEncoder`)
+## `NumpyEncoder`
+
+_Inherits from:_ `JSONEncoder`
 
 Extensible JSON <http://json.org> encoder for Python data structures.
 
@@ -49,7 +50,7 @@ To extend this to recognize other objects, subclass and implement a
 object for ``o`` if possible, otherwise it should call the superclass
 implementation (to raise ``TypeError``).
 
-#### Constructor
+### Constructor
 
 ```python
 NumpyEncoder(self, *, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, sort_keys=False, indent=None, separators=None, default=None)
@@ -66,31 +67,13 @@ NumpyEncoder(self, *, skipkeys=False, ensure_ascii=True, check_circular=True, al
 | `separators` |  | `None` |  |
 | `default` |  | `None` |  |
 
-#### Methods
+### Methods
 
-##### `default`
+#### `default`
 
 ```python
 default(obj)
 ```
-
-Implement this method in a subclass such that it returns
-
-a serializable object for ``o``, or calls the base implementation
-(to raise a ``TypeError``).
-
-For example, to support arbitrary iterators, you could
-implement default like this::
-
-    def default(self, o):
-        try:
-            iterable = iter(o)
-        except TypeError:
-            pass
-        else:
-            return list(iterable)
-        # Let the base class default method raise the TypeError
-        return JSONEncoder.default(self, o)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

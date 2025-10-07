@@ -20,18 +20,14 @@ Returns True when the argument x is true, False otherwise.
 The builtins True and False are the only two instances of the class bool.
 The class bool is a subclass of the class int, and cannot be subclassed.
 
-## Classes
-### `Framework` (_inherits from `str`, `Enum`)
+## `Framework`
+
+_Inherits from:_ `str`, `Enum`
 
 An enumeration.
 
-#### Constructor
+### Constructor
 
 ```python
 Framework(self, /, *args, **kwargs)
 ```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |

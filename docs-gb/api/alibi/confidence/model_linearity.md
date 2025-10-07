@@ -17,10 +17,9 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `LinearityMeasure`
+## `LinearityMeasure`
 
-#### Constructor
+### Constructor
 
 ```python
 LinearityMeasure(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: int = 10, res: int = 100, alphas: Optional[numpy.ndarray] = None, model_type: str = 'classifier', agg: str = 'pairwise', verbose: bool = False) -> None
@@ -37,19 +36,13 @@ LinearityMeasure(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: 
 | `agg` | `str` | `'pairwise'` | Aggregation method. Supported values: ``'global'`` | ``'pairwise'``. |
 | `verbose` | `bool` | `False` |  |
 
-#### Methods
+### Methods
 
-##### `fit`
+#### `fit`
 
 ```python
 fit(X_train: numpy.ndarray) -> None
 ```
-
-Parameters
-
-----------
-X_train
-    Training set.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -58,23 +51,11 @@ X_train
 **Returns**
 - Type: `None`
 
-##### `score`
+#### `score`
 
 ```python
 score(predict_fn: Callable, x: numpy.ndarray) -> numpy.ndarray
 ```
-
-Parameters
-
-----------
-predict_fn
-    Prediction function.
-x
-    Instance of interest.
-
-Returns
--------
-Linearity measure.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

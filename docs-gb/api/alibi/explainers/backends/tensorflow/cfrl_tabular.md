@@ -27,7 +27,6 @@ Heterogeneous consistency loss.
 | ---- | ---- | ------- | ----------- |
 | `Z_cf_pred` | `tensorflow.python.framework.tensor.Tensor` |  | Counterfactual embedding prediction. |
 | `Z_cf_tgt` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Counterfactual embedding target. |
-| `kwargs` |  |  |  |
 
 ### `l0_ohe`
 

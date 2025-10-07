@@ -1,20 +1,17 @@
 # `alibi.utils.data`
-## Classes
-### `Bunch` (_inherits from `dict`)
+## `Bunch`
+
+_Inherits from:_ `dict`
 
 Container object for internal datasets.
 
 Dictionary-like object that exposes its keys as attributes.
 
-#### Constructor
+### Constructor
 
 ```python
 Bunch(self, **kwargs)
 ```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `kwargs` |  |  |  |
 
 ## Functions
 ### `gen_category_map`

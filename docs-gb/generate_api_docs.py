@@ -331,6 +331,11 @@ def render_params_table(params: List[Dict[str, str]], sig: Optional[inspect.Sign
         for name, param in sig.parameters.items():
             if name in ("self", "cls"):
                 continue
+            if param.kind in (inspect.Parameter.VAR_POSITIONAL, inspect.Parameter.VAR_KEYWORD):
+                # Skip *args and **kwargs if they lack meaningful documentation
+                ds = ds_map.get(name, {})
+                if not ds.get("type") and not ds.get("default") and not ds.get("desc"):
+                    continue
             ds = ds_map.get(name, {})
             ann = hints.get(name, param.annotation)
             typ = ds.get("type") or (type_to_str(ann) if ann is not inspect._empty else "")
@@ -433,24 +438,30 @@ def make_source_link(obj: Any, repo_root: Optional[str], source_url_prefix: Opti
 
 def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: Optional[str] = None, source_url_prefix: Optional[str] = None) -> str:
     out = []
+    out.append(f"## `{cls.__name__}`\n")  # Class name as a subsection
+
+    # Add inheritance information as a separate section (optional)
     base_names = [b.__name__ for b in getattr(cls, "__mro__", [])[1:] if b not in (object,)]
-    bases_str = f" (_inherits from {', '.join('`'+b+'`' for b in base_names)})" if base_names else ""
-    out.append(f"### `{cls.__name__}`{bases_str}\n")
+    if base_names:
+        out.append(f"_Inherits from:_ {', '.join('`' + b + '`' for b in base_names)}\n")
+
+    # Add a "View source" link if available
     link = make_source_link(cls, repo_root, source_url_prefix)
     if link:
         out.append(f"[View source]({link})\n")
 
+    # Parse and include the class docstring
     class_ds = parse_docstring(inspect.getdoc(cls))
     if class_ds["short"]:
         out.append(class_ds["short"] + "\n")
     if class_ds["long"]:
         out.append(class_ds["long"] + "\n")
 
-    # Dataclass fields (if any)
+    # Render dataclass fields
     if dataclasses.is_dataclass(cls):
         fields = dataclasses.fields(cls)
         if fields:
-            out.append("#### Fields\n")
+            out.append("### Fields\n")
             out.append("| Field | Type | Default |")
             out.append("| ----- | ---- | ------- |")
             for f in fields:
@@ -463,7 +474,7 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
                 out.append(f"| `{f.name}` | `{typ}` | `{default}` |")
             out.append("")
 
-    # Constructor
+    # Render constructor
     init = getattr(cls, "__init__", None)
     if callable(init):
         sig = None
@@ -473,21 +484,20 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             hints = typing_get_type_hints_safe(init)
         except Exception:
             pass
-        out.append("#### Constructor\n")
+        out.append("### Constructor\n")
         if sig:
             out.append(f"```python\n{cls.__name__}{sig}\n```")
         else:
             out.append(f"```python\n{cls.__name__}(...)\n```")
-        # Parse __init__ docstring (NOT the class docstring) for parameters
         init_ds = parse_docstring(inspect.getdoc(init))
         params_table = render_params_table(init_ds["params"], sig, hints)
         if params_table:
             out.append("\n" + params_table + "\n")
 
-    # Properties
+    # Render properties
     props = get_properties(cls)
     if props:
-        out.append("#### Properties\n")
+        out.append("### Properties\n")
         out.append("| Property | Type | Description |")
         out.append("| -------- | ---- | ----------- |")
         for name, prop in props:
@@ -498,10 +508,10 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             out.append(f"| `{name}` | `{typ}` | {desc} |")
         out.append("")
 
-    # Methods
+    # Render methods
     methods = get_methods(cls, include_inherited=include_inherited)
     if methods:
-        out.append("#### Methods\n")
+        out.append("### Methods\n")
         for name, fn in methods:
             if name.startswith("_") and name != "__call__":
                 continue
@@ -514,15 +524,11 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             except Exception:
                 pass
             sig_str = format_signature(fn)
-            out.append(f"##### `{name}`\n")
+            out.append(f"#### `{name}`\n")
             out.append(f"```python\n{sig_str}\n```\n")
             link = make_source_link(fn, repo_root, source_url_prefix)
             if link:
                 out.append(f"[View source]({link})\n")
-            if fn_ds["short"]:
-                out.append(fn_ds["short"] + "\n")
-            if fn_ds["long"]:
-                out.append(fn_ds["long"] + "\n")
             params_table = render_params_table(fn_ds["params"], sig, hints)
             if params_table:
                 out.append(params_table + "\n")
@@ -670,23 +676,16 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
             if len(value_str) > 80:  # Truncate long values for readability
                 value_str = value_str[:77] + "..."
             doc = inspect.getdoc(getattr(mod, name, None)) or ""
-            # Skip detailed type rendering for dict
             type_str = type_to_str(type(value))
-            if type_str == "dict":
-                parts.append(f"### `{name}`")
-                parts.append(f"```python\n{name} = {value_str}\n```")
-            else:
-                parts.append(f"### `{name}`")
-                parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
-            # Only include the docstring if it's not the default `dict` constructor doc
+            parts.append(f"### `{name}`")
+            parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
             if doc and not doc.startswith("dict() -> new empty dictionary"):
                 parts.append(doc)
             parts.append("")
 
-    # Render classes
+    # Render classes and their subsections
     classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
     if classes:
-        parts.append("## Classes")
         for name, cls in classes:
             parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))
 

@@ -27,23 +27,16 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `AnchorTextSampler`
+## `AnchorTextSampler`
 
-#### Constructor
+### Constructor
 
 ```python
 AnchorTextSampler(self, /, *args, **kwargs)
 ```
+### Methods
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
-
-#### Methods
-
-##### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None
@@ -56,9 +49,9 @@ set_text(text: str) -> None
 **Returns**
 - Type: `None`
 
-### `Neighbors`
+## `Neighbors`
 
-#### Constructor
+### Constructor
 
 ```python
 Neighbors(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob: float = -15.0) -> None
@@ -70,28 +63,13 @@ Neighbors(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob
 | `n_similar` | `int` | `500` | Number of similar words to return. |
 | `w_prob` | `float` | `-15.0` | Smoothed log probability estimate of token's type. |
 
-#### Methods
+### Methods
 
-##### `neighbors`
+#### `neighbors`
 
 ```python
 neighbors(word: str, tag: str, top_n: int) -> dict
 ```
-
-Find similar words for a certain word in the vocabulary.
-
-Parameters
-----------
-word
-    Word for which we need to find similar words.
-tag
-    Part of speech tag for the words.
-top_n
-    Return only `top_n` neighbors.
-
-Returns
--------
-A dict with two fields. The ``'words'`` field contains a `numpy` array of the `top_n` most similar words,         whereas the fields ``'similarities'`` is a `numpy` array with corresponding word similarities.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -102,9 +80,11 @@ A dict with two fields. The ``'words'`` field contains a `numpy` array of the `t
 **Returns**
 - Type: `dict`
 
-### `SimilaritySampler` (_inherits from `AnchorTextSampler`)
+## `SimilaritySampler`
 
-#### Constructor
+_Inherits from:_ `AnchorTextSampler`
+
+### Constructor
 
 ```python
 SimilaritySampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
@@ -115,60 +95,22 @@ SimilaritySampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
 | `nlp` | `spacy.language.Language` |  | `spaCy` object. |
 | `perturb_opts` | `Dict` |  | Perturbation options. |
 
-#### Methods
+### Methods
 
-##### `find_similar_words`
+#### `find_similar_words`
 
 ```python
 find_similar_words() -> None
 ```
 
-This function queries a `spaCy` nlp model to find `n` similar words with the same
-
-part of speech for each word in the instance to be explained. For each word
-the search procedure returns a dictionary containing a `numpy` array of words (``'words'``)
-and a `numpy` array of word similarities (``'similarities'``).
-
 **Returns**
 - Type: `None`
 
-##### `perturb_sentence_similarity`
+#### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADV', 'ADJ', 'ADP', 'VERB', 'DET', 'NOUN'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'VERB', 'DET', 'ADP', 'NOUN', 'ADJ', 'ADV'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
-
-Perturb the text instance to be explained.
-
-Parameters
-----------
-present
-    Word index in the text for the words in the proposed anchor.
-n
-    Number of samples used when sampling from the corpus.
-sample_proba
-    Sample probability for a word if `use_proba=False`.
-forbidden
-    Forbidden lemmas.
-forbidden_tags
-    Forbidden POS tags.
-forbidden_words
-    Forbidden words.
-pos
-    POS that can be changed during perturbation.
-use_proba
-    Bool whether to sample according to a similarity score with the corpus embeddings.
-temperature
-    Sample weight hyper-parameter if ``use_proba=True``.
-**kwargs
-    Other arguments. Not used.
-
-Returns
--------
-raw
-    Array of perturbed text instances.
-data
-    Matrix with 1s and 0s indicating whether a word in the text has not been perturbed for each sample.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -179,42 +121,27 @@ data
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` | Forbidden POS tags. |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` | Forbidden words. |
 | `temperature` | `float` | `1.0` | Sample weight hyper-parameter if ``use_proba=True``. |
-| `pos` | `frozenset` | `frozenset({'ADV', 'ADJ', 'ADP', 'VERB', 'DET', 'NOUN'})` | POS that can be changed during perturbation. |
+| `pos` | `frozenset` | `frozenset({'VERB', 'DET', 'ADP', 'NOUN', 'ADJ', 'ADV'})` | POS that can be changed during perturbation. |
 | `use_proba` | `bool` | `False` | Bool whether to sample according to a similarity score with the corpus embeddings. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-##### `set_data_type`
+#### `set_data_type`
 
 ```python
 set_data_type() -> None
 ```
 
-Working with `numpy` arrays of strings requires setting the data type to avoid
-
-truncating examples. This function estimates the longest sentence expected
-during the sampling process, which is used to set the number of characters
-for the samples and examples arrays. This depends on the perturbation method
-used for sampling.
-
 **Returns**
 - Type: `None`
 
-##### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None
 ```
-
-Sets the text to be processed
-
-Parameters
-----------
-text
-    Text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -223,9 +150,11 @@ text
 **Returns**
 - Type: `None`
 
-### `UnknownSampler` (_inherits from `AnchorTextSampler`)
+## `UnknownSampler`
 
-#### Constructor
+_Inherits from:_ `AnchorTextSampler`
+
+### Constructor
 
 ```python
 UnknownSampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
@@ -236,36 +165,22 @@ UnknownSampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
 | `nlp` | `spacy.language.Language` |  | `spaCy` object. |
 | `perturb_opts` | `Dict` |  | Perturbation options. |
 
-#### Methods
+### Methods
 
-##### `set_data_type`
+#### `set_data_type`
 
 ```python
 set_data_type() -> None
 ```
 
-Working with `numpy` arrays of strings requires setting the data type to avoid
-
-truncating examples. This function estimates the longest sentence expected
-during the sampling process, which is used to set the number of characters
-for the samples and examples arrays. This depends on the perturbation method
-used for sampling.
-
 **Returns**
 - Type: `None`
 
-##### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None
 ```
-
-Sets the text to be processed.
-
-Parameters
-----------
-text
-    Text to be processed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

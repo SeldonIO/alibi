@@ -1,34 +1,27 @@
 # `alibi.utils.visualization`
-## Classes
-### `ImageVisualizationMethod` (_inherits from `Enum`)
+## `ImageVisualizationMethod`
+
+_Inherits from:_ `Enum`
 
 An enumeration.
 
-#### Constructor
+### Constructor
 
 ```python
 ImageVisualizationMethod(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `VisualizeSign`
 
-### `VisualizeSign` (_inherits from `Enum`)
+_Inherits from:_ `Enum`
 
 An enumeration.
 
-#### Constructor
+### Constructor
 
 ```python
 VisualizeSign(self, /, *args, **kwargs)
 ```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
 
 ## Functions
 ### `heatmap`

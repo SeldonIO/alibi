@@ -3,46 +3,26 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base`, that are common for both Tensorflow and Pytorch backends.
 
-## Classes
-### `CounterfactualRLDataset` (_inherits from `ABC`)
+## `CounterfactualRLDataset`
+
+_Inherits from:_ `ABC`
 
 Helper class that provides a standard way to create an ABC using
 
 inheritance.
 
-#### Constructor
+### Constructor
 
 ```python
 CounterfactualRLDataset(self, /, *args, **kwargs)
 ```
+### Methods
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
-
-#### Methods
-
-##### `predict_batches`
+#### `predict_batches`
 
 ```python
 predict_batches(X: numpy.ndarray, predictor: Callable, batch_size: int) -> numpy.ndarray
 ```
-
-Predict the classification labels of the input dataset. This is performed in batches.
-
-Parameters
-----------
-X
-    Input to be classified.
-predictor
-    Prediction function.
-batch_size
-    Maximum batch size to be used during each inference step.
-
-Returns
--------
-Classification labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

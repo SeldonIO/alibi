@@ -12,12 +12,12 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 
 ### `DEFAULT_META_ALE`
 ```python
-DEFAULT_META_ALE = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+DEFAULT_META_ALE: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
 
 ### `DEFAULT_DATA_ALE`
 ```python
-DEFAULT_DATA_ALE = {'ale_values': [], 'constant_value': None, 'ale0': [], 'feature_values': [], ...
+DEFAULT_DATA_ALE: dict = {'ale_values': [], 'constant_value': None, 'ale0': [], 'feature_values': [], ...
 ```
 
 ### `logger`
@@ -37,12 +37,13 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `ALE` (_inherits from `Explainer`, `ABC`, `Base`)
+## `ALE`
+
+_Inherits from:_ `Explainer`, `ABC`, `Base`
 
 Base class for explainer algorithms from :py:mod:`alibi.explainers`.
 
-#### Constructor
+### Constructor
 
 ```python
 ALE(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], feature_names: Optional[List[str]] = None, target_names: Optional[List[str]] = None, check_feature_resolution: bool = True, low_resolution_threshold: int = 10, extrapolate_constant: bool = True, extrapolate_constant_perc: float = 10.0, extrapolate_constant_min: float = 0.1) -> None
@@ -59,57 +60,13 @@ ALE(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], feature_names: Op
 | `extrapolate_constant_perc` | `float` | `10.0` | Percentage by which to extrapolate a constant feature value to create an interval for ALE calculation. If `q` is the constant feature value, creates an interval `[q - q/extrapolate_constant_perc, q + q/extrapolate_constant_perc]` for which ALE is calculated. Only relevant if `extrapolate_constant` is set to ``True``. |
 | `extrapolate_constant_min` | `float` | `0.1` | Controls the minimum extrapolation length for constant features. An interval constructed for constant features is guaranteed to be `2 x extrapolate_constant_min` wide centered on the feature value. This allows for capturing model behaviour around constant features which have small value so that `extrapolate_constant_perc` is not so helpful. Only relevant if `extrapolate_constant` is set to ``True``. |
 
-#### Methods
+### Methods
 
-##### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4, grid_points: Optional[Dict[int, numpy.ndarray]] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Calculate the ALE curves for each feature with respect to the dataset `X`.
-
-Parameters
-----------
-X
-    An `N x F` tabular dataset used to calculate the ALE curves. This is typically the training dataset
-    or a representative sample.
-features
-    Features for which to calculate ALE.
-min_bin_points
-    Minimum number of points each discretized interval should contain to ensure more precise
-    ALE estimation. Only relevant for adaptive grid points (i.e., features without an entry in the
-    `grid_points` dictionary).
-grid_points
-    Custom grid points. Must be a `dict` where the keys are features indices and the values are
-    monotonically increasing `numpy` arrays defining the grid points for each feature.
-    See the :ref:`Notes<Notes ALE explain>` section for the default behavior when potential edge-cases arise
-    when using grid-points. If no grid points are specified (i.e. the feature is missing from the `grid_points`
-    dictionary), deciles discretization is used instead.
-
-Returns
--------
-explanation
-    An `Explanation` object containing the data and the metadata of the calculated ALE curves.
-    See usage at `ALE examples`_ for details.
-
-    .. _ALE examples:
-        https://docs.seldon.io/projects/alibi/en/latest/methods/ALE.html
-
-Notes
------
-.. _Notes ALE explain:
-
-Consider `f` to be a feature of interest. We denote possible feature values of `f` by `X` (i.e. the values
-from the dataset column corresponding to feature `f`), by `O` a user-specified grid-point value, and by
-`(X|O)` an overlap between a grid-point and a feature value. We can encounter the following edge-cases:
-
- - Grid points outside the feature range. Consider the following example: `O O O X X O X O X O O`,         where 3 grid-points are smaller than the minimum value in `f`, and 2 grid-points are larger than the maximum         value in `f`. The empty leading and ending bins are removed. The grid-points considered
-will be: `O X X O X O X O`.
-
- - Grid points that do not cover the entire feature range. Consider the following example:         `X X O X X O X O X X X X X`. Two auxiliary grid-points are added which correspond the value of the minimum         and maximum value of feature `f`. The grid-points considered will be: `(O|X) X O X X O X O X X X X (X|O)`.
-
- - Grid points that do not contain any values in between. Consider the following example:         `(O|X) X X O O O X O X O O (X|O)`. The intervals which do not contain any feature values are removed/merged.         The grid-points considered will be: `(O|X) X X O X O X O (X|O)`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -121,18 +78,11 @@ will be: `O X X O X O X O`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-##### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the predictor function.
-
-Parameters
-----------
-predictor
-    New predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

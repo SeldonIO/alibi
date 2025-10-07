@@ -1,6 +1,5 @@
 # `alibi.utils.wrappers`
-## Classes
-### `ArgmaxTransformer`
+## `ArgmaxTransformer`
 
 A transformer for converting classification output probability
 
@@ -8,7 +7,7 @@ tensors to class labels. It assumes the predictor is a callable
 that can be called with a `N`-tensor of data points `x` and produces
 an `N`-tensor of outputs.
 
-#### Constructor
+### Constructor
 
 ```python
 ArgmaxTransformer(self, predictor)
@@ -18,9 +17,9 @@ ArgmaxTransformer(self, predictor)
 | ---- | ---- | ------- | ----------- |
 | `predictor` |  |  |  |
 
-### `Predictor`
+## `Predictor`
 
-#### Constructor
+### Constructor
 
 ```python
 Predictor(self, clf, preprocessor=None)

@@ -3,12 +3,13 @@
 This module defines the Alibi exception hierarchy and common exceptions
 used across the library.
 
-## Classes
-### `AlibiException` (_inherits from `Exception`, `BaseException`, `ABC`)
+## `AlibiException`
+
+_Inherits from:_ `Exception`, `BaseException`, `ABC`
 
 Abstract base class of all alibi exceptions.
 
-#### Constructor
+### Constructor
 
 ```python
 AlibiException(self, message: str) -> None
@@ -18,37 +19,29 @@ AlibiException(self, message: str) -> None
 | ---- | ---- | ------- | ----------- |
 | `message` | `str` |  |  |
 
-### `AlibiPredictorCallException`
+## `AlibiPredictorCallException`
 
-#### Constructor
+### Constructor
 
 ```python
 AlibiPredictorCallException(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `AlibiPredictorReturnTypeError`
 
-### `AlibiPredictorReturnTypeError`
-
-#### Constructor
+### Constructor
 
 ```python
 AlibiPredictorReturnTypeError(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `NotFittedError`
 
-### `NotFittedError` (_inherits from `AlibiException`, `Exception`, `BaseException`, `ABC`)
+_Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`
 
 This exception is raised whenever a compulsory call to a `fit` method has not been carried out.
 
-#### Constructor
+### Constructor
 
 ```python
 NotFittedError(self, object_name: str)
@@ -58,11 +51,13 @@ NotFittedError(self, object_name: str)
 | ---- | ---- | ------- | ----------- |
 | `object_name` | `str` |  |  |
 
-### `PredictorCallError` (_inherits from `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorCallException`)
+## `PredictorCallError`
+
+_Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorCallException`
 
 This exception is raised whenever a call to a user supplied predictor fails at runtime.
 
-#### Constructor
+### Constructor
 
 ```python
 PredictorCallError(self, message: str) -> None
@@ -72,13 +67,15 @@ PredictorCallError(self, message: str) -> None
 | ---- | ---- | ------- | ----------- |
 | `message` | `str` |  |  |
 
-### `PredictorReturnTypeError` (_inherits from `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorReturnTypeError`)
+## `PredictorReturnTypeError`
+
+_Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorReturnTypeError`
 
 This exception is raised whenever the return type of a user supplied predictor is of
 
 an unexpected or unsupported type.
 
-#### Constructor
+### Constructor
 
 ```python
 PredictorReturnTypeError(self, message: str) -> None
@@ -88,11 +85,13 @@ PredictorReturnTypeError(self, message: str) -> None
 | ---- | ---- | ------- | ----------- |
 | `message` | `str` |  |  |
 
-### `SerializationError` (_inherits from `AlibiException`, `Exception`, `BaseException`, `ABC`)
+## `SerializationError`
+
+_Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`
 
 This exception is raised whenever an explainer cannot be serialized.
 
-#### Constructor
+### Constructor
 
 ```python
 SerializationError(self, message: str)

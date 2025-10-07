@@ -2,17 +2,17 @@
 ## Constants
 ### `DEFAULT_DATA_PD`
 ```python
-DEFAULT_DATA_PD = {'feature_deciles': None, 'pd_values': None, 'ice_values': None, 'feature_val...
+DEFAULT_DATA_PD: dict = {'feature_deciles': None, 'pd_values': None, 'ice_values': None, 'feature_val...
 ```
 
 ### `DEFAULT_DATA_PDVARIANCE`
 ```python
-DEFAULT_DATA_PDVARIANCE = {'feature_deciles': None, 'pd_values': None, 'feature_values': None, 'feature...
+DEFAULT_DATA_PDVARIANCE: dict = {'feature_deciles': None, 'pd_values': None, 'feature_values': None, 'feature...
 ```
 
 ### `DEFAULT_META_PDVARIANCE`
 ```python
-DEFAULT_META_PDVARIANCE = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+DEFAULT_META_PDVARIANCE: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
 
 ### `logger`
@@ -32,23 +32,21 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `Method` (_inherits from `str`, `Enum`)
+## `Method`
+
+_Inherits from:_ `str`, `Enum`
 
 Enumeration of supported methods.
 
-#### Constructor
+### Constructor
 
 ```python
 Method(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `PartialDependenceVariance`
 
-### `PartialDependenceVariance` (_inherits from `Explainer`, `ABC`, `Base`)
+_Inherits from:_ `Explainer`, `ABC`, `Base`
 
 Implementation of the partial dependence(PD) variance feature importance and feature interaction for
 
@@ -61,7 +59,7 @@ tree-based models: `GradientBoostingClassifier`, `GradientBoostingRegressor`, `H
 
 For details of the method see the original paper: https://arxiv.org/abs/1805.04755 .
 
-#### Constructor
+### Constructor
 
 ```python
 PartialDependenceVariance(self, predictor: Union[sklearn.base.BaseEstimator, Callable[[numpy.ndarray], numpy.ndarray]], feature_names: Optional[List[str]] = None, categorical_names: Optional[Dict[int, List[str]]] = None, target_names: Optional[List[str]] = None, verbose: bool = False)
@@ -76,66 +74,13 @@ PartialDependenceVariance(self, predictor: Union[sklearn.base.BaseEstimator, Cal
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
 | `category_map` |  |  |  |
 
-#### Methods
+### Methods
 
-##### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Union[List[int], List[Tuple[int, int]], None] = None, method: Literal[importance, interaction] = 'importance', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Calculates the variance partial dependence feature importance for each feature with respect to the all targets
-
-and the reference dataset `X`.
-
-Parameters
-----------
-X
-    A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the
-    training dataset or a representative sample.
-features
-    A list of features for which to compute the feature importance or a list of feature pairs
-    for which to compute the feature interaction. Some example of `features` would be: ``[0, 1, 3]``,
-    ``[(0, 1), (0, 3), (1, 3)]``, where ``0``,``1``, and ``3`` correspond to the columns 0, 1, and 3 in `X`.
-    If not provided, the feature importance or the feature interaction will be computed for every
-    feature or for every combination of feature pairs, depending on the parameter `method`.
-method
-    Flag to specify whether to compute the feature importance or the feature interaction of the elements
-    provided in `features`. Supported values: ``'importance'`` | ``'interaction'``.
-percentiles
-    Lower and upper percentiles used to limit the feature values to potentially remove outliers from
-    low-density regions. Note that for features with not many data points with large/low values, the
-    PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used
-    with `grid_resolution`.
-grid_resolution
-    Number of equidistant points to split the range of each target feature. Only applies if the number of
-    unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value.
-    For example, consider a case where a feature can take the following values:
-    ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not
-    interested in evaluating the marginal effect at every single point as it can become computationally costly
-    (assume hundreds/thousands of points) without providing any additional information for nearby points
-    (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values
-    ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar
-    insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled
-    using the `percentiles` argument.
-grid_points
-    Custom grid points. Must be a `dict` where the keys are the target features indices and the values are
-    monotonically increasing arrays defining the grid points for a numerical feature, and a subset of
-    categorical feature values for a categorical feature. If the `grid_points` are not specified,
-    then the grid will be constructed based on the unique target feature values available in the
-    dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when
-    it applies). For categorical features, the corresponding value in the `grid_points` can be
-    specified either as array of strings or array of integers corresponding the label encodings.
-    Note that the label encoding must match the ordering of the values provided in the `categorical_names`.
-
-Returns
--------
-explanation
-    An `Explanation` object containing the data and the metadata of the calculated partial dependence
-    curves and feature importance/interaction. See usage at `Partial dependence variance examples`_ for details
-
-    .. _Partial dependence variance examples:
-        https://docs.seldon.io/projects/alibi/en/stable/methods/PartialDependenceVariance.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

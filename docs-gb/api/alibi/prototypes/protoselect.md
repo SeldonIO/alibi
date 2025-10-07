@@ -2,12 +2,12 @@
 ## Constants
 ### `DEFAULT_DATA_PROTOSELECT`
 ```python
-DEFAULT_DATA_PROTOSELECT = {'prototypes': None, 'prototype_indices': None, 'prototype_labels': None}
+DEFAULT_DATA_PROTOSELECT: dict = {'prototypes': None, 'prototype_indices': None, 'prototype_labels': None}
 ```
 
 ### `DEFAULT_META_PROTOSELECT`
 ```python
-DEFAULT_META_PROTOSELECT = {'name': None, 'type': ['data'], 'explanation': ['global'], 'params': {}, 've...
+DEFAULT_META_PROTOSELECT: dict = {'name': None, 'type': ['data'], 'explanation': ['global'], 'params': {}, 've...
 ```
 
 ### `logger`
@@ -27,12 +27,13 @@ in the instance given above, channel names might be "input" for the upper
 level, and "input.csv", "input.xls" and "input.gnu" for the sub-levels.
 There is no arbitrary limit to the depth of nesting.
 
-## Classes
-### `ProtoSelect` (_inherits from `Summariser`, `FitMixin`, `ABC`, `Base`)
+## `ProtoSelect`
+
+_Inherits from:_ `Summariser`, `FitMixin`, `ABC`, `Base`
 
 Base class for prototype algorithms from :py:mod:`alibi.prototypes`.
 
-#### Constructor
+### Constructor
 
 ```python
 ProtoSelect(self, kernel_distance: Callable[[numpy.ndarray, numpy.ndarray], numpy.ndarray], eps: float, lambda_penalty: Optional[float] = None, batch_size: int = 10000000000, preprocess_fn: Optional[Callable[[Union[list, numpy.ndarray]], numpy.ndarray]] = None, verbose: bool = False)
@@ -47,36 +48,13 @@ ProtoSelect(self, kernel_distance: Callable[[numpy.ndarray, numpy.ndarray], nump
 | `preprocess_fn` | `Optional[Callable[[.[typing.Union[list, numpy.ndarray]]], numpy.ndarray]]` | `None` | Preprocessing function used for kernel matrix computation. The preprocessing function takes the input as a `list` or a `numpy` array and transforms it into a `numpy` array which is then fed to the `kernel_distance` function. The use of `preprocess_fn` allows the method to be applied to any data modality. |
 | `verbose` | `bool` | `False` | Whether to display progression bar while computing prototype points. |
 
-#### Methods
+### Methods
 
-##### `fit`
+#### `fit`
 
 ```python
 fit(X: Union[list, numpy.ndarray], y: Optional[numpy.ndarray] = None, Z: Union[list, numpy.ndarray, None] = None) -> alibi.prototypes.protoselect.ProtoSelect
 ```
-
-Fit the summariser. This step forms the kernel matrix in memory which has a shape of `NX x NX`,
-
-where `NX` is  the number of instances in `X`, if the optional dataset `Z` is not provided. Otherwise, if
-the optional dataset `Z` is provided, the kernel matrix has a shape of `NZ x NX`, where `NZ` is the
-number of instances in `Z`.
-
-Parameters
----------
-X
-    Dataset to be summarised.
-y
-    Labels of the dataset `X` to be summarised. The labels are expected to be represented as integers
-    `[0, 1, ..., L-1]`, where `L` is the number of classes in the dataset `X`.
-Z
-    Optional dataset to choose the prototypes from. If ``Z=None``, the prototypes will be selected from the
-    dataset `X`. Otherwise, if `Z` is provided, the dataset to be summarised is still `X`, but
-    it is summarised by prototypes belonging to the dataset `Z`.
-
-Returns
--------
-self
-    Reference to itself.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -87,25 +65,11 @@ self
 **Returns**
 - Type: `alibi.prototypes.protoselect.ProtoSelect`
 
-##### `summarise`
+#### `summarise`
 
 ```python
 summarise(num_prototypes: int = 1) -> alibi.api.interfaces.Explanation
 ```
-
-Searches for the requested number of prototypes. Note that the algorithm can return a lower number of
-
-prototypes than the requested one. To increase the number of prototypes, reduce the epsilon-ball radius
-(`eps`), and the penalty for adding a prototype (`lambda_penalty`).
-
-Parameters
-----------
-num_prototypes
-    Maximum number of prototypes to be selected.
-
-Returns
--------
-An `Explanation` object containing the prototypes, prototype indices and prototype labels with additional         metadata as attributes.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

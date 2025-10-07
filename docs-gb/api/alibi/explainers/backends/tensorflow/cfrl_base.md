@@ -14,12 +14,13 @@ Returns True when the argument x is true, False otherwise.
 The builtins True and False are the only two instances of the class bool.
 The class bool is a subclass of the class int, and cannot be subclassed.
 
-## Classes
-### `TfCounterfactualRLDataset` (_inherits from `CounterfactualRLDataset`, `ABC`, `PyDataset`)
+## `TfCounterfactualRLDataset`
+
+_Inherits from:_ `CounterfactualRLDataset`, `ABC`, `PyDataset`
 
 Tensorflow backend datasets.
 
-#### Constructor
+### Constructor
 
 ```python
 TfCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predictor: Callable, conditional_func: Callable, batch_size: int, shuffle: bool = True) -> None
@@ -34,15 +35,13 @@ TfCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predic
 | `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 | `shuffle` | `bool` | `True` | Whether to shuffle the dataset each epoch. ``True`` by default. |
 
-#### Methods
+### Methods
 
-##### `on_epoch_end`
+#### `on_epoch_end`
 
 ```python
 on_epoch_end() -> None
 ```
-
-This method is called every epoch and performs dataset shuffling.
 
 **Returns**
 - Type: `None`
@@ -87,7 +86,6 @@ Z_cf_tilde
 | `act_high` | `float` |  | Noise upper bound. |
 | `step` | `int` |  | Training step. |
 | `exploration_steps` | `int` |  | Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding is sampled uniformly at random. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**
@@ -155,7 +153,6 @@ shuffle
 | `conditional_func` | `Callable` |  | Conditional function generator. Given an preprocessed input array, the functions generates a conditional array. |
 | `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
 | `shuffle` | `bool` | `True` | Whether to shuffle the dataset each epoch. ``True`` by default. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 ### `decode`
@@ -183,7 +180,6 @@ Embedding tensor decoding.
 | ---- | ---- | ------- | ----------- |
 | `Z` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Embedding tensor to be decoded. |
 | `decoder` | `keras.src.models.model.Model` |  | Pretrained decoder network. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 ### `encode`
@@ -211,7 +207,6 @@ Input encoding.
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Input to be encoded. |
 | `encoder` | `keras.src.models.model.Model` |  | Pretrained encoder network. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**
@@ -252,7 +247,6 @@ Z_cf
 | `Y_t` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Target counterfactual classification label. |
 | `C` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  | Conditional tensor. |
 | `actor` | `keras.src.models.model.Model` |  | Actor network. The model generates the counterfactual embedding. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**
@@ -372,7 +366,6 @@ C
 | `Y_m` |  |  | Input classification label. |
 | `Y_t` |  |  | Target counterfactual classification label. |
 | `C` |  |  | Conditional tensor. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 ### `initialize_optimizer`
@@ -425,7 +418,6 @@ critic
 | `optimizer_critic` |  |  | Critic optimizer to be initialized. |
 | `actor` |  |  | Actor model to be optimized. |
 | `critic` |  |  | Critic model to be optimized. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**
@@ -568,7 +560,6 @@ Returns
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `X` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Input array/tensor to be converted. |
-| `kwargs` |  |  |  |
 | `Other` |  |  |  |
 
 **Returns**

@@ -2,12 +2,12 @@
 ## Constants
 ### `DEFAULT_DATA_PERMUTATION_IMPORTANCE`
 ```python
-DEFAULT_DATA_PERMUTATION_IMPORTANCE = {'feature_names': None, 'metric_names': None, 'feature_importance': None}
+DEFAULT_DATA_PERMUTATION_IMPORTANCE: dict = {'feature_names': None, 'metric_names': None, 'feature_importance': None}
 ```
 
 ### `DEFAULT_META_PERMUTATION_IMPORTANCE`
 ```python
-DEFAULT_META_PERMUTATION_IMPORTANCE = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
+DEFAULT_META_PERMUTATION_IMPORTANCE: dict = {'name': None, 'type': ['blackbox'], 'explanations': ['global'], 'params': {}...
 ```
 
 ### `logger`
@@ -29,46 +29,41 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS = {'mean_absolute_error': <function mean_absolute_error at 0x12f2c8ca0>, 'mean_...
+LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x13e160ca0>, 'mean_...
 ```
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS = {'accuracy': <function accuracy_score at 0x12bfed790>, 'precision': <function...
+SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x13e04d790>, 'precision': <function...
 ```
 
-## Classes
-### `Kind` (_inherits from `str`, `Enum`)
+## `Kind`
+
+_Inherits from:_ `str`, `Enum`
 
 Enumeration of supported kind.
 
-#### Constructor
+### Constructor
 
 ```python
 Kind(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `Method`
 
-### `Method` (_inherits from `str`, `Enum`)
+_Inherits from:_ `str`, `Enum`
 
 Enumeration of supported method.
 
-#### Constructor
+### Constructor
 
 ```python
 Method(self, /, *args, **kwargs)
 ```
 
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `args` |  |  |  |
-| `kwargs` |  |  |  |
+## `PermutationImportance`
 
-### `PermutationImportance` (_inherits from `Explainer`, `ABC`, `Base`)
+_Inherits from:_ `Explainer`, `ABC`, `Base`
 
 Implementation of the permutation feature importance for tabular datasets. The method measure the importance
 
@@ -81,7 +76,7 @@ For details of the method see the papers:
 
  - https://arxiv.org/abs/1801.01489
 
-#### Constructor
+### Constructor
 
 ```python
 PermutationImportance(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], loss_fns: Union[Literal['mean_absolute_error', 'mean_squared_error', 'mean_squared_log_error', 'mean_absolute_percentage_error', 'log_loss'], List[Literal['mean_absolute_error', 'mean_squared_error', 'mean_squared_log_error', 'mean_absolute_percentage_error', 'log_loss']], Callable[[numpy.ndarray, numpy.ndarray, Optional[numpy.ndarray]], float], Dict[str, Callable[[numpy.ndarray, numpy.ndarray, Optional[numpy.ndarray]], float]], NoneType] = None, score_fns: Union[Literal['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'r2'], List[Literal['accuracy', 'precision', 'recall', 'f1', 'roc_auc', 'r2']], Callable[[numpy.ndarray, numpy.ndarray, Optional[numpy.ndarray]], float], Dict[str, Callable[[numpy.ndarray, numpy.ndarray, Optional[numpy.ndarray]], float]], NoneType] = None, feature_names: Optional[List[str]] = None, verbose: bool = False)
@@ -95,56 +90,13 @@ PermutationImportance(self, predictor: Callable[[numpy.ndarray], numpy.ndarray],
 | `feature_names` | `Optional[List[str]]` | `None` | A list of feature names used for displaying results. |
 | `verbose` | `bool` | `False` | Whether to print the progress of the explainer. |
 
-#### Methods
+### Methods
 
-##### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, y: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, .Ellipsis]]]] = None, method: Literal[estimate, exact] = 'estimate', kind: Literal[ratio, difference] = 'ratio', n_repeats: int = 50, sample_weight: Optional[numpy.ndarray] = None) -> alibi.api.interfaces.Explanation
 ```
-
-Computes the permutation feature importance for each feature with respect to the given loss or score
-
-functions and the dataset `(X, y)`.
-
-Parameters
-----------
-X
-    A `N x F` input feature dataset used to calculate the permutation feature importance. This is typically the
-    test dataset.
-y
-    Ground-truth labels array  of size `N` (i.e. `(N, )`) corresponding the input feature `X`.
-features
-    An optional list of features or tuples of features for which to compute the permutation feature
-    importance. If not provided, the permutation feature importance will be computed for every single features
-    in the dataset. Some example of `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``,
-    where ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively.
-method
-    The method to be used to compute the feature importance. If set to ``'exact'``, a "switch" operation is
-    performed across all observed pairs, by excluding pairings that are actually observed in the original
-    dataset. This operation is quadratic in the number of samples (`N x (N - 1)` samples) and thus can be
-    computationally intensive. If set to ``'estimate'``, the dataset will be divided in half. The values of
-    the first half containing the ground-truth labels the rest of the features (i.e. features that are left
-    intact) is matched with the values of the second half of the permuted features, and the other way around.
-    This method is computationally lighter and provides estimate error bars given by the standard deviation.
-    Note that for some specific loss and score functions, the estimate does not converge to the exact metric
-    value.
-kind
-    Whether to report the importance as the loss/score ratio or the loss/score difference.
-    Available values are: ``'ratio'`` | ``'difference'``.
-n_repeats
-    Number of times to permute the feature values. Considered only when ``method='estimate'``.
-sample_weight
-    Optional weight for each sample instance.
-
-Returns
--------
-explanation
-    An `Explanation` object containing the data and the metadata of the permutation feature importance.
-    See usage at `Permutation feature importance examples`_ for details
-
-    .. _Permutation feature importance examples:
-        https://docs.seldon.io/projects/alibi/en/stable/methods/PermutationImportance.html
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -159,18 +111,11 @@ explanation
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-##### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
 ```
-
-Resets the predictor function.
-
-Parameters
-----------
-predictor
-    New predictor function.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

@@ -27,7 +27,6 @@ Heterogeneous consistency loss.
 | ---- | ---- | ------- | ----------- |
 | `Z_cf_pred` | `torch.Tensor` |  | Predicted counterfactual embedding. |
 | `Z_cf_tgt` | `torch.Tensor` |  | Counterfactual embedding target. |
-| `kwargs` |  |  |  |
 
 ### `l0_ohe`
 

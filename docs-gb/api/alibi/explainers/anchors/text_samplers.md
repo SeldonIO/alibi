@@ -117,7 +117,7 @@ and a `numpy` array of word similarities (``'similarities'``).
 #### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADV', 'DET', 'NOUN', 'VERB', 'ADP', 'ADJ'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADJ', 'ADP', 'NOUN', 'ADV', 'VERB', 'DET'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
 Perturb the text instance to be explained.
@@ -131,7 +131,7 @@ Perturb the text instance to be explained.
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` | Forbidden POS tags. |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` | Forbidden words. |
 | `temperature` | `float` | `1.0` | Sample weight hyper-parameter if ``use_proba=True``. |
-| `pos` | `frozenset` | `frozenset({'ADV', 'DET', 'NOUN', 'VERB', 'ADP', 'ADJ'})` | POS that can be changed during perturbation. |
+| `pos` | `frozenset` | `frozenset({'ADJ', 'ADP', 'NOUN', 'ADV', 'VERB', 'DET'})` | POS that can be changed during perturbation. |
 | `use_proba` | `bool` | `False` | Bool whether to sample according to a similarity score with the corpus embeddings. |
 | `Other` |  |  |  |
 

@@ -29,12 +29,12 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x16a1eedc0>, 'mean_...
+LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x146383dc0>, 'mean_...
 ```
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1696938b0>, 'precision': <function...
+SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1462748b0>, 'precision': <function...
 ```
 
 ## `Kind`

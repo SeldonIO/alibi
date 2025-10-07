@@ -419,12 +419,25 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
     if link:
         out.append(f"[View source]({link})\n")
 
-    # Parse and include the class docstring
-    class_ds = parse_docstring(inspect.getdoc(cls))
-    if class_ds["short"]:
-        out.append(class_ds["short"] + "\n")
-    if class_ds["long"]:
-        out.append(class_ds["long"] + "\n")
+    # Parse and include the class docstring (only if not inherited)
+    class_doc = inspect.getdoc(cls)
+    # Check if the docstring is inherited by comparing with parent classes
+    is_inherited_doc = False
+    if class_doc:
+        for base in cls.__mro__[1:]:
+            if base is object:
+                continue
+            base_doc = inspect.getdoc(base)
+            if base_doc and base_doc == class_doc:
+                is_inherited_doc = True
+                break
+    
+    if not is_inherited_doc:
+        class_ds = parse_docstring(class_doc)
+        if class_ds["short"]:
+            out.append(class_ds["short"] + "\n")
+        if class_ds["long"]:
+            out.append(class_ds["long"] + "\n")
 
     # Render dataclass fields
     if dataclasses.is_dataclass(cls):
@@ -446,22 +459,33 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
     # Render constructor
     init = getattr(cls, "__init__", None)
     if callable(init):
-        sig = None
-        hints = {}
-        try:
-            sig = inspect.signature(init)
-            hints = typing_get_type_hints_safe(init)
-        except Exception:
-            pass
-        out.append("### Constructor\n")
-        if sig:
-            out.append(f"```python\n{cls.__name__}{sig}\n```")
-        else:
-            out.append(f"```python\n{cls.__name__}(...)\n```")
-        init_ds = parse_docstring(inspect.getdoc(init))
-        params_table = render_params_table(init_ds["params"], sig, hints)
-        if params_table:
-            out.append("\n" + params_table + "\n")
+        # Check if __init__ is inherited
+        is_inherited_init = False
+        for base in cls.__mro__[1:]:
+            if base is object:
+                continue
+            base_init = getattr(base, "__init__", None)
+            if base_init and base_init is init:
+                is_inherited_init = True
+                break
+        
+        if not is_inherited_init:
+            sig = None
+            hints = {}
+            try:
+                sig = inspect.signature(init)
+                hints = typing_get_type_hints_safe(init)
+            except Exception:
+                pass
+            out.append("### Constructor\n")
+            if sig:
+                out.append(f"```python\n{cls.__name__}{sig}\n```")
+            else:
+                out.append(f"```python\n{cls.__name__}(...)\n```")
+            init_ds = parse_docstring(inspect.getdoc(init))
+            params_table = render_params_table(init_ds["params"], sig, hints)
+            if params_table:
+                out.append("\n" + params_table + "\n")
 
     # Render properties
     props = get_properties(cls)
@@ -484,8 +508,23 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
         for name, fn in methods:
             if name.startswith("_") and name != "__call__":
                 continue
+            
+            # Check if method docstring is inherited
+            fn_doc = inspect.getdoc(fn)
+            is_inherited_method_doc = False
+            if fn_doc:
+                for base in cls.__mro__[1:]:
+                    if base is object:
+                        continue
+                    base_method = getattr(base, name, None)
+                    if base_method and callable(base_method):
+                        base_doc = inspect.getdoc(base_method)
+                        if base_doc and base_doc == fn_doc:
+                            is_inherited_method_doc = True
+                            break
+            
             # Render each method as a subsection (####) under Methods (###)
-            fn_ds = parse_docstring(inspect.getdoc(fn))
+            fn_ds = parse_docstring(fn_doc if not is_inherited_method_doc else None)
             sig = None
             hints = {}
             try:
@@ -499,10 +538,11 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
             link = make_source_link(fn, repo_root, source_url_prefix)
             if link:
                 out.append(f"[View source]({link})\n")
-            if fn_ds["short"]:
-                out.append(fn_ds["short"] + "\n")
-            if fn_ds["long"]:
-                out.append(fn_ds["long"] + "\n")
+            if not is_inherited_method_doc:
+                if fn_ds["short"]:
+                    out.append(fn_ds["short"] + "\n")
+                if fn_ds["long"]:
+                    out.append(fn_ds["long"] + "\n")
             params_table = render_params_table(fn_ds["params"], sig, hints)
             if params_table:
                 out.append(params_table + "\n")

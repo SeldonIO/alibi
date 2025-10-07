@@ -31,8 +31,6 @@ There is no arbitrary limit to the depth of nesting.
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python

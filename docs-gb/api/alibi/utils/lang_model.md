@@ -24,10 +24,6 @@ interpretable, we ensure that the head will not end with a subword, and will con
 
 _Inherits from:_ `LanguageModel`, `ABC`
 
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
-
 ### Constructor
 
 ```python
@@ -52,19 +48,9 @@ BertBaseUncased(self, preloading: bool = True)
 is_subword_prefix(token: str) -> bool
 ```
 
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -72,10 +58,6 @@ this method has to be implemented for each language model. See module docstring 
 ## `DistilbertBaseUncased`
 
 _Inherits from:_ `LanguageModel`, `ABC`
-
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
 
 ### Constructor
 
@@ -101,19 +83,9 @@ DistilbertBaseUncased(self, preloading: bool = True)
 is_subword_prefix(token: str) -> bool
 ```
 
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`
@@ -121,10 +93,6 @@ this method has to be implemented for each language model. See module docstring 
 ## `LanguageModel`
 
 _Inherits from:_ `ABC`
-
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
 
 ### Constructor
 
@@ -290,10 +258,6 @@ Saves a model to disk.
 
 _Inherits from:_ `LanguageModel`, `ABC`
 
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
-
 ### Constructor
 
 ```python
@@ -318,19 +282,9 @@ RobertaBase(self, preloading: bool = True)
 is_subword_prefix(token: str) -> bool
 ```
 
-Checks if the given token is a part of the tail of a word. Note that a word can
-
-be split in multiple tokens (e.g., ``word = [head_token tail_token_1 tail_token_2 ... tail_token_k]``).
-Each language model has a convention on how to mark a tail token. For example
-`DistilbertBaseUncased` and `BertBaseUncased` have the tail tokens prefixed with the special
-set of characters ``'##'``. On the other hand, for `RobertaBase` only the head token is prefixed
-with the special character ``'Ġ'`` and thus we need to check the absence of the prefix to identify
-the tail tokens. We call those special characters `SUBWORD_PREFIX`. Due to different conventions,
-this method has to be implemented for each language model. See module docstring for namings.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  | Token to be checked if it is a subword. |
+| `token` | `str` |  |  |
 
 **Returns**
 - Type: `bool`

@@ -57,16 +57,6 @@ _Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPr
 
 This exception is raised whenever a call to a user supplied predictor fails at runtime.
 
-### Constructor
-
-```python
-PredictorCallError(self, message: str) -> None
-```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `message` | `str` |  |  |
-
 ## `PredictorReturnTypeError`
 
 _Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPredictorReturnTypeError`
@@ -74,16 +64,6 @@ _Inherits from:_ `AlibiException`, `Exception`, `BaseException`, `ABC`, `AlibiPr
 This exception is raised whenever the return type of a user supplied predictor is of
 
 an unexpected or unsupported type.
-
-### Constructor
-
-```python
-PredictorReturnTypeError(self, message: str) -> None
-```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `message` | `str` |  |  |
 
 ## `SerializationError`
 

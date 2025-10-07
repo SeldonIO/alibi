@@ -5,23 +5,11 @@ _Inherits from:_ `Enum`
 
 An enumeration.
 
-### Constructor
-
-```python
-ImageVisualizationMethod(self, /, *args, **kwargs)
-```
-
 ## `VisualizeSign`
 
 _Inherits from:_ `Enum`
 
 An enumeration.
-
-### Constructor
-
-```python
-VisualizeSign(self, /, *args, **kwargs)
-```
 
 ## Functions
 ### `heatmap`

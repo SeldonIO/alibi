@@ -33,12 +33,6 @@ _Inherits from:_ `str`, `Enum`
 
 Enumeration of supported kind.
 
-### Constructor
-
-```python
-Kind(self, /, *args, **kwargs)
-```
-
 ## `PartialDependence`
 
 _Inherits from:_ `PartialDependenceBase`, `Explainer`, `ABC`, `Base`
@@ -70,18 +64,14 @@ PartialDependence(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], fea
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, kind: Literal[average, individual, both] = 'average', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
 ```
 
-Calculates the partial dependence for each feature and/or tuples of features with respect to the all targets
-
-and the reference dataset `X`.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  | A `N x F` tabular dataset used to calculate partial dependence curves. This is typically the training dataset or a representative sample. |
-| `features` | `Optional[List[Union[int, Tuple[int, int]]]]` | `None` | An optional list of features or tuples of features for which to calculate the partial dependence. If not provided, the partial dependence will be computed for every single features in the dataset. Some example for `features` would be: ``[0, 2]``, ``[0, 2, (0, 2)]``, ``[(0, 2)]``, where ``0`` and ``2`` correspond to column 0 and 2 in `X`, respectively. |
-| `kind` | `Literal[average, individual, both]` | `'average'` | If set to ``'average'``, then only the partial dependence (PD) averaged across all samples from the dataset is returned. If set to ``'individual'``, then only the individual conditional expectation (ICE) is returned for each data point from the dataset. Otherwise, if set to ``'both'``, then both the PD and the ICE are returned. |
-| `percentiles` | `Tuple[float, float]` | `(0.0, 1.0)` | Lower and upper percentiles used to limit the feature values to potentially remove outliers from low-density regions. Note that for features with not many data points with large/low values, the PD estimates are less reliable in those extreme regions. The values must be in [0, 1]. Only used with `grid_resolution`. |
-| `grid_resolution` | `int` | `100` | Number of equidistant points to split the range of each target feature. Only applies if the number of unique values of a target feature in the reference dataset `X` is greater than the `grid_resolution` value. For example, consider a case where a feature can take the following values: ``[0.1, 0.3, 0.35, 0.351, 0.4, 0.41, 0.44, ..., 0.5, 0.54, 0.56, 0.6, 0.65, 0.7, 0.9]``, and we are not interested in evaluating the marginal effect at every single point as it can become computationally costly (assume hundreds/thousands of points) without providing any additional information for nearby points (e.g., 0.35 and 351). By setting ``grid_resolution=5``, the marginal effect is computed for the values ``[0.1, 0.3, 0.5, 0.7, 0.9]`` instead, which is less computationally demanding and can provide similar insights regarding the model's behaviour. Note that the extreme values of the grid can be controlled using the `percentiles` argument. |
-| `grid_points` | `Optional[Dict[int, Union[List[Any], numpy.ndarray]]]` | `None` | Custom grid points. Must be a `dict` where the keys are the target features indices and the values are monotonically increasing arrays defining the grid points for a numerical feature, and a subset of categorical feature values for a categorical feature. If the `grid_points` are not specified, then the grid will be constructed based on the unique target feature values available in the dataset `X`, or based on the `grid_resolution` and `percentiles` (check `grid_resolution` to see when it applies). For categorical features, the corresponding value in the `grid_points` can be specified either as array of strings or array of integers corresponding the label encodings. Note that the label encoding must match the ordering of the values provided in the `categorical_names`. |
+| `X` | `numpy.ndarray` |  |  |
+| `features` | `Optional[List[Union[int, Tuple[int, int]]]]` | `None` |  |
+| `kind` | `Literal[average, individual, both]` | `'average'` |  |
+| `percentiles` | `Tuple[float, float]` | `(0.0, 1.0)` |  |
+| `grid_resolution` | `int` | `100` |  |
+| `grid_points` | `Optional[Dict[int, Union[List[Any], numpy.ndarray]]]` | `None` |  |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
@@ -89,8 +79,6 @@ and the reference dataset `X`.
 ## `PartialDependenceBase`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
-
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
 
 ### Constructor
 

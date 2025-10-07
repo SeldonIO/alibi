@@ -7,15 +7,6 @@ This module contains utility functions for the Counterfactual with Reinforcement
 
 _Inherits from:_ `ABC`
 
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
-
-### Constructor
-
-```python
-CounterfactualRLDataset(self, /, *args, **kwargs)
-```
 ### Methods
 
 #### `predict_batches`

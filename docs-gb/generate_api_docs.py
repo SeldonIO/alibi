@@ -186,7 +186,7 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                     "name": p.arg_name or "",
                     "type": (p.type_name or "").strip(),
                     "default": (p.default or "").strip(),
-                    "desc": (p.description or "").strip(),  # Ensure descriptions are captured
+                    "desc": (p.description or "").strip(),
                 })
 
             # returns (type + description if present)
@@ -221,11 +221,6 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
 
     # ---- NumPy-style fallback for sections without trailing colon (e.g. "Parameters" + underline) ----
     if not result["params"]:
-        # Capture blocks like:
-        # Parameters
-        # ----------
-        # name : type
-        #     description
         numpy_params_block = re.search(
             r"(^|\n)Parameters\s*\n[-=]{3,}\n(?P<body>.*?)(\n[A-Z][A-Za-z0-9 _]*\n[-=]{3,}\n|$)",
             doc,
@@ -240,7 +235,6 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                 if not line.strip():
                     i += 1
                     continue
-                # Parameter header line: name [ : type ...]
                 m = re.match(r"^\s*([A-Za-z_][\w]*)\s*(?:[:]\s*([^,\n]+))?", line)
                 if m:
                     name = m.group(1)
@@ -251,7 +245,6 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                         desc_lines.append(lines[i].strip())
                         i += 1
                     desc = " ".join(dl.rstrip() for dl in desc_lines).strip()
-                    # Avoid duplicates
                     if not any(p["name"] == name for p in result["params"]):
                         result["params"].append({"name": name, "type": typ, "default": "", "desc": desc})
                     continue
@@ -282,9 +275,23 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
         out = re.sub(r"\n{3,}", "\n\n", out).strip()
         return out
 
-    # Clean the "long" narrative so it doesn't include structured sections that we also render as tables
+    # --- Remove reStructuredText tables ---
+    def _strip_rst_tables(block: str) -> str:
+        if not block:
+            return block
+        # Pattern to match reStructuredText table blocks (lines with +---+ borders)
+        # This matches from a line starting with + through to a blank line or end
+        rst_table_pattern = re.compile(
+            r"(^|\n)\+[-+=]+\+[^\n]*\n(?:[+|][^\n]*\n)*",
+            flags=re.MULTILINE
+        )
+        return rst_table_pattern.sub("\n", block)
+
+    # Clean the "long" narrative
     if result["long"]:
         result["long"] = _strip_known_sections(result["long"])
+        result["long"] = _strip_rst_tables(result["long"])
+        result["long"] = result["long"].strip()
 
     return result
 

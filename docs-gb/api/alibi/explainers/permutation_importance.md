@@ -29,12 +29,12 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x165717dc0>, 'mean_...
+LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x16a1eedc0>, 'mean_...
 ```
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1656088b0>, 'precision': <function...
+SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1696938b0>, 'precision': <function...
 ```
 
 ## `Kind`
@@ -43,23 +43,11 @@ _Inherits from:_ `str`, `Enum`
 
 Enumeration of supported kind.
 
-### Constructor
-
-```python
-Kind(self, /, *args, **kwargs)
-```
-
 ## `Method`
 
 _Inherits from:_ `str`, `Enum`
 
 Enumeration of supported method.
-
-### Constructor
-
-```python
-Method(self, /, *args, **kwargs)
-```
 
 ## `PermutationImportance`
 

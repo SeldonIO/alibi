@@ -51,16 +51,6 @@ _Inherits from:_ `ABC`, `Base`
 
 Base class for explainer algorithms from :py:mod:`alibi.explainers`.
 
-### Constructor
-
-```python
-Explainer(self, meta: dict = NOTHING) -> None
-```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `meta` | `dict` | `NOTHING` |  |
-
 ### Methods
 
 #### `explain`
@@ -169,15 +159,6 @@ Serialize the explanation data and metadata into a `json` format.
 
 _Inherits from:_ `ABC`
 
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
-
-### Constructor
-
-```python
-FitMixin(self, /, *args, **kwargs)
-```
 ### Methods
 
 #### `fit`
@@ -198,16 +179,6 @@ fit(X: typing.Any) -> alibi.api.interfaces.Explainer
 _Inherits from:_ `ABC`, `Base`
 
 Base class for prototype algorithms from :py:mod:`alibi.prototypes`.
-
-### Constructor
-
-```python
-Summariser(self, meta: dict = NOTHING) -> None
-```
-
-| Name | Type | Default | Description |
-| ---- | ---- | ------- | ----------- |
-| `meta` | `dict` | `NOTHING` |  |
 
 ### Methods
 

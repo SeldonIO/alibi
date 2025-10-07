@@ -24,12 +24,6 @@ _Inherits from:_ `Enum`
 
 An enumeration.
 
-### Constructor
-
-```python
-Riemann(self, /, *args, **kwargs)
-```
-
 ## Functions
 ### `approximation_parameters`
 

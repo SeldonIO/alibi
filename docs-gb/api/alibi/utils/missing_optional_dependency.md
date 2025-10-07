@@ -9,7 +9,7 @@ functionality independent of the missing dependency.
 ## Constants
 ### `err_msg_template`
 ```python
-err_msg_template: string.Template = <string.Template object at 0x1736a3a30>
+err_msg_template: string.Template = <string.Template object at 0x17ffe9850>
 ```
 A string class for supporting $-substitutions.
 

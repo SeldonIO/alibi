@@ -145,9 +145,3 @@ the number of instances for which the metric was computed (first dimension).
 _Inherits from:_ `Enum`
 
 Reduction operation supported by the monitoring metrics.
-
-### Constructor
-
-```python
-Reduction(self, /, *args, **kwargs)
-```

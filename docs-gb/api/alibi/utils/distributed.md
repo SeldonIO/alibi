@@ -278,14 +278,6 @@ Calls a collection of distributed explainers in parallel. Each distributed expla
 
 _Inherits from:_ `Exception`, `BaseException`
 
-Common base class for all non-exit exceptions.
-
-### Constructor
-
-```python
-ResourceError(self, /, *args, **kwargs)
-```
-
 ## Functions
 ### `batch`
 

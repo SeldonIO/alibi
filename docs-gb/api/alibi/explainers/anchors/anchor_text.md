@@ -56,8 +56,6 @@ DEFAULT_SAMPLING_LANGUAGE_MODEL: dict = {'filling': 'parallel', 'sample_proba': 
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python

@@ -38,12 +38,6 @@ _Inherits from:_ `str`, `Enum`
 
 Enumeration of supported methods.
 
-### Constructor
-
-```python
-Method(self, /, *args, **kwargs)
-```
-
 ## `PartialDependenceVariance`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

@@ -68,12 +68,6 @@ _Inherits from:_ `ABC`
 
 Training callback class.
 
-### Constructor
-
-```python
-Callback(self, /, *args, **kwargs)
-```
-
 ## `CounterfactualRL`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
@@ -153,11 +147,9 @@ load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfac
 reset_predictor(predictor: typing.Any) -> None
 ```
 
-Resets the predictor.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `typing.Any` |  | New predictor. |
+| `predictor` | `typing.Any` |  |  |
 
 **Returns**
 - Type: `None`
@@ -168,11 +160,9 @@ Resets the predictor.
 save(path: Union[str, os.PathLike]) -> None
 ```
 
-Save an explainer to disk. Uses the `dill` module.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
+| `path` | `Union[str, os.PathLike]` |  |  |
 
 **Returns**
 - Type: `None`
@@ -195,16 +185,6 @@ NormalActionNoise(self, mu: float, sigma: float) -> None
 ## `Postprocessing`
 
 _Inherits from:_ `ABC`
-
-Helper class that provides a standard way to create an ABC using
-
-inheritance.
-
-### Constructor
-
-```python
-Postprocessing(self, /, *args, **kwargs)
-```
 
 ## `ReplayBuffer`
 

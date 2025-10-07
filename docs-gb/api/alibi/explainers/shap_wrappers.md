@@ -178,8 +178,6 @@ accessed using the dot syntax.
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python
@@ -268,8 +266,6 @@ Resets the prediction function.
 ## `TreeShap`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
-
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
 
 ### Constructor
 

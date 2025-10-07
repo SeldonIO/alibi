@@ -25,9 +25,3 @@ The class bool is a subclass of the class int, and cannot be subclassed.
 _Inherits from:_ `str`, `Enum`
 
 An enumeration.
-
-### Constructor
-
-```python
-Framework(self, /, *args, **kwargs)
-```

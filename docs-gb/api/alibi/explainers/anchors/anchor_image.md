@@ -36,8 +36,6 @@ DEFAULT_SEGMENTATION_KWARGS: dict = {'felzenszwalb': {}, 'quickshift': {}, 'slic
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python

@@ -31,8 +31,6 @@ There is no arbitrary limit to the depth of nesting.
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python
@@ -91,9 +89,3 @@ Resets the predictor model.
 _Inherits from:_ `str`, `Enum`
 
 An enumeration.
-
-### Constructor
-
-```python
-LayerState(self, /, *args, **kwargs)
-```

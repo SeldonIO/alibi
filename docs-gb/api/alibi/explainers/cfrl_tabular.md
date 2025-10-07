@@ -36,12 +36,6 @@ _Inherits from:_ `Postprocessing`, `ABC`
 
 Tabular feature columns concatenation post-processing.
 
-### Constructor
-
-```python
-ConcatTabularPostprocessing(self, /, *args, **kwargs)
-```
-
 ## `CounterfactualRLTabular`
 
 _Inherits from:_ `CounterfactualRL`, `Explainer`, `FitMixin`, `ABC`, `Base`
@@ -104,11 +98,9 @@ Computes counterfactuals for the given instances conditioned on the target and t
 fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer
 ```
 
-Fit the model agnostic counterfactual generator.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  | Training data array. |
+| `X` | `numpy.ndarray` |  |  |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`

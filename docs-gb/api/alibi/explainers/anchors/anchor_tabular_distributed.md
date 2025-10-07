@@ -35,8 +35,6 @@ Distributes sampling requests among processes running sampling tasks.
 
 _Inherits from:_ `AnchorTabular`, `Explainer`, `FitMixin`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python

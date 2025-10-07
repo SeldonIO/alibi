@@ -28,8 +28,6 @@ DEFAULT_META_SIM: dict = {'name': None, 'type': ['whitebox'], 'explanations': ['
 
 _Inherits from:_ `BaseSimilarityExplainer`, `Explainer`, `ABC`, `Base`
 
-Base class for similarity explainers.
-
 ### Constructor
 
 ```python
@@ -97,9 +95,3 @@ but storing the gradients may not be feasible for large models.
 _Inherits from:_ `str`, `Enum`
 
 Enum of supported tasks.
-
-### Constructor
-
-```python
-Task(self, /, *args, **kwargs)
-```

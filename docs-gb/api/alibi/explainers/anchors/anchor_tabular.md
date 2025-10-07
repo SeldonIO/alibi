@@ -14,8 +14,6 @@ DEFAULT_META_ANCHOR: dict = {'name': None, 'type': ['blackbox'], 'explanations':
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`
 
-Base class for explainer algorithms from :py:mod:`alibi.explainers`.
-
 ### Constructor
 
 ```python

@@ -69,11 +69,29 @@ NumpyEncoder(self, *, skipkeys=False, ensure_ascii=True, check_circular=True, al
 
 ### Methods
 
-#### `default`
+### `default`
 
 ```python
 default(obj)
 ```
+
+Implement this method in a subclass such that it returns
+
+a serializable object for ``o``, or calls the base implementation
+(to raise a ``TypeError``).
+
+For example, to support arbitrary iterators, you could
+implement default like this::
+
+    def default(self, o):
+        try:
+            iterable = iter(o)
+        except TypeError:
+            pass
+        else:
+            return list(iterable)
+        # Let the base class default method raise the TypeError
+        return JSONEncoder.default(self, o)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
@@ -88,21 +106,10 @@ load_explainer(path: Union[str, os.PathLike], predictor) -> Explainer
 
 Load an explainer from disk.
 
-Parameters
-----------
-path
-    Path to a directory containing the saved explainer.
-predictor
-    Model or prediction function used to originally initialize the explainer.
-
-Returns
--------
-An explainer instance.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
-| `predictor` |  |  | Model or prediction function used to originally initialize the explainer. |
+| `path` | `Union[str, os.PathLike]` |  |  |
+| `predictor` |  |  |  |
 
 **Returns**
 - Type: `Explainer`
@@ -115,17 +122,10 @@ save_explainer(explainer: Explainer, path: Union[str, os.PathLike]) -> None
 
 Save an explainer to disk. Uses the `dill` module.
 
-Parameters
-----------
-explainer
-    Explainer instance to save to disk.
-path
-    Path to a directory. A new directory will be created if one does not exist.
-
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `explainer` | `Explainer` |  | Explainer instance to save to disk. |
-| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
+| `explainer` | `Explainer` |  |  |
+| `path` | `Union[str, os.PathLike]` |  |  |
 
 **Returns**
 - Type: `None`

@@ -20,21 +20,22 @@ AccuracyMetric(self, name: str = 'accuracy')
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `name` | `str` | `'accuracy'` | Name of the metric. |
-| `reduction` |  |  | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
+| `name` | `str` | `'accuracy'` |  |
 
 ### Methods
 
-#### `compute_metric`
+### `compute_metric`
 
 ```python
 compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.Tensor, numpy.ndarray]) -> None
 ```
 
+Computes accuracy metric given the predicted label and the true label.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  | Predicted label. |
-| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  | True label. |
+| `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
+| `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 
 **Returns**
 - Type: `None`
@@ -51,22 +52,26 @@ LossContainer(self, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  | Loss function. |
-| `name` | `str` |  | Name of the loss function |
+| `loss` | `Callable[[.[<class 'torch.Tensor'>, <class 'torch.Tensor'>]], torch.Tensor]` |  |  |
+| `name` | `str` |  |  |
 
 ### Methods
 
-#### `reset`
+### `reset`
 
 ```python
 reset()
 ```
 
-#### `result`
+Resets the loss.
+
+### `result`
 
 ```python
 result() -> Dict[str, float]
 ```
+
+Computes the average loss obtain by dividing the cumulated loss by the number of steps
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -85,12 +90,12 @@ Metric(self, reduction: alibi.models.pytorch.metrics.Reduction = <Reduction.MEAN
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` | Metric's reduction type. Possible values `mean`|`sum`. By default `mean`. |
-| `name` | `str` | `'unknown'` | Name of the metric. |
+| `reduction` | `alibi.models.pytorch.metrics.Reduction` | `<Reduction.MEAN: 'mean'>` |  |
+| `name` | `str` | `'unknown'` |  |
 
 ### Methods
 
-#### `compute_metric`
+### `compute_metric`
 
 ```python
 compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.Tensor, numpy.ndarray])
@@ -101,26 +106,34 @@ compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.T
 | `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 | `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 
-#### `reset`
+### `reset`
 
 ```python
 reset()
 ```
 
-#### `result`
+Resets the monitoring metric.
+
+### `result`
 
 ```python
 result() -> Dict[str, float]
 ```
 
+Computes the result according to the reduction procedure.
+
 **Returns**
 - Type: `Dict[str, float]`
 
-#### `update_state`
+### `update_state`
 
 ```python
 update_state(values: numpy.ndarray)
 ```
+
+Update the state of the metric by summing up the metric values and updating the counts by adding
+
+the number of instances for which the metric was computed (first dimension).
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |

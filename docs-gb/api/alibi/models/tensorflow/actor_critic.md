@@ -21,40 +21,45 @@ Actor(self, hidden_dim: int, output_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension |
-| `output_dim` | `int` |  | Output dimension |
+| `hidden_dim` | `int` |  |  |
+| `output_dim` | `int` |  |  |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
 
-#### `from_config`
+### `from_config`
 
 ```python
 from_config(config)
 ```
 
+Creates the model from its configuration.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `config` |  |  |  |
 
-#### `get_config`
+### `get_config`
 
 ```python
 get_config()
 ```
+
+Returns the configuration of the model for serialization.
 
 ## `Critic`
 
@@ -73,35 +78,41 @@ Critic(self, hidden_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension. |
+| `hidden_dim` | `int` |  |  |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
 
-#### `from_config`
+### `from_config`
 
 ```python
 from_config(config)
 ```
 
+Creates the model from its configuration.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
 | `config` |  |  |  |
 
-#### `get_config`
+### `get_config`
 
 ```python
 get_config()
 ```
+
+Returns the configuration of the model for serialization.

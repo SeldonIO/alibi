@@ -63,7 +63,7 @@ Explainer(self, meta: dict = NOTHING) -> None
 
 ### Methods
 
-#### `explain`
+### `explain`
 
 ```python
 explain(X: typing.Any) -> alibi.api.interfaces.Explanation
@@ -76,42 +76,48 @@ explain(X: typing.Any) -> alibi.api.interfaces.Explanation
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-#### `load`
+### `load`
 
 ```python
 load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfaces.Explainer
 ```
 
+Load an explainer from disk.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
-| `predictor` | `typing.Any` |  | Model or prediction function used to originally initialize the explainer. |
+| `path` | `Union[str, os.PathLike]` |  |  |
+| `predictor` | `typing.Any` |  |  |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-#### `reset_predictor`
+### `reset_predictor`
 
 ```python
 reset_predictor(predictor: typing.Any) -> None
 ```
 
+Resets the predictor.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `typing.Any` |  | New predictor. |
+| `predictor` | `typing.Any` |  |  |
 
 **Returns**
 - Type: `None`
 
-#### `save`
+### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
 ```
 
+Save an explainer to disk. Uses the `dill` module.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
+| `path` | `Union[str, os.PathLike]` |  |  |
 
 **Returns**
 - Type: `None`
@@ -133,24 +139,28 @@ Explanation(self, meta: dict, data: dict) -> None
 
 ### Methods
 
-#### `from_json`
+### `from_json`
 
 ```python
 from_json(jsonrepr) -> alibi.api.interfaces.Explanation
 ```
 
+Create an instance of an `Explanation` class using a `json` representation of the `Explanation`.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `jsonrepr` |  |  | `json` representation of an explanation. |
+| `jsonrepr` |  |  |  |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-#### `to_json`
+### `to_json`
 
 ```python
 to_json() -> str
 ```
+
+Serialize the explanation data and metadata into a `json` format.
 
 **Returns**
 - Type: `str`
@@ -170,7 +180,7 @@ FitMixin(self, /, *args, **kwargs)
 ```
 ### Methods
 
-#### `fit`
+### `fit`
 
 ```python
 fit(X: typing.Any) -> alibi.api.interfaces.Explainer
@@ -201,7 +211,7 @@ Summariser(self, meta: dict = NOTHING) -> None
 
 ### Methods
 
-#### `load`
+### `load`
 
 ```python
 load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
@@ -214,7 +224,7 @@ load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
 **Returns**
 - Type: `alibi.api.interfaces.Summariser`
 
-#### `save`
+### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
@@ -227,7 +237,7 @@ save(path: Union[str, os.PathLike]) -> None
 **Returns**
 - Type: `None`
 
-#### `summarise`
+### `summarise`
 
 ```python
 summarise(num_prototypes: int) -> alibi.api.interfaces.Explanation

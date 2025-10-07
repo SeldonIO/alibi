@@ -27,198 +27,260 @@ AnchorBaseBeam(self, samplers: List[Callable], **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `samplers` | `List[Callable]` |  | Objects that can be called with args (`result`, `n_samples`) tuple to draw samples. |
+| `samplers` | `List[Callable]` |  |  |
 
 ### Methods
 
-#### `anchor_beam`
+### `anchor_beam`
 
 ```python
 anchor_beam(delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.0, beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100, max_anchor_size: Optional[int] = None, stop_on_first: bool = False, batch_size: int = 100, coverage_samples: int = 10000, verbose: bool = False, verbose_every: int = 1, kwargs) -> dict
 ```
 
+Uses the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013) together with additional sampling to search
+
+feature sets (anchors) that guarantee the prediction made by a classifier model. The search is greedy if
+``beam_size=1``. Otherwise, at each of the `max_anchor_size` steps, `beam_size` solutions are explored.
+By construction, solutions found have high precision (defined as the expected of number of times the classifier
+makes the same prediction when queried with the feature subset combined with arbitrary samples drawn from a
+noise distribution). The algorithm maximises the coverage of the solution found - the frequency of occurrence
+of records containing the feature subset in set of samples.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `delta` | `float` | `0.05` | Used to compute `beta`. |
-| `epsilon` | `float` | `0.1` | Precision bound tolerance for convergence. |
-| `desired_confidence` | `float` | `1.0` | Desired level of precision (`tau` in `paper <https://homes.cs.washington.edu/~marcotcr/aaai18.pdf>`_). |
-| `beam_size` | `int` | `1` | Beam width. |
-| `epsilon_stop` | `float` | `0.05` | Confidence bound margin around desired precision. |
-| `min_samples_start` | `int` | `100` | Min number of initial samples. |
-| `max_anchor_size` | `Optional[int]` | `None` | Max number of features in result. |
-| `stop_on_first` | `bool` | `False` | Stop on first valid result found. |
-| `batch_size` | `int` | `100` | Number of samples used for an arm evaluation. |
-| `coverage_samples` | `int` | `10000` | Number of samples from which to build a coverage set. |
-| `verbose` | `bool` | `False` | Whether to print intermediate LUCB & anchor selection output. |
-| `verbose_every` | `int` | `1` | Print intermediate output every verbose_every steps. |
+| `delta` | `float` | `0.05` |  |
+| `epsilon` | `float` | `0.1` |  |
+| `desired_confidence` | `float` | `1.0` |  |
+| `beam_size` | `int` | `1` |  |
+| `epsilon_stop` | `float` | `0.05` |  |
+| `min_samples_start` | `int` | `100` |  |
+| `max_anchor_size` | `Optional[int]` | `None` |  |
+| `stop_on_first` | `bool` | `False` |  |
+| `batch_size` | `int` | `100` |  |
+| `coverage_samples` | `int` | `10000` |  |
+| `verbose` | `bool` | `False` |  |
+| `verbose_every` | `int` | `1` |  |
 
 **Returns**
 - Type: `dict`
 
-#### `compute_beta`
+### `compute_beta`
 
 ```python
 compute_beta(n_features: int, t: int, delta: float) -> float
 ```
 
+Parameters
+
+----------
+n_features
+    Number of candidate anchors.
+t
+    Iteration number.
+delta
+    Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `n_features` | `int` |  | Number of candidate anchors. |
-| `t` | `int` |  | Iteration number. |
-| `delta` | `float` |  | Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`. |
+| `n_features` | `int` |  |  |
+| `t` | `int` |  |  |
+| `delta` | `float` |  |  |
 
 **Returns**
 - Type: `float`
 
-#### `dlow_bernoulli`
+### `dlow_bernoulli`
 
 ```python
 dlow_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> numpy.ndarray
 ```
 
+Update lower precision bound for a candidate anchors dependent on the KL-divergence.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `p` | `numpy.ndarray` |  | Precision of candidate anchors. |
-| `level` | `numpy.ndarray` |  | `beta / nb of samples` for each result. |
-| `n_iter` | `int` | `17` | Number of iterations during lower bound update. |
+| `p` | `numpy.ndarray` |  |  |
+| `level` | `numpy.ndarray` |  |  |
+| `n_iter` | `int` | `17` |  |
 
 **Returns**
 - Type: `numpy.ndarray`
 
-#### `draw_samples`
+### `draw_samples`
 
 ```python
 draw_samples(anchors: list, batch_size: int) -> Tuple[tuple, tuple]
 ```
 
+Parameters
+
+----------
+anchors
+    Anchors on which samples are conditioned.
+batch_size
+    The number of samples drawn for each result.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchors` | `list` |  | Anchors on which samples are conditioned. |
-| `batch_size` | `int` |  | The number of samples drawn for each result. |
+| `anchors` | `list` |  |  |
+| `batch_size` | `int` |  |  |
 
 **Returns**
 - Type: `Tuple[tuple, tuple]`
 
-#### `dup_bernoulli`
+### `dup_bernoulli`
 
 ```python
 dup_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> numpy.ndarray
 ```
 
+Update upper precision bound for a candidate anchors dependent on the KL-divergence.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `p` | `numpy.ndarray` |  | Precision of candidate anchors. |
-| `level` | `numpy.ndarray` |  | `beta / nb of samples` for each result. |
-| `n_iter` | `int` | `17` | Number of iterations during lower bound update. |
+| `p` | `numpy.ndarray` |  |  |
+| `level` | `numpy.ndarray` |  |  |
+| `n_iter` | `int` | `17` |  |
 
 **Returns**
 - Type: `numpy.ndarray`
 
-#### `get_anchor_metadata`
+### `get_anchor_metadata`
 
 ```python
 get_anchor_metadata(features: tuple, success, batch_size: int = 100) -> dict
 ```
 
+Given the features contained in a result, it retrieves metadata such as the precision and
+
+coverage of the result and partial anchors and examples where the result/partial anchors
+apply and yield the same prediction as on the instance to be explained (`covered_true`)
+or a different prediction (`covered_false`).
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `features` | `tuple` |  | Sorted indices of features in result. |
-| `success` |  |  | Indicates whether an anchor satisfying precision threshold was met or not. |
-| `batch_size` | `int` | `100` | Number of samples among which positive and negative examples for partial anchors are selected if partial anchors have not already been explicitly sampled. |
+| `features` | `tuple` |  |  |
+| `success` |  |  |  |
+| `batch_size` | `int` | `100` |  |
 
 **Returns**
 - Type: `dict`
 
-#### `get_init_stats`
+### `get_init_stats`
 
 ```python
 get_init_stats(anchors: list, coverages = False) -> dict
 ```
 
+Finds the number of samples already drawn for each result in anchors, their
+
+comparisons with the instance to be explained and, optionally, coverage.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchors` | `list` |  | Candidate anchors. |
-| `coverages` |  | `False` | If ``True``, the statistics returned contain the coverage of the specified anchors. |
+| `anchors` | `list` |  |  |
+| `coverages` |  | `False` |  |
 
 **Returns**
 - Type: `dict`
 
-#### `kllucb`
+### `kllucb`
 
 ```python
 kllucb(anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int, top_n: int, verbose: bool = False, verbose_every: int = 1) -> numpy.ndarray
 ```
 
+Implements the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013).
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchors` | `list` |  | A list of anchors from which two critical anchors are selected (see Kaufmann and Kalyanakrishnan, 2013). |
-| `init_stats` | `dict` |  | Dictionary with lists containing nb of samples used and where sample predictions equal the desired label. |
-| `epsilon` | `float` |  | Precision bound tolerance for convergence. |
-| `delta` | `float` |  | Used to compute `beta`. |
-| `batch_size` | `int` |  | Number of samples. |
-| `top_n` | `int` |  | Min of beam width size or number of candidate anchors. |
-| `verbose` | `bool` | `False` | Whether to print intermediate output. |
-| `verbose_every` | `int` | `1` | Whether to print intermediate output every `verbose_every` steps. |
+| `anchors` | `list` |  |  |
+| `init_stats` | `dict` |  |  |
+| `epsilon` | `float` |  |  |
+| `delta` | `float` |  |  |
+| `batch_size` | `int` |  |  |
+| `top_n` | `int` |  |  |
+| `verbose` | `bool` | `False` |  |
+| `verbose_every` | `int` | `1` |  |
 
 **Returns**
 - Type: `numpy.ndarray`
 
-#### `propose_anchors`
+### `propose_anchors`
 
 ```python
 propose_anchors(previous_best: list) -> list
 ```
 
+Parameters
+
+----------
+previous_best
+    List with tuples of result candidates.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `previous_best` | `list` |  | List with tuples of result candidates. |
+| `previous_best` | `list` |  |  |
 
 **Returns**
 - Type: `list`
 
-#### `select_critical_arms`
+### `select_critical_arms`
 
 ```python
 select_critical_arms(means: numpy.ndarray, ub: numpy.ndarray, lb: numpy.ndarray, n_samples: numpy.ndarray, delta: float, top_n: int, t: int)
 ```
 
+Determines a set of two anchors by updating the upper bound for low empirical precision anchors and
+
+the lower bound for anchors with high empirical precision.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `means` | `numpy.ndarray` |  | Empirical mean result precisions. |
-| `ub` | `numpy.ndarray` |  | Upper bound on result precisions. |
-| `lb` | `numpy.ndarray` |  | Lower bound on result precisions. |
-| `n_samples` | `numpy.ndarray` |  | The number of samples drawn for each candidate result. |
-| `delta` | `float` |  | Confidence budget, candidate anchors have close to optimal precisions with prob. `1 - delta`. |
-| `top_n` | `int` |  | Number of arms to be selected. |
-| `t` | `int` |  | Iteration number. |
+| `means` | `numpy.ndarray` |  |  |
+| `ub` | `numpy.ndarray` |  |  |
+| `lb` | `numpy.ndarray` |  |  |
+| `n_samples` | `numpy.ndarray` |  |  |
+| `delta` | `float` |  |  |
+| `top_n` | `int` |  |  |
+| `t` | `int` |  |  |
 
-#### `to_sample`
+### `to_sample`
 
 ```python
 to_sample(means: numpy.ndarray, ubs: numpy.ndarray, lbs: numpy.ndarray, desired_confidence: float, epsilon_stop: float)
 ```
 
+Given an array of mean result precisions and their upper and lower bounds, determines for which anchors
+
+more samples need to be drawn in order to estimate the anchors precision with `desired_confidence` and error
+tolerance.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `means` | `numpy.ndarray` |  | Mean precisions (each element represents a different result). |
-| `ubs` | `numpy.ndarray` |  | Precisions' upper bounds (each element represents a different result). |
-| `lbs` | `numpy.ndarray` |  | Precisions' lower bounds (each element represents a different result). |
-| `desired_confidence` | `float` |  | Desired level of confidence for precision estimation. |
-| `epsilon_stop` | `float` |  | Tolerance around desired precision. |
+| `means` | `numpy.ndarray` |  |  |
+| `ubs` | `numpy.ndarray` |  |  |
+| `lbs` | `numpy.ndarray` |  |  |
+| `desired_confidence` | `float` |  |  |
+| `epsilon_stop` | `float` |  |  |
 
-#### `update_state`
+### `update_state`
 
 ```python
 update_state(covered_true: numpy.ndarray, covered_false: numpy.ndarray, labels: numpy.ndarray, samples: Tuple[numpy.ndarray, float], anchor: tuple) -> Tuple[int, int]
 ```
 
+Updates the explainer state (see :py:meth:`alibi.explainers.anchors.anchor_base.AnchorBaseBeam.__init__`
+
+for full state definition).
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `covered_true` | `numpy.ndarray` |  | Examples where the result applies and the prediction is the same as on the instance to be explained. |
-| `covered_false` | `numpy.ndarray` |  | Examples where the result applies and the prediction is the different to the instance to be explained. |
-| `labels` | `numpy.ndarray` |  | An array indicating whether the prediction on the sample matches the label of the instance to be explained. |
-| `samples` | `Tuple[numpy.ndarray, float]` |  | A tuple containing discretized data, coverage and the result sampled. |
-| `anchor` | `tuple` |  | The result to be updated. |
+| `covered_true` | `numpy.ndarray` |  |  |
+| `covered_false` | `numpy.ndarray` |  |  |
+| `labels` | `numpy.ndarray` |  |  |
+| `samples` | `Tuple[numpy.ndarray, float]` |  |  |
+| `anchor` | `tuple` |  |  |
 
 **Returns**
 - Type: `Tuple[int, int]`

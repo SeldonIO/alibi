@@ -20,22 +20,22 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int], **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension. |
+| `hidden_dim` | `int` |  |  |
 | `output_dims` | `List[int]` |  |  |
-| `output_dim` |  |  | List of output dimensions. |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.python.framework.tensor.Tensor]
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`
@@ -58,21 +58,22 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int, **kwargs)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  | Hidden dimension. |
-| `latent_dim` | `int` |  | Latent dimension. |
+| `hidden_dim` | `int` |  |  |
+| `latent_dim` | `int` |  |  |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -95,21 +96,22 @@ MNISTClassifier(self, output_dim: int = 10, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `output_dim` | `int` | `10` | Output dimension |
+| `output_dim` | `int` | `10` |  |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, training: bool = True, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `training` | `bool` | `True` | Training flag. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `training` | `bool` | `True` |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -132,16 +134,17 @@ MNISTDecoder(self, **kwargs) -> None
 ```
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -166,20 +169,21 @@ MNISTEncoder(self, latent_dim: int, **kwargs) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  | Latent dimension. |
+| `latent_dim` | `int` |  |  |
 
 ### Methods
 
-#### `call`
+### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
 ```
 
+Forward pass.
+
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
-| `Other` |  |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`

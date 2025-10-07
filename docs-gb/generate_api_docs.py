@@ -279,43 +279,34 @@ def parse_docstring(doc: Optional[str]) -> Dict[str, Any]:
                     typ, desc = m2.groups()
                     result["raises"].append({"type": typ, "desc": desc})
 
-    # ---- NumPy-style fallback for sections without trailing colon (e.g. "Parameters" + underline) ----
-    if not result["params"]:
-        # Capture blocks like:
-        # Parameters
-        # ----------
-        # name : type
-        #     description
-        numpy_params_block = re.search(
-            r"(^|\n)Parameters\s*\n[-=]{3,}\n(?P<body>.*?)(\n[A-Z][A-Za-z0-9 _]*\n[-=]{3,}\n|$)",
-            doc,
+    # --- Remove structured sections from the free-text "long" description ---
+    def _strip_known_sections(block: str) -> str:
+        if not block:
+            return block
+        # Sections we consider structured (handled elsewhere by the script)
+        sect_names = r"(Parameters|Returns|Return type|Raises|Yields|Attributes|Notes|Examples|See Also)"
+        # Style A: Google/reST-like "Section:\n<content>"
+        pat_colon = re.compile(
+            rf"(^|\n){sect_names}\s*:\s*\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\s*:\s*\n|$)",
             flags=re.DOTALL,
         )
-        if numpy_params_block:
-            body = numpy_params_block.group("body").rstrip()
-            lines = body.splitlines()
-            i = 0
-            while i < len(lines):
-                line = lines[i]
-                if not line.strip():
-                    i += 1
-                    continue
-                # Parameter header line: name [ : type ...]
-                m = re.match(r"^\s*([A-Za-z_][\w]*)\s*(?:[:]\s*([^,\n]+))?", line)
-                if m:
-                    name = m.group(1)
-                    typ = (m.group(2) or "").strip()
-                    i += 1
-                    desc_lines = []
-                    while i < len(lines) and (lines[i].startswith("    ") or (lines[i].strip() and lines[i][0].isspace() and not re.match(r"^\s*[A-Za-z_][\w]*\s*(?:[:]\s*[^,\n]+)?$", lines[i]))):
-                        desc_lines.append(lines[i].strip())
-                        i += 1
-                    desc = " ".join(dl.rstrip() for dl in desc_lines).strip()
-                    # Avoid duplicates
-                    if not any(p["name"] == name for p in result["params"]):
-                        result["params"].append({"name": name, "type": typ, "default": "", "desc": desc})
-                    continue
-                i += 1
+        # Style B: NumPy-like
+        #   Section
+        #   -------
+        #   <content>
+        pat_underline = re.compile(
+            rf"(^|\n){sect_names}\s*\n[-=]{{3,}}\n.*?(?=\n[A-Z][A-Za-z0-9 _]*\n[-=]{{3,}}\n|$)",
+            flags=re.DOTALL,
+        )
+        out = pat_colon.sub("\n", block)
+        out = pat_underline.sub("\n", out)
+        # collapse excess blank lines introduced by removals
+        out = re.sub(r"\n{{3,}}", "\n\n", out).strip()
+        return out
+
+    # Clean the "long" narrative so it doesn't include structured sections that we also render as tables
+    if result["long"]:
+        result["long"] = _strip_known_sections(result["long"])
 
     return result
 
@@ -515,40 +506,7 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
         for name, fn in methods:
             if name.startswith("_") and name != "__call__":
                 continue
-            fn_ds = parse_docstring(inspect.getdoc(fn))
-            sig = None
-            hints = {}
-            try:
-                sig = inspect.signature(fn)
-                hints = typing_get_type_hints_safe(fn)
-            except Exception:
-                pass
-            sig_str = format_signature(fn)
-            out.append(f"#### `{name}`\n")
-            out.append(f"```python\n{sig_str}\n```\n")
-            link = make_source_link(fn, repo_root, source_url_prefix)
-            if link:
-                out.append(f"[View source]({link})\n")
-            params_table = render_params_table(fn_ds["params"], sig, hints)
-            if params_table:
-                out.append(params_table + "\n")
-            ret_block = render_returns_block(fn_ds["returns"], sig, hints)
-            if ret_block:
-                out.append(ret_block + "\n")
-            if fn_ds["raises"]:
-                out.append("**Raises**")
-                for r in fn_ds["raises"]:
-                    typ = f"`{r['type']}`" if r.get("type") else ""
-                    desc = r.get("desc", "")
-                    out.append(f"- {typ} {desc}".strip())
-                out.append("")
-            if fn_ds["examples"]:
-                out.append("**Examples**")
-                for ex in fn_ds["examples"]:
-                    out.append("```python")
-                    out.append(ex.strip())
-                    out.append("```")
-                out.append("")
+            out.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
     return "\n".join(out).strip() + "\n"
 
 def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_url_prefix: Optional[str] = None) -> str:
@@ -571,12 +529,15 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
         hints = typing_get_type_hints_safe(fn)
     except Exception:
         pass
+    # Render parameters table only (remove redundant text-based parameters section)
     params_table = render_params_table(ds["params"], sig, hints)
     if params_table:
         out.append(params_table + "\n")
+    # Render returns block
     ret_block = render_returns_block(ds["returns"], sig, hints)
     if ret_block:
         out.append(ret_block + "\n")
+    # Render raises
     if ds["raises"]:
         out.append("**Raises**")
         for r in ds["raises"]:
@@ -584,6 +545,7 @@ def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_
             desc = r.get("desc", "")
             out.append(f"- {typ} {desc}".strip())
         out.append("")
+    # Render examples
     if ds["examples"]:
         out.append("**Examples**")
         for ex in ds["examples"]:

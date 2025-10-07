@@ -21,8 +21,8 @@ AE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.modu
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 
 ### Methods
 
@@ -36,7 +36,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `Union[torch.Tensor, List[torch.Tensor]]`
@@ -58,8 +58,8 @@ HeAE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.mo
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `torch.nn.modules.module.Module` |  |  |
-| `decoder` | `torch.nn.modules.module.Module` |  |  |
+| `encoder` | `torch.nn.modules.module.Module` |  | Encoder network. |
+| `decoder` | `torch.nn.modules.module.Module` |  | Decoder network. |
 
 ### Methods
 
@@ -73,7 +73,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `List[torch.Tensor]`

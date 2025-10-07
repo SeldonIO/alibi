@@ -21,8 +21,8 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 
 ### Methods
 
@@ -36,7 +36,8 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]`
@@ -58,8 +59,8 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `encoder` | `keras.src.models.model.Model` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `encoder` | `keras.src.models.model.Model` |  | Encoder network. |
+| `decoder` | `keras.src.models.model.Model` |  | Decoder network. |
 
 ### Methods
 
@@ -73,7 +74,7 @@ Build method.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `input_shape` | `Tuple[int, .Ellipsis]` |  |  |
+| `input_shape` | `Tuple[int, .Ellipsis]` |  | Tensor's input shape. |
 
 **Returns**
 - Type: `None`
@@ -88,7 +89,8 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `x` | `tensorflow.python.framework.tensor.Tensor` |  | Input tensor. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `List[tensorflow.python.framework.tensor.Tensor]`

@@ -86,8 +86,8 @@ Load an explainer from disk.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
-| `predictor` | `typing.Any` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
+| `predictor` | `typing.Any` |  | Model or prediction function used to originally initialize the explainer. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
@@ -102,7 +102,7 @@ Resets the predictor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predictor` | `typing.Any` |  |  |
+| `predictor` | `typing.Any` |  | New predictor. |
 
 **Returns**
 - Type: `None`
@@ -117,7 +117,7 @@ Save an explainer to disk. Uses the `dill` module.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
 
 **Returns**
 - Type: `None`
@@ -149,7 +149,7 @@ Create an instance of an `Explanation` class using a `json` representation of th
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `jsonrepr` |  |  |  |
+| `jsonrepr` |  |  | `json` representation of an explanation. |
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`

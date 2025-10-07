@@ -10,7 +10,7 @@ Download `spaCy` model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model` | `str` | `'en_core_web_md'` |  |
+| `model` | `str` | `'en_core_web_md'` | Model to be downloaded. |
 
 **Returns**
 - Type: `None`

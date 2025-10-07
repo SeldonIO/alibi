@@ -28,12 +28,12 @@ TfCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predic
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `preprocessor` | `Callable` |  |  |
-| `predictor` | `Callable` |  |  |
-| `conditional_func` | `Callable` |  |  |
-| `batch_size` | `int` |  |  |
-| `shuffle` | `bool` | `True` |  |
+| `X` | `numpy.ndarray` |  | Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling the `preprocessor` function. |
+| `preprocessor` | `Callable` |  | Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/auto-encoder model. |
+| `predictor` | `Callable` |  | Prediction function. The classifier function should expect the input in the original format and preprocess it internally in the `predictor` if necessary. |
+| `conditional_func` | `Callable` |  | Conditional function generator. Given an pre-processed input array, the functions generates a conditional array. |
+| `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
+| `shuffle` | `bool` | `True` | Whether to shuffle the dataset each epoch. ``True`` by default. |
 
 ### Methods
 
@@ -59,12 +59,13 @@ Add noise to the counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z_cf` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  |  |
-| `noise` | `NormalActionNoise` |  |  |
-| `act_low` | `float` |  |  |
-| `act_high` | `float` |  |  |
-| `step` | `int` |  |  |
-| `exploration_steps` | `int` |  |  |
+| `Z_cf` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Counterfactual embedding. |
+| `noise` | `NormalActionNoise` |  | Noise generator object. |
+| `act_low` | `float` |  | Noise lower bound. |
+| `act_high` | `float` |  | Noise upper bound. |
+| `step` | `int` |  | Training step. |
+| `exploration_steps` | `int` |  | Number of exploration steps. For the first `exploration_steps`, the noised counterfactual embedding is sampled uniformly at random. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -79,8 +80,8 @@ Default 0 consistency loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z_cf_pred` | `tensorflow.python.framework.tensor.Tensor` |  |  |
-| `Z_cf_tgt` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `Z_cf_pred` | `tensorflow.python.framework.tensor.Tensor` |  | Counterfactual embedding prediction. |
+| `Z_cf_tgt` | `tensorflow.python.framework.tensor.Tensor` |  | Counterfactual embedding target. |
 
 ### `data_generator`
 
@@ -92,12 +93,13 @@ Constructs a `tensorflow` data generator.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `encoder_preprocessor` | `Callable` |  |  |
-| `predictor` | `Callable` |  |  |
-| `conditional_func` | `Callable` |  |  |
-| `batch_size` | `int` |  |  |
-| `shuffle` | `bool` | `True` |  |
+| `X` | `numpy.ndarray` |  | Array of input instances. The input should NOT be preprocessed as it will be preprocessed when calling the `preprocessor` function. |
+| `encoder_preprocessor` | `Callable` |  | Preprocessor function. This function correspond to the preprocessing steps applied to the encoder/auto-encoder model. |
+| `predictor` | `Callable` |  | Prediction function. The classifier function should expect the input in the original format and preprocess it internally in the `predictor` if necessary. |
+| `conditional_func` | `Callable` |  | Conditional function generator. Given an preprocessed input array, the functions generates a conditional array. |
+| `batch_size` | `int` |  | Dimension of the batch used during training. The same batch size is used to infer the classification labels of the input dataset. |
+| `shuffle` | `bool` | `True` | Whether to shuffle the dataset each epoch. ``True`` by default. |
+| `Other` |  |  |  |
 
 ### `decode`
 
@@ -109,8 +111,9 @@ Decodes an embedding tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  |  |
-| `decoder` | `keras.src.models.model.Model` |  |  |
+| `Z` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Embedding tensor to be decoded. |
+| `decoder` | `keras.src.models.model.Model` |  | Pretrained decoder network. |
+| `Other` |  |  |  |
 
 ### `encode`
 
@@ -122,8 +125,9 @@ Encodes the input tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  |  |
-| `encoder` | `keras.src.models.model.Model` |  |  |
+| `X` | `Union[tensorflow.python.framework.tensor.Tensor, numpy.ndarray]` |  | Input to be encoded. |
+| `encoder` | `keras.src.models.model.Model` |  | Pretrained encoder network. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -138,11 +142,12 @@ Generates counterfactual embedding.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `Z` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  |  |
-| `Y_m` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  |  |
-| `Y_t` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  |  |
-| `C` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  |  |
-| `actor` | `keras.src.models.model.Model` |  |  |
+| `Z` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Input embedding tensor. |
+| `Y_m` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Input classification label. |
+| `Y_t` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Target counterfactual classification label. |
+| `C` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  | Conditional tensor. |
+| `actor` | `keras.src.models.model.Model` |  | Actor network. The model generates the counterfactual embedding. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
@@ -157,8 +162,8 @@ Constructs the actor network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Actor's hidden dimension |
+| `output_dim` | `int` |  | Actor's output dimension. |
 
 **Returns**
 - Type: `keras.src.layers.layer.Layer`
@@ -173,7 +178,7 @@ Constructs the critic network.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Critic's hidden dimension. |
 
 **Returns**
 - Type: `keras.src.layers.layer.Layer`
@@ -188,8 +193,8 @@ Constructs default `Adam` optimizer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model` | `Optional[keras.src.layers.layer.Layer]` | `None` |  |
-| `lr` | `float` | `0.001` |  |
+| `model` | `Optional[keras.src.layers.layer.Layer]` | `None` | Model to get the optimizer for. Not required for `tensorflow` backend. |
+| `lr` | `float` | `0.001` | Learning rate. |
 
 **Returns**
 - Type: `keras.src.optimizers.optimizer.Optimizer`
@@ -204,13 +209,14 @@ Initialize actor and critic layers by passing a dummy zero tensor.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `actor` |  |  |  |
-| `critic` |  |  |  |
-| `Z` |  |  |  |
-| `Z_cf_tilde` |  |  |  |
-| `Y_m` |  |  |  |
-| `Y_t` |  |  |  |
-| `C` |  |  |  |
+| `actor` |  |  | Actor model. |
+| `critic` |  |  | Critic model. |
+| `Z` |  |  | Input embedding. |
+| `Z_cf_tilde` |  |  | Noised counterfactual embedding. |
+| `Y_m` |  |  | Input classification label. |
+| `Y_t` |  |  | Target counterfactual classification label. |
+| `C` |  |  | Conditional tensor. |
+| `Other` |  |  |  |
 
 ### `initialize_optimizer`
 
@@ -222,8 +228,8 @@ Initializes an optimizer given a model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `optimizer` | `keras.src.optimizers.optimizer.Optimizer` |  |  |
-| `model` | `keras.src.models.model.Model` |  |  |
+| `optimizer` | `keras.src.optimizers.optimizer.Optimizer` |  | Optimizer to be initialized. |
+| `model` | `keras.src.models.model.Model` |  | Model to be optimized |
 
 **Returns**
 - Type: `None`
@@ -238,10 +244,11 @@ Initializes the actor and critic optimizers.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `optimizer_actor` |  |  |  |
-| `optimizer_critic` |  |  |  |
-| `actor` |  |  |  |
-| `critic` |  |  |  |
+| `optimizer_actor` |  |  | Actor optimizer to be initialized. |
+| `optimizer_critic` |  |  | Critic optimizer to be initialized. |
+| `actor` |  |  | Actor model to be optimized. |
+| `critic` |  |  | Critic model to be optimized. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `None`
@@ -256,7 +263,7 @@ Loads a model and its optimizer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to the loading location. |
 
 **Returns**
 - Type: `keras.src.models.model.Model`
@@ -271,8 +278,8 @@ Saves a model and its optimizer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
-| `model` | `keras.src.layers.layer.Layer` |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to the saving location. |
+| `model` | `keras.src.layers.layer.Layer` |  | Model to be saved. |
 
 **Returns**
 - Type: `None`
@@ -287,7 +294,7 @@ Sets a seed to ensure reproducibility. Does NOT ensure reproducibility.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `seed` | `int` | `13` |  |
+| `seed` | `int` | `13` | seed to be set |
 
 ### `sparsity_loss`
 
@@ -299,8 +306,8 @@ Default L1 sparsity loss.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_hat_cf` | `tensorflow.python.framework.tensor.Tensor` |  |  |
-| `X` | `tensorflow.python.framework.tensor.Tensor` |  |  |
+| `X_hat_cf` | `tensorflow.python.framework.tensor.Tensor` |  | Auto-encoder counterfactual reconstruction. |
+| `X` | `tensorflow.python.framework.tensor.Tensor` |  | Input instance. |
 
 **Returns**
 - Type: `Dict[str, tensorflow.python.framework.tensor.Tensor]`
@@ -315,7 +322,7 @@ Converts given tensor to `numpy` array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `Union[List[Any], numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  |  |
+| `X` | `Union[List[Any], numpy.ndarray, tensorflow.python.framework.tensor.Tensor, None]` |  | Input tensor to be converted to `numpy` array. |
 
 **Returns**
 - Type: `Union[List[Any], numpy.ndarray, None]`
@@ -330,7 +337,8 @@ Converts tensor to `tf.Tensor`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  |  |
+| `X` | `Union[numpy.ndarray, tensorflow.python.framework.tensor.Tensor]` |  | Input array/tensor to be converted. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Optional[tensorflow.python.framework.tensor.Tensor]`

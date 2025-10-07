@@ -9,10 +9,10 @@ Discretizer(self, data: numpy.ndarray, numerical_features: List[int], feature_na
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `numerical_features` | `List[int]` |  |  |
-| `feature_names` | `List[str]` |  |  |
-| `percentiles` | `Sequence[Union[int, float]]` | `(25, 50, 75)` |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
+| `numerical_features` | `List[int]` |  | List of indices corresponding to the continuous feature columns. Only these features will be discretized. |
+| `feature_names` | `List[str]` |  | List with feature names. |
+| `percentiles` | `Sequence[Union[int, float]]` | `(25, 50, 75)` | Percentiles used for discretization. |
 
 ### Methods
 
@@ -30,7 +30,7 @@ data
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
 
 **Returns**
 - Type: `List[numpy.ndarray]`
@@ -49,7 +49,7 @@ data
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
+| `data` | `numpy.ndarray` |  | Data to discretize. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -67,8 +67,8 @@ into `qts`, which is assumed to be a 1-D sorted array.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `numpy.ndarray` |  |  |
-| `qts` | `numpy.ndarray` |  |  |
+| `x` | `numpy.ndarray` |  | A `numpy` array of data to be discretized |
+| `qts` | `numpy.ndarray` |  | A `numpy` array of percentiles. This should be a 1-D array sorted in ascending order. |
 
 **Returns**
 - Type: `numpy.ndarray`

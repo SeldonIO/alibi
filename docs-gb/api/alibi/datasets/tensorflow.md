@@ -10,7 +10,7 @@ Loads the Fashion MNIST dataset.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `return_X_y` | `bool` | `False` |  |
+| `return_X_y` | `bool` | `False` | If ``True``, an `N x M x P` array of data points and `N`-array of labels are returned instead of a dict. |
 
 **Returns**
 - Type: `Union[alibi.utils.data.Bunch, Tuple[numpy.ndarray, numpy.ndarray]]`

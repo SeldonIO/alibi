@@ -11,8 +11,8 @@ LanguageModelSampler(self, model: alibi.utils.lang_model.LanguageModel, perturb_
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model` | `alibi.utils.lang_model.LanguageModel` |  |  |
-| `perturb_opts` | `dict` |  |  |
+| `model` | `alibi.utils.lang_model.LanguageModel` |  | Transformers masked language model. |
+| `perturb_opts` | `dict` |  | Perturbation options. |
 
 ### Methods
 
@@ -26,11 +26,12 @@ Create mask for words to be perturbed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchor` | `tuple` |  |  |
-| `num_samples` | `int` |  |  |
-| `sample_proba` | `float` | `1.0` |  |
-| `filling` | `str` | `'parallel'` |  |
-| `frac_mask_templates` | `float` | `0.1` |  |
+| `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
+| `num_samples` | `int` |  | Number of perturbed sentences to be returned. |
+| `sample_proba` | `float` | `1.0` | Probability of a word being replaced. |
+| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
+| `frac_mask_templates` | `float` | `0.1` | Fraction of mask templates from the number of requested samples. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -45,12 +46,13 @@ Fill in the masked tokens with language model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `raw` | `numpy.ndarray` |  |  |
-| `data` | `numpy.ndarray` |  |  |
-| `num_samples` | `int` |  |  |
-| `top_n` | `int` | `100` |  |
-| `batch_size_lm` | `int` | `32` |  |
-| `filling` | `str` | `'parallel'` |  |
+| `raw` | `numpy.ndarray` |  | Array of mask templates. |
+| `data` | `numpy.ndarray` |  | Binary mask having 0 where the word was masked. |
+| `num_samples` | `int` |  | Number of samples to be drawn. |
+| `top_n` | `int` | `100` | Use the top n words when sampling. |
+| `batch_size_lm` | `int` | `32` | Batch size used for language model. |
+| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -65,8 +67,9 @@ Find indices in words which can be perturbed.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `punctuation` | `str` | `'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'` |  |
-| `stopwords` | `Optional[List[str]]` | `None` |  |
+| `punctuation` | `str` | `'!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'` | String of punctuation characters. |
+| `stopwords` | `Optional[List[str]]` | `None` | List of stopwords. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `None`
@@ -84,12 +87,13 @@ model's predictions.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `anchor` | `tuple` |  |  |
-| `num_samples` | `int` |  |  |
-| `sample_proba` | `float` | `0.5` |  |
-| `top_n` | `int` | `100` |  |
-| `batch_size_lm` | `int` | `32` |  |
-| `filling` | `str` | `'parallel'` |  |
+| `anchor` | `tuple` |  | Indices represent the positions of the words to be kept unchanged. |
+| `num_samples` | `int` |  | Number of perturbed sentences to be returned. |
+| `sample_proba` | `float` | `0.5` | Probability of a token being replaced by a similar token. |
+| `top_n` | `int` | `100` | Used for top n sampling. |
+| `batch_size_lm` | `int` | `32` | Batch size used for language model. |
+| `filling` | `str` | `'parallel'` | Method to fill masked words. Either ``'parallel'`` or ``'autoregressive'``. |
+| `Other` |  |  |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
@@ -133,7 +137,7 @@ Sets the text to be processed
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `text` | `str` |  |  |
+| `text` | `str` |  | Text to be processed. |
 
 **Returns**
 - Type: `None`

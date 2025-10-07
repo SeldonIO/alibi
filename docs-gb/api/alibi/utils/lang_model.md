@@ -36,7 +36,7 @@ BertBaseUncased(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` |  |
+| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`. |
 
 ### Properties
 
@@ -64,7 +64,7 @@ this method has to be implemented for each language model. See module docstring 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  |  |
+| `token` | `str` |  | Token to be checked if it is a subword. |
 
 **Returns**
 - Type: `bool`
@@ -85,7 +85,7 @@ DistilbertBaseUncased(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` |  |
+| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__`. |
 
 ### Properties
 
@@ -113,7 +113,7 @@ this method has to be implemented for each language model. See module docstring 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  |  |
+| `token` | `str` |  | Token to be checked if it is a subword. |
 
 **Returns**
 - Type: `bool`
@@ -134,8 +134,8 @@ LanguageModel(self, model_path: str, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `model_path` | `str` |  |  |
-| `preloading` | `bool` | `True` |  |
+| `model_path` | `str` |  | `transformers` package model path. |
+| `preloading` | `bool` | `True` | Whether to preload the online version of the transformer. If ``False``, a call to `from_disk` method is expected. |
 
 ### Properties
 
@@ -157,7 +157,7 @@ Loads a model from disk.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, pathlib.Path]` |  |  |
+| `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
 
 ### `head_tail_split`
 
@@ -173,7 +173,7 @@ Thus the tail will remain unchanged.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `text` | `str` |  |  |
+| `text` | `str` |  | Text to be split in head and tail. |
 
 **Returns**
 - Type: `Tuple[str, str, List[str], List[str]]`
@@ -188,8 +188,8 @@ Checks if the given token is punctuation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  |  |
-| `punctuation` | `str` |  |  |
+| `token` | `str` |  | Token to be checked if it is punctuation. |
+| `punctuation` | `str` |  | String containing all punctuation to be considered. |
 
 **Returns**
 - Type: `bool`
@@ -204,10 +204,10 @@ Checks if the given word starting at the given index is in the list of stopwords
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `tokenized_text` | `List[str]` |  |  |
-| `start_idx` | `int` |  |  |
-| `punctuation` | `str` |  |  |
-| `stopwords` | `Optional[List[str]]` |  |  |
+| `tokenized_text` | `List[str]` |  | Tokenized text. |
+| `start_idx` | `int` |  | Starting index of a word. |
+| `punctuation` | `str` |  | Punctuation to be considered. See :py:meth:`alibi.utils.lang_model.LanguageModel.select_entire_word`. |
+| `stopwords` | `Optional[List[str]]` |  | List of stop words. The words in this list should be lowercase. |
 
 **Returns**
 - Type: `bool`
@@ -230,7 +230,7 @@ this method has to be implemented for each language model. See module docstring 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  |  |
+| `token` | `str` |  | Token to be checked if it is a subword. |
 
 **Returns**
 - Type: `bool`
@@ -245,9 +245,9 @@ predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_si
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `transformers.tokenization_utils_base.BatchEncoding` |  |  |
-| `vocab_size` | `int` |  |  |
-| `batch_size` | `int` |  |  |
+| `x` | `transformers.tokenization_utils_base.BatchEncoding` |  | Batch of instances. |
+| `vocab_size` | `int` |  | Vocabulary size of language model. |
+| `batch_size` | `int` |  | Batch size used for predictions. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -267,9 +267,9 @@ for more details.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `tokenized_text` | `List[str]` |  |  |
-| `start_idx` | `int` |  |  |
-| `punctuation` | `str` |  |  |
+| `tokenized_text` | `List[str]` |  | Tokenized text. |
+| `start_idx` | `int` |  | Starting index of a word. |
+| `punctuation` | `str` |  | String of punctuation to be considered. If it encounters a token composed only of characters in `punctuation` it terminates the search. |
 
 **Returns**
 - Type: `str`
@@ -284,7 +284,7 @@ Saves a model to disk.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, pathlib.Path]` |  |  |
+| `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
 
 ## `RobertaBase`
 
@@ -302,7 +302,7 @@ RobertaBase(self, preloading: bool = True)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `preloading` | `bool` | `True` |  |
+| `preloading` | `bool` | `True` | See :py:meth:`alibi.utils.lang_model.LanguageModel.__init__` constructor. |
 
 ### Properties
 
@@ -330,7 +330,7 @@ this method has to be implemented for each language model. See module docstring 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `token` | `str` |  |  |
+| `token` | `str` |  | Token to be checked if it is a subword. |
 
 **Returns**
 - Type: `bool`

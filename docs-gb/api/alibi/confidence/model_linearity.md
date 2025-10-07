@@ -27,13 +27,13 @@ LinearityMeasure(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: 
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `str` | `'grid'` |  |
-| `epsilon` | `float` | `0.04` |  |
-| `nb_samples` | `int` | `10` |  |
-| `res` | `int` | `100` |  |
-| `alphas` | `Optional[numpy.ndarray]` | `None` |  |
-| `model_type` | `str` | `'classifier'` |  |
-| `agg` | `str` | `'pairwise'` |  |
+| `method` | `str` | `'grid'` | Method for sampling. Supported methods: ``'knn'`` | ``'grid'``. |
+| `epsilon` | `float` | `0.04` | Size of the sampling region around the central instance as a percentage of the features range. |
+| `nb_samples` | `int` | `10` | Number of samples to generate. |
+| `res` | `int` | `100` | Resolution of the grid. Number of intervals in which the feature range is discretized. |
+| `alphas` | `Optional[numpy.ndarray]` | `None` | Coefficients in the superposition. |
+| `model_type` | `str` | `'classifier'` | Type of task. Supported values: ``'regressor'`` | ``'classifier'``. |
+| `agg` | `str` | `'pairwise'` | Aggregation method. Supported values: ``'global'`` | ``'pairwise'``. |
 | `verbose` | `bool` | `False` |  |
 
 ### Methods
@@ -52,7 +52,7 @@ X_train
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_train` | `numpy.ndarray` |  |  |
+| `X_train` | `numpy.ndarray` |  | Training set. |
 
 **Returns**
 - Type: `None`
@@ -73,8 +73,8 @@ x
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predict_fn` | `Callable` |  |  |
-| `x` | `numpy.ndarray` |  |  |
+| `predict_fn` | `Callable` |  | Prediction function. |
+| `x` | `numpy.ndarray` |  | Instance of interest. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -90,7 +90,7 @@ Infers the feature range from the training set.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_train` | `numpy.ndarray` |  |  |
+| `X_train` | `numpy.ndarray` |  | Training set. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -105,17 +105,17 @@ Calculate the linearity measure of the model around an instance of interest x.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `predict_fn` | `Callable` |  |  |
-| `x` | `numpy.ndarray` |  |  |
-| `feature_range` | `Union[List[Any], numpy.ndarray, None]` | `None` |  |
-| `method` | `str` | `'grid'` |  |
-| `X_train` | `Optional[numpy.ndarray]` | `None` |  |
-| `epsilon` | `float` | `0.04` |  |
-| `nb_samples` | `int` | `10` |  |
-| `res` | `int` | `100` |  |
-| `alphas` | `Optional[numpy.ndarray]` | `None` |  |
-| `agg` | `str` | `'global'` |  |
-| `model_type` | `str` | `'classifier'` |  |
+| `predict_fn` | `Callable` |  | Predict function. |
+| `x` | `numpy.ndarray` |  | Instance of interest. |
+| `feature_range` | `Union[List[Any], numpy.ndarray, None]` | `None` | Array with min and max values for each feature. |
+| `method` | `str` | `'grid'` | Method for sampling. Supported values: ``'knn'`` | ``'grid'``. |
+| `X_train` | `Optional[numpy.ndarray]` | `None` | Training set. |
+| `epsilon` | `float` | `0.04` | Size of the sampling region as a percentage of the feature range. |
+| `nb_samples` | `int` | `10` | Number of samples to generate. |
+| `res` | `int` | `100` | Resolution of the grid. Number of intervals in which the features range is discretized. |
+| `alphas` | `Optional[numpy.ndarray]` | `None` | Coefficients in the superposition. |
+| `agg` | `str` | `'global'` | Aggregation method. Supported values: ``'global'`` | ``'pairwise'``. |
+| `model_type` | `str` | `'classifier'` | Type of task. Supported values: ``'regressor'`` | ``'classifier'``. |
 
 **Returns**
 - Type: `numpy.ndarray`

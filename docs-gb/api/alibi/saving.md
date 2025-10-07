@@ -108,8 +108,8 @@ Load an explainer from disk.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `path` | `Union[str, os.PathLike]` |  |  |
-| `predictor` |  |  |  |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory containing the saved explainer. |
+| `predictor` |  |  | Model or prediction function used to originally initialize the explainer. |
 
 **Returns**
 - Type: `Explainer`
@@ -124,8 +124,8 @@ Save an explainer to disk. Uses the `dill` module.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `explainer` | `Explainer` |  |  |
-| `path` | `Union[str, os.PathLike]` |  |  |
+| `explainer` | `Explainer` |  | Explainer instance to save to disk. |
+| `path` | `Union[str, os.PathLike]` |  | Path to a directory. A new directory will be created if one does not exist. |
 
 **Returns**
 - Type: `None`

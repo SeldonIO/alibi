@@ -9,7 +9,7 @@ functionality independent of the missing dependency.
 ## Constants
 ### `err_msg_template`
 ```python
-err_msg_template: string.Template = <string.Template object at 0x16fda6c40>
+err_msg_template: string.Template = <string.Template object at 0x16f7239d0>
 ```
 A string class for supporting $-substitutions.
 
@@ -33,9 +33,9 @@ MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, Import
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `object_name` | `str` |  |  |
-| `err` | `Union[ModuleNotFoundError, ImportError]` |  |  |
-| `missing_dependency` | `str` | `'all'` |  |
+| `object_name` | `str` |  | Name of object we are replacing |
+| `err` | `Union[ModuleNotFoundError, ImportError]` |  | Error to be raised when the class is initialized or used |
+| `missing_dependency` | `str` | `'all'` | Name of missing dependency required for object |
 
 ### Properties
 
@@ -58,8 +58,8 @@ misspecification of types as `Any` when the developer intended to be more restri
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `module_name` | `str` |  |  |
-| `names` | `Optional[List[str]]` | `None` |  |
+| `module_name` | `str` |  | The module to import |
+| `names` | `Optional[List[str]]` | `None` | The names to import from the module. If None, all names are imported. |
 
 **Returns**
 - Type: `typing.Any`

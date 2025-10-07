@@ -10,8 +10,8 @@ Transform numerical values into categories using the map calculated under the fi
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `dist` | `dict` |  |  |
+| `data` | `numpy.ndarray` |  | `Numpy` array with the numerical data. |
+| `dist` | `dict` |  | Dict with as keys the categorical variables and as values the numerical value for each category. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -26,8 +26,8 @@ Convert one-hot encoded variables to ordinal encodings.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_ohe` | `numpy.ndarray` |  |  |
-| `cat_vars_ohe` | `dict` |  |  |
+| `X_ohe` | `numpy.ndarray` |  | Data with mixture of one-hot encoded and numerical variables. |
+| `cat_vars_ohe` | `dict` |  | Dict with as keys the first column index for each one-hot encoded categorical variable and as values the number of categories per categorical variable. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, dict]`
@@ -42,9 +42,9 @@ Infer shape of instance if the categorical variables have ordinal instead of one
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `shape` | `tuple` |  |  |
-| `cat_vars` | `Dict[int, int]` |  |  |
-| `is_ohe` | `bool` | `False` |  |
+| `shape` | `tuple` |  | Instance shape, starting with batch dimension. |
+| `cat_vars` | `Dict[int, int]` |  | Dict with as keys the categorical columns and as values the number of categories per categorical variable. |
+| `is_ohe` | `bool` | `False` | Whether instance is OHE. |
 
 **Returns**
 - Type: `tuple`
@@ -59,8 +59,8 @@ Transform categorical into numerical values using a mapping.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `data` | `numpy.ndarray` |  |  |
-| `dist` | `dict` |  |  |
+| `data` | `numpy.ndarray` |  | `Numpy` array with the categorical data. |
+| `dist` | `dict` |  | Dict with as keys the categorical variables and as values the numerical value for each category. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -75,8 +75,8 @@ Convert ordinal to one-hot encoded variables.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X_ord` | `numpy.ndarray` |  |  |
-| `cat_vars_ord` | `dict` |  |  |
+| `X_ord` | `numpy.ndarray` |  | Data with mixture of ordinal encoded and numerical variables. |
+| `cat_vars_ord` | `dict` |  | Dict with as keys the categorical columns and as values the number of categories per categorical variable. |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, dict]`

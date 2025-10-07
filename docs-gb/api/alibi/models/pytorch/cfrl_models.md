@@ -20,8 +20,8 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int])
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `output_dims` | `List[int]` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `output_dims` | `List[int]` |  | List of output dimensions. |
 
 ### Methods
 
@@ -35,7 +35,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `List[torch.Tensor]`
@@ -58,8 +58,8 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `hidden_dim` | `int` |  |  |
-| `latent_dim` | `int` |  |  |
+| `hidden_dim` | `int` |  | Hidden dimension. |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -73,7 +73,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -96,7 +96,7 @@ MNISTClassifier(self, output_dim: int) -> None
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `output_dim` | `int` |  |  |
+| `output_dim` | `int` |  | Output dimension. |
 
 ### Methods
 
@@ -110,7 +110,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -134,7 +134,7 @@ MNISTDecoder(self, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -148,7 +148,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`
@@ -173,7 +173,7 @@ MNISTEncoder(self, latent_dim: int)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `latent_dim` | `int` |  |  |
+| `latent_dim` | `int` |  | Latent dimension. |
 
 ### Methods
 
@@ -187,7 +187,7 @@ Forward pass.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
 
 **Returns**
 - Type: `torch.Tensor`

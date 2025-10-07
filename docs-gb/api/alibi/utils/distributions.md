@@ -12,8 +12,8 @@ simultaneously.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `p` | `numpy.ndarray` |  |  |
-| `q` | `numpy.ndarray` |  |  |
+| `p` | `numpy.ndarray` |  | Probability. |
+| `q` | `numpy.ndarray` |  | Probability. |
 
 **Returns**
 - Type: `numpy.ndarray`

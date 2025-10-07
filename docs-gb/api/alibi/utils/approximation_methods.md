@@ -41,7 +41,7 @@ Retrieves parameters for the input approximation `method`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `str` |  |  |
+| `method` | `str` |  | The name of the approximation method. Currently supported only: ``'riemann_*'`` and ``'gausslegendre``'. Check :py:data:`alibi.utils.approximation_methods.SUPPORTED_RIEMANN_METHODS` for all ``'riemann_*'`` possible values. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
@@ -61,6 +61,10 @@ Gauss Legendre quadrature rule for approximating the integrals was originally
 proposed by [Xue Feng and her intern Hauroun Habeeb]
 (https://research.fb.com/people/feng-xue/).
 
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `n` |  |  | The number of integration steps. |
+
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`
 
@@ -74,7 +78,8 @@ Step sizes are identical and alphas are scaled in [0, 1].
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` |  |
+| `method` | `alibi.utils.approximation_methods.Riemann` | `<Riemann.trapezoid: 4>` | Riemann method: ``Riemann.left`` | ``Riemann.right`` | ``Riemann.middle`` | ``Riemann.trapezoid``. |
+| `n` |  |  | The number of integration steps. |
 
 **Returns**
 - Type: `Tuple[Callable[[.[<class 'int'>]], List[float]], Callable[[.[<class 'int'>]], List[float]]]`

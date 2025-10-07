@@ -20,7 +20,6 @@ a tree structure. You can assign the submodules as regular attributes::
     import torch.nn as nn
     import torch.nn.functional as F
 
-
     class Model(nn.Module):
         def __init__(self) -> None:
             super().__init__()
@@ -61,10 +60,10 @@ the training of the model.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `optimizer` | `torch.optim.optimizer.Optimizer` |  |  |
-| `loss` | `Union[Callable, List[Callable]]` |  |  |
-| `loss_weights` | `Optional[List[float]]` | `None` |  |
-| `metrics` | `Optional[List[alibi.models.pytorch.metrics.Metric]]` | `None` |  |
+| `optimizer` | `torch.optim.optimizer.Optimizer` |  | Optimizer to be used. |
+| `loss` | `Union[Callable, List[Callable]]` |  | Loss function to be used. Can be a list of the loss function which will be weighted and summed up to compute the total loss. |
+| `loss_weights` | `Optional[List[float]]` | `None` | Weights corresponding to each loss function. Only used if the `loss` argument is a  list. |
+| `metrics` | `Optional[List[alibi.models.pytorch.metrics.Metric]]` | `None` | Metrics used to monitor the training process. |
 
 ### `compute_loss`
 
@@ -76,8 +75,8 @@ Computes the loss given the prediction labels and the true labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |
 
 **Returns**
 - Type: `Tuple[torch.Tensor, Dict[str, float]]`
@@ -92,8 +91,8 @@ Computes the metrics given the prediction labels and the true labels.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -108,7 +107,7 @@ Evaluation function. The function reports the evaluation metrics used for monito
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `testloader` | `torch.utils.data.dataloader.DataLoader` |  |  |
+| `testloader` | `torch.utils.data.dataloader.DataLoader` |  | Test dataloader. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -123,8 +122,8 @@ Fit method. Equivalent of a training loop.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `trainloader` | `torch.utils.data.dataloader.DataLoader` |  |  |
-| `epochs` | `int` |  |  |
+| `trainloader` | `torch.utils.data.dataloader.DataLoader` |  | Training data loader. |
+| `epochs` | `int` |  | Number of epochs to train the model. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -169,8 +168,8 @@ Performs a test step.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
-| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
+| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Label tensor. |
 
 ### `train_step`
 
@@ -182,8 +181,8 @@ Performs a train step.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `x` | `torch.Tensor` |  |  |
-| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `x` | `torch.Tensor` |  | Input tensor. |
+| `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Label tensor. |
 
 **Returns**
 - Type: `Dict[str, float]`
@@ -198,5 +197,5 @@ Validates the loss functions, loss weights, training labels and prediction label
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
-| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  |  |
+| `y_pred` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Prediction labels. |
+| `y_true` | `Union[torch.Tensor, List[torch.Tensor]]` |  | True labels. |

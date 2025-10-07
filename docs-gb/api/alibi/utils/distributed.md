@@ -27,7 +27,7 @@ ActorPool(self, actors)
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `actors` |  |  |  |
+| `actors` |  |  | List of `ray` actor handles to use in this pool. |
 
 ### Methods
 
@@ -83,9 +83,9 @@ the computation to finish.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `fn` |  |  |  |
-| `values` |  |  |  |
-| `chunksize` |  | `1` |  |
+| `fn` | `Callable` |  | Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over the `value`. The `actor` will be considered busy until the `ObjectID` completes. |
+| `values` | `list` |  | List of values that `fn(actor, value)` should be applied to. |
+| `chunksize` | `int` | `1` | Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less. |
 
 ### `map_unordered`
 
@@ -101,9 +101,9 @@ than others.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `fn` |  |  |  |
-| `values` |  |  |  |
-| `chunksize` |  | `1` |  |
+| `fn` | `Callable` |  | Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over the `value`. The `actor` will be considered busy until the `ObjectID` completes. |
+| `values` | `list` |  | List of values that `fn(actor, value)` should be applied to. |
+| `chunksize` | `int` | `1` | Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less. |
 
 ### `submit`
 
@@ -119,8 +119,8 @@ The result can be retrieved using :py:meth:`alibi.utils.distributed.ActorPool.ge
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `fn` | `Callable` |  |  |
-| `value` | `object` |  |  |
+| `fn` | `Callable` |  | Function that takes `(actor, value)` as argument and returns an `ObjectID` computing the result over the `value`. The `actor` will be considered busy until the `ObjectID` completes. |
+| `value` | `object` |  | Value to compute a result for. |
 
 ## `DistributedExplainer`
 
@@ -134,12 +134,13 @@ DistributedExplainer(self, distributed_opts: Dict[str, Any], explainer_type: Any
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `distributed_opts` | `Dict[str, typing.Any]` |  |  |
-| `explainer_type` | `typing.Any` |  |  |
-| `explainer_init_args` | `Tuple` |  |  |
-| `explainer_init_kwargs` | `dict` |  |  |
-| `concatenate_results` | `bool` | `True` |  |
-| `return_generator` | `bool` | `False` |  |
+| `distributed_opts` | `Dict[str, typing.Any]` |  | A dictionary with the following type (minimal signature):: |
+| `explainer_type` | `typing.Any` |  | Explainer class. |
+| `explainer_init_args` | `Tuple` |  | Positional arguments to explainer constructor. |
+| `explainer_init_kwargs` | `dict` |  | Keyword arguments to explainer constructor. |
+| `concatenate_results` | `bool` | `True` | If ``True`` concatenates the results. See :py:func:`alibi.utils.distributed.concatenate_minibatches` for more details. |
+| `return_generator` | `bool` | `False` | If ``True`` a generator that returns the results in the order the computation finishes is returned when `get_explanation` is called. Otherwise, the order of the results is the same as the order of the minibatches. |
+| `class` |  |  | n_cpus: Optional[int] batch_size: Optional[int]  The dictionary may contain two additional keys:  - ``'actor_cpu_frac'`` : ``(float, <= 1.0, >0.0)`` - This is used to create more than one process                 on one CPU/GPU. This may not speed up CPU intensive tasks but it is worth experimenting with when                 few physical cores are available. In particular, this is highly useful when the user wants to share                 a GPU for multiple tasks, with the caviat that the machine learning framework itself needs to                 support running multiple replicas on the same GPU. See the `ray` documentation `here`_ for details.  .. _here: https://docs.ray.io/en/latest/ray-core/scheduling/resources.html#fractional-resource-requirements  - ``'algorithm'`` : ``str`` - this is specified internally by the caller. It is used in order to                 register target function callbacks for the parallel pool These should be implemented in the global                 scope. If not specified, its value will be ``'default'``, which will select a default target function                 which expects the actor has a `get_explanation` method. |
 
 ### Properties
 
@@ -162,6 +163,7 @@ Creates a pool of actors that can explain the rows of a dataset in parallel.
 | `explainer_type` | `typing.Any` |  |  |
 | `explainer_init_args` | `Tuple` |  |  |
 | `explainer_init_kwargs` | `dict` |  |  |
+| `See` |  |  |  |
 
 ### `get_explanation`
 
@@ -173,7 +175,8 @@ Performs distributed explanations of instances in `X`.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
+| `X` | `numpy.ndarray` |  | A batch of instances to be explained. Split into batches according to the settings passed to the constructor. |
+| `Any` |  |  |  |
 
 **Returns**
 - Type: `Union[Generator[Tuple[int, typing.Any], None, None], List[typing.Any], typing.Any]`
@@ -223,10 +226,11 @@ PoolCollection(self, distributed_opts: Dict[str, Any], explainer_type: Any, expl
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `distributed_opts` | `Dict[str, typing.Any]` |  |  |
+| `distributed_opts` | `Dict[str, typing.Any]` |  | See :py:meth:`alibi.utils.distributed.DistributedExplainer` constructor documentation for explanations. Each entry in the list is a different explainer configuration (e.g., CEM in PN vs PP mode, different background dataset sizes for SHAP, etc). |
 | `explainer_type` | `typing.Any` |  |  |
 | `explainer_init_args` | `List[Tuple]` |  |  |
 | `explainer_init_kwargs` | `List[Dict]` |  |  |
+| `Any` |  |  |  |
 
 ### Properties
 
@@ -248,7 +252,7 @@ initialised with different arguments, so they represent different explainers.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `distributed_opts` | `Dict[str, typing.Any]` |  |  |
+| `distributed_opts` | `Dict[str, typing.Any]` |  | See :py:meth:`alibi.utils.distributed.PoolCollection`. |
 | `explainer_type` | `typing.Any` |  |  |
 | `explainer_init_args` | `List[Tuple]` |  |  |
 | `explainer_init_kwargs` | `List[Dict]` |  |  |
@@ -265,7 +269,7 @@ Calls a collection of distributed explainers in parallel. Each distributed expla
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` |  |  |  |
+| `X` |  |  | Batch of instances to be explained. |
 
 **Returns**
 - Type: `List[Any]`
@@ -293,9 +297,9 @@ Splits the input into sub-arrays.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `X` | `numpy.ndarray` |  |  |
-| `batch_size` | `Optional[int]` | `None` |  |
-| `n_batches` | `int` | `4` |  |
+| `X` | `numpy.ndarray` |  | Array to be split. |
+| `batch_size` | `Optional[int]` | `None` | The size of each batch. In particular |
+| `n_batches` | `int` | `4` | Number of batches in which to split the sub-array. Only used if ``batch_size = None`` |
 
 **Returns**
 - Type: `List[numpy.ndarray]`
@@ -313,7 +317,7 @@ by adding an appropriately named private function and use this function to check
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `minibatch_results` | `Union[List[numpy.ndarray], List[List[numpy.ndarray]]]` |  |  |
+| `minibatch_results` | `Union[List[numpy.ndarray], List[List[numpy.ndarray]]]` |  | Explanations for each minibatch. |
 
 **Returns**
 - Type: `Union[numpy.ndarray, List[numpy.ndarray]]`
@@ -330,9 +334,9 @@ values to be processed by the actor. Its role is to execute distributed computat
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `actor` | `typing.Any` |  |  |
-| `instances` | `tuple` |  |  |
-| `kwargs` | `Optional[Dict]` | `None` |  |
+| `actor` | `typing.Any` |  | A `ray` actor. This is typically a class decorated with the `@ray.remote decorator`, that has been subsequently instantiated using ``cls.remote(*args, **kwargs)``. |
+| `instances` | `tuple` |  | A `(batch_index, batch)` tuple containing the batch of instances to be explained along with a batch index. |
+| `kwargs` | `Optional[Dict]` | `None` | A list of keyword arguments for the actor `get_explanation` method. |
 
 ### `invert_permutation`
 
@@ -344,7 +348,7 @@ Inverts a permutation.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `p` | `list` |  |  |
+| `p` | `list` |  | Some permutation of `0, 1, ..., len(p)-1`. Returns an array `s`, where `s[i]` gives the index of `i` in `p`. |
 
 **Returns**
 - Type: `numpy.ndarray`
@@ -361,7 +365,7 @@ the explainer.
 
 | Name | Type | Default | Description |
 | ---- | ---- | ------- | ----------- |
-| `unordered_result` | `Generator[Tuple[int, typing.Any], None, None]` |  |  |
+| `unordered_result` | `Generator[Tuple[int, typing.Any], None, None]` |  | Each tuple contains the batch id as the first entry and the explanations for that batch as the second. |
 
 **Returns**
 - Type: `List[Any]`

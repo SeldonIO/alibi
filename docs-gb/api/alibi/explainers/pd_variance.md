@@ -76,7 +76,7 @@ PartialDependenceVariance(self, predictor: Union[sklearn.base.BaseEstimator, Cal
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Union[List[int], List[Tuple[int, int]], None] = None, method: Literal[importance, interaction] = 'importance', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation

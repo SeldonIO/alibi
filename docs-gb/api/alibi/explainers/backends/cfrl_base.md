@@ -18,7 +18,7 @@ CounterfactualRLDataset(self, /, *args, **kwargs)
 ```
 ### Methods
 
-### `predict_batches`
+#### `predict_batches`
 
 ```python
 predict_batches(X: numpy.ndarray, predictor: Callable, batch_size: int) -> numpy.ndarray

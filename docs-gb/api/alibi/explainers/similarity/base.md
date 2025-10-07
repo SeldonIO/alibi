@@ -56,7 +56,7 @@ BaseSimilarityExplainer(self, predictor: 'Union[tensorflow.keras.Model, torch.nn
 
 ### Methods
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X_train: Union[numpy.ndarray, List[typing.Any]], Y_train: numpy.ndarray) -> alibi.api.interfaces.Explainer
@@ -72,7 +72,7 @@ Fit the explainer. If ``self.precompute_grads == True`` then the gradients are p
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Union[tensorflow.keras.Model, torch.nn.Module]) -> None

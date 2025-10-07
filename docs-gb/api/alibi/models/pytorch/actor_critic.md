@@ -26,7 +26,7 @@ Actor(self, hidden_dim: int, output_dim: int) -> None
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
@@ -62,7 +62,7 @@ Critic(self, hidden_dim: int)
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor

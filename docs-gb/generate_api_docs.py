@@ -484,7 +484,45 @@ def render_class(cls: type, include_inherited: bool, verbose: bool, repo_root: O
         for name, fn in methods:
             if name.startswith("_") and name != "__call__":
                 continue
-            out.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
+            # Render each method as a subsection (####) under Methods (###)
+            fn_ds = parse_docstring(inspect.getdoc(fn))
+            sig = None
+            hints = {}
+            try:
+                sig = inspect.signature(fn)
+                hints = typing_get_type_hints_safe(fn)
+            except Exception:
+                pass
+            sig_str = format_signature(fn)
+            out.append(f"#### `{name}`\n")
+            out.append(f"```python\n{sig_str}\n```\n")
+            link = make_source_link(fn, repo_root, source_url_prefix)
+            if link:
+                out.append(f"[View source]({link})\n")
+            if fn_ds["short"]:
+                out.append(fn_ds["short"] + "\n")
+            if fn_ds["long"]:
+                out.append(fn_ds["long"] + "\n")
+            params_table = render_params_table(fn_ds["params"], sig, hints)
+            if params_table:
+                out.append(params_table + "\n")
+            ret_block = render_returns_block(fn_ds["returns"], sig, hints)
+            if ret_block:
+                out.append(ret_block + "\n")
+            if fn_ds["raises"]:
+                out.append("**Raises**")
+                for r in fn_ds["raises"]:
+                    typ = f"`{r['type']}`" if r.get("type") else ""
+                    desc = r.get("desc", "")
+                    out.append(f"- {typ} {desc}".strip())
+                out.append("")
+            if fn_ds["examples"]:
+                out.append("**Examples**")
+                for ex in fn_ds["examples"]:
+                    out.append("```python")
+                    out.append(ex.strip())
+                    out.append("```")
+                out.append("")
     return "\n".join(out).strip() + "\n"
 
 def render_function(name: str, fn: Any, repo_root: Optional[str] = None, source_url_prefix: Optional[str] = None) -> str:

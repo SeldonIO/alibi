@@ -25,7 +25,7 @@ AccuracyMetric(self, name: str = 'accuracy')
 
 ### Methods
 
-### `compute_metric`
+#### `compute_metric`
 
 ```python
 compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.Tensor, numpy.ndarray]) -> None
@@ -58,7 +58,7 @@ LossContainer(self, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor], 
 
 ### Methods
 
-### `reset`
+#### `reset`
 
 ```python
 reset()
@@ -66,7 +66,7 @@ reset()
 
 Resets the loss.
 
-### `result`
+#### `result`
 
 ```python
 result() -> Dict[str, float]
@@ -96,7 +96,7 @@ Metric(self, reduction: alibi.models.pytorch.metrics.Reduction = <Reduction.MEAN
 
 ### Methods
 
-### `compute_metric`
+#### `compute_metric`
 
 ```python
 compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.Tensor, numpy.ndarray])
@@ -107,7 +107,7 @@ compute_metric(y_pred: Union[torch.Tensor, numpy.ndarray], y_true: Union[torch.T
 | `y_pred` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 | `y_true` | `Union[torch.Tensor, numpy.ndarray]` |  |  |
 
-### `reset`
+#### `reset`
 
 ```python
 reset()
@@ -115,7 +115,7 @@ reset()
 
 Resets the monitoring metric.
 
-### `result`
+#### `result`
 
 ```python
 result() -> Dict[str, float]
@@ -126,7 +126,7 @@ Computes the result according to the reduction procedure.
 **Returns**
 - Type: `Dict[str, float]`
 
-### `update_state`
+#### `update_state`
 
 ```python
 update_state(values: numpy.ndarray)

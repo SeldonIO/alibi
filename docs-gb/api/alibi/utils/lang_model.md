@@ -46,7 +46,7 @@ BertBaseUncased(self, preloading: bool = True)
 
 ### Methods
 
-### `is_subword_prefix`
+#### `is_subword_prefix`
 
 ```python
 is_subword_prefix(token: str) -> bool
@@ -95,7 +95,7 @@ DistilbertBaseUncased(self, preloading: bool = True)
 
 ### Methods
 
-### `is_subword_prefix`
+#### `is_subword_prefix`
 
 ```python
 is_subword_prefix(token: str) -> bool
@@ -147,7 +147,7 @@ LanguageModel(self, model_path: str, preloading: bool = True)
 
 ### Methods
 
-### `from_disk`
+#### `from_disk`
 
 ```python
 from_disk(path: Union[str, pathlib.Path])
@@ -159,7 +159,7 @@ Loads a model from disk.
 | ---- | ---- | ------- | ----------- |
 | `path` | `Union[str, pathlib.Path]` |  | Path to the checkpoint. |
 
-### `head_tail_split`
+#### `head_tail_split`
 
 ```python
 head_tail_split(text: str) -> Tuple[str, str, List[str], List[str]]
@@ -178,7 +178,7 @@ Thus the tail will remain unchanged.
 **Returns**
 - Type: `Tuple[str, str, List[str], List[str]]`
 
-### `is_punctuation`
+#### `is_punctuation`
 
 ```python
 is_punctuation(token: str, punctuation: str) -> bool
@@ -194,7 +194,7 @@ Checks if the given token is punctuation.
 **Returns**
 - Type: `bool`
 
-### `is_stop_word`
+#### `is_stop_word`
 
 ```python
 is_stop_word(tokenized_text: List[str], start_idx: int, punctuation: str, stopwords: Optional[List[str]]) -> bool
@@ -212,7 +212,7 @@ Checks if the given word starting at the given index is in the list of stopwords
 **Returns**
 - Type: `bool`
 
-### `is_subword_prefix`
+#### `is_subword_prefix`
 
 ```python
 is_subword_prefix(token: str) -> bool
@@ -235,7 +235,7 @@ this method has to be implemented for each language model. See module docstring 
 **Returns**
 - Type: `bool`
 
-### `predict_batch_lm`
+#### `predict_batch_lm`
 
 ```python
 predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_size: int, batch_size: int) -> numpy.ndarray
@@ -252,7 +252,7 @@ predict_batch_lm(x: transformers.tokenization_utils_base.BatchEncoding, vocab_si
 **Returns**
 - Type: `numpy.ndarray`
 
-### `select_word`
+#### `select_word`
 
 ```python
 select_word(tokenized_text: List[str], start_idx: int, punctuation: str) -> str
@@ -274,7 +274,7 @@ for more details.
 **Returns**
 - Type: `str`
 
-### `to_disk`
+#### `to_disk`
 
 ```python
 to_disk(path: Union[str, pathlib.Path])
@@ -312,7 +312,7 @@ RobertaBase(self, preloading: bool = True)
 
 ### Methods
 
-### `is_subword_prefix`
+#### `is_subword_prefix`
 
 ```python
 is_subword_prefix(token: str) -> bool

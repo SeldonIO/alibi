@@ -75,7 +75,7 @@ AnchorText(self, predictor: Callable[[List[str]], numpy.ndarray], sampling_strat
 
 ### Methods
 
-### `compare_labels`
+#### `compare_labels`
 
 ```python
 compare_labels(samples: numpy.ndarray) -> numpy.ndarray
@@ -93,7 +93,7 @@ given value (aka compute the precision of anchors).
 **Returns**
 - Type: `numpy.ndarray`
 
-### `explain`
+#### `explain`
 
 ```python
 explain(text: str, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = True, max_anchor_size: Optional[int] = None, min_samples_start: int = 100, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
@@ -123,7 +123,7 @@ Explain instance and return anchor with metadata.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
@@ -138,7 +138,7 @@ Resets the predictor function.
 **Returns**
 - Type: `None`
 
-### `sampler`
+#### `sampler`
 
 ```python
 sampler(anchor: Tuple[int, tuple], num_samples: int, compute_labels: bool = True) -> Union[List[Union[numpy.ndarray, float, int]], List[numpy.ndarray]]

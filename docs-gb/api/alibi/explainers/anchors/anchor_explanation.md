@@ -14,7 +14,7 @@ AnchorExplanation(self, exp_type: str, exp_map: dict) -> None
 
 ### Methods
 
-### `coverage`
+#### `coverage`
 
 ```python
 coverage(partial_index: Optional[int] = None) -> float
@@ -35,7 +35,7 @@ partial_index
 **Returns**
 - Type: `float`
 
-### `examples`
+#### `examples`
 
 ```python
 examples(only_different_prediction: bool = False, only_same_prediction: bool = False, partial_index: Optional[int] = None) -> Union[list, numpy.ndarray]
@@ -62,7 +62,7 @@ partial_index
 **Returns**
 - Type: `Union[list, numpy.ndarray]`
 
-### `features`
+#### `features`
 
 ```python
 features(partial_index: Optional[int] = None) -> list
@@ -83,7 +83,7 @@ partial_index
 **Returns**
 - Type: `list`
 
-### `names`
+#### `names`
 
 ```python
 names(partial_index: Optional[int] = None) -> list
@@ -104,7 +104,7 @@ partial_index
 **Returns**
 - Type: `list`
 
-### `precision`
+#### `precision`
 
 ```python
 precision(partial_index: Optional[int] = None) -> float

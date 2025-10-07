@@ -26,7 +26,7 @@ AE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.modu
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> Union[torch.Tensor, List[torch.Tensor]]
@@ -63,7 +63,7 @@ HeAE(self, encoder: torch.nn.modules.module.Module, decoder: torch.nn.modules.mo
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> List[torch.Tensor]

@@ -62,7 +62,7 @@ ALE(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], feature_names: Op
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Optional[List[int]] = None, min_bin_points: int = 4, grid_points: Optional[Dict[int, numpy.ndarray]] = None) -> alibi.api.interfaces.Explanation
@@ -80,7 +80,7 @@ Calculate the ALE curves for each feature with respect to the dataset `X`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None

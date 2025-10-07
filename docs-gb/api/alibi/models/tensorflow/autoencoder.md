@@ -26,7 +26,7 @@ AE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.model.
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> Union[tensorflow.python.framework.tensor.Tensor, List[tensorflow.python.framework.tensor.Tensor]]
@@ -64,7 +64,7 @@ HeAE(self, encoder: keras.src.models.model.Model, decoder: keras.src.models.mode
 
 ### Methods
 
-### `build`
+#### `build`
 
 ```python
 build(input_shape: Tuple[int, .Ellipsis]) -> None
@@ -79,7 +79,7 @@ Build method.
 **Returns**
 - Type: `None`
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.python.framework.tensor.Tensor]

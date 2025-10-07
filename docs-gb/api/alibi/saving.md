@@ -69,7 +69,7 @@ NumpyEncoder(self, *, skipkeys=False, ensure_ascii=True, check_circular=True, al
 
 ### Methods
 
-### `default`
+#### `default`
 
 ```python
 default(obj)

@@ -25,7 +25,7 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int])
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> List[torch.Tensor]
@@ -63,7 +63,7 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int)
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
@@ -100,7 +100,7 @@ MNISTClassifier(self, output_dim: int) -> None
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
@@ -138,7 +138,7 @@ MNISTDecoder(self, latent_dim: int)
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor
@@ -177,7 +177,7 @@ MNISTEncoder(self, latent_dim: int)
 
 ### Methods
 
-### `forward`
+#### `forward`
 
 ```python
 forward(x: torch.Tensor) -> torch.Tensor

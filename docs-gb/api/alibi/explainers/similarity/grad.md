@@ -50,7 +50,7 @@ GradientSimilarity(self, predictor: 'Union[tensorflow.keras.Model, torch.nn.Modu
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: Union[np.ndarray, tensorflow.Tensor, torch.Tensor, Any, List[Any]], Y: Optional[Union[np.ndarray, tensorflow.Tensor, torch.Tensor]] = None) -> Explanation
@@ -71,7 +71,7 @@ instance or a batch of instances.
 **Returns**
 - Type: `Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X_train: Union[numpy.ndarray, List[typing.Any]], Y_train: numpy.ndarray) -> alibi.api.interfaces.Explainer

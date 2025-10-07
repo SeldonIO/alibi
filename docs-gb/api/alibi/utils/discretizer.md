@@ -16,7 +16,7 @@ Discretizer(self, data: numpy.ndarray, numerical_features: List[int], feature_na
 
 ### Methods
 
-### `bins`
+#### `bins`
 
 ```python
 bins(data: numpy.ndarray) -> List[numpy.ndarray]
@@ -35,7 +35,7 @@ data
 **Returns**
 - Type: `List[numpy.ndarray]`
 
-### `discretize`
+#### `discretize`
 
 ```python
 discretize(data: numpy.ndarray) -> numpy.ndarray
@@ -54,7 +54,7 @@ data
 **Returns**
 - Type: `numpy.ndarray`
 
-### `get_percentiles`
+#### `get_percentiles`
 
 ```python
 get_percentiles(x: numpy.ndarray, qts: numpy.ndarray) -> numpy.ndarray

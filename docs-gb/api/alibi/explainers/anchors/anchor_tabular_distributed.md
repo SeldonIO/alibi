@@ -15,7 +15,7 @@ DistributedAnchorBaseBeam(self, samplers: List[Callable], **kwargs) -> None
 
 ### Methods
 
-### `draw_samples`
+#### `draw_samples`
 
 ```python
 draw_samples(anchors: list, batch_size: int) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -54,7 +54,7 @@ DistributedAnchorTabular(self, predictor: Callable, feature_names: List[str], ca
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False, max_anchor_size: Optional[int] = None, min_samples_start: int = 1, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
@@ -85,7 +85,7 @@ cores specified in `kwargs['ncpu']`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(train_data: numpy.ndarray, disc_perc: tuple = (25, 50, 75), kwargs) -> alibi.explainers.anchors.anchor_tabular.AnchorTabular
@@ -103,7 +103,7 @@ tasks.
 **Returns**
 - Type: `alibi.explainers.anchors.anchor_tabular.AnchorTabular`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
@@ -129,7 +129,7 @@ RemoteSampler(self, *args)
 ```
 ### Methods
 
-### `build_lookups`
+#### `build_lookups`
 
 ```python
 build_lookups(X: numpy.ndarray)
@@ -141,7 +141,7 @@ Wrapper around :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.
 | ---- | ---- | ------- | ----------- |
 | `X` | `numpy.ndarray` |  | See :py:meth:`alibi.explainers.anchors.anchor_tabular.TabularSampler.build_lookups`. |
 
-### `set_instance_label`
+#### `set_instance_label`
 
 ```python
 set_instance_label(X: numpy.ndarray) -> int
@@ -156,7 +156,7 @@ Sets the remote sampler instance label.
 **Returns**
 - Type: `int`
 
-### `set_n_covered`
+#### `set_n_covered`
 
 ```python
 set_n_covered(n_covered: int) -> None

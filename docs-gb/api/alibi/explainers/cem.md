@@ -62,7 +62,7 @@ CEM(self, predict: Union[Callable[[numpy.ndarray], numpy.ndarray], keras.src.mod
 
 ### Methods
 
-### `attack`
+#### `attack`
 
 ```python
 attack(X: numpy.ndarray, Y: numpy.ndarray, verbose: bool = False) -> Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]
@@ -81,7 +81,7 @@ shrinkage-thresholding algorithm (FISTA).
 **Returns**
 - Type: `Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]`
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, verbose: bool = False) -> alibi.api.interfaces.Explanation
@@ -98,7 +98,7 @@ Explain instance and return PP or PN with metadata.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(train_data: numpy.ndarray, no_info_type: str = 'median') -> alibi.explainers.cem.CEM
@@ -114,7 +114,7 @@ Get 'no information' values from the training data.
 **Returns**
 - Type: `alibi.explainers.cem.CEM`
 
-### `get_gradients`
+#### `get_gradients`
 
 ```python
 get_gradients(X: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
@@ -132,7 +132,7 @@ Compute numerical gradients of the attack loss term:
 **Returns**
 - Type: `numpy.ndarray`
 
-### `loss_fn`
+#### `loss_fn`
 
 ```python
 loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
@@ -148,7 +148,7 @@ Compute the attack loss.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `perturb`
+#### `perturb`
 
 ```python
 perturb(X: numpy.ndarray, eps: Union[float, numpy.ndarray], proba: bool = False) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -165,7 +165,7 @@ Apply perturbation to instance or prediction probabilities. Used for numerical c
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None

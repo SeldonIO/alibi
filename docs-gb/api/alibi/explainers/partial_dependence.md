@@ -64,7 +64,7 @@ PartialDependence(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], fea
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, kind: Literal[average, individual, both] = 'average', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
@@ -109,7 +109,7 @@ PartialDependenceBase(self, predictor: Union[sklearn.base.BaseEstimator, Callabl
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, kind: Literal[average, individual, both] = 'average', percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation
@@ -131,7 +131,7 @@ and the reference dataset `X`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Union[Callable[[.[<class 'numpy.ndarray'>]], numpy.ndarray], sklearn.base.BaseEstimator]) -> None
@@ -178,7 +178,7 @@ TreePartialDependence(self, predictor: sklearn.base.BaseEstimator, feature_names
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, int]]]] = None, percentiles: Tuple[float, float] = (0.0, 1.0), grid_resolution: int = 100, grid_points: Optional[Dict[int, Union[List[Any], numpy.ndarray]]] = None) -> alibi.api.interfaces.Explanation

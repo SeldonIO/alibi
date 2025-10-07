@@ -26,7 +26,7 @@ ADULTDecoder(self, hidden_dim: int, output_dims: List[int], **kwargs)
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> List[tensorflow.python.framework.tensor.Tensor]
@@ -65,7 +65,7 @@ ADULTEncoder(self, hidden_dim: int, latent_dim: int, **kwargs)
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
@@ -103,7 +103,7 @@ MNISTClassifier(self, output_dim: int = 10, **kwargs) -> None
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, training: bool = True, kwargs) -> tensorflow.python.framework.tensor.Tensor
@@ -138,7 +138,7 @@ MNISTDecoder(self, **kwargs) -> None
 ```
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
@@ -178,7 +178,7 @@ MNISTEncoder(self, latent_dim: int, **kwargs) -> None
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor

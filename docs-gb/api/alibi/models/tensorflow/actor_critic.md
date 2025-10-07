@@ -26,7 +26,7 @@ Actor(self, hidden_dim: int, output_dim: int, **kwargs)
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
@@ -42,7 +42,7 @@ Forward pass.
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
 
-### `from_config`
+#### `from_config`
 
 ```python
 from_config(config)
@@ -54,7 +54,7 @@ Creates the model from its configuration.
 | ---- | ---- | ------- | ----------- |
 | `config` |  |  |  |
 
-### `get_config`
+#### `get_config`
 
 ```python
 get_config()
@@ -83,7 +83,7 @@ Critic(self, hidden_dim: int, **kwargs)
 
 ### Methods
 
-### `call`
+#### `call`
 
 ```python
 call(x: tensorflow.python.framework.tensor.Tensor, kwargs) -> tensorflow.python.framework.tensor.Tensor
@@ -98,7 +98,7 @@ Forward pass.
 **Returns**
 - Type: `tensorflow.python.framework.tensor.Tensor`
 
-### `from_config`
+#### `from_config`
 
 ```python
 from_config(config)
@@ -110,7 +110,7 @@ Creates the model from its configuration.
 | ---- | ---- | ------- | ----------- |
 | `config` |  |  |  |
 
-### `get_config`
+#### `get_config`
 
 ```python
 get_config()

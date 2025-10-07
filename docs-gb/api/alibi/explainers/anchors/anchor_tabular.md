@@ -39,7 +39,7 @@ AnchorTabular(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], feature
 
 ### Methods
 
-### `add_names_to_exp`
+#### `add_names_to_exp`
 
 ```python
 add_names_to_exp(explanation: dict) -> None
@@ -54,7 +54,7 @@ Add feature names to explanation dictionary.
 **Returns**
 - Type: `None`
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False, max_anchor_size: Optional[int] = None, min_samples_start: int = 100, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
@@ -83,7 +83,7 @@ Explain prediction made by classifier on instance `X`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(train_data: numpy.ndarray, disc_perc: Tuple[Union[int, float], .Ellipsis] = (25, 50, 75), kwargs) -> alibi.explainers.anchors.anchor_tabular.AnchorTabular
@@ -102,7 +102,7 @@ row id in the training set where it occurs.
 **Returns**
 - Type: `alibi.explainers.anchors.anchor_tabular.AnchorTabular`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
@@ -142,7 +142,7 @@ TabularSampler(self, predictor: Callable, disc_perc: Tuple[Union[int, float], ..
 
 ### Methods
 
-### `build_lookups`
+#### `build_lookups`
 
 ```python
 build_lookups(X: numpy.ndarray) -> List[Dict]
@@ -164,7 +164,7 @@ anchor is a collection of encoded indices.
 **Returns**
 - Type: `List[Dict]`
 
-### `compare_labels`
+#### `compare_labels`
 
 ```python
 compare_labels(samples: numpy.ndarray) -> numpy.ndarray
@@ -181,7 +181,7 @@ prediction on a set of samples which have a subset of features fixed to specific
 **Returns**
 - Type: `numpy.ndarray`
 
-### `deferred_init`
+#### `deferred_init`
 
 ```python
 deferred_init(train_data: Union[numpy.ndarray, typing.Any], d_train_data: Union[numpy.ndarray, typing.Any]) -> typing.Any
@@ -199,7 +199,7 @@ build an index from feature values and bins to database rows for each feature.
 **Returns**
 - Type: `typing.Any`
 
-### `get_features_index`
+#### `get_features_index`
 
 ```python
 get_features_index(anchor: tuple) -> Tuple[Dict[int, set[int]], Dict[int, typing.Any], List[Tuple[int, str, Union[typing.Any, int]]]]
@@ -219,7 +219,7 @@ are mapped by `self.enc2feat_idx`.
 **Returns**
 - Type: `Tuple[Dict[int, set[int]], Dict[int, typing.Any], List[Tuple[int, str, Union[typing.Any, int]]]]`
 
-### `handle_unk_features`
+#### `handle_unk_features`
 
 ```python
 handle_unk_features(allowed_bins: Dict[int, set[int]], num_samples: int, samples: numpy.ndarray, unk_feature_values: List[Tuple[int, str, Union[typing.Any, int]]]) -> None
@@ -240,7 +240,7 @@ at random from the feature range.
 **Returns**
 - Type: `None`
 
-### `perturbation`
+#### `perturbation`
 
 ```python
 perturbation(anchor: tuple, num_samples: int) -> Tuple[numpy.ndarray, numpy.ndarray, float]
@@ -258,7 +258,7 @@ Implements functionality described in
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray, float]`
 
-### `replace_features`
+#### `replace_features`
 
 ```python
 replace_features(samples: numpy.ndarray, allowed_rows: Dict[int, typing.Any], uniq_feat_ids: List[int], partial_anchor_rows: List[numpy.ndarray], nb_partial_anchors: numpy.ndarray, num_samples: int) -> None
@@ -281,7 +281,7 @@ the same bin for discretized continuous features and same value for categorical 
 **Returns**
 - Type: `None`
 
-### `set_instance_label`
+#### `set_instance_label`
 
 ```python
 set_instance_label(X: numpy.ndarray) -> None
@@ -296,7 +296,7 @@ Sets the sampler label. Necessary for setting the remote sampling process state 
 **Returns**
 - Type: `None`
 
-### `set_n_covered`
+#### `set_n_covered`
 
 ```python
 set_n_covered(n_covered: int) -> None

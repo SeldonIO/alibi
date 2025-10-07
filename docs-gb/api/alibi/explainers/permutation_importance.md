@@ -29,12 +29,12 @@ There is no arbitrary limit to the depth of nesting.
 
 ### `LOSS_FNS`
 ```python
-LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x146215dc0>, 'mean_...
+LOSS_FNS: dict = {'mean_absolute_error': <function mean_absolute_error at 0x165717dc0>, 'mean_...
 ```
 
 ### `SCORE_FNS`
 ```python
-SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1457ca8b0>, 'precision': <function...
+SCORE_FNS: dict = {'accuracy': <function accuracy_score at 0x1656088b0>, 'precision': <function...
 ```
 
 ## `Kind`
@@ -92,7 +92,7 @@ PermutationImportance(self, predictor: Callable[[numpy.ndarray], numpy.ndarray],
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, y: numpy.ndarray, features: Optional[List[Union[int, Tuple[int, .Ellipsis]]]] = None, method: Literal[estimate, exact] = 'estimate', kind: Literal[ratio, difference] = 'ratio', n_repeats: int = 50, sample_weight: Optional[numpy.ndarray] = None) -> alibi.api.interfaces.Explanation
@@ -115,7 +115,7 @@ functions and the dataset `(X, y)`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None

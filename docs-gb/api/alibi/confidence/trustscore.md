@@ -36,7 +36,7 @@ TrustScore(self, k_filter: int = 10, alpha: float = 0.0, filter_type: Optional[s
 
 ### Methods
 
-### `filter_by_distance_knn`
+#### `filter_by_distance_knn`
 
 ```python
 filter_by_distance_knn(X: numpy.ndarray) -> numpy.ndarray
@@ -53,7 +53,7 @@ instance and remove instances above a cutoff distance.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `filter_by_probability_knn`
+#### `filter_by_probability_knn`
 
 ```python
 filter_by_probability_knn(X: numpy.ndarray, Y: numpy.ndarray) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -69,7 +69,7 @@ Filter out instances with high label disagreement amongst its k nearest neighbor
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X: numpy.ndarray, Y: numpy.ndarray, classes: Optional[int] = None) -> None
@@ -86,7 +86,7 @@ Build KDTrees for each prediction class.
 **Returns**
 - Type: `None`
 
-### `score`
+#### `score`
 
 ```python
 score(X: numpy.ndarray, Y: numpy.ndarray, k: int = 2, dist_type: str = 'point') -> Tuple[numpy.ndarray, numpy.ndarray]

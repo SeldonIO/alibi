@@ -56,7 +56,7 @@ AnchorImage(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], image_sha
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(image: numpy.ndarray, p_sample: float = 0.5, threshold: float = 0.95, delta: float = 0.1, tau: float = 0.15, batch_size: int = 100, coverage_samples: int = 10000, beam_size: int = 1, stop_on_first: bool = False, max_anchor_size: Optional[int] = None, min_samples_start: int = 100, n_covered_ex: int = 10, binary_cache_size: int = 10000, cache_margin: int = 1000, verbose: bool = False, verbose_every: int = 1, kwargs: typing.Any) -> alibi.api.interfaces.Explanation
@@ -86,7 +86,7 @@ Explain instance and return anchor with metadata.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `generate_superpixels`
+#### `generate_superpixels`
 
 ```python
 generate_superpixels(image: numpy.ndarray) -> numpy.ndarray
@@ -101,7 +101,7 @@ Generates superpixels from (i.e., segments) an image.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `overlay_mask`
+#### `overlay_mask`
 
 ```python
 overlay_mask(image: numpy.ndarray, segments: numpy.ndarray, mask_features: list, scale: tuple = (0, 255)) -> numpy.ndarray
@@ -119,7 +119,7 @@ Overlay image with mask described by the mask features.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
@@ -154,7 +154,7 @@ AnchorImageSampler(self, predictor: Callable, segmentation_fn: Callable, custom_
 
 ### Methods
 
-### `compare_labels`
+#### `compare_labels`
 
 ```python
 compare_labels(samples: numpy.ndarray) -> numpy.ndarray
@@ -171,7 +171,7 @@ and the prediction on a set of samples which have a subset of perturbed superpix
 **Returns**
 - Type: `numpy.ndarray`
 
-### `generate_superpixels`
+#### `generate_superpixels`
 
 ```python
 generate_superpixels(image: numpy.ndarray) -> numpy.ndarray
@@ -186,7 +186,7 @@ Generates superpixels from (i.e., segments) an image.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `perturbation`
+#### `perturbation`
 
 ```python
 perturbation(anchor: tuple, num_samples: int) -> Tuple[numpy.ndarray, numpy.ndarray]

@@ -140,7 +140,7 @@ KernelExplainerWrapper(self, *args, **kwargs)
 
 ### Methods
 
-### `get_explanation`
+#### `get_explanation`
 
 ```python
 get_explanation(X: Union[Tuple[int, numpy.ndarray], numpy.ndarray], kwargs) -> Union[Tuple[int, numpy.ndarray], Tuple[int, List[numpy.ndarray]], numpy.ndarray, List[numpy.ndarray]]
@@ -157,7 +157,7 @@ batch index and a batch of instances.
 **Returns**
 - Type: `Union[Tuple[int, numpy.ndarray], Tuple[int, List[numpy.ndarray]], numpy.ndarray, List[numpy.ndarray]]`
 
-### `return_attribute`
+#### `return_attribute`
 
 ```python
 return_attribute(name: str) -> typing.Any
@@ -199,7 +199,7 @@ KernelShap(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], link: str 
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: Union[numpy.ndarray, pandas.core.frame.DataFrame, scipy.sparse._matrix.spmatrix], summarise_result: bool = False, cat_vars_start_idx: Optional[Sequence[int]] = None, cat_vars_enc_dim: Optional[Sequence[int]] = None, kwargs) -> alibi.api.interfaces.Explanation
@@ -220,7 +220,7 @@ Explains the instances in the array `X`.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(background_data: Union[numpy.ndarray, scipy.sparse._matrix.spmatrix, pandas.core.frame.DataFrame, shap.utils._legacy.Data], summarise_background: Union[bool, str] = False, n_background_samples: int = 300, group_names: Union[List[str], Tuple[str], None] = None, groups: Optional[List[Union[Tuple[int], List[int]]]] = None, weights: Union[List[float], Tuple[float], numpy.ndarray, None] = None, kwargs) -> alibi.explainers.shap_wrappers.KernelShap
@@ -250,7 +250,7 @@ to experiment with a runtime reduction method and understand results stability b
 **Returns**
 - Type: `alibi.explainers.shap_wrappers.KernelShap`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Callable) -> None
@@ -288,7 +288,7 @@ TreeShap(self, predictor: Any, model_output: str = 'raw', feature_names: Union[L
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: Union[numpy.ndarray, pandas.core.frame.DataFrame, ForwardRef('catboost.Pool')], y: Optional[numpy.ndarray] = None, interactions: bool = False, approximate: bool = False, check_additivity: bool = True, tree_limit: Optional[int] = None, summarise_result: bool = False, cat_vars_start_idx: Optional[Sequence[int]] = None, cat_vars_enc_dim: Optional[Sequence[int]] = None, kwargs) -> Explanation
@@ -316,7 +316,7 @@ requires setting `model_output='log_loss'`.
 **Returns**
 - Type: `Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(background_data: Union[numpy.ndarray, pandas.core.frame.DataFrame, None] = None, summarise_background: Union[bool, str] = False, n_background_samples: int = 1000, kwargs) -> alibi.explainers.shap_wrappers.TreeShap
@@ -341,7 +341,7 @@ A limited number of loss functions are supported, as detailed in the constructor
 **Returns**
 - Type: `alibi.explainers.shap_wrappers.TreeShap`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: typing.Any) -> None

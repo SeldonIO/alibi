@@ -36,7 +36,7 @@ AnchorTextSampler(self, /, *args, **kwargs)
 ```
 ### Methods
 
-### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None
@@ -65,7 +65,7 @@ Neighbors(self, nlp_obj: 'spacy.language.Language', n_similar: int = 500, w_prob
 
 ### Methods
 
-### `neighbors`
+#### `neighbors`
 
 ```python
 neighbors(word: str, tag: str, top_n: int) -> dict
@@ -99,7 +99,7 @@ SimilaritySampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
 
 ### Methods
 
-### `find_similar_words`
+#### `find_similar_words`
 
 ```python
 find_similar_words() -> None
@@ -114,10 +114,10 @@ and a `numpy` array of word similarities (``'similarities'``).
 **Returns**
 - Type: `None`
 
-### `perturb_sentence_similarity`
+#### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'DET', 'ADP', 'ADV', 'VERB', 'ADJ', 'NOUN'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'NOUN', 'ADJ', 'ADP', 'DET', 'ADV', 'VERB'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
 Perturb the text instance to be explained.
@@ -131,14 +131,14 @@ Perturb the text instance to be explained.
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` | Forbidden POS tags. |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` | Forbidden words. |
 | `temperature` | `float` | `1.0` | Sample weight hyper-parameter if ``use_proba=True``. |
-| `pos` | `frozenset` | `frozenset({'DET', 'ADP', 'ADV', 'VERB', 'ADJ', 'NOUN'})` | POS that can be changed during perturbation. |
+| `pos` | `frozenset` | `frozenset({'NOUN', 'ADJ', 'ADP', 'DET', 'ADV', 'VERB'})` | POS that can be changed during perturbation. |
 | `use_proba` | `bool` | `False` | Bool whether to sample according to a similarity score with the corpus embeddings. |
 | `Other` |  |  |  |
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `set_data_type`
+#### `set_data_type`
 
 ```python
 set_data_type() -> None
@@ -154,7 +154,7 @@ used for sampling.
 **Returns**
 - Type: `None`
 
-### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None
@@ -186,7 +186,7 @@ UnknownSampler(self, nlp: 'spacy.language.Language', perturb_opts: Dict)
 
 ### Methods
 
-### `set_data_type`
+#### `set_data_type`
 
 ```python
 set_data_type() -> None
@@ -202,7 +202,7 @@ used for sampling.
 **Returns**
 - Type: `None`
 
-### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None

@@ -37,7 +37,7 @@ TfCounterfactualRLDataset(self, X: numpy.ndarray, preprocessor: Callable, predic
 
 ### Methods
 
-### `on_epoch_end`
+#### `on_epoch_end`
 
 ```python
 on_epoch_end() -> None

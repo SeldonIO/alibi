@@ -50,7 +50,7 @@ IntegratedGradients(self, model: keras.src.models.model.Model, layer: Union[Call
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: Union[numpy.ndarray, List[numpy.ndarray]], forward_kwargs: Optional[dict] = None, baselines: Union[int, float, numpy.ndarray, List[int], List[float], List[numpy.ndarray], None] = None, target: Union[int, list, numpy.ndarray, None] = None, attribute_to_layer_inputs: bool = False) -> alibi.api.interfaces.Explanation
@@ -71,7 +71,7 @@ returns an Explanation object.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: keras.src.models.model.Model) -> None

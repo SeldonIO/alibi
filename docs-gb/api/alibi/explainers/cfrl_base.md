@@ -100,7 +100,7 @@ CounterfactualRL(self, predictor: Callable[[numpy.ndarray], numpy.ndarray], enco
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[numpy.ndarray] = None, batch_size: int = 100) -> alibi.api.interfaces.Explanation
@@ -118,7 +118,7 @@ Explains an input instance
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer
@@ -133,7 +133,7 @@ Fit the model agnostic counterfactual generator.
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-### `load`
+#### `load`
 
 ```python
 load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfaces.Explainer
@@ -147,7 +147,7 @@ load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfac
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: typing.Any) -> None
@@ -162,7 +162,7 @@ Resets the predictor.
 **Returns**
 - Type: `None`
 
-### `save`
+#### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
@@ -226,7 +226,7 @@ ReplayBuffer(self, size: int = 1000) -> None
 
 ### Methods
 
-### `append`
+#### `append`
 
 ```python
 append(X: numpy.ndarray, Y_m: numpy.ndarray, Y_t: numpy.ndarray, Z: numpy.ndarray, Z_cf_tilde: numpy.ndarray, C: Optional[numpy.ndarray], R_tilde: numpy.ndarray, kwargs) -> None
@@ -250,7 +250,7 @@ by the new one (FIFO).
 **Returns**
 - Type: `None`
 
-### `sample`
+#### `sample`
 
 ```python
 sample() -> Dict[str, Optional[numpy.ndarray]]

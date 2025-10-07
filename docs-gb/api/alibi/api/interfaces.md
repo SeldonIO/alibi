@@ -63,7 +63,7 @@ Explainer(self, meta: dict = NOTHING) -> None
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: typing.Any) -> alibi.api.interfaces.Explanation
@@ -76,7 +76,7 @@ explain(X: typing.Any) -> alibi.api.interfaces.Explanation
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `load`
+#### `load`
 
 ```python
 load(path: Union[str, os.PathLike], predictor: typing.Any) -> alibi.api.interfaces.Explainer
@@ -92,7 +92,7 @@ Load an explainer from disk.
 **Returns**
 - Type: `alibi.api.interfaces.Explainer`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: typing.Any) -> None
@@ -107,7 +107,7 @@ Resets the predictor.
 **Returns**
 - Type: `None`
 
-### `save`
+#### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
@@ -139,7 +139,7 @@ Explanation(self, meta: dict, data: dict) -> None
 
 ### Methods
 
-### `from_json`
+#### `from_json`
 
 ```python
 from_json(jsonrepr) -> alibi.api.interfaces.Explanation
@@ -154,7 +154,7 @@ Create an instance of an `Explanation` class using a `json` representation of th
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `to_json`
+#### `to_json`
 
 ```python
 to_json() -> str
@@ -180,7 +180,7 @@ FitMixin(self, /, *args, **kwargs)
 ```
 ### Methods
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X: typing.Any) -> alibi.api.interfaces.Explainer
@@ -211,7 +211,7 @@ Summariser(self, meta: dict = NOTHING) -> None
 
 ### Methods
 
-### `load`
+#### `load`
 
 ```python
 load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
@@ -224,7 +224,7 @@ load(path: Union[str, os.PathLike]) -> alibi.api.interfaces.Summariser
 **Returns**
 - Type: `alibi.api.interfaces.Summariser`
 
-### `save`
+#### `save`
 
 ```python
 save(path: Union[str, os.PathLike]) -> None
@@ -237,7 +237,7 @@ save(path: Union[str, os.PathLike]) -> None
 **Returns**
 - Type: `None`
 
-### `summarise`
+#### `summarise`
 
 ```python
 summarise(num_prototypes: int) -> alibi.api.interfaces.Explanation

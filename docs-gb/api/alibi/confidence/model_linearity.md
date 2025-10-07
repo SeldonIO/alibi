@@ -38,7 +38,7 @@ LinearityMeasure(self, method: str = 'grid', epsilon: float = 0.04, nb_samples: 
 
 ### Methods
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X_train: numpy.ndarray) -> None
@@ -57,7 +57,7 @@ X_train
 **Returns**
 - Type: `None`
 
-### `score`
+#### `score`
 
 ```python
 score(predict_fn: Callable, x: numpy.ndarray) -> numpy.ndarray

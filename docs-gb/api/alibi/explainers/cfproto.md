@@ -65,7 +65,7 @@ CounterfactualProto(self, predict: Union[Callable[[numpy.ndarray], numpy.ndarray
 
 ### Methods
 
-### `attack`
+#### `attack`
 
 ```python
 attack(X: numpy.ndarray, Y: numpy.ndarray, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]
@@ -88,7 +88,7 @@ Find a counterfactual (CF) for instance `X` using a fast iterative shrinkage-thr
 **Returns**
 - Type: `Tuple[numpy.ndarray, Tuple[numpy.ndarray, numpy.ndarray]]`
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, Y: Optional[numpy.ndarray] = None, target_class: Optional[list] = None, k: Optional[int] = None, k_type: str = 'mean', threshold: float = 0.0, verbose: bool = False, print_every: int = 100, log_every: int = 100) -> alibi.api.interfaces.Explanation
@@ -111,7 +111,7 @@ Explain instance and return counterfactual with metadata.
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(train_data: numpy.ndarray, trustscore_kwargs: Optional[dict] = None, d_type: str = 'abdm', w: Optional[float] = None, disc_perc: Sequence[Union[int, float]] = (25, 50, 75), standardize_cat_vars: bool = False, smooth: float = 1.0, center: bool = True, update_feature_range: bool = True) -> alibi.explainers.cfproto.CounterfactualProto
@@ -136,7 +136,7 @@ The prototypes are used for the encoder loss term or to calculate the optional t
 **Returns**
 - Type: `alibi.explainers.cfproto.CounterfactualProto`
 
-### `get_gradients`
+#### `get_gradients`
 
 ```python
 get_gradients(X: numpy.ndarray, Y: numpy.ndarray, grads_shape: tuple, cat_vars_ord: dict) -> numpy.ndarray
@@ -156,7 +156,7 @@ Compute numerical gradients of the attack loss term:
 **Returns**
 - Type: `numpy.ndarray`
 
-### `loss_fn`
+#### `loss_fn`
 
 ```python
 loss_fn(pred_proba: numpy.ndarray, Y: numpy.ndarray) -> numpy.ndarray
@@ -172,7 +172,7 @@ Compute the attack loss.
 **Returns**
 - Type: `numpy.ndarray`
 
-### `reset_predictor`
+#### `reset_predictor`
 
 ```python
 reset_predictor(predictor: Union[Callable, keras.src.models.model.Model]) -> None
@@ -187,7 +187,7 @@ Resets the predictor function/model.
 **Returns**
 - Type: `None`
 
-### `score`
+#### `score`
 
 ```python
 score(X: numpy.ndarray, adv_class: int, orig_class: int, eps: float = 1e-10) -> float

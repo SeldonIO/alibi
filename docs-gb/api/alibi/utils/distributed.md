@@ -31,7 +31,7 @@ ActorPool(self, actors)
 
 ### Methods
 
-### `get_next`
+#### `get_next`
 
 ```python
 get_next(timeout = None)
@@ -46,7 +46,7 @@ for up to the specified timeout until it is available.
 | ---- | ---- | ------- | ----------- |
 | `timeout` |  | `None` |  |
 
-### `get_next_unordered`
+#### `get_next_unordered`
 
 ```python
 get_next_unordered(timeout = None)
@@ -62,7 +62,7 @@ the results are not always returned in same order as submitted, which can improv
 | ---- | ---- | ------- | ----------- |
 | `timeout` |  | `None` |  |
 
-### `has_next`
+#### `has_next`
 
 ```python
 has_next()
@@ -70,7 +70,7 @@ has_next()
 
 Returns whether there are any pending results to return.
 
-### `map`
+#### `map`
 
 ```python
 map(fn, values, chunksize = 1)
@@ -87,7 +87,7 @@ the computation to finish.
 | `values` | `list` |  | List of values that `fn(actor, value)` should be applied to. |
 | `chunksize` | `int` | `1` | Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less. |
 
-### `map_unordered`
+#### `map_unordered`
 
 ```python
 map_unordered(fn, values, chunksize = 1)
@@ -105,7 +105,7 @@ than others.
 | `values` | `list` |  | List of values that `fn(actor, value)` should be applied to. |
 | `chunksize` | `int` | `1` | Splits the list of values to be submitted to the parallel process into sublists of size chunksize or less. |
 
-### `submit`
+#### `submit`
 
 ```python
 submit(fn: Callable, value: object)
@@ -150,7 +150,7 @@ DistributedExplainer(self, distributed_opts: Dict[str, Any], explainer_type: Any
 
 ### Methods
 
-### `create_parallel_pool`
+#### `create_parallel_pool`
 
 ```python
 create_parallel_pool(explainer_type: typing.Any, explainer_init_args: Tuple, explainer_init_kwargs: dict)
@@ -165,7 +165,7 @@ Creates a pool of actors that can explain the rows of a dataset in parallel.
 | `explainer_init_kwargs` | `dict` |  |  |
 | `See` |  |  |  |
 
-### `get_explanation`
+#### `get_explanation`
 
 ```python
 get_explanation(X: numpy.ndarray, kwargs) -> Union[Generator[Tuple[int, typing.Any], None, None], List[typing.Any], typing.Any]
@@ -181,7 +181,7 @@ Performs distributed explanations of instances in `X`.
 **Returns**
 - Type: `Union[Generator[Tuple[int, typing.Any], None, None], List[typing.Any], typing.Any]`
 
-### `return_attribute`
+#### `return_attribute`
 
 ```python
 return_attribute(name: str) -> typing.Any
@@ -198,7 +198,7 @@ accessed using the dot syntax.
 **Returns**
 - Type: `typing.Any`
 
-### `set_actor_index`
+#### `set_actor_index`
 
 ```python
 set_actor_index(value: int)
@@ -240,7 +240,7 @@ PoolCollection(self, distributed_opts: Dict[str, Any], explainer_type: Any, expl
 
 ### Methods
 
-### `create_explainer_handles`
+#### `create_explainer_handles`
 
 ```python
 create_explainer_handles(distributed_opts: Dict[str, typing.Any], explainer_type: typing.Any, explainer_init_args: List[Tuple], explainer_init_kwargs: List[Dict], kwargs)
@@ -257,7 +257,7 @@ initialised with different arguments, so they represent different explainers.
 | `explainer_init_args` | `List[Tuple]` |  |  |
 | `explainer_init_kwargs` | `List[Dict]` |  |  |
 
-### `get_explanation`
+#### `get_explanation`
 
 ```python
 get_explanation(X, kwargs) -> List[Any]

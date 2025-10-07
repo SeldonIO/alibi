@@ -31,7 +31,7 @@ AnchorBaseBeam(self, samplers: List[Callable], **kwargs) -> None
 
 ### Methods
 
-### `anchor_beam`
+#### `anchor_beam`
 
 ```python
 anchor_beam(delta: float = 0.05, epsilon: float = 0.1, desired_confidence: float = 1.0, beam_size: int = 1, epsilon_stop: float = 0.05, min_samples_start: int = 100, max_anchor_size: Optional[int] = None, stop_on_first: bool = False, batch_size: int = 100, coverage_samples: int = 10000, verbose: bool = False, verbose_every: int = 1, kwargs) -> dict
@@ -64,7 +64,7 @@ of records containing the feature subset in set of samples.
 **Returns**
 - Type: `dict`
 
-### `compute_beta`
+#### `compute_beta`
 
 ```python
 compute_beta(n_features: int, t: int, delta: float) -> float
@@ -89,7 +89,7 @@ delta
 **Returns**
 - Type: `float`
 
-### `dlow_bernoulli`
+#### `dlow_bernoulli`
 
 ```python
 dlow_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> numpy.ndarray
@@ -106,7 +106,7 @@ Update lower precision bound for a candidate anchors dependent on the KL-diverge
 **Returns**
 - Type: `numpy.ndarray`
 
-### `draw_samples`
+#### `draw_samples`
 
 ```python
 draw_samples(anchors: list, batch_size: int) -> Tuple[tuple, tuple]
@@ -128,7 +128,7 @@ batch_size
 **Returns**
 - Type: `Tuple[tuple, tuple]`
 
-### `dup_bernoulli`
+#### `dup_bernoulli`
 
 ```python
 dup_bernoulli(p: numpy.ndarray, level: numpy.ndarray, n_iter: int = 17) -> numpy.ndarray
@@ -145,7 +145,7 @@ Update upper precision bound for a candidate anchors dependent on the KL-diverge
 **Returns**
 - Type: `numpy.ndarray`
 
-### `get_anchor_metadata`
+#### `get_anchor_metadata`
 
 ```python
 get_anchor_metadata(features: tuple, success, batch_size: int = 100) -> dict
@@ -166,7 +166,7 @@ or a different prediction (`covered_false`).
 **Returns**
 - Type: `dict`
 
-### `get_init_stats`
+#### `get_init_stats`
 
 ```python
 get_init_stats(anchors: list, coverages = False) -> dict
@@ -184,7 +184,7 @@ comparisons with the instance to be explained and, optionally, coverage.
 **Returns**
 - Type: `dict`
 
-### `kllucb`
+#### `kllucb`
 
 ```python
 kllucb(anchors: list, init_stats: dict, epsilon: float, delta: float, batch_size: int, top_n: int, verbose: bool = False, verbose_every: int = 1) -> numpy.ndarray
@@ -206,7 +206,7 @@ Implements the KL-LUCB algorithm (Kaufmann and Kalyanakrishnan, 2013).
 **Returns**
 - Type: `numpy.ndarray`
 
-### `propose_anchors`
+#### `propose_anchors`
 
 ```python
 propose_anchors(previous_best: list) -> list
@@ -225,7 +225,7 @@ previous_best
 **Returns**
 - Type: `list`
 
-### `select_critical_arms`
+#### `select_critical_arms`
 
 ```python
 select_critical_arms(means: numpy.ndarray, ub: numpy.ndarray, lb: numpy.ndarray, n_samples: numpy.ndarray, delta: float, top_n: int, t: int)
@@ -245,7 +245,7 @@ the lower bound for anchors with high empirical precision.
 | `top_n` | `int` |  | Number of arms to be selected. |
 | `t` | `int` |  | Iteration number. |
 
-### `to_sample`
+#### `to_sample`
 
 ```python
 to_sample(means: numpy.ndarray, ubs: numpy.ndarray, lbs: numpy.ndarray, desired_confidence: float, epsilon_stop: float)
@@ -264,7 +264,7 @@ tolerance.
 | `desired_confidence` | `float` |  | Desired level of confidence for precision estimation. |
 | `epsilon_stop` | `float` |  | Tolerance around desired precision. |
 
-### `update_state`
+#### `update_state`
 
 ```python
 update_state(covered_true: numpy.ndarray, covered_false: numpy.ndarray, labels: numpy.ndarray, samples: Tuple[numpy.ndarray, float], anchor: tuple) -> Tuple[int, int]

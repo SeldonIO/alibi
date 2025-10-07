@@ -16,7 +16,7 @@ LanguageModelSampler(self, model: alibi.utils.lang_model.LanguageModel, perturb_
 
 ### Methods
 
-### `create_mask`
+#### `create_mask`
 
 ```python
 create_mask(anchor: tuple, num_samples: int, sample_proba: float = 1.0, filling: str = 'parallel', frac_mask_templates: float = 0.1, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -36,7 +36,7 @@ Create mask for words to be perturbed.
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `fill_mask`
+#### `fill_mask`
 
 ```python
 fill_mask(raw: numpy.ndarray, data: numpy.ndarray, num_samples: int, top_n: int = 100, batch_size_lm: int = 32, filling: str = 'parallel', kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -57,7 +57,7 @@ Fill in the masked tokens with language model.
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `get_sample_ids`
+#### `get_sample_ids`
 
 ```python
 get_sample_ids(punctuation: str = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~', stopwords: Optional[List[str]] = None, kwargs) -> None
@@ -74,7 +74,7 @@ Find indices in words which can be perturbed.
 **Returns**
 - Type: `None`
 
-### `perturb_sentence`
+#### `perturb_sentence`
 
 ```python
 perturb_sentence(anchor: tuple, num_samples: int, sample_proba: float = 0.5, top_n: int = 100, batch_size_lm: int = 32, filling: str = 'parallel', kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
@@ -98,7 +98,7 @@ model's predictions.
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
 
-### `seed`
+#### `seed`
 
 ```python
 seed(seed: int) -> None
@@ -111,7 +111,7 @@ seed(seed: int) -> None
 **Returns**
 - Type: `None`
 
-### `set_data_type`
+#### `set_data_type`
 
 ```python
 set_data_type() -> None
@@ -127,7 +127,7 @@ used for sampling.
 **Returns**
 - Type: `None`
 
-### `set_text`
+#### `set_text`
 
 ```python
 set_text(text: str) -> None

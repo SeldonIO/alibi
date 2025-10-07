@@ -76,7 +76,7 @@ CounterfactualRLTabular(self, predictor: Callable[[numpy.ndarray], numpy.ndarray
 
 ### Methods
 
-### `explain`
+#### `explain`
 
 ```python
 explain(X: numpy.ndarray, Y_t: numpy.ndarray, C: Optional[List[Dict[str, List[Union[float, str]]]]] = None, batch_size: int = 100, diversity: bool = False, num_samples: int = 1, patience: int = 1000, tolerance: float = 0.001) -> alibi.api.interfaces.Explanation
@@ -98,7 +98,7 @@ Computes counterfactuals for the given instances conditioned on the target and t
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X: numpy.ndarray) -> alibi.api.interfaces.Explainer

@@ -48,7 +48,7 @@ Model(self, **kwargs)
 ```
 ### Methods
 
-### `compile`
+#### `compile`
 
 ```python
 compile(optimizer: torch.optim.optimizer.Optimizer, loss: Union[Callable, List[Callable]], loss_weights: Optional[List[float]] = None, metrics: Optional[List[alibi.models.pytorch.metrics.Metric]] = None)
@@ -65,7 +65,7 @@ the training of the model.
 | `loss_weights` | `Optional[List[float]]` | `None` | Weights corresponding to each loss function. Only used if the `loss` argument is a  list. |
 | `metrics` | `Optional[List[alibi.models.pytorch.metrics.Metric]]` | `None` | Metrics used to monitor the training process. |
 
-### `compute_loss`
+#### `compute_loss`
 
 ```python
 compute_loss(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Tuple[torch.Tensor, Dict[str, float]]
@@ -81,7 +81,7 @@ Computes the loss given the prediction labels and the true labels.
 **Returns**
 - Type: `Tuple[torch.Tensor, Dict[str, float]]`
 
-### `compute_metrics`
+#### `compute_metrics`
 
 ```python
 compute_metrics(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[str, float]
@@ -97,7 +97,7 @@ Computes the metrics given the prediction labels and the true labels.
 **Returns**
 - Type: `Dict[str, float]`
 
-### `evaluate`
+#### `evaluate`
 
 ```python
 evaluate(testloader: torch.utils.data.dataloader.DataLoader) -> Dict[str, float]
@@ -112,7 +112,7 @@ Evaluation function. The function reports the evaluation metrics used for monito
 **Returns**
 - Type: `Dict[str, float]`
 
-### `fit`
+#### `fit`
 
 ```python
 fit(trainloader: torch.utils.data.dataloader.DataLoader, epochs: int) -> Dict[str, float]
@@ -128,7 +128,7 @@ Fit method. Equivalent of a training loop.
 **Returns**
 - Type: `Dict[str, float]`
 
-### `load_weights`
+#### `load_weights`
 
 ```python
 load_weights(path: str) -> None
@@ -143,7 +143,7 @@ Loads the weight of the current model.
 **Returns**
 - Type: `None`
 
-### `save_weights`
+#### `save_weights`
 
 ```python
 save_weights(path: str) -> None
@@ -158,7 +158,7 @@ Save the weight of the current model.
 **Returns**
 - Type: `None`
 
-### `test_step`
+#### `test_step`
 
 ```python
 test_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]])
@@ -171,7 +171,7 @@ Performs a test step.
 | `x` | `torch.Tensor` |  | Input tensor. |
 | `y` | `Union[torch.Tensor, List[torch.Tensor]]` |  | Label tensor. |
 
-### `train_step`
+#### `train_step`
 
 ```python
 train_step(x: torch.Tensor, y: Union[torch.Tensor, List[torch.Tensor]]) -> Dict[str, float]
@@ -187,7 +187,7 @@ Performs a train step.
 **Returns**
 - Type: `Dict[str, float]`
 
-### `validate_prediction_labels`
+#### `validate_prediction_labels`
 
 ```python
 validate_prediction_labels(y_pred: Union[torch.Tensor, List[torch.Tensor]], y_true: Union[torch.Tensor, List[torch.Tensor]])

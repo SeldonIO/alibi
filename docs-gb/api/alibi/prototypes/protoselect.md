@@ -50,7 +50,7 @@ ProtoSelect(self, kernel_distance: Callable[[numpy.ndarray, numpy.ndarray], nump
 
 ### Methods
 
-### `fit`
+#### `fit`
 
 ```python
 fit(X: Union[list, numpy.ndarray], y: Optional[numpy.ndarray] = None, Z: Union[list, numpy.ndarray, None] = None) -> alibi.prototypes.protoselect.ProtoSelect
@@ -71,7 +71,7 @@ number of instances in `Z`.
 **Returns**
 - Type: `alibi.prototypes.protoselect.ProtoSelect`
 
-### `summarise`
+#### `summarise`
 
 ```python
 summarise(num_prototypes: int = 1) -> alibi.api.interfaces.Explanation

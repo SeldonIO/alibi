@@ -3,6 +3,11 @@
 This module contains utility functions for the Counterfactual with Reinforcement Learning base class,
 :py:class:`alibi.explainers.cfrl_base` for the Pytorch backend.
 
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
 ## `PtCounterfactualRLDataset`
 
 _Inherits from:_ `CounterfactualRLDataset`, `ABC`, `Dataset`, `Generic`

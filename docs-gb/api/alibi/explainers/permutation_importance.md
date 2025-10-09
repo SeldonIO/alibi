@@ -1,4 +1,34 @@
 # `alibi.explainers.permutation_importance`
+## Constants
+### `DEFAULT_DATA_PERMUTATION_IMPORTANCE`
+```python
+DEFAULT_DATA_PERMUTATION_IMPORTANCE: dict = {'feature_importance': None, 'feature_names': None, 'metric_names': None}
+```
+### `DEFAULT_META_PERMUTATION_IMPORTANCE`
+```python
+DEFAULT_META_PERMUTATION_IMPORTANCE: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.permutation_importance (WARNING)>
+```
+### `LOSS_FNS`
+```python
+LOSS_FNS: dict = { 'log_loss': <function log_loss at 0x16dec7b80>,
+  'mean_absolute_error': <function mean_absolute_error at 0x16dfcfca0>,
+  'mean_absolute_percentage_error': <function mean_absolute_percentage_error at 0x16dfcfee0>,
+  'mean_squared_error': <function mean_squared_error at 0x16dfda040>,
+  'mean_squared_log_error': <function mean_squared_log_error at 0x16dfda280>}
+```
+### `SCORE_FNS`
+```python
+SCORE_FNS: dict = { 'accuracy': <function accuracy_score at 0x16debc790>,
+  'f1': <function f1_score at 0x16debcf70>,
+  'precision': <function precision_score at 0x16dec75e0>,
+  'r2': <function r2_score at 0x16dfda790>,
+  'recall': <function recall_score at 0x16dec7700>,
+  'roc_auc': <function roc_auc_score at 0x16dfb9ee0>}
+```
 ## `Kind`
 
 _Inherits from:_ `str`, `Enum`

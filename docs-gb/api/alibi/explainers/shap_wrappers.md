@@ -1,4 +1,88 @@
 # `alibi.explainers.shap_wrappers`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `DEFAULT_DATA_KERNEL_SHAP`
+```python
+DEFAULT_DATA_KERNEL_SHAP: dict = { 'categorical_names': {},
+  'expected_value': [],
+  'feature_names': [],
+  'raw': {'importances': {}, 'instances': None, 'prediction': None, 'raw_prediction': None},
+  'shap_values': []}
+```
+### `DEFAULT_DATA_TREE_SHAP`
+```python
+DEFAULT_DATA_TREE_SHAP: dict = { 'categorical_names': {},
+  'expected_value': [],
+  'feature_names': [],
+  'raw': { 'importances': {},
+           'instances': None,
+           'labels': None,
+           'loss': None,
+           'prediction': None,
+           'raw_prediction': None},
+  'shap_interaction_values': [],
+  'shap_values': []}
+```
+### `DEFAULT_META_KERNEL_SHAP`
+```python
+DEFAULT_META_KERNEL_SHAP: dict = { 'explanations': ['local', 'global'],
+  'name': None,
+  'params': { 'group_names': None,
+              'grouped': None,
+              'groups': None,
+              'kwargs': None,
+              'link': None,
+              'summarise_background': None,
+              'summarise_result': None,
+              'transpose': None,
+              'weights': None},
+  'task': None,
+  'type': ['blackbox'],
+  'version': None}
+```
+### `DEFAULT_META_TREE_SHAP`
+```python
+DEFAULT_META_TREE_SHAP: dict = { 'explanations': ['local', 'global'],
+  'name': None,
+  'params': { 'algorithm': None,
+              'approximate': None,
+              'explain_loss': None,
+              'interactions': None,
+              'kwargs': None,
+              'model_output': None,
+              'summarise_background': None,
+              'summarise_result': None},
+  'task': None,
+  'type': ['whitebox'],
+  'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.shap_wrappers (WARNING)>
+```
+### `KERNEL_SHAP_BACKGROUND_THRESHOLD`
+```python
+KERNEL_SHAP_BACKGROUND_THRESHOLD: int = 300
+```
+### `DISTRIBUTED_OPTS`
+```python
+DISTRIBUTED_OPTS: dict = {'batch_size': 1, 'n_cpus': None}
+```
+### `TREE_SHAP_BACKGROUND_SUPPORTED_SIZE`
+```python
+TREE_SHAP_BACKGROUND_SUPPORTED_SIZE: int = 100
+```
+### `TREE_SHAP_BACKGROUND_WARNING_THRESHOLD`
+```python
+TREE_SHAP_BACKGROUND_WARNING_THRESHOLD: int = 1000
+```
+### `TREE_SHAP_MODEL_OUTPUT`
+```python
+TREE_SHAP_MODEL_OUTPUT: list = ['raw', 'probability', 'probability_doubled', 'log_loss']
+```
 ## `KernelExplainerWrapper`
 
 _Inherits from:_ `KernelExplainer`, `Explainer`, `Serializable`

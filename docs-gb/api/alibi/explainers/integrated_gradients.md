@@ -1,4 +1,22 @@
 # `alibi.explainers.integrated_gradients`
+## Constants
+### `DEFAULT_DATA_INTGRAD`
+```python
+DEFAULT_DATA_INTGRAD: dict = { 'X': None,
+  'attributions': None,
+  'baselines': None,
+  'deltas': None,
+  'forward_kwargs': None,
+  'predictions': None}
+```
+### `DEFAULT_META_INTGRAD`
+```python
+DEFAULT_META_INTGRAD: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['whitebox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.integrated_gradients (WARNING)>
+```
 ## `IntegratedGradients`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

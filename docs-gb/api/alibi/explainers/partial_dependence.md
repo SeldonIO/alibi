@@ -1,4 +1,21 @@
 # `alibi.explainers.partial_dependence`
+## Constants
+### `DEFAULT_DATA_PD`
+```python
+DEFAULT_DATA_PD: dict = { 'feature_deciles': None,
+  'feature_names': None,
+  'feature_values': None,
+  'ice_values': None,
+  'pd_values': None}
+```
+### `DEFAULT_META_PD`
+```python
+DEFAULT_META_PD: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.partial_dependence (WARNING)>
+```
 ## `Kind`
 
 _Inherits from:_ `str`, `Enum`

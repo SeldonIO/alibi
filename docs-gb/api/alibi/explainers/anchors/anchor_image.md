@@ -1,4 +1,23 @@
 # `alibi.explainers.anchors.anchor_image`
+## Constants
+### `DEFAULT_DATA_ANCHOR_IMG`
+```python
+DEFAULT_DATA_ANCHOR_IMG: dict = {'anchor': [], 'coverage': None, 'precision': None, 'raw': None, 'segments': None}
+```
+### `DEFAULT_META_ANCHOR`
+```python
+DEFAULT_META_ANCHOR: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.anchors.anchor_image (WARNING)>
+```
+### `DEFAULT_SEGMENTATION_KWARGS`
+```python
+DEFAULT_SEGMENTATION_KWARGS: dict = { 'felzenszwalb': {},
+  'quickshift': {},
+  'slic': {'compactness': 10, 'n_segments': 10, 'sigma': 0.5, 'start_label': 0}}
+```
 ## `AnchorImage`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

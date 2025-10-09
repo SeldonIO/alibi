@@ -1,4 +1,9 @@
 # `alibi.utils.distributed`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.utils.distributed (WARNING)>
+```
 ## `ActorPool`
 
 ### Constructor

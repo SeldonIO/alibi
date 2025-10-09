@@ -1,4 +1,9 @@
 # `alibi.explainers.anchors.anchor_base`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.anchors.anchor_base (WARNING)>
+```
 ## `AnchorBaseBeam`
 
 ### Constructor

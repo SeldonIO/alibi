@@ -1,4 +1,17 @@
 # `alibi.prototypes.protoselect`
+## Constants
+### `DEFAULT_DATA_PROTOSELECT`
+```python
+DEFAULT_DATA_PROTOSELECT: dict = {'prototype_indices': None, 'prototype_labels': None, 'prototypes': None}
+```
+### `DEFAULT_META_PROTOSELECT`
+```python
+DEFAULT_META_PROTOSELECT: dict = {'explanation': ['global'], 'name': None, 'params': {}, 'type': ['data'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.prototypes.protoselect (WARNING)>
+```
 ## `ProtoSelect`
 
 _Inherits from:_ `Summariser`, `FitMixin`, `ABC`, `Base`

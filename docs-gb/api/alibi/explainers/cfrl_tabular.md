@@ -1,4 +1,17 @@
 # `alibi.explainers.cfrl_tabular`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `has_pytorch`
+```python
+has_pytorch: bool = True
+```
+### `has_tensorflow`
+```python
+has_tensorflow: bool = True
+```
 ## `ConcatTabularPostprocessing`
 
 _Inherits from:_ `Postprocessing`, `ABC`

@@ -1,4 +1,28 @@
 # `alibi.explainers.cem`
+## Constants
+### `DEFAULT_DATA_CEM`
+```python
+DEFAULT_DATA_CEM: dict = { 'PN': None,
+  'PN_pred': None,
+  'PP': None,
+  'PP_pred': None,
+  'X': None,
+  'X_pred': None,
+  'grads_graph': None,
+  'grads_num': None}
+```
+### `DEFAULT_META_CEM`
+```python
+DEFAULT_META_CEM: dict = { 'explanations': ['local'],
+  'name': None,
+  'params': {},
+  'type': ['blackbox', 'tensorflow', 'keras'],
+  'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.cem (WARNING)>
+```
 ## `CEM`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`

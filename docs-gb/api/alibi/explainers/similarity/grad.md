@@ -3,6 +3,19 @@
 Gradient-based explainer.
 This module implements the gradient-based explainers grad-dot and grad-cos.
 
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `DEFAULT_DATA_SIM`
+```python
+DEFAULT_DATA_SIM: dict = {'least_similar': None, 'most_similar': None, 'ordered_indices': None, 'scores': None}
+```
+### `DEFAULT_META_SIM`
+```python
+DEFAULT_META_SIM: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['whitebox'], 'version': None}
+```
 ## `GradientSimilarity`
 
 _Inherits from:_ `BaseSimilarityExplainer`, `Explainer`, `ABC`, `Base`

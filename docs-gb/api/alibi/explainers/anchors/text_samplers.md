@@ -1,4 +1,13 @@
 # `alibi.explainers.anchors.text_samplers`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.anchors.text_samplers (WARNING)>
+```
 ## `AnchorTextSampler`
 
 ### Constructor
@@ -91,7 +100,7 @@ and a `numpy` array of word similarities (``'similarities'``).
 #### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'NOUN', 'DET', 'ADJ', 'ADV', 'ADP', 'VERB'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'DET', 'ADP', 'VERB', 'NOUN', 'ADV', 'ADJ'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
 Perturb the text instance to be explained.
@@ -107,7 +116,7 @@ Parameters
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` |  |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` |  |
 | `temperature` | `float` | `1.0` |  |
-| `pos` | `frozenset` | `frozenset({'NOUN', 'DET', 'ADJ', 'ADV', 'ADP', 'VERB'})` |  |
+| `pos` | `frozenset` | `frozenset({'DET', 'ADP', 'VERB', 'NOUN', 'ADV', 'ADJ'})` |  |
 | `use_proba` | `bool` | `False` |  |
 
 **Returns**

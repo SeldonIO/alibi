@@ -1,4 +1,21 @@
 # `alibi.explainers.cfproto`
+## Constants
+### `DEFAULT_DATA_CFP`
+```python
+DEFAULT_DATA_CFP: dict = {'all': [], 'cf': None, 'id_proto': None, 'orig_class': None, 'orig_proba': None}
+```
+### `DEFAULT_META_CFP`
+```python
+DEFAULT_META_CFP: dict = { 'explanations': ['local'],
+  'name': None,
+  'params': {},
+  'type': ['blackbox', 'tensorflow', 'keras'],
+  'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.cfproto (WARNING)>
+```
 ## `CounterfactualProto`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`

@@ -1,4 +1,60 @@
 # `alibi.explainers.cfrl_base`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `DEFAULT_DATA_CFRL`
+```python
+DEFAULT_DATA_CFRL: dict = {'cf': None, 'condition': None, 'orig': None, 'target': None}
+```
+### `DEFAULT_META_CFRL`
+```python
+DEFAULT_META_CFRL: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `has_pytorch`
+```python
+has_pytorch: bool = True
+```
+### `has_tensorflow`
+```python
+has_tensorflow: bool = True
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.cfrl_base (WARNING)>
+```
+define logger
+
+### `DEFAULT_BASE_PARAMS`
+```python
+DEFAULT_BASE_PARAMS: dict = { 'act_high': 1.0,
+  'act_low': -1.0,
+  'act_noise': 0.1,
+  'actor': None,
+  'actor_hidden_dim': 256,
+  'backend': 'tensorflow',
+  'batch_size': 100,
+  'callbacks': [],
+  'conditional_func': <function generate_empty_condition at 0x2a93aa8b0>,
+  'critic': None,
+  'critic_hidden_dim': 256,
+  'decoder_inv_preprocessor': <function identity_function at 0x2a93aa820>,
+  'encoder_preprocessor': <function identity_function at 0x2a93aa820>,
+  'exploration_steps': 100,
+  'lr_actor': 0.001,
+  'lr_critic': 0.001,
+  'num_workers': 4,
+  'optimizer_actor': None,
+  'optimizer_critic': None,
+  'postprocessing_funcs': [],
+  'replay_buffer_size': 1000,
+  'reward_func': <function get_classification_reward at 0x2a93aa940>,
+  'shuffle': True,
+  'train_steps': 100000,
+  'update_after': 10,
+  'update_every': 1}
+```
 ## `Callback`
 
 _Inherits from:_ `ABC`

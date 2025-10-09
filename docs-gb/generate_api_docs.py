@@ -635,14 +635,44 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
         if mod_ds["long"]:
             parts.append(mod_ds["long"])
         parts.append("")
-    # Skip rendering constants - commented out the entire constants section
-    # constants = get_constants(mod)
-    # if constants:
-    #     parts.append("## Constants")
-    #     for name, value in constants:
-    #         ...
+
+    # Render constants
+    constants = get_constants(mod)
+    if constants:
+        parts.append("## Constants")
+        # Get comments to use as docstrings for constants
+        try:
+            source_lines = inspect.getsourcelines(mod)[0]
+        except Exception:
+            source_lines = []
+        
+        for i, (name, value) in enumerate(constants):
+            # Try to find a comment docstring for the constant
+            doc = ""
+            try:
+                # Look for the variable assignment in the source
+                for line_idx, line in enumerate(source_lines):
+                    if line.strip().startswith(f"{name} =") or line.strip().startswith(f"{name}:"):
+                        # Check if the line above is a comment
+                        if line_idx > 0 and source_lines[line_idx - 1].strip().startswith('#'):
+                            doc = source_lines[line_idx - 1].strip().lstrip('# ').strip()
+                        break
+            except Exception:
+                pass
+
+            parts.append(f"### `{name}`")
+            # Pretty print dicts and other structures
+            import pprint
+            value_str = pprint.pformat(value, indent=2, width=100)
+            # Add type annotation if possible
+            type_str = type(value).__name__
+            
+            parts.append(f"```python\n{name}: {type_str} = {value_str}\n```")
+            if doc:
+                parts.append(f"{doc}\n")
+
     # Render classes and their subsections
-    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)  # Changed want_funcs back to True
+    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)
     if classes:
         for name, cls in classes:
             parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))

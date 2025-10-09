@@ -1,4 +1,13 @@
 # `alibi.explainers.anchors.anchor_tabular`
+## Constants
+### `DEFAULT_DATA_ANCHOR`
+```python
+DEFAULT_DATA_ANCHOR: dict = {'anchor': [], 'coverage': None, 'precision': None, 'raw': None}
+```
+### `DEFAULT_META_ANCHOR`
+```python
+DEFAULT_META_ANCHOR: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
 ## `AnchorTabular`
 
 _Inherits from:_ `Explainer`, `FitMixin`, `ABC`, `Base`

@@ -1,4 +1,13 @@
 # `alibi.saving`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `NOT_SUPPORTED`
+```python
+NOT_SUPPORTED: list = ['DistributedAnchorTabular', 'CEM', 'Counterfactual', 'CounterfactualProto']
+```
 ## `NumpyEncoder`
 
 _Inherits from:_ `JSONEncoder`

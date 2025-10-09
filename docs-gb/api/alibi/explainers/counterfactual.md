@@ -1,4 +1,21 @@
 # `alibi.explainers.counterfactual`
+## Constants
+### `DEFAULT_DATA_CF`
+```python
+DEFAULT_DATA_CF: dict = {'all': [], 'cf': None, 'orig_class': None, 'orig_proba': None, 'success': None}
+```
+### `DEFAULT_META_CF`
+```python
+DEFAULT_META_CF: dict = { 'explanations': ['local'],
+  'name': None,
+  'params': {},
+  'type': ['blackbox', 'tensorflow', 'keras'],
+  'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.counterfactual (WARNING)>
+```
 ## `Counterfactual`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

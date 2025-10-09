@@ -1,4 +1,27 @@
 # `alibi.explainers.ale`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `DEFAULT_META_ALE`
+```python
+DEFAULT_META_ALE: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `DEFAULT_DATA_ALE`
+```python
+DEFAULT_DATA_ALE: dict = { 'ale0': [],
+  'ale_values': [],
+  'constant_value': None,
+  'feature_deciles': None,
+  'feature_names': None,
+  'feature_values': [],
+  'target_names': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.ale (WARNING)>
+```
 ## `ALE`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

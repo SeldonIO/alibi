@@ -6,6 +6,20 @@ alibi that is not usable due to missing optional dependencies this code is used 
 with an object that throws an error on use. This way we avoid errors at import time that prevent the user using
 functionality independent of the missing dependency.
 
+## Constants
+### `err_msg_template`
+```python
+err_msg_template: Template = <string.Template object at 0x17bf61370>
+```
+### `ERROR_TYPES`
+```python
+ERROR_TYPES: dict = { 'numba': 'shap',
+  'pytorch': 'torch',
+  'ray': 'ray',
+  'shap': 'shap',
+  'tensorflow': 'tensorflow',
+  'torch': 'torch'}
+```
 ## `MissingDependency`
 
 Missing Dependency Class

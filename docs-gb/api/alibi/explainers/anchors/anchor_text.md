@@ -1,4 +1,42 @@
 # `alibi.explainers.anchors.anchor_text`
+## Constants
+### `TYPE_CHECKING`
+```python
+TYPE_CHECKING: bool = False
+```
+### `DEFAULT_DATA_ANCHOR`
+```python
+DEFAULT_DATA_ANCHOR: dict = {'anchor': [], 'coverage': None, 'precision': None, 'raw': None}
+```
+### `DEFAULT_META_ANCHOR`
+```python
+DEFAULT_META_ANCHOR: dict = {'explanations': ['local'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.anchors.anchor_text (WARNING)>
+```
+### `DEFAULT_SAMPLING_UNKNOWN`
+```python
+DEFAULT_SAMPLING_UNKNOWN: dict = {'sample_proba': 0.5}
+```
+### `DEFAULT_SAMPLING_SIMILARITY`
+```python
+DEFAULT_SAMPLING_SIMILARITY: dict = {'sample_proba': 0.5, 'temperature': 1.0, 'top_n': 100, 'use_proba': False}
+```
+### `DEFAULT_SAMPLING_LANGUAGE_MODEL`
+```python
+DEFAULT_SAMPLING_LANGUAGE_MODEL: dict = { 'batch_size_lm': 32,
+  'filling': 'parallel',
+  'frac_mask_templates': 0.1,
+  'punctuation': '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~',
+  'sample_proba': 0.5,
+  'sample_punctuation': False,
+  'stopwords': [],
+  'temperature': 1.0,
+  'top_n': 100,
+  'use_proba': False}
+```
 ## `AnchorText`
 
 _Inherits from:_ `Explainer`, `ABC`, `Base`

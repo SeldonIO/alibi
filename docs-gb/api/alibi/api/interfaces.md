@@ -1,4 +1,9 @@
 # `alibi.api.interfaces`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.api.interfaces (WARNING)>
+```
 ## `AlibiPrettyPrinter`
 
 _Inherits from:_ `PrettyPrinter`

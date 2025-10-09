@@ -1,4 +1,13 @@
 # `alibi.utils.approximation_methods`
+## Constants
+### `SUPPORTED_RIEMANN_METHODS`
+```python
+SUPPORTED_RIEMANN_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid']
+```
+### `SUPPORTED_METHODS`
+```python
+SUPPORTED_METHODS: list = ['riemann_left', 'riemann_right', 'riemann_middle', 'riemann_trapezoid', 'gausslegendre']
+```
 ## `Riemann`
 
 _Inherits from:_ `Enum`

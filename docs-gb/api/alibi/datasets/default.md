@@ -1,4 +1,26 @@
 # `alibi.datasets.default`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.datasets.default (WARNING)>
+```
+### `ADULT_URLS`
+```python
+ADULT_URLS: list = [ 'https://storage.googleapis.com/seldon-datasets/adult/adult.data',
+  'https://archive.ics.uci.edu/ml/machine-learning-databases/adult/adult.data',
+  'http://mlr.cs.umass.edu/ml/machine-learning-databases/adult/adult.data']
+```
+### `MOVIESENTIMENT_URLS`
+```python
+MOVIESENTIMENT_URLS: list = [ 'https://storage.googleapis.com/seldon-datasets/sentence_polarity_v1/rt-polaritydata.tar.gz',
+  'http://www.cs.cornell.edu/People/pabo/movie-review-data/rt-polaritydata.tar.gz']
+```
+### `IMAGENET_URLS`
+```python
+IMAGENET_URLS: list = ['https://storage.googleapis.com/seldon-datasets/imagenet10/imagenet10.tar.gz']
+```
+TODO change storage format.
+
 ## Functions
 ### `fetch_adult`
 

@@ -1,4 +1,32 @@
 # `alibi.explainers.pd_variance`
+## Constants
+### `DEFAULT_DATA_PD`
+```python
+DEFAULT_DATA_PD: dict = { 'feature_deciles': None,
+  'feature_names': None,
+  'feature_values': None,
+  'ice_values': None,
+  'pd_values': None}
+```
+### `DEFAULT_DATA_PDVARIANCE`
+```python
+DEFAULT_DATA_PDVARIANCE: dict = { 'conditional_importance': None,
+  'conditional_importance_values': None,
+  'feature_deciles': None,
+  'feature_importance': None,
+  'feature_interaction': None,
+  'feature_names': None,
+  'feature_values': None,
+  'pd_values': None}
+```
+### `DEFAULT_META_PDVARIANCE`
+```python
+DEFAULT_META_PDVARIANCE: dict = {'explanations': ['global'], 'name': None, 'params': {}, 'type': ['blackbox'], 'version': None}
+```
+### `logger`
+```python
+logger: Logger = <Logger alibi.explainers.pd_variance (WARNING)>
+```
 ## `Method`
 
 _Inherits from:_ `str`, `Enum`

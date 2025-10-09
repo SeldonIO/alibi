@@ -1,4 +1,9 @@
 # `alibi.confidence.model_linearity`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.confidence.model_linearity (WARNING)>
+```
 ## `LinearityMeasure`
 
 ### Constructor

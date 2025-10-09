@@ -1,4 +1,9 @@
 # `alibi.confidence.trustscore`
+## Constants
+### `logger`
+```python
+logger: Logger = <Logger alibi.confidence.trustscore (WARNING)>
+```
 ## `TrustScore`
 
 ### Constructor

@@ -642,15 +642,15 @@ def render_module(mod: ModuleType, include_inherited: bool, verbose: bool, repo_
     #     for name, value in constants:
     #         ...
     # Render classes and their subsections
-    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=False)  # Changed want_funcs to False
+    classes, funcs = select_public_members(mod, want_classes=True, want_funcs=True)  # Changed want_funcs back to True
     if classes:
         for name, cls in classes:
             parts.append(render_class(cls, include_inherited=include_inherited, verbose=verbose, repo_root=repo_root, source_url_prefix=source_url_prefix))
-    # Skip rendering module-level functions - commented out the entire functions section
-    # if funcs:
-    #     parts.append("## Functions")
-    #     for name, fn in funcs:
-    #         parts.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
+    # Render module-level functions
+    if funcs:
+        parts.append("## Functions")
+        for name, fn in funcs:
+            parts.append(render_function(name, fn, repo_root=repo_root, source_url_prefix=source_url_prefix))
     return "\n".join(parts).strip() + "\n"
 
 def write_api_summary(all_module_names: List[str], outdir: Path, filename: str = "SUMMARY-API.md"):

@@ -27,3 +27,74 @@ Parameters
 
 **Returns**
 - Type: `numpy.ndarray`
+
+## Functions
+### `generate_empty_condition`
+
+```python
+generate_empty_condition(X: typing.Any) -> None
+```
+
+Empty conditioning.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `typing.Any` |  |  |
+
+**Returns**
+- Type: `None`
+
+### `get_classification_reward`
+
+```python
+get_classification_reward(Y_pred: numpy.ndarray, Y_true: numpy.ndarray)
+```
+
+Computes classification reward per instance given the prediction output and the true label. The classification
+
+reward is a sparse/binary reward: 1 if the most likely classes from the prediction output and the label match,
+0 otherwise.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `Y_pred` | `numpy.ndarray` |  |  |
+| `Y_true` | `numpy.ndarray` |  |  |
+
+### `get_hard_distribution`
+
+```python
+get_hard_distribution(Y: numpy.ndarray, num_classes: Optional[int] = None) -> numpy.ndarray
+```
+
+Constructs the hard label distribution (one-hot encoding).
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `Y` | `numpy.ndarray` |  |  |
+| `num_classes` | `Optional[int]` | `None` |  |
+
+**Returns**
+- Type: `numpy.ndarray`
+
+### `identity_function`
+
+```python
+identity_function(X: typing.Any) -> typing.Any
+```
+
+Identity function.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `typing.Any` |  |  |
+
+**Returns**
+- Type: `typing.Any`

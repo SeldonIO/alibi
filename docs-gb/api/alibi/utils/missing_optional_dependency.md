@@ -30,3 +30,26 @@ MissingDependency(self, object_name: str, err: Union[ModuleNotFoundError, Import
 | Property | Type | Description |
 | -------- | ---- | ----------- |
 | `err_msg` | `` | Generate error message informing user to install missing dependencies. |
+
+## Functions
+### `import_optional`
+
+```python
+import_optional(module_name: str, names: Optional[List[str]] = None) -> typing.Any
+```
+
+Import a module that depends on optional dependencies
+
+Note: This function is used to import modules that depend on optional dependencies. Because it mirrors the python
+import functionality its return type has to be `Any`. Using objects imported with this function can lead to
+misspecification of types as `Any` when the developer intended to be more restrictive.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `module_name` | `str` |  |  |
+| `names` | `Optional[List[str]]` | `None` |  |
+
+**Returns**
+- Type: `typing.Any`

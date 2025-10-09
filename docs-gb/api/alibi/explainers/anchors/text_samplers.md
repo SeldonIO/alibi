@@ -91,7 +91,7 @@ and a `numpy` array of word similarities (``'similarities'``).
 #### `perturb_sentence_similarity`
 
 ```python
-perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'ADV', 'NOUN', 'VERB', 'ADP', 'DET', 'ADJ'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
+perturb_sentence_similarity(present: tuple, n: int, sample_proba: float = 0.5, forbidden: frozenset = frozenset(), forbidden_tags: frozenset = frozenset({'PRP$'}), forbidden_words: frozenset = frozenset({'be'}), temperature: float = 1.0, pos: frozenset = frozenset({'NOUN', 'DET', 'ADJ', 'ADV', 'ADP', 'VERB'}), use_proba: bool = False, kwargs) -> Tuple[numpy.ndarray, numpy.ndarray]
 ```
 
 Perturb the text instance to be explained.
@@ -107,7 +107,7 @@ Parameters
 | `forbidden_tags` | `frozenset` | `frozenset({'PRP$'})` |  |
 | `forbidden_words` | `frozenset` | `frozenset({'be'})` |  |
 | `temperature` | `float` | `1.0` |  |
-| `pos` | `frozenset` | `frozenset({'ADV', 'NOUN', 'VERB', 'ADP', 'DET', 'ADJ'})` |  |
+| `pos` | `frozenset` | `frozenset({'NOUN', 'DET', 'ADJ', 'ADV', 'ADP', 'VERB'})` |  |
 | `use_proba` | `bool` | `False` |  |
 
 **Returns**
@@ -195,3 +195,21 @@ Parameters
 
 **Returns**
 - Type: `None`
+
+## Functions
+### `load_spacy_lexeme_prob`
+
+```python
+load_spacy_lexeme_prob(nlp: spacy.language.Language) -> spacy.language.Language
+```
+
+This utility function loads the `lexeme_prob` table for a spacy model if it is not present.
+
+This is required to enable support for different spacy versions.
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `nlp` | `spacy.language.Language` |  |  |
+
+**Returns**
+- Type: `spacy.language.Language`

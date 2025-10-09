@@ -235,3 +235,55 @@ Parameters
 
 **Returns**
 - Type: `None`
+
+## Functions
+### `rank_by_importance`
+
+```python
+rank_by_importance(shap_values: List[numpy.ndarray], feature_names: Union[List[str], Tuple[str], None] = None) -> Dict
+```
+
+Given the shap values estimated for a multi-output model, this function ranks
+
+features according to their importance. The feature importance is the average
+absolute value for a given feature.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `shap_values` | `List[numpy.ndarray]` |  |  |
+| `feature_names` | `Union[List[str], Tuple[str], None]` | `None` |  |
+
+**Returns**
+- Type: `Dict`
+
+### `sum_categories`
+
+```python
+sum_categories(values: numpy.ndarray, start_idx: Sequence[int], enc_feat_dim: Sequence[int])
+```
+
+This function is used to reduce specified slices in a two- or three- dimensional array.
+
+For two-dimensional `values` arrays, for each entry in `start_idx`, the function sums the
+following `k` columns where `k` is the corresponding entry in the `enc_feat_dim` sequence.
+The columns whose indices are not in `start_idx` are left unchanged. This arises when the slices
+contain the shap values for each dimension of an encoded categorical variable and a single shap
+value for each variable is desired.
+
+For three-dimensional `values` arrays, the reduction is applied for each rank 2 subarray, first along
+the column dimension and then across the row dimension. This arises when summarising shap interaction values.
+Each rank 2 array is a `E x E` matrix of shap interaction values, where `E` is the dimension of the data after
+one-hot encoding. The result of applying the reduction yields a rank 2 array of dimension `F x F`, where `F` is the
+number of features (i.e., the feature dimension of the data matrix before encoding). By applying this
+transformation, a single value describing the interaction of categorical features i and j and a single value
+describing the interaction of `j` and `i` is returned.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `values` | `numpy.ndarray` |  |  |
+| `start_idx` | `Sequence[int]` |  |  |
+| `enc_feat_dim` | `Sequence[int]` |  |  |

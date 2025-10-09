@@ -161,3 +161,38 @@ Parameters
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
+
+## Functions
+### `plot_pd`
+
+```python
+plot_pd(exp: alibi.api.interfaces.Explanation, features: Union[List[int], Literal[all]] = 'all', target: Union[str, int] = 0, n_cols: int = 3, n_ice: Union[Literal[all], int, List[int]] = 100, center: bool = False, pd_limits: Optional[Tuple[float, float]] = None, levels: int = 8, ax: Union[ForwardRef('plt.Axes'), numpy.ndarray, None] = None, sharey: Optional[Literal[all, row]] = 'all', pd_num_kw: Optional[dict] = None, ice_num_kw: Optional[dict] = None, pd_cat_kw: Optional[dict] = None, ice_cat_kw: Optional[dict] = None, pd_num_num_kw: Optional[dict] = None, pd_num_cat_kw: Optional[dict] = None, pd_cat_cat_kw: Optional[dict] = None, fig_kw: Optional[dict] = None) -> np.ndarray
+```
+
+Plot partial dependence curves on matplotlib axes.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `exp` | `alibi.api.interfaces.Explanation` |  |  |
+| `features` | `Union[List[int], Literal[all]]` | `'all'` |  |
+| `target` | `Union[str, int]` | `0` |  |
+| `n_cols` | `int` | `3` |  |
+| `n_ice` | `Union[Literal[all], int, List[int]]` | `100` |  |
+| `center` | `bool` | `False` |  |
+| `pd_limits` | `Optional[Tuple[float, float]]` | `None` |  |
+| `levels` | `int` | `8` |  |
+| `ax` | `Union[ForwardRef('plt.Axes'), numpy.ndarray, None]` | `None` |  |
+| `sharey` | `Optional[Literal[all, row]]` | `'all'` |  |
+| `pd_num_kw` | `Optional[dict]` | `None` |  |
+| `ice_num_kw` | `Optional[dict]` | `None` |  |
+| `pd_cat_kw` | `Optional[dict]` | `None` |  |
+| `ice_cat_kw` | `Optional[dict]` | `None` |  |
+| `pd_num_num_kw` | `Optional[dict]` | `None` |  |
+| `pd_num_cat_kw` | `Optional[dict]` | `None` |  |
+| `pd_cat_cat_kw` | `Optional[dict]` | `None` |  |
+| `fig_kw` | `Optional[dict]` | `None` |  |
+
+**Returns**
+- Type: `np.ndarray`

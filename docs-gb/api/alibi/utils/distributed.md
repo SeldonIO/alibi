@@ -275,3 +275,97 @@ Parameters
 ## `ResourceError`
 
 _Inherits from:_ `Exception`, `BaseException`
+
+## Functions
+### `batch`
+
+```python
+batch(X: numpy.ndarray, batch_size: Optional[int] = None, n_batches: int = 4) -> List[numpy.ndarray]
+```
+
+Splits the input into sub-arrays.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `X` | `numpy.ndarray` |  |  |
+| `batch_size` | `Optional[int]` | `None` |  |
+| `n_batches` | `int` | `4` |  |
+
+**Returns**
+- Type: `List[numpy.ndarray]`
+
+### `concatenate_minibatches`
+
+```python
+concatenate_minibatches(minibatch_results: Union[List[numpy.ndarray], List[List[numpy.ndarray]]]) -> Union[numpy.ndarray, List[numpy.ndarray]]
+```
+
+Merges the explanations computed on minibatches so that the distributed explainer returns the same output as the
+
+sequential version. If the type returned by the explainer is not supported by the function, expand this function
+by adding an appropriately named private function and use this function to check the input type and call it.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `minibatch_results` | `Union[List[numpy.ndarray], List[List[numpy.ndarray]]]` |  |  |
+
+**Returns**
+- Type: `Union[numpy.ndarray, List[numpy.ndarray]]`
+
+### `default_target_fcn`
+
+```python
+default_target_fcn(actor: typing.Any, instances: tuple, kwargs: Optional[Dict] = None)
+```
+
+A target function that is executed in parallel given an actor pool. Its arguments must be an actor and a batch of
+
+values to be processed by the actor. Its role is to execute distributed computations when an actor is available.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `actor` | `typing.Any` |  |  |
+| `instances` | `tuple` |  |  |
+| `kwargs` | `Optional[Dict]` | `None` |  |
+
+### `invert_permutation`
+
+```python
+invert_permutation(p: list) -> numpy.ndarray
+```
+
+Inverts a permutation.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `p` | `list` |  |  |
+
+**Returns**
+- Type: `numpy.ndarray`
+
+### `order_result`
+
+```python
+order_result(unordered_result: Generator[Tuple[int, typing.Any], None, None]) -> List[Any]
+```
+
+Re-orders the result of a distributed explainer so that the explanations follow the same order as the input to
+
+the explainer.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `unordered_result` | `Generator[Tuple[int, typing.Any], None, None]` |  |  |
+
+**Returns**
+- Type: `List[Any]`

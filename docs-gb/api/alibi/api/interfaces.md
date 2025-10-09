@@ -212,3 +212,13 @@ summarise(num_prototypes: int) -> alibi.api.interfaces.Explanation
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
+
+## Functions
+### `default_meta`
+
+```python
+default_meta() -> dict
+```
+
+**Returns**
+- Type: `dict`

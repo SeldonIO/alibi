@@ -59,3 +59,30 @@ Parameters
 
 **Returns**
 - Type: `alibi.api.interfaces.Explanation`
+
+## Functions
+### `plot_pd_variance`
+
+```python
+plot_pd_variance(exp: alibi.api.interfaces.Explanation, features: Union[List[int], Literal[all]] = 'all', targets: Union[List[Union[str, int]], Literal[all]] = 'all', summarise: bool = True, n_cols: int = 3, sort: bool = True, top_k: Optional[int] = None, plot_limits: Optional[Tuple[float, float]] = None, ax: Union[matplotlib.axes._axes.Axes, numpy.ndarray, None] = None, sharey: Optional[Literal[all, row]] = 'all', bar_kw: Optional[dict] = None, line_kw: Optional[dict] = None, fig_kw: Optional[dict] = None)
+```
+
+Plot feature importance and feature interaction based on partial dependence curves on `matplotlib` axes.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `exp` | `alibi.api.interfaces.Explanation` |  |  |
+| `features` | `Union[List[int], Literal[all]]` | `'all'` |  |
+| `targets` | `Union[List[Union[str, int]], Literal[all]]` | `'all'` |  |
+| `summarise` | `bool` | `True` |  |
+| `n_cols` | `int` | `3` |  |
+| `sort` | `bool` | `True` |  |
+| `top_k` | `Optional[int]` | `None` |  |
+| `plot_limits` | `Optional[Tuple[float, float]]` | `None` |  |
+| `ax` | `Union[matplotlib.axes._axes.Axes, numpy.ndarray, None]` | `None` |  |
+| `sharey` | `Optional[Literal[all, row]]` | `'all'` |  |
+| `bar_kw` | `Optional[dict]` | `None` |  |
+| `line_kw` | `Optional[dict]` | `None` |  |
+| `fig_kw` | `Optional[dict]` | `None` |  |

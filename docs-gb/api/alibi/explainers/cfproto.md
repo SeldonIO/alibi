@@ -186,3 +186,12 @@ Parameters
 
 **Returns**
 - Type: `float`
+
+## Functions
+### `CounterFactualProto`
+
+```python
+CounterFactualProto(args, kwargs)
+```
+
+The class name `CounterFactualProto` is deprecated, please use `CounterfactualProto`.

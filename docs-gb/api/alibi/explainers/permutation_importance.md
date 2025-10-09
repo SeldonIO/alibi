@@ -83,3 +83,29 @@ Parameters
 
 **Returns**
 - Type: `None`
+
+## Functions
+### `plot_permutation_importance`
+
+```python
+plot_permutation_importance(exp: alibi.api.interfaces.Explanation, features: Union[List[int], Literal[all]] = 'all', metric_names: Union[List[Union[str, int]], Literal[all]] = 'all', n_cols: int = 3, sort: bool = True, top_k: Optional[int] = None, ax: Union[ForwardRef('plt.Axes'), numpy.ndarray, None] = None, bar_kw: Optional[dict] = None, fig_kw: Optional[dict] = None) -> plt.Axes
+```
+
+Plot permutation feature importance on `matplotlib` axes.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `exp` | `alibi.api.interfaces.Explanation` |  |  |
+| `features` | `Union[List[int], Literal[all]]` | `'all'` |  |
+| `metric_names` | `Union[List[Union[str, int]], Literal[all]]` | `'all'` |  |
+| `n_cols` | `int` | `3` |  |
+| `sort` | `bool` | `True` |  |
+| `top_k` | `Optional[int]` | `None` |  |
+| `ax` | `Union[ForwardRef('plt.Axes'), numpy.ndarray, None]` | `None` |  |
+| `bar_kw` | `Optional[dict]` | `None` |  |
+| `fig_kw` | `Optional[dict]` | `None` |  |
+
+**Returns**
+- Type: `plt.Axes`

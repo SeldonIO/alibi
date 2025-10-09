@@ -83,3 +83,12 @@ Parameters
 
 **Returns**
 - Type: `None`
+
+## Functions
+### `CounterFactual`
+
+```python
+CounterFactual(args, kwargs)
+```
+
+The class name `CounterFactual` is deprecated, please use `Counterfactual`.

@@ -184,3 +184,22 @@ Parameters
 
 **Returns**
 - Type: `Tuple[numpy.ndarray, numpy.ndarray]`
+
+## Functions
+### `scale_image`
+
+```python
+scale_image(image: numpy.ndarray, scale: tuple = (0, 255)) -> numpy.ndarray
+```
+
+Scales an image in a specified range.
+
+Parameters
+
+| Name | Type | Default | Description |
+| ---- | ---- | ------- | ----------- |
+| `image` | `numpy.ndarray` |  |  |
+| `scale` | `tuple` | `(0, 255)` |  |
+
+**Returns**
+- Type: `numpy.ndarray`
